@@ -70,6 +70,7 @@ using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Services;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services.Sources;
@@ -461,6 +462,8 @@ try
     builder.Services.AddScoped<PayrollSalaryStructureAllowanceService>();
     // Tunjangan Pegawai pada Detail Profil Penggajian: penetapan tunjangan tetap khusus satu pegawai berbasis Master Tunjangan (PrlWorkforceAllowance).
     builder.Services.AddScoped<PayrollWorkforceAllowanceService>();
+    // Alokasi kode kebijakan tunjangan (SAP/OAP/HAP-RSMMC) lewat NumberSeriesAllocator (QBE-CODE-002/006).
+    builder.Services.AddScoped<AllowancePolicyCodeService>();
     // PAY-BE-19: penghasilan variabel manual per run (VI-01..VI-09, VI-12); nomor PVI dari NumberSeriesAllocator.
     builder.Services.AddScoped<PayrollVariableInputService>();
     // PAY-BE-21: simulasi payroll di transaksi yang selalu dibatalkan (SIM-01..SIM-03); tanpa impor HR, Finance, number series.

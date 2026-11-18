@@ -6,7 +6,9 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceA
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -43,20 +45,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 "PercentageOfBaseSalary"
             };
 
-        private const string CodePrefix = "OAP-RSMMC-";
-        private const int CodeNumberLength = 5;
-        private const int MaxCodeGenerationAttempts = 3;
         private const string LogCategory = "Corporate.PayrollManagement.MasterData";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly AllowancePolicyCodeService _allowancePolicyCodeService;
 
         public OnCallAllowancePolicyController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            AllowancePolicyCodeService allowancePolicyCodeService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _allowancePolicyCodeService = allowancePolicyCodeService;
         }
 
         [HttpGet("filters/metadata")]
@@ -398,27 +400,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 await UnsetOtherDefaultAsync(entity.Id, entity.AllowanceTypeId, now, actor);
             }
 
-            for (var attempt = 1; attempt <= MaxCodeGenerationAttempts; attempt++)
+            try
             {
-                entity.OnCallAllowancePolicyCode = await GenerateCodeAsync();
-                _dbContext.Set<MstOnCallAllowancePolicy>().Add(entity);
+                entity.OnCallAllowancePolicyCode = await _allowancePolicyCodeService.AllocateOnCallPolicyCodeAsync(actor);
+            }
+            catch (NumberSeriesAllocationException)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Kode kebijakan tunjangan on call gagal diterbitkan. Hubungi administrator sistem."));
+            }
 
-                try
-                {
-                    await _dbContext.SaveChangesAsync();
-                    break;
-                }
-                catch (DbUpdateException ex) when (IsPolicyCodeUniqueViolation(ex) && attempt < MaxCodeGenerationAttempts)
-                {
-                    _dbContext.Entry(entity).State = EntityState.Detached;
-                }
-                catch (DbUpdateException ex)
-                {
-                    await TryLogErrorAsync("OnCallAllowancePolicy.Create", "Gagal menyimpan on call allowance policy.", ex, new { entity.Id, entity.OnCallAllowancePolicyCode });
-                    var mapped = TryMapDatabaseException(ex);
-                    if (mapped != null) return mapped;
-                    throw;
-                }
+            _dbContext.Set<MstOnCallAllowancePolicy>().Add(entity);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                await TryLogErrorAsync("OnCallAllowancePolicy.Create", "Gagal menyimpan on call allowance policy.", ex, new { entity.Id, entity.OnCallAllowancePolicyCode });
+                var mapped = TryMapDatabaseException(ex);
+                if (mapped != null) return mapped;
+                throw;
             }
 
             return Ok(ApiResponse<object>.Ok(
@@ -707,17 +711,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, message));
         }
 
-        private static bool IsPolicyCodeUniqueViolation(DbUpdateException exception)
-        {
-            var pgException = exception.InnerException as PostgresException
-                ?? exception.GetBaseException() as PostgresException;
-
-            return pgException != null &&
-                pgException.SqlState == PostgresErrorCodes.UniqueViolation &&
-                !string.IsNullOrWhiteSpace(pgException.ConstraintName) &&
-                pgException.ConstraintName.Contains("OnCallAllowancePolicyCode", StringComparison.OrdinalIgnoreCase);
-        }
-
         private IActionResult? TryMapDatabaseException(DbUpdateException exception)
         {
             var pgException = exception.InnerException as PostgresException
@@ -783,28 +776,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 row.UpdateDateTime = now;
                 row.UpdateBy = actor;
             }
-        }
-
-        private async Task<string> GenerateCodeAsync()
-        {
-            var codes = await _dbContext.Set<MstOnCallAllowancePolicy>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete && x.OnCallAllowancePolicyCode.StartsWith(CodePrefix))
-                .Select(x => x.OnCallAllowancePolicyCode)
-                .ToListAsync();
-
-            var used = codes
-                .Select(x => x.Replace(CodePrefix, string.Empty))
-                .Where(x => int.TryParse(x, out _))
-                .Select(int.Parse)
-                .ToHashSet();
-
-            var next = 1;
-
-            while (used.Contains(next))
-                next++;
-
-            return CodePrefix + next.ToString().PadLeft(CodeNumberLength, '0');
         }
 
         private Guid GetCurrentUserId()

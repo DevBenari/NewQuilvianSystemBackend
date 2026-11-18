@@ -6,7 +6,9 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceA
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -41,20 +43,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 "PercentageOfBaseSalary"
             };
 
-        private const string CodePrefix = "SAP-RSMMC-";
-        private const int CodeNumberLength = 5;
-        private const int MaxCodeGenerationAttempts = 3;
         private const string LogCategory = "Corporate.PayrollManagement.MasterData";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly AllowancePolicyCodeService _allowancePolicyCodeService;
 
         public ShiftAllowancePolicyController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            AllowancePolicyCodeService allowancePolicyCodeService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _allowancePolicyCodeService = allowancePolicyCodeService;
         }
 
         [HttpGet("filters/metadata")]
@@ -403,27 +405,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 await UnsetOtherDefaultAsync(entity.Id, entity.AllowanceTypeId, now, actor);
             }
 
-            for (var attempt = 1; attempt <= MaxCodeGenerationAttempts; attempt++)
+            try
             {
-                entity.ShiftAllowancePolicyCode = await GenerateCodeAsync();
-                _dbContext.Set<MstShiftAllowancePolicy>().Add(entity);
+                entity.ShiftAllowancePolicyCode = await _allowancePolicyCodeService.AllocateShiftPolicyCodeAsync(actor);
+            }
+            catch (NumberSeriesAllocationException)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Kode kebijakan tunjangan shift gagal diterbitkan. Hubungi administrator sistem."));
+            }
 
-                try
-                {
-                    await _dbContext.SaveChangesAsync();
-                    break;
-                }
-                catch (DbUpdateException ex) when (IsPolicyCodeUniqueViolation(ex) && attempt < MaxCodeGenerationAttempts)
-                {
-                    _dbContext.Entry(entity).State = EntityState.Detached;
-                }
-                catch (DbUpdateException ex)
-                {
-                    await TryLogErrorAsync("ShiftAllowancePolicy.Create", "Gagal menyimpan shift allowance policy.", ex, new { entity.Id, entity.ShiftAllowancePolicyCode });
-                    var mapped = TryMapDatabaseException(ex);
-                    if (mapped != null) return mapped;
-                    throw;
-                }
+            _dbContext.Set<MstShiftAllowancePolicy>().Add(entity);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                await TryLogErrorAsync("ShiftAllowancePolicy.Create", "Gagal menyimpan shift allowance policy.", ex, new { entity.Id, entity.ShiftAllowancePolicyCode });
+                var mapped = TryMapDatabaseException(ex);
+                if (mapped != null) return mapped;
+                throw;
             }
 
             return Ok(ApiResponse<object>.Ok(
@@ -715,17 +719,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, message));
         }
 
-        private static bool IsPolicyCodeUniqueViolation(DbUpdateException exception)
-        {
-            var pgException = exception.InnerException as PostgresException
-                ?? exception.GetBaseException() as PostgresException;
-
-            return pgException != null &&
-                pgException.SqlState == PostgresErrorCodes.UniqueViolation &&
-                !string.IsNullOrWhiteSpace(pgException.ConstraintName) &&
-                pgException.ConstraintName.Contains("ShiftAllowancePolicyCode", StringComparison.OrdinalIgnoreCase);
-        }
-
         private IActionResult? TryMapDatabaseException(DbUpdateException exception)
         {
             var pgException = exception.InnerException as PostgresException
@@ -791,28 +784,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 row.UpdateDateTime = now;
                 row.UpdateBy = actor;
             }
-        }
-
-        private async Task<string> GenerateCodeAsync()
-        {
-            var codes = await _dbContext.Set<MstShiftAllowancePolicy>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete && x.ShiftAllowancePolicyCode.StartsWith(CodePrefix))
-                .Select(x => x.ShiftAllowancePolicyCode)
-                .ToListAsync();
-
-            var used = codes
-                .Select(x => x.Replace(CodePrefix, string.Empty))
-                .Where(x => int.TryParse(x, out _))
-                .Select(int.Parse)
-                .ToHashSet();
-
-            var next = 1;
-
-            while (used.Contains(next))
-                next++;
-
-            return CodePrefix + next.ToString().PadLeft(CodeNumberLength, '0');
         }
 
         private Guid GetCurrentUserId()
