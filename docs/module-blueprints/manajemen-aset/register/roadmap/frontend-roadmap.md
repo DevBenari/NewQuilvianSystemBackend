@@ -51,9 +51,9 @@ FE-AST-004 ✅┬─────────────────────
             │
             │  BE-AST-009 [BE] ✅ ─┐
             │                     │
-            ├─────────────────────┴─> FE-AST-006 ───────────┐
+            ├─────────────────────┴─> FE-AST-006 ✅ ────────┐
             │                                               │
-            │    BE-AST-010 [BE] ─┐                         │
+            │  BE-AST-010 [BE] ✅ ─┐                        │
             │                     │                         │
             ├─────────────────────┴─> FE-AST-007 ─────────┐ │
             │                                             │ │
@@ -130,11 +130,11 @@ Pasangan prasyarat→task: **18** (7 pada `REG-FE-S1`, 11 pada `REG-FE-S2`).
 | **Status** | ✅ **SELESAI 17 November 2026.** Layar Label Aset (`register/labels`: saringan unit, kelompok, tanggal disetujui dari/sampai; centang per baris/halaman, pilihan lintas halaman maks 200; **Cetak Label (n)** → PDF backend di tab baru, cadangan unduh bila diblokir), tombol Cetak Label di Detail Aset, layar pindai nomor beralih ke `GET /by-number` (403 unit lain tampil sebagai Akses Ditolak), butir menu "Label Aset". Kedua kriteria terpetakan ke source. `npx eslint --max-warnings=0` 12 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-17 11:04:19, route `register/labels`). Uji layar Playwright **22/22 langkah** dengan superadmin, penyetuju tanpa `ReadAllUnits`, dan LOKET; 0 galat halaman, 0 respons 5xx; cetak 26 aset lintas halaman → PDF 114.850 byte di tab `blob:`. Butuh tambalan daftar `BE-AST-007` (`approvedFrom`/`approvedTo`, `ApprovedAt`), build Rizki berhasil. Belum di-commit. Laporan: [`FE-AST-005.md`](../task/report/frontend/FE-AST-005.md) |
 | Acceptance criteria | 1. Pilih aset → PDF backend terbuka di tab baru. 2. Butir menu "Label Aset" terdaftar |
 
-### `FE-AST-006` — Penempatan dan berita acara penyerahan
+### ✅ `FE-AST-006` — Penempatan dan berita acara penyerahan
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 November 2026.** Layar Berita Acara Penyerahan (kartu ringkasan, tab status + "Menunggu Konfirmasi Anda (n)", saringan tujuan/unit/tanggal, aksi baris sesuai `availableActions`), Serahkan Aset (tujuan, unit → ruangan milik unit → pegawai PJ; pemilih aset lintas halaman maks 200, aset terkunci/hilang tidak dapat dipilih), rincian (Konfirmasi Terima, Tolak Terima, Batalkan beralasan, Cetak Berita Acara), dan tiga layar penempatan (per unit/ruangan, penanggung jawab, riwayat); grup menu "Penempatan & Tanggung Jawab Aset" 4 butir. Keempat kriteria terpetakan ke source; tanpa perubahan backend. `npx eslint --max-warnings=0` 27 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-17 15:31:36, 6 route `placement`). Uji layar Playwright **29/29 langkah** dengan penyerah (superadmin), penerima (Dimas), penyetuju tanpa hak, dan LOKET; 0 galat halaman, 0 respons 5xx. Dua perbaikan tampilan sesudah uji (footer tabel butir, lebar kolom Riwayat/daftar) lulus lint, rupanya dilihat sesudah build berikutnya. Penanda untuk Kepala Unit tujuan memakai jalur data yang sama, tetapi DB dev belum punya penugasan manajerial aktif. Belum di-commit. Laporan: [`FE-AST-006.md`](../task/report/frontend/FE-AST-006.md) |
 | Acceptance criteria | 1. `SCR-AST-REG-18..21`. 2. Kepala Unit melihat penanda "menunggu konfirmasi Anda". 3. Konfirmasi/tolak hanya bagi penerima yang dituju. 4. Cetak berita acara |
 
 ### `FE-AST-007` — Kondisi dan status

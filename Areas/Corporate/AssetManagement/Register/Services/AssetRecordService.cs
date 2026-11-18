@@ -171,6 +171,23 @@ public static class AssetRegisterLabels
         _ => value.ToString()
     };
 
+    public static string ConditionReportStatus(ConditionReportStatus value) => value switch
+    {
+        Enums.ConditionReportStatus.Dilaporkan => "Dilaporkan",
+        Enums.ConditionReportStatus.Ditetapkan => "Ditetapkan",
+        Enums.ConditionReportStatus.Ditolak => "Ditolak",
+        _ => value.ToString()
+    };
+
+    public static string ConditionReportSource(ConditionReportSource value) => value switch
+    {
+        Enums.ConditionReportSource.LaporanUnit => "Laporan Unit",
+        Enums.ConditionReportSource.PemeriksaanBagianAset => "Pemeriksaan Bagian Aset",
+        Enums.ConditionReportSource.PengembalianPinjaman => "Pengembalian Pinjaman",
+        Enums.ConditionReportSource.TindakLanjutOpname => "Tindak Lanjut Opname",
+        _ => value.ToString()
+    };
+
     public static string AcquisitionType(AssetAcquisitionType value) => value switch
     {
         AssetAcquisitionType.Pembelian => "Pembelian",

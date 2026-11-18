@@ -44,7 +44,7 @@ BE-AST-015 [NLI] 🟡 ─┬─> BE-AST-007 ✅ ─┬─> BE-AST-008 ✅
                                         │               │
                                         │               └──────┐
                                         │                      │
-                                        └─> BE-AST-010 ────────┴─> BE-AST-013
+                                        └─> BE-AST-010 ✅ ─────┴─> BE-AST-013
 ```
 
 `[NLI]` = task backend sub-modul `nilai` pada `../../nilai/roadmap/backend-roadmap.md`, cermin baca-saja.
@@ -68,7 +68,7 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
 | `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | ✅ `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` ✅ 2026-11-16; `BE-AST-005` ✅ 2026-11-16; `BE-AST-006` ✅ 2026-11-16 |
-| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` ✅ 2026-11-17; `BE-AST-009` ✅ 2026-11-17; `BE-AST-010` s.d. `013` belum dikerjakan |
+| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` ✅ 2026-11-17; `BE-AST-009` ✅ 2026-11-17; `BE-AST-010` ✅ 2026-11-18; `BE-AST-011` s.d. `013` belum dikerjakan |
 
 ## Tabel task
 
@@ -164,11 +164,11 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Cakupan | `AssetPlacementService` (termasuk `ApplyPlacement` untuk `pergerakan`), `AssetHandoversController`, `AssetPlacementsController`, PDF Berita Acara Penyerahan |
 | Acceptance criteria | 1. Matriks state §4 lengkap. 2. Penempatan berubah hanya saat konfirmasi penerima yang dituju. 3. `PindahDalamUnit` hanya di unit yang sama. 4. Kunci proses dipasang/dilepas. 5. Berita acara memuat nama, jabatan, waktu (`AST-DEC-046`). 6. Pemeriksaan unit sedang opname (`AST-VAL-REG-026`) disiapkan sebagai titik panggil yang diisi `BE-AST-021` |
 
-### `BE-AST-010` — Laporan dan penetapan kondisi
+### ✅ `BE-AST-010` — Laporan dan penetapan kondisi
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 18 November 2026.** `AssetConditionService` (lapor, tetapkan/tolak, setujui hilang, `OpenReportAsync` untuk sub-modul lain), `AssetConditionReportsController` (9 endpoint: 6 kontrak 2.11 + `filters/metadata`, `summary`, unduh lampiran), PDF Berita Acara Kehilangan. Kelima kriteria terpetakan ke source; QBE Strict 10 berkas `PASS` 0 temuan; nol baris komentar; `dotnet build` Rizki berhasil (DLL 08:48:58). Uji runtime **34/34** (`AT-REG-06`, `07`, `39`, `40` lulus) + 2 pemeriksaan tambahan (Hilang lewat `decide` → 400; sumber Pemeriksaan Bagian Aset tanpa `Decide` → 403, policy uji dipulihkan); PDF diperiksa visual. `OpenReportAsync` belum teruji runtime karena pemanggilnya (`BE-AST-018`, `inventarisasi`) belum ada. Delta kontrak dicatat di laporan. Belum di-commit. Laporan: [`BE-AST-010.md`](../task/report/backend/BE-AST-010.md) |
 | Cakupan | `AssetConditionService` (termasuk `OpenReport` untuk sub-modul lain), controller, PDF Berita Acara Kehilangan |
 | Acceptance criteria | 1. Matriks state §2–3. 2. Foto wajib dari unit. 3. Hilang butuh berita acara dan Kepala Bagian Aset bukan pelapor. 4. Satu laporan terbuka per aset. 5. Linimasa `KondisiBerubah` |
 

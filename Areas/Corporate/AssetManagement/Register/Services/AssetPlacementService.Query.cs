@@ -401,7 +401,7 @@ public sealed partial class AssetPlacementService
         }
     }
 
-    private static AssetMasterOptionSourceResponse EnumOptions<TEnum>(string name, string label, IEnumerable<TEnum> values, Func<TEnum, string> describe)
+    internal static AssetMasterOptionSourceResponse EnumOptions<TEnum>(string name, string label, IEnumerable<TEnum> values, Func<TEnum, string> describe)
         where TEnum : struct, Enum => new()
     {
         Name = name,

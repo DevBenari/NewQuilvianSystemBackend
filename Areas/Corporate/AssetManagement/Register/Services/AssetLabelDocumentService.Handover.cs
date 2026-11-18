@@ -115,13 +115,16 @@ public sealed partial class AssetLabelDocumentService
     }
 
     private static void ComposeApproval(IContainer container, string title, AssetHandoverActorResponse? step) =>
+        ComposeSignature(container, title, step?.Name, step?.PositionName, step?.At);
+
+    private static void ComposeSignature(IContainer container, string title, string? name, string? positionName, DateTime? at) =>
         container.Border(0.75f).BorderColor(Colors.Grey.Lighten1).Padding(8).Column(column =>
         {
             column.Spacing(3);
             column.Item().Text(title).FontColor(Colors.Grey.Darken2);
-            column.Item().PaddingTop(4).Text(step?.Name ?? "-").Bold();
-            column.Item().Text(step?.PositionName ?? "Jabatan tidak tercatat");
-            column.Item().Text(step == null ? "-" : FormatReportTime(step.At));
+            column.Item().PaddingTop(4).Text(name ?? "-").Bold();
+            column.Item().Text(positionName ?? "Jabatan tidak tercatat");
+            column.Item().Text(at is { } value ? FormatReportTime(value) : "-");
         });
 
     private static string FormatReportTime(DateTime utc)
