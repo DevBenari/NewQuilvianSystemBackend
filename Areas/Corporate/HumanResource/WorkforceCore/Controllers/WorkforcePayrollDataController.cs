@@ -50,16 +50,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             return Guid.TryParse(value, out var id) ? id : Guid.Empty;
         }
 
-        [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse<PagedResult<WorkforcePayrollDataItemResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Workforce Payroll Data", Description = "Melihat kelengkapan penetapan gaji utama dan rekening payroll karyawan, perawat, dan dokter", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("WorkforcePayrollData", "Read")]
-        public async Task<IActionResult> List([FromQuery] WorkforcePayrollDataQuery query, CancellationToken cancellationToken)
-        {
-            var result = await _service.ListAsync(query, cancellationToken);
-            return Ok(ApiResponse<PagedResult<WorkforcePayrollDataItemResponse>>.Ok(result, "Data penggajian berhasil dimuat."));
-        }
-
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<WorkforcePayrollDataSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Workforce Payroll Data", Description = "Melihat kelengkapan penetapan gaji utama dan rekening payroll karyawan, perawat, dan dokter", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -70,7 +60,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             return Ok(ApiResponse<WorkforcePayrollDataSummaryResponse>.Ok(result, "Ringkasan data penggajian berhasil dimuat."));
         }
 
-        /// <summary>Isian satu orang untuk diubah, termasuk gaji pokok dan nomor rekening lengkap.</summary>
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<WorkforcePayrollDataItemResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Workforce Payroll Data", Description = "Melihat kelengkapan penetapan gaji utama dan rekening payroll karyawan, perawat, dan dokter", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforcePayrollData", "Read")]
+        public async Task<IActionResult> List([FromQuery] WorkforcePayrollDataQuery query, CancellationToken cancellationToken)
+        {
+            var result = await _service.ListAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<WorkforcePayrollDataItemResponse>>.Ok(result, "Data penggajian berhasil dimuat."));
+        }
+
         [HttpGet("{workforceProfileId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<WorkforcePayrollDataDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -89,13 +88,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             }
         }
 
-        /// <summary>
-        /// Menyimpan penetapan gaji utama dan/atau rekening payroll satu orang. Bagian yang null tidak disentuh. Bila ada isian yang
-        /// ditolak, tidak ada yang tersimpan.
-        /// </summary>
         [HttpPut("{workforceProfileId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<WorkforcePayrollDataSaveResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Workforce Payroll Data", Description = "Memuat dan mengubah penetapan gaji utama dan rekening payroll satu orang", AccessType = AccessTypes.Update, SortOrder = 2)]
         [AccessPermission("WorkforcePayrollData", "Update")]

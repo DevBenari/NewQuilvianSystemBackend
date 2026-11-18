@@ -763,16 +763,49 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             await SoftDeleteProcessorSegmentsAsync(daily.Id, actorUserId, cancellationToken);
 
+            // HRD-DEC-200, 35.9.4 butir 7: dispensasi Approved pegawai pada tanggal ini mengurangi menit terlambat dan
+            // pulang cepat yang tercakup rentangnya. Log mesin tidak diubah (INV-A52-07).
+            var approvedDispensation = AttendanceValueConstants.DispensationStatus.Approved;
+            var dispensations = await _dbContext.Set<HrdAttendanceDispensation>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.WorkforceProfileId == workforce.WorkforceProfileId &&
+                    x.AttendanceDate == workDate &&
+                    x.Status == approvedDispensation &&
+                    !x.IsDelete)
+                .Select(x => new DispensationWindow(x.DispensationType, x.StartAt, x.EndAt))
+                .ToListAsync(cancellationToken);
+
+            // HRD-DEC-201, 35.9.4 butir 1: tugas belajar Active pada tanggal ini mendahului semua status lain.
+            var activeStudy = AttendanceValueConstants.StudyAssignmentStatus.Active;
+            var onStudyAssignment = await _dbContext.Set<HrdStudyAssignment>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.WorkforceProfileId == workforce.WorkforceProfileId &&
+                    x.Status == activeStudy &&
+                    !x.IsDelete &&
+                    x.StartDate <= workDate &&
+                    x.EndDate >= workDate,
+                    cancellationToken);
+
             var punchResult = BuildPunchResult(rawLogs, schedule, policy);
             var processedAtUtc = DateTime.UtcNow;
-            ApplyPunchResult(daily, punchResult, schedule, policy, ruleSetting, processedAtUtc);
+            ApplyPunchResult(daily, punchResult, schedule, policy, ruleSetting, processedAtUtc, dispensations);
+            if (onStudyAssignment)
+            {
+                ApplyStudyAssignment(daily);
+            }
 
-            var desiredExceptions = BuildExceptions(
-                daily,
-                rawLogs,
-                schedule,
-                policy,
-                punchResult);
+            // Pegawai tugas belajar dibebaskan dari pekerjaan: tidak ada pengecualian jadwal, scan hilang, terlambat,
+            // maupun Alpa (HRD-DEC-201 butir 4). Scan di luar jendela tetap dicatat di bawah.
+            var desiredExceptions = onStudyAssignment
+                ? new List<ExceptionDraft>()
+                : BuildExceptions(
+                    daily,
+                    rawLogs,
+                    schedule,
+                    policy,
+                    punchResult);
 
             // HRD-DEC-211: scan pada hari kerja ini yang tidak masuk jendela tidak dipasangkan dan tidak dibuang;
             // masing-masing menjadi pengecualian OutsideScanWindow. Log mesin tidak diubah.
@@ -793,12 +826,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             daily.PayrollInputStatus = daily.IsPayrollEligible
                 ? AttendanceValueConstants.PayrollInputStatus.Ready
                 : AttendanceValueConstants.PayrollInputStatus.Blocked;
-            daily.ProcessingStatus = schedule.HasBlockingConflict || !schedule.IsResolved
+            // Tugas belajar memblokir penjadwalan (B8), jadi jadwal yang tidak terselesaikan bukan kesalahan untuk tanggal ini.
+            daily.ProcessingStatus = !onStudyAssignment && (schedule.HasBlockingConflict || !schedule.IsResolved)
                 ? AttendanceValueConstants.AttendanceProcessingStatus.Error
                 : AttendanceValueConstants.AttendanceProcessingStatus.Processed;
             daily.ProcessedAt = DateTime.UtcNow;
             daily.ProcessingVersion = Math.Max(1, daily.ProcessingVersion + (forceReprocess ? 1 : 0));
-            daily.ProcessingMessage = BuildProcessingMessage(schedule, punchResult, desiredExceptions);
+            daily.ProcessingMessage = BuildProcessingMessage(schedule, punchResult, desiredExceptions) +
+                (onStudyAssignment ? "; Tugas belajar" : string.Empty);
 
             foreach (var rawLog in rawLogs)
             {
@@ -1133,7 +1168,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             AttendanceScheduleResolutionResponse schedule,
             PolicyRuntime policy,
             AttendanceRuleSetting ruleSetting,
-            DateTime processedAtUtc)
+            DateTime processedAtUtc,
+            IReadOnlyList<DispensationWindow> dispensations)
         {
             daily.FirstCheckInAt = punch.FirstCheckIn?.EventAt;
             daily.LastCheckOutAt = punch.LastCheckOut?.EventAt;
@@ -1149,7 +1185,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 var lateThreshold = schedule.ScheduledStartAt.Value.AddMinutes(ruleSetting.GracePeriodMinutes);
                 if (punch.FirstCheckIn.EventAt > lateThreshold)
                 {
-                    daily.LateMinutes = Math.Max(0, (int)Math.Floor((punch.FirstCheckIn.EventAt - schedule.ScheduledStartAt.Value).TotalMinutes));
+                    // Terlambat dihitung dari jam jadwal (toleransi hanya ambang), lalu dikurangi bagian yang tercakup
+                    // dispensasi LateArrival. Keterlambatan di luar rentang dispensasi tetap dihitung (HRD-DEC-200 uji (b)).
+                    var lateSpan = punch.FirstCheckIn.EventAt - schedule.ScheduledStartAt.Value;
+                    var covered = CoveredByDispensation(schedule.ScheduledStartAt.Value, punch.FirstCheckIn.EventAt, dispensations, AttendanceValueConstants.DispensationType.LateArrival);
+                    var rawLate = Math.Max(0, (int)Math.Floor(lateSpan.TotalMinutes));
+                    daily.LateMinutes = Math.Max(0, (int)Math.Floor((lateSpan - covered).TotalMinutes));
+                    punch.DispensedLateMinutes = rawLate - daily.LateMinutes;
                 }
             }
 
@@ -1159,7 +1201,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 var earlyThreshold = schedule.ScheduledEndAt.Value.AddMinutes(-schedule.EarlyCheckOutGraceMinutes);
                 if (punch.LastCheckOut.EventAt < earlyThreshold)
                 {
-                    daily.EarlyLeaveMinutes = Math.Max(0, (int)Math.Floor((schedule.ScheduledEndAt.Value - punch.LastCheckOut.EventAt).TotalMinutes));
+                    var earlySpan = schedule.ScheduledEndAt.Value - punch.LastCheckOut.EventAt;
+                    var covered = CoveredByDispensation(punch.LastCheckOut.EventAt, schedule.ScheduledEndAt.Value, dispensations, AttendanceValueConstants.DispensationType.EarlyDeparture);
+                    var rawEarly = Math.Max(0, (int)Math.Floor(earlySpan.TotalMinutes));
+                    daily.EarlyLeaveMinutes = Math.Max(0, (int)Math.Floor((earlySpan - covered).TotalMinutes));
+                    punch.DispensedEarlyLeaveMinutes = rawEarly - daily.EarlyLeaveMinutes;
                 }
             }
 
@@ -1336,7 +1382,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     ActualAt = daily.FirstCheckInAt,
                     DifferenceMinutes = daily.LateMinutes,
                     DetectionRule = "AttendanceSetting.GracePeriodMinutes",
-                    Message = $"Terlambat {daily.LateMinutes} menit dari jadwal check-in."
+                    Message = $"Terlambat {daily.LateMinutes} menit dari jadwal check-in." +
+                        (punch.DispensedLateMinutes > 0 ? $" {punch.DispensedLateMinutes} menit lainnya dibebaskan dispensasi." : string.Empty)
                 });
             }
 
@@ -1352,7 +1399,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     ActualAt = daily.LastCheckOutAt,
                     DifferenceMinutes = daily.EarlyLeaveMinutes,
                     DetectionRule = "GracePeriod.EarlyCheckOutGraceMinutes",
-                    Message = $"Pulang {daily.EarlyLeaveMinutes} menit lebih awal dari jadwal."
+                    Message = $"Pulang {daily.EarlyLeaveMinutes} menit lebih awal dari jadwal." +
+                        (punch.DispensedEarlyLeaveMinutes > 0 ? $" {punch.DispensedEarlyLeaveMinutes} menit lainnya dibebaskan dispensasi." : string.Empty)
                 });
             }
 
@@ -2017,6 +2065,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 $"Exception={exceptions.Count}"
             };
 
+            // Penanda "tepat waktu — dispensasi" pada rekap (HRD-DEC-200 contoh); rekap tidak punya kolom tautan dispensasi.
+            if (punch.DispensedLateMinutes > 0)
+                parts.Add($"Dispensasi terlambat {punch.DispensedLateMinutes} menit");
+            if (punch.DispensedEarlyLeaveMinutes > 0)
+                parts.Add($"Dispensasi pulang cepat {punch.DispensedEarlyLeaveMinutes} menit");
             if (!schedule.IsResolved)
                 parts.Add("Schedule belum terselesaikan");
             if (schedule.HasBlockingConflict)
@@ -2214,6 +2267,56 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             public DateTime EndAt { get; set; }
         }
 
+        private sealed record DispensationWindow(string DispensationType, DateTime StartAt, DateTime EndAt);
+
+        /// <summary>
+        /// HRD-DEC-201 butir 4: hari dalam masa tugas belajar tampil "Tugas Belajar", bukan Alpa, tanpa menit terlambat/pulang
+        /// cepat. Saldo cuti tidak disentuh pemrosesan.
+        /// </summary>
+        private static void ApplyStudyAssignment(HrdAttendanceDaily daily)
+        {
+            daily.AttendanceStatus = AttendanceValueConstants.AttendanceStatus.StudyAssignment;
+            daily.IsAbsent = false;
+            daily.IsLate = false;
+            daily.IsEarlyLeave = false;
+            daily.HasMissingPunch = false;
+            daily.LateMinutes = 0;
+            daily.EarlyLeaveMinutes = 0;
+            daily.IncompletePunchReason = null;
+        }
+
+        /// <summary>
+        /// Lama bagian [from, to) yang tercakup gabungan rentang dispensasi berjenis itu; rentang yang bertumpuk tidak
+        /// dihitung dua kali.
+        /// </summary>
+        private static TimeSpan CoveredByDispensation(DateTime from, DateTime to, IReadOnlyList<DispensationWindow> dispensations, string dispensationType)
+        {
+            var clipped = dispensations
+                .Where(x => x.DispensationType == dispensationType)
+                .Select(x => (Start: x.StartAt < from ? from : x.StartAt, End: x.EndAt > to ? to : x.EndAt))
+                .Where(x => x.End > x.Start)
+                .OrderBy(x => x.Start)
+                .ToList();
+
+            var total = TimeSpan.Zero;
+            DateTime? runStart = null, runEnd = null;
+            foreach (var (start, end) in clipped)
+            {
+                if (runEnd.HasValue && start <= runEnd.Value)
+                {
+                    if (end > runEnd.Value) runEnd = end;
+                    continue;
+                }
+
+                if (runStart.HasValue) total += runEnd!.Value - runStart.Value;
+                runStart = start;
+                runEnd = end;
+            }
+
+            if (runStart.HasValue) total += runEnd!.Value - runStart.Value;
+            return total;
+        }
+
         private sealed class PunchResult
         {
             public HrdAttendanceRawLog? FirstCheckIn { get; set; }
@@ -2225,6 +2328,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             public int ActualWorkMinutes { get; set; }
             public int CheckInCount { get; set; }
             public int CheckOutCount { get; set; }
+
+            /// <summary>Menit terlambat yang dibebaskan dispensasi Approved (untuk pesan rekap dan pengecualian).</summary>
+            public int DispensedLateMinutes { get; set; }
+
+            /// <summary>Menit pulang cepat yang dibebaskan dispensasi Approved.</summary>
+            public int DispensedEarlyLeaveMinutes { get; set; }
         }
 
         private sealed class BreakPair

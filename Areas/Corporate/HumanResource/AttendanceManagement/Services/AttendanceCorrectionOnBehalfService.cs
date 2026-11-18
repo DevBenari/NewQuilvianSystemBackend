@@ -121,6 +121,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 .Select(x => x.WorkforceProfileId)
                 .FirstOrDefaultAsync(cancellationToken);
 
+            var incidentError = await _correctionService.ValidateDeviceIncidentReferenceAsync(request.DeviceIncidentId, cancellationToken);
+            if (incidentError != null)
+            {
+                return AttendanceCorrectionServiceResult<AttendanceCorrectionDetailResponse>.Fail(
+                    incidentError.Value.StatusCode,
+                    incidentError.Value.Message);
+            }
+
             var now = DateTime.UtcNow;
             var requestNumber = $"ACR-OB-{now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
 
@@ -137,6 +145,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 RequestStatus = AttendanceValueConstants.CorrectionRequestStatus.Draft,
                 Reason = request.Reason.Trim(),
                 RequestReasonId = request.RequestReasonId,
+                DeviceIncidentId = request.DeviceIncidentId.HasValue && request.DeviceIncidentId.Value != Guid.Empty ? request.DeviceIncidentId : null,
                 InitiatedByUserId = hrActorUserId,
                 IsOnBehalf = true,
                 OnBehalfReason = request.OnBehalfReason.Trim(),
