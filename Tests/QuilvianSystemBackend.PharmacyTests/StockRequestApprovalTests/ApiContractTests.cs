@@ -149,7 +149,9 @@ public class ApiContractTests
                  {
                      "hasApproveAuthority", "hasUnitAuthority", "unitAuthorityMessage",
                      "hasEmergencyAuthority", "verifyEmergencyMessage", "isOwnRequest",
-                     "isLegacySubmission", "canApprove", "canAuthorizeEmergency", "version", "histories"
+                     "isLegacySubmission", "canApprove", "canAuthorizeEmergency", "version", "histories",
+                     "emergencyRequestReason", "emergencyReviewDueState", "emergencyReviewDueAt",
+                     "emergencyAuthorizedByName"
                  })
             Assert.True(akar.TryGetProperty(nama, out _), $"properti {nama} harus ada");
     }

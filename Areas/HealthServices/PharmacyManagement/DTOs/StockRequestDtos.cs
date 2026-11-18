@@ -21,7 +21,10 @@ public class CreateStockRequestRequest
     [Required] public Guid RequestingServiceUnitId { get; set; }
     [Required] public Guid StorageLocationId { get; set; }
     [Required] public Guid RequestedByWorkforceId { get; set; }
-    [Required] public StockRequestPriority Priority { get; set; } = StockRequestPriority.Routine;
+    // Nilai di luar enum (mis. 9) ditolak 400: tersimpan apa adanya, ia membuat permintaan bukan
+    // rutin maupun CITO sehingga lolos dari aturan alasan CITO dan jalur otorisasinya.
+    [Required, EnumDataType(typeof(StockRequestPriority))]
+    public StockRequestPriority Priority { get; set; } = StockRequestPriority.Routine;
 
     public DateTime? NeededAt { get; set; }
     [MaxLength(1000)] public string? Notes { get; set; }
@@ -35,7 +38,7 @@ public class CreateStockRequestRequest
 public class UpdateStockRequestRequest
 {
     [Required] public Guid StorageLocationId { get; set; }
-    [Required] public StockRequestPriority Priority { get; set; }
+    [Required, EnumDataType(typeof(StockRequestPriority))] public StockRequestPriority Priority { get; set; }
 
     public DateTime? NeededAt { get; set; }
     [MaxLength(1000)] public string? Notes { get; set; }
@@ -144,8 +147,9 @@ public class FulfillStockRequestRequest
 /// <summary>Saringan riwayat permintaan obat.</summary>
 public class StockRequestPagedQuery
 {
-    public StockRequestStatus? Status { get; set; }
-    public StockRequestPriority? Priority { get; set; }
+    // Saringan enum divalidasi: nilai yang tidak dikenal dijawab 400, bukan ditafsirkan diam-diam.
+    [EnumDataType(typeof(StockRequestStatus))] public StockRequestStatus? Status { get; set; }
+    [EnumDataType(typeof(StockRequestPriority))] public StockRequestPriority? Priority { get; set; }
     public Guid? RequestingServiceUnitId { get; set; }
     public Guid? StorageLocationId { get; set; }
 
@@ -175,18 +179,66 @@ public class StockRequestPagedQuery
     /// Menyaring menurut keadaan verifikasi susulan CITO, misalnya <c>Pending</c> untuk daftar
     /// CITO yang belum diverifikasi atasan unit.
     /// </summary>
+    [EnumDataType(typeof(StockRequestEmergencyReviewState))]
     public StockRequestEmergencyReviewState? EmergencyReviewState { get; set; }
 
     /// <summary>
     /// Menyaring CITO yang menunggu verifikasi menurut keadaan tenggatnya (<c>NotDue</c>,
     /// <c>DueSoon</c>, <c>Overdue</c>). Selama tenggat belum dikonfigurasi hasilnya kosong.
     /// </summary>
+    [EnumDataType(typeof(StockRequestEmergencyReviewDueState))]
     public StockRequestEmergencyReviewDueState? EmergencyReviewDueState { get; set; }
 
     /// <summary>
     /// Cakupan daftar. <c>MyAuthority</c> = "Unit yang Saya Pimpin": dihitung backend dari
     /// kewenangan aktual pengguna yang login, bukan dari daftar unit yang dikirim klien.
     /// </summary>
+    [EnumDataType(typeof(StockRequestListScope))]
+    public StockRequestListScope Scope { get; set; } = StockRequestListScope.All;
+
+    /// <summary>Menyaring menurut petugas peminta (profil tenaga kerja <c>RequestedByWorkforceId</c>).</summary>
+    public Guid? RequestedByWorkforceId { get; set; }
+
+    /// <summary>Hanya permintaan yang sudah diajukan (bukan Draft) — tampilan Status Pemenuhan.</summary>
+    public bool ExcludeDraft { get; set; }
+
+    /// <summary>
+    /// Hanya permintaan Selesai yang sekurang-kurangnya satu barisnya diserahkan kurang dari yang
+    /// diminta (<see cref="StockRequestSummaryResponse.IsPartiallyFulfilled"/>).
+    /// </summary>
+    public bool PartiallyFulfilledOnly { get; set; }
+
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+}
+
+/// <summary>
+/// Saringan linimasa aktivitas permintaan ("Riwayat Permintaan"): setiap baris adalah satu
+/// perubahan yang tercatat di riwayat permintaan, bukan satu permintaan.
+/// </summary>
+public class StockRequestHistoryPagedQuery
+{
+    /// <summary>Awal rentang waktu kejadian (tanggal, inklusif).</summary>
+    public DateTime? StartDate { get; set; }
+
+    /// <summary>Akhir rentang waktu kejadian (tanggal, inklusif sampai akhir hari).</summary>
+    public DateTime? EndDate { get; set; }
+
+    public Guid? RequestingServiceUnitId { get; set; }
+
+    /// <summary>Petugas peminta permintaan (profil tenaga kerja).</summary>
+    public Guid? RequestedByWorkforceId { get; set; }
+
+    /// <summary>Status yang dituju oleh kejadian itu, mis. Ditolak atau Selesai.</summary>
+    [EnumDataType(typeof(StockRequestStatus))]
+    public StockRequestStatus? ToStatus { get; set; }
+
+    /// <summary>Mencari pada nomor permintaan.</summary>
+    [MaxLength(100)]
+    public string? Search { get; set; }
+
+    /// <summary>Cakupan yang sama dengan daftar permintaan (<see cref="StockRequestPagedQuery.Scope"/>).</summary>
+    [EnumDataType(typeof(StockRequestListScope))]
     public StockRequestListScope Scope { get; set; } = StockRequestListScope.All;
 
     public int PageNumber { get; set; } = 1;
@@ -194,6 +246,27 @@ public class StockRequestPagedQuery
 }
 
 // ===================================================================== tanggapan
+
+/// <summary>Satu kejadian pada linimasa aktivitas permintaan.</summary>
+public class StockRequestHistoryEntryResponse
+{
+    public Guid Id { get; set; }
+    public Guid StockRequestId { get; set; }
+    public string RequestNumber { get; set; } = string.Empty;
+    public string RequestingServiceUnitName { get; set; } = string.Empty;
+    public string RequestedByName { get; set; } = string.Empty;
+    public StockRequestPriority Priority { get; set; }
+    public string Action { get; set; } = string.Empty;
+    public StockRequestStatus? FromStatus { get; set; }
+    public StockRequestStatus ToStatus { get; set; }
+
+    /// <summary>Alasan atau catatan yang ditulis pada kejadian itu (alasan CITO, penolakan, temuan, dsb.).</summary>
+    public string? Reason { get; set; }
+
+    public DateTime OccurredAt { get; set; }
+    public Guid ActorUserId { get; set; }
+    public string? ActorName { get; set; }
+}
 
 public class StockRequestSummaryResponse
 {
@@ -241,6 +314,22 @@ public class StockRequestSummaryResponse
     /// Dihitung dari data, bukan status tersendiri, karena penyerahan sebagian tetap menutup permintaan.
     /// </summary>
     public bool IsPartiallyFulfilled { get; set; }
+
+    /// <summary>
+    /// Waktu keputusan pertama — disetujui atasan, ditolak, atau diotorisasi CITO — dibaca dari
+    /// riwayat. Bukan dari kolom <c>DecidedAt</c>, yang menurut perilaku lama ikut ditimpa saat
+    /// penyerahan dan pembatalan.
+    /// </summary>
+    public DateTime? DecisionAt { get; set; }
+
+    /// <summary>Waktu penyerahan gudang (riwayat penyerahan); null bila belum diserahkan.</summary>
+    public DateTime? FulfilledAt { get; set; }
+
+    /// <summary>Waktu pembatalan (riwayat pembatalan); null bila tidak dibatalkan.</summary>
+    public DateTime? CancelledAt { get; set; }
+
+    /// <summary>Jumlah baris yang diserahkan kurang dari yang diminta; dasar keterangan pemenuhan sebagian.</summary>
+    public int ShortfallItemCount { get; set; }
 
     /// <summary>
     /// Permintaan berstatus Submitted yang diajukan sebelum batas
@@ -337,7 +426,15 @@ public class StockRequestDetailResponse : StockRequestSummaryResponse
 {
     public Guid RequestedByWorkforceId { get; set; }
     public string? Notes { get; set; }
+    /// <summary>
+    /// Waktu keputusan atasan unit — disetujui, ditolak, atau diotorisasi CITO (LGS-DEC-002).
+    /// Sejak FIN-LGS-015 tidak lagi ditimpa penyerahan maupun pembatalan. Baris lama yang dibuat
+    /// sebelum perbaikan itu dapat masih berisi waktu penyerahan/pembatalan; untuk tampilan pakai
+    /// <see cref="StockRequestSummaryResponse.DecisionAt"/> yang dibaca dari riwayat.
+    /// </summary>
     public DateTime? DecidedAt { get; set; }
+
+    /// <summary>Alasan atau catatan keputusan atasan unit; dengan catatan yang sama untuk baris lama.</summary>
     public string? DecisionReason { get; set; }
     public List<StockRequestItemResponse> Items { get; set; } = [];
     public List<StockRequestHistoryResponse> Histories { get; set; } = [];
@@ -379,6 +476,13 @@ public class StockRequestDetailResponse : StockRequestSummaryResponse
     /// <summary>Sebab pengguna tidak boleh melakukan verifikasi susulan, untuk ditampilkan apa adanya.</summary>
     public string? VerifyEmergencyMessage { get; set; }
 
+    /// <summary>
+    /// Alasan CITO yang ditulis pemohon saat mengajukan (wajib untuk prioritas darurat, PHM014),
+    /// dibaca dari riwayat pengajuan terakhir. Dasar pertimbangan petugas yang mengotorisasi dan
+    /// atasan yang memverifikasi; null untuk permintaan bukan CITO atau yang belum diajukan.
+    /// </summary>
+    public string? EmergencyRequestReason { get; set; }
+
     /// <summary>Otorisasi CITO awal (dari riwayat); null bila tidak lewat jalur CITO.</summary>
     public StockRequestDecisionRecordResponse? EmergencyAuthorization { get; set; }
 
@@ -411,6 +515,13 @@ public class StockRequestItemResponse
     public string? MeasurementName { get; set; }
     public decimal RequestedQuantity { get; set; }
     public decimal? FulfilledQuantity { get; set; }
+
+    /// <summary>
+    /// Sisa yang belum diserahkan (diminta − diserahkan), dihitung backend supaya angka diminta,
+    /// diserahkan, dan sisa selalu konsisten. Null selama baris belum diserahkan.
+    /// </summary>
+    public decimal? RemainingQuantity { get; set; }
+
     public string? Note { get; set; }
     public int LineNumber { get; set; }
 }

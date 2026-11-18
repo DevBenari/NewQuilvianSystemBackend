@@ -1324,3 +1324,628 @@ git commit -F <scratchpad>\commit-fe.txt
 | Commit backend lalu frontend | **GO** | Persetujuan eksplisit; jalankan dengan daftar stage di atas, bukan `git add -A` |
 | Push dan PR ke integration | Menunggu persetujuan terpisah | Backend lebih dulu; jangan membuat ulang PR #356 |
 | UAT dan produksi | **NO-GO** | BLOCKED_DATA (data organisasi, izin, jabatan CITO, tenggat); keputusan `LGS-OQ-027`/`029`; konkurensi PostgreSQL di sandbox |
+
+---
+
+# HASIL COMMIT LOKAL
+
+| Field | Nilai |
+| --- | --- |
+| Tanggal | 18 November 2026, 14.58 WIB |
+| Dasar | Instruksi "APPROVED FOR LOCAL COMMIT" |
+| Batas | Tanpa push, tanpa PR, tanpa perubahan branch integration, tanpa migrasi, basis data, deployment, maupun dev server |
+
+> **Catatan.** Laporan ini ikut dalam commit backend di bawah. Bagian *HASIL COMMIT LOKAL* ditulis
+> **sesudah** commit, karena SHA baru diketahui setelahnya. Akibatnya bagian ini adalah perubahan
+> yang **belum di-commit** pada working tree backend. Ia dapat ikut commit dokumen berikutnya bila
+> disetujui.
+
+## Commit
+
+| Repo | Branch | SHA | Parent | Berkas | Baris |
+| --- | --- | --- | --- | --- | --- |
+| Backend `DevBenari/NewQuilvianSystemBackend` | `Ikbal` | `6302f5fc3d2cabc211c640f254ef32b7672804ed` | `33dd4eb1` | 16 | +3134 / −53 |
+| Frontend `DevBenari/QuilvianSystemFrontendDev` | `Ikbalv2` | `002f0bcd75017a75cb95bc548cbe23689264c88e` | `0aae59c80` | 17 | +937 / −268 |
+
+Kedua commit memakai pesan dari `commit-be.txt` dan `commit-fe.txt`, termasuk baris atribusi. Tidak
+ada hook aktif di kedua repo, dan tidak ada yang dilewati.
+
+**Berkas dalam commit backend `6302f5fc`** (sama persis dengan `be-stage.txt`):
+
+```text
+Areas/HealthServices/PharmacyManagement/Controllers/StockRequestController.cs
+Areas/HealthServices/PharmacyManagement/DTOs/StockRequestDtos.cs
+Areas/HealthServices/PharmacyManagement/Enums/StockRequestEnums.cs
+Areas/HealthServices/PharmacyManagement/Services/StockRequestApprovalAuthority.cs
+Areas/HealthServices/PharmacyManagement/Services/StockRequestOperationalSettings.cs
+Areas/HealthServices/PharmacyManagement/Services/StockRequestService.cs
+Tests/QuilvianSystemBackend.PharmacyTests/Infrastructure/CatatanLogUji.cs
+Tests/QuilvianSystemBackend.PharmacyTests/Infrastructure/StockRequestApprovalHarness.cs
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/ApiContractTests.cs
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/ApprovalScopeTests.cs
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/OperationalSettingsUnitTests.cs
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/RobustnessAndAuditTests.cs
+docs/module-blueprints/logistik/00-interview-decisions.md
+docs/module-blueprints/logistik/blueprint-manifest.md
+docs/module-blueprints/logistik/evidence/05-aktivasi-batas-persetujuan.md
+docs/module-blueprints/logistik/task/report/FIN-LGS-LAPORAN-FINISHING.md
+```
+
+**Berkas dalam commit frontend `002f0bcd`** (sama persis dengan `fe-stage.txt`):
+
+```text
+src/components/view/health-services/pharmacy-management/stock-request-view/components/stock-request-attention-strip.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/components/stock-request-authority-info.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/components/stock-request-decision-authority-info.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/components/stock-request-emergency-authorization-info.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/components/stock-request-emergency-follow-up-notice.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/components/stock-request-emergency-review-panel.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/components/stock-request-summary-cards.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/stock-request-detail-view.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/stock-request-emergency-review-view.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/stock-request-list-view.jsx
+src/lib/constants/health-services/pharmacy-management/stock-request-constant.jsx
+src/lib/hooks/health-services/pharmacy-management/use-stock-request-approval-scope.jsx
+src/lib/hooks/health-services/pharmacy-management/use-stock-request-approval-summary.jsx
+src/lib/hooks/health-services/pharmacy-management/use-stock-request-list.jsx
+src/lib/services/health-services/pharmacy-management/stock-request.service.js
+src/utils/health-services/pharmacy-management/stock-request-approval-utils.js
+tests/unit/stock-request-approval.test.mjs
+```
+
+## Pemeriksaan sebelum dan sesudah commit
+
+| Pemeriksaan | Backend | Frontend |
+| --- | --- | --- |
+| Branch | `Ikbal` | `Ikbalv2` |
+| Staging sebelum `git add` | Kosong | Kosong |
+| Berkas ter-stage = daftar stage | Ya (16) | Ya (17) |
+| Berkas di luar Logistik | 0 | 0 |
+| Migrasi, `bin/obj`, `appsettings`, csproj, `package.json`, `.env` | 0 | 0 |
+| Source yang di-commit = source yang diuji | Ya. Tidak ada `.cs` yang berubah setelah run 108/108 (14.32) | Ya. Tidak ada berkas `src`/`tests/unit` yang berubah sejak uji unit 32/32 |
+| Perubahan Logistik yang tertinggal di working tree | 0 (sebelum bagian laporan ini ditulis) | 0 |
+
+## Status working tree
+
+| Repo | Sisa | Pemilik |
+| --- | --- | --- |
+| Backend | `?? SeedData/ICD10/MstDiagnosis.csv`, `?? SeedData/ICD10/MstDiagnosisChapter.csv`, `?? Storage/uploads/patient-qrcodes/00-00-00-03/` | Bukan pekerjaan ini; dibiarkan utuh |
+| Backend | ` M docs/module-blueprints/logistik/task/report/FIN-LGS-LAPORAN-FINISHING.md` | Bagian laporan ini (lihat catatan di atas) |
+| Frontend | ` M test-results/.last-run.json`, 16 × `?? tests/e2e/zz-*` | Bukan pekerjaan ini; dibiarkan utuh |
+
+Tidak ada berkas yang dihapus, di-reset, maupun di-stash.
+
+## Status sinkronisasi
+
+| Repo | Terhadap branch remote | Terhadap integration | `git merge-tree` |
+| --- | --- | --- | --- |
+| Backend | `origin/Ikbal`: tertinggal 0, unggul 1 | `origin/QuilvianIntegrationBackend` `bc14e6d1`: integration unggul 20 commit (pengembang lain, HR/payroll/laporan), kita unggul 1 | Bersih; tidak ada berkas Logistik yang beririsan |
+| Frontend | `origin/Ikbalv2`: tertinggal 0, unggul 1 | `origin/QuilvianIntegrationFrontend` `cf915ddb5`: integration unggul 3 commit (payroll), kita unggul 1 | Bersih |
+
+## Bukti build dan uji (sebelum commit, source sama)
+
+| Bukti | Hasil |
+| --- | --- |
+| Build backend terisolasi (`-p:SkipMigrationMetadata=true`), 14.25 | **PASS**: 0 error, 1 menit 17 detik; build ulang setelah uji tambahan: 0 error |
+| Uji backend Logistik, 14.30–14.32 | **108 Passed / 0 Failed / 0 Skipped** (94 metode), SQLite dalam memori; `TestResults\run4.trx` di scratchpad |
+| Uji unit frontend + ESLint | 32/32 lolos; ESLint 0 error (3 warning pola lama `set-state-in-effect`) |
+| Belum diuji | Konkurensi PostgreSQL, filter `[AccessPermission]`, aplikasi dengan pengguna sungguhan, UAT |
+
+## Blocker yang masih terbuka
+
+| Jenis | Blocker |
+| --- | --- |
+| BLOCKED_DECISION | `LGS-OQ-027` (baca lintas unit, D1–D7) dan `LGS-OQ-029` (tulis lintas unit, W1–W3) **tetap OPEN**; kebijakan akses tidak diubah. Juga `LGS-OQ-024`, `025`, `026`, `028` |
+| BLOCKED_DATA | Tautan unit 0/20, penempatan manajerial 0, izin Approve/AuthorizeEmergency 0 jabatan, jabatan CITO, tenggat, dan batas aktivasi belum diisi |
+| BLOCKED_MIGRATION | Tindak lanjut temuan CITO; aktivasi batas; notifikasi/master penunjukan bila dipilih |
+| BLOCKED_SANDBOX | Konkurensi PostgreSQL |
+| Lingkungan lokal | DB lokal `QuilvianNewDevIkbal*` tertinggal migrasi modul lain; backend hanya start dengan `Seeders__ContinueOnFailure=true` |
+| Di luar Logistik | `PharmacyTests` tidak terkompilasi (uji Billing); `LoggerService` platform mengambil `Id` sebagai pelaku |
+
+## Kesiapan push dan PR
+
+| Langkah | Status | Catatan |
+| --- | --- | --- |
+| Push `Ikbal` (backend) | **Siap, menunggu persetujuan** | Fast-forward (tertinggal 0); tanpa force |
+| Push `Ikbalv2` (frontend) | **Siap, menunggu persetujuan** | Fast-forward; **sesudah** backend |
+| PR backend `Ikbal` → `QuilvianIntegrationBackend` | Menunggu persetujuan | PR **baru**, bukan PR #356. Push langsung ke integration sebelumnya ditolak (*required check* "QBE Strict GitRange"), dan `gh` tidak terpasang, sehingga PR dibuat lewat halaman compare GitHub. Integration unggul 20 commit tetapi gabungan bersih |
+| PR frontend `Ikbalv2` → `QuilvianIntegrationFrontend` | Menunggu persetujuan | Di-merge **setelah** PR backend |
+| Opsional sebelum PR | — | Bila tim mewajibkan branch mutakhir: gabungkan integration ke `Ikbal`, lalu jalankan ulang build dan uji terisolasi. Butuh persetujuan terpisah |
+
+---
+
+# LANJUTAN FINISHING (FIN-LGS-001 sampai 008)
+
+| Field | Nilai |
+| --- | --- |
+| Tanggal | 18 November 2026 |
+| Dasar | Master prompt "Lanjutkan Finishing Logistik V2 Sekaligus" |
+| Titik awal | Backend `6302f5fc`, frontend `002f0bcd` (commit lokal; riwayatnya tidak diubah) |
+| Batas | Tanpa commit, push, merge, PR, `dotnet build/test`, `npm run build/dev`, server, migrasi, maupun perubahan basis data. Pemeriksaan yang dijalankan: uji unit frontend (node) dan ESLint |
+
+## Hasil per task
+
+| Task | Hasil | Status |
+| --- | --- | --- |
+| FIN-LGS-001 Hardening | (1) **Pengulangan kunci idempotensi** kini hanya sah untuk permintaan yang sama, oleh pelaku yang sama, dengan isi yang sama; selain itu `409 PHM013`. Berlaku di tujuh perintah (buat, ubah, ajukan, batal, setuju/tolak/CITO, verifikasi, serah). (2) **Bug pembatalan diperbaiki:** sidik jari pembatalan hanya memuat alasan, sehingga kunci yang sama untuk permintaan lain dijawab "berhasil" padahal permintaan itu tidak dibatalkan. (3) **`Priority` di luar enum** pada buat/ubah ditolak 400; sebelumnya dapat tersimpan dan lolos dari aturan alasan CITO | COMPLETED_SOURCE |
+| FIN-LGS-002 OQ-027/029 | Tidak ada perubahan kebijakan. Lembar keputusan D1–D7 dan W1–W3 (bagian *HASIL EKSEKUSI VERIFIKASI*) tetap berlaku. Butir keputusan baru di bawah | BLOCKED_DECISION |
+| FIN-LGS-003 CITO, temuan, audit | (1) Detail memuat **`emergencyRequestReason`**, yaitu alasan CITO pemohon dari riwayat pengajuan, tanpa kolom baru. (2) Layar menampilkannya di **Informasi Kewenangan, sebelum panel keputusan**; sebelumnya baru terbaca setelah CITO diotorisasi. (3) **Log audit** ditambahkan untuk ubah draf (`StockRequest.Update`) dan pembatalan (`StockRequest.Cancel`, beserta status asal), dengan pelaku yang benar | COMPLETED_SOURCE |
+| FIN-LGS-004 Kontrak | Saringan `status`, `priority`, `emergencyReviewState`, `emergencyReviewDueState`, dan `scope` memakai `[EnumDataType]`: nilai tak dikenal dijawab 400. Di service, nilai tak dikenal menghasilkan daftar kosong; sebelumnya `emergencyReviewState` tak dikenal ditafsirkan "tidak memerlukan verifikasi" dan `scope` tak dikenal sama dengan semua unit. Panjang teks bebas sudah dijaga `[MaxLength]` di DTO; parameter kosong dari layar dibuang `cleanParams`, sehingga `scope=` tidak pernah terkirim | COMPLETED_SOURCE |
+| FIN-LGS-005 Tampilan | Alasan CITO pemohon di Informasi Kewenangan, memakai komponen dan gaya yang ada. Urutan bagian detail (dikunci uji FE-002) tidak berubah | COMPLETED_SOURCE |
+| FIN-LGS-006 Uji dan UAT | Backend: kelas `HardeningTests` (+7 metode) dan kontrak nama properti diperluas. Frontend: +2 uji. Skenario UAT 17–21 di bawah. Tanpa data dummy operasional | Backend NOT_RUN; frontend lolos |
+| FIN-LGS-007 Menu | 24 dari 66 entri tertaut. **"Pengajuan Kebutuhan Barang" ditautkan ke `/stock-requests/create`** (formulir nyata), sehingga kini 25. Sebelas grup dan 67 entri dipertahankan; tidak ada entri yang ditambah. 41 entri sisanya menunggu fitur atau keputusan (daftar di bawah) | COMPLETED_SOURCE / sebagian BLOCKED |
+| FIN-LGS-008 Laporan | Bagian ini | — |
+
+## Berkas yang berubah sejak commit lokal
+
+| Repo | Berkas | Perubahan |
+| --- | --- | --- |
+| Backend | `Areas/HealthServices/PharmacyManagement/DTOs/StockRequestDtos.cs` | `[EnumDataType]` pada saringan dan `Priority`; field detail `EmergencyRequestReason` |
+| Backend | `Areas/HealthServices/PharmacyManagement/Services/StockRequestService.cs` | `EnsureSameReplay` di tujuh perintah; audit Update/Cancel; alasan CITO pemohon di detail; penjaga enum tak dikenal pada daftar |
+| Backend | `Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/HardeningTests.cs` (baru) | 7 uji |
+| Backend | `Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/ApiContractTests.cs` | Nama properti detail yang dibaca layar |
+| Backend | `docs/module-blueprints/logistik/task/report/FIN-LGS-LAPORAN-FINISHING.md` | *HASIL COMMIT LOKAL* dan bagian ini |
+| Frontend | `src/utils/health-services/pharmacy-management/stock-request-approval-utils.js` | `getEmergencyRequestReason` |
+| Frontend | `src/components/view/health-services/pharmacy-management/stock-request-view/components/stock-request-decision-authority-info.jsx` | Baris "Alasan CITO dari Pemohon" untuk permintaan CITO |
+| Frontend | `src/components/view/health-services/pharmacy-management/stock-request-view/components/stock-request-emergency-authorization-info.jsx` | Memakai `getEmergencyRequestReason` |
+| Frontend | `src/utils/menu-sidebar/menu-items.jsx` | Satu baris: `pathname` untuk "Pengajuan Kebutuhan Barang" |
+| Frontend | `tests/unit/stock-request-approval.test.mjs`, `tests/unit/logistics-module-navigation.test.mjs` | +2 uji |
+
+Tidak ada perubahan pada modul lain, `appsettings`, `Program.cs`, csproj, `package.json`, migrasi, maupun basis data.
+
+## Pemeriksaan yang benar-benar dijalankan
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Uji unit frontend `stock-request-approval` + `logistics-module-navigation` | **34/34 lolos** |
+| ESLint pada 6 berkas frontend yang berubah | **0 error, 0 warning** |
+| Diff `menu-items.jsx` (berkas bersama) | Tepat 1 baris tambahan |
+| Keseimbangan kurung C# yang berubah | Seimbang |
+| Kompatibilitas pemeriksaan pelaku | Kunci idempotensi frontend dibentuk dari waktu + acak per percobaan (`createIdempotencyKey`); tidak pernah dipakai bersama antar pengguna |
+| Build dan uji backend | **NOT_RUN** (dilarang pada tahap ini). Inventaris kini **101 metode / 115 kasus**; 108 kasus lama lolos pada versi sebelum perubahan ini. Perubahan tahap ini belum di-compile |
+
+## Menu dan fitur yang masih terblokir
+
+| Entri | Sebab |
+| --- | --- |
+| Verifikasi Susulan CITO (`/stock-requests/emergency-reviews`) | Fitur dan route ada, tetapi **tidak ada entri menu**; rekonsiliasi 6.1 mencatat tidak ada entri yang ditambah dari daftar asli. Saat ini dicapai lewat strip "Perlu Perhatian Anda". **Butuh keputusan pemrakarsa:** tambah entri di grup "Permintaan Barang Unit" atau tetap tanpa menu |
+| Riwayat Permintaan, Status Pemenuhan, Pemeriksaan Stok | Tidak ada halaman yang berbeda dari "Data Permintaan"; menautkannya ke halaman yang sama hanya menggandakan menu. Butuh definisi isi masing-masing |
+| Penerimaan Barang (5 entri) | `LGS-OQ-017` (Goods Receipt → saldo gudang) |
+| Penyimpanan & Penempatan (4), Distribusi (5), Mutasi & Retur (3) | Fitur belum ada atau menunggu `LGS-OQ-003`, `013` |
+| Stock Opname & Penyesuaian (6) | `LGS-OQ-009`, butuh migrasi |
+| Pengendalian: Rekomendasi Pengisian Ulang, Kebutuhan Pengadaan, Stok Lambat Bergerak | `LGS-OQ-011`, `014` |
+| Laporan & Rekonsiliasi (8), Dashboard Penerimaan & Pengeluaran, Stok per Unit, Mutasi Saldo, Penanggung Jawab Gudang | `LGS-OQ-008`, `012`, `013`, `003`; sebagian butuh migrasi |
+
+## Open Question yang memerlukan keputusan
+
+| ID | Ringkas |
+| --- | --- |
+| `LGS-OQ-027` | Baca lintas unit (D1–D7) |
+| `LGS-OQ-029` | Tulis lintas unit dan sumber petugas peminta (W1–W3) |
+| Usulan baru (belum dicatat di decision log) | Entri menu untuk Verifikasi Susulan CITO; definisi "Riwayat Permintaan" dan "Status Pemenuhan" |
+| `LGS-OQ-024`, `025`, `026`, `028` | Notifikasi, tindak lanjut temuan, penunjukan CITO lewat konfigurasi vs master, izin kesiapan |
+| `LGS-OQ-001`..`019` (kecuali yang ditutup) | Keputusan operasional Logistik lainnya |
+
+## Skenario UAT tambahan
+
+| No | Skenario | Harapan |
+| --- | --- | --- |
+| 17 | Petugas CITO membuka permintaan CITO yang menunggu | Informasi Kewenangan menampilkan "Alasan CITO dari Pemohon" sebelum panel Otorisasi CITO |
+| 18 | Pengguna B mengirim ulang permintaan setuju dengan kunci milik pengguna A (lewat alat API) | `409 PHM013` "dipakai pengguna lain"; tidak ada riwayat baru |
+| 19 | Kunci pembatalan yang sama dipakai untuk permintaan lain | `409 PHM013`; permintaan kedua tetap berstatus semula |
+| 20 | `GET /stock-requests?scope=9` atau `priority=9` | `400`, bukan daftar yang ditafsirkan |
+| 21 | Menu Logistik → Permintaan Barang Unit → Pengajuan Kebutuhan Barang | Membuka formulir pembuatan permintaan |
+
+## Status kesiapan UAT
+
+**NO-GO**, tidak berubah. Penyebabnya:
+
+- data organisasi, izin, jabatan CITO, dan tenggat belum diisi (BLOCKED_DATA);
+- `LGS-OQ-027`/`029` belum diputuskan;
+- konkurensi PostgreSQL belum diuji;
+- perubahan backend tahap ini belum di-build dan diuji.
+
+## Rangkuman untuk satu tahap commit dan push oleh pemilik proyek
+
+Sebelum commit, jalankan build dan uji terisolasi (butir 6–7 *FINAL VERIFICATION*). Targetnya 115/115.
+
+**Backend (`Ikbal`), 5 berkas:**
+
+```text
+Areas/HealthServices/PharmacyManagement/DTOs/StockRequestDtos.cs
+Areas/HealthServices/PharmacyManagement/Services/StockRequestService.cs
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/ApiContractTests.cs
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/HardeningTests.cs
+docs/module-blueprints/logistik/task/report/FIN-LGS-LAPORAN-FINISHING.md
+```
+
+```text
+fix(logistik): pengerasan permintaan stok — replay idempotensi, validasi enum, alasan CITO
+
+- Kunci idempotensi hanya dapat diulang untuk permintaan, pelaku, dan isi yang sama (PHM013);
+  memperbaiki pembatalan yang dijawab berhasil untuk permintaan lain.
+- Saringan dan prioritas di luar enum ditolak 400; nilai tak dikenal tidak lagi ditafsirkan.
+- Detail memuat alasan CITO pemohon (emergencyRequestReason) dari riwayat pengajuan.
+- Log audit untuk ubah draf dan pembatalan dengan pelaku yang benar.
+- Uji: HardeningTests (+7); laporan FIN-LGS diperbarui.
+
+Tanpa entity, tabel, maupun migration baru.
+```
+
+**Frontend (`Ikbalv2`), 6 berkas:**
+
+```text
+src/components/view/health-services/pharmacy-management/stock-request-view/components/stock-request-decision-authority-info.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/components/stock-request-emergency-authorization-info.jsx
+src/utils/health-services/pharmacy-management/stock-request-approval-utils.js
+src/utils/menu-sidebar/menu-items.jsx
+tests/unit/logistics-module-navigation.test.mjs
+tests/unit/stock-request-approval.test.mjs
+```
+
+```text
+feat(logistik): alasan CITO pemohon sebelum otorisasi, tautan Pengajuan Kebutuhan Barang
+
+- Informasi Kewenangan menampilkan alasan CITO pemohon sebelum panel keputusan.
+- Menu Pengajuan Kebutuhan Barang membuka formulir permintaan yang sudah ada.
+- Uji unit: 34/34.
+```
+
+Berkas yang tidak boleh ikut tetap sama:
+
+- backend: `SeedData/ICD10/*`, `Storage/uploads/*`;
+- frontend: `test-results/.last-run.json`, `tests/e2e/zz-*`.
+
+**Urutan:** backend dahulu. Frontend membaca `emergencyRequestReason`, tetapi tetap berfungsi
+dengan backend lama karena memakai riwayat sebagai cadangan.
+
+Kedua commit lokal sebelumnya (`6302f5fc`, `002f0bcd`) ikut ter-push bersama commit baru ini.
+
+> **Digantikan** oleh daftar gabungan di bagian *LANJUTAN FINISHING 2* di bawah.
+
+---
+
+# LANJUTAN FINISHING 2 (FIN-LGS-009 sampai 013)
+
+| Field | Nilai |
+| --- | --- |
+| Tanggal | 18 November 2026 |
+| Titik awal | Backend `6302f5fc` + 5 berkas; frontend `002f0bcd` + 6 berkas (bagian sebelumnya) |
+| Batas | Tanpa commit, push, merge, PR, `dotnet build/test`, `npm run build/dev`, test runner, ESLint, migrasi, maupun basis data. Pemeriksaan hanya statis |
+
+## 1. Task yang selesai
+
+| Task | Hasil | Status |
+| --- | --- | --- |
+| FIN-LGS-009 Keamanan | Perubahan replay, pembatalan, audit, dan validasi saringan ditinjau ulang; tidak ditemukan masalah baru. **Uji replay kini mencakup ketujuh perintah** (`IdempotencyReplayTests`, teori 7 kasus: buat, ubah, ajukan, batal, keputusan, verifikasi, serah). **Audit Create/Update kini diuji** dengan master obat uji di harness (celah "Create belum diuji" tertutup). OQ-027/029 tetap OPEN | COMPLETED_SOURCE |
+| FIN-LGS-010 CITO | Alasan CITO tampil sebelum otorisasi (bagian sebelumnya). Tenggat dan status verifikasi memakai ambang yang sama di daftar, detail, dan ringkasan (sudah diuji). **Tanpa perubahan stok ganda**: uji baru membuktikan penyerahan yang diulang dengan kunci sama maupun dikirim lagi dengan kunci baru tidak mengurangi stok kedua kali. **Linimasa detail menampilkan alasan/catatan setiap langkah** (alasan CITO, penolakan, otorisasi, catatan temuan, pembatalan) dari riwayat yang sudah ada | COMPLETED_SOURCE |
+| FIN-LGS-011 Halaman | **Riwayat Permintaan** = linimasa aktivitas (satu baris per kejadian) dari endpoint baru `GET /stock-requests/histories`, dengan saringan tanggal, unit, pemohon, status tujuan, dan nomor. **Status Pemenuhan** = varian daftar dengan progres Diajukan → Diputus → Diserahkan dan pemenuhan sebagian (`decisionAt`, `fulfilledAt`, `shortfallItemCount` dari riwayat), saringan pemenuhan sebagian, tanpa draf. **Saringan pemohon** juga ditambahkan ke Data Permintaan dan antrean gudang. **Verifikasi Susulan CITO** tetap diakses lewat tombol di halaman Validasi Atasan (entri menu yang ada); tidak ada entri baru | COMPLETED_SOURCE |
+| FIN-LGS-012 Integrasi | Endpoint, DTO, saringan, halaman, dan status dicocokkan (tabel di bawah). Menu: "Status Pemenuhan" dan "Riwayat Permintaan" ditautkan ke route nyata. **67 entri / 66 entri klik dan 11 grup tetap**; tertaut kini 27, belum 39 | COMPLETED_SOURCE |
+| FIN-LGS-013 Persiapan uji | Inventaris dan daftar periksa di bawah. Tidak ada klaim PASS untuk perubahan ini | NOT_RUN |
+
+**Temuan yang dicatat, tidak diubah:** `FulfillAsync` dan `CancelAsync` mengisi kolom `DecidedAt` dengan waktu penyerahan/pembatalan (perilaku sejak `aec9842e`), sehingga kolom itu tidak lagi berarti waktu keputusan atasan. Kolom ini tidak dikirim ke layar; progres kini dibaca dari riwayat. Mengubah arti kolom dicatat sebagai **BLOCKED_DECISION** (LOW), karena dapat memengaruhi laporan yang kelak membacanya.
+
+## 2. Berkas yang berubah
+
+**Backend (`Ikbal`), 9 berkas sejak `6302f5fc`:**
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/HealthServices/PharmacyManagement/Controllers/StockRequestController.cs` | `GET histories` (izin `StockRequest:Read`) |
+| `Areas/HealthServices/PharmacyManagement/DTOs/StockRequestDtos.cs` | `[EnumDataType]`; `EmergencyRequestReason`; saringan `RequestedByWorkforceId`, `ExcludeDraft`, `PartiallyFulfilledOnly`; `DecisionAt`, `FulfilledAt`, `ShortfallItemCount`; `StockRequestHistoryPagedQuery`, `StockRequestHistoryEntryResponse` |
+| `Areas/HealthServices/PharmacyManagement/Services/StockRequestService.cs` | `EnsureSameReplay`; audit Update/Cancel; alasan CITO; penjaga enum; saringan dan progres; `GetHistoryPagedAsync` |
+| `Tests/QuilvianSystemBackend.PharmacyTests/Infrastructure/StockRequestApprovalHarness.cs` | Master obat/satuan uji, `PemohonWorkforceId`, `StafWorkforceId`, parameter peminta |
+| `Tests/.../StockRequestApprovalTests/ApiContractTests.cs` | Nama properti detail |
+| `Tests/.../StockRequestApprovalTests/HardeningTests.cs` (baru) | 7 uji |
+| `Tests/.../StockRequestApprovalTests/IdempotencyReplayTests.cs` (baru) | 3 metode / 9 kasus |
+| `Tests/.../StockRequestApprovalTests/ProgressAndHistoryTests.cs` (baru) | 5 uji |
+| `docs/module-blueprints/logistik/task/report/FIN-LGS-LAPORAN-FINISHING.md` | Laporan |
+
+**Frontend (`Ikbalv2`), 17 berkas sejak `002f0bcd`:**
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/app/health-services/pharmacy-management/stock-requests/history/page.jsx`, `.../history/stock-request-history-log-client.jsx` (baru) | Route Riwayat Permintaan |
+| `src/app/health-services/pharmacy-management/stock-requests/fulfillment/page.jsx`, `.../fulfillment/stock-request-fulfillment-client.jsx` (baru) | Route Status Pemenuhan |
+| `src/components/view/.../stock-request-view/stock-request-history-log-view.jsx` (baru) | Linimasa aktivitas |
+| `src/lib/hooks/.../use-stock-request-history-log.jsx` (baru) | Hook linimasa |
+| `src/components/view/.../stock-request-view/stock-request-list-view.jsx` | Varian `fulfillment`, saringan pemohon dan pemenuhan sebagian |
+| `src/components/view/.../stock-request-view/stock-request-detail-view.jsx` | Alasan/catatan per langkah riwayat |
+| `src/components/view/.../components/stock-request-decision-authority-info.jsx`, `.../stock-request-emergency-authorization-info.jsx` | Alasan CITO pemohon (bagian sebelumnya) |
+| `src/lib/constants/.../stock-request-constant.jsx` | Route, tahap progres, pilihan status tanpa draf |
+| `src/lib/hooks/.../use-stock-request-list.jsx` | Saringan baru |
+| `src/lib/services/.../stock-request.service.js` | `getStockRequestHistories` |
+| `src/utils/.../stock-request-approval-utils.js` | `getEmergencyRequestReason`, `resolveFulfillmentProgress` |
+| `src/utils/menu-sidebar/menu-items.jsx` | 3 baris `pathname` (Pengajuan Kebutuhan Barang, Status Pemenuhan, Riwayat Permintaan) |
+| `tests/unit/stock-request-approval.test.mjs`, `tests/unit/logistics-module-navigation.test.mjs` | Uji baru |
+
+Tidak ada perubahan modul lain, `appsettings`, `Program.cs`, csproj, `package.json`, migrasi, maupun basis data.
+
+## 3. Hasil pemeriksaan aktual (statis)
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Parse sintaks 17 berkas JS/JSX/MJS frontend (`@babel/parser`, tanpa ESLint dan tanpa runner) | **17/17 lolos** |
+| Keseimbangan kurung 8 berkas C# | Seimbang |
+| Pencocokan pola uji frontend baru terhadap source | Semua pola ditemukan di source (ditinjau manual) |
+| Asersi uji lama yang menyentuh berkas berubah | Tetap terpenuhi (urutan detail, varian approval/warehouse, potongan kolom persetujuan, isi hook) |
+| Jumlah entri menu Logistik | 67 (tidak bertambah); tertaut 27, belum 39 |
+| Diff `menu-items.jsx` | Hanya 3 baris `pathname` |
+| Kunci idempotensi frontend | Waktu + acak per percobaan, sehingga pemeriksaan pelaku tidak mengganggu |
+| Pemindaian kredensial | 0 di kedua repo |
+| **Tidak dijalankan** | `dotnet build`, `dotnet test`, test runner frontend, ESLint. Hasil terakhir yang benar-benar dijalankan: backend 108/108 (versi sebelum dua tahap terakhir), frontend 34/34 dan ESLint 0 error (sebelum tahap ini) |
+
+### Kontrak backend–frontend tahap ini
+
+| Kontrak | Backend | Frontend |
+| --- | --- | --- |
+| `GET /stock-requests/histories` | `StockRequestHistoryPagedQuery` → `PagedResult<StockRequestHistoryEntryResponse>`, `StockRequest:Read`, urut `occurredAt` menurun | `getStockRequestHistories` → `useStockRequestHistoryLog` → `StockRequestHistoryLogView` |
+| Saringan daftar baru | `requestedByWorkforceId`, `excludeDraft`, `partiallyFulfilledOnly` | `useStockRequestList` (nilai kosong dibuang `cleanParams`) |
+| Field progres | `decisionAt`, `fulfilledAt`, `shortfallItemCount` (daftar dan detail) | `resolveFulfillmentProgress` |
+| Alasan CITO | `emergencyRequestReason` | `getEmergencyRequestReason` (cadangan: riwayat) |
+| Nilai enum tak dikenal | 400 (DTO); daftar kosong (service) | Layar hanya mengirim pilihan sah |
+
+## 4. Blocker yang tersisa
+
+| Jenis | Blocker |
+| --- | --- |
+| BLOCKED_DECISION | `LGS-OQ-027` baca lintas unit (D1–D7), **juga berlaku untuk endpoint linimasa baru**; `LGS-OQ-029` tulis lintas unit (W1–W3); `LGS-OQ-024`, `025`, `026`, `028`; arti kolom `DecidedAt`; entri menu tersendiri untuk Verifikasi Susulan CITO (saat ini lewat Validasi Atasan); isi "Pemeriksaan Stok" |
+| BLOCKED_DATA | Tautan unit 0/20, penempatan manajerial 0, izin 0 jabatan, jabatan CITO, tenggat, batas aktivasi |
+| BLOCKED_MIGRATION | Tindak lanjut temuan CITO (PIC/status/penutupan); aktivasi batas; notifikasi |
+| BLOCKED_SANDBOX | Konkurensi PostgreSQL |
+| Menu belum tertaut (39) | Penerimaan (5), Penyimpanan (4), Distribusi (5), Mutasi & Retur (3), Stock Opname (6), Pengendalian (3), Laporan (8), Dashboard (1), Master (1), Stok (2), Pemeriksaan Stok (1) — menunggu fitur atau keputusan operasional |
+
+## 5. Kesiapan pengujian dan UAT
+
+**Backend:** 109 metode / **129 kasus** (sebelumnya 94/108). Belum di-build maupun dijalankan; jangan diklaim PASS sebelum keduanya berjalan.
+
+```powershell
+# Prasyarat: backend tidak berjalan; satu build sendirian di foreground.
+dotnet build .\StockRequestApprovalIsolated.Tests.csproj -p:SkipMigrationMetadata=true *> build.log
+dotnet test .\StockRequestApprovalIsolated.Tests.csproj --no-build --filter "FullyQualifiedName~StockRequestApprovalTests" --logger "console;verbosity=normal" *> test.log
+```
+
+Proyek terisolasi meng-compile `StockRequestApprovalTests\*.cs`, sehingga tiga kelas baru otomatis ikut. Uji dengan risiko tertinggi karena menyentuh jalur yang belum pernah diuji:
+
+- `Penyerahan_mengurangi_stok_sekali...` (jalur `DrugStockService` FEFO);
+- teori `Kunci_idempotensi_tidak_dapat_diulang_pengguna_lain("buat"/"ubah")` (master obat uji).
+
+**Frontend:**
+
+```text
+node --import ./tests/helpers/register.mjs --test tests/unit/stock-request-approval.test.mjs tests/unit/logistics-module-navigation.test.mjs
+npx eslint <17 berkas di atas>
+```
+
+Target 39 uji. Peringatan `react-hooks/set-state-in-effect` pada hook baru mengikuti pola hook yang ada.
+
+**Daftar periksa keamanan:**
+
+1. Kunci milik pengguna lain → `409 PHM013` pada ketujuh perintah.
+2. Kunci pembatalan untuk permintaan lain → `409`; permintaan kedua tidak berubah.
+3. `scope`, `status`, `priority`, `emergencyReviewState`, `emergencyReviewDueState`, `toStatus` di luar enum → `400`.
+4. Log audit: pelaku = akun login pada buat, ubah, ajukan, setuju/tolak/CITO, verifikasi, serah, batal, penolakan kewenangan.
+5. `GET /histories` dengan `scope=1` → hanya unit dalam kewenangan; tanpa login → `401`.
+6. SuperAdmin tanpa penempatan → tidak dapat memutus, mengotorisasi, atau memverifikasi.
+7. Konfigurasi tenggat `1e300` → endpoint tetap `200`.
+
+**Skenario UAT tambahan:**
+
+| No | Skenario | Harapan |
+| --- | --- | --- |
+| 22 | Menu → Riwayat Permintaan | Linimasa terbaru lebih dahulu; nama petugas dan alasan per kejadian tampil |
+| 23 | Riwayat Permintaan: saring status tujuan "Ditolak", unit, pemohon, tanggal | Jumlah dan halaman berubah sesuai saringan |
+| 24 | Menu → Status Pemenuhan | Tidak ada draf; setiap baris menampilkan tahap dan waktu Diajukan/Diputus/Diserahkan |
+| 25 | Status Pemenuhan: saring "Hanya yang diserahkan sebagian" | Hanya permintaan selesai yang kurang; jumlah item kurang tampil |
+| 26 | Detail permintaan yang ditolak atau bertemuan CITO | Linimasa menampilkan alasan penolakan / catatan temuan |
+| 27 | Penyerahan dikirim dua kali (klik ganda / ulang) | Stok berkurang sekali; kiriman kedua `409` |
+| 28 | Validasi Atasan → tombol Verifikasi Susulan CITO | Halaman verifikasi terbuka tanpa entri menu baru |
+
+**UAT: NO-GO**, tidak berubah. Penyebabnya:
+
+- BLOCKED_DATA;
+- `LGS-OQ-027`/`029`;
+- konkurensi PostgreSQL;
+- build dan uji backend serta uji frontend tahap ini belum dijalankan.
+
+## 6. Daftar gabungan untuk satu tahap commit dan push
+
+Jalankan butir 5 lebih dahulu (target backend 129/129, frontend 39/39, ESLint 0 error).
+
+**Backend (`Ikbal`), 9 berkas:**
+
+```text
+Areas/HealthServices/PharmacyManagement/Controllers/StockRequestController.cs
+Areas/HealthServices/PharmacyManagement/DTOs/StockRequestDtos.cs
+Areas/HealthServices/PharmacyManagement/Services/StockRequestService.cs
+Tests/QuilvianSystemBackend.PharmacyTests/Infrastructure/StockRequestApprovalHarness.cs
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/ApiContractTests.cs
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/HardeningTests.cs
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/IdempotencyReplayTests.cs
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/ProgressAndHistoryTests.cs
+docs/module-blueprints/logistik/task/report/FIN-LGS-LAPORAN-FINISHING.md
+```
+
+```text
+feat(logistik): pengerasan permintaan stok, linimasa aktivitas, dan progres pemenuhan
+
+- Kunci idempotensi hanya dapat diulang untuk permintaan, pelaku, dan isi yang sama (PHM013)
+  pada tujuh perintah; memperbaiki pembatalan yang dijawab berhasil untuk permintaan lain.
+- Saringan dan prioritas di luar enum ditolak 400; nilai tak dikenal tidak ditafsirkan.
+- Audit ubah draf dan pembatalan; alasan CITO pemohon di detail.
+- GET /stock-requests/histories: linimasa aktivitas (tanggal, unit, pemohon, status tujuan).
+- Daftar: saringan pemohon, tanpa draf, pemenuhan sebagian; progres decisionAt/fulfilledAt/
+  shortfallItemCount dari riwayat.
+- Uji: 109 metode / 129 kasus StockRequestApprovalTests.
+
+Tanpa entity, tabel, maupun migration baru.
+```
+
+**Frontend (`Ikbalv2`), 17 berkas:**
+
+```text
+src/app/health-services/pharmacy-management/stock-requests/fulfillment/page.jsx
+src/app/health-services/pharmacy-management/stock-requests/fulfillment/stock-request-fulfillment-client.jsx
+src/app/health-services/pharmacy-management/stock-requests/history/page.jsx
+src/app/health-services/pharmacy-management/stock-requests/history/stock-request-history-log-client.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/components/stock-request-decision-authority-info.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/components/stock-request-emergency-authorization-info.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/stock-request-detail-view.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/stock-request-history-log-view.jsx
+src/components/view/health-services/pharmacy-management/stock-request-view/stock-request-list-view.jsx
+src/lib/constants/health-services/pharmacy-management/stock-request-constant.jsx
+src/lib/hooks/health-services/pharmacy-management/use-stock-request-history-log.jsx
+src/lib/hooks/health-services/pharmacy-management/use-stock-request-list.jsx
+src/lib/services/health-services/pharmacy-management/stock-request.service.js
+src/utils/health-services/pharmacy-management/stock-request-approval-utils.js
+src/utils/menu-sidebar/menu-items.jsx
+tests/unit/logistics-module-navigation.test.mjs
+tests/unit/stock-request-approval.test.mjs
+```
+
+```text
+feat(logistik): Riwayat Permintaan, Status Pemenuhan, dan alasan CITO sebelum otorisasi
+
+- Riwayat Permintaan: linimasa aktivitas dari GET /stock-requests/histories.
+- Status Pemenuhan: progres Diajukan → Diputus → Diserahkan dan pemenuhan sebagian.
+- Saringan pemohon; alasan/catatan per langkah di detail; alasan CITO pemohon sebelum panel.
+- Menu: Pengajuan Kebutuhan Barang, Status Pemenuhan, Riwayat Permintaan ditautkan
+  (67 entri dan 11 grup tetap).
+```
+
+Berkas yang tidak boleh ikut:
+
+- backend: `SeedData/ICD10/*`, `Storage/uploads/*`;
+- frontend: `test-results/.last-run.json`, `tests/e2e/zz-*`.
+
+**Urutan:** backend lebih dahulu. Frontend memanggil `GET /histories` dan membaca field progres baru; dengan backend lama halaman Riwayat Permintaan akan menjawab 404. Kedua commit lokal sebelumnya (`6302f5fc`, `002f0bcd`) ikut ter-push.
+
+> **Digantikan** oleh *KONSOLIDASI AKHIR (FIN-LGS-014 sampai 019)* di bawah.
+
+---
+
+# KONSOLIDASI AKHIR (FIN-LGS-014 sampai 019)
+
+| Field | Nilai |
+| --- | --- |
+| Tanggal | 18 November 2026 |
+| Titik awal | Backend `6302f5fc` + 9 berkas; frontend `002f0bcd` + 17 berkas (*LANJUTAN FINISHING 2*) |
+| Batas | Tanpa `dotnet build/test`, `npm run build/dev`, server, migrasi, maupun basis data. Pemeriksaan hanya statis. Commit dan push dilakukan di akhir atas instruksi pemilik proyek ("kalo sudah nanti push saja"), hanya ke branch kerja `Ikbal` dan `Ikbalv2`; tidak ke integration, tanpa PR, tanpa force |
+
+## 1. Status task
+
+| Task | Hasil | Status |
+| --- | --- | --- |
+| FIN-LGS-014 Konsistensi uji | Delapan area ditinjau terhadap implementasi: idempotensi tujuh perintah, replay antarpengguna, FEFO tanpa pengurangan ganda, master obat pada buat/ubah, audit buat/ubah/batal, endpoint histories, saringan tanggal/unit/pemohon/status, pemenuhan sebagian. Jalur FEFO hanya membaca saldo, batch, dan kedaluwarsa (`LoadFefoCandidatesAsync`) lalu menambah mutasi; prasyaratnya dipenuhi `SediakanStokAsync`. Buat/ubah hanya memerlukan `MstDrug` dan `MstMeasurement` aktif. Perbaikan uji: (1) cast eksplisit `DateTime?`/`decimal?` pada `Assert.Equal`, mengikuti pola yang ada, untuk menghindari ambiguitas overload; (2) uji saringan pemohon pada linimasa kini mengasersikan jumlah, bukan hanya `Assert.All` yang lolos pada daftar kosong | COMPLETED_SOURCE |
+| FIN-LGS-015 `DecidedAt` | Diperbaiki (butir 3) | COMPLETED_SOURCE; data lama BLOCKED_DATA |
+| FIN-LGS-016 Riwayat | Urutan terbaru lebih dahulu dengan pemecah seri `Id`; pemohon (`requestedByName`, dari profil peminta) dan petugas (`actorName`, dari pelaku kejadian) terpisah; saringan dan halaman di backend; satu baris per riwayat (join satu-ke-satu); identitas dengan aturan yang sama seperti detail; riwayat tidak pernah dihapus karena perubahan status (append-only). **Uji baru membuktikan linimasa tidak membuka permintaan di luar yang terlihat pada daftar**, untuk empat peran × dua cakupan. Kebijakan `LGS-OQ-027` tidak diubah | COMPLETED_SOURCE |
+| FIN-LGS-017 Status Pemenuhan | Delapan keadaan dibedakan tanpa status basis data baru (butir 3). `remainingQuantity` per baris dihitung backend, sehingga diminta − diserahkan = sisa selalu konsisten; daftar menampilkan "n dari m baris lengkap" (lengkap + kurang = jumlah item) | COMPLETED_SOURCE |
+| FIN-LGS-018 Navigasi | Audit statis: **11 grup, 67 entri, 66 dapat diklik, 27 tertaut, 0 tautan tanpa halaman**. Tidak ada entri baru, entri dihapus, maupun halaman dummy. 39 entri lain BLOCKED_FEATURE (butir 5) | COMPLETED_SOURCE |
+| FIN-LGS-019 Konsolidasi | Bagian ini | — |
+
+## 2. Berkas yang berubah (gabungan sejak commit lokal)
+
+**Backend (`Ikbal`), 10 berkas sejak `6302f5fc`:**
+
+```text
+Areas/HealthServices/PharmacyManagement/Controllers/StockRequestController.cs
+Areas/HealthServices/PharmacyManagement/DTOs/StockRequestDtos.cs
+Areas/HealthServices/PharmacyManagement/Services/StockRequestService.cs
+Tests/QuilvianSystemBackend.PharmacyTests/Infrastructure/StockRequestApprovalHarness.cs
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/ApiContractTests.cs
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/DecisionLifecycleTests.cs   (baru, 5 uji)
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/HardeningTests.cs           (baru, 7 uji)
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/IdempotencyReplayTests.cs   (baru, 3 metode / 9 kasus)
+Tests/QuilvianSystemBackend.PharmacyTests/StockRequestApprovalTests/ProgressAndHistoryTests.cs  (baru, 6 uji)
+docs/module-blueprints/logistik/task/report/FIN-LGS-LAPORAN-FINISHING.md
+```
+
+**Frontend (`Ikbalv2`), 17 berkas sejak `002f0bcd`:** daftar *LANJUTAN FINISHING 2* butir 6. Pada tahap ini
+yang disunting lagi adalah konstanta tahap, `stock-request-approval-utils.js`, list view, detail
+view, dan `stock-request-approval.test.mjs`. Tidak ada berkas frontend baru.
+
+## 3. Perbaikan `DecidedAt` (FIN-LGS-015)
+
+| Hal | Isi |
+| --- | --- |
+| Penulisan sebelumnya | `DecideAsync` (setuju/tolak/CITO), `CancelAsync`, dan `FulfillAsync`. Dua yang terakhir juga menimpa `DecisionReason` dengan alasan batal/catatan serah |
+| Lifecycle yang benar | Menurut `LGS-DEC-002`, keputusan adalah persetujuan, penolakan, atau otorisasi CITO oleh pihak berwenang. `DecidedAt`/`DecisionReason` kini **hanya ditulis `DecideAsync`** |
+| Penyerahan / pembatalan | Tidak lagi menyentuh kolom keputusan. Waktunya diambil dari riwayat yang sudah ada: `FulfilledAt` dan **`CancelledAt` (baru di DTO, tanpa kolom baru)**; catatan dan alasannya tetap di riwayat. Pembatalan sebelum diputus dan penyerahan lewat aturan peralihan membiarkan `DecidedAt` kosong |
+| Kontrak | `DecidedAt` tetap ada. Layar beralih ke `decisionAt` (riwayat) lewat `resolveDecisionTime`, yang tetap benar untuk baris lama. Label "Keputusan Terakhir Pada" diganti "Diputus Atasan Pada", ditambah "Diserahkan Pada" dan "Dibatalkan Pada" |
+| Regresi | `DecisionLifecycleTests`: serah setelah setuju, batal setelah setuju, batal sebelum diputus, tolak, serah lewat peralihan |
+| Data lama | **BLOCKED_DATA.** Baris yang diserahkan/dibatalkan sebelum perbaikan masih menyimpan waktu dan alasan penyerahan/pembatalan di `DecidedAt`/`DecisionReason`. Nilai benarnya dapat diturunkan dari `PhmStockRequestHistory`, tetapi koreksi otomatis tidak dijalankan. Butuh persetujuan pemilik data dan skrip yang ditinjau. Tampilan tidak terdampak karena memakai riwayat |
+
+### Status Pemenuhan (FIN-LGS-017)
+
+| Keadaan | Dasar (data yang sudah ada) |
+| --- | --- |
+| Menunggu Persetujuan | `Submitted` |
+| Menunggu Penyerahan (aturan peralihan) | `Submitted` + `isLegacySubmission` |
+| Disetujui · Menunggu Penyerahan | `Approved` |
+| Ditolak | `Rejected` |
+| Dipenuhi Sebagian | `Completed` + `shortfallItemCount > 0` |
+| Selesai Diserahkan | `Completed` tanpa kekurangan |
+| Dibatalkan | `Cancelled` (+ langkah "Dibatalkan" dengan `cancelledAt`) |
+| CITO menunggu verifikasi susulan | Penanda terpisah dari `emergencyReviewState = Pending`, pada tahap mana pun |
+
+## 4. Hasil pemeriksaan source dan uji
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Keseimbangan kurung 9 berkas C# yang berubah | Seimbang |
+| Parse sintaks 17 berkas frontend (`@babel/parser`, bukan ESLint/runner) | 17/17 lolos |
+| Audit navigasi statis | 11 / 67 / 66 / 27, 0 tautan tanpa halaman |
+| Asersi uji lama yang terdampak | Tetap terpenuhi, termasuk pola `Number(row.requestedQuantity) - Number(row.fulfilledQuantity)` (dipertahankan sebagai cadangan) dan urutan bagian detail |
+| Pencarian ketergantungan pada `DecidedAt`/`DecisionReason` lama | Tidak ada uji maupun layar Logistik yang bergantung padanya |
+| Inventaris backend | **115 metode / 135 kasus**. Belum di-build maupun dijalankan; **tidak ada klaim PASS** |
+| Inventaris frontend | **40 uji** di `stock-request-approval` + `logistics-module-navigation`; belum dijalankan |
+| Hasil terakhir yang benar-benar dijalankan | Backend 108/108 (versi sebelum tiga tahap terakhir); frontend 34/34 dan ESLint 0 error (sebelum dua tahap terakhir) |
+
+## 5. Blocker
+
+| Jenis | Blocker |
+| --- | --- |
+| BLOCKED_DECISION | `LGS-OQ-027` (D1–D7, juga untuk linimasa); `LGS-OQ-029` (W1–W3); `LGS-OQ-024`, `025`, `026`, `028`; entri menu tersendiri Verifikasi Susulan CITO; isi "Pemeriksaan Stok" |
+| BLOCKED_DATA | Koreksi `DecidedAt`/`DecisionReason` baris lama; tautan unit 0/20; penempatan manajerial 0; izin 0 jabatan; jabatan CITO, tenggat, batas aktivasi |
+| BLOCKED_MIGRATION | Tindak lanjut temuan CITO; aktivasi batas; notifikasi |
+| BLOCKED_SANDBOX | Konkurensi PostgreSQL |
+| BLOCKED_FEATURE (39 entri menu) | Penerimaan Barang (5: Pemeriksaan Jumlah & Kondisi, Pencatatan Batch/Lot, Tanggal Kadaluarsa, Barang Tidak Sesuai, Dokumen Penerimaan); Penyimpanan & Penempatan (4); Distribusi & Pengeluaran (5); Mutasi & Retur (3); Stock Opname & Penyesuaian (6); Pengendalian (3: Rekomendasi Pengisian Ulang, Kebutuhan Pengadaan, Stok Lambat Bergerak); Laporan & Rekonsiliasi (8); Dashboard Penerimaan & Pengeluaran; Penanggung Jawab Gudang; Stok per Unit; Mutasi Saldo Persediaan; Pemeriksaan Stok |
+| Teknis | Perubahan tiga tahap terakhir belum pernah di-compile. `PharmacyTests` tetap tidak terkompilasi karena uji Billing modul lain, sehingga uji Logistik dijalankan lewat proyek terisolasi |
+
+## 6. Kesiapan UAT
+
+**NO-GO.** Penyebabnya:
+
+- BLOCKED_DATA;
+- `LGS-OQ-027`/`029`;
+- konkurensi PostgreSQL;
+- build dan uji backend (target 135/135) serta uji frontend (target 40) dan ESLint belum dijalankan.
+
+Skenario UAT tambahan:
+
+| No | Skenario | Harapan |
+| --- | --- | --- |
+| 29 | Permintaan disetujui lalu diserahkan; buka detail | "Diputus Atasan Pada" = waktu persetujuan; "Diserahkan Pada" terisi; keduanya berbeda |
+| 30 | Permintaan disetujui lalu dibatalkan | "Dibatalkan Pada" terisi; waktu persetujuan tetap |
+| 31 | Status Pemenuhan: CITO diotorisasi yang belum diverifikasi | Tahap "Disetujui · Menunggu Penyerahan" + penanda "Menunggu Verifikasi Susulan" |
+| 32 | Status Pemenuhan: permintaan selesai sebagian | "Dipenuhi Sebagian", "n dari m baris lengkap"; detail: sisa = diminta − diserahkan |
+
+## 7. Rangkuman commit dan push
+
+Atas instruksi pemilik proyek, perubahan di atas di-commit dan di-push di akhir tahap ini:
+
+- backend `Ikbal`: 10 berkas, dahulu;
+- frontend `Ikbalv2`: 17 berkas, sesudahnya.
+
+SHA commit tercatat di riwayat git masing-masing branch. Push dilakukan sebagai fast-forward ke branch kerja, bukan ke integration, tanpa PR.
+
+Berkas yang tidak ikut:
+
+- backend: `SeedData/ICD10/*`, `Storage/uploads/*`;
+- frontend: `test-results/.last-run.json`, `tests/e2e/zz-*`.
+
+**Langkah berikutnya** (butuh persetujuan terpisah):
+
+1. Build dan uji terisolasi backend (target 135/135).
+2. Uji frontend (40) dan ESLint.
+3. PR baru ke integration, backend dahulu.

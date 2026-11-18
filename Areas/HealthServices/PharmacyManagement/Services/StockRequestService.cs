@@ -205,8 +205,11 @@ public sealed class StockRequestService
                     x.Histories.Any(h => !h.IsDelete && h.Action == VerifyEmergencyConfirmedAction)),
                 StockRequestEmergencyReviewState.Deviation => query.Where(x =>
                     x.Histories.Any(h => !h.IsDelete && h.Action == VerifyEmergencyDeviationAction)),
-                _ => query.Where(x =>
-                    !x.Histories.Any(h => !h.IsDelete && h.Action == AuthorizeEmergencyAction))
+                StockRequestEmergencyReviewState.NotRequired => query.Where(x =>
+                    !x.Histories.Any(h => !h.IsDelete && h.Action == AuthorizeEmergencyAction)),
+                // Nilai yang tidak dikenal tidak ditafsirkan sebagai "tidak memerlukan verifikasi".
+                // Lewat HTTP sudah ditolak validasi DTO; ini penjaga bila service dipanggil langsung.
+                _ => query.Where(x => false)
             };
         }
 
@@ -218,10 +221,23 @@ public sealed class StockRequestService
         // "Unit yang Saya Pimpin": dihitung dari kewenangan aktual pengguna yang login.
         if (request.Scope == StockRequestListScope.MyAuthority)
             query = await ApplyAuthorityScopeAsync(query, cancellationToken);
+        else if (!Enum.IsDefined(request.Scope))
+            query = query.Where(x => false); // cakupan tak dikenal tidak pernah berarti "semua unit"
 
         if (request.Priority.HasValue) query = query.Where(x => x.Priority == request.Priority);
         if (request.RequestingServiceUnitId.HasValue)
             query = query.Where(x => x.RequestingServiceUnitId == request.RequestingServiceUnitId);
+        if (request.RequestedByWorkforceId.HasValue)
+            query = query.Where(x => x.RequestedByWorkforceId == request.RequestedByWorkforceId);
+
+        // Status Pemenuhan: progres dihitung sejak pengajuan, jadi draf tidak ikut.
+        if (request.ExcludeDraft) query = query.Where(x => x.Status != StockRequestStatus.Draft);
+
+        // Sama dengan IsPartiallyFulfilled pada proyeksi di bawah.
+        if (request.PartiallyFulfilledOnly)
+            query = query.Where(x => x.Status == StockRequestStatus.Completed &&
+                                     x.Items.Any(i => !i.IsDelete && i.FulfilledQuantity != null &&
+                                                      i.FulfilledQuantity < i.RequestedQuantity));
         if (request.StorageLocationId.HasValue)
             query = query.Where(x => x.StorageLocationId == request.StorageLocationId);
 
@@ -315,6 +331,22 @@ public sealed class StockRequestService
                                         x.Priority == StockRequestPriority.Emergency,
                 IsPartiallyFulfilled = x.Status == StockRequestStatus.Completed &&
                                        x.Items.Any(i => !i.IsDelete && i.FulfilledQuantity != null &&
+                                                        i.FulfilledQuantity < i.RequestedQuantity),
+                // Tahapan progres dibaca dari riwayat, sumber yang tidak pernah ditimpa.
+                DecisionAt = x.Histories
+                    .Where(h => !h.IsDelete && (h.Action == ApproveAction || h.Action == RejectAction ||
+                                                h.Action == AuthorizeEmergencyAction))
+                    .Select(h => (DateTime?)h.OccurredAt)
+                    .Min(),
+                FulfilledAt = x.Histories
+                    .Where(h => !h.IsDelete && h.Action == FulfillAction)
+                    .Select(h => (DateTime?)h.OccurredAt)
+                    .Min(),
+                CancelledAt = x.Histories
+                    .Where(h => !h.IsDelete && h.Action == CancelAction)
+                    .Select(h => (DateTime?)h.OccurredAt)
+                    .Min(),
+                ShortfallItemCount = x.Items.Count(i => !i.IsDelete && i.FulfilledQuantity != null &&
                                                         i.FulfilledQuantity < i.RequestedQuantity)
             })
             .ToListAsync(cancellationToken);
@@ -468,6 +500,123 @@ public sealed class StockRequestService
 
         item.EmergencyReviewDueAt = _reviewDeadline.DueAtUtc(item.EmergencyAuthorizedAt);
         item.EmergencyReviewDueState = _reviewDeadline.Classify(item.EmergencyAuthorizedAt, nowUtc);
+    }
+
+    // ============================================ linimasa aktivitas ("Riwayat Permintaan")
+
+    /// <summary>
+    /// Linimasa aktivitas permintaan stok: satu baris per perubahan yang tercatat di riwayat,
+    /// terbaru lebih dahulu. Hanya membaca; sumbernya riwayat yang sama dengan detail.
+    /// </summary>
+    /// <remarks>
+    /// Aturan baca mengikuti daftar permintaan: tanpa cakupan, seluruh permintaan yang dapat
+    /// dibaca pemegang <c>StockRequest:Read</c> (sama dengan daftar dan detail, menunggu
+    /// <c>LGS-OQ-027</c>); dengan <see cref="StockRequestListScope.MyAuthority"/>, dibatasi pada
+    /// kewenangan aktual pengguna. Saringan permintaan (unit, pemohon, nomor) dan saringan kejadian
+    /// (waktu, status tujuan) dipasang sebelum penghitungan, sehingga jumlah dan halaman konsisten.
+    /// </remarks>
+    public async Task<PagedResult<StockRequestHistoryEntryResponse>> GetHistoryPagedAsync(
+        StockRequestHistoryPagedQuery request, CancellationToken cancellationToken = default)
+    {
+        var requests = _dbContext.PhmStockRequests.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (request.Scope == StockRequestListScope.MyAuthority)
+            requests = await ApplyAuthorityScopeAsync(requests, cancellationToken);
+        else if (!Enum.IsDefined(request.Scope))
+            requests = requests.Where(x => false);
+
+        if (request.RequestingServiceUnitId.HasValue)
+            requests = requests.Where(x => x.RequestingServiceUnitId == request.RequestingServiceUnitId);
+        if (request.RequestedByWorkforceId.HasValue)
+            requests = requests.Where(x => x.RequestedByWorkforceId == request.RequestedByWorkforceId);
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var keyword = request.Search.Trim().ToLower();
+            requests = requests.Where(x => x.RequestNumber.ToLower().Contains(keyword));
+        }
+
+        var query =
+            from history in _dbContext.PhmStockRequestHistories.AsNoTracking()
+            join stockRequest in requests on history.StockRequestId equals stockRequest.Id
+            where !history.IsDelete
+            select new { History = history, Request = stockRequest };
+
+        if (request.ToStatus.HasValue)
+        {
+            var toStatus = request.ToStatus.Value;
+            query = Enum.IsDefined(toStatus)
+                ? query.Where(x => x.History.ToStatus == toStatus)
+                : query.Where(x => false);
+        }
+
+        // Rentang tanggal dengan aturan yang sama seperti daftar permintaan: akhir rentang
+        // eksklusif pada hari berikutnya supaya kejadian sore hari tetap terbawa.
+        if (request.StartDate.HasValue)
+        {
+            var start = request.StartDate.Value.Date.ToUniversalTime();
+            query = query.Where(x => x.History.OccurredAt >= start);
+        }
+
+        if (request.EndDate.HasValue)
+        {
+            var endExclusive = request.EndDate.Value.Date.ToUniversalTime().AddDays(1);
+            query = query.Where(x => x.History.OccurredAt < endExclusive);
+        }
+
+        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+        var pageSize = request.PageSize is < 1 or > 100 ? 10 : request.PageSize;
+
+        var total = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(x => x.History.OccurredAt)
+            .ThenByDescending(x => x.History.Id)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new StockRequestHistoryEntryResponse
+            {
+                Id = x.History.Id,
+                StockRequestId = x.Request.Id,
+                RequestNumber = x.Request.RequestNumber,
+                RequestingServiceUnitName = x.Request.RequestingServiceUnit != null
+                    ? x.Request.RequestingServiceUnit.ServiceUnitName : string.Empty,
+                RequestedByName = x.Request.RequestedByWorkforce != null
+                    ? x.Request.RequestedByWorkforce.DisplayName : string.Empty,
+                Priority = x.Request.Priority,
+                Action = x.History.Action,
+                FromStatus = x.History.FromStatus,
+                ToStatus = x.History.ToStatus,
+                Reason = x.History.Reason,
+                OccurredAt = x.History.OccurredAt,
+                ActorUserId = x.History.ActorUserId
+            })
+            .ToListAsync(cancellationToken);
+
+        // Nama petugas dibaca sekali untuk seluruh halaman, dengan aturan yang sama seperti detail.
+        var actorIds = items.Select(x => x.ActorUserId).Distinct().ToList();
+        if (actorIds.Count > 0)
+        {
+            var names = (await _dbContext.Users.AsNoTracking()
+                    .Where(u => actorIds.Contains(u.Id))
+                    .Select(u => new
+                    {
+                        u.Id,
+                        Name = u.WorkforceProfile != null ? u.WorkforceProfile.DisplayName : u.UserName
+                    })
+                    .ToListAsync(cancellationToken))
+                .ToDictionary(x => x.Id, x => x.Name);
+
+            foreach (var item in items) item.ActorName = names.GetValueOrDefault(item.ActorUserId);
+        }
+
+        return new PagedResult<StockRequestHistoryEntryResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            Items = items
+        };
     }
 
     // ============================================ cakupan dan kesiapan kewenangan
@@ -674,6 +823,30 @@ public sealed class StockRequestService
         // boleh diserahkan langsung (lihat ApprovalEnforcedFromConfigKey).
         detail.IsLegacySubmission = IsLegacySubmission(entity);
         if (detail.IsLegacySubmission) detail.CanFulfill = true;
+
+        // Tahapan progres dengan aturan yang sama seperti daftar (riwayat, bukan DecidedAt).
+        detail.DecisionAt = entity.Histories
+            .Where(h => !h.IsDelete && h.Action is ApproveAction or RejectAction or AuthorizeEmergencyAction)
+            .Select(h => (DateTime?)h.OccurredAt)
+            .Min();
+        detail.FulfilledAt = entity.Histories
+            .Where(h => !h.IsDelete && h.Action == FulfillAction)
+            .Select(h => (DateTime?)h.OccurredAt)
+            .Min();
+        detail.CancelledAt = entity.Histories
+            .Where(h => !h.IsDelete && h.Action == CancelAction)
+            .Select(h => (DateTime?)h.OccurredAt)
+            .Min();
+        detail.ShortfallItemCount = entity.Items.Count(i => !i.IsDelete && i.FulfilledQuantity != null &&
+                                                            i.FulfilledQuantity < i.RequestedQuantity);
+
+        // Alasan CITO dari pemohon: dicatat pada riwayat pengajuan, tidak punya kolom sendiri.
+        if (entity.Priority == StockRequestPriority.Emergency)
+            detail.EmergencyRequestReason = entity.Histories
+                .Where(h => !h.IsDelete && h.Action == SubmitAction && h.Reason != null)
+                .OrderByDescending(h => h.OccurredAt)
+                .Select(h => h.Reason)
+                .FirstOrDefault();
 
         // Otorisasi CITO dan verifikasi susulannya dibaca dari riwayat (LGS-DEC-005).
         var authorization = FindEmergencyAuthorization(entity);
@@ -889,7 +1062,7 @@ public sealed class StockRequestService
         var prior = await FindIdempotentAsync(CreateAction, request.IdempotencyKey, cancellationToken);
         if (prior != null)
         {
-            EnsureSameFingerprint(prior.Source, fingerprint);
+            EnsureSameReplay(prior, null, actorUserId, fingerprint);
             return (await GetDetailAsync(prior.StockRequestId, cancellationToken))!;
         }
 
@@ -956,10 +1129,7 @@ public sealed class StockRequestService
         var prior = await FindIdempotentAsync(UpdateAction, request.IdempotencyKey, cancellationToken);
         if (prior != null)
         {
-            if (prior.StockRequestId != id)
-                throw new StockRequestConflictException("PHM013",
-                    "Idempotency key sudah dipakai untuk permintaan lain.");
-            EnsureSameFingerprint(prior.Source, fingerprint);
+            EnsureSameReplay(prior, id, actorUserId, fingerprint);
             return (await GetDetailAsync(id, cancellationToken))!;
         }
 
@@ -1005,6 +1175,9 @@ public sealed class StockRequestService
             UpdateAction, null, request.IdempotencyKey, fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
+        await _loggerService.AuditAsync(LogCategory, "StockRequest.Update",
+            "Mengubah draf permintaan stok.",
+            new { StockRequestId = entity.Id, entity.RequestNumber, entity.ItemCount, ActorUserId = actorUserId, UserId = actorUserId });
         return (await GetDetailAsync(id, cancellationToken))!;
     }
 
@@ -1034,7 +1207,7 @@ public sealed class StockRequestService
         var prior = await FindIdempotentAsync(SubmitAction, request.IdempotencyKey, cancellationToken);
         if (prior != null)
         {
-            EnsureSameFingerprint(prior.Source, fingerprint);
+            EnsureSameReplay(prior, id, actorUserId, fingerprint);
             return (await GetDetailAsync(id, cancellationToken))!;
         }
 
@@ -1090,7 +1263,7 @@ public sealed class StockRequestService
         var prior = await FindIdempotentAsync(CancelAction, request.IdempotencyKey, cancellationToken);
         if (prior != null)
         {
-            EnsureSameFingerprint(prior.Source, fingerprint);
+            EnsureSameReplay(prior, id, actorUserId, fingerprint);
             return (await GetDetailAsync(id, cancellationToken))!;
         }
 
@@ -1110,8 +1283,10 @@ public sealed class StockRequestService
         var now = DateTime.UtcNow;
         var from = entity.Status;
         entity.Status = StockRequestStatus.Cancelled;
-        entity.DecidedAt = now;
-        entity.DecisionReason = reason;
+        // DecidedAt dan DecisionReason adalah keputusan atasan unit (LGS-DEC-002) dan hanya
+        // ditulis DecideAsync. Pembatalan bukan keputusan atasan: waktu dan alasannya tercatat di
+        // riwayat (CancelStockRequest) dan dibaca sebagai CancelledAt. Dulu kolom itu ditimpa di
+        // sini sehingga waktu persetujuan atas permintaan yang dibatalkan hilang.
         entity.Version++;
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
@@ -1120,6 +1295,15 @@ public sealed class StockRequestService
             from, CancelAction, reason, request.IdempotencyKey, fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
+        // Pembatalan permintaan yang sudah Disetujui menghapus keputusan atasan dari antrean
+        // gudang, sehingga dicatat sebagai audit beserta status asalnya.
+        await _loggerService.AuditAsync(LogCategory, "StockRequest.Cancel",
+            "Membatalkan permintaan stok.",
+            new
+            {
+                StockRequestId = entity.Id, entity.RequestNumber, FromStatus = from, Reason = reason,
+                ActorUserId = actorUserId, UserId = actorUserId
+            });
         return (await GetDetailAsync(id, cancellationToken))!;
     }
 
@@ -1192,10 +1376,7 @@ public sealed class StockRequestService
         var prior = await FindIdempotentAsync(action, idempotencyKey, cancellationToken);
         if (prior != null)
         {
-            if (prior.StockRequestId != id)
-                throw new StockRequestConflictException("PHM013",
-                    "Idempotency key sudah dipakai untuk permintaan lain.");
-            EnsureSameFingerprint(prior.Source, fingerprint);
+            EnsureSameReplay(prior, id, actorUserId, fingerprint);
             return (await GetDetailAsync(id, cancellationToken))!;
         }
 
@@ -1307,10 +1488,7 @@ public sealed class StockRequestService
                         cancellationToken);
         if (prior != null)
         {
-            if (prior.StockRequestId != id)
-                throw new StockRequestConflictException("PHM013",
-                    "Idempotency key sudah dipakai untuk permintaan lain.");
-            EnsureSameFingerprint(prior.Source, fingerprint);
+            EnsureSameReplay(prior, id, actorUserId, fingerprint);
             return (await GetDetailAsync(id, cancellationToken))!;
         }
 
@@ -1431,7 +1609,7 @@ public sealed class StockRequestService
         var prior = await FindIdempotentAsync(FulfillAction, request.IdempotencyKey, cancellationToken);
         if (prior != null)
         {
-            EnsureSameFingerprint(prior.Source, fingerprint);
+            EnsureSameReplay(prior, id, actorUserId, fingerprint);
             return (await GetDetailAsync(id, cancellationToken))!;
         }
 
@@ -1531,8 +1709,9 @@ public sealed class StockRequestService
         }
 
         entity.Status = StockRequestStatus.Completed;
-        entity.DecidedAt = now;
-        entity.DecisionReason = note;
+        // Penyerahan bukan keputusan atasan: DecidedAt/DecisionReason dibiarkan berisi keputusan
+        // persetujuan (atau kosong untuk permintaan lama yang diserahkan lewat aturan peralihan).
+        // Waktu dan catatan penyerahan tercatat di riwayat (FulfillStockRequest) → FulfilledAt.
         entity.Version++;
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
@@ -1724,6 +1903,36 @@ public sealed class StockRequestService
                 "Idempotency key dipakai dengan isi permintaan yang berbeda.");
     }
 
+    /// <summary>
+    /// Pengulangan perintah dengan kunci idempotensi yang sudah tercatat hanya sah bila menyangkut
+    /// permintaan yang sama, dilakukan pelaku yang sama, dan isinya sama. Selain itu benturan
+    /// (<c>PHM013</c>).
+    /// </summary>
+    /// <remarks>
+    /// Tanpa pemeriksaan pelaku, pengguna lain yang memakai kunci yang sama menerima hasil perintah
+    /// orang lain tanpa pemeriksaan kewenangan. Tanpa pemeriksaan permintaan, kunci yang pernah
+    /// dipakai untuk permintaan A dan dikirim ulang untuk permintaan B dijawab "berhasil" padahal
+    /// B tidak diubah sama sekali — pada pembatalan, sidik jarinya hanya memuat alasan sehingga
+    /// kasus itu lolos pemeriksaan isi.
+    /// </remarks>
+    /// <param name="prior">Riwayat yang sudah tercatat untuk kunci itu.</param>
+    /// <param name="stockRequestId">Permintaan yang dituju; null untuk pembuatan permintaan.</param>
+    /// <param name="actorUserId">Pengguna yang mengirim ulang.</param>
+    /// <param name="fingerprint">Sidik jari isi perintah yang dikirim ulang.</param>
+    private static void EnsureSameReplay(PhmStockRequestHistory prior, Guid? stockRequestId,
+        Guid actorUserId, string fingerprint)
+    {
+        if (stockRequestId.HasValue && prior.StockRequestId != stockRequestId.Value)
+            throw new StockRequestConflictException("PHM013",
+                "Idempotency key sudah dipakai untuk permintaan lain.");
+
+        if (prior.ActorUserId != actorUserId)
+            throw new StockRequestConflictException("PHM013",
+                "Idempotency key sudah dipakai pengguna lain.");
+
+        EnsureSameFingerprint(prior.Source, fingerprint);
+    }
+
     private Task<PhmStockRequestHistory?> FindIdempotentAsync(string action, string key,
         CancellationToken cancellationToken) =>
         _dbContext.PhmStockRequestHistories.AsNoTracking()
@@ -1827,6 +2036,11 @@ public sealed class StockRequestService
                 MeasurementName = i.MeasurementNameSnapshot,
                 RequestedQuantity = i.RequestedQuantity,
                 FulfilledQuantity = i.FulfilledQuantity,
+                // Sisa = diminta − diserahkan, hanya setelah baris itu diserahkan; penyerahan
+                // tidak pernah melebihi permintaan (PHM006), jadi sisa tidak pernah negatif.
+                RemainingQuantity = i.FulfilledQuantity.HasValue
+                    ? Math.Max(i.RequestedQuantity - i.FulfilledQuantity.Value, 0m)
+                    : null,
                 Note = i.Note,
                 LineNumber = i.LineNumber
             })],

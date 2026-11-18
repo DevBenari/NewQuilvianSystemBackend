@@ -353,7 +353,8 @@ public sealed class StockRequestApprovalHarness : IDisposable
         Guid? unitId = null,
         DateTime? diajukanPada = null,
         Guid? dibuatOleh = null,
-        bool tanpaWaktuPengajuan = false)
+        bool tanpaWaktuPengajuan = false,
+        Guid? pemintaWorkforceId = null)
     {
         using var k = _database.CreateContext();
         var now = DateTime.UtcNow;
@@ -370,7 +371,7 @@ public sealed class StockRequestApprovalHarness : IDisposable
             RequestNumber = $"UJI-SRQ-{++_nomor:0000}",
             RequestingServiceUnitId = unitId ?? UnitId,
             StorageLocationId = GudangId,
-            RequestedByWorkforceId = _pemohonWfp,
+            RequestedByWorkforceId = pemintaWorkforceId ?? _pemohonWfp,
             Status = status,
             Priority = prioritas,
             RequestedAt = now.AddHours(-2),
@@ -432,6 +433,32 @@ public sealed class StockRequestApprovalHarness : IDisposable
         using var k = _database.CreateContext();
         var jabatan = await k.MstPositions.SingleAsync(x => x.Id == positionId);
         jabatan.IsActive = false;
+        await k.SaveChangesAsync();
+    }
+
+    /// <summary>Profil tenaga kerja pemohon, untuk saringan petugas peminta dan pembuatan permintaan.</summary>
+    public Guid PemohonWorkforceId => _pemohonWfp;
+
+    /// <summary>Profil tenaga kerja staf unit, sebagai petugas peminta kedua pada uji saringan.</summary>
+    public Guid StafWorkforceId => _stafWfp;
+
+    /// <summary>
+    /// Baris master obat dan satuan uji untuk <see cref="ObatId"/> dan <see cref="SatuanId"/>,
+    /// supaya perintah buat dan ubah permintaan — yang memeriksa master farmasi — dapat diuji.
+    /// </summary>
+    public async Task SediakanMasterObatAsync()
+    {
+        using var k = _database.CreateContext();
+        k.MstDrugs.Add(new MstDrug
+        {
+            Id = ObatId, DrugCategoryId = Guid.NewGuid(), DrugCode = "UJI-OBT-1",
+            DrugName = "Obat Uji Satu", IsActive = true, CreateDateTime = DateTime.UtcNow
+        });
+        k.MstMeasurements.Add(new MstMeasurement
+        {
+            Id = SatuanId, MeasurementCode = "UJI-SAT-1", MeasurementName = "Tablet (Uji)",
+            IsActive = true, CreateDateTime = DateTime.UtcNow
+        });
         await k.SaveChangesAsync();
     }
 

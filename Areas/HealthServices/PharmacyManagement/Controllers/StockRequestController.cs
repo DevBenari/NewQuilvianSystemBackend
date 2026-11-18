@@ -51,6 +51,28 @@ public class StockRequestController : ControllerBase
     }
 
     /// <summary>
+    /// Linimasa aktivitas permintaan ("Riwayat Permintaan"): satu baris per perubahan yang
+    /// tercatat — dibuat, diajukan, disetujui, ditolak, diotorisasi CITO, diverifikasi,
+    /// diserahkan, dibatalkan — terbaru lebih dahulu.
+    /// </summary>
+    /// <remarks>
+    /// Hanya membaca riwayat yang sudah ada. Aturan bacanya sama dengan daftar permintaan
+    /// (<c>LGS-OQ-027</c> masih terbuka); <c>scope=1</c> membatasi pada kewenangan aktual.
+    /// </remarks>
+    [HttpGet("histories")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<StockRequestHistoryEntryResponse>>), StatusCodes.Status200OK)]
+    [AccessAction("Read", "Read Stock Request",
+        Description = "Melihat linimasa aktivitas permintaan obat", AccessType = AccessTypes.Read, SortOrder = 4)]
+    [AccessPermission("StockRequest", "Read")]
+    public async Task<IActionResult> GetHistories([FromQuery] StockRequestHistoryPagedQuery query,
+        CancellationToken cancellationToken)
+    {
+        var data = await _service.GetHistoryPagedAsync(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<StockRequestHistoryEntryResponse>>.Ok(data,
+            "Linimasa aktivitas permintaan obat berhasil diambil."));
+    }
+
+    /// <summary>
     /// Cakupan kewenangan pengguna yang login: izin persetujuan eksplisit, unit layanan yang
     /// dipimpin, dan kewenangan CITO ("Unit yang Saya Pimpin").
     /// </summary>
