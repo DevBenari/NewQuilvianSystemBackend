@@ -1237,8 +1237,8 @@ Bagian ini memetakan seluruh 25 Kebutuhan Fungsional (`FR-TRN-01` s.d. `FR-TRN-2
 | :--- | :--- | :--- | :--- | :---: |
 | `AT-HRD-TRN-01` | Pendaftaran Master Aturan 5 Pelatihan Wajib STARKES KPS 8 | `BE-HRD-239` | `FE-HRD-218`, `FE-HRD-219` | `✅ PASS` |
 | `AT-HRD-TRN-02` | Penolakan konfigurasi masa berlaku akreditasi > 24 bulan | `BE-HRD-239` | `FE-HRD-219` | `✅ PASS` |
-| `AT-HRD-TRN-03` | Deteksi otomatis sertifikat masuk radar kedaluwarsa H-90/60/30 | `BE-HRD-240` | `FE-HRD-217` | 🟡 dikerjakan ulang 10 November 2026 (data fiktif dihapus); uji belum dijalankan ulang |
-| `AT-HRD-TRN-04` | Penyiaran pesan peringatan perpanjangan massal ke staf nakes | `BE-HRD-240` | `FE-HRD-217` | ⛔ klaim PASS dicabut 10 November 2026 — kanal notifikasi belum ada (`BE-HRD-314`); siaran melaporkan 0 pengiriman |
+| `AT-HRD-TRN-03` | Deteksi otomatis sertifikat masuk radar kedaluwarsa H-90/60/30 | `BE-HRD-240` | `FE-HRD-217` | ✅ `PASS` lewat harness 18 November 2026 — zona H-90/60/30/kedaluwarsa dihitung tepat oleh layanan yang dipanggil worker `TRN-W1` ([laporan](../task/report/backend/BE-HRD-240.md)) |
+| `AT-HRD-TRN-04` | Penyiaran pesan peringatan perpanjangan massal ke staf nakes | `BE-HRD-240` | `FE-HRD-217` | ✅ `PASS` lewat harness 18 November 2026 — siaran ke staf lewat pusat pemberitahuan, satu per staf per hari, staf tanpa akun aktif tidak dihitung; kepala ruangan dan WhatsApp pada matriks di luar kontrak (keputusan pemilik) ([laporan](../task/report/backend/BE-HRD-240.md)) |
 | `AT-HRD-TRN-05` | Pemberian grace period 30 hari pasca habis tempo sertifikat | `BE-HRD-241` | `FE-HRD-217` | `✅ PASS` |
 | `AT-HRD-TRN-06` | Penugasan otomatis buddy system jaga shift ke Sub-06 | `BE-HRD-241` | `FE-HRD-217` | `✅ PASS` |
 | `AT-HRD-TRN-07` | Pembekuan kewenangan klinis RKK Level 4 ke Level 3 di Sub-14 | `BE-HRD-241` | `FE-HRD-217` | `✅ PASS` |

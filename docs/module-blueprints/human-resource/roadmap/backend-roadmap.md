@@ -939,7 +939,7 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-237` | `S-C1-OPPE` · Verifikasi | Validasi Kompilasi .NET, QBE Conformance & Eksekusi Acceptance Tests `S-C1-OPPE` | 🟡 | Seluruh task backend `BE-HRD-222` s.d. `BE-HRD-236` |
 | `BE-HRD-238` | `S-C2` · `MVP-48` | Entity Model EF Core, Indeks DB & Migration Postgres untuk 10 Tabel `LearningAndDevelopment` & Ikatan Dinas | ✅ | Tidak ada prasyarat task lain (Fondasi basis data `S-C2`). |
 | `BE-HRD-239` | `S-C2` · `MVP-48` | Konfigurasi Master Aturan Pelatihan Wajib Akreditasi STARKES KPS 8 (`MandatoryTrainingRuleService` & Controller) | ✅ | `BE-HRD-238` |
-| `BE-HRD-240` | `S-C2` · `MVP-48` | Engine Radar Kedaluwarsa Bertingkat (H-90/60/30) & Penyiaran Notifikasi Massal (`TrainingExpiryRadarService`) | 🟡 | `BE-HRD-239` |
+| `BE-HRD-240` | `S-C2` · `MVP-48` | Engine Radar Kedaluwarsa Bertingkat (H-90/60/30) & Penyiaran Notifikasi Massal (`TrainingExpiryRadarService`) | ✅ | `BE-HRD-239` |
 | `BE-HRD-241` | `S-C2` · `MVP-48` | Safeguard Shift Dinas Buddy System ke Sub-06 Scheduling & Eskalasi RKK ke Sub-14 (`INT-HR-79` & `INT-HR-77`) | 🟡 | `BE-HRD-240` |
 | `BE-HRD-242` | `S-C2` · `MVP-49` | Master Rencana Kerja Tahunan Diklat (TNA) & Alur Persetujuan Direksi (`AnnualTrainingPlanService` & Controller) | ✅ | `BE-HRD-238` |
 | `BE-HRD-243` | `S-C2` · `MVP-49` | Penjadwalan Sesi Kelas Diklat, Workshop Laboratorium Simulasi & Webinar (`TrainingSessionService` & Controller) | ✅ | `BE-HRD-238` |
@@ -5132,7 +5132,7 @@ BE-HRD-236 [B58] ──┘
 
 #### Grafik B60: Gelombang `MVP-48` (Pelatihan Wajib Akreditasi STARKES & Radar Kedaluwarsa)
 ```text
-BE-HRD-238 [B60] ✅ ──> BE-HRD-239 [B60] ✅ ──> BE-HRD-240 [B60] 🟡 ──> BE-HRD-241 [B60] 🟡 (Safeguard Shift Buddy System Sub-06 & Eskalasi RKK Sub-14)
+BE-HRD-238 [B60] ✅ ──> BE-HRD-239 [B60] ✅ ──> BE-HRD-240 [B60] ✅ ──> BE-HRD-241 [B60] 🟡 (Safeguard Shift Buddy System Sub-06 & Eskalasi RKK Sub-14)
 ```
 
 #### Grafik B61: Gelombang `MVP-49` (Sesi Diklat, Presensi, Ujian Teori & Simulasi OSCE Klinis)
@@ -5166,7 +5166,7 @@ BE-HRD-252 [B62] ──┘
 | :--- | :--- | :--- | :--- | :--- | :---: |
 | **MVP-48** | BE-HRD-238 | Entity Model EF Core & Migrasi Postgres Diklat | - | 10 Model tabel relasional Postgres, Migration EF Core & DbContext | ✅ **Selesai (2026-11-09)** |
 | **MVP-48** | BE-HRD-239 | Master Aturan Pelatihan Wajib STARKES KPS 8 | BE-HRD-238 | MandatoryTrainingRuleService, Controller, Katalog 5 Diklat Wajib RS | ✅ **Selesai (2026-11-09)** |
-| **MVP-48** | BE-HRD-240 | Engine Radar Kedaluwarsa Bertingkat (H-90/60/30) | BE-HRD-239 | Background Worker Radar, broadcast alert otomatis ke ESS/Email/WA | 🟡 sebagian 10 November 2026 — data fiktif dihapus, pengiriman notifikasi menunggu `BE-HRD-314` |
+| **MVP-48** | BE-HRD-240 | Engine Radar Kedaluwarsa Bertingkat (H-90/60/30) | BE-HRD-239 | Background Worker Radar, broadcast alert otomatis ke ESS/Email/WA | ✅ 18 November 2026 — siaran ke staf lewat pusat pemberitahuan terbukti di harness (`AT-HRD-TRN-04`) |
 | **MVP-48** | BE-HRD-241 | Safeguard Shift Buddy System & Eskalasi RKK | BE-HRD-240 | Integrasi INT-HR-79 (Sub-06) & INT-HR-77 (Sub-14 downgrade Level 3) | 🟡 sebagian 10 November 2026 — tabel `HrdShiftBuddySafeguard` menunggu migration |
 | **`MVP-49`** | `BE-HRD-242` | Master Rencana Program Tahunan TNA & Approval | `BE-HRD-238` | `AnnualTrainingPlanService`, Controller, workflow pengesahan Direksi | ✅ **Selesai (2026-11-09)** |
 | **`MVP-49`** | `BE-HRD-243` | Penjadwalan Sesi Kelas, Workshop Lab & Webinar | `BE-HRD-238` | `TrainingSessionService`, Controller, batch kalender kelas & kuota | ✅ **Selesai (2026-11-09)** |
@@ -5201,9 +5201,9 @@ BE-HRD-252 [B62] ──┘
 * **Acceptance Criteria**: Endpoint `GET /api/v1/corporate/hrd/learning/mandatory-rules` dan `POST .../mandatory-rules` beroperasi sesuai Kontrak `v20`; penolakan siklus masa berlaku > 24 bulan dengan kode `400 Bad Request`.
 * **Verifikasi**: Uji kontrak API Swagger & verifikasi aturan bisnis `VR-TRN-01`, `VR-TRN-02` pada `AT-HRD-TRN-01`, `AT-HRD-TRN-02`.
 
-#### 🟡 `BE-HRD-240` — Engine Radar Kedaluwarsa Bertingkat (H-90/60/30) & Penyiaran Notifikasi Massal (`TrainingExpiryRadarService`)
+#### ✅ `BE-HRD-240` — Engine Radar Kedaluwarsa Bertingkat (H-90/60/30) & Penyiaran Notifikasi Massal (`TrainingExpiryRadarService`)
 * **Slice / MVP**: `S-C2` / `MVP-48`
-* **Status**: 🟡 **SEBAGIAN 11 November 2026** (dikerjakan ulang; sebelumnya 🟡 10 November 2026) — siaran radar kini benar-benar terkirim ke pusat pemberitahuan (satu per staf per hari) dan jumlah pengiriman dilaporkan nyata. **Belum**: migration sudah dijalankan 11 November 2026; `AT-HRD-TRN-04` `NOT RUN`; kanal email/WhatsApp tidak tersedia. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-240.md)
+* **Status**: ✅ **Selesai 18 November 2026** — `AT-HRD-TRN-04` terbukti lewat harness `TrainingExpiryRadarBroadcastTests` 6/6 (layanan radar dan pusat pemberitahuan sesungguhnya: zona H-90/60/30/kedaluwarsa, satu pemberitahuan per staf berakun berisi seluruh sertifikatnya, siaran ulang hari yang sama tidak dobel, filter zona; tiga kontrol negatif tertangkap); tanpa perubahan source. Pemilik (18 November 2026) memilih bukti harness karena devYoga tidak punya sertifikat di zona radar, dan memutuskan siaran mengikuti kontrak (ke staf, kanal dalam aplikasi; WhatsApp/email dicatat sebagai kanal diminta). Proyek uji HR 284/284. Catatan: worker `TRN-W1` hanya mencatat ringkasan ke log (tanpa status `ExpiringSoon`, event audit, atau siaran otomatis) — di luar acceptance criteria. Riwayat sebelumnya (🟡 11 November 2026) — siaran radar kini benar-benar terkirim ke pusat pemberitahuan (satu per staf per hari) dan jumlah pengiriman dilaporkan nyata. **Belum**: migration sudah dijalankan 11 November 2026; `AT-HRD-TRN-04` `NOT RUN`; kanal email/WhatsApp tidak tersedia. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-240.md)
 * **Outcome**: Layanan pemantau kepatuhan sertifikasi berkala dan background worker harian `MandatoryTrainingExpiryRadarWorker` (`TRN-W1`) yang memindai seluruh sertifikat aktif pegawai, mengelompokkan ke zona radar H-90, H-60, H-30 hari sebelum kedaluwarsa (`VR-TRN-09`), memicu status `ExpiringSoon`, mencatat event audit `MandatoryTrainingExpiryRadarTriggered`, serta endpoint penyiaran notifikasi peringatan massal ke ESS, email, dan WhatsApp.
 * **Dependencies**: `BE-HRD-239`
 * **Acceptance Criteria**: Worker radar mengevaluasi tanggal masa berlaku secara akurat; endpoint `GET .../certificates/expiring-radar` dan `POST .../certificates/expiring-radar/broadcast-alerts` berfungsi deterministik.
