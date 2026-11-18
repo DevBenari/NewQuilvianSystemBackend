@@ -50,6 +50,52 @@ public class StockRequestController : ControllerBase
             "Riwayat permintaan obat berhasil diambil."));
     }
 
+    /// <summary>
+    /// Cakupan kewenangan pengguna yang login: izin persetujuan eksplisit, unit layanan yang
+    /// dipimpin, dan kewenangan CITO ("Unit yang Saya Pimpin").
+    /// </summary>
+    /// <remarks>
+    /// Dihitung dari penempatan jabatan dan struktur organisasi pengguna sendiri; tidak menerima
+    /// masukan unit dari klien dan tidak memuat identitas pegawai lain.
+    /// </remarks>
+    [HttpGet("approval-scope")]
+    [ProducesResponseType(typeof(ApiResponse<StockRequestApprovalScopeResponse>), StatusCodes.Status200OK)]
+    [AccessAction("Read", "Read Stock Request",
+        Description = "Melihat cakupan kewenangan persetujuan sendiri", AccessType = AccessTypes.Read, SortOrder = 3)]
+    [AccessPermission("StockRequest", "Read")]
+    public async Task<IActionResult> GetApprovalScope(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.GetApprovalScopeAsync(cancellationToken);
+            return Ok(ApiResponse<StockRequestApprovalScopeResponse>.Ok(data,
+                "Cakupan kewenangan persetujuan berhasil diambil."));
+        }
+        catch (StockRequestForbiddenException ex) { return this.StockRequestForbidden(ex); }
+    }
+
+    /// <summary>
+    /// Kesiapan data organisasi dan konfigurasi persetujuan (hanya membaca): tautan unit,
+    /// penempatan manajerial, izin jabatan, penunjukan jabatan CITO, batas aktivasi, dan tenggat.
+    /// </summary>
+    /// <remarks>
+    /// Berisi jumlah dan identitas unit layanan, tanpa identitas pegawai. Izinnya terpisah
+    /// (<c>StockRequest:ViewApprovalReadiness</c>) dan tidak diberikan kepada siapa pun secara
+    /// bawaan.
+    /// </remarks>
+    [HttpGet("approval-readiness")]
+    [ProducesResponseType(typeof(ApiResponse<StockRequestApprovalReadinessResponse>), StatusCodes.Status200OK)]
+    [AccessAction("ViewApprovalReadiness", "View Stock Request Approval Readiness",
+        Description = "Melihat kesiapan data organisasi untuk persetujuan permintaan stok",
+        AccessType = AccessTypes.Read, SortOrder = 14)]
+    [AccessPermission("StockRequest", "ViewApprovalReadiness")]
+    public async Task<IActionResult> GetApprovalReadiness(CancellationToken cancellationToken)
+    {
+        var data = await _service.GetApprovalReadinessAsync(cancellationToken);
+        return Ok(ApiResponse<StockRequestApprovalReadinessResponse>.Ok(data,
+            "Kesiapan data persetujuan berhasil diambil."));
+    }
+
     /// <summary>Rincian satu permintaan beserta itemnya dan riwayat statusnya.</summary>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<StockRequestDetailResponse>), StatusCodes.Status200OK)]

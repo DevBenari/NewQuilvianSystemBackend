@@ -51,10 +51,12 @@ public sealed class StockRequestService
     public const string ApprovalEnforcedFromConfigKey =
         "PharmacyManagement:StockRequest:ApprovalEnforcedFromUtc";
 
-    // Penanda batas terakhir yang tercatat di log, supaya setiap perubahan nilai konfigurasi
-    // meninggalkan jejak operasional tanpa menulis log pada setiap permintaan.
+    // Pengamatan konfigurasi terakhir yang tercatat di log, per kunci, supaya setiap perubahan
+    // nilai meninggalkan jejak operasional tanpa menulis log pada setiap permintaan.
     private static readonly object CutoverObservationLock = new();
     private static string? _lastCutoverObservation;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string>
+        SettingObservations = new(StringComparer.Ordinal);
 
     private readonly ApplicationDbContext _dbContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -62,12 +64,15 @@ public sealed class StockRequestService
     private readonly DrugStockService? _drugStockService;
     private readonly StockRequestApprovalAuthority _approvalAuthority;
     private readonly StockRequestApprovalCutover _approvalCutover;
+    private readonly StockRequestEmergencyReviewDeadline _reviewDeadline;
 
     /// <summary>
     /// <paramref name="drugStockService"/> boleh kosong agar pengujian yang hanya memeriksa
     /// alur permintaan tidak perlu menyiapkan seluruh persediaan. Bila kosong, penyerahan
-    /// hanya mencatat jumlah dan tidak menyentuh stok. <paramref name="configuration"/> hanya
-    /// dibaca untuk <see cref="ApprovalEnforcedFromConfigKey"/>.
+    /// hanya mencatat jumlah dan tidak menyentuh stok. <paramref name="configuration"/> dibaca
+    /// untuk batas aktivasi (<see cref="ApprovalEnforcedFromConfigKey"/>), jabatan otorisasi CITO
+    /// (<see cref="StockRequestEmergencyAuthorizerDesignation.ConfigKey"/>), dan tenggat
+    /// verifikasi susulan (<see cref="StockRequestEmergencyReviewDeadline"/>).
     /// </summary>
     public StockRequestService(ApplicationDbContext dbContext,
         IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
@@ -77,10 +82,46 @@ public sealed class StockRequestService
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
         _drugStockService = drugStockService;
-        _approvalAuthority = new StockRequestApprovalAuthority(dbContext);
+        _approvalAuthority = new StockRequestApprovalAuthority(dbContext,
+            StockRequestEmergencyAuthorizerDesignation.FromConfiguration(configuration));
         _approvalCutover = StockRequestApprovalCutover.Resolve(
             configuration?[ApprovalEnforcedFromConfigKey], DateTime.UtcNow);
+        _reviewDeadline = StockRequestEmergencyReviewDeadline.FromConfiguration(configuration);
         ObserveCutover(_approvalCutover);
+        ObserveSetting("EmergencyReviewDeadline", _reviewDeadline.Message,
+            isError: !_reviewDeadline.IsConfigured &&
+                     !string.IsNullOrWhiteSpace(configuration?[StockRequestEmergencyReviewDeadline.DueHoursConfigKey]));
+        ObserveSetting("EmergencyAuthorizerDesignation",
+            _approvalAuthority.EmergencyDesignation.IsConfigured
+                ? $"Jabatan otorisasi CITO ditetapkan: {_approvalAuthority.EmergencyDesignation.PositionIds.Count} id, " +
+                  $"{_approvalAuthority.EmergencyDesignation.PositionCodes.Count} kode."
+                : "Jabatan otorisasi CITO belum ditetapkan; otorisasi CITO tertutup.",
+            isError: false);
+    }
+
+    /// <summary>
+    /// Mencatat satu pengaturan ke log sekali per nilai yang berbeda; perubahan nilai dicatat
+    /// sebagai peringatan, nilai yang tidak sah sebagai galat.
+    /// </summary>
+    private void ObserveSetting(string key, string message, bool isError)
+    {
+        string? previous = null;
+        var changed = false;
+        SettingObservations.AddOrUpdate(key, _ => { changed = true; return message; }, (_, old) =>
+        {
+            if (string.Equals(old, message, StringComparison.Ordinal)) return old;
+            previous = old;
+            changed = true;
+            return message;
+        });
+        if (!changed) return;
+
+        var data = new { Setting = key, PreviousObservation = previous };
+        _ = isError
+            ? _loggerService.ErrorAsync(LogCategory, $"StockRequest.{key}", message, data: data)
+            : previous == null
+                ? _loggerService.AuditAsync(LogCategory, $"StockRequest.{key}", message, data)
+                : _loggerService.WarningAsync(LogCategory, $"StockRequest.{key}Changed", message, data);
     }
 
     /// <summary>
@@ -168,6 +209,16 @@ public sealed class StockRequestService
                     !x.Histories.Any(h => !h.IsDelete && h.Action == AuthorizeEmergencyAction))
             };
         }
+
+        // Tenggat verifikasi susulan (UTC). Hanya CITO yang masih menunggu verifikasi; selama
+        // tenggat belum dikonfigurasi tidak ada yang dapat digolongkan, jadi hasilnya kosong.
+        if (request.EmergencyReviewDueState.HasValue)
+            query = ApplyReviewDueFilter(query, request.EmergencyReviewDueState.Value, DateTime.UtcNow);
+
+        // "Unit yang Saya Pimpin": dihitung dari kewenangan aktual pengguna yang login.
+        if (request.Scope == StockRequestListScope.MyAuthority)
+            query = await ApplyAuthorityScopeAsync(query, cancellationToken);
+
         if (request.Priority.HasValue) query = query.Where(x => x.Priority == request.Priority);
         if (request.RequestingServiceUnitId.HasValue)
             query = query.Where(x => x.RequestingServiceUnitId == request.RequestingServiceUnitId);
@@ -252,6 +303,10 @@ public sealed class StockRequestService
                             : x.Histories.Any(h => !h.IsDelete && h.Action == AuthorizeEmergencyAction)
                                 ? StockRequestEmergencyReviewState.Pending
                                 : StockRequestEmergencyReviewState.NotRequired,
+                EmergencyAuthorizedAt = x.Histories
+                    .Where(h => !h.IsDelete && h.Action == AuthorizeEmergencyAction)
+                    .Select(h => (DateTime?)h.OccurredAt)
+                    .Min(),
                 CanCancel = x.Status == StockRequestStatus.Draft ||
                             x.Status == StockRequestStatus.Submitted ||
                             x.Status == StockRequestStatus.Approved,
@@ -264,6 +319,8 @@ public sealed class StockRequestService
             })
             .ToListAsync(cancellationToken);
 
+        await EnrichEmergencyFieldsAsync(items, cancellationToken);
+
         return new PagedResult<StockRequestSummaryResponse>
         {
             PageNumber = pageNumber,
@@ -271,6 +328,316 @@ public sealed class StockRequestService
             TotalData = total,
             TotalPage = (int)Math.Ceiling(total / (double)pageSize),
             Items = items
+        };
+    }
+
+    /// <summary>
+    /// Menyaring CITO yang menunggu verifikasi menurut tenggat. Ambangnya setara dengan
+    /// <see cref="StockRequestEmergencyReviewDeadline.Classify"/>, sehingga hitungan ringkasan dan
+    /// label per baris tidak pernah berbeda.
+    /// </summary>
+    private IQueryable<PhmStockRequest> ApplyReviewDueFilter(IQueryable<PhmStockRequest> query,
+        StockRequestEmergencyReviewDueState state, DateTime nowUtc)
+    {
+        if (!_reviewDeadline.IsConfigured ||
+            state is not (StockRequestEmergencyReviewDueState.NotDue
+                or StockRequestEmergencyReviewDueState.DueSoon
+                or StockRequestEmergencyReviewDueState.Overdue))
+            return query.Where(x => false);
+
+        var pending = query.Where(x =>
+            x.Histories.Any(h => !h.IsDelete && h.Action == AuthorizeEmergencyAction) &&
+            !x.Histories.Any(h => !h.IsDelete &&
+                (h.Action == VerifyEmergencyConfirmedAction || h.Action == VerifyEmergencyDeviationAction)));
+
+        // Otorisasi pada atau sebelum ambang ini sudah melewati tenggat.
+        var overdueAuthorizedAtOrBefore = nowUtc - _reviewDeadline.DueAfter!.Value;
+        // Otorisasi pada atau sebelum ambang ini sudah masuk masa peringatan.
+        var warningAuthorizedAtOrBefore =
+            nowUtc - (_reviewDeadline.DueAfter.Value - (_reviewDeadline.WarningBefore ?? TimeSpan.Zero));
+
+        return state switch
+        {
+            StockRequestEmergencyReviewDueState.Overdue => pending.Where(x => x.Histories.Any(h =>
+                !h.IsDelete && h.Action == AuthorizeEmergencyAction &&
+                h.OccurredAt <= overdueAuthorizedAtOrBefore)),
+            StockRequestEmergencyReviewDueState.DueSoon => _reviewDeadline.WarningBefore.HasValue
+                ? pending.Where(x => x.Histories.Any(h =>
+                    !h.IsDelete && h.Action == AuthorizeEmergencyAction &&
+                    h.OccurredAt <= warningAuthorizedAtOrBefore &&
+                    h.OccurredAt > overdueAuthorizedAtOrBefore))
+                : pending.Where(x => false),
+            _ => pending.Where(x => x.Histories.Any(h =>
+                !h.IsDelete && h.Action == AuthorizeEmergencyAction &&
+                h.OccurredAt > warningAuthorizedAtOrBefore))
+        };
+    }
+
+    private sealed record AuthorityScope(bool HasApprovePermission, StockRequestEmergencyAuthority Emergency,
+        IReadOnlyList<StockRequestSupervisedUnit> Units);
+
+    /// <summary>
+    /// Kewenangan aktual pengguna: izin persetujuan eksplisit, unit yang dipimpin, dan
+    /// kewenangan CITO. Seluruhnya dibaca dari data server.
+    /// </summary>
+    private async Task<AuthorityScope> ResolveAuthorityScopeAsync(Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var hasApprove = await _approvalAuthority.HasApproveGrantAsync(userId, cancellationToken);
+        var units = await _approvalAuthority.GetSupervisedServiceUnitsAsync(userId, cancellationToken);
+        var emergency = await _approvalAuthority.CheckEmergencyAuthorityAsync(userId, cancellationToken);
+        return new AuthorityScope(hasApprove, emergency, units);
+    }
+
+    /// <summary>
+    /// Cakupan "Unit yang Saya Pimpin": unit yang dipimpin (hanya bila izin persetujuan eksplisit
+    /// ada) ditambah permintaan CITO bila pengguna berwenang mengotorisasi CITO. Tanpa keduanya
+    /// hasilnya kosong — tidak pernah jatuh kembali ke seluruh data.
+    /// </summary>
+    private async Task<IQueryable<PhmStockRequest>> ApplyAuthorityScopeAsync(
+        IQueryable<PhmStockRequest> query, CancellationToken cancellationToken)
+    {
+        var userId = TryGetCurrentUserId();
+        if (!userId.HasValue) return query.Where(x => false);
+
+        var scope = await ResolveAuthorityScopeAsync(userId.Value, cancellationToken);
+        var unitIds = scope.HasApprovePermission
+            ? scope.Units.Select(x => x.ServiceUnitId).ToList()
+            : new List<Guid>();
+        var includeEmergency = scope.Emergency.IsAuthorized;
+
+        if (unitIds.Count == 0 && !includeEmergency) return query.Where(x => false);
+
+        // Cabang CITO bersifat lintas unit, jadi draf unit lain — yang belum diajukan dan belum
+        // memerlukan otorisasi siapa pun — tidak ikut terlihat.
+        return query.Where(x => unitIds.Contains(x.RequestingServiceUnitId) ||
+                                (includeEmergency && x.Priority == StockRequestPriority.Emergency &&
+                                 x.Status != StockRequestStatus.Draft));
+    }
+
+    /// <summary>
+    /// Nama pengotorisasi CITO dan tenggat verifikasi per baris. Nama dibaca sekali untuk seluruh
+    /// halaman, bukan per baris.
+    /// </summary>
+    private async Task EnrichEmergencyFieldsAsync(IReadOnlyCollection<StockRequestSummaryResponse> items,
+        CancellationToken cancellationToken)
+    {
+        var authorizedIds = items.Where(x => x.EmergencyAuthorizedAt.HasValue).Select(x => x.Id).ToList();
+
+        if (authorizedIds.Count > 0)
+        {
+            var authorizations = await _dbContext.PhmStockRequestHistories.AsNoTracking()
+                .Where(h => authorizedIds.Contains(h.StockRequestId) && !h.IsDelete &&
+                            h.Action == AuthorizeEmergencyAction)
+                .Select(h => new { h.StockRequestId, h.ActorUserId, h.OccurredAt })
+                .ToListAsync(cancellationToken);
+
+            var actorIds = authorizations.Select(x => x.ActorUserId).Distinct().ToList();
+            var names = (await _dbContext.Users.AsNoTracking()
+                    .Where(u => actorIds.Contains(u.Id))
+                    .Select(u => new
+                    {
+                        u.Id,
+                        Name = u.WorkforceProfile != null ? u.WorkforceProfile.DisplayName : u.UserName
+                    })
+                    .ToListAsync(cancellationToken))
+                .ToDictionary(x => x.Id, x => x.Name);
+
+            var authorizerByRequest = authorizations
+                .GroupBy(x => x.StockRequestId)
+                .ToDictionary(g => g.Key, g => g.OrderBy(x => x.OccurredAt).First().ActorUserId);
+
+            foreach (var item in items)
+                if (authorizerByRequest.TryGetValue(item.Id, out var actorId))
+                    item.EmergencyAuthorizedByName = names.GetValueOrDefault(actorId);
+        }
+
+        var now = DateTime.UtcNow;
+        foreach (var item in items) ApplyReviewDue(item, now);
+    }
+
+    /// <summary>Tenggat hanya diisi selama verifikasi susulan masih menunggu.</summary>
+    private void ApplyReviewDue(StockRequestSummaryResponse item, DateTime nowUtc)
+    {
+        if (item.EmergencyReviewState != StockRequestEmergencyReviewState.Pending)
+        {
+            item.EmergencyReviewDueAt = null;
+            item.EmergencyReviewDueState = StockRequestEmergencyReviewDueState.NotApplicable;
+            return;
+        }
+
+        item.EmergencyReviewDueAt = _reviewDeadline.DueAtUtc(item.EmergencyAuthorizedAt);
+        item.EmergencyReviewDueState = _reviewDeadline.Classify(item.EmergencyAuthorizedAt, nowUtc);
+    }
+
+    // ============================================ cakupan dan kesiapan kewenangan
+
+    /// <summary>
+    /// Cakupan kewenangan pengguna yang login ("Unit yang Saya Pimpin"), beserta penjelasan bila
+    /// kosong. Tidak memuat identitas pegawai lain.
+    /// </summary>
+    public async Task<StockRequestApprovalScopeResponse> GetApprovalScopeAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var userId = GetCurrentUserId();
+        var scope = await ResolveAuthorityScopeAsync(userId, cancellationToken);
+
+        var notes = new List<string>();
+        if (!scope.HasApprovePermission)
+            notes.Add("Penempatan jabatan Anda belum diberi izin StockRequest:Approve, sehingga tidak " +
+                      "ada permintaan unit yang dapat Anda setujui atau tolak.");
+        else if (scope.Units.Count == 0)
+            notes.Add("Anda belum memiliki penempatan manajerial aktif pada unit organisasi yang " +
+                      "ditautkan ke unit layanan mana pun. Tautan unit dan penempatan manajerial " +
+                      "dikelola HRD/administrator organisasi.");
+
+        if (scope.Emergency.Reason == StockRequestEmergencyAuthorityReason.DesignationNotConfigured)
+            notes.Add(scope.Emergency.Message!);
+
+        return new StockRequestApprovalScopeResponse
+        {
+            HasApprovePermission = scope.HasApprovePermission,
+            HasEmergencyAuthority = scope.Emergency.IsAuthorized,
+            EmergencyDesignationConfigured = _approvalAuthority.EmergencyDesignation.IsConfigured,
+            SupervisedUnits = [.. scope.Units.Select(x => new StockRequestSupervisedUnitResponse
+            {
+                ServiceUnitId = x.ServiceUnitId,
+                ServiceUnitCode = x.ServiceUnitCode,
+                ServiceUnitName = x.ServiceUnitName,
+                OrganizationUnitName = x.OrganizationUnitName
+            })],
+            Message = notes.Count > 0 ? string.Join(" ", notes) : null
+        };
+    }
+
+    /// <summary>
+    /// Kesiapan data organisasi dan konfigurasi untuk persetujuan, hanya membaca. Berisi jumlah dan
+    /// identitas unit, tanpa identitas pegawai.
+    /// </summary>
+    public async Task<StockRequestApprovalReadinessResponse> GetApprovalReadinessAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+
+        var units = await _dbContext.MstServiceUnits.AsNoTracking()
+            .Where(x => x.IsActive && !x.IsDelete)
+            .OrderBy(x => x.ServiceUnitCode)
+            .Select(x => new { x.Id, x.ServiceUnitCode, x.ServiceUnitName, x.OrganizationUnitId })
+            .ToListAsync(cancellationToken);
+
+        var organizationUnits = (await _dbContext.MstOrganizationUnits.AsNoTracking()
+                .Where(x => x.IsActive && !x.IsDelete &&
+                            (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value <= now) &&
+                            (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= now))
+                .Select(x => new { x.Id, x.UnitName })
+                .ToListAsync(cancellationToken))
+            .ToDictionary(x => x.Id, x => x.UnitName);
+
+        var managerial = await (
+                from assignment in _dbContext.WfpOrganizationAssignments.AsNoTracking()
+                join workforce in _dbContext.MstWorkforceProfiles.AsNoTracking()
+                    on assignment.WorkforceProfileId equals workforce.Id
+                where assignment.OrganizationUnitId != null &&
+                      assignment.IsManagerialAssignment &&
+                      assignment.IsActive && !assignment.IsDelete && !assignment.IsCancel &&
+                      assignment.EffectiveStartDate <= now &&
+                      (!assignment.EffectiveEndDate.HasValue || assignment.EffectiveEndDate.Value >= now) &&
+                      workforce.IsActive && !workforce.IsDelete
+                select new { OrganizationUnitId = assignment.OrganizationUnitId!.Value, assignment.WorkforceProfileId })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var supervisorsByOrganizationUnit = managerial
+            .GroupBy(x => x.OrganizationUnitId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        // Atasan yang benar-benar dapat memutus: penempatan manajerial DAN akun aktif yang memegang
+        // izin Approve eksplisit. Tanpa pencocokan ini laporan dapat menyatakan "siap" padahal izin
+        // diberikan kepada jabatan lain, bukan kepada atasan unitnya.
+        var approveUserIds = await _approvalAuthority.GetUsersWithExplicitGrantAsync(
+            StockRequestApprovalAuthority.PermissionResource,
+            StockRequestApprovalAuthority.ApprovePermissionAction, cancellationToken);
+        var approveUserIdList = approveUserIds.ToList();
+        var authorizedWorkforceIds = (await _dbContext.Users.AsNoTracking()
+                .Where(u => approveUserIdList.Contains(u.Id) && u.IsActive && u.WorkforceProfileId != null)
+                .Select(u => u.WorkforceProfileId!.Value)
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
+        var authorizedSupervisorsByOrganizationUnit = managerial
+            .Where(x => authorizedWorkforceIds.Contains(x.WorkforceProfileId))
+            .GroupBy(x => x.OrganizationUnitId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var designatedPositionIds = await _approvalAuthority.ResolveDesignatedPositionIdsAsync(cancellationToken);
+        var approveGrants = await _approvalAuthority.CountPolicyGrantsAsync(
+            StockRequestApprovalAuthority.PermissionResource,
+            StockRequestApprovalAuthority.ApprovePermissionAction, null, cancellationToken);
+        var emergencyGrants = await _approvalAuthority.CountPolicyGrantsAsync(
+            StockRequestApprovalAuthority.PermissionResource,
+            StockRequestApprovalAuthority.EmergencyPermissionAction, null, cancellationToken);
+        var designatedWithGrant = designatedPositionIds.Count == 0
+            ? 0
+            : await _approvalAuthority.CountPolicyGrantsAsync(StockRequestApprovalAuthority.PermissionResource,
+                StockRequestApprovalAuthority.EmergencyPermissionAction, designatedPositionIds, cancellationToken);
+
+        var unitRows = units.Select(x =>
+        {
+            var mappedActive = x.OrganizationUnitId.HasValue &&
+                               organizationUnits.ContainsKey(x.OrganizationUnitId.Value);
+            return new StockRequestReadinessUnitResponse
+            {
+                ServiceUnitId = x.Id,
+                ServiceUnitCode = x.ServiceUnitCode,
+                ServiceUnitName = x.ServiceUnitName,
+                OrganizationUnitName = mappedActive ? organizationUnits[x.OrganizationUnitId!.Value] : null,
+                ActiveSupervisors = mappedActive
+                    ? supervisorsByOrganizationUnit.GetValueOrDefault(x.OrganizationUnitId!.Value)
+                    : 0,
+                AuthorizedSupervisors = mappedActive
+                    ? authorizedSupervisorsByOrganizationUnit.GetValueOrDefault(x.OrganizationUnitId!.Value)
+                    : 0
+            };
+        }).ToList();
+
+        var mapped = unitRows.Count(x => x.OrganizationUnitName != null);
+        var mappedWithSupervisor = unitRows.Count(x => x.ActiveSupervisors > 0);
+        var mappedWithAuthorizedSupervisor = unitRows.Count(x => x.AuthorizedSupervisors > 0);
+
+        var blockers = new List<string>();
+        if (mapped == 0)
+            blockers.Add("Belum ada unit layanan aktif yang ditautkan ke unit organisasi aktif (HRD/administrator organisasi).");
+        if (mappedWithSupervisor == 0)
+            blockers.Add("Belum ada unit layanan tertaut yang memiliki penempatan manajerial aktif (HRD).");
+        if (approveGrants == 0)
+            blockers.Add("Izin StockRequest:Approve belum diberikan kepada jabatan mana pun (pengaturan Akses Role).");
+        else if (mappedWithSupervisor > 0 && mappedWithAuthorizedSupervisor == 0)
+            blockers.Add("Belum ada atasan unit tercatat yang akunnya aktif dan memegang izin " +
+                         "StockRequest:Approve pada penempatan jabatannya (periksa status akun dan Akses Role).");
+        if (designatedPositionIds.Count == 0)
+            blockers.Add("Jabatan otorisasi CITO belum ditunjuk manajemen (konfigurasi " +
+                         StockRequestEmergencyAuthorizerDesignation.ConfigKey + ").");
+        else if (designatedWithGrant == 0)
+            blockers.Add("Jabatan otorisasi CITO yang ditunjuk belum diberi izin StockRequest:AuthorizeEmergency.");
+        if (!_reviewDeadline.IsConfigured)
+            blockers.Add("Tenggat verifikasi susulan CITO belum dikonfigurasi.");
+
+        return new StockRequestApprovalReadinessResponse
+        {
+            ActiveServiceUnits = unitRows.Count,
+            MappedServiceUnits = mapped,
+            MappedServiceUnitsWithSupervisor = mappedWithSupervisor,
+            MappedServiceUnitsWithAuthorizedSupervisor = mappedWithAuthorizedSupervisor,
+            ActiveManagerialAssignments = managerial.Count,
+            ApprovePermissionGrants = approveGrants,
+            EmergencyPermissionGrants = emergencyGrants,
+            EmergencyDesignatedPositions = designatedPositionIds.Count,
+            EmergencyDesignatedPositionsWithGrant = designatedWithGrant,
+            ApprovalCutoverState = _approvalCutover.Message,
+            EmergencyReviewDeadline = _reviewDeadline.Message,
+            IsReadyForApproval = mappedWithAuthorizedSupervisor > 0,
+            IsReadyForEmergency = designatedWithGrant > 0,
+            Blockers = blockers,
+            Units = unitRows
         };
     }
 
@@ -314,6 +681,7 @@ public sealed class StockRequestService
         detail.EmergencyReviewState = ResolveEmergencyReviewState(authorization, review);
 
         if (authorization != null)
+        {
             detail.EmergencyAuthorization = new StockRequestDecisionRecordResponse
             {
                 ActorUserId = authorization.ActorUserId,
@@ -321,6 +689,12 @@ public sealed class StockRequestService
                 OccurredAt = authorization.OccurredAt,
                 Reason = authorization.Reason
             };
+            detail.EmergencyAuthorizedAt = authorization.OccurredAt;
+            detail.EmergencyAuthorizedByName = detail.EmergencyAuthorization.ActorName;
+        }
+
+        // Tenggat dihitung dengan aturan yang sama dengan daftar (UTC, sejak otorisasi).
+        ApplyReviewDue(detail, DateTime.UtcNow);
 
         if (review != null)
             detail.EmergencyReview = new StockRequestEmergencyReviewResponse
@@ -407,8 +781,9 @@ public sealed class StockRequestService
     }
 
     /// <summary>
-    /// Kewenangan otorisasi CITO: bukan pemohon dan izin <c>StockRequest:AuthorizeEmergency</c>
-    /// eksplisit pada penempatan jabatan yang aktif (<c>LGS-DEC-004</c>).
+    /// Kewenangan otorisasi CITO (<c>LGS-DEC-004</c>): bukan pemohon, penempatan jabatan aktif
+    /// pada jabatan yang ditunjuk manajemen, dan izin <c>StockRequest:AuthorizeEmergency</c>
+    /// eksplisit pada penempatan itu.
     /// </summary>
     private async Task<AuthorityVerdict> EvaluateEmergencyAuthorizerAsync(PhmStockRequest entity,
         Guid userId, CancellationToken cancellationToken)
@@ -417,12 +792,11 @@ public sealed class StockRequestService
             return AuthorityVerdict.Denied("SelfDecision",
                 "Pemohon tidak boleh menyetujui, menolak, maupun mengotorisasi permintaannya sendiri.");
 
-        return await _approvalAuthority.HasEmergencyGrantAsync(userId, cancellationToken)
+        var emergency = await _approvalAuthority.CheckEmergencyAuthorityAsync(userId, cancellationToken);
+        return emergency.IsAuthorized
             ? AuthorityVerdict.Granted
-            : AuthorityVerdict.Denied("NoEmergencyPermission",
-                "Otorisasi CITO hanya dapat dilakukan petugas yang penempatan jabatannya diberi " +
-                "izin StockRequest:AuthorizeEmergency secara eksplisit. Peran SuperAdmin saja " +
-                "tidak cukup.");
+            : AuthorityVerdict.Denied($"Emergency{emergency.Reason}", emergency.Message
+                ?? "Anda tidak berwenang mengotorisasi CITO.");
     }
 
     /// <summary>
@@ -464,12 +838,13 @@ public sealed class StockRequestService
             verdict.Message ?? "Tindakan atas permintaan stok ditolak karena kewenangan.",
             new
             {
-                entity.Id,
+                StockRequestId = entity.Id,
                 entity.RequestNumber,
                 entity.RequestingServiceUnitId,
                 Action = action,
                 verdict.ReasonCode,
-                ActorUserId = actorUserId
+                ActorUserId = actorUserId,
+                UserId = actorUserId
             });
 
         return new StockRequestForbiddenException(verdict.Message
@@ -552,7 +927,7 @@ public sealed class StockRequestService
         await SaveAsync(cancellationToken);
         await _loggerService.AuditAsync(LogCategory, "StockRequest.Create",
             "Membuat permintaan stok barang atau obat.",
-            new { entity.Id, entity.RequestNumber, entity.ItemCount, ActorUserId = actorUserId });
+            new { StockRequestId = entity.Id, entity.RequestNumber, entity.ItemCount, ActorUserId = actorUserId, UserId = actorUserId });
 
         return (await GetDetailAsync(entity.Id, cancellationToken))!;
     }
@@ -695,7 +1070,7 @@ public sealed class StockRequestService
         await SaveAsync(cancellationToken);
         await _loggerService.AuditAsync(LogCategory, "StockRequest.Submit",
             "Mengajukan permintaan stok untuk persetujuan atasan unit.",
-            new { entity.Id, entity.RequestNumber, entity.Priority, ActorUserId = actorUserId });
+            new { StockRequestId = entity.Id, entity.RequestNumber, entity.Priority, ActorUserId = actorUserId, UserId = actorUserId });
 
         return (await GetDetailAsync(id, cancellationToken))!;
     }
@@ -873,8 +1248,8 @@ public sealed class StockRequestService
         await _loggerService.AuditAsync(LogCategory, auditEvent, auditMessage,
             new
             {
-                entity.Id, entity.RequestNumber, entity.Priority, FromStatus = from, ToStatus = target,
-                Action = action, Reason = reason, OccurredAt = now, ActorUserId = actorUserId
+                StockRequestId = entity.Id, entity.RequestNumber, entity.Priority, FromStatus = from, ToStatus = target,
+                Action = action, Reason = reason, OccurredAt = now, ActorUserId = actorUserId, UserId = actorUserId
             });
 
         return (await GetDetailAsync(id, cancellationToken))!;
@@ -972,8 +1347,8 @@ public sealed class StockRequestService
 
         var auditData = new
         {
-            entity.Id, entity.RequestNumber, entity.RequestingServiceUnitId, Status = entity.Status,
-            Outcome = request.Outcome, Note = note, OccurredAt = now, ActorUserId = actorUserId,
+            StockRequestId = entity.Id, entity.RequestNumber, entity.RequestingServiceUnitId, Status = entity.Status,
+            Outcome = request.Outcome, Note = note, OccurredAt = now, ActorUserId = actorUserId, UserId = actorUserId,
             AuthorizedByUserId = authorization.ActorUserId, AuthorizedAt = authorization.OccurredAt
         };
 
@@ -1173,8 +1548,8 @@ public sealed class StockRequestService
                 : "Mencatat penyerahan barang atas permintaan stok.",
             new
             {
-                entity.Id, entity.RequestNumber, entity.ItemCount, FromStatus = fromStatus,
-                LegacyTransition = legacySubmission, ActorUserId = actorUserId
+                StockRequestId = entity.Id, entity.RequestNumber, entity.ItemCount, FromStatus = fromStatus,
+                LegacyTransition = legacySubmission, ActorUserId = actorUserId, UserId = actorUserId
             });
 
         return (await GetDetailAsync(id, cancellationToken))!;

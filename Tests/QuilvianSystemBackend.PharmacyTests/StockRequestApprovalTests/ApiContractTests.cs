@@ -73,6 +73,27 @@ public class ApiContractTests
     }
 
     [Fact]
+    public async Task Konfigurasi_tenggat_tidak_sah_tidak_membuat_endpoint_gagal_500()
+    {
+        using var h = new StockRequestApprovalHarness();
+        var (id, _, _) = await h.CitoTerotorisasiAsync();
+
+        // "1e300" jam: tanpa batas teknis, TimeSpan.FromHours meluap saat service dibuat dan
+        // seluruh endpoint permintaan stok menjawab 500.
+        var controller = new StockRequestController(
+            h.Layanan(h.CreateContext(), h.AtasanUserId, tenggatJam: "1e300", peringatanJam: "4"));
+
+        var daftar = await controller.GetPaged(new StockRequestPagedQuery
+        {
+            EmergencyReviewDueState = StockRequestEmergencyReviewDueState.Overdue
+        }, CancellationToken.None);
+        Assert.Equal(200, KodeHttp(daftar));
+
+        var detail = await controller.GetById(id, CancellationToken.None);
+        Assert.Equal(200, KodeHttp(detail));
+    }
+
+    [Fact]
     public void Nilai_angka_status_dan_penanda_terkunci_sesuai_konstanta_frontend()
     {
         // Frontend (stock-request-constant.jsx) membaca angka-angka ini apa adanya.
@@ -82,6 +103,8 @@ public class ApiContractTests
         Assert.Equal(4, (int)StockRequestStatus.Completed);
         Assert.Equal(5, (int)StockRequestStatus.Rejected);
         Assert.Equal(6, (int)StockRequestStatus.Cancelled);
+        Assert.Equal(1, (int)StockRequestPriority.Routine);
+        Assert.Equal(2, (int)StockRequestPriority.Urgent);
         Assert.Equal(3, (int)StockRequestPriority.Emergency);
 
         Assert.Equal(0, (int)StockRequestEmergencyReviewState.NotRequired);
@@ -91,6 +114,16 @@ public class ApiContractTests
 
         Assert.Equal(1, (int)StockRequestEmergencyReviewOutcome.Confirmed);
         Assert.Equal(2, (int)StockRequestEmergencyReviewOutcome.Deviation);
+
+        // STOCK_REQUEST_REVIEW_DUE_STATE dan STOCK_REQUEST_LIST_SCOPE di frontend.
+        Assert.Equal(0, (int)StockRequestEmergencyReviewDueState.NotApplicable);
+        Assert.Equal(1, (int)StockRequestEmergencyReviewDueState.NotConfigured);
+        Assert.Equal(2, (int)StockRequestEmergencyReviewDueState.NotDue);
+        Assert.Equal(3, (int)StockRequestEmergencyReviewDueState.DueSoon);
+        Assert.Equal(4, (int)StockRequestEmergencyReviewDueState.Overdue);
+
+        Assert.Equal(0, (int)StockRequestListScope.All);
+        Assert.Equal(1, (int)StockRequestListScope.MyAuthority);
     }
 
     [Fact]

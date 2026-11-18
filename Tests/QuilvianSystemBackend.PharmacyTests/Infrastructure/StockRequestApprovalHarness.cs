@@ -90,6 +90,11 @@ public sealed class StockRequestApprovalHarness : IDisposable
     public Guid StafUserId { get; } = Guid.NewGuid();
     /// <summary>Berperan SuperAdmin, tanpa profil tenaga kerja dan tanpa penempatan apa pun.</summary>
     public Guid SuperAdminUserId { get; } = Guid.NewGuid();
+    /// <summary>Atasan unit pada DUA unit organisasi (<see cref="OrgUnitId"/> dan <see cref="OrgUnitLainId"/>), berizin Approve.</summary>
+    public Guid AtasanGandaUserId { get; } = Guid.NewGuid();
+
+    /// <summary>Kode jabatan CITO pada <c>MstPosition</c>, untuk menguji penunjukan berdasarkan kode.</summary>
+    public const string KodeJabatanCito = "UJI-POS-CITO";
 
     private readonly Guid _pemohonWfp = Guid.NewGuid();
     private readonly Guid _atasanWfp = Guid.NewGuid();
@@ -100,6 +105,7 @@ public sealed class StockRequestApprovalHarness : IDisposable
     private readonly Guid _atasanNonaktifWfp = Guid.NewGuid();
     private readonly Guid _petugasCitoWfp = Guid.NewGuid();
     private readonly Guid _stafWfp = Guid.NewGuid();
+    private readonly Guid _atasanGandaWfp = Guid.NewGuid();
 
     public StockRequestApprovalHarness()
     {
@@ -136,7 +142,8 @@ public sealed class StockRequestApprovalHarness : IDisposable
                      (_atasanKedaluwarsaWfp, "UJI-WFP-ATASAN-LAMA", true),
                      (_atasanTanpaIzinWfp, "UJI-WFP-ATASAN-TANPA-IZIN", true),
                      (_atasanNonaktifWfp, "UJI-WFP-ATASAN-NONAKTIF", false),
-                     (_petugasCitoWfp, "UJI-WFP-CITO", true), (_stafWfp, "UJI-WFP-STAF", true)
+                     (_petugasCitoWfp, "UJI-WFP-CITO", true), (_stafWfp, "UJI-WFP-STAF", true),
+                     (_atasanGandaWfp, "UJI-WFP-ATASAN-GANDA", true)
                  })
         {
             k.MstWorkforceProfiles.Add(new MstWorkforceProfile
@@ -156,6 +163,25 @@ public sealed class StockRequestApprovalHarness : IDisposable
         Pengguna(k, PetugasCitoKedaluwarsaUserId, null);
         Pengguna(k, StafUserId, _stafWfp);
         Pengguna(k, SuperAdminUserId, null);
+        Pengguna(k, AtasanGandaUserId, _atasanGandaWfp);
+
+        // Jabatan sungguhan pada master jabatan uji, supaya penunjukan berdasarkan kode dapat diuji.
+        k.MstPositions.AddRange(
+            new MstPosition
+            {
+                Id = JabatanCitoId, DepartmentId = DepartemenId, PositionCode = KodeJabatanCito,
+                PositionName = "Penanggung Jawab CITO (Uji)", IsActive = true, CreateDateTime = now
+            },
+            new MstPosition
+            {
+                Id = JabatanPenyetujuId, DepartmentId = DepartemenId, PositionCode = "UJI-POS-PENYETUJU",
+                PositionName = "Kepala Unit (Uji)", IsActive = true, CreateDateTime = now
+            },
+            new MstPosition
+            {
+                Id = JabatanStafId, DepartmentId = DepartemenId, PositionCode = "UJI-POS-STAF",
+                PositionName = "Staf Unit (Uji)", IsActive = true, CreateDateTime = now
+            });
 
         var peranSuperAdmin = new ApplicationRole
         {
@@ -175,6 +201,8 @@ public sealed class StockRequestApprovalHarness : IDisposable
         Penempatan(k, _atasanTanpaIzinWfp, OrgUnitId, manajerial: true, mulai: setahunLalu, akhir: null);
         Penempatan(k, _atasanNonaktifWfp, OrgUnitId, manajerial: true, mulai: setahunLalu, akhir: null);
         Penempatan(k, _stafWfp, OrgUnitId, manajerial: false, mulai: setahunLalu, akhir: null);
+        Penempatan(k, _atasanGandaWfp, OrgUnitId, manajerial: true, mulai: setahunLalu, akhir: null);
+        Penempatan(k, _atasanGandaWfp, OrgUnitLainId, manajerial: true, mulai: setahunLalu, akhir: null);
 
         // Izin: Approve pada JabatanPenyetujuId, AuthorizeEmergency pada JabatanCitoId.
         var controllerId = Guid.NewGuid();
@@ -224,6 +252,7 @@ public sealed class StockRequestApprovalHarness : IDisposable
         PenempatanJabatan(k, PetugasCitoKedaluwarsaUserId, JabatanCitoId, akhir: now.AddDays(-1));
         // Atasan tanpa izin hanya memegang jabatan staf yang tidak diberi izin apa pun.
         PenempatanJabatan(k, AtasanTanpaIzinUserId, JabatanStafId, akhir: null);
+        PenempatanJabatan(k, AtasanGandaUserId, JabatanPenyetujuId, akhir: null);
 
         k.SaveChanges();
     }
@@ -242,15 +271,28 @@ public sealed class StockRequestApprovalHarness : IDisposable
     /// Nilai <see cref="StockRequestService.ApprovalEnforcedFromConfigKey"/>; kosong berarti tidak diatur.
     /// </param>
     /// <param name="denganStok">Bila benar, penyerahan benar-benar mengurangi stok lewat <see cref="DrugStockService"/>.</param>
+    /// <param name="jabatanCito">
+    /// Nilai <see cref="StockRequestEmergencyAuthorizerDesignation.ConfigKey"/>. Null berarti
+    /// bawaan harness (<see cref="JabatanCitoId"/>); string kosong berarti belum ditunjuk.
+    /// </param>
+    /// <param name="tenggatJam">Nilai tenggat verifikasi susulan; null berarti belum dikonfigurasi.</param>
+    /// <param name="peringatanJam">Nilai batas peringatan tenggat.</param>
+    /// <param name="log">Logger penangkap untuk membuktikan jejak audit; null berarti dibuang.</param>
     public StockRequestService Layanan(ApplicationDbContext k, Guid userId,
-        string? batasAktivasi = null, bool denganStok = false)
+        string? batasAktivasi = null, bool denganStok = false, string? jabatanCito = null,
+        string? tenggatJam = null, string? peringatanJam = null, CatatanLogUji? log = null)
     {
         var accessor = Accessor(userId);
-        var pencatat = new LoggerService(NullLogger<LoggerService>.Instance, accessor);
+        var pencatat = new LoggerService(
+            log ?? (Microsoft.Extensions.Logging.ILogger<LoggerService>)NullLogger<LoggerService>.Instance,
+            accessor);
         var konfigurasi = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [StockRequestService.ApprovalEnforcedFromConfigKey] = batasAktivasi
+                [StockRequestService.ApprovalEnforcedFromConfigKey] = batasAktivasi,
+                [StockRequestEmergencyAuthorizerDesignation.ConfigKey] = jabatanCito ?? JabatanCitoId.ToString(),
+                [StockRequestEmergencyReviewDeadline.DueHoursConfigKey] = tenggatJam,
+                [StockRequestEmergencyReviewDeadline.WarningHoursConfigKey] = peringatanJam
             })
             .Build();
 
@@ -363,6 +405,57 @@ public sealed class StockRequestApprovalHarness : IDisposable
 
         await k.SaveChangesAsync();
         return (id, itemId);
+    }
+
+    /// <summary>Mengubah keadaan unit organisasi pada basis data uji.</summary>
+    public async Task UbahUnitOrganisasiAsync(Guid organizationUnitId, bool aktif, DateTime? berakhir = null)
+    {
+        using var k = _database.CreateContext();
+        var unit = await k.MstOrganizationUnits.SingleAsync(x => x.Id == organizationUnitId);
+        unit.IsActive = aktif;
+        unit.EffectiveEndDate = berakhir;
+        await k.SaveChangesAsync();
+    }
+
+    /// <summary>Menonaktifkan akun pengguna pada basis data uji.</summary>
+    public async Task NonaktifkanPenggunaAsync(Guid userId)
+    {
+        using var k = _database.CreateContext();
+        var user = await k.Users.SingleAsync(x => x.Id == userId);
+        user.IsActive = false;
+        await k.SaveChangesAsync();
+    }
+
+    /// <summary>Menonaktifkan jabatan pada master jabatan basis data uji.</summary>
+    public async Task NonaktifkanJabatanAsync(Guid positionId)
+    {
+        using var k = _database.CreateContext();
+        var jabatan = await k.MstPositions.SingleAsync(x => x.Id == positionId);
+        jabatan.IsActive = false;
+        await k.SaveChangesAsync();
+    }
+
+    /// <summary>Menonaktifkan controller izin <c>StockRequest</c> pada basis data uji.</summary>
+    public async Task NonaktifkanControllerIzinAsync()
+    {
+        using var k = _database.CreateContext();
+        var controller = await k.SysControllerAccesses
+            .SingleAsync(x => x.ControllerName == StockRequestApprovalAuthority.PermissionResource);
+        controller.IsActive = false;
+        await k.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Memundurkan waktu otorisasi CITO pada riwayat, hanya di basis data uji, supaya keadaan
+    /// tenggat dapat diuji tanpa menunggu jam berjalan.
+    /// </summary>
+    public async Task MundurkanOtorisasiAsync(Guid stockRequestId, TimeSpan mundur)
+    {
+        using var k = _database.CreateContext();
+        var riwayat = await k.PhmStockRequestHistories
+            .SingleAsync(x => x.StockRequestId == stockRequestId && x.Action == "AuthorizeEmergencyStockRequest");
+        riwayat.OccurredAt = riwayat.OccurredAt - mundur;
+        await k.SaveChangesAsync();
     }
 
     /// <summary>Permintaan CITO yang sudah diotorisasi lewat jalur darurat oleh <paramref name="pengotorisasi"/>.</summary>

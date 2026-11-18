@@ -177,6 +177,18 @@ public class StockRequestPagedQuery
     /// </summary>
     public StockRequestEmergencyReviewState? EmergencyReviewState { get; set; }
 
+    /// <summary>
+    /// Menyaring CITO yang menunggu verifikasi menurut keadaan tenggatnya (<c>NotDue</c>,
+    /// <c>DueSoon</c>, <c>Overdue</c>). Selama tenggat belum dikonfigurasi hasilnya kosong.
+    /// </summary>
+    public StockRequestEmergencyReviewDueState? EmergencyReviewDueState { get; set; }
+
+    /// <summary>
+    /// Cakupan daftar. <c>MyAuthority</c> = "Unit yang Saya Pimpin": dihitung backend dari
+    /// kewenangan aktual pengguna yang login, bukan dari daftar unit yang dikirim klien.
+    /// </summary>
+    public StockRequestListScope Scope { get; set; } = StockRequestListScope.All;
+
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
 }
@@ -240,6 +252,85 @@ public class StockRequestSummaryResponse
 
     /// <summary>Keadaan verifikasi susulan CITO, dihitung dari riwayat (<c>LGS-DEC-005</c>).</summary>
     public StockRequestEmergencyReviewState EmergencyReviewState { get; set; }
+
+    /// <summary>Waktu otorisasi CITO (UTC, dari riwayat); null bila tidak lewat jalur CITO.</summary>
+    public DateTime? EmergencyAuthorizedAt { get; set; }
+
+    /// <summary>Nama petugas yang mengotorisasi CITO.</summary>
+    public string? EmergencyAuthorizedByName { get; set; }
+
+    /// <summary>Saat jatuh tempo verifikasi susulan (UTC); null bila tenggat belum dikonfigurasi.</summary>
+    public DateTime? EmergencyReviewDueAt { get; set; }
+
+    /// <summary>Keadaan tenggat verifikasi susulan; hanya bermakna selama verifikasi masih menunggu.</summary>
+    public StockRequestEmergencyReviewDueState EmergencyReviewDueState { get; set; }
+}
+
+/// <summary>
+/// Cakupan kewenangan pengguna yang login atas permintaan stok, dihitung backend
+/// ("Unit yang Saya Pimpin"). Tidak memuat data pegawai lain.
+/// </summary>
+public class StockRequestApprovalScopeResponse
+{
+    /// <summary>Izin <c>StockRequest:Approve</c> diberikan eksplisit pada penempatan jabatan aktif.</summary>
+    public bool HasApprovePermission { get; set; }
+
+    /// <summary>Berwenang mengotorisasi CITO (jabatan ditunjuk manajemen + izin eksplisit).</summary>
+    public bool HasEmergencyAuthority { get; set; }
+
+    /// <summary>Daftar jabatan otorisasi CITO sudah ditetapkan di lingkungan ini.</summary>
+    public bool EmergencyDesignationConfigured { get; set; }
+
+    /// <summary>Unit layanan yang dipimpin, sah menurut struktur organisasi.</summary>
+    public List<StockRequestSupervisedUnitResponse> SupervisedUnits { get; set; } = [];
+
+    /// <summary>Penjelasan bila cakupan kosong atau tidak lengkap; null bila tidak ada catatan.</summary>
+    public string? Message { get; set; }
+}
+
+public class StockRequestSupervisedUnitResponse
+{
+    public Guid ServiceUnitId { get; set; }
+    public string ServiceUnitCode { get; set; } = string.Empty;
+    public string ServiceUnitName { get; set; } = string.Empty;
+    public string OrganizationUnitName { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Kesiapan data organisasi dan konfigurasi untuk persetujuan permintaan stok. Hanya membaca;
+/// berisi jumlah dan identitas unit, tanpa identitas pegawai.
+/// </summary>
+public class StockRequestApprovalReadinessResponse
+{
+    public int ActiveServiceUnits { get; set; }
+    public int MappedServiceUnits { get; set; }
+    public int MappedServiceUnitsWithSupervisor { get; set; }
+
+    /// <summary>Unit tertaut yang atasannya benar-benar memegang izin Approve eksplisit.</summary>
+    public int MappedServiceUnitsWithAuthorizedSupervisor { get; set; }
+    public int ActiveManagerialAssignments { get; set; }
+    public int ApprovePermissionGrants { get; set; }
+    public int EmergencyPermissionGrants { get; set; }
+    public int EmergencyDesignatedPositions { get; set; }
+    public int EmergencyDesignatedPositionsWithGrant { get; set; }
+    public string ApprovalCutoverState { get; set; } = string.Empty;
+    public string EmergencyReviewDeadline { get; set; } = string.Empty;
+    public bool IsReadyForApproval { get; set; }
+    public bool IsReadyForEmergency { get; set; }
+    public List<string> Blockers { get; set; } = [];
+    public List<StockRequestReadinessUnitResponse> Units { get; set; } = [];
+}
+
+public class StockRequestReadinessUnitResponse
+{
+    public Guid ServiceUnitId { get; set; }
+    public string ServiceUnitCode { get; set; } = string.Empty;
+    public string ServiceUnitName { get; set; } = string.Empty;
+    public string? OrganizationUnitName { get; set; }
+    public int ActiveSupervisors { get; set; }
+
+    /// <summary>Atasan aktif pada unit ini yang memegang izin Approve eksplisit.</summary>
+    public int AuthorizedSupervisors { get; set; }
 }
 
 public class StockRequestDetailResponse : StockRequestSummaryResponse
