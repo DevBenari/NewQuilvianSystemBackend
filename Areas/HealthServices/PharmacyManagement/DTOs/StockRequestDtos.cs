@@ -53,6 +53,53 @@ public class UpdateStockRequestRequest
 
 public class SubmitStockRequestRequest
 {
+    /// <summary>
+    /// Alasan darurat dari pemohon. Wajib bila prioritas permintaan <c>Emergency</c> (CITO);
+    /// dicatat pada riwayat pengajuan sebagai jejak audit (<c>LGS-DEC-002</c>).
+    /// </summary>
+    [MaxLength(1000)] public string? EmergencyReason { get; set; }
+
+    [Required] public int ExpectedVersion { get; set; }
+    [Required, MaxLength(100)] public string IdempotencyKey { get; set; } = string.Empty;
+}
+
+// ------------------------------------------------------------- keputusan atasan
+
+/// <summary>Persetujuan atasan unit atas permintaan yang menunggu persetujuan.</summary>
+public class ApproveStockRequestRequest
+{
+    [MaxLength(1000)] public string? Note { get; set; }
+    [Required] public int ExpectedVersion { get; set; }
+    [Required, MaxLength(100)] public string IdempotencyKey { get; set; } = string.Empty;
+}
+
+/// <summary>Penolakan atasan unit; alasannya wajib.</summary>
+public class RejectStockRequestRequest
+{
+    [Required, MaxLength(1000)] public string Reason { get; set; } = string.Empty;
+    [Required] public int ExpectedVersion { get; set; }
+    [Required, MaxLength(100)] public string IdempotencyKey { get; set; } = string.Empty;
+}
+
+/// <summary>Otorisasi jalur CITO oleh petugas berwenang; alasannya wajib.</summary>
+public class AuthorizeEmergencyStockRequestRequest
+{
+    [Required, MaxLength(1000)] public string Reason { get; set; } = string.Empty;
+    [Required] public int ExpectedVersion { get; set; }
+    [Required, MaxLength(100)] public string IdempotencyKey { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Verifikasi administratif susulan atas permintaan CITO yang sudah diotorisasi lewat jalur
+/// darurat (<c>LGS-DEC-005</c>). Tidak mengubah status maupun stok.
+/// </summary>
+public class VerifyEmergencyStockRequestRequest
+{
+    [Required] public StockRequestEmergencyReviewOutcome Outcome { get; set; }
+
+    /// <summary>Catatan pemeriksaan. Wajib bila hasilnya temuan penyimpangan.</summary>
+    [MaxLength(1000)] public string? Note { get; set; }
+
     [Required] public int ExpectedVersion { get; set; }
     [Required, MaxLength(100)] public string IdempotencyKey { get; set; } = string.Empty;
 }
@@ -111,6 +158,25 @@ public class StockRequestPagedQuery
     /// <summary>Mencari pada nomor permintaan, nama unit, atau nama obat di dalamnya.</summary>
     public string? Search { get; set; }
 
+    /// <summary>
+    /// Urutan antrean gudang: prioritas tertinggi (CITO) lebih dahulu, lalu yang paling lama
+    /// menunggu. Tanpa ini, urutannya terbaru lebih dahulu seperti riwayat biasa.
+    /// </summary>
+    public bool OrderByPriority { get; set; }
+
+    /// <summary>
+    /// Antrean gudang: hanya permintaan yang boleh diserahkan sekarang — berstatus Disetujui,
+    /// ditambah permintaan lama yang mengikuti aturan peralihan (lihat
+    /// <see cref="StockRequestSummaryResponse.IsLegacySubmission"/>).
+    /// </summary>
+    public bool FulfillableOnly { get; set; }
+
+    /// <summary>
+    /// Menyaring menurut keadaan verifikasi susulan CITO, misalnya <c>Pending</c> untuk daftar
+    /// CITO yang belum diverifikasi atasan unit.
+    /// </summary>
+    public StockRequestEmergencyReviewState? EmergencyReviewState { get; set; }
+
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
 }
@@ -145,11 +211,35 @@ public class StockRequestSummaryResponse
     /// aturan transisi hanya ada di backend, layar cukup menuruti.
     /// </summary>
     /// <remarks>
-    /// Tidak ada bendera menyetujui maupun menolak. Gudang tidak memutuskan permintaan;
-    /// ia melihatnya, lalu mencatat berapa yang benar-benar diserahkan.
+    /// Gudang tetap tidak memutuskan permintaan. Persetujuan dilakukan atasan unit
+    /// (<see cref="CanApprove"/>) atau petugas CITO berwenang (<see cref="CanAuthorizeEmergency"/>);
+    /// gudang hanya menyerahkan permintaan yang sudah disetujui (<c>LGS-DEC-002</c>).
     /// </remarks>
     public bool CanFulfill { get; set; }
     public bool CanCancel { get; set; }
+
+    /// <summary>Keadaan permintaan memungkinkan disetujui atau ditolak atasan. Izin tetap diperiksa backend.</summary>
+    public bool CanApprove { get; set; }
+
+    /// <summary>Permintaan CITO yang menunggu dan dapat diotorisasi lewat jalur darurat.</summary>
+    public bool CanAuthorizeEmergency { get; set; }
+
+    /// <summary>
+    /// Selesai, tetapi sekurang-kurangnya satu baris diserahkan kurang dari yang diminta.
+    /// Dihitung dari data, bukan status tersendiri, karena penyerahan sebagian tetap menutup permintaan.
+    /// </summary>
+    public bool IsPartiallyFulfilled { get; set; }
+
+    /// <summary>
+    /// Permintaan berstatus Submitted yang diajukan sebelum batas
+    /// <c>PharmacyManagement:StockRequest:ApprovalEnforcedFromUtc</c>. Aturan peralihan:
+    /// permintaan seperti ini masih boleh diserahkan langsung seperti sebelum persetujuan atasan
+    /// berlaku, dan tetap boleh diputuskan atasan. Selalu false bila batas itu tidak diatur.
+    /// </summary>
+    public bool IsLegacySubmission { get; set; }
+
+    /// <summary>Keadaan verifikasi susulan CITO, dihitung dari riwayat (<c>LGS-DEC-005</c>).</summary>
+    public StockRequestEmergencyReviewState EmergencyReviewState { get; set; }
 }
 
 public class StockRequestDetailResponse : StockRequestSummaryResponse
@@ -160,6 +250,64 @@ public class StockRequestDetailResponse : StockRequestSummaryResponse
     public string? DecisionReason { get; set; }
     public List<StockRequestItemResponse> Items { get; set; } = [];
     public List<StockRequestHistoryResponse> Histories { get; set; } = [];
+
+    /// <summary>
+    /// Pengguna yang sedang membuka adalah pemohon, pembuat, atau pengirim permintaan ini,
+    /// sehingga tidak boleh menyetujui, menolak, maupun mengotorisasinya.
+    /// </summary>
+    public bool IsOwnRequest { get; set; }
+
+    /// <summary>
+    /// Pengguna yang sedang membuka adalah atasan unit dari unit peminta. Hanya dihitung
+    /// selama permintaan menunggu persetujuan; selain itu bernilai null.
+    /// </summary>
+    public bool? HasUnitAuthority { get; set; }
+
+    /// <summary>Sebab pengguna tidak berwenang sebagai atasan unit, untuk ditampilkan apa adanya.</summary>
+    public string? UnitAuthorityMessage { get; set; }
+
+    /// <summary>
+    /// Pengguna memegang izin otorisasi CITO yang diberikan eksplisit lewat penempatan jabatan.
+    /// Hanya dihitung untuk permintaan CITO yang menunggu; selain itu bernilai null.
+    /// </summary>
+    public bool? HasEmergencyAuthority { get; set; }
+
+    /// <summary>
+    /// Pengguna memegang izin <c>StockRequest:Approve</c> yang diberikan eksplisit lewat penempatan
+    /// jabatan. Dihitung selama permintaan menunggu persetujuan atau menunggu verifikasi susulan.
+    /// </summary>
+    public bool? HasApproveAuthority { get; set; }
+
+    /// <summary>
+    /// Pengguna boleh melakukan verifikasi susulan CITO atas permintaan ini: izin persetujuan
+    /// eksplisit, atasan unit peminta, bukan pemohon, dan bukan pengotorisasi CITO-nya.
+    /// Null bila permintaan tidak sedang menunggu verifikasi susulan.
+    /// </summary>
+    public bool? CanVerifyEmergency { get; set; }
+
+    /// <summary>Sebab pengguna tidak boleh melakukan verifikasi susulan, untuk ditampilkan apa adanya.</summary>
+    public string? VerifyEmergencyMessage { get; set; }
+
+    /// <summary>Otorisasi CITO awal (dari riwayat); null bila tidak lewat jalur CITO.</summary>
+    public StockRequestDecisionRecordResponse? EmergencyAuthorization { get; set; }
+
+    /// <summary>Hasil verifikasi susulan (dari riwayat); null bila belum diverifikasi.</summary>
+    public StockRequestEmergencyReviewResponse? EmergencyReview { get; set; }
+}
+
+/// <summary>Satu keputusan yang tercatat di riwayat: siapa, kapan, dan alasannya.</summary>
+public class StockRequestDecisionRecordResponse
+{
+    public Guid ActorUserId { get; set; }
+    public string? ActorName { get; set; }
+    public DateTime OccurredAt { get; set; }
+    public string? Reason { get; set; }
+}
+
+/// <summary>Hasil verifikasi susulan CITO.</summary>
+public class StockRequestEmergencyReviewResponse : StockRequestDecisionRecordResponse
+{
+    public StockRequestEmergencyReviewOutcome Outcome { get; set; }
 }
 
 public class StockRequestItemResponse
@@ -184,4 +332,8 @@ public class StockRequestHistoryResponse
     public string Action { get; set; } = string.Empty;
     public string? Reason { get; set; }
     public DateTime OccurredAt { get; set; }
+
+    /// <summary>Petugas yang melakukan perubahan ini; jejak audit keputusan.</summary>
+    public Guid ActorUserId { get; set; }
+    public string? ActorName { get; set; }
 }
