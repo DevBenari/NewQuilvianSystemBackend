@@ -16,6 +16,15 @@ namespace QuilvianSystemBackend.Helpers
                 return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, AppTimeZone);
             }
 
+            /// <summary>
+            /// Mengubah saat UTC (nilai tersimpan; <c>Unspecified</c> dari provider dianggap UTC) menjadi jam dinding zona waktu
+            /// aplikasi. Dipakai bila jam tersimpan dibandingkan dengan jam master yang diisi petugas, mis. rentang jam tarif lembur.
+            /// </summary>
+            public static DateTime UtcToLocal(DateTime utc)
+            {
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), AppTimeZone);
+            }
+
             public static DateTime OperationalDate()
             {
                 return LocalNow().Date;

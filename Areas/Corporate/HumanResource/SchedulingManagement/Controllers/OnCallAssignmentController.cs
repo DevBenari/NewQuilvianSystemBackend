@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.S
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Controllers
@@ -24,16 +25,114 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
     [Tags("HR Scheduling - On-Call Management")]
     public class OnCallAssignmentController : ControllerBase
     {
+        private const string LogCategory = "Corporate.HumanResource.SchedulingManagement";
         private readonly OnCallAssignmentService _service;
         private readonly OnCallCompensationHandoffService _handoffService;
+        private readonly OnCallCallService _callService;
+        private readonly LoggerService _loggerService;
 
         public OnCallAssignmentController(
             OnCallAssignmentService service,
-            OnCallCompensationHandoffService handoffService)
+            OnCallCompensationHandoffService handoffService,
+            OnCallCallService callService,
+            LoggerService loggerService)
         {
             _service = service ?? throw new ArgumentNullException(nameof(service));
             _handoffService = handoffService ?? throw new ArgumentNullException(nameof(handoffService));
+            _callService = callService ?? throw new ArgumentNullException(nameof(callService));
+            _loggerService = loggerService ?? throw new ArgumentNullException(nameof(loggerService));
         }
+
+        // ===== Cadangan siaga dan catatan panggilan (BE-HRD-352; HRD-DEC-198, 204, 205) =====
+
+        [HttpGet("{id:guid}/backups")]
+        [AccessAction("Read", "Read On-Call Assignment", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("OnCallAssignment", "Read")]
+        public async Task<IActionResult> GetBackups(Guid id, CancellationToken cancellationToken) =>
+            ToActionResult(await _service.GetBackupsAsync(id, cancellationToken));
+
+        [HttpPut("{id:guid}/backups")]
+        [AccessAction("ManageBackup", "Manage On-Call Backups", Description = "Menetapkan daftar cadangan siaga berurutan", AccessType = AccessTypes.Update, SortOrder = 10)]
+        [AccessPermission("OnCallAssignment", "ManageBackup")]
+        public async Task<IActionResult> SetBackups(Guid id, [FromBody] SetOnCallBackupsRequest request, CancellationToken cancellationToken)
+        {
+            if (!TryGetUserId(out var userId)) return UnauthorizedResponse();
+            var result = await _service.SetBackupsAsync(id, request, userId, cancellationToken);
+            if (result.Success)
+            {
+                await AuditAsync("OnCallAssignment.SetBackups", $"Menetapkan {result.Data!.Count} cadangan siaga penugasan {id}: " +
+                    string.Join(", ", result.Data.Select(x => $"{x.BackupSequence}={x.DisplayName ?? x.WorkforceProfileId.ToString()}")) + ".");
+            }
+
+            return ToActionResult(result);
+        }
+
+        [HttpGet("{id:guid}/calls")]
+        [AccessAction("Read", "Read On-Call Assignment", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("OnCallAssignment", "Read")]
+        public async Task<IActionResult> GetCalls(Guid id, CancellationToken cancellationToken) =>
+            ToActionResult(await _callService.GetCallsAsync(id, cancellationToken));
+
+        [HttpPost("{id:guid}/calls")]
+        [AccessAction("RecordCall", "Record On-Call Call", Description = "Mencatat panggilan siaga dan jawabannya", AccessType = AccessTypes.Update, SortOrder = 11)]
+        [AccessPermission("OnCallAssignment", "RecordCall")]
+        public async Task<IActionResult> CreateCall(Guid id, [FromBody] CreateOnCallCallRequest request, CancellationToken cancellationToken)
+        {
+            if (!TryGetUserId(out var userId)) return UnauthorizedResponse();
+            return await CallResultAsync("Create", await _callService.CreateCallAsync(id, request, userId, cancellationToken));
+        }
+
+        [HttpPost("{id:guid}/calls/{callId:guid}/accept")]
+        [AccessAction("RecordCall", "Record On-Call Call", Description = "Mencatat panggilan siaga dan jawabannya", AccessType = AccessTypes.Update, SortOrder = 11)]
+        [AccessPermission("OnCallAssignment", "RecordCall")]
+        public async Task<IActionResult> AcceptCall(Guid id, Guid callId, [FromBody] AnswerOnCallCallRequest request, CancellationToken cancellationToken)
+        {
+            if (!TryGetUserId(out var userId)) return UnauthorizedResponse();
+            return await CallResultAsync("Accept", await _callService.AcceptAsync(id, callId, request, userId, cancellationToken));
+        }
+
+        [HttpPost("{id:guid}/calls/{callId:guid}/decline")]
+        [AccessAction("RecordCall", "Record On-Call Call", Description = "Mencatat panggilan siaga dan jawabannya", AccessType = AccessTypes.Update, SortOrder = 11)]
+        [AccessPermission("OnCallAssignment", "RecordCall")]
+        public async Task<IActionResult> DeclineCall(Guid id, Guid callId, [FromBody] DeclineOnCallCallRequest request, CancellationToken cancellationToken)
+        {
+            if (!TryGetUserId(out var userId)) return UnauthorizedResponse();
+            return await CallResultAsync("Decline", await _callService.DeclineAsync(id, callId, request, userId, cancellationToken));
+        }
+
+        [HttpPost("{id:guid}/calls/{callId:guid}/expire")]
+        [AccessAction("RecordCall", "Record On-Call Call", Description = "Mencatat panggilan siaga dan jawabannya", AccessType = AccessTypes.Update, SortOrder = 11)]
+        [AccessPermission("OnCallAssignment", "RecordCall")]
+        public async Task<IActionResult> ExpireCall(Guid id, Guid callId, [FromBody] ExpireOnCallCallRequest request, CancellationToken cancellationToken)
+        {
+            if (!TryGetUserId(out var userId)) return UnauthorizedResponse();
+            return await CallResultAsync("Expire", await _callService.ExpireAsync(id, callId, request, userId, DateTime.UtcNow, cancellationToken));
+        }
+
+        [HttpPost("{id:guid}/calls/{callId:guid}/complete")]
+        [AccessAction("RecordCall", "Record On-Call Call", Description = "Mencatat panggilan siaga dan jawabannya", AccessType = AccessTypes.Update, SortOrder = 11)]
+        [AccessPermission("OnCallAssignment", "RecordCall")]
+        public async Task<IActionResult> CompleteCall(Guid id, Guid callId, [FromBody] CompleteOnCallCallRequest request, CancellationToken cancellationToken)
+        {
+            if (!TryGetUserId(out var userId)) return UnauthorizedResponse();
+            return await CallResultAsync("Complete", await _callService.CompleteAsync(id, callId, request, userId, DateTime.UtcNow, cancellationToken));
+        }
+
+        // Log audit tanpa alasan panggilan/penolakan (kolom sensitif kamus data); isi di teks pesan karena payload tidak disimpan.
+        private async Task<IActionResult> CallResultAsync(string action, SchedulingRequestServiceResult<OnCallCallResponse> result)
+        {
+            if (result.Success)
+            {
+                var c = result.Data!;
+                await AuditAsync($"OnCallCall.{action}",
+                    $"Panggilan siaga {c.Id} penugasan {c.OnCallAssignmentId}: {c.CallStatus}; dipanggil {c.CalledDisplayName ?? c.CalledWorkforceProfileId.ToString()} (urutan {c.BackupSequence}); unit pemanggil {c.CallingOrganizationUnitName ?? c.CallingOrganizationUnitId.ToString()}" +
+                    (c.ResponseMinutes.HasValue ? $"; respons {c.ResponseMinutes} menit" : string.Empty) + ".");
+            }
+
+            return ToActionResult(result);
+        }
+
+        private Task AuditAsync(string action, string message) => _loggerService.AuditAsync(LogCategory, action, message);
 
         [HttpGet]
         [AccessAction("Read", "Read On-Call Assignments", AccessType = AccessTypes.Read, SortOrder = 1)]
