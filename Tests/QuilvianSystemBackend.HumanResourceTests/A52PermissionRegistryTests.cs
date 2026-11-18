@@ -24,7 +24,9 @@ public sealed class A52PermissionRegistryTests : IDisposable
         typeof(AttendanceDeviceController), typeof(HolidayController), typeof(MyScheduleSelfServiceController),
         typeof(AttendanceReportController), typeof(AttendancePeriodController), typeof(AttendanceRawLogController),
         typeof(AttendanceSettingController), typeof(RosterPeriodController), typeof(ShiftReplacementController),
-        typeof(OnCallAssignmentController)
+        typeof(OnCallAssignmentController), typeof(AttendanceDashboardController),
+        typeof(AttendanceDispensationController), typeof(AttendanceDispensationSelfServiceController), typeof(StudyAssignmentController),
+        typeof(AttendanceDeviceIncidentController)
     };
 
     private readonly TestDatabase _db = TestDatabase.Create();
@@ -78,6 +80,20 @@ public sealed class A52PermissionRegistryTests : IDisposable
     [InlineData("HUMAN_RESOURCE_ATTENDANCE", "AttendanceReport", "Read")]
     [InlineData("HUMAN_RESOURCE_ATTENDANCE", "AttendanceReport", "Export")]
     [InlineData("HUMAN_RESOURCE_ATTENDANCE", "AttendanceReport", "ReadAllUnits")]
+    [InlineData("HUMAN_RESOURCE_ATTENDANCE", "AttendanceDashboard", "Read")]
+    [InlineData("HUMAN_RESOURCE_ATTENDANCE", "AttendanceDispensation", "Read")]
+    [InlineData("HUMAN_RESOURCE_ATTENDANCE", "AttendanceDispensation", "Create")]
+    [InlineData("HUMAN_RESOURCE_ATTENDANCE", "AttendanceDispensation", "Approve")]
+    [InlineData("HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE", "MyAttendanceDispensation", "Read")]
+    [InlineData("HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE", "MyAttendanceDispensation", "Create")]
+    [InlineData("HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE", "MyAttendanceDispensation", "Cancel")]
+    [InlineData("HUMAN_RESOURCE_ATTENDANCE", "StudyAssignment", "Read")]
+    [InlineData("HUMAN_RESOURCE_ATTENDANCE", "StudyAssignment", "Create")]
+    [InlineData("HUMAN_RESOURCE_ATTENDANCE", "StudyAssignment", "Update")]
+    [InlineData("HUMAN_RESOURCE_ATTENDANCE", "StudyAssignment", "Cancel")]
+    [InlineData("HUMAN_RESOURCE_ATTENDANCE", "AttendanceDeviceIncident", "Read")]
+    [InlineData("HUMAN_RESOURCE_ATTENDANCE", "AttendanceDeviceIncident", "Create")]
+    [InlineData("HUMAN_RESOURCE_ATTENDANCE", "AttendanceDeviceIncident", "Cancel")]
     [InlineData("HUMAN_RESOURCE_SCHEDULING_MANAGEMENT", "RosterPeriod", "ManageAllUnits")]
     [InlineData("HUMAN_RESOURCE_SCHEDULING_MANAGEMENT", "RosterPeriod", "RemoveShift")]
     [InlineData("HUMAN_RESOURCE_SCHEDULING_MANAGEMENT", "OnCallAssignment", "ManageBackup")]
@@ -90,7 +106,7 @@ public sealed class A52PermissionRegistryTests : IDisposable
     }
 
     public static IEnumerable<object[]> EndpointA52Baru() =>
-        new[] { typeof(AttendanceDeviceController), typeof(HolidayController), typeof(MyScheduleSelfServiceController), typeof(AttendanceReportController), typeof(OnCallAssignmentController) }
+        new[] { typeof(AttendanceDeviceController), typeof(HolidayController), typeof(MyScheduleSelfServiceController), typeof(AttendanceReportController), typeof(OnCallAssignmentController), typeof(AttendanceDashboardController), typeof(AttendanceDispensationController), typeof(AttendanceDispensationSelfServiceController), typeof(StudyAssignmentController), typeof(AttendanceDeviceIncidentController) }
             .SelectMany(t => t.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
             .Select(m => (m, izin: m.GetCustomAttribute<AccessPermissionAttribute>()))
             .Where(x => x.izin != null)

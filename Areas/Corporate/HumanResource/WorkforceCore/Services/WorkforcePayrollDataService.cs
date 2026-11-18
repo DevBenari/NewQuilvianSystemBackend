@@ -551,9 +551,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            // Tanpa nominal dan tanpa nomor rekening: hanya apa yang berubah dan siapa pelakunya.
+            // Tanpa nominal dan tanpa nomor rekening: hanya apa yang berubah dan siapa pelakunya. Pelaku diambil LoggerService dari
+            // sesi; objek data tidak ditulis LoggerService, jadi orang dan hasilnya wajib ada di teks pesan (BE-HRD-362, Aturan E).
             await _loggerService.AuditAsync(LogCategory, "WorkforcePayrollData.Update",
-                "Data penggajian pegawai diperbarui.",
+                $"Data penggajian pegawai diperbarui. WorkforceProfileId={workforceProfileId}; penetapan gaji: {response.SalaryAssignment}; rekening payroll: {response.BankAccount}.",
                 new
                 {
                     WorkforceProfileId = workforceProfileId,

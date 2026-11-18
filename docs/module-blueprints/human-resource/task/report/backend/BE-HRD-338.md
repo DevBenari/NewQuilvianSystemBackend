@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `9cc8097c` (branch `yoga`) + perubahan `BE-HRD-335`–`337` yang belum di-commit |
 | Tanggal | 12 November 2026 |
-| Status | 🟡 Sebagian — kode terbukti lewat harness; lewat API devYoga `AT-HRD-PK-01` dan `-04` lulus (13 November 2026). Tersisa `AT-HRD-PK-02` lewat API: devYoga tidak punya pegawai berstatus Didampingi (rantai onboarding kosong) |
+| Status | ✅ Selesai (18 November 2026) — kode terbukti lewat harness; lewat API devYoga `AT-HRD-PK-01` dan `-04` lulus (13 November 2026); `AT-HRD-PK-02` diterima pemilik roadmap 18 November 2026 dengan bukti harness: devYoga tidak punya pegawai Didampingi (rantai rekrutmen → onboarding → pendampingan klinis kosong); uji `ReplacementTests.Pengganti_Didampingi_tanpa_perawat_Mandiri_ditolak_422_B7_tanpa_perubahan` pada proyek uji permanen lulus ulang 18 November 2026 (`ReplacementTests` 11/11) |
 
 ### Backend Governance Preflight
 
@@ -162,7 +162,7 @@ Contoh 422 (pengganti Didampingi tanpa perawat Mandiri):
 | Kontrol negatif: riwayat sengaja diisi petugas pertama (cacat lama), backend dibangun ulang | Tepat uji rangkaian Budi → Tono → Andi yang gagal. Kode dikembalikan (dibandingkan byte demi byte), dibangun ulang, 35/35 lulus lagi | `PASS` | Keluaran `dotnet test` |
 | `AT-HRD-PK-01` lewat API + basis data devYoga (13 November 2026): roster ICU terbit, Malam 14 Februari 2027, Budi → Tono ("Sakit Mendadak", `ExpectedWorkforceProfileId` = Budi) lalu Tono → Andi ("Lainnya") | Keduanya 200 dengan `revisionId`. Periode tetap `Published` versi 1 sebelum dan sesudah. Riwayat: dua baris `Replacement` (Budi → Tono, lalu Tono → Andi), keduanya bertaut `ShiftReplacementId`. Shift: petugas Andi, `OriginalEmployeeId` Budi, `IsManualOverride` true, sumber `DirectReplacement`. Jejak `TrxShiftReplacement`: Budi → Tono, Tono → Andi, keduanya `Applied` | `PASS` | `at-log.jsonl` |
 | `AT-HRD-PK-04` lewat API devYoga: (a) `ExpectedWorkforceProfileId` basi; (b) dua permintaan serentak (`Promise.all`) pada Pagi 17 Februari, Indra → Tono dan Indra → Andi, keduanya `Expected` = Indra | (a) 409 "Shift ini baru saja diubah orang lain. Muat ulang lalu coba lagi.", tanpa riwayat. (b) Satu 200 (Andi), satu 409 (Tono); tepat satu riwayat Indra → Andi; shift berpetugas Andi | `PASS` | `at-log.jsonl` |
-| `AT-HRD-PK-02` lewat API devYoga | — | `BLOCKED` | Butuh pegawai berstatus Didampingi. Status itu hanya terbaca dari `HrdClinicalPreceptorship`, yang wajib menunjuk `HrdOnboardingCase` (berstatus `Completed` agar tidak menjadi `B4`), yang wajib menunjuk `HrdCandidateHiringHandoff`. devYoga tidak punya satu pun kasus onboarding, dan memalsukan rantai rekrutmen tidak dilakukan. Bukti tetap dari harness (baris di atas) |
+| `AT-HRD-PK-02` lewat API devYoga | Tidak dijalankan; bukti harness diterima pemilik roadmap 18 November 2026 | `NOT FEASIBLE` | Butuh pegawai berstatus Didampingi. Status itu hanya terbaca dari `HrdClinicalPreceptorship`, yang wajib menunjuk `HrdOnboardingCase` (berstatus `Completed` agar tidak menjadi `B4`), yang wajib menunjuk `HrdCandidateHiringHandoff`. devYoga tidak punya satu pun kasus onboarding, dan memalsukan rantai rekrutmen tidak dilakukan. Bukti tetap dari harness (baris di atas) |
 | `AT-HRD-PK-03` | — | `NOT APPLICABLE` lewat API | Matriks menetapkan metode "Unit service" (layanan kesiapan dibuat gagal); bukti dari harness |
 
 Data uji dan perbaikan penghadang uji: lihat [BE-HRD-337](BE-HRD-337.md) bagian 5 dan
@@ -181,7 +181,7 @@ pada tingkat `READ COMMITTED`: permintaan kedua menunggu, lalu kondisinya tidak 
 | --- | --- | --- |
 | Contoh 35.9.3 menghasilkan dua baris dengan petugas sebelum yang benar | Terpenuhi di harness | Bagian 5 |
 | Pemberitahuan dikirim sesudah commit dan kegagalannya tidak membatalkan | Terpenuhi di harness | Bagian 5 |
-| `AT-HRD-PK-01`–`04` | Terpenuhi di harness; lewat API devYoga `-01` dan `-04` terpenuhi; `-02` **belum** lewat API (data Didampingi tidak dapat disiapkan); `-03` bermetode unit service | Bagian 5 |
+| `AT-HRD-PK-01`–`04` | Terpenuhi di harness; lewat API devYoga `-01` dan `-04` terpenuhi; `-02` lewat harness, diterima pemilik roadmap 18 November 2026 dengan bukti harness: devYoga tidak punya pegawai Didampingi (rantai rekrutmen → onboarding → pendampingan klinis kosong); uji `ReplacementTests.Pengganti_Didampingi_tanpa_perawat_Mandiri_ditolak_422_B7_tanpa_perubahan` pada proyek uji permanen lulus ulang 18 November 2026 (`ReplacementTests` 11/11); `-03` bermetode unit service | Bagian 5 |
 | DoD umum: build lulus, tanpa angka tertanam, catatan alasan tidak masuk log | Terpenuhi | Log hanya memuat ID shift, tanggal, dan nama |
 
 ---
@@ -196,4 +196,4 @@ pada tingkat `READ COMMITTED`: permintaan kedua menunggu, lalu kondisinya tidak 
 | Perubahan sampingan | `NONE`. Pemaksaan status `Published` dihapus dengan sengaja (bagian 1) |
 | Interupsi | `NONE` |
 | Status Git | 7 berkas source task ini (1 baru, 6 diubah) di atas perubahan `BE-HRD-335`–`337` yang belum di-commit; 2 dokumen roadmap/traceability; laporan ini. Tidak ada stage atau commit |
-| Langkah berikutnya | (a) `AT-HRD-PK-02` lewat API begitu ada pegawai Didampingi hasil alur onboarding di devYoga, atau pemilik roadmap menerima bukti harness untuk butir ini. (b) `BE-HRD-339`: koreksi mundur dengan riwayat dan pemicu hitung ulang (memakai `ShiftRevisionRecorder.Record`) |
+| Langkah berikutnya | (a) Selesai 18 November 2026: pemilik roadmap menerima bukti harness untuk `AT-HRD-PK-02`; uji API dapat diulang kapan saja begitu ada pegawai Didampingi hasil alur onboarding di devYoga. (b) `BE-HRD-339`: koreksi mundur dengan riwayat dan pemicu hitung ulang (memakai `ShiftRevisionRecorder.Record`) |

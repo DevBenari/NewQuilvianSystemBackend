@@ -2890,10 +2890,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 IsCancel = false
             };
 
+            // BE-HRD-FIX-002: instance biasanya sudah dilacak (LoadTrackedInstanceAsync). Entitas baru dengan Id terisi yang
+            // hanya ditambahkan ke koleksinya dianggap EF sebagai baris lama → UPDATE 0 baris → DbUpdateConcurrencyException,
+            // sehingga submit/aksi pada instance yang sudah ada selalu gagal. Daftarkan eksplisit sebagai Added.
             instance.StatusHistories.Add(history);
+            _dbContext.Set<TrxWorkflowStatusHistory>().Add(history);
         }
 
-        private static void AddComment(
+        private void AddComment(
             TrxWorkflowInstance instance,
             TrxWorkflowStepInstance? step,
             HumanResourceUserContextDto actorContext,
@@ -2901,7 +2905,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             string commentText,
             DateTime now)
         {
-            instance.Comments.Add(new TrxWorkflowComment
+            var workflowComment = new TrxWorkflowComment
             {
                 Id = Guid.NewGuid(),
                 WorkflowInstanceId = instance.Id,
@@ -2919,7 +2923,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 CreateBy = actorContext.UserId,
                 IsDelete = false,
                 IsCancel = false
-            });
+            };
+
+            // BE-HRD-FIX-002: sama dengan riwayat status — daftarkan eksplisit sebagai Added.
+            instance.Comments.Add(workflowComment);
+            _dbContext.Set<TrxWorkflowComment>().Add(workflowComment);
         }
 
         private static List<string> BuildInstanceAvailableActions(

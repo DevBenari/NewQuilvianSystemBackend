@@ -6297,10 +6297,10 @@ Halaman HR **tidak boleh bergantung** pada komponen, gaya, hook, atau util milik
 #### Grafik F86 — Halaman Daftar, Formulir Ubah Per Orang, dan Verifikasi (`FE-HRD-325` s.d. `FE-HRD-327`)
 
 ```text
-BE-HRD-360 🟡 [BE] ─> FE-HRD-325 🟡 ─┬─> FE-HRD-326 🟡 ─┬─> FE-HRD-327
+BE-HRD-360 ✅ [BE] ─> FE-HRD-325 ✅ ─┬─> FE-HRD-326 ✅ ─┬─> FE-HRD-327 ✅
                                      │                  │
-BE-HRD-362 🟡 [BE] ──────────────────┘                  │
-BE-HRD-363 [BE] ────────────────────────────────────────┘
+BE-HRD-362 ✅ [BE] ──────────────────┘                  │
+BE-HRD-363 ✅ [BE] ─────────────────────────────────────┘
 ```
 
 `[BE]` = task backend pada `backend-roadmap.md`, cermin baca-saja.
@@ -6319,9 +6319,9 @@ BE-HRD-363 [BE] ─────────────────────�
 
 ### Rincian 3 Task Frontend Slice S-A8 (`FE-HRD-325` s.d. `FE-HRD-327`)
 
-#### 🟡 `FE-HRD-325` — Halaman daftar Data Penggajian Pegawai (`/hr/workforce-core/payroll-data`)
+#### ✅ `FE-HRD-325` — Halaman daftar Data Penggajian Pegawai (`/hr/workforce-core/payroll-data`)
 * **Slice / MVP**: `S-A8` / `MVP-69`
-* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 4 acceptance criteria terbukti penuh (butuh tampilan di browser); belum ada laporan tracked. ESLint 0 error, test unit 21 dari 21 lulus, dan pemeriksa penggunaan CSS 0 temuan sudah dijalankan pada source; `npm run build`, uji di browser, dan tangkapan layar **NOT RUN**.
+* **Status**: ✅ Selesai (2026-11-18) — 4/4 acceptance criteria terbukti di browser (`next dev` → backend lokal, data asli devYoga): memuat, kosong, gagal `500`, dan tanpa akses `403` tampil; opsi Jenis Karyawan/Perawat/Dokter; Dokter 17, Perawat 0, Lengkap 1, cari "dewi" 2, atur ulang, dan halaman 2 dari 10 baris mengubah hasil; `****2003` tampil, nomor lengkap dan gaji pokok tidak; badge paling lebar 62% sel; teks panjang membungkus tanpa memotong tabel; ponsel 390 px tanpa melebar. `npm run build` lulus (816 halaman), ESLint 0 error, uji unit 21/21, `check-css-usage` 0 temuan. Source: hanya deskripsi metadata dan satu komentar yang masih menyebut impor (`HRD-DEC-223`) diperbaiki. Laporan: [FE-HRD-325](../task/report/frontend/FE-HRD-325.md)
 * **Outcome**: Halaman daftar karyawan, perawat, dan dokter aktif dengan kartu ringkasan, filter Jenis (Karyawan, Perawat, Dokter), Kelengkapan, pencarian, dan jumlah baris, serta tabel: nama dan nomor beserta jabatan dan unit, penetapan gaji utama (status, struktur, tanggal mulai), rekening payroll (status, bank, nomor disamarkan), dan kelengkapan beserta alasannya. Butir menu **Data Penggajian Pegawai** di Administrasi Kepegawaian, dijaga `WorkforcePayrollData : Read`.
 * **Kontrak**: API Contract v27 bagian 33 — **approved** oleh Pengguna (`HRD-DEC-015`) 16 November 2026 (gerbang G1 tertutup).
 * **Dependencies**: `BE-HRD-360` [BE]
@@ -6333,9 +6333,9 @@ BE-HRD-363 [BE] ─────────────────────�
 * **Verifikasi**: lint dan test unit; `npm run build`; uji manual di browser beserta tangkapan layar desktop dan ponsel; pemeriksa `check-css-usage`.
 * **Risiko / pemilik**: gaya memakai utilitas Bootstrap tanpa CSS Module baru, sehingga tampilan perlu dicek di browser; HR UI Lead.
 
-#### 🟡 `FE-HRD-326` — Formulir ubah data penggajian per orang (modal pada halaman daftar)
+#### ✅ `FE-HRD-326` — Formulir ubah data penggajian per orang (modal pada halaman daftar)
 * **Slice / MVP**: `S-A8` / `MVP-69`
-* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 6 acceptance criteria terbukti penuh (butuh interaksi di browser); belum ada laporan tracked. ESLint 0 error, test unit 21 dari 21 lulus, dan pemeriksa penggunaan CSS 0 temuan sudah dijalankan pada source; `npm run build`, uji di browser, dan tangkapan layar **NOT RUN**.
+* **Status**: ✅ Selesai (2026-11-18) — 6/6 acceptance criteria terbukti di browser (`next dev` → backend lokal, devYoga; tulis sungguhan hanya pada data uji Dewi Anggraeni, disetujui pengguna, lalu dikembalikan identik). Dua cacat diperbaiki: (1) `disabled` pada `ConfirmModal` ikut mengunci Batal sehingga formulir yang gagal memuat tidak dapat ditutup — kini hanya Simpan yang dikunci lewat `confirmProps`; (2) gaji berdesimal diisikan kembali dengan titik lalu ditolak sendiri — kini memakai koma desimal. Bukti: memuat/gagal memuat (Simpan nonaktif, Batal menutup), gaji kosong/"abc" ditolak tanpa `PUT`, rekening kosong dikirim `null`, "12.500.000" tersimpan dengan toast hasil dan peringatan pencabutan, peringatan rentang grade, penolakan `400` tampil di formulir dengan satu `PUT` untuk dua tekanan, Batal/Esc terkunci selama simpan, opsi nonaktif berketerangan bagi yang tidak berhak. Uji unit 23/23 (2 baru, kontrol negatif tertangkap), ESLint dan `check-css-usage` bersih. Temuan base component: `BaseCheckboxCard` `compact` menampilkan ✓ walau tidak dicentang (perlu keputusan UI Lead). Laporan: [FE-HRD-326](../task/report/frontend/FE-HRD-326.md)
 * **Outcome**: Tombol **Ubah** pada tiap baris (hanya bagi pemegang `WorkforcePayrollData : Update`) membuka formulir yang memuat isian orang itu dan memiliki dua bagian: **Penetapan Gaji Utama** (struktur gaji, gaji pokok, tanggal mulai berlaku) dan **Rekening Payroll** (bank, nomor rekening, nama pemilik), ditambah dua opsi: **Setujui penetapan gaji** dan **Tandai rekening terverifikasi**, yang hanya aktif bagi pemegang hak yang sesuai. Pilihan struktur dan bank diambil dari master; pengguna tidak pernah mengetik atau melihat id. Pesan penolakan Backend ditampilkan apa adanya; peringatan hasil simpan tampil sebagai toast.
 * **Kontrak**: API Contract v27 bagian 33 — **approved** oleh Pengguna (`HRD-DEC-015`) 16 November 2026 (gerbang G1 tertutup).
 * **Dependencies**: `FE-HRD-325`, `BE-HRD-362` [BE]
@@ -6349,9 +6349,9 @@ BE-HRD-363 [BE] ─────────────────────�
 * **Verifikasi**: test unit atas aturan isian dan payload; uji manual di browser (jalur berhasil, ditolak, tanpa hak); tangkapan layar.
 * **Risiko / pemilik**: butuh `SalaryStructure : Read` dan `Bank : Read` agar daftar pilihan terisi (keputusan 4); HR UI Lead.
 
-#### `FE-HRD-327` — Verifikasi slice S-A8: navigasi, build, dan uji layar di browser
+#### ✅ `FE-HRD-327` — Verifikasi slice S-A8: navigasi, build, dan uji layar di browser
 * **Slice / MVP**: `S-A8` / Verifikasi
-* **Status**: belum dikerjakan. Gerbang terbuka: G4.
+* **Status**: ✅ Selesai (2026-11-18) — 4/4 acceptance criteria terbukti tanpa perubahan source. `npm run lint:errors` (seluruh repository) tanpa error dan `npm run build` lulus (816 halaman) sesudah perbaikan `FE-HRD-326`; `check-css-usage` 0 temuan atas tiga view. Di browser (`next dev` → backend lokal, baca saja): butir menu tampil bagi superadmin dan peran Read-saja (tanpa kolom Aksi), hilang bagi peran tanpa hak `WorkforcePayrollData` sementara butir saudara tetap; daftar dan formulir diuji di desktop 1440 px dan ponsel 390 px dengan tangkapan layar; kelima alamat `GET` yang dipanggil (`https://localhost:7184/api/v1/…`) sama dengan `[Route]` controller backend dan dijawab `200`. Laporan: [FE-HRD-327](../task/report/frontend/FE-HRD-327.md)
 * **Outcome**: Bukti bahwa butir menu tampil sesuai hak akses, halaman dan formulir berjalan di browser, dan source lulus build.
 * **Dependencies**: `FE-HRD-326`, `BE-HRD-363` [BE]
 * **Acceptance Criteria**:
