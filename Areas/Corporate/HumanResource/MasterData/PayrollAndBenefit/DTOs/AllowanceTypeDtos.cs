@@ -72,6 +72,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public string CurrencyCode { get; set; } = string.Empty;
         public decimal DefaultAmount { get; set; }
         public decimal DefaultPercentage { get; set; }
+        public decimal? MaximumAmount { get; set; }
+        public bool IsRecurring { get; set; }
+        public bool RequiresApproval { get; set; }
+        public DateTime? EffectiveStartDate { get; set; }
+        public DateTime? EffectiveEndDate { get; set; }
+        public bool IsEligibleForWorkforceAssignment { get; set; }
+        public string? IneligibleReason { get; set; }
     }
 
     public class AllowanceTypeOptionPagedResponse
@@ -80,6 +87,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public int PageSize { get; set; }
         public int TotalData { get; set; }
         public int TotalPage { get; set; }
+
+        /// <summary>Jumlah total Master Tunjangan (tidak terhapus) tanpa filter kelayakan/pencarian. Terisi saat eligibleForWorkforceAssignment=true.</summary>
+        public int? TotalMasterCount { get; set; }
+
+        /// <summary>Jumlah Master Tunjangan aktif tanpa filter kelayakan/pencarian. Terisi saat eligibleForWorkforceAssignment=true.</summary>
+        public int? TotalActiveMasterCount { get; set; }
+
         public List<AllowanceTypeOptionResponse> Items { get; set; } = new();
     }
 

@@ -129,7 +129,7 @@ public sealed class PayrollTaxPolicyService
             return ToDetail(entity, caller);
         }, cancellationToken);
 
-    /// <summary>Membuat draf versi baru dari isi kebijakan yang ada (mis. saat tarif berubah). Kebijakan asal tidak diubah.</summary>
+    /// <summary>Membuat draf versi baru dari kebijakan yang ada (mis. saat masa berlaku berganti). Tabel tarif diisi dari referensi resmi Backend.</summary>
     public Task<PayrollTaxPolicyDetailResponse> ReviseAsync(
         Guid id, PayrollStatutoryPolicyReviseRequest request, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
@@ -139,23 +139,11 @@ public sealed class PayrollTaxPolicyService
             {
                 PolicyVersion = request.PolicyVersion,
                 Title = source.Title,
+                CalculationType = TaxPolicyCalculationTypes.PermanentEmployeeTer,
                 LegalBasis = source.LegalBasis,
                 EffectiveStartDate = request.EffectiveStartDate,
                 EffectiveEndDate = request.EffectiveEndDate,
-                PositionCostRatePercent = source.PositionCostRatePercent,
-                PositionCostMonthlyCap = source.PositionCostMonthlyCap,
-                PositionCostAnnualCap = source.PositionCostAnnualCap,
-                NoNpwpSurchargePercent = source.NoNpwpSurchargePercent,
-                PkpRoundingUnit = source.PkpRoundingUnit,
-                RoundTaxToWholeRupiah = source.RoundTaxToWholeRupiah,
-                EmployerPremiumPrograms = source.EmployerPremiumPrograms,
-                PensionDeductionPrograms = source.PensionDeductionPrograms,
-                NonEmployeeBasisPercent = source.NonEmployeeBasisPercent,
-                NonEmployeeMethod = source.NonEmployeeMethod,
-                Pph26RatePercent = source.Pph26RatePercent,
-                Ptkp = PayrollTaxPolicyEngine.ParseTable<PtkpEntry>(source.PtkpJson).ToList(),
-                TerRates = PayrollTaxPolicyEngine.ParseTable<TerRateEntry>(source.TerRatesJson).ToList(),
-                Brackets = PayrollTaxPolicyEngine.ParseTable<TaxBracketEntry>(source.BracketsJson).ToList(),
+                UseOfficialReference = true,
                 Notes = $"Revisi dari versi {source.PolicyVersion}."
             };
 
@@ -201,6 +189,10 @@ public sealed class PayrollTaxPolicyService
                 throw new PayrollInvalidTransitionException("Hanya kebijakan yang sudah diajukan yang dapat disahkan.");
             if (entity.SubmittedByUserId.HasValue && entity.SubmittedByUserId.Value == actorUserId)
                 throw new PayrollForbiddenActionException("Pengaju tidak boleh mengesahkan kebijakan yang diajukannya sendiri; pengesahan oleh Finance.");
+
+            var issues = PayrollTaxPolicyEngine.ValidateCompleteness(PayrollTaxPolicy.FromEntity(entity));
+            if (issues.Count > 0)
+                throw new PayrollRunValidationException("Referensi tarif kebijakan PPh belum lengkap atau belum terverifikasi sehingga tidak dapat disahkan: " + string.Join(" ", issues));
 
             var start = entity.EffectiveStartDate;
             var end = entity.EffectiveEndDate;
@@ -297,7 +289,10 @@ public sealed class PayrollTaxPolicyService
         return trimmed.Length > maxLength ? trimmed[..maxLength] : trimmed;
     }
 
-    /// <summary>Memvalidasi masukan dasar (cukup untuk menyimpan draf) dan menyalinnya ke entity. Kelengkapan penuh diperiksa saat diajukan.</summary>
+    /// <summary>
+    /// Memvalidasi masukan kebijakan dan mengisi tabel tarif. Bila <see cref="SavePayrollTaxPolicyRequest.UseOfficialReference"/> true
+    /// (bawaan), seluruh tabel PTKP, TER A/B/C, Pasal 17, dan parameter regulasi diambil server-side dari referensi resmi Backend.
+    /// </summary>
     private async Task ApplyAsync(PrlTaxPolicy entity, SavePayrollTaxPolicyRequest request, CancellationToken cancellationToken)
     {
         var errors = new List<string>();
@@ -305,18 +300,76 @@ public sealed class PayrollTaxPolicyService
         var version = Clean(request.PolicyVersion, 100);
         if (version is null) errors.Add("Nomor versi kebijakan wajib diisi.");
         var title = Clean(request.Title, 200);
-        if (title is null) errors.Add("Judul kebijakan wajib diisi.");
+        if (title is null) errors.Add("Nama kebijakan wajib diisi.");
+
+        var calculationType = string.IsNullOrWhiteSpace(request.CalculationType)
+            ? TaxPolicyCalculationTypes.PermanentEmployeeTer
+            : request.CalculationType.Trim().ToUpperInvariant();
+        if (calculationType != TaxPolicyCalculationTypes.PermanentEmployeeTer)
+            errors.Add("Jenis perhitungan yang didukung pada tahap ini hanya PPh 21 Pegawai Tetap (PERMANENT_EMPLOYEE_TER).");
+
+        var official = PayrollTaxOfficialReferenceProvider.GetCurrent();
         var legalBasis = Clean(request.LegalBasis, 1000);
+        if (legalBasis is null && request.UseOfficialReference)
+            legalBasis = official.Status.DefaultLegalBasis;
         if (legalBasis is null) errors.Add("Dasar peraturan wajib diisi.");
+
         if (request.EffectiveStartDate == default) errors.Add("Tanggal mulai berlaku wajib diisi.");
         if (request.EffectiveEndDate.HasValue && request.EffectiveStartDate != default
             && request.EffectiveEndDate.Value.Date < request.EffectiveStartDate.Date)
             errors.Add("Tanggal akhir berlaku tidak boleh sebelum tanggal mulai.");
 
-        if (request.PositionCostRatePercent < 0m || request.PositionCostRatePercent > 100m) errors.Add("Persen biaya jabatan harus antara 0 dan 100.");
-        if (request.PositionCostMonthlyCap < 0m || request.PositionCostAnnualCap < 0m) errors.Add("Batas biaya jabatan tidak boleh negatif.");
-        if (request.NoNpwpSurchargePercent < 0m || request.NoNpwpSurchargePercent > 1000m) errors.Add("Tambahan persen tanpa NPWP tidak valid.");
-        if (request.PkpRoundingUnit < 0m) errors.Add("Kelipatan pembulatan PKP tidak boleh negatif.");
+        if (version is not null)
+        {
+            var duplicate = await _dbContext.PrlTaxPolicies.AsNoTracking()
+                .AnyAsync(x => !x.IsDelete && x.Id != entity.Id && x.PolicyVersion == version, cancellationToken);
+            if (duplicate) errors.Add($"Nomor versi {version} sudah dipakai kebijakan lain.");
+        }
+
+        if (request.UseOfficialReference)
+        {
+            if (!official.Status.IsReady)
+            {
+                var detail = official.Status.Issues.Count > 0 ? " " + string.Join(" ", official.Status.Issues) : string.Empty;
+                errors.Add("Referensi tarif PPh 21 resmi di Backend belum siap atau belum terverifikasi sehingga kebijakan tidak dapat disimpan." + detail);
+            }
+
+            if (errors.Count > 0) throw new PayrollRunValidationException(string.Join(" ", errors));
+
+            entity.PolicyVersion = version!;
+            entity.Title = title!;
+            entity.LegalBasis = legalBasis!;
+            entity.EffectiveStartDate = Utc(request.EffectiveStartDate);
+            entity.EffectiveEndDate = request.EffectiveEndDate.HasValue ? Utc(request.EffectiveEndDate.Value) : null;
+            entity.PositionCostRatePercent = official.PositionCostRatePercent;
+            entity.PositionCostMonthlyCap = official.PositionCostMonthlyCap;
+            entity.PositionCostAnnualCap = official.PositionCostAnnualCap;
+            entity.NoNpwpSurchargePercent = official.NoNpwpSurchargePercent;
+            entity.PkpRoundingUnit = official.PkpRoundingUnit;
+            entity.RoundTaxToWholeRupiah = official.RoundTaxToWholeRupiah;
+            entity.EmployerPremiumPrograms = official.EmployerPremiumPrograms;
+            entity.PensionDeductionPrograms = official.PensionDeductionPrograms;
+            entity.NonEmployeeBasisPercent = null;
+            entity.NonEmployeeMethod = null;
+            entity.Pph26RatePercent = null;
+            entity.PtkpJson = PayrollTaxPolicyEngine.SerializeTable(official.Ptkp);
+            entity.TerRatesJson = PayrollTaxPolicyEngine.SerializeTable(official.TerRates);
+            entity.BracketsJson = PayrollTaxPolicyEngine.SerializeTable(official.Brackets);
+            entity.Notes = Clean(request.Notes, 1000);
+            return;
+        }
+
+        var positionCostRatePercent = request.PositionCostRatePercent ?? 0m;
+        var positionCostMonthlyCap = request.PositionCostMonthlyCap ?? 0m;
+        var positionCostAnnualCap = request.PositionCostAnnualCap ?? 0m;
+        var noNpwpSurchargePercent = request.NoNpwpSurchargePercent ?? 0m;
+        var pkpRoundingUnit = request.PkpRoundingUnit ?? 0m;
+        var roundTaxToWholeRupiah = request.RoundTaxToWholeRupiah ?? true;
+
+        if (positionCostRatePercent < 0m || positionCostRatePercent > 100m) errors.Add("Persen biaya jabatan harus antara 0 dan 100.");
+        if (positionCostMonthlyCap < 0m || positionCostAnnualCap < 0m) errors.Add("Batas biaya jabatan tidak boleh negatif.");
+        if (noNpwpSurchargePercent < 0m || noNpwpSurchargePercent > 1000m) errors.Add("Tambahan persen tanpa NPWP tidak valid.");
+        if (pkpRoundingUnit < 0m) errors.Add("Kelipatan pembulatan PKP tidak boleh negatif.");
 
         var premiumPrograms = PayrollTaxPolicyEngine.ParseProgramList(request.EmployerPremiumPrograms);
         var pensionPrograms = PayrollTaxPolicyEngine.ParseProgramList(request.PensionDeductionPrograms);
@@ -336,13 +389,6 @@ public sealed class PayrollTaxPolicyService
         var brackets = (request.Brackets ?? new List<TaxBracketEntry>()).ToList();
         if (ptkp.Count > 200 || terRates.Count > 2000 || brackets.Count > 50) errors.Add("Jumlah baris tabel kebijakan melebihi batas.");
 
-        if (version is not null)
-        {
-            var duplicate = await _dbContext.PrlTaxPolicies.AsNoTracking()
-                .AnyAsync(x => !x.IsDelete && x.Id != entity.Id && x.PolicyVersion == version, cancellationToken);
-            if (duplicate) errors.Add($"Nomor versi {version} sudah dipakai kebijakan lain.");
-        }
-
         if (errors.Count > 0) throw new PayrollRunValidationException(string.Join(" ", errors));
 
         entity.PolicyVersion = version!;
@@ -350,12 +396,12 @@ public sealed class PayrollTaxPolicyService
         entity.LegalBasis = legalBasis!;
         entity.EffectiveStartDate = Utc(request.EffectiveStartDate);
         entity.EffectiveEndDate = request.EffectiveEndDate.HasValue ? Utc(request.EffectiveEndDate.Value) : null;
-        entity.PositionCostRatePercent = request.PositionCostRatePercent;
-        entity.PositionCostMonthlyCap = request.PositionCostMonthlyCap;
-        entity.PositionCostAnnualCap = request.PositionCostAnnualCap;
-        entity.NoNpwpSurchargePercent = request.NoNpwpSurchargePercent;
-        entity.PkpRoundingUnit = request.PkpRoundingUnit;
-        entity.RoundTaxToWholeRupiah = request.RoundTaxToWholeRupiah;
+        entity.PositionCostRatePercent = positionCostRatePercent;
+        entity.PositionCostMonthlyCap = positionCostMonthlyCap;
+        entity.PositionCostAnnualCap = positionCostAnnualCap;
+        entity.NoNpwpSurchargePercent = noNpwpSurchargePercent;
+        entity.PkpRoundingUnit = pkpRoundingUnit;
+        entity.RoundTaxToWholeRupiah = roundTaxToWholeRupiah;
         entity.EmployerPremiumPrograms = premiumPrograms.Count == 0 ? null : string.Join(",", premiumPrograms);
         entity.PensionDeductionPrograms = pensionPrograms.Count == 0 ? null : string.Join(",", pensionPrograms);
         entity.NonEmployeeBasisPercent = request.NonEmployeeBasisPercent;
@@ -387,9 +433,19 @@ public sealed class PayrollTaxPolicyService
     {
         var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
         var view = PayrollTaxPolicy.FromEntity(x);
+        var official = PayrollTaxOfficialReferenceProvider.GetStatus();
+        var completenessIssues = PayrollTaxPolicyEngine.ValidateCompleteness(view);
         return new PayrollTaxPolicyDetailResponse
         {
             Summary = ToListItem(x, today),
+            CalculationType = official.CalculationType,
+            CalculationTypeLabel = official.CalculationTypeLabel,
+            CalculationMethodLabel = official.CalculationMethodLabel,
+            ReferenceVersion = official.ReferenceVersion,
+            ReferenceReady = official.IsReady && completenessIssues.Count == 0,
+            ReferenceStatusLabel = completenessIssues.Count == 0 && official.IsReady
+                ? "Referensi Tarif Resmi Terverifikasi"
+                : "Referensi Tarif Belum Lengkap",
             PositionCostRatePercent = x.PositionCostRatePercent,
             PositionCostMonthlyCap = x.PositionCostMonthlyCap,
             PositionCostAnnualCap = x.PositionCostAnnualCap,
@@ -405,7 +461,7 @@ public sealed class PayrollTaxPolicyService
             TerRates = view.TerRates.ToList(),
             Brackets = view.Brackets.ToList(),
             Notes = x.Notes,
-            CompletenessIssues = PayrollTaxPolicyEngine.ValidateCompleteness(view),
+            CompletenessIssues = completenessIssues,
             Actions = caller.ToResponse(x.PolicyStatus)
         };
     }

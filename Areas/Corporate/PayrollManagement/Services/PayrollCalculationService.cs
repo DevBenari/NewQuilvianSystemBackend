@@ -213,6 +213,9 @@ public sealed class PayrollCalculationService
     {
         engine = EngineVersion,
         policyVersion = _policy.PolicyVersion,
+        enableBpjsInPayroll = _policy.EnableBpjsInPayroll,
+        testingModeWithoutBpjs = !_policy.EnableBpjsInPayroll,
+        bpjsTestingModeLabel = _policy.EnableBpjsInPayroll ? null : StatutoryPolicyLabels.BpjsTestingModeDisabled,
         needsConfirmation = true,
         proration = "CalendarDays",
         allowProfileSalaryFallback = _policy.AllowProfileSalaryFallback,
@@ -227,7 +230,9 @@ public sealed class PayrollCalculationService
         taxAutoRegulatory = "Dihitung dari kebijakan tarif PPh berversi berstatus APPROVED yang berlaku pada periode (PrlTaxPolicy); tanpa kebijakan atau tanpa formula yang sah menghasilkan penahan, bukan Rp0",
         taxSupportedModes = new[] { TaxCalculationModes.AutoRegulatory, TaxCalculationModes.ApprovedManualAmount, TaxCalculationModes.ExemptOrNotApplicable },
         taxManualAmountApproval = "Nominal manual dipakai hanya bila sudah disetujui pengguna lain (ManualAmountApprovalStatus = APPROVED)",
-        insuranceRateSource = "Kebijakan iuran BPJS berversi berstatus APPROVED yang berlaku pada periode (PrlBpjsPolicy); nilai bawaan Pengaturan Penggajian tidak dipakai; tarif per pegawai pada profil diabaikan",
+        insuranceRateSource = _policy.EnableBpjsInPayroll
+            ? "Kebijakan iuran BPJS berversi berstatus APPROVED yang berlaku pada periode (PrlBpjsPolicy); nilai bawaan Pengaturan Penggajian tidak dipakai; tarif per pegawai pada profil diabaikan"
+            : "Mode pengujian: kalkulasi BPJS Kesehatan dan BPJS Ketenagakerjaan dinonaktifkan sementara (EnableBpjsInPayroll = false); run tidak boleh melewati Finance Handoff produksi",
         insuranceWageBase = "gaji pokok + tunjangan yang diklasifikasikan HRD sebagai tunjangan tetap DAN masuk dasar upah BPJS (IsFixedAllowance, IncludeInBpjsWageBase); tunjangan tanpa klasifikasi menahan iuran; lembur, tunjangan kehadiran, dan penghasilan variabel tidak masuk",
         taxableGrossBasis = "komponen penghasilan IsTaxable dikurangi potongan cuti tanpa gaji/mangkir dan potongan kehadiran (penghasilan yang tidak dibayarkan), ditambah premi pemberi kerja menurut kebijakan PPh (NEEDS CONFIRMATION)"
     });
@@ -326,7 +331,7 @@ public sealed class PayrollCalculationService
         // Versi yang dipakai disimpan pada snapshot setiap penerima sehingga perubahan kebijakan tidak mengubah payroll historis.
         var statutory = new StatutoryContext(
             await _policyResolver.GetTaxPolicyAsync(periodEnd, cancellationToken),
-            await _policyResolver.GetBpjsPolicyAsync(periodEnd, cancellationToken),
+            _policy.EnableBpjsInPayroll ? await _policyResolver.GetBpjsPolicyAsync(periodEnd, cancellationToken) : null,
             await LoadPriorTaxRowsAsync(run.Id, workforceIds, periodStart, periodEnd, cancellationToken));
 
         var identities = new Dictionary<Guid, IdentityInfo>();
@@ -633,9 +638,9 @@ public sealed class PayrollCalculationService
 
         var insuranceAssessment = PayrollTaxInsuranceRules.AssessInsurance(
             insuranceProfile is null ? null : PayrollInsuranceConfigFacts.From(insuranceProfile), profile.InsuranceAmount,
-            statutory.InsurancePolicy, wageBase, periodStart, periodEnd);
+            statutory.InsurancePolicy, wageBase, periodStart, periodEnd, calculate: true, enableBpjs: _policy.EnableBpjsInPayroll);
         insuranceAssessment = insuranceAssessment with { WageBaseItems = wageBaseItems };
-        if (unclassifiedWageBase.Count > 0 && insuranceAssessment.Lines.Any(l => l.Program != "PRIVATE" && l.Program != "LEGACY"))
+        if (_policy.EnableBpjsInPayroll && unclassifiedWageBase.Count > 0 && insuranceAssessment.Lines.Any(l => l.Program != "PRIVATE" && l.Program != "LEGACY"))
         {
             var wageIssues = unclassifiedWageBase
                 .Select(i => $"Dasar upah BPJS: {i.Name} (Rp {i.Amount:N0}) {i.Reason}. Tetapkan klasifikasi pada Master Tunjangan atau Kebijakan Transportasi.")
@@ -693,6 +698,23 @@ public sealed class PayrollCalculationService
             taxProfile is null ? null : PayrollTaxConfigFacts.From(taxProfile), profile.TaxAmount, periodStart, periodEnd,
             new PayrollTaxRunContext(taxPolicy, taxYear, taxMonth, isLastTaxPeriod, taxableGross, employerPremium, employeePension, ytd));
         // Dasar hitung dicatat pada SEMUA hasil (otomatis, manual, pengecualian): ia menjadi sumber akumulasi masa pajak berikutnya.
+        var enrichedTaxWarnings = taxAssessment.Warnings.ToList();
+        Dictionary<string, object?>? enrichedTaxDetail = taxAssessment.Detail is null
+            ? null
+            : new Dictionary<string, object?>(taxAssessment.Detail);
+        if (!_policy.EnableBpjsInPayroll)
+        {
+            if (taxAssessment.CalculationMode == TaxCalculationModes.AutoRegulatory)
+            {
+                enrichedTaxWarnings.Add(
+                    "Mode pengujian tanpa BPJS: premi BPJS pemberi kerja (KES/JKK/JKM) dan pengurang iuran pensiun pegawai (JHT/JP) belum diperhitungkan pada dasar PPh 21.");
+            }
+            if (enrichedTaxDetail is not null)
+            {
+                enrichedTaxDetail["bpjsEnabled"] = false;
+                enrichedTaxDetail["testingModeWithoutBpjs"] = true;
+            }
+        }
         taxAssessment = taxAssessment with
         {
             TaxYear = taxYear,
@@ -700,7 +722,9 @@ public sealed class PayrollCalculationService
             IsLastTaxPeriod = isLastTaxPeriod,
             TaxableGross = taxableGross,
             EmployerPremium = employerPremium,
-            EmployeePension = employeePension
+            EmployeePension = employeePension,
+            Warnings = enrichedTaxWarnings,
+            Detail = enrichedTaxDetail ?? taxAssessment.Detail
         };
 
         // Alasan yang tidak menahan (mis. cadangan tetapan lama dipakai) tetap terlihat sebagai peringatan.
@@ -952,6 +976,8 @@ public sealed class PayrollCalculationService
             netBeforeInstallment = employee.NetPay,
             taxResultStatus = taxAssessment.ResultStatus,
             insuranceResultStatus = insuranceAssessment.ResultStatus,
+            enableBpjsInPayroll = _policy.EnableBpjsInPayroll,
+            testingModeWithoutBpjs = !_policy.EnableBpjsInPayroll,
             // Peringatan per penerima disimpan di hasil hitung supaya rincian penerima membacanya tanpa menghitung ulang.
             warnings = warnings.ToList()
         });

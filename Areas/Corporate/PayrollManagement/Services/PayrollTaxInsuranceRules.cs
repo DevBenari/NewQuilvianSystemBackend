@@ -97,9 +97,14 @@ public sealed record PayrollInsurancePolicy(
 
 /// <summary>
 /// Ketersediaan kebijakan yang disahkan pada satu tanggal. Dipakai kelengkapan data untuk menyatakan "Menunggu Verifikasi Kebijakan"
-/// sebagai keadaan terpisah dari konfigurasi per orang.
+/// sebagai keadaan terpisah dari konfigurasi per orang, sekaligus menandai mode pengujian ketika BPJS dinonaktifkan sementara.
 /// </summary>
-public sealed record PayrollPolicyAvailability(bool TaxApproved, string? TaxVersion, bool BpjsApproved, string? BpjsVersion);
+public sealed record PayrollPolicyAvailability(
+    bool TaxApproved,
+    string? TaxVersion,
+    bool BpjsApproved,
+    string? BpjsVersion,
+    bool EnableBpjsInPayroll = true);
 
 public sealed record PayrollInsuranceLine(string Code, string Name, string Program, bool EmployeePaid, decimal BaseAmount, decimal Rate, decimal Amount);
 
@@ -284,7 +289,8 @@ public sealed record PayrollTaxInsuranceReadiness(
 {
     public bool IsComplete =>
         TaxConfigurationStatus == PayrollConfigurationStatuses.Configured
-        && InsuranceConfigurationStatus == PayrollConfigurationStatuses.Configured;
+        && (InsuranceConfigurationStatus == PayrollConfigurationStatuses.Configured
+            || InsuranceConfigurationStatus == PayrollConfigurationStatuses.TestingModeDisabled);
 }
 
 /// <summary>
@@ -351,6 +357,31 @@ public static class PayrollTaxInsuranceRules
                 && document.RootElement.TryGetProperty("engine", out var engine)
                 && engine.ValueKind == JsonValueKind.String
                 && string.Equals(engine.GetString(), PayrollCalculationService.EngineVersion, StringComparison.Ordinal);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// True bila snapshot kebijakan run menandai bahwa run dihitung dalam mode pengujian tanpa BPJS
+    /// (<c>Payroll:Policy:EnableBpjsInPayroll = false</c>). Dipakai untuk menandai banner UI dan menahan Finance Handoff produksi.
+    /// </summary>
+    public static bool IsTestingModeWithoutBpjs(string? policySnapshotJson)
+    {
+        if (string.IsNullOrWhiteSpace(policySnapshotJson)) return false;
+        try
+        {
+            using var document = JsonDocument.Parse(policySnapshotJson);
+            if (document.RootElement.ValueKind != JsonValueKind.Object) return false;
+            if (document.RootElement.TryGetProperty("testingModeWithoutBpjs", out var testingProp)
+                && testingProp.ValueKind == JsonValueKind.True)
+                return true;
+            if (document.RootElement.TryGetProperty("enableBpjsInPayroll", out var enableProp)
+                && enableProp.ValueKind == JsonValueKind.False)
+                return true;
+            return false;
         }
         catch (JsonException)
         {
@@ -531,7 +562,16 @@ public static class PayrollTaxInsuranceRules
         if (mode == TaxCalculationModes.AutoRegulatory)
         {
             // Kesiapan/ringkasan tanpa periode: yang dinilai hanya konfigurasi orangnya; ketersediaan kebijakan dilaporkan terpisah.
-            if (run is null) return Result(PayrollComponentResultStatuses.Calculated, TaxTreatments.EmployeeDeduction, 0m, 0m);
+            if (run is null)
+            {
+                if (IsPtkpRelevant(article, category) && string.IsNullOrWhiteSpace(ptkp))
+                    return TaxBlocked(
+                        cfg,
+                        PayrollConfigurationStatuses.NotConfigured,
+                        PayrollComponentResultStatuses.NotConfigured,
+                        new[] { "Status PTKP pegawai belum ditetapkan di HRD; wajib diisi agar PPh 21 otomatis dapat dihitung." });
+                return Result(PayrollComponentResultStatuses.Calculated, TaxTreatments.EmployeeDeduction, 0m, 0m);
+            }
 
             if (run.Policy is null)
                 return TaxBlocked(cfg, PayrollConfigurationStatuses.Configured, PayrollComponentResultStatuses.Error, new[] { AutoPolicyMissing });
@@ -705,11 +745,32 @@ public static class PayrollTaxInsuranceRules
     /// <paramref name="wageBase"/> adalah dasar upah (gaji pokok + tunjangan tetap) yang ditentukan pemanggil. Kontribusi pemberi kerja
     /// dipisahkan dan tidak pernah dimasukkan ke total pegawai. <paramref name="legacyAmount"/> adalah tetapan lama
     /// PrlPayroll.InsuranceAmount: cadangan bertanda bila HRD belum mengonfigurasi dan nilainya &gt; 0.
+    /// Bila <paramref name="enableBpjs"/> bernilai false (mode pengujian), BPJS tidak dihitung dan tidak memblokir payroll run,
+    /// dengan status eksplisit <see cref="PayrollComponentResultStatuses.TestingModeDisabled"/> (bukan NOT_APPLICABLE dan bukan VALID_ZERO).
     /// </summary>
     public static PayrollInsuranceAssessment AssessInsurance(
         PayrollInsuranceConfigFacts? cfg, decimal legacyAmount, PayrollInsurancePolicy? policy, decimal wageBase,
-        DateTime periodStart, DateTime periodEnd, bool calculate = true)
+        DateTime periodStart, DateTime periodEnd, bool calculate = true, bool enableBpjs = true)
     {
+        if (!enableBpjs)
+        {
+            return new PayrollInsuranceAssessment(
+                PayrollConfigurationStatuses.TestingModeDisabled,
+                PayrollComponentResultStatuses.TestingModeDisabled,
+                PayrollTaxInsuranceSources.TestingModeDisabled,
+                cfg?.ParticipationStatus,
+                Array.Empty<string>(),
+                null,
+                wageBase,
+                0m,
+                0m,
+                Array.Empty<PayrollInsuranceLine>(),
+                false,
+                Array.Empty<string>(),
+                new[] { "Mode pengujian aktif: kalkulasi BPJS Kesehatan dan BPJS Ketenagakerjaan dinonaktifkan sementara (belum dihitung)." },
+                cfg?.Id);
+        }
+
         legacyAmount = Round(legacyAmount);
 
         if (cfg is null) return InsuranceUnconfigured(null, new[] { "Profil iuran belum dikonfigurasi HRD." }, legacyAmount, wageBase);
@@ -864,8 +925,9 @@ public static class PayrollTaxInsuranceRules
         PayrollTaxConfigFacts? tax, PayrollInsuranceConfigFacts? insurance, decimal legacyTax, decimal legacyInsurance, DateTime asOf,
         PayrollPolicyAvailability? availability = null)
     {
+        var enableBpjs = availability?.EnableBpjsInPayroll ?? true;
         var taxResult = AssessTax(tax, legacyTax, asOf, asOf);
-        var insuranceResult = AssessInsurance(insurance, legacyInsurance, null, 0m, asOf, asOf, calculate: false);
+        var insuranceResult = AssessInsurance(insurance, legacyInsurance, null, 0m, asOf, asOf, calculate: false, enableBpjs: enableBpjs);
 
         var notes = new List<string>();
 
@@ -875,14 +937,14 @@ public static class PayrollTaxInsuranceRules
         {
             if (taxResult.IsConfigured && taxResult.CalculationMode == TaxCalculationModes.AutoRegulatory && !availability.TaxApproved)
                 notes.Add($"{StatutoryPolicyLabels.AwaitingVerification}: belum ada kebijakan tarif PPh yang disahkan dan berlaku; PPh otomatis menahan payroll run.");
-            if (insuranceResult.IsConfigured && insuranceResult.Programs.Count + (insurance?.HealthEnabled == true ? 1 : 0) > 0 && !availability.BpjsApproved
+            if (enableBpjs && insuranceResult.IsConfigured && insuranceResult.Programs.Count + (insurance?.HealthEnabled == true ? 1 : 0) > 0 && !availability.BpjsApproved
                 && insuranceResult.ParticipationStatus == InsuranceParticipationStatuses.Active)
                 notes.Add($"{StatutoryPolicyLabels.AwaitingVerification}: belum ada kebijakan iuran BPJS yang disahkan dan berlaku; iuran menahan payroll run.");
         }
 
         if (taxResult.Source == PayrollTaxInsuranceSources.LegacyProfileAmount)
             notes.Add("PPh masih memakai tetapan lama pada profil payroll; konfigurasi HRD belum lengkap.");
-        if (insuranceResult.Source == PayrollTaxInsuranceSources.LegacyProfileAmount)
+        if (enableBpjs && insuranceResult.Source == PayrollTaxInsuranceSources.LegacyProfileAmount)
             notes.Add("Iuran masih memakai tetapan lama pada profil payroll; konfigurasi HRD belum lengkap.");
         notes.AddRange(insuranceResult.Warnings.Where(w => !w.Contains("tetapan lama", StringComparison.Ordinal)));
         if (taxResult.IsConfigured && insuranceResult.IsConfigured && notes.Count == 0)

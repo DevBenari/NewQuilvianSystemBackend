@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -33,11 +35,16 @@ public sealed class PayrollBpjsPoliciesController : ControllerBase
 
     private readonly PayrollBpjsPolicyService _service;
     private readonly AccessPermissionService _accessPermissionService;
+    private readonly PayrollPolicyOptions _policyOptions;
 
-    public PayrollBpjsPoliciesController(PayrollBpjsPolicyService service, AccessPermissionService accessPermissionService)
+    public PayrollBpjsPoliciesController(
+        PayrollBpjsPolicyService service,
+        AccessPermissionService accessPermissionService,
+        IOptions<PayrollPolicyOptions> policyOptions)
     {
         _service = service;
         _accessPermissionService = accessPermissionService;
+        _policyOptions = policyOptions.Value;
     }
 
     private Task<bool> HasAsync(string action) => _accessPermissionService.HasAccessAsync(User, Resource, action);
@@ -55,7 +62,7 @@ public sealed class PayrollBpjsPoliciesController : ControllerBase
     [AccessPermission("PayrollBpjsPolicy", "Read")]
     public IActionResult GetMetadata() =>
         Ok(ApiResponse<PayrollStatutoryPolicyMetadataResponse>.Ok(
-            PayrollStatutoryPolicyMetadataFactory.Build(), "Metadata kebijakan iuran BPJS berhasil dimuat."));
+            PayrollStatutoryPolicyMetadataFactory.Build(_policyOptions.EnableBpjsInPayroll), "Metadata kebijakan iuran BPJS berhasil dimuat."));
 
     [HttpGet]
     [AccessAction("Read", "Read Payroll BPJS Policy", Description = "Melihat kebijakan iuran BPJS berversi", AccessType = AccessTypes.Read, SortOrder = 1)]

@@ -73,8 +73,17 @@ public static class WageBaseClassifications
     public const string Unclassified = "UNCLASSIFIED";
 }
 
+/// <summary>Jenis perhitungan pada formulir sederhana Kebijakan Tarif PPh.</summary>
+public static class TaxPolicyCalculationTypes
+{
+    public const string PermanentEmployeeTer = "PERMANENT_EMPLOYEE_TER";
+
+    public static readonly IReadOnlyList<string> All = new[] { PermanentEmployeeTer };
+}
+
 /// <summary>Label status kebijakan bagi layar (Pengaturan Penggajian dan kelengkapan).</summary>
 public static class StatutoryPolicyLabels
 {
     public const string AwaitingVerification = "Menunggu Verifikasi Kebijakan";
+    public const string BpjsTestingModeDisabled = "Mode Pengujian — BPJS belum dihitung";
 }

@@ -124,6 +124,7 @@ public sealed class PayrollDataReadinessSummaryResponse
     public bool TaxPolicyApproved { get; set; }
     public string? TaxPolicyVersion { get; set; }
     public string TaxPolicyStatusLabel { get; set; } = string.Empty;
+    public bool EnableBpjsInPayroll { get; set; } = true;
     public bool BpjsPolicyApproved { get; set; }
     public string? BpjsPolicyVersion { get; set; }
     public string BpjsPolicyStatusLabel { get; set; } = string.Empty;

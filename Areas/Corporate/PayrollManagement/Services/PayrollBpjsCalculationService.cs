@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 using QuilvianSystemBackend.Repositories;
 using System.Text.Json;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
@@ -15,15 +17,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         private readonly ApplicationDbContext _context;
         private readonly IPayrollSettingService _settingService;
         private readonly ILogger<PayrollBpjsCalculationService> _logger;
+        private readonly PayrollPolicyOptions _policy;
 
         public PayrollBpjsCalculationService(
             ApplicationDbContext context,
             IPayrollSettingService settingService,
-            ILogger<PayrollBpjsCalculationService> logger)
+            ILogger<PayrollBpjsCalculationService> logger,
+            IOptions<PayrollPolicyOptions> policyOptions)
         {
             _context = context;
             _settingService = settingService;
             _logger = logger;
+            _policy = policyOptions.Value;
         }
 
         public async Task<PayrollServiceResult<CalculateBpjsResultDto>> CalculateBpjsContributionsAsync(
@@ -31,6 +36,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
+            if (!_policy.EnableBpjsInPayroll)
+            {
+                return PayrollServiceResult<CalculateBpjsResultDto>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Kalkulasi BPJS dinonaktifkan sementara pada mode pengujian (Payroll:Policy:EnableBpjsInPayroll = false).");
+            }
             _logger.LogInformation(
                 "Memulai kalkulasi iuran BPJS Kesehatan dan BPJS Ketenagakerjaan untuk batch penggajian ID: {RunId}. Actor: {ActorId}",
                 runId, actorUserId);
@@ -109,6 +120,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
+            if (!_policy.EnableBpjsInPayroll)
+            {
+                return PayrollServiceResult<EmployeeBpjsCalculationDto>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Kalkulasi BPJS dinonaktifkan sementara pada mode pengujian (Payroll:Policy:EnableBpjsInPayroll = false).");
+            }
             var emp = await _context.PrlPayrollRunEmployees
                 .Include(e => e.Components.Where(c => c.IsActive))
                 .Include(e => e.PayrollRun)

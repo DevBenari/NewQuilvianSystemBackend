@@ -89,9 +89,12 @@ public sealed class PayrollDataReadinessService
             TaxPolicyApproved = availability.TaxApproved,
             TaxPolicyVersion = availability.TaxVersion,
             TaxPolicyStatusLabel = availability.TaxApproved ? "Kebijakan tarif PPh disahkan" : StatutoryPolicyLabels.AwaitingVerification,
+            EnableBpjsInPayroll = availability.EnableBpjsInPayroll,
             BpjsPolicyApproved = availability.BpjsApproved,
             BpjsPolicyVersion = availability.BpjsVersion,
-            BpjsPolicyStatusLabel = availability.BpjsApproved ? "Kebijakan iuran BPJS disahkan" : StatutoryPolicyLabels.AwaitingVerification,
+            BpjsPolicyStatusLabel = !availability.EnableBpjsInPayroll
+                ? StatutoryPolicyLabels.BpjsTestingModeDisabled
+                : (availability.BpjsApproved ? "Kebijakan iuran BPJS disahkan" : StatutoryPolicyLabels.AwaitingVerification),
             TotalPeople = all.Count,
             WithPayrollProfile = all.Count(x => x.HasPayrollProfile),
             WithApprovedSalaryAssignment = all.Count(x => x.HasApprovedSalaryAssignment),

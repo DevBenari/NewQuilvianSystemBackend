@@ -381,6 +381,12 @@ public sealed class PayrollRunEmployeeDetailResponse : PayrollRunEmployeeRespons
     /// <summary>Hasil dan konfigurasi iuran pada saat hitung terakhir (snapshot). Sisi pegawai dan pemberi kerja dipisahkan.</summary>
     public PayrollRunInsuranceResultResponse? Insurance { get; set; }
 
+    /// <summary>True bila BPJS aktif pada konfigurasi sistem saat ini; false bila mode pengujian tanpa BPJS aktif.</summary>
+    public bool EnableBpjsInPayroll { get; set; } = true;
+
+    /// <summary>True bila run ini dihitung (atau akan dihitung) pada mode pengujian tanpa BPJS.</summary>
+    public bool IsTestingModeWithoutBpjs { get; set; }
+
     // ---- Cicilan piutang ----
 
     /// <summary>
@@ -436,6 +442,12 @@ public sealed class PayrollRunDetailResponse : PayrollRunListItemResponse
 
     /// <summary>Versi kebijakan yang dipakai hitung terakhir (kosong bila belum dihitung).</summary>
     public string? PolicyVersion { get; set; }
+
+    /// <summary>True bila BPJS aktif pada konfigurasi sistem saat ini; false bila mode pengujian tanpa BPJS aktif.</summary>
+    public bool EnableBpjsInPayroll { get; set; } = true;
+
+    /// <summary>True bila run ini dihitung (atau akan dihitung) pada mode pengujian tanpa BPJS.</summary>
+    public bool IsTestingModeWithoutBpjs { get; set; }
 
     /// <summary>
     /// Aksi yang sedang boleh dijalankan menurut status run (bantuan tampilan, BUKAN pengaman: setiap aksi memeriksa ulang di backend).

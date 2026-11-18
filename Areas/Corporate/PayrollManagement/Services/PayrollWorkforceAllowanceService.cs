@@ -36,17 +36,6 @@ public sealed class PayrollWorkforceAllowanceService
     private const string LogCategory = "Corporate.PayrollManagement.WorkforceAllowance";
     private const int MaxPageSize = 100;
 
-    private const string MasterFixed = "Fixed";
-    private const string MasterPercentage = "Percentage";
-    private const string MasterPolicyBased = "PolicyBased";
-    private const string MasterManualInput = "ManualInput";
-
-    // Kategori master yang dihitung dari aktivitas atau kebijakan, bukan dari penetapan tetap per pegawai.
-    private static readonly HashSet<string> PolicyCategories = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "Shift", "OnCall", "Hazard", "Transport", "Variable"
-    };
-
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
 
@@ -726,46 +715,46 @@ public sealed class PayrollWorkforceAllowanceService
     /// <summary>
     /// Jenis tunjangan yang boleh ditetapkan per pegawai: aktif, berulang, bermetode Fixed atau Percentage, bukan tunjangan berbasis
     /// aktivitas/kebijakan atau input manual, dan komponen payroll-nya (bila ada) valid.
+    /// Memakai <see cref="WorkforceAllowanceEligibilityRules"/> yang sama dengan endpoint opsi Master Tunjangan dalam satu query.
     /// </summary>
     private async Task<TypeFacts> LoadEligibleTypeAsync(Guid allowanceTypeId, CancellationToken cancellationToken)
     {
-        var type = await _dbContext.MstAllowanceTypes.AsNoTracking()
+        var row = await _dbContext.MstAllowanceTypes.AsNoTracking()
             .Where(x => x.Id == allowanceTypeId && !x.IsDelete && x.IsActive)
-            .Select(x => new TypeFacts(
-                x.Id, x.PayrollComponentId, x.AllowanceTypeCode, x.AllowanceTypeName, x.AllowanceCategory, x.CalculationMethod,
-                x.CurrencyCode, x.DefaultAmount, x.DefaultPercentage, x.MaximumAmount, x.IsRecurring, x.IsTaxable, x.IsProrated,
-                x.RequiresApproval, x.EffectiveStartDate, x.EffectiveEndDate))
+            .Select(x => new
+            {
+                Facts = new TypeFacts(
+                    x.Id, x.PayrollComponentId, x.AllowanceTypeCode, x.AllowanceTypeName, x.AllowanceCategory, x.CalculationMethod,
+                    x.CurrencyCode, x.DefaultAmount, x.DefaultPercentage, x.MaximumAmount, x.IsRecurring, x.IsTaxable, x.IsProrated,
+                    x.RequiresApproval, x.EffectiveStartDate, x.EffectiveEndDate),
+                HasActivePolicy =
+                    x.ShiftAllowancePolicies.Any(p => p.IsActive && !p.IsDelete)
+                    || x.OnCallAllowancePolicies.Any(p => p.IsActive && !p.IsDelete)
+                    || x.HazardAllowancePolicies.Any(p => p.IsActive && !p.IsDelete)
+                    || (x.PayrollComponentId != null
+                        && _dbContext.PrlTransportAllowancePolicies.Any(p =>
+                            p.PayrollComponentId == x.PayrollComponentId && p.IsActive && !p.IsDelete)),
+                HasInvalidPayrollComponent =
+                    x.PayrollComponentId != null
+                    && (x.PayrollComponent == null || !x.PayrollComponent.IsActive || x.PayrollComponent.IsDelete)
+            })
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new ArgumentException("Jenis tunjangan tidak ditemukan atau tidak aktif di Master Tunjangan.");
 
-        if (string.Equals(type.Method, MasterManualInput, StringComparison.OrdinalIgnoreCase) || !type.IsRecurring)
-            throw new ArgumentException(
-                $"Tunjangan {type.Name} bersifat input per periode. Masukkan lewat Penghasilan Variabel pada Payroll Run, bukan sebagai tunjangan tetap pegawai.");
+        var ineligibleReason = WorkforceAllowanceEligibilityRules.EvaluateIneligibilityReason(
+            row.Facts.Name,
+            row.Facts.Category,
+            row.Facts.Method,
+            isActive: true,
+            row.Facts.IsRecurring,
+            row.HasActivePolicy,
+            row.HasInvalidPayrollComponent);
 
-        if (string.Equals(type.Method, MasterPolicyBased, StringComparison.OrdinalIgnoreCase) || PolicyCategories.Contains(type.Category)
-            || await IsPolicyDrivenAsync(type, cancellationToken))
-            throw new ArgumentException(
-                $"Tunjangan {type.Name} dihitung dari kebijakan atau aktivitas kerja. Kelola lewat kebijakannya (mis. Tunjangan Transportasi), bukan sebagai tunjangan tetap pegawai.");
+        if (ineligibleReason is not null)
+            throw new ArgumentException(ineligibleReason);
 
-        if (!string.Equals(type.Method, MasterFixed, StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(type.Method, MasterPercentage, StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException($"Metode hitung tunjangan {type.Name} ({type.Method}) belum didukung untuk penetapan per pegawai.");
-
-        if (type.PayrollComponentId.HasValue
-            && !await _dbContext.MstPayrollComponents.AsNoTracking()
-                .AnyAsync(x => x.Id == type.PayrollComponentId.Value && x.IsActive && !x.IsDelete, cancellationToken))
-            throw new ArgumentException($"Komponen payroll untuk tunjangan {type.Name} tidak valid atau tidak aktif. Perbaiki di Master Tunjangan.");
-
-        return type;
+        return row.Facts;
     }
-
-    private async Task<bool> IsPolicyDrivenAsync(TypeFacts type, CancellationToken cancellationToken) =>
-        await _dbContext.MstShiftAllowancePolicies.AnyAsync(x => x.AllowanceTypeId == type.Id && x.IsActive && !x.IsDelete, cancellationToken)
-        || await _dbContext.MstOnCallAllowancePolicies.AnyAsync(x => x.AllowanceTypeId == type.Id && x.IsActive && !x.IsDelete, cancellationToken)
-        || await _dbContext.MstHazardAllowancePolicies.AnyAsync(x => x.AllowanceTypeId == type.Id && x.IsActive && !x.IsDelete, cancellationToken)
-        || (type.PayrollComponentId.HasValue
-            && await _dbContext.PrlTransportAllowancePolicies.AnyAsync(
-                x => x.PayrollComponentId == type.PayrollComponentId && x.IsActive && !x.IsDelete, cancellationToken));
 
     private static void ValidateDates(TypeFacts type, DateTime start, DateTime? end)
     {
@@ -790,7 +779,7 @@ public sealed class PayrollWorkforceAllowanceService
     /// <summary>Nominal atau persen sesuai metode master; nilai kosong memakai bawaan master; batas maksimum dijaga di server.</summary>
     private static (string Method, decimal Amount, decimal Percentage) ResolveValues(TypeFacts type, decimal? amount, decimal? percentage)
     {
-        if (string.Equals(type.Method, MasterFixed, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(type.Method, WorkforceAllowanceEligibilityRules.MasterFixed, StringComparison.OrdinalIgnoreCase))
         {
             var value = Math.Round(amount ?? type.DefaultAmount, 2, MidpointRounding.AwayFromZero);
             if (value <= 0m) throw new ArgumentException("Nominal tunjangan harus lebih dari nol.");

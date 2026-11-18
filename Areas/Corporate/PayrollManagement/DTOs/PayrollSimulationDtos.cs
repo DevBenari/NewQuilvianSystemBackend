@@ -15,6 +15,7 @@ public sealed class PayrollSimulationResponse
 {
     public string PeriodCode { get; set; } = string.Empty;
     public string PolicyVersion { get; set; } = string.Empty;
+    public bool EnableBpjsInPayroll { get; set; } = true;
     public int EmployeeCount { get; set; }
 
     /// <summary>Jumlah dari pegawai yang berhasil dihitung saja; pegawai bergalat tidak ikut dijumlah.</summary>

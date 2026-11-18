@@ -75,6 +75,10 @@ public sealed class PayrollSimulationService
             "Simulasi tidak memuat penghasilan variabel dan potongan cicilan piutang; potongan yang tampil adalah potongan sebelum cicilan.",
             "Hasil simulasi tidak disimpan."
         };
+        if (!_policy.EnableBpjsInPayroll)
+        {
+            notes.Add("Mode pengujian aktif: kalkulasi BPJS Kesehatan dan BPJS Ketenagakerjaan dinonaktifkan sementara (belum dihitung).");
+        }
 
         var candidates = await LoadCandidatesAsync(period, requestedIds, notes, maxEmployees, cancellationToken);
 
@@ -102,6 +106,7 @@ public sealed class PayrollSimulationService
 
         response.PeriodCode = period.PayrollPeriodCode;
         response.PolicyVersion = _policy.PolicyVersion;
+        response.EnableBpjsInPayroll = _policy.EnableBpjsInPayroll;
         response.Notes.AddRange(notes);
 
         await _loggerService.AuditAsync(LogCategory, "PayrollRun.Simulate",

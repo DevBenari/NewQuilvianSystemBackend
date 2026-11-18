@@ -52,11 +52,13 @@ public static class PayrollConfigurationStatuses
     public const string Configured = "CONFIGURED";
     public const string NotEffective = "NOT_EFFECTIVE";
     public const string Error = "ERROR";
+    public const string TestingModeDisabled = "TESTING_MODE_DISABLED";
 }
 
 /// <summary>
 /// Status hasil PPh atau iuran pada satu penerima. VALID_ZERO, EXEMPT, dan NOT_APPLICABLE adalah nol yang sah dan berbeda dari
-/// NOT_CONFIGURED (belum ada keputusan HRD) dan ERROR (konfigurasi ada tetapi tidak dapat dihitung secara sah).
+/// NOT_CONFIGURED (belum ada keputusan HRD), ERROR (konfigurasi ada tetapi tidak dapat dihitung secara sah), dan
+/// TESTING_MODE_DISABLED (tidak dihitung karena BPJS dinonaktifkan sementara pada mode pengujian).
 /// </summary>
 public static class PayrollComponentResultStatuses
 {
@@ -66,6 +68,7 @@ public static class PayrollComponentResultStatuses
     public const string Exempt = "EXEMPT";
     public const string NotApplicable = "NOT_APPLICABLE";
     public const string Error = "ERROR";
+    public const string TestingModeDisabled = "TESTING_MODE_DISABLED";
 }
 
 /// <summary>Kepesertaan iuran (PrlInsurance.ParticipationStatus). Semua flag false bukan bukti tidak wajib; harus eksplisit.</summary>
@@ -94,6 +97,7 @@ public static class PayrollTaxInsuranceSources
 {
     public const string HrdProfile = "HRD_PROFILE";
     public const string LegacyProfileAmount = "LEGACY_PROFILE_AMOUNT";
+    public const string TestingModeDisabled = "TESTING_MODE_DISABLED";
     public const string None = "NONE";
 }
 

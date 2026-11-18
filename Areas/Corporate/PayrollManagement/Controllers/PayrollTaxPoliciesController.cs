@@ -62,7 +62,7 @@ public sealed class PayrollTaxPoliciesController : ControllerBase
     [AccessPermission("PayrollTaxPolicy", "Read")]
     public IActionResult GetMetadata() =>
         Ok(ApiResponse<PayrollStatutoryPolicyMetadataResponse>.Ok(
-            PayrollStatutoryPolicyMetadataFactory.Build(), "Metadata kebijakan tarif PPh berhasil dimuat."));
+            PayrollStatutoryPolicyMetadataFactory.Build(_resolver.IsBpjsEnabled), "Metadata kebijakan tarif PPh berhasil dimuat."));
 
     /// <summary>Ketersediaan kebijakan yang disahkan pada tanggal tertentu (bawaan hari ini): "Menunggu Verifikasi Kebijakan" bila belum ada.</summary>
     [HttpGet("availability")]
@@ -165,51 +165,81 @@ public sealed class PayrollTaxPoliciesController : ControllerBase
             () => _service.DeleteAsync(id, PayrollControllerSupport.CurrentUserId(User), cancellationToken), "Draf kebijakan tarif PPh berhasil dihapus.");
 }
 
-/// <summary>Opsi metadata kebijakan regulasi (kosakata kode; tidak memuat angka regulasi).</summary>
+/// <summary>Opsi metadata kebijakan regulasi (kosakata kode dan status referensi tarif PPh 21 resmi yang dikelola Backend).</summary>
 internal static class PayrollStatutoryPolicyMetadataFactory
 {
-    public static PayrollStatutoryPolicyMetadataResponse Build() => new()
+    public static PayrollStatutoryPolicyMetadataResponse Build(bool enableBpjsInPayroll = true)
     {
-        StatusOptions = new List<PayrollStatutoryPolicyOptionResponse>
+        var officialRef = PayrollTaxOfficialReferenceProvider.GetStatus();
+        return new PayrollStatutoryPolicyMetadataResponse
         {
-            new() { Value = StatutoryPolicyStatuses.Draft, Label = "Draf" },
-            new() { Value = StatutoryPolicyStatuses.PendingApproval, Label = "Menunggu Pengesahan" },
-            new() { Value = StatutoryPolicyStatuses.Approved, Label = "Disahkan" },
-            new() { Value = StatutoryPolicyStatuses.Rejected, Label = "Ditolak" },
-            new() { Value = StatutoryPolicyStatuses.Retired, Label = "Dipensiunkan" }
-        },
-        TerCategoryOptions = new List<PayrollStatutoryPolicyOptionResponse>
-        {
-            new() { Value = TaxTerCategories.A, Label = "Kategori A" },
-            new() { Value = TaxTerCategories.B, Label = "Kategori B" },
-            new() { Value = TaxTerCategories.C, Label = "Kategori C" }
-        },
-        TerPeriodKindOptions = new List<PayrollStatutoryPolicyOptionResponse>
-        {
-            new() { Value = TaxTerPeriodKinds.Monthly, Label = "Bulanan" },
-            new() { Value = TaxTerPeriodKinds.Daily, Label = "Harian", Note = "Opsional; mesin payroll saat ini hanya memakai tabel bulanan." }
-        },
-        NonEmployeeMethodOptions = new List<PayrollStatutoryPolicyOptionResponse>
-        {
-            new() { Value = TaxNonEmployeeMethods.PerPayment, Label = "Per pembayaran" },
-            new() { Value = TaxNonEmployeeMethods.Cumulative, Label = "Kumulatif tahun berjalan" }
-        },
-        ProgramOptions = new List<PayrollStatutoryPolicyOptionResponse>
-        {
-            new() { Value = "KES", Label = "BPJS Kesehatan" },
-            new() { Value = "JHT", Label = "JHT" },
-            new() { Value = "JP", Label = "JP" },
-            new() { Value = "JKK", Label = "JKK" },
-            new() { Value = "JKM", Label = "JKM" },
-            new() { Value = "PRIVATE", Label = "Asuransi swasta" }
-        },
-        JkkRiskClassOptions = new List<PayrollStatutoryPolicyOptionResponse>
-        {
-            new() { Value = "1", Label = "Kelompok risiko 1" },
-            new() { Value = "2", Label = "Kelompok risiko 2" },
-            new() { Value = "3", Label = "Kelompok risiko 3" },
-            new() { Value = "4", Label = "Kelompok risiko 4" },
-            new() { Value = "5", Label = "Kelompok risiko 5" }
-        }
-    };
+            StatusOptions = new List<PayrollStatutoryPolicyOptionResponse>
+            {
+                new() { Value = StatutoryPolicyStatuses.Draft, Label = "Draf" },
+                new() { Value = StatutoryPolicyStatuses.PendingApproval, Label = "Menunggu Pengesahan" },
+                new() { Value = StatutoryPolicyStatuses.Approved, Label = "Disahkan" },
+                new() { Value = StatutoryPolicyStatuses.Rejected, Label = "Ditolak" },
+                new() { Value = StatutoryPolicyStatuses.Retired, Label = "Dipensiunkan" }
+            },
+            TaxCalculationTypeOptions = new List<PayrollStatutoryPolicyOptionResponse>
+            {
+                new()
+                {
+                    Value = TaxPolicyCalculationTypes.PermanentEmployeeTer,
+                    Label = "PPh 21 Pegawai Tetap",
+                    Note = "TER bulanan (PP 58/2023) dan rekonsiliasi tahunan Pasal 17 (PMK 168/2023 & UU HPP) otomatis dari referensi resmi Backend."
+                }
+            },
+            TerCategoryOptions = new List<PayrollStatutoryPolicyOptionResponse>
+            {
+                new() { Value = TaxTerCategories.A, Label = "Kategori A" },
+                new() { Value = TaxTerCategories.B, Label = "Kategori B" },
+                new() { Value = TaxTerCategories.C, Label = "Kategori C" }
+            },
+            TerPeriodKindOptions = new List<PayrollStatutoryPolicyOptionResponse>
+            {
+                new() { Value = TaxTerPeriodKinds.Monthly, Label = "Bulanan" },
+                new() { Value = TaxTerPeriodKinds.Daily, Label = "Harian", Note = "Opsional; mesin payroll saat ini hanya memakai tabel bulanan." }
+            },
+            NonEmployeeMethodOptions = new List<PayrollStatutoryPolicyOptionResponse>
+            {
+                new() { Value = TaxNonEmployeeMethods.PerPayment, Label = "Per pembayaran" },
+                new() { Value = TaxNonEmployeeMethods.Cumulative, Label = "Kumulatif tahun berjalan" }
+            },
+            ProgramOptions = new List<PayrollStatutoryPolicyOptionResponse>
+            {
+                new() { Value = "KES", Label = "BPJS Kesehatan" },
+                new() { Value = "JHT", Label = "JHT" },
+                new() { Value = "JP", Label = "JP" },
+                new() { Value = "JKK", Label = "JKK" },
+                new() { Value = "JKM", Label = "JKM" },
+                new() { Value = "PRIVATE", Label = "Asuransi swasta" }
+            },
+            JkkRiskClassOptions = new List<PayrollStatutoryPolicyOptionResponse>
+            {
+                new() { Value = "1", Label = "Kelompok risiko 1" },
+                new() { Value = "2", Label = "Kelompok risiko 2" },
+                new() { Value = "3", Label = "Kelompok risiko 3" },
+                new() { Value = "4", Label = "Kelompok risiko 4" },
+                new() { Value = "5", Label = "Kelompok risiko 5" }
+            },
+            OfficialTaxReference = new PayrollTaxOfficialReferenceResponse
+            {
+                ReferenceCode = officialRef.ReferenceCode,
+                ReferenceVersion = officialRef.ReferenceVersion,
+                CalculationType = officialRef.CalculationType,
+                CalculationTypeLabel = officialRef.CalculationTypeLabel,
+                CalculationMethodLabel = officialRef.CalculationMethodLabel,
+                DefaultLegalBasis = officialRef.DefaultLegalBasis,
+                IsReady = officialRef.IsReady,
+                StatusLabel = officialRef.StatusLabel,
+                PtkpCount = officialRef.PtkpCount,
+                TerRateCount = officialRef.TerRateCount,
+                BracketCount = officialRef.BracketCount,
+                Issues = officialRef.Issues.ToList()
+            },
+            EnableBpjsInPayroll = enableBpjsInPayroll,
+            BpjsTestingModeLabel = enableBpjsInPayroll ? null : StatutoryPolicyLabels.BpjsTestingModeDisabled
+        };
+    }
 }

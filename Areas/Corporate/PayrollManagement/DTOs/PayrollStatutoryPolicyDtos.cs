@@ -67,41 +67,76 @@ public sealed class PayrollStatutoryPolicyPagedResponse<T>
 
 // ---------------- Kebijakan PPh ----------------
 
-/// <summary>Isi kebijakan PPh yang disunting HRD (buat dan ubah).</summary>
+/// <summary>Status dan identitas referensi tarif PPh 21 resmi yang dikelola di Backend (read-only bagi pengguna).</summary>
+public sealed class PayrollTaxOfficialReferenceResponse
+{
+    public string ReferenceCode { get; set; } = string.Empty;
+    public string ReferenceVersion { get; set; } = string.Empty;
+    public string CalculationType { get; set; } = string.Empty;
+    public string CalculationTypeLabel { get; set; } = string.Empty;
+    public string CalculationMethodLabel { get; set; } = string.Empty;
+    public string DefaultLegalBasis { get; set; } = string.Empty;
+    public bool IsReady { get; set; }
+    public string StatusLabel { get; set; } = string.Empty;
+    public int PtkpCount { get; set; }
+    public int TerRateCount { get; set; }
+    public int BracketCount { get; set; }
+    public List<string> Issues { get; set; } = new();
+}
+
+/// <summary>
+/// Isi kebijakan PPh yang disunting HRD (buat dan ubah).
+/// Pengguna tidak lagi wajib memasukkan tabel PTKP, TER A/B/C, Pasal 17, atau parameter teknis: saat
+/// <see cref="UseOfficialReference"/> bernilai true (bawaan), Backend mengisi seluruh tabel regulasi resmi secara server-side.
+/// </summary>
 public sealed class SavePayrollTaxPolicyRequest
 {
     public string PolicyVersion { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
+
+    /// <summary>Jenis perhitungan kebijakan PPh. Tahap pertama: PERMANENT_EMPLOYEE_TER (PPh 21 Pegawai Tetap).</summary>
+    public string? CalculationType { get; set; }
+
     public string LegalBasis { get; set; } = string.Empty;
     public DateTime EffectiveStartDate { get; set; }
     public DateTime? EffectiveEndDate { get; set; }
 
-    public decimal PositionCostRatePercent { get; set; }
-    public decimal PositionCostMonthlyCap { get; set; }
-    public decimal PositionCostAnnualCap { get; set; }
-    public decimal NoNpwpSurchargePercent { get; set; }
-    public decimal PkpRoundingUnit { get; set; }
-    public bool RoundTaxToWholeRupiah { get; set; }
+    /// <summary>Bawaan true: Backend memuat referensi tarif resmi PPh 21 yang terverifikasi secara server-side.</summary>
+    public bool UseOfficialReference { get; set; } = true;
 
-    /// <summary>Daftar program dipisah koma (KES, JKK, JKM, ...); kosong = tidak ada premi pemberi kerja yang termasuk bruto.</summary>
+    public decimal? PositionCostRatePercent { get; set; }
+    public decimal? PositionCostMonthlyCap { get; set; }
+    public decimal? PositionCostAnnualCap { get; set; }
+    public decimal? NoNpwpSurchargePercent { get; set; }
+    public decimal? PkpRoundingUnit { get; set; }
+    public bool? RoundTaxToWholeRupiah { get; set; }
+
+    /// <summary>Daftar program dipisah koma (KES, JKK, JKM, ...); diisi otomatis dari referensi resmi bila UseOfficialReference = true.</summary>
     public string? EmployerPremiumPrograms { get; set; }
 
-    /// <summary>Daftar program dipisah koma (JHT, JP); kosong = tidak ada iuran pensiun pengurang.</summary>
+    /// <summary>Daftar program dipisah koma (JHT, JP); diisi otomatis dari referensi resmi bila UseOfficialReference = true.</summary>
     public string? PensionDeductionPrograms { get; set; }
 
     public decimal? NonEmployeeBasisPercent { get; set; }
     public string? NonEmployeeMethod { get; set; }
     public decimal? Pph26RatePercent { get; set; }
 
-    public List<PtkpEntry> Ptkp { get; set; } = new();
-    public List<TerRateEntry> TerRates { get; set; } = new();
-    public List<TaxBracketEntry> Brackets { get; set; } = new();
+    public List<PtkpEntry>? Ptkp { get; set; }
+    public List<TerRateEntry>? TerRates { get; set; }
+    public List<TaxBracketEntry>? Brackets { get; set; }
     public string? Notes { get; set; }
 }
 
 public sealed class PayrollTaxPolicyDetailResponse
 {
     public PayrollStatutoryPolicyListItemResponse Summary { get; set; } = new();
+
+    public string CalculationType { get; set; } = string.Empty;
+    public string CalculationTypeLabel { get; set; } = string.Empty;
+    public string CalculationMethodLabel { get; set; } = string.Empty;
+    public string ReferenceVersion { get; set; } = string.Empty;
+    public bool ReferenceReady { get; set; }
+    public string ReferenceStatusLabel { get; set; } = string.Empty;
 
     public decimal PositionCostRatePercent { get; set; }
     public decimal PositionCostMonthlyCap { get; set; }
@@ -196,17 +231,22 @@ public sealed class PayrollStatutoryPolicyOptionResponse
 public sealed class PayrollStatutoryPolicyMetadataResponse
 {
     public List<PayrollStatutoryPolicyOptionResponse> StatusOptions { get; set; } = new();
+    public List<PayrollStatutoryPolicyOptionResponse> TaxCalculationTypeOptions { get; set; } = new();
     public List<PayrollStatutoryPolicyOptionResponse> TerCategoryOptions { get; set; } = new();
     public List<PayrollStatutoryPolicyOptionResponse> TerPeriodKindOptions { get; set; } = new();
     public List<PayrollStatutoryPolicyOptionResponse> NonEmployeeMethodOptions { get; set; } = new();
     public List<PayrollStatutoryPolicyOptionResponse> ProgramOptions { get; set; } = new();
     public List<PayrollStatutoryPolicyOptionResponse> JkkRiskClassOptions { get; set; } = new();
     public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50 };
+    public PayrollTaxOfficialReferenceResponse? OfficialTaxReference { get; set; }
+    public bool EnableBpjsInPayroll { get; set; } = true;
+    public string? BpjsTestingModeLabel { get; set; }
 }
 
 /// <summary>
 /// Ketersediaan kebijakan yang disahkan pada tanggal tertentu. Status "Menunggu Verifikasi Kebijakan" berarti belum ada kebijakan
-/// APPROVED yang berlaku: PPh otomatis dan iuran BPJS tidak dihitung (penahan, bukan Rp0).
+/// APPROVED yang berlaku: PPh otomatis dan iuran BPJS tidak dihitung (penahan, bukan Rp0). Ketika BPJS dinonaktifkan sementara pada
+/// mode pengujian, <see cref="EnableBpjsInPayroll"/> bernilai false dan status BPJS ditandai eksplisit sebagai mode pengujian.
 /// </summary>
 public sealed class PayrollStatutoryPolicyAvailabilityResponse
 {
@@ -214,9 +254,11 @@ public sealed class PayrollStatutoryPolicyAvailabilityResponse
     public bool TaxPolicyApproved { get; set; }
     public string? TaxPolicyVersion { get; set; }
     public string TaxPolicyStatusLabel { get; set; } = string.Empty;
+    public bool EnableBpjsInPayroll { get; set; } = true;
     public bool BpjsPolicyApproved { get; set; }
     public string? BpjsPolicyVersion { get; set; }
     public string BpjsPolicyStatusLabel { get; set; } = string.Empty;
+    public string? BpjsTestingModeNotice { get; set; }
 
     /// <summary>Jumlah draf/pengajuan kebijakan yang menunggu verifikasi atau pengesahan.</summary>
     public int PendingTaxPolicyCount { get; set; }

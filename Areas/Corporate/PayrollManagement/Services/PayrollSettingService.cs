@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 using QuilvianSystemBackend.Repositories;
 using System.Text.Json;
 
@@ -16,13 +18,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<PayrollSettingService> _logger;
+        private readonly PayrollPolicyOptions _policy;
 
         public PayrollSettingService(
             ApplicationDbContext context,
-            ILogger<PayrollSettingService> logger)
+            ILogger<PayrollSettingService> logger,
+            IOptions<PayrollPolicyOptions> policyOptions)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _policy = policyOptions?.Value ?? new PayrollPolicyOptions();
         }
 
         public async Task<HrdPayrollSettingDto> GetSettingAsync(CancellationToken cancellationToken = default)
@@ -57,10 +62,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             dto.BpjsPolicyApproved = bpjs is not null;
             dto.BpjsPolicyId = bpjs?.Id;
             dto.BpjsPolicyVersion = bpjs?.PolicyVersion;
-            dto.BpjsValuesStatus = bpjs is null ? "PENDING_VERIFICATION" : "REPLACED_BY_APPROVED_POLICY";
-            dto.BpjsValuesStatusLabel = bpjs is null
-                ? StatutoryPolicyLabels.AwaitingVerification
-                : $"Tidak dipakai payroll; tarif resmi mengikuti kebijakan {bpjs.PolicyVersion}";
+            if (!_policy.EnableBpjsInPayroll)
+            {
+                dto.BpjsValuesStatus = PayrollConfigurationStatuses.TestingModeDisabled;
+                dto.BpjsValuesStatusLabel = StatutoryPolicyLabels.BpjsTestingModeDisabled;
+            }
+            else
+            {
+                dto.BpjsValuesStatus = bpjs is null ? "PENDING_VERIFICATION" : "REPLACED_BY_APPROVED_POLICY";
+                dto.BpjsValuesStatusLabel = bpjs is null
+                    ? StatutoryPolicyLabels.AwaitingVerification
+                    : $"Tidak dipakai payroll; tarif resmi mengikuti kebijakan {bpjs.PolicyVersion}";
+            }
             dto.TaxPolicyApproved = tax is not null;
             dto.TaxPolicyVersion = tax;
         }

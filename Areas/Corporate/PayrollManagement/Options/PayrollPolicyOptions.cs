@@ -78,6 +78,14 @@ public sealed class PayrollPolicyOptions
 
     /// <summary>Batas jumlah pegawai per permintaan simulasi penggajian (PRL-DEC-32, validasi SIM-02).</summary>
     public int SimulationMaxEmployees { get; set; } = 50;
+
+    /// <summary>
+    /// Saklar terpusat komponen BPJS Kesehatan dan BPJS Ketenagakerjaan pada alur Payroll (BE-06).
+    /// Bawaan <c>true</c> agar lingkungan produksi tetap menjalankan kewajiban iuran BPJS. Setel <c>false</c> secara eksplisit
+    /// pada lingkungan development/testing untuk menonaktifkan kalkulasi BPJS sementara dalam mode pengujian terkontrol.
+    /// Run yang dihitung saat <c>false</c> ditandai mode pengujian dan ditahan dari Finance Handoff produksi.
+    /// </summary>
+    public bool EnableBpjsInPayroll { get; set; } = true;
 }
 
 public static class PayrollPayslipPublishTriggers

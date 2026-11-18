@@ -128,6 +128,10 @@ public sealed class PayrollRunService
         detail.PeriodEndDate = run.PeriodEndDateSnapshot;
         detail.PaymentDate = run.PaymentDateSnapshot;
         detail.PolicyVersion = ReadPolicyVersion(run.PolicySnapshotJson);
+        detail.EnableBpjsInPayroll = _policy.EnableBpjsInPayroll;
+        detail.IsTestingModeWithoutBpjs = run.CalculatedAt.HasValue
+            ? PayrollTaxInsuranceRules.IsTestingModeWithoutBpjs(run.PolicySnapshotJson)
+            : !_policy.EnableBpjsInPayroll;
 
         var validation = ReadValidation(run.ValidationSummaryJson);
         detail.Blockers = validation.Blockers;
@@ -252,7 +256,7 @@ public sealed class PayrollRunService
         }
         if (!run.IsLocked && !PayrollRunStatuses.IsFinalized(status)
             && !string.Equals(status, PayrollRunStatuses.Cancelled, StringComparison.OrdinalIgnoreCase)) actions.Add("Cancel");
-        if (PayrollRunStatuses.AllowsFinanceHandoff(status)) actions.Add("FinanceHandoff");
+        if (PayrollRunStatuses.AllowsFinanceHandoff(status) && !detail.IsTestingModeWithoutBpjs) actions.Add("FinanceHandoff");
         if (PayrollRunStatuses.AllowsDeductionReversal(status)) actions.Add("RequestReversal");
         if (PayrollRunStatuses.AllowsPayslipGeneration(status)) actions.Add("GeneratePayslips");
         if (string.Equals(status, PayrollRunStatuses.Paid, StringComparison.OrdinalIgnoreCase)) actions.Add("Close");
@@ -1197,7 +1201,8 @@ public sealed class PayrollRunService
             {
                 if (taxSnapshot.ConfigurationStatus != PayrollConfigurationStatuses.Configured)
                     taxIssues.AddRange(taxSnapshot.Issues.Count > 0 ? taxSnapshot.Issues : new List<string> { "Konfigurasi PPh belum lengkap." });
-                if (insuranceSnapshot.ConfigurationStatus != PayrollConfigurationStatuses.Configured)
+                if (insuranceSnapshot.ConfigurationStatus != PayrollConfigurationStatuses.Configured
+                    && insuranceSnapshot.ConfigurationStatus != PayrollConfigurationStatuses.TestingModeDisabled)
                     taxIssues.AddRange(insuranceSnapshot.Issues.Count > 0 ? insuranceSnapshot.Issues : new List<string> { "Konfigurasi iuran belum lengkap." });
             }
         }
@@ -1388,6 +1393,10 @@ public sealed class PayrollRunService
                 Issues = insuranceSnapshot.Issues,
                 Warnings = insuranceSnapshot.Warnings
             },
+            EnableBpjsInPayroll = _policy.EnableBpjsInPayroll,
+            IsTestingModeWithoutBpjs = run.CalculatedAt.HasValue
+                ? PayrollTaxInsuranceRules.IsTestingModeWithoutBpjs(run.PolicySnapshotJson)
+                : !_policy.EnableBpjsInPayroll,
 
             Installments = installments
         };
