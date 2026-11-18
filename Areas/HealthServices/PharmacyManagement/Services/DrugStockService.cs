@@ -107,6 +107,9 @@ public sealed class DrugStockService
                 StorageLocationId = x.StorageLocationId,
                 StorageLocationName = x.StorageLocation != null
                     ? x.StorageLocation.StorageLocationName : string.Empty,
+                RackCode = x.StorageLocation != null ? x.StorageLocation.RackCode : null,
+                ShelfCode = x.StorageLocation != null ? x.StorageLocation.ShelfCode : null,
+                BinCode = x.StorageLocation != null ? x.StorageLocation.BinCode : null,
                 Status = x.Status,
                 QuantityOnHand = x.QuantityOnHand,
                 QuantityReserved = x.QuantityReserved,
@@ -208,6 +211,120 @@ public sealed class DrugStockService
                 BatchCount = x.BatchCount,
                 NearestExpiryDate = x.NearestExpiry,
                 DaysToNearestExpiry = DaysToExpiry(x.NearestExpiry, today)
+            })]
+        };
+    }
+
+    // ======================================== 1c. stok yang menyentuh reorder point
+
+    /// <summary>
+    /// Kebijakan stok per lokasi yang saldo siap pakainya sudah pada atau di bawah reorder point.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Reorder point adalah peringatan pengadaan, bukan batas layanan (<c>PHA-DEC-010</c>,
+    /// <c>PHA-DEC-020</c>), dan ditetapkan per obat per lokasi (<c>PHA-DEC-022</c>). Karena itu
+    /// hanya kebijakan aktif yang sedang berlaku dan menunjuk satu lokasi penyimpanan yang
+    /// dievaluasi; kebijakan tanpa reorder point tidak menghasilkan peringatan.
+    /// </para>
+    /// <para>
+    /// Yang dibandingkan adalah saldo fisik berstatus siap pakai. Stok karantina, kedaluwarsa,
+    /// dan rusak tidak dapat dilayankan sehingga tidak boleh menutupi kekurangan. Kebijakan yang
+    /// satuannya berbeda dari satuan stok obat ikut ditampilkan dengan penanda, tanpa
+    /// dibandingkan, supaya kekeliruan pengaturannya terlihat alih-alih tersembunyi.
+    /// </para>
+    /// </remarks>
+    public async Task<PagedResult<DrugLowStockResponse>> GetLowStockAsync(
+        DrugLowStockQuery request, CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+
+        var policies = _dbContext.MstDrugStockPolicies.AsNoTracking()
+            .Where(x => !x.IsDelete && x.IsActive &&
+                        x.StorageLocationId != null &&
+                        x.ReorderPointQuantity > 0 &&
+                        (x.EffectiveStartDate == null || x.EffectiveStartDate <= now) &&
+                        (x.EffectiveEndDate == null || x.EffectiveEndDate >= now));
+
+        if (request.DrugId.HasValue) policies = policies.Where(x => x.DrugId == request.DrugId);
+        if (request.StorageLocationId.HasValue)
+            policies = policies.Where(x => x.StorageLocationId == request.StorageLocationId);
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var keyword = request.Search.Trim().ToLower();
+            policies = policies.Where(x =>
+                x.Drug!.DrugName.ToLower().Contains(keyword) ||
+                x.Drug.DrugCode.ToLower().Contains(keyword));
+        }
+
+        var rows = policies
+            .Select(x => new
+            {
+                x.Id,
+                x.StockPolicyCode,
+                x.DrugId,
+                StorageLocationId = x.StorageLocationId!.Value,
+                DrugCode = x.Drug!.DrugCode,
+                DrugName = x.Drug.DrugName,
+                StorageLocationName = x.StorageLocation!.StorageLocationName,
+                x.ReorderPointQuantity,
+                x.MinimumStockQuantity,
+                x.SafetyStockQuantity,
+                x.MaximumStockQuantity,
+                IsUnitMismatch = x.Drug.StockUnitMeasurementId != x.StockUnitMeasurementId,
+                OnHand = _dbContext.PhmDrugStockBalances
+                    .Where(b => !b.IsDelete && b.DrugId == x.DrugId &&
+                                b.StorageLocationId == x.StorageLocationId &&
+                                b.Status == DrugStockStatus.Available)
+                    .Sum(b => (decimal?)b.QuantityOnHand) ?? 0m,
+                Reserved = _dbContext.PhmDrugStockBalances
+                    .Where(b => !b.IsDelete && b.DrugId == x.DrugId &&
+                                b.StorageLocationId == x.StorageLocationId &&
+                                b.Status == DrugStockStatus.Available)
+                    .Sum(b => (decimal?)b.QuantityReserved) ?? 0m
+            })
+            .Where(x => x.IsUnitMismatch || x.OnHand <= x.ReorderPointQuantity);
+
+        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+        var pageSize = request.PageSize is < 1 or > 200 ? 25 : request.PageSize;
+
+        var total = await rows.CountAsync(cancellationToken);
+
+        // Kekurangan terbesar terhadap reorder point tampil lebih dahulu; kebijakan bersatuan
+        // keliru ditaruh paling akhir karena angkanya tidak dapat diurutkan bersama yang lain.
+        var page = await rows
+            .OrderBy(x => x.IsUnitMismatch)
+            .ThenBy(x => x.OnHand - x.ReorderPointQuantity)
+            .ThenBy(x => x.DrugName)
+            .ThenBy(x => x.StorageLocationName)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<DrugLowStockResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            Items = [.. page.Select(x => new DrugLowStockResponse
+            {
+                StockPolicyId = x.Id,
+                StockPolicyCode = x.StockPolicyCode ?? string.Empty,
+                DrugId = x.DrugId,
+                DrugCode = x.DrugCode ?? string.Empty,
+                DrugName = x.DrugName ?? string.Empty,
+                StorageLocationId = x.StorageLocationId,
+                StorageLocationName = x.StorageLocationName ?? string.Empty,
+                QuantityOnHand = x.OnHand,
+                QuantityReserved = x.Reserved,
+                QuantityAvailable = x.OnHand - x.Reserved,
+                ReorderPointQuantity = x.ReorderPointQuantity,
+                MinimumStockQuantity = x.MinimumStockQuantity,
+                SafetyStockQuantity = x.SafetyStockQuantity,
+                MaximumStockQuantity = x.MaximumStockQuantity,
+                IsUnitMismatch = x.IsUnitMismatch
             })]
         };
     }

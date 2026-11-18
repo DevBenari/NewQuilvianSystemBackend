@@ -382,6 +382,154 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 "Draft pengajuan resign berhasil dihapus.");
         }
 
+        public async Task<ResignationServiceResult<ResignationDetailResponse>> CreateAdminDraftAsync(
+            CreateResignationAdminRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+
+            var profile = await _dbContext.MstWorkforceProfiles
+                .Include(x => x.Employee)
+                .FirstOrDefaultAsync(x => x.Id == request.WorkforceProfileId && !x.IsDelete, cancellationToken);
+
+            if (profile == null)
+            {
+                return ResignationServiceResult<ResignationDetailResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Profil tenaga kerja (Workforce Profile) tidak ditemukan.");
+            }
+
+            var employeeId = profile.Employee?.Id;
+
+            var selfRequest = new CreateResignationSelfServiceRequest
+            {
+                RequestReasonId = request.RequestReasonId,
+                ProposedLastWorkingDate = request.ProposedLastWorkingDate,
+                ResignationReason = request.ResignationReason,
+                HandoverPlan = request.HandoverPlan
+            };
+
+            var validation = await ValidateAsync(
+                request.WorkforceProfileId,
+                employeeId,
+                selfRequest,
+                null,
+                cancellationToken);
+
+            if (!validation.Success)
+            {
+                return ResignationServiceResult<ResignationDetailResponse>.Fail(
+                    validation.StatusCode,
+                    validation.Message);
+            }
+
+            var now = DateTime.UtcNow;
+            var entity = new TrxResignationRequest
+            {
+                Id = Guid.NewGuid(),
+                RequestNumber = GenerateRequestNumber(),
+                WorkforceProfileId = request.WorkforceProfileId,
+                EmployeeId = NormalizeGuid(employeeId),
+                RequestReasonId = NormalizeGuid(request.RequestReasonId),
+                RequestDate = now,
+                ProposedLastWorkingDate = NormalizeUtcDate(request.ProposedLastWorkingDate),
+                NoticePeriodDays = CalculateNoticePeriodDays(now, request.ProposedLastWorkingDate),
+                ResignationReason = request.ResignationReason.Trim(),
+                HandoverPlan = NormalizeText(request.HandoverPlan),
+                ManagerComment = NormalizeText(request.Notes),
+                RequestStatus = ResignationValueConstants.Status.Submitted,
+                SubmittedAt = now,
+                IsActive = true,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            };
+
+            _dbContext.TrxResignationRequests.Add(entity);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return await GetByIdAsync(entity.Id, cancellationToken);
+        }
+
+        public async Task<ResignationServiceResult<ResignationDetailResponse>> ApproveAsync(
+            Guid id,
+            Guid actorUserId,
+            string? comment,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.TrxResignationRequests
+                .Include(x => x.WorkforceProfile)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+
+            if (entity == null)
+            {
+                return ResignationServiceResult<ResignationDetailResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Pengajuan resign tidak ditemukan.");
+            }
+
+            if (entity.RequestStatus != ResignationValueConstants.Status.Submitted &&
+                entity.RequestStatus != ResignationValueConstants.Status.UnderReview &&
+                entity.RequestStatus != ResignationValueConstants.Status.Draft)
+            {
+                return ResignationServiceResult<ResignationDetailResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    $"Hanya pengajuan berstatus Diajukan (Submitted/UnderReview) yang dapat disetujui. Status saat ini: {entity.RequestStatus}.");
+            }
+
+            var now = DateTime.UtcNow;
+            entity.RequestStatus = ResignationValueConstants.Status.Approved;
+            entity.ApprovedAt = now;
+            entity.ApprovedByUserId = actorUserId;
+            if (!string.IsNullOrWhiteSpace(comment))
+            {
+                entity.ManagerComment = comment.Trim();
+            }
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return await GetByIdAsync(entity.Id, cancellationToken);
+        }
+
+        public async Task<ResignationServiceResult<ResignationDetailResponse>> RejectAsync(
+            Guid id,
+            Guid actorUserId,
+            string rejectionReason,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.TrxResignationRequests
+                .Include(x => x.WorkforceProfile)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+
+            if (entity == null)
+            {
+                return ResignationServiceResult<ResignationDetailResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Pengajuan resign tidak ditemukan.");
+            }
+
+            if (entity.RequestStatus != ResignationValueConstants.Status.Submitted &&
+                entity.RequestStatus != ResignationValueConstants.Status.UnderReview &&
+                entity.RequestStatus != ResignationValueConstants.Status.Draft)
+            {
+                return ResignationServiceResult<ResignationDetailResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    $"Hanya pengajuan berstatus Diajukan yang dapat ditolak. Status saat ini: {entity.RequestStatus}.");
+            }
+
+            var now = DateTime.UtcNow;
+            entity.RequestStatus = ResignationValueConstants.Status.Rejected;
+            entity.RejectedAt = now;
+            entity.ManagerComment = rejectionReason.Trim();
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return await GetByIdAsync(entity.Id, cancellationToken);
+        }
+
         private async Task<ResignationServiceResult<object>> ValidateAsync(
             Guid workforceProfileId,
             Guid? employeeId,

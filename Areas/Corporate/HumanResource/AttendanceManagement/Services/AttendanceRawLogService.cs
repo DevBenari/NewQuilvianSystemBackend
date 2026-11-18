@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
@@ -46,14 +47,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             AttendanceValueConstants.RawLogProcessingStatus.Processed,
             AttendanceValueConstants.RawLogProcessingStatus.Duplicate,
             AttendanceValueConstants.RawLogProcessingStatus.Rejected,
-            AttendanceValueConstants.RawLogProcessingStatus.Error
+            AttendanceValueConstants.RawLogProcessingStatus.Error,
+            AttendanceValueConstants.RawLogProcessingStatus.AwaitingDeviceRegistration
         };
 
-        private readonly ApplicationDbContext _dbContext;
+        // Tanggal kerja scan dihitung pada WIB; sehari sebelumnya ikut diproses ulang untuk scan pulang shift malam.
+        private static readonly TimeSpan WibOffset = TimeSpan.FromHours(7);
 
-        public AttendanceRawLogService(ApplicationDbContext dbContext)
+        private readonly ApplicationDbContext _dbContext;
+        private readonly AttendanceSchedulerService _schedulerService;
+        private readonly ILogger<AttendanceRawLogService> _logger;
+
+        public AttendanceRawLogService(
+            ApplicationDbContext dbContext,
+            AttendanceSchedulerService schedulerService,
+            ILogger<AttendanceRawLogService> logger)
         {
             _dbContext = dbContext;
+            _schedulerService = schedulerService;
+            _logger = logger;
         }
 
         public async Task<AttendanceRawLogFilterMetadataResponse> GetFilterMetadataAsync()
@@ -382,9 +394,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     SourceType = entity.SourceType,
                     EventHash = entity.EventHash ?? string.Empty
                 },
-                entity.ProcessingStatus == AttendanceValueConstants.RawLogProcessingStatus.Matched
-                    ? "Raw log attendance berhasil diterima dan identitas workforce berhasil dicocokkan."
-                    : "Raw log attendance berhasil diterima dan menunggu pencocokan identitas workforce.");
+                entity.ProcessingStatus switch
+                {
+                    AttendanceValueConstants.RawLogProcessingStatus.AwaitingDeviceRegistration =>
+                        "Raw log attendance diterima dan ditahan karena mesin absen belum terdaftar atau nonaktif.",
+                    AttendanceValueConstants.RawLogProcessingStatus.Matched =>
+                        "Raw log attendance berhasil diterima dan identitas workforce berhasil dicocokkan.",
+                    _ => "Raw log attendance berhasil diterima dan menunggu pencocokan identitas workforce."
+                });
         }
 
         public async Task<AttendanceRawLogBatchResponse> CreateBatchAsync(
@@ -457,6 +474,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     "Raw log attendance tidak ditemukan.");
             }
 
+            if (entity.ProcessingStatus == AttendanceValueConstants.RawLogProcessingStatus.AwaitingDeviceRegistration)
+            {
+                // Scan tertahan hanya keluar lewat pelepasan mesin (state matrix 30.7), tidak lewat pencocokan identitas.
+                return await RetryHeldLogAsync(entity, actorUserId);
+            }
+
             if (entity.ProcessingStatus == AttendanceValueConstants.RawLogProcessingStatus.Processed ||
                 entity.ProcessedAttendanceDailyId.HasValue)
             {
@@ -514,6 +537,351 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 entity.ProcessingStatus == AttendanceValueConstants.RawLogProcessingStatus.Matched
                     ? "Pencocokan ulang raw log attendance berhasil."
                     : "Pencocokan ulang selesai, tetapi identitas workforce masih belum ditemukan.");
+        }
+
+        /// <summary>
+        /// Melepas scan berstatus AwaitingDeviceRegistration milik satu mesin sesudah mesin itu terdaftar dan aktif
+        /// (HRD-DEC-212 butir 3, INT-HR-103, state matrix 30.7). Scan dicocokkan lewat ExternalDeviceId terhadap
+        /// external id, kode, atau nomor seri mesin; diperlakukan seperti scan baru dari mesin terdaftar (Matched bila
+        /// identitas pegawai cocok, Pending bila belum). Sesudah commit, hitung ulang kehadiran dijadwalkan untuk
+        /// tanggal terkait. Bila pelepasan gagal, seluruh scan tetap tertahan dan dapat dipicu ulang.
+        /// </summary>
+        public async Task<AttendanceRawLogServiceResult<AttendanceRawLogReleaseResponse>> ReleaseHeldLogsForDeviceAsync(
+            Guid attendanceDeviceId,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var device = await _dbContext.Set<MstAttendanceDevice>()
+                .AsNoTracking()
+                .Include(x => x.AttendanceLocation)
+                .FirstOrDefaultAsync(x => x.Id == attendanceDeviceId && !x.IsDelete, cancellationToken);
+            if (device == null)
+            {
+                return AttendanceRawLogServiceResult<AttendanceRawLogReleaseResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Attendance device tidak ditemukan.");
+            }
+
+            if (!device.IsActive)
+            {
+                return AttendanceRawLogServiceResult<AttendanceRawLogReleaseResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Mesin absen masih nonaktif; scan tetap ditahan sampai mesin diaktifkan.");
+            }
+
+            var keys = new[] { device.ExternalDeviceId, device.AttendanceDeviceCode, device.SerialNumber }
+                .Select(NormalizeNullableString)
+                .Where(x => x != null)
+                .Select(x => x!)
+                .Distinct()
+                .ToList();
+
+            var response = new AttendanceRawLogReleaseResponse
+            {
+                AttendanceDeviceId = device.Id,
+                AttendanceDeviceCode = device.AttendanceDeviceCode
+            };
+            if (keys.Count == 0)
+            {
+                return AttendanceRawLogServiceResult<AttendanceRawLogReleaseResponse>.Ok(response, "Mesin tidak punya identitas untuk dicocokkan dengan scan tertahan.");
+            }
+
+            // Identitas yang juga dipakai mesin aktif lain membuat pemilik scan tidak dapat dipastikan (sama dengan 409 saat menerima scan).
+            var ambiguous = await _dbContext.Set<MstAttendanceDevice>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.Id != device.Id && !x.IsDelete && x.IsActive &&
+                    ((x.ExternalDeviceId != null && keys.Contains(x.ExternalDeviceId)) ||
+                     keys.Contains(x.AttendanceDeviceCode) ||
+                     (x.SerialNumber != null && keys.Contains(x.SerialNumber))),
+                    cancellationToken);
+            if (ambiguous)
+            {
+                return AttendanceRawLogServiceResult<AttendanceRawLogReleaseResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Identitas mesin juga dipakai mesin aktif lain; scan tetap ditahan sampai identitas mesin diperbaiki.");
+            }
+
+            var awaiting = AttendanceValueConstants.RawLogProcessingStatus.AwaitingDeviceRegistration;
+            var reprocessTargets = new List<(Guid WorkforceProfileId, DateOnly WorkDate)>();
+
+            await using (var transaction = await _dbContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken))
+            {
+                try
+                {
+                    var heldLogs = await _dbContext.Set<HrdAttendanceRawLog>()
+                        .Where(x =>
+                            !x.IsDelete &&
+                            x.ProcessingStatus == awaiting &&
+                            x.ExternalDeviceId != null &&
+                            keys.Contains(x.ExternalDeviceId))
+                        .OrderBy(x => x.EventAt)
+                        .ThenBy(x => x.ReceivedAt)
+                        .ToListAsync(cancellationToken);
+                    response.HeldLogCount = heldLogs.Count;
+
+                    var now = DateTime.UtcNow;
+                    var claimedHashes = new HashSet<string>(StringComparer.Ordinal);
+                    var claimedExternalLogIds = new HashSet<string>(StringComparer.Ordinal);
+                    foreach (var log in heldLogs)
+                    {
+                        log.UpdateDateTime = now;
+                        log.UpdateBy = actorUserId;
+
+                        var rejection = ValidateHeldLogAgainstDevice(log, device);
+                        if (rejection != null)
+                        {
+                            log.ProcessingStatus = AttendanceValueConstants.RawLogProcessingStatus.Rejected;
+                            log.ProcessingMessage = rejection;
+                            response.RejectedCount++;
+                            continue;
+                        }
+
+                        if (!log.WorkforceProfileId.HasValue)
+                        {
+                            // Actor kosong: scan mesin tidak boleh diatribusikan ke petugas yang melepasnya.
+                            var identity = await ResolveIdentityAsync(log.UserId, null, log.EmployeeId, log.DoctorId, log.DeviceUserKey, log.SourceType, Guid.Empty);
+                            if (!identity.Success || identity.Data == null)
+                            {
+                                log.ProcessingStatus = AttendanceValueConstants.RawLogProcessingStatus.Error;
+                                log.ProcessingMessage = identity.Message;
+                                response.ErrorCount++;
+                                continue;
+                            }
+
+                            log.UserId = identity.Data.UserId;
+                            log.WorkforceProfileId = identity.Data.WorkforceProfileId;
+                            log.EmployeeId = identity.Data.EmployeeId;
+                            log.DoctorId = identity.Data.DoctorId;
+                            log.UserType = identity.Data.UserType;
+                        }
+
+                        // Sidik dihitung ulang dengan id mesin agar kiriman ulang sesudah pendaftaran tetap dikenali ganda (HRD-DEC-212 butir 4).
+                        // EventAt selalu disimpan UTC; Kind ditegaskan agar ToUniversalTime di sidik tidak menggeser jam.
+                        var registeredHash = ComputeEventHash(
+                            log.SourceType, device.Id, log.ExternalDeviceId, log.ExternalLogId, log.DeviceUserKey,
+                            log.UserId, log.WorkforceProfileId, DateTime.SpecifyKind(log.EventAt, DateTimeKind.Utc),
+                            log.EventType, log.Latitude, log.Longitude);
+                        var existing = await FindRegisteredDuplicateAsync(log.Id, device.Id, log.ExternalLogId, registeredHash, cancellationToken);
+                        var duplicateInBatch = claimedHashes.Contains(registeredHash) ||
+                            (log.ExternalLogId != null && claimedExternalLogIds.Contains(log.ExternalLogId));
+                        if (existing != null || duplicateInBatch)
+                        {
+                            log.ProcessingStatus = AttendanceValueConstants.RawLogProcessingStatus.Duplicate;
+                            log.ProcessingMessage = existing != null
+                                ? $"Scan ganda dari mesin {device.AttendanceDeviceCode}; scan yang sama sudah diterima (raw log {existing.Id})."
+                                : $"Scan ganda dari mesin {device.AttendanceDeviceCode} di antara scan yang ditahan.";
+                            response.DuplicateCount++;
+                            continue;
+                        }
+
+                        claimedHashes.Add(registeredHash);
+                        if (log.ExternalLogId != null)
+                        {
+                            claimedExternalLogIds.Add(log.ExternalLogId);
+                        }
+
+                        log.AttendanceDeviceId = device.Id;
+                        log.AttendanceLocationId ??= device.AttendanceLocationId;
+                        log.HospitalSiteId ??= device.HospitalSiteId;
+                        log.EventHash = registeredHash;
+                        if (log.WorkforceProfileId.HasValue)
+                        {
+                            log.ProcessingStatus = AttendanceValueConstants.RawLogProcessingStatus.Matched;
+                            log.ProcessingMessage = $"Dilepas dari penahanan sesudah mesin {device.AttendanceDeviceCode} terdaftar; identitas workforce cocok.";
+                            response.MatchedCount++;
+                            var workDate = DateOnly.FromDateTime(DateTime.SpecifyKind(log.EventAt, DateTimeKind.Utc).Add(WibOffset));
+                            reprocessTargets.Add((log.WorkforceProfileId.Value, workDate));
+                        }
+                        else
+                        {
+                            log.ProcessingStatus = AttendanceValueConstants.RawLogProcessingStatus.Pending;
+                            log.ProcessingMessage = $"Dilepas dari penahanan sesudah mesin {device.AttendanceDeviceCode} terdaftar; identitas workforce belum ditemukan.";
+                            response.PendingCount++;
+                        }
+                    }
+
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync(CancellationToken.None);
+                    _dbContext.ChangeTracker.Clear();
+                    _logger.LogError(ex, "Pelepasan scan tertahan untuk mesin {AttendanceDeviceId} gagal; scan tetap ditahan.", attendanceDeviceId);
+                    return AttendanceRawLogServiceResult<AttendanceRawLogReleaseResponse>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Pelepasan scan tertahan gagal; scan tetap ditahan dan dapat dipicu ulang.");
+                }
+            }
+
+            response.ScheduledReprocessJobCount = await ScheduleReprocessAfterReleaseAsync(device.Id, reprocessTargets, actorUserId, cancellationToken);
+
+            return AttendanceRawLogServiceResult<AttendanceRawLogReleaseResponse>.Ok(
+                response,
+                $"Dilepas {response.MatchedCount + response.PendingCount} dari {response.HeldLogCount} scan tertahan mesin {device.AttendanceDeviceCode}; dijadwalkan {response.ScheduledReprocessJobCount} hitung ulang kehadiran.");
+        }
+
+        private async Task<AttendanceRawLogServiceResult<AttendanceRawLogRetryResponse>> RetryHeldLogAsync(
+            HrdAttendanceRawLog entity,
+            Guid actorUserId)
+        {
+            var key = NormalizeNullableString(entity.ExternalDeviceId);
+            var devices = key == null
+                ? new List<Guid>()
+                : await _dbContext.Set<MstAttendanceDevice>()
+                    .AsNoTracking()
+                    .Where(x => !x.IsDelete && x.IsActive &&
+                        (x.ExternalDeviceId == key || x.AttendanceDeviceCode == key || x.SerialNumber == key))
+                    .Select(x => x.Id)
+                    .Take(2)
+                    .ToListAsync();
+
+            if (devices.Count != 1)
+            {
+                return AttendanceRawLogServiceResult<AttendanceRawLogRetryResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    devices.Count == 0
+                        ? $"Mesin absen {key} belum terdaftar atau nonaktif; scan tetap ditahan sampai mesin didaftarkan."
+                        : "Identitas mesin dipakai lebih dari satu mesin aktif; scan tetap ditahan.");
+            }
+
+            var previousStatus = entity.ProcessingStatus;
+            var release = await ReleaseHeldLogsForDeviceAsync(devices[0], actorUserId);
+            if (!release.Success)
+            {
+                return AttendanceRawLogServiceResult<AttendanceRawLogRetryResponse>.Fail(release.StatusCode, release.Message);
+            }
+
+            var current = await _dbContext.Set<HrdAttendanceRawLog>()
+                .AsNoTracking()
+                .FirstAsync(x => x.Id == entity.Id);
+            return AttendanceRawLogServiceResult<AttendanceRawLogRetryResponse>.Ok(
+                new AttendanceRawLogRetryResponse
+                {
+                    Id = current.Id,
+                    PreviousProcessingStatus = previousStatus,
+                    ProcessingStatus = current.ProcessingStatus,
+                    ProcessingMessage = current.ProcessingMessage,
+                    UserId = current.UserId,
+                    WorkforceProfileId = current.WorkforceProfileId,
+                    EmployeeId = current.EmployeeId,
+                    DoctorId = current.DoctorId
+                },
+                release.Message);
+        }
+
+        private static string? ValidateHeldLogAgainstDevice(HrdAttendanceRawLog log, MstAttendanceDevice device)
+        {
+            if (log.HospitalSiteId.HasValue && device.HospitalSiteId.HasValue && log.HospitalSiteId != device.HospitalSiteId)
+            {
+                return "Hospital site scan tidak sesuai dengan hospital site mesin absen yang didaftarkan.";
+            }
+
+            if (log.AttendanceLocationId.HasValue && device.AttendanceLocationId.HasValue && log.AttendanceLocationId != device.AttendanceLocationId)
+            {
+                return "Attendance location scan tidak sesuai dengan lokasi mesin absen yang didaftarkan.";
+            }
+
+            if (log.SourceType == AttendanceValueConstants.RawLogSourceType.Device &&
+                device.AttendanceLocation != null &&
+                !device.AttendanceLocation.AllowDeviceAttendance)
+            {
+                return "Lokasi attendance tidak mengizinkan absensi melalui perangkat.";
+            }
+
+            return null;
+        }
+
+        private async Task<HrdAttendanceRawLog?> FindRegisteredDuplicateAsync(
+            Guid heldLogId,
+            Guid attendanceDeviceId,
+            string? externalLogId,
+            string registeredHash,
+            CancellationToken cancellationToken)
+        {
+            return await _dbContext.Set<HrdAttendanceRawLog>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.Id != heldLogId &&
+                    (x.EventHash == registeredHash ||
+                     (externalLogId != null && x.AttendanceDeviceId == attendanceDeviceId && x.ExternalLogId == externalLogId)))
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Menjadwalkan hitung ulang paksa untuk rekap harian yang SUDAH ADA pada tanggal scan dan sehari sebelumnya
+        /// (scan pulang shift malam tercatat pada tanggal masuk shift, HRD-DEC-104). Tanggal tanpa rekap tidak dijadwalkan:
+        /// memprosesnya untuk pegawai tanpa jadwal hanya menghasilkan rekap Error; tanggal itu mengambil scan yang dilepas
+        /// saat diproses job harian. Satu job per rekap per versi, sama dengan sapuan BE-HRD-343.
+        /// </summary>
+        private async Task<int> ScheduleReprocessAfterReleaseAsync(
+            Guid attendanceDeviceId,
+            List<(Guid WorkforceProfileId, DateOnly WorkDate)> targets,
+            Guid actorUserId,
+            CancellationToken cancellationToken)
+        {
+            if (targets.Count == 0)
+            {
+                return 0;
+            }
+
+            var candidates = targets
+                .SelectMany(x => new[] { (x.WorkforceProfileId, WorkDate: x.WorkDate.AddDays(-1)), (x.WorkforceProfileId, x.WorkDate) })
+                .ToHashSet();
+            var workforceIds = candidates.Select(x => x.WorkforceProfileId).Distinct().ToList();
+            var minDate = candidates.Min(x => x.WorkDate);
+            var maxDate = candidates.Max(x => x.WorkDate);
+
+            var dailies = (await _dbContext.Set<HrdAttendanceDaily>()
+                    .AsNoTracking()
+                    .Where(d =>
+                        !d.IsDelete &&
+                        !d.IsLocked &&
+                        d.WorkforceProfileId != null &&
+                        workforceIds.Contains(d.WorkforceProfileId.Value) &&
+                        d.AttendanceDate >= minDate &&
+                        d.AttendanceDate <= maxDate)
+                    .Select(d => new { d.Id, WorkforceProfileId = d.WorkforceProfileId!.Value, d.AttendanceDate, d.ProcessingVersion })
+                    .ToListAsync(cancellationToken))
+                .Where(d => candidates.Contains((d.WorkforceProfileId, d.AttendanceDate)))
+                .OrderBy(d => d.AttendanceDate)
+                .ToList();
+
+            var scheduled = 0;
+            foreach (var daily in dailies)
+            {
+                try
+                {
+                    var result = await _schedulerService.EnqueueAsync(
+                        new EnqueueAttendanceProcessingJobRequest
+                        {
+                            StartDate = daily.AttendanceDate,
+                            EndDate = daily.AttendanceDate,
+                            WorkforceProfileId = daily.WorkforceProfileId,
+                            ForceReprocess = true,
+                            Priority = 100,
+                            CorrelationId = $"ATT-DEVREL-{daily.Id:N}-v{daily.ProcessingVersion}",
+                            Notes = "Hitung ulang sesudah scan tertahan dilepas karena mesin absen didaftarkan (HRD-DEC-212)."
+                        },
+                        actorUserId,
+                        cancellationToken);
+                    if (result.Success)
+                    {
+                        scheduled++;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Hitung ulang sesudah pelepasan scan mesin {AttendanceDeviceId} tidak terjadwal: {Message}", attendanceDeviceId, result.Message);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Scan sudah dilepas; sapuan penjadwal (BE-HRD-343) dan job harian tetap akan memprosesnya.
+                    _logger.LogWarning(ex, "Hitung ulang sesudah pelepasan scan mesin {AttendanceDeviceId} gagal dijadwalkan.", attendanceDeviceId);
+                }
+            }
+
+            return scheduled;
         }
 
         private IQueryable<HrdAttendanceRawLog> BuildBaseQuery()
@@ -673,14 +1041,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 request.ExternalDeviceId,
                 sourceType);
 
-            if (!deviceResult.Success)
+            if (!deviceResult.Success || deviceResult.Data == null)
             {
                 return AttendanceRawLogServiceResult<ResolvedRawLogInput>.Fail(
                     deviceResult.StatusCode,
                     deviceResult.Message);
             }
 
-            var device = deviceResult.Data;
+            var device = deviceResult.Data.Device;
+            var heldExternalDeviceId = deviceResult.Data.HeldExternalDeviceId;
             var locationResult = await ResolveLocationAsync(
                 request.AttendanceLocationId,
                 request.HospitalSiteId,
@@ -721,7 +1090,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             var externalLogId = NormalizeNullableString(request.ExternalLogId);
             var externalDeviceId = NormalizeNullableString(request.ExternalDeviceId)
-                ?? device?.ExternalDeviceId;
+                ?? device?.ExternalDeviceId
+                ?? heldExternalDeviceId;
             var deviceUserKey = NormalizeNullableString(request.DeviceUserKey);
 
             var eventHash = ComputeEventHash(
@@ -760,15 +1130,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     DistanceMeters = distanceMeters,
                     RawPayloadJson = rawPayloadJson,
                     EventHash = eventHash,
-                    ProcessingStatus = identity.WorkforceProfileId.HasValue
-                        ? AttendanceValueConstants.RawLogProcessingStatus.Matched
-                        : AttendanceValueConstants.RawLogProcessingStatus.Pending,
-                    ProcessingMessage = identity.Message
+                    ProcessingStatus = heldExternalDeviceId != null
+                        ? AttendanceValueConstants.RawLogProcessingStatus.AwaitingDeviceRegistration
+                        : identity.WorkforceProfileId.HasValue
+                            ? AttendanceValueConstants.RawLogProcessingStatus.Matched
+                            : AttendanceValueConstants.RawLogProcessingStatus.Pending,
+                    ProcessingMessage = heldExternalDeviceId != null
+                        ? LimitLength($"Mesin absen {heldExternalDeviceId} belum terdaftar atau nonaktif; scan ditahan dan belum dihitung sampai mesin didaftarkan (HRD-DEC-212). {identity.Message}", 1000)
+                        : identity.Message
                 },
                 "Input raw log attendance berhasil divalidasi.");
         }
 
-        private async Task<AttendanceRawLogServiceResult<MstAttendanceDevice?>> ResolveDeviceAsync(
+        private async Task<AttendanceRawLogServiceResult<DeviceResolution>> ResolveDeviceAsync(
             Guid? attendanceDeviceId,
             string? externalDeviceId,
             string sourceType)
@@ -780,13 +1154,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             {
                 if (requiresDevice)
                 {
-                    return AttendanceRawLogServiceResult<MstAttendanceDevice?>.Fail(
+                    return AttendanceRawLogServiceResult<DeviceResolution>.Fail(
                         StatusCodes.Status400BadRequest,
                         "Attendance device id atau external device id wajib diisi untuk source Device.");
                 }
 
-                return AttendanceRawLogServiceResult<MstAttendanceDevice?>.Ok(
-                    null,
+                return AttendanceRawLogServiceResult<DeviceResolution>.Ok(
+                    new DeviceResolution(),
                     "Source attendance tidak memerlukan perangkat terdaftar.");
             }
 
@@ -812,7 +1186,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
                 if (matches.Count > 1)
                 {
-                    return AttendanceRawLogServiceResult<MstAttendanceDevice?>.Fail(
+                    return AttendanceRawLogServiceResult<DeviceResolution>.Fail(
                         StatusCodes.Status409Conflict,
                         "External device id terhubung ke lebih dari satu attendance device aktif.");
                 }
@@ -822,34 +1196,68 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             if (device == null)
             {
-                return AttendanceRawLogServiceResult<MstAttendanceDevice?>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Attendance device tidak ditemukan atau tidak aktif.");
+                // HRD-DEC-212 / INV-A52-06: scan dari mesin yang belum terdaftar atau nonaktif tidak dibuang,
+                // tetapi ditahan sampai mesinnya didaftarkan. Identitas mesin disimpan apa adanya agar
+                // ReleaseHeldLogsForDeviceAsync dapat mencocokkannya nanti.
+                var heldExternalDeviceId = normalizedExternalDeviceId;
+                if (heldExternalDeviceId == null && attendanceDeviceId.HasValue && attendanceDeviceId.Value != Guid.Empty)
+                {
+                    var inactive = await _dbContext.Set<MstAttendanceDevice>()
+                        .AsNoTracking()
+                        .Where(x => x.Id == attendanceDeviceId.Value && !x.IsDelete)
+                        .Select(x => new { x.ExternalDeviceId, x.AttendanceDeviceCode })
+                        .FirstOrDefaultAsync();
+                    heldExternalDeviceId = NormalizeNullableString(inactive?.ExternalDeviceId)
+                        ?? NormalizeNullableString(inactive?.AttendanceDeviceCode);
+                }
+
+                if (heldExternalDeviceId == null)
+                {
+                    // Id mesin yang sama sekali tidak dikenal dan tanpa identitas lain tidak akan pernah bisa dilepas.
+                    return AttendanceRawLogServiceResult<DeviceResolution>.Fail(
+                        StatusCodes.Status404NotFound,
+                        "Attendance device tidak ditemukan. Kirim external device id agar scan dapat ditahan sampai mesin didaftarkan.");
+                }
+
+                return AttendanceRawLogServiceResult<DeviceResolution>.Ok(
+                    new DeviceResolution { HeldExternalDeviceId = heldExternalDeviceId },
+                    "Mesin absen belum terdaftar atau nonaktif; scan ditahan.");
             }
 
+            var locationError = ValidateRegisteredDevice(device, normalizedExternalDeviceId, attendanceDeviceId.HasValue, requiresDevice);
+            if (locationError != null)
+            {
+                return AttendanceRawLogServiceResult<DeviceResolution>.Fail(StatusCodes.Status400BadRequest, locationError);
+            }
+
+            return AttendanceRawLogServiceResult<DeviceResolution>.Ok(
+                new DeviceResolution { Device = device },
+                "Attendance device berhasil ditemukan.");
+        }
+
+        private static string? ValidateRegisteredDevice(
+            MstAttendanceDevice device,
+            string? normalizedExternalDeviceId,
+            bool hasExplicitDeviceId,
+            bool requiresDevice)
+        {
             if (normalizedExternalDeviceId != null &&
-                attendanceDeviceId.HasValue &&
+                hasExplicitDeviceId &&
                 !string.Equals(device.ExternalDeviceId, normalizedExternalDeviceId, StringComparison.OrdinalIgnoreCase) &&
                 !string.Equals(device.AttendanceDeviceCode, normalizedExternalDeviceId, StringComparison.OrdinalIgnoreCase) &&
                 !string.Equals(device.SerialNumber, normalizedExternalDeviceId, StringComparison.OrdinalIgnoreCase))
             {
-                return AttendanceRawLogServiceResult<MstAttendanceDevice?>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Attendance device id dan external device id tidak mengarah ke perangkat yang sama.");
+                return "Attendance device id dan external device id tidak mengarah ke perangkat yang sama.";
             }
 
             if (requiresDevice &&
                 device.AttendanceLocation != null &&
                 !device.AttendanceLocation.AllowDeviceAttendance)
             {
-                return AttendanceRawLogServiceResult<MstAttendanceDevice?>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Lokasi attendance tidak mengizinkan absensi melalui perangkat.");
+                return "Lokasi attendance tidak mengizinkan absensi melalui perangkat.";
             }
 
-            return AttendanceRawLogServiceResult<MstAttendanceDevice?>.Ok(
-                device,
-                "Attendance device berhasil ditemukan.");
+            return null;
         }
 
         private async Task<AttendanceRawLogServiceResult<LocationResolution>> ResolveLocationAsync(
@@ -1510,6 +1918,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 AttendanceValueConstants.RawLogProcessingStatus.Duplicate => "Duplikat",
                 AttendanceValueConstants.RawLogProcessingStatus.Rejected => "Ditolak",
                 AttendanceValueConstants.RawLogProcessingStatus.Error => "Gagal",
+                AttendanceValueConstants.RawLogProcessingStatus.AwaitingDeviceRegistration => "Menunggu Pendaftaran Mesin",
                 _ => value
             };
         }
@@ -1548,6 +1957,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             public Guid? DoctorId { get; set; }
             public UserType? UserType { get; set; }
             public string? Message { get; set; }
+        }
+
+        private sealed class DeviceResolution
+        {
+            // Mesin aktif yang cocok; null bila sumber tidak memerlukan mesin atau mesin belum terdaftar.
+            public MstAttendanceDevice? Device { get; set; }
+
+            // Terisi bila mesin belum terdaftar/nonaktif: identitas mesin yang disimpan pada scan tertahan.
+            public string? HeldExternalDeviceId { get; set; }
         }
 
         private sealed class LocationResolution

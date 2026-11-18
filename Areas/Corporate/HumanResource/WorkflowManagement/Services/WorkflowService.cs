@@ -2970,12 +2970,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 IsCancel = false
             };
 
+            // BE-HRD-FIX-002: instance biasanya sudah dilacak (LoadTrackedInstanceAsync). Entitas baru dengan Id terisi yang
+            // hanya ditambahkan ke koleksinya dianggap EF sebagai baris lama → UPDATE 0 baris → DbUpdateConcurrencyException,
+            // sehingga submit/aksi pada instance yang sudah ada selalu gagal. Daftarkan eksplisit sebagai Added.
             instance.StatusHistories.Add(history);
-
-            // BE-PBJ-009: daftarkan baris baru secara eksplisit. Id sudah diisi, sehingga bila hanya ditemukan
-            // lewat navigasi instance yang sedang dilacak, EF Core (sejak 3.0) menganggapnya baris lama dan
-            // menjalankan UPDATE (0 baris → DbUpdateConcurrencyException). Contoh: Create lalu Submit dalam
-            // satu request — riwayat "Submit" gagal disimpan dan pengajuan dijawab 409.
             _dbContext.Set<TrxWorkflowStatusHistory>().Add(history);
         }
 
@@ -2987,7 +2985,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             string commentText,
             DateTime now)
         {
-            var comment = new TrxWorkflowComment
+            var workflowComment = new TrxWorkflowComment
             {
                 Id = Guid.NewGuid(),
                 WorkflowInstanceId = instance.Id,
@@ -3007,9 +3005,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 IsCancel = false
             };
 
-            instance.Comments.Add(comment);
-            // Sama seperti AddStatusHistory: komentar baru wajib terlacak sebagai Added.
-            _dbContext.Set<TrxWorkflowComment>().Add(comment);
+            // BE-HRD-FIX-002: sama dengan riwayat status — daftarkan eksplisit sebagai Added.
+            instance.Comments.Add(workflowComment);
+            _dbContext.Set<TrxWorkflowComment>().Add(workflowComment);
         }
 
         private static List<string> BuildInstanceAvailableActions(

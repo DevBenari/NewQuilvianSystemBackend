@@ -310,6 +310,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     validation);
             }
 
+            var incidentError = await ValidateDeviceIncidentReferenceAsync(request.DeviceIncidentId, cancellationToken);
+            if (incidentError != null)
+            {
+                return AttendanceCorrectionServiceResult<AttendanceCorrectionCreateResponse>.Fail(
+                    incidentError.Value.StatusCode,
+                    incidentError.Value.Message);
+            }
+
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable,
                 cancellationToken);
@@ -324,6 +332,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     WorkforceProfileId = actorWorkforceProfileId.Value,
                     AttendanceDailyId = daily.Id,
                     RequestReasonId = NormalizeGuid(request.RequestReasonId),
+                    DeviceIncidentId = NormalizeGuid(request.DeviceIncidentId),
                     RequestedByWorkforceProfileId = actorWorkforceProfileId.Value,
                     RequestedByUserId = actorUserId,
                     AttendanceDate = daily.AttendanceDate,
@@ -431,6 +440,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     validation);
             }
 
+            var incidentError = await ValidateDeviceIncidentReferenceAsync(request.DeviceIncidentId, cancellationToken);
+            if (incidentError != null)
+            {
+                return AttendanceCorrectionServiceResult<object?>.Fail(
+                    incidentError.Value.StatusCode,
+                    incidentError.Value.Message);
+            }
+
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable,
                 cancellationToken);
@@ -439,6 +456,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             {
                 var now = DateTime.UtcNow;
                 entity.RequestReasonId = NormalizeGuid(request.RequestReasonId);
+                entity.DeviceIncidentId = NormalizeGuid(request.DeviceIncidentId);
                 entity.CorrectionType = request.CorrectionType.Trim();
                 entity.Reason = request.Reason.Trim();
                 entity.RequestedSummaryJson = BuildRequestedSummaryJson(request.Details);
@@ -550,12 +568,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     "Attendance correction harus mempunyai minimal satu detail aktif.");
             }
 
-            if (entity.RequestReason?.IsAttachmentRequired == true &&
-                string.IsNullOrWhiteSpace(entity.EvidenceFilePath))
+            var evidenceError = await ValidateSubmissionEvidenceAsync(entity, cancellationToken);
+            if (evidenceError != null)
             {
                 return AttendanceCorrectionServiceResult<AttendanceCorrectionWorkflowResponse>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Alasan pengajuan yang dipilih mewajibkan evidence attachment.");
+                    evidenceError.Value.StatusCode,
+                    evidenceError.Value.Message);
             }
 
             var existingWorkflow = await FindLatestWorkflowAsync(id, cancellationToken);
@@ -673,6 +691,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
                 if (!submitResult.Success || submitResult.Data == null)
                 {
+                    // BE-HRD-FIX-002: submit yang gagal sudah di-rollback, tetapi perubahannya masih di change tracker yang sama.
+                    // Tanpa dibersihkan, SaveChanges berikutnya mengirim ulang perubahan gagal itu → 500 yang menutupi galat asli.
+                    _dbContext.ChangeTracker.Clear();
                     if (workflowCreatedNow)
                     {
                         await SoftDeleteFailedDraftWorkflowAsync(
@@ -1272,6 +1293,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 AppliedAt = list.AppliedAt,
                 CreateDateTime = list.CreateDateTime,
                 RequestedByUserName = list.RequestedByUserName,
+                DeviceIncidentId = entity.DeviceIncidentId,
                 RequestedByWorkforceProfileId = entity.RequestedByWorkforceProfileId,
                 RequestedByUserId = entity.RequestedByUserId,
                 OriginalSummaryJson = entity.OriginalSummaryJson,
@@ -1529,7 +1551,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             foreach (var input in details)
             {
                 AttendanceCorrectionFieldCatalog.TryGet(input.FieldName, out var definition);
-                entity.Details.Add(new HrdAttendanceCorrectionDetail
+                // BE-HRD-356: detail baru didaftarkan eksplisit sebagai Added. Sebelumnya hanya ditambahkan ke koleksi; pada alur
+                // ubah (induk sudah dilacak) Id yang sudah terisi membuat EF menganggapnya baris lama → UPDATE 0 baris →
+                // DbUpdateConcurrencyException ("konflik data"), sehingga PUT koreksi selalu gagal.
+                var detail = new HrdAttendanceCorrectionDetail
                 {
                     Id = Guid.NewGuid(),
                     AttendanceCorrectionRequestId = entity.Id,
@@ -1546,7 +1571,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     CreateBy = actorUserId,
                     IsDelete = false,
                     IsCancel = false
-                });
+                };
+                entity.Details.Add(detail);
+                _dbContext.Set<HrdAttendanceCorrectionDetail>().Add(detail);
             }
         }
 
@@ -1757,6 +1784,99 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private static Guid? NormalizeGuid(Guid? value) =>
             !value.HasValue || value.Value == Guid.Empty ? null : value.Value;
+
+        /// <summary>
+        /// Gerbang lampiran saat koreksi diajukan. HRD-DEC-202 butir 4, HRD-ASM-77: koreksi yang merujuk kejadian gangguan
+        /// tidak wajib lampiran bila semua jam yang diajukan berada di dalam rentang gangguan; di luar rentang wajib lampiran
+        /// (VR-PK-22, 422); kejadian Cancelled 422 (VR-PK-21). Tanpa rujukan, aturan lama (alasan pengajuan yang
+        /// mewajibkan lampiran, 400) tetap berlaku. Butuh entity.Details dan entity.RequestReason sudah dimuat.
+        /// </summary>
+        public async Task<(int StatusCode, string Message)?> ValidateSubmissionEvidenceAsync(
+            HrdAttendanceCorrectionRequest entity,
+            CancellationToken cancellationToken)
+        {
+            var waivedByIncident = false;
+            if (entity.DeviceIncidentId.HasValue)
+            {
+                var incident = await _dbContext.Set<HrdAttendanceDeviceIncident>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == entity.DeviceIncidentId.Value && !x.IsDelete)
+                    .Select(x => new { x.Status, x.StartAt, x.EndAt })
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (incident == null || incident.Status != AttendanceValueConstants.DeviceIncidentStatus.Active)
+                {
+                    return (StatusCodes.Status422UnprocessableEntity, DeviceIncidentCancelledMessage);
+                }
+
+                waivedByIncident = AreRequestedTimesWithin(entity.Details, incident.StartAt, incident.EndAt);
+                if (!waivedByIncident && string.IsNullOrWhiteSpace(entity.EvidenceFilePath))
+                {
+                    return (StatusCodes.Status422UnprocessableEntity, DeviceIncidentOutsideRangeMessage);
+                }
+            }
+
+            if (!waivedByIncident &&
+                entity.RequestReason?.IsAttachmentRequired == true &&
+                string.IsNullOrWhiteSpace(entity.EvidenceFilePath))
+            {
+                return (StatusCodes.Status400BadRequest, "Alasan pengajuan yang dipilih mewajibkan evidence attachment.");
+            }
+
+            return null;
+        }
+
+        public const string DeviceIncidentCancelledMessage = "Kejadian gangguan ini sudah dibatalkan";
+        public const string DeviceIncidentOutsideRangeMessage = "Jam di luar rentang gangguan wajib disertai lampiran";
+
+        /// <summary>
+        /// Rujukan kejadian gangguan (HRD-DEC-202): kosong sah; tidak ditemukan 404; Cancelled 422 (VR-PK-21).
+        /// Dipakai juga oleh koreksi atas nama.
+        /// </summary>
+        public async Task<(int StatusCode, string Message)?> ValidateDeviceIncidentReferenceAsync(Guid? deviceIncidentId, CancellationToken cancellationToken)
+        {
+            var id = NormalizeGuid(deviceIncidentId);
+            if (!id.HasValue) return null;
+
+            var status = await _dbContext.Set<HrdAttendanceDeviceIncident>()
+                .AsNoTracking()
+                .Where(x => x.Id == id.Value && !x.IsDelete)
+                .Select(x => x.Status)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (status == null) return (StatusCodes.Status404NotFound, "Kejadian gangguan tidak ditemukan.");
+            return status == AttendanceValueConstants.DeviceIncidentStatus.Active
+                ? null
+                : (StatusCodes.Status422UnprocessableEntity, DeviceIncidentCancelledMessage);
+        }
+
+        /// <summary>
+        /// Benar bila koreksi mengajukan jam masuk/pulang dan SEMUA jam itu berada di dalam rentang gangguan. Koreksi tanpa
+        /// jam (mis. status) tidak dibebaskan dari lampiran.
+        /// </summary>
+        private static bool AreRequestedTimesWithin(IEnumerable<HrdAttendanceCorrectionDetail> details, DateTime startAt, DateTime endAt)
+        {
+            var times = new List<DateTime>();
+            foreach (var detail in details.Where(x => x.IsActive && !x.IsDelete))
+            {
+                if (!string.Equals(detail.FieldName, "FirstCheckInAt", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(detail.FieldName, "LastCheckOutAt", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(detail.RequestedValue) ||
+                    !DateTimeOffset.TryParse(detail.RequestedValue, CultureInfo.InvariantCulture,
+                        DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal, out var parsed))
+                {
+                    return false;
+                }
+
+                times.Add(parsed.UtcDateTime);
+            }
+
+            var start = DateTime.SpecifyKind(startAt, DateTimeKind.Utc);
+            var end = DateTime.SpecifyKind(endAt, DateTimeKind.Utc);
+            return times.Count > 0 && times.All(t => t >= start && t <= end);
+        }
 
         private static string? NormalizeOptionalText(string? value) =>
             string.IsNullOrWhiteSpace(value) ? null : value.Trim();

@@ -67,6 +67,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 throw new KeyNotFoundException($"Putusan rekredensialing {verdictId} tidak ditemukan. Sahkan putusan sidang lebih dulu sebelum mengirim wewenang ke SIMRS.");
             }
 
+            // 2b. Level wajib mengikuti putusan (VR-OPP-21, VR-OPP-22): Revoked = hard-stop level 1, Restricted = supervisi
+            // level 3, RenewAsIs/Upgrade = mandiri level 4. Level dari pemanggil (bawaan DTO = 4) tidak boleh melunakkan putusan,
+            // misalnya Revoked yang terkirim sebagai level 4 justru membuka blokir (BE-HRD-235, AT-HRD-OPP-22).
+            var requiredLevel = RequiredLevelFor(verdict.Verdict);
+            if (requiredLevel.HasValue && request.Level != requiredLevel.Value)
+            {
+                throw new InvalidOperationException(
+                    $"Level {request.Level} tidak sesuai putusan {verdict.Verdict}: putusan ini wajib dikirim sebagai level {requiredLevel.Value}. Tidak ada wewenang yang diubah (VR-OPP-21, VR-OPP-22).");
+            }
+
             var stopwatch = Stopwatch.StartNew();
             var now = DateTime.UtcNow;
 
@@ -173,6 +183,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
             return logs.Select(ToDto).ToList();
         }
+
+        /// <summary>Level yang wajib untuk putusan sah (deskripsi putusan pada DTO, VR-OPP-21, VR-OPP-22); null bila putusan tidak dikenal.</summary>
+        public static int? RequiredLevelFor(string? verdict) => verdict switch
+        {
+            "Revoked" => 1,
+            "Restricted" => 3,
+            "RenewAsIs" or "Upgrade" => 4,
+            _ => null
+        };
 
         private static void ApplyLevel(WfpClinicalPrivilege privilege, int level, HrdRecredentialingVerdict verdict, DateTime now)
         {

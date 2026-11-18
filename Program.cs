@@ -929,6 +929,7 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.PatientProfileQueryService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.NewbornPatientRegistrationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.HospitalSiteProfileQueryService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.IJobDescriptionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.JobDescriptionService>();
     builder.Services.AddScoped<PatientAllergyQueryService>();
 
     // BE-RWI-193 s.d. BE-RWI-202 — Workspace PPRI. InpAdmissionSourceReader satu-satunya pintu
@@ -1261,6 +1262,8 @@ try
     // BE-HRD-065: Sinkronisasi 5 Isian Kepegawaian & Penulisan Kontrak Satu Pintu
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.IEmployeeEmploymentRecordService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.EmployeeEmploymentRecordService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.EmployeeEmploymentRecordService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.IWorkforceIdentityResolverService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.WorkforceIdentityResolverService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.WorkforceIdentityResolverService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.IWfpContractHistoryWriteService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpContractHistoryWriteService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpContractHistoryWriteService>();
 
@@ -1342,12 +1345,15 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ShiftRevisionRecorder>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.TemporaryPlacementRosterImpactService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallAssignmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallCallService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallCompensationHandoffService>();
 
     builder.Services.AddScoped<ResignationRequestService>();
     builder.Services.AddScoped<ResignationWorkflowLifecycleService>();
     builder.Services.AddScoped<ResignationWorkflowIntegrationService>();
     builder.Services.AddScoped<ResignationLifecycleHandoffService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.RetirementService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.OffboardingHandoverService>();
     // BE-FIN-112: Administrasi Exit Clearance HR & penegakan gerbang bebas tanggungan Finance.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.ExitClearanceService>();
 
@@ -1368,6 +1374,14 @@ try
     // Persetujuan penutupan benefit RS internal oleh HRD.
 
     builder.Services.AddScoped<AttendanceRawLogService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Services.AttendanceDeviceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Services.HolidayService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services.MyScheduleSelfService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceReportService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceDashboardService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceDispensationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.StudyAssignmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceDeviceIncidentService>();
     builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();
     builder.Services.AddScoped<AttendanceScheduleResolverService>();
     builder.Services.AddScoped<AttendanceProcessingService>();

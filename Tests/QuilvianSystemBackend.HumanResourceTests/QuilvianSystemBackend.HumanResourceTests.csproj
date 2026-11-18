@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Uji penerimaan MVP amandemen A52 Penjadwalan & Kehadiran HR (BE-HRD-351): AT-HRD-PK-01–14, 19–31, 37–39, 42–45,
+    registri hak akses, dan regresi INT-HR-39. Basis data SQLite di memori yang dibentuk dari model aplikasi; tidak
+    menyentuh basis data mana pun di appsettings. Daftar AT → uji ada di AcceptanceTestIndex.md.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <AssemblyName>QuilvianSystemBackend.HumanResourceTests</AssemblyName>
+    <RootNamespace>QuilvianSystemBackend.Tests.HumanResource</RootNamespace>
+
+    <!-- Lihat OpticalTests: proyek uji tidak menjalankan perkakas EF, jadi metadata migration tidak perlu dikompilasi. -->
+    <SkipMigrationMetadata>true</SkipMigrationMetadata>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.18" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\QuilvianSystemBackend.csproj" />
+  </ItemGroup>
+
+</Project>

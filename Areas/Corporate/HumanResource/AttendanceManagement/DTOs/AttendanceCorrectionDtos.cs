@@ -162,6 +162,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
     public class AttendanceCorrectionDetailResponse : AttendanceCorrectionListResponse
     {
+        /// <summary>Kejadian gangguan mesin yang dirujuk koreksi ini (HRD-DEC-202).</summary>
+        public Guid? DeviceIncidentId { get; set; }
+
         public Guid? RequestedByWorkforceProfileId { get; set; }
         public Guid? RequestedByUserId { get; set; }
         public string? OriginalSummaryJson { get; set; }
@@ -199,6 +202,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public Guid AttendanceDailyId { get; set; }
         public Guid? RequestReasonId { get; set; }
 
+        /// <summary>
+        /// Rujukan kejadian gangguan mesin (HRD-DEC-202), opsional. Kejadian Cancelled ditolak (VR-PK-21). Bila semua jam
+        /// yang diajukan di dalam rentang gangguan, lampiran tidak wajib; di luar rentang wajib lampiran (VR-PK-22, HRD-ASM-77).
+        /// </summary>
+        public Guid? DeviceIncidentId { get; set; }
+
         [Required, MaxLength(50)]
         public string CorrectionType { get; set; } = string.Empty;
 
@@ -224,6 +233,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public Guid AttendanceDailyId { get; set; }
 
         public Guid? RequestReasonId { get; set; }
+
+        /// <summary>
+        /// Rujukan kejadian gangguan mesin (HRD-DEC-202), opsional. Kejadian Cancelled ditolak (VR-PK-21). Bila semua jam
+        /// yang diajukan di dalam rentang gangguan, lampiran tidak wajib; di luar rentang wajib lampiran (VR-PK-22, HRD-ASM-77).
+        /// </summary>
+        public Guid? DeviceIncidentId { get; set; }
 
         [Required, MaxLength(50)]
         public string CorrectionType { get; set; } = string.Empty;
@@ -252,6 +267,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
     public class UpdateAttendanceCorrectionRequest
     {
         public Guid? RequestReasonId { get; set; }
+
+        /// <summary>
+        /// Rujukan kejadian gangguan mesin (HRD-DEC-202), opsional. Kejadian Cancelled ditolak (VR-PK-21). Bila semua jam
+        /// yang diajukan di dalam rentang gangguan, lampiran tidak wajib; di luar rentang wajib lampiran (VR-PK-22, HRD-ASM-77).
+        /// </summary>
+        public Guid? DeviceIncidentId { get; set; }
 
         [Required, MaxLength(50)]
         public string CorrectionType { get; set; } = string.Empty;

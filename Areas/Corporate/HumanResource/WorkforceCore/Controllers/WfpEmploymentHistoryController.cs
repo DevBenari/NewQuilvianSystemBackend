@@ -45,7 +45,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             "Demotion",
             "Rotation",
             "ContractChange",
-            "Separation"
+            "Separation",
+            "ExternalPrior"
         };
 
         private static readonly HashSet<string> AllowedFileExtensions =
@@ -158,6 +159,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             [FromQuery] DateTime? endDate,
             [FromQuery] string? period,
             [FromQuery] string? historyType,
+            [FromQuery] string? source,
             [FromQuery] Guid? newDepartmentId,
             [FromQuery] Guid? newPositionId,
             [FromQuery] bool? isApproved,
@@ -185,6 +187,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             if (!string.IsNullOrWhiteSpace(historyType))
                 query = query.Where(x =>
                     x.HistoryType == NormalizeHistoryType(historyType));
+
+            if (!string.IsNullOrWhiteSpace(source))
+            {
+                var normSource = source.Trim().ToLowerInvariant();
+                if (normSource == "external")
+                {
+                    query = query.Where(x => x.HistoryType == "ExternalPrior");
+                }
+                else if (normSource == "internal")
+                {
+                    query = query.Where(x => x.HistoryType != "ExternalPrior");
+                }
+            }
 
             if (newDepartmentId.HasValue && newDepartmentId.Value != Guid.Empty)
                 query = query.Where(x => x.NewDepartmentId == newDepartmentId.Value);
@@ -444,6 +459,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                     404,
                     "Employment history tidak ditemukan."));
 
+            // Guard FIN-HRD-04-BE-010 / HRD-DEC-048: Riwayat resmi SK read-only
+            var isOfficialInternal = entity.HistoryType != "ExternalPrior" &&
+                (!string.IsNullOrWhiteSpace(entity.ReferenceType) || entity.ReferenceId.HasValue || entity.ApprovedByUserId.HasValue);
+            if (isOfficialInternal)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Riwayat kepegawaian internal yang bersumber dari Surat Keputusan (SK) atau approval resmi bersifat read-only dan tidak dapat diubah langsung (HRD-DEC-048 / FIN-HRD-04-BE-010).",
+                    "OFFICIAL_INTERNAL_HISTORY_READONLY"
+                ));
+            }
+
             var validation = await ValidateRequestAsync(
                 workforceProfileId,
                 id,
@@ -694,6 +721,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 return NotFound(ApiResponse<object>.Fail(
                     404,
                     "Employment history tidak ditemukan."));
+
+            // Guard FIN-HRD-04-BE-010 / HRD-DEC-048: Riwayat resmi SK read-only
+            var isOfficialInternal = entity.HistoryType != "ExternalPrior" &&
+                (!string.IsNullOrWhiteSpace(entity.ReferenceType) || entity.ReferenceId.HasValue || entity.ApprovedByUserId.HasValue);
+            if (isOfficialInternal)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Riwayat kepegawaian internal yang bersumber dari Surat Keputusan (SK) atau approval resmi bersifat read-only dan tidak dapat dihapus (HRD-DEC-048 / FIN-HRD-04-BE-010).",
+                    "OFFICIAL_INTERNAL_HISTORY_READONLY"
+                ));
+            }
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
@@ -1187,6 +1226,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 "Rotation" => "Rotasi",
                 "ContractChange" => "Perubahan kontrak",
                 "Separation" => "Pemisahan",
+                "ExternalPrior" => "Pengalaman Sebelumnya",
                 _ => value
             };
         }
