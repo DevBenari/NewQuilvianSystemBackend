@@ -11,14 +11,14 @@
 | Trace | `CAP-EXT-01`; `AST-DEC-023`, `037`, `050`; `SCR-AST-REG-16`; `03-frontend-architecture.md` §3.6; `02-module-map.md` §3.1 (butir "Impor Data Awal" di Registrasi & Inventaris) |
 | Contract version | `AST-REG-1.0.0` `approved` 2026-11-12; layar mengikuti **source** `BE-AST-012` termasuk deltanya (`/rows`, `summary`, `amountsVisible`) |
 | Wewenang UI | Rupa `DEV_DISCRETION` (`AST-FE-005`) dalam design token dan base component Quilvian |
-| Dependency | `FE-AST-002` ✅, `BE-AST-012` 🟡 (sisa hanya build ulang perbaikan pesan) |
+| Dependency | `FE-AST-002` ✅, `BE-AST-012` ✅ |
 | Klasifikasi | `STANDARD` — 2 route, 1 aggregate dengan 5 aksi + unggah/unduh; 12 berkas baru, 1 berkas diubah; tanpa perubahan backend |
 | Task mode | `FRONTEND`, diminta Rizki 2026-11-18 |
 | Target tulis | `QuilvianSystemFrontendDev` (`src/`); laporan ini dan baris status roadmap/traceability |
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit frontend saat dikerjakan | `a2ee4c22c` (branch `RizkiV2`) |
 | Tanggal | 18 November 2026 |
-| Status | 🟡 SEBAGIAN 18 November 2026 — ketiga kriteria terpetakan ke source dan teruji di layar (21/21); dua perbaikan tampilan sesudah uji menunggu build ulang |
+| Status | ✅ SELESAI 18 November 2026 — ketiga kriteria terpetakan ke source dan teruji di layar (21/21); dua perbaikan tampilan sesudah uji terbukti pada build ulang (`BUILD_ID` 15:30:16) |
 
 ---
 
@@ -96,7 +96,7 @@ nilai buku awal; pengunggah hanya melihat Batalkan; penyetuju: tab "Menunggu Per
 Setujui Angka dan Terapkan (modal menyebut Rp 12.500.000 dan Rp 7.500.000) → 5 nomor `AST-MBL-…`; unduh berkas asli;
 LOKET Akses Ditolak. Tanggal awal dan policy penyetuju dipulihkan.
 
-**Temuan tampilan dari tangkapan layar (`03-gagal-validasi-baris-salah.png`), sudah diperbaiki, menunggu build ulang:**
+**Temuan tampilan dari tangkapan layar (`03-gagal-validasi-baris-salah.png`), diperbaiki dan dibuktikan pada build ulang Rizki (`BUILD_ID` 15:30:16; `cek-perbaikan.mjs` 3/3 + `06-perbaikan-sesudah-build.png`):**
 
 1. Strip audit menampilkan "Tanggal dibuat 0": `BaseDetailCard` menebak baris audit dari label, dan label "Aset
    Dibuat" terbaca sebagai tanggal dibuat. Label diganti "Aset Terbentuk".
@@ -109,11 +109,11 @@ LOKET Akses Ditolak. Tanggal awal dan policy penyetuju dipulihkan.
 
 | Kriteria | Bukti | Status |
 |---|---|---|
-| 1. Unduh templat, unggah, tabel galat per nomor baris Excel | Langkah 2–4a | ✅ (rupa pesan galat diperbaiki, menunggu build) |
+| 1. Unduh templat, unggah, tabel galat per nomor baris Excel | Langkah 2–4a; pesan galat utuh sesudah build ulang | ✅ |
 | 2. Dua tombol persetujuan sesuai hak | Pengunggah tanpa Setujui; penyetuju Setujui Data Aset → Setujui Angka | ✅ |
 | 3. Ringkasan total untuk Kepala Akuntansi | Total harga, akumulasi, nilai buku awal di rincian dan modal Terapkan; disembunyikan tanpa `ViewAmount` (diuji di `BE-AST-012`) | ✅ |
 
 | DoD | Status |
 |---|---|
-| ESLint, build, uji layar, laporan, roadmap, traceability | Terpenuhi; dua perbaikan tampilan menunggu build ulang |
+| ESLint, build, uji layar, laporan, roadmap, traceability | Terpenuhi (termasuk build ulang perbaikan tampilan) |
 | Commit | Belum |

@@ -35,9 +35,9 @@ REG-FE-S1 ─> REG-FE-S2
                                                         │
 BE-AST-006 [BE] ✅ ─> FE-AST-001 🟡 ─> FE-AST-002 ✅ ─┬─┴─> FE-AST-003 ✅ ─> FE-AST-004 ✅
                                                       │
-                                                      │  BE-AST-012 [BE] 🟡 ─┐
+                                                      │  BE-AST-012 [BE] ✅ ─┐
                                                       │                   │
-                                                      └───────────────────┴─> FE-AST-009 🟡
+                                                      └───────────────────┴─> FE-AST-009 ✅
 ```
 
 ### Slice `REG-FE-S2` — Fitur register
@@ -151,11 +151,11 @@ Pasangan prasyarat→task: **18** (7 pada `REG-FE-S1`, 11 pada `REG-FE-S2`).
 | **Status** | 🟡 **SEBAGIAN 18 November 2026.** Dokumen Kepemilikan (daftar bermasa berlaku, tambah/ubah dengan berkas, hapus), Kelengkapan Dokumen Kepemilikan, Pengamanan Administrasi, Pemantauan Aset Menganggur, Pengajuan Pemanfaatan (formulir + pemilih aset, rincian beraksi), Pemanfaatan Sesuai Kewenangan (kolom Penyetuju Wajib); 11 route, grup menu baru 5 butir. ESLint 41 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 10:35:51). Uji layar Playwright **29/32 + 3 cek ulang** lulus (3 kegagalan = skrip mencocokkan huruf kecil pada judul berhuruf besar) dengan superadmin, penyetuju, LOKET; 0 galat halaman, 0 respons 5xx. Kriteria 1 dan 2 terbukti. **Belum terbukti:** kriteria 3 untuk aset menganggur (baris belum ada; ikut `AT-REG-15` `BE-AST-011`). Belum di-commit. Laporan: [`FE-AST-008.md`](../task/report/frontend/FE-AST-008.md) |
 | Acceptance criteria | 1. `SCR-AST-REG-14`, `28..32`. 2. Antrean persetujuan pemanfaatan menampilkan penyetuju yang diwajibkan. 3. Dokumen hampir habis dan aset menganggur memakai angka backend |
 
-### 🟡 `FE-AST-009` — Impor data awal
+### ✅ `FE-AST-009` — Impor data awal
 
 | Field | Isi |
 |---|---|
-| **Status** | 🟡 **SEBAGIAN 18 November 2026.** Impor Data Awal: daftar batch (kartu, tab "Menunggu Persetujuan Anda"), Unduh Templat, Unggah lewat modal, rincian dengan tabel Baris Berkas bernomor baris Excel dan saringan "Hanya baris salah", Setujui Data Aset / Setujui Angka dan Terapkan / Tolak / Batalkan sesuai hak, ringkasan rupiah untuk pemegang hak lihat nilai; 2 route, butir menu baru. ESLint 13 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 15:05:36). Uji layar Playwright **21/21** dengan pengunggah, penyetuju, LOKET; 0 galat halaman, 0 respons 5xx. Ketiga kriteria terbukti. **Belum:** dua perbaikan tampilan dari tangkapan layar (label audit "Aset Dibuat" terbaca sebagai tanggal dibuat; pesan galat terpotong di badge) menunggu build ulang. Belum di-commit. Laporan: [`FE-AST-009.md`](../task/report/frontend/FE-AST-009.md) |
+| **Status** | ✅ **SELESAI 18 November 2026.** Impor Data Awal: daftar batch (kartu, tab "Menunggu Persetujuan Anda"), Unduh Templat, Unggah lewat modal, rincian dengan tabel Baris Berkas bernomor baris Excel dan saringan "Hanya baris salah", Setujui Data Aset / Setujui Angka dan Terapkan / Tolak / Batalkan sesuai hak, ringkasan rupiah untuk pemegang hak lihat nilai; 2 route, butir menu baru. ESLint 13 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 15:05:36). Uji layar Playwright **21/21** dengan pengunggah, penyetuju, LOKET; 0 galat halaman, 0 respons 5xx. Ketiga kriteria terbukti. Dua perbaikan tampilan dari tangkapan layar (label audit "Aset Dibuat" terbaca sebagai tanggal dibuat; pesan galat terpotong di badge) terbukti pada build ulang (`BUILD_ID` 15:30:16). Belum di-commit. Laporan: [`FE-AST-009.md`](../task/report/frontend/FE-AST-009.md) |
 | Acceptance criteria | 1. Unduh templat, unggah, tabel galat per nomor baris Excel. 2. Dua tombol persetujuan sesuai hak. 3. Ringkasan total untuk Kepala Akuntansi |
 
 ### `FE-AST-010` — Dashboard dan laporan register

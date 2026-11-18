@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit backend saat dikerjakan | `ae054ee8` (branch `rizkiG`) |
 | Tanggal | 18 November 2026 |
-| Status | 🟡 SEBAGIAN 18 November 2026 — keempat kriteria terpetakan ke source dan teruji: QBE Strict `PASS`, build Rizki berhasil, runtime **33/33**; satu perbaikan pesan sesudah uji (pemisah ribuan pada `061`) menunggu build ulang |
+| Status | ✅ SELESAI 18 November 2026 — keempat kriteria terpetakan ke source dan teruji: QBE Strict `PASS`, build Rizki berhasil, runtime **33/33**; perbaikan pesan `061` sesudah uji terbukti pada build ulang (DLL 15:35:25) |
 
 **Backend Governance Preflight**
 
@@ -187,7 +187,7 @@ dikosongkan kembali; policy penyetuju dipulihkan sama persis.
 
 | Temuan | Tindak |
 |---|---|
-| Pesan `061` menampilkan "5,000" (format Inggris) | Diperbaiki (`CultureInfo id-ID`) sesudah uji; **menunggu build ulang** untuk dibuktikan |
+| Pesan `061` menampilkan "5,000" (format Inggris) | Diperbaiki (`CultureInfo id-ID`); build ulang Rizki (DLL 15:35:25, backend jalan 15:35:42) → "Berkas berisi lebih dari 5.000 baris…" (`fe-ast-009-20261118/cek-perbaikan.mjs`, `PASS`) |
 | Penerapan ≈ 189 ms per baris (30 baris 5,7 dtk) → 2.400 baris diperkirakan ±7,5 menit dalam satu request. Penyebab: satu alokasi nomor (koneksi dan transaksi sendiri) dan ±4 kueri buku nilai per baris ke DB jarak jauh | **Risiko go-live**: proxy produksi dengan batas waktu default (mis. 60 dtk) akan memutus request; transaksi tetap berjalan di server tetapi layar menerima galat. Saran: unggah per unit (≤ 300 baris) atau naikkan batas waktu proxy untuk rute ini; optimasi penomoran massal butuh perubahan `NumberSeriesAllocator` milik Platform |
 | Buku saldo awal aset lama mendapat umur manfaat 0 bila kebijakan penyusutan kelompok baru berlaku sesudah periode mulai susut (kebijakan dev berlaku Nov 2026; aset siap pakai 2019) | Perilaku `BE-AST-015` (`GetPolicyAtAsync` pada periode mulai susut). Diserahkan ke sub-modul nilai (`BE-AST-027`) untuk diputuskan: kebijakan pada periode mulai susut atau pada tanggal awal |
 | `AT-REG-10` diuji pada 30 baris, bukan 2.400 | Skala penuh menambah 2.400 aset permanen ke DB dev; jalur 2.400 baris sudah teruji untuk validasi (`AT-REG-43`) |
@@ -211,7 +211,7 @@ awal kembali kosong; kelompok `TI` aktif kembali; policy penyetuju dipulihkan.
 
 | DoD | Status |
 |---|---|
-| `V-BE` QBE, build, registrasi hak, runtime | Terpenuhi; perbaikan pesan `061` menunggu build ulang |
+| `V-BE` QBE, build, registrasi hak, runtime | Terpenuhi (termasuk build ulang perbaikan `061`) |
 | Laporan, roadmap, traceability | Ditulis |
 | Commit | Belum |
 
