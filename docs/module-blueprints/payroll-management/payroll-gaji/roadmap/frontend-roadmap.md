@@ -10,6 +10,7 @@
 | Repository dan branch | `QuilvianSystemFrontendDev`, branch `yasmina` |
 | Laporan task | `payroll-gaji/task/report/frontend/<TASK-ID>.md` di repository backend |
 | Ditulis | 2026-11-12 oleh `plan-module-delivery` |
+| Pembaruan | 2026-11-16: `PAY-FE-21` (Kelengkapan Data Payroll) didaftarkan **setelah** source ditulis dan di-commit; kontrak `PGJ-C1` dan skema layar tidak memuatnya, lihat bagian Gerbang terbuka |
 
 **Aturan untuk setiap task:** gerbang keputusan base component dijalankan sebelum JSX pertama
 ditulis. Bentuk form (halaman, modal, drawer), tata letak, nama butir menu, dan ikon tetap
@@ -49,6 +50,8 @@ PAY-BE-23 🟡 [BE] ───────────────────┘
 PAY-BE-21 🟡 [BE] ─> PAY-FE-18 ✅
 
 PAY-BE-22 🟡 [BE] ─> PAY-FE-20 ✅
+
+PAY-BE-24 🟡 [BE] ─> PAY-FE-21 🟡
 ```
 
 `[BE]` = task backend pada `backend-roadmap.md`, cermin baca-saja; tandanya disalin dari sana.
@@ -60,13 +63,14 @@ PAY-BE-22 🟡 [BE] ─> PAY-FE-20 ✅
 | 1 | `PAY-BE-19` dan `PAY-BE-20` | `PAY-FE-17` — menunggu kedua task backend |
 | 1 | `PAY-BE-21` | `PAY-FE-18` — menunggu task backend |
 | 1 | `PAY-BE-22` | `PAY-FE-20` — menunggu task backend |
+| 1 | `PAY-BE-24` | `PAY-FE-21` — menunggu task backend |
 | 2 | `PAY-FE-17`, `PAY-BE-23` | `PAY-FE-19` |
 
 Gelombang dihitung dari prasyarat di dalam roadmap ini; prasyarat `[BE]` disebut di kolom kedua
 dan harus ✅ sebelum task dimulai.
 
-Jumlah pasangan prasyarat→task: 8 (`BE-15→FE-16`, `BE-16→FE-16`, `BE-19→FE-17`, `BE-20→FE-17`,
-`FE-17→FE-19`, `BE-23→FE-19`, `BE-21→FE-18`, `BE-22→FE-20`), sama dengan isi kolom `Dependency`.
+Jumlah pasangan prasyarat→task: 9 (`BE-15→FE-16`, `BE-16→FE-16`, `BE-19→FE-17`, `BE-20→FE-17`,
+`FE-17→FE-19`, `BE-23→FE-19`, `BE-21→FE-18`, `BE-22→FE-20`, `BE-24→FE-21`), sama dengan isi kolom `Dependency`.
 
 `PAY-FE-19` menunggu `PAY-FE-17` karena keduanya menambah tombol jalan masuk di layar detail
 run yang sama.
@@ -82,6 +86,13 @@ run yang sama.
 | `PAY-FE-18` ✅ | Simulasi dapat dijalankan | FR-PGJ-040–042 | `PGJ-C1` | Opsi periode yang ada | `FE-PGJ-04` + butir menu | `PAY-BE-21` | Kartu | Lint, build, uji manual | — / Yasmin | Kartu |
 | `PAY-FE-19` ✅ | Rekap dan tarif lembur terbaca | FR-PGJ-060, 061 | `PGJ-C1` | Endpoint `OvertimeRate` HR | `FE-PGJ-05`, `FE-PGJ-06` + grup menu Lembur | `PAY-FE-17`, `PAY-BE-23` | Kartu | Lint, build, uji manual | — / Yasmin | Kartu |
 | `PAY-FE-20` ✅ | Laporan beban gaji dan PPh/BPJS terbaca | FR-PGJ-050–052 | `PGJ-C1` | Pola layar laporan yang ada | `FE-PGJ-07`, `FE-PGJ-08` + dua butir menu | `PAY-BE-22` | Kartu | Lint, build, uji manual | — / Yasmin | Kartu |
+| `PAY-FE-21` 🟡 | Kelengkapan data payroll terbaca dan profil payroll dapat diimpor dari layar | Perintah pemilik 2026-11-16; FR dan keputusan bernomor belum ada | Tidak tercakup `PGJ-C1` (gerbang `G1`) | Komponen `base-features`; pola layar Profil Penggajian | Layar `/payroll/data-readiness` + butir menu | `PAY-BE-24` | Kartu | Lint, build, uji unit, uji manual | Layar dan kontrak belum disetujui / Yasmin | Kartu |
+
+## Gerbang terbuka
+
+| Gerbang | Isi | Pemilik |
+|---|---|---|
+| `G1` | Kontrak `PGJ-C1` (`approved`, 2026-11-12) **tidak memuat** halaman Kelengkapan Data Payroll (`PAY-BE-24`, `PAY-FE-21`): tiga endpoint, matriks validasi `failedRows`, matriks hak akses `PayrollDataReadiness : Read/Import`, dan skema layar belum ada. Source ditulis dan di-commit 2026-11-16 sebelum didaftarkan di roadmap. Diperlukan amandemen kontrak (`PGJ-C2` atau penamaan yang diputuskan pemilik) dan persetujuan sebelum kedua task boleh ✅. Requirement (FR-PGJ) dan keputusan (PRL-DEC) bernomor untuk halaman ini juga belum didaftarkan; tidak dikarang di sini | Yasmin |
 
 ## Kartu task
 
@@ -189,3 +200,18 @@ run yang sama.
 | Verifikasi | ESLint; build; uji manual `UAT-18`–`UAT-20` |
 | Risiko/pemilik | — / Yasmin |
 | DoD | Kriteria terbukti, butir menu terdaftar, laporan ditulis |
+
+### `PAY-FE-21` 🟡 — Kelengkapan Data Payroll
+
+| Field | Isi |
+|---|---|
+| Status | 🟡 2026-11-17 — **direvisi atas perintah pemilik:** tombol, modal, hook, dan seluruh kode impor profil dihapus; deskripsi halaman diganti ("…tanpa impor profil manual"); kolom Profil Payroll menampilkan status dari Backend (`Siap`, `Akan Disiapkan Otomatis`, `Menunggu Data HRD`, `Perlu Perhatian`) dan tetapan PPh dan iuran yang belum ditetapkan; kalimat ringkasan dari jumlah Backend; kegagalan ringkasan memberi toast; semua elemen `REUSE` (0 `NEW`). Hasil: ESLint 0 galat; 23 dari 23 uji unit lulus (17 readiness termasuk pencocokan ke source backend revisi, 6 penjaga modal); suite penuh 4.989 uji dengan himpunan kegagalan identik (0 baru); `check-css-usage.mjs` dan 10 grep anti-regresi 0 temuan. Belum terpenuhi: `npm run build` (`NOT RUN`), pemeriksaan visual dan uji manual delapan langkah (`NOT FEASIBLE` oleh agen), prasyarat `PAY-BE-24` revisi belum dibangun maupun diuji API, dan kontrak serta skema layar (gerbang `G1`). Acceptance criteria 3 dan 4 pada kartu ini memuat impor dan tidak lagi berlaku (tidak diubah di sini; wewenang roadmap hanya baris status). **Riwayat 2026-11-16:** **didaftarkan setelah source ditulis dan di-commit pemilik** (`9bb9916a5`, `925a63be2`). Halaman `/payroll/data-readiness` (hero, lima kartu ringkasan, catatan batas kepemilikan, filter Jenis Penerima dan Kelengkapan, tabel berhalaman dengan lencana dan alasan, modal impor CSV dua tahap Periksa Data lalu Simpan Data, templat unduhan) dan butir menu "Kelengkapan Data" di "Penghasilan Pegawai" dijaga `PayrollDataReadiness : Read`; tombol impor dijaga `Import`. ESLint 0 galat (2 peringatan `set-state-in-effect` pada hook baru, pola sama dengan hook Payroll lain); 16 dari 16 uji unit lulus, termasuk pencocokan ke source backend (dijalankan agen 2026-11-16); `check-css-usage.mjs` 0 temuan; `npm run build` **berhasil menurut pemilik** (2026-11-16, laporan lisan, tanpa keluaran tersimpan; bukan bukti agen). Belum terpenuhi: pemeriksaan visual dan uji manual langkah 1–9 (`NOT FEASIBLE` oleh agen), suite penuh tidak dijalankan, prasyarat `PAY-BE-24` masih 🟡 (belum uji API), dan **kontrak serta skema layar** — `PGJ-C1` dan `03-frontend-architecture.md` tidak memuatnya (gerbang `G1`). Gerbang keputusan base component tidak dijalankan sebelum penulisan; tabel keputusannya disusun belakangan di laporan (0 `NEW`). Laporan: [`PAY-FE-21.md`](../task/report/frontend/PAY-FE-21.md) |
+| Outcome | Petugas Payroll melihat siapa yang belum siap digaji beserta alasannya dan mengimpor profil payroll untuk orang yang data HRD-nya sudah lengkap |
+| Requirement/decision | Perintah pemilik 2026-11-16: Payroll hanya membaca data HRD, yang ditulis Payroll hanya profil payroll. **FR-PGJ dan PRL-DEC bernomor belum ada** (tidak dikarang) |
+| Reuse | Komponen `base-features` (hero, ringkasan, filter, tabel, paginasi, peringatan, toast, penjaga akses, `ConfirmModal`); util generik `src/utils/shared/api-payload-utils.js`; pola layar Profil Penggajian |
+| Cakupan | Layar `/payroll/data-readiness` (sembilan berkas source baru, satu berkas uji) dan butir menu di "Penghasilan Pegawai" |
+| Dependency | `PAY-BE-24` |
+| Acceptance criteria | 1. Daftar dan ringkasan memuat pegawai dan dokter aktif dengan saringan dan paginasi dari server. 2. Status profil payroll, penetapan gaji utama, rekening, dan kelengkapan tampil per orang beserta alasannya; tanpa nominal gaji dan nomor rekening. 3. Impor dua tahap: Periksa Data (uji kering) lalu Simpan Data; isian tidak terbaca ditahan di peramban; baris ditolak server tampil dengan nomor dan sebab, tidak ada data tersimpan. 4. Butir menu dijaga `PayrollDataReadiness : Read`; tombol impor hanya tampil dengan `Import`. 5. Empat keadaan (memuat, kosong, gagal, berisi) dan akses ditolak (403) ada. |
+| Verifikasi | ESLint; build; `check-css-usage.mjs`; uji unit; checklist konsistensi UI; uji manual sembilan langkah di laporan |
+| Risiko/pemilik | Layar dan kontrak belum disetujui sebagai desain; pemilik perlu memberi hak `PayrollDataReadiness : Read`/`Import` di Akses Role; data produksi belum punya penetapan gaji dan rekening terverifikasi sehingga impor ditolak sampai HR mengisi (S-A8). Pemilik: Yasmin |
+| DoD | Kriteria terbukti di peramban, kontrak dan skema layar disetujui, butir menu terdaftar, laporan ditulis |

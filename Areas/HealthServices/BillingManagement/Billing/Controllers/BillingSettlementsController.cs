@@ -152,6 +152,47 @@ public sealed class BillingSettlementsController : ControllerBase
         }
     }
 
+    // Pembatalan percobaan pembayaran TUNAI yang tertahan CREATED. Pasangan permission sama dengan manual-confirm
+    // (aksi yang sama-sama mengubah status tender); lihat catatan pada laporan BE-BKC-FIX-025 tentang resource
+    // "BillingPayment" pada controller ini.
+    [HttpPost("settlements/{settlementId:guid}/tenders/{tenderId:guid}/cancel")]
+    [AccessAction("CancelTender", "Cancel Billing Tender Attempt", AccessType = AccessTypes.Update, SortOrder = 6)]
+    [AccessPermission("BillingPayment", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<TenderResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CancelTender(
+        Guid settlementId,
+        Guid tenderId,
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        [FromBody] CancelTenderRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.CancelTenderAsync(
+                settlementId, tenderId, request, idempotencyKey, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<TenderResponse>.Ok(
+                result,
+                result.IsReplay
+                    ? "Percobaan pembayaran sudah dibatalkan sebelumnya."
+                    : "Percobaan pembayaran berhasil dibatalkan."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(
+                StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingSettlementConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingSettlementValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
     [HttpGet("invoices/{invoiceId:guid}/settlements")]
     [AccessAction("Read", "Read Billing Settlement By Invoice", AccessType = AccessTypes.Read, SortOrder = 4)]
     [AccessPermission("BillingPayment", "Read")]

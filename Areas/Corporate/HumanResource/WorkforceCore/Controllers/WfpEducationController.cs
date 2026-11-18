@@ -259,6 +259,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                     await UnsetOtherHighestAsync(workforceProfileId, null, now, actorUserId, cancellationToken);
                 }
 
+                if (request.IsHighestEducation)
+                {
+                    await UnsetOtherHighestAsync(workforceProfileId, null, now, actorUserId, cancellationToken);
+                }
+
                 var entity = new WfpEducation
                 {
                     Id = Guid.NewGuid(),
@@ -491,6 +496,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Pendidikan workforce tidak ditemukan."));
 
             var actorUserId = GetCurrentUserId();
+
+            // Guard FIN-HRD-04-BE-008: Segregasi tugas pembuat vs pemverifikasi pendidikan
+            if (request.IsVerified && entity.CreateBy == actorUserId)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Petugas verifikasi pendidikan harus berbeda dari pembuat/pengunggah data (segregasi tugas / dual-actor verification).",
+                    "SELF_VERIFICATION_PROHIBITED"
+                ));
+            }
+
             entity.IsVerified = request.IsVerified;
             entity.VerifiedAt = request.IsVerified ? DateTime.UtcNow : null;
             entity.VerifiedByUserId = request.IsVerified ? actorUserId : null;

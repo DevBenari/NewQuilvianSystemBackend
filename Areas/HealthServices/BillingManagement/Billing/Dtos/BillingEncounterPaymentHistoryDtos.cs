@@ -70,7 +70,13 @@ public sealed class EncounterPaymentHistoryEntryResponse
     public string? PaymentChannel { get; set; }
     public string? ProviderReferenceMasked { get; set; }
 
+    // Pembayaran NETO yang diterapkan untuk melunasi tagihan (tender) atau nominal mutasi deposit.
     public decimal Amount { get; set; }
+
+    // Hanya tender tunai: uang fisik yang diserahkan pasien dan kembalian yang diserahkan kasir (nilai tersimpan di
+    // BilTender). Null untuk non-tunai, mutasi deposit, dan tender tunai lama sebelum kolomnya ada.
+    public decimal? CashTenderedAmount { get; set; }
+    public decimal? CashChangeAmount { get; set; }
 
     // Tender: status tender (SUCCEEDED/PENDING/FAILED/EXPIRED/REVERSED/CREATED).
     // Mutasi deposit: SUCCEEDED, atau REVERSED bila sudah dibalik/dipulihkan di ledger.

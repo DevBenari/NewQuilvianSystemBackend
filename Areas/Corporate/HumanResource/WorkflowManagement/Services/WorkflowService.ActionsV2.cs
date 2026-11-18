@@ -756,10 +756,44 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             }
         }
 
-        public async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> CancelAsync(
+        public Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> CancelAsync(
             Guid workflowInstanceId,
             WorkflowCancelRequest request,
+            CancellationToken cancellationToken = default) =>
+            CancelCoreAsync(workflowInstanceId, request, null, cancellationToken);
+
+        /// <summary>
+        /// BE-PBJ-009: membatalkan instance <b>atas nama</b> pemohonnya, untuk dokumen modul lain yang
+        /// diajukan ulang setelah dikembalikan penyetuju. Contoh: rencana kebutuhan IGD dikembalikan
+        /// (instance <c>Returned</c>); saat rencana diajukan ulang, instance lama ditutup lebih dulu agar
+        /// instance baru dapat dibuat.
+        /// </summary>
+        /// <remarks>
+        /// Hanya untuk dipanggil service server (tidak ada endpoint). Aturan sama dengan
+        /// <see cref="CancelAsync"/>: pemohon instance harus <paramref name="requesterUserId"/>, definisi
+        /// mengizinkan pembatalan oleh pemohon, dan status masih dapat dibatalkan.
+        /// </remarks>
+        public Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> CancelOnBehalfAsync(
+            Guid workflowInstanceId,
+            WorkflowCancelRequest request,
+            Guid requesterUserId,
             CancellationToken cancellationToken = default)
+        {
+            if (requesterUserId == Guid.Empty)
+            {
+                return Task.FromResult(WorkflowServiceResult<WorkflowInstanceDetailResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pemohon workflow wajib diisi."));
+            }
+
+            return CancelCoreAsync(workflowInstanceId, request, requesterUserId, cancellationToken);
+        }
+
+        private async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> CancelCoreAsync(
+            Guid workflowInstanceId,
+            WorkflowCancelRequest request,
+            Guid? onBehalfOfUserId,
+            CancellationToken cancellationToken)
         {
             if (workflowInstanceId == Guid.Empty || request == null || string.IsNullOrWhiteSpace(request.Reason))
             {
@@ -771,7 +805,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             HumanResourceUserContextDto actorContext;
             try
             {
-                actorContext = await _humanResourceContextService.GetCurrentAsync(cancellationToken);
+                actorContext = onBehalfOfUserId.HasValue
+                    ? await _humanResourceContextService.GetByUserIdAsync(onBehalfOfUserId.Value, cancellationToken)
+                    : await _humanResourceContextService.GetCurrentAsync(cancellationToken);
             }
             catch (UnauthorizedAccessException ex)
             {

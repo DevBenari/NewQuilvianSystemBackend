@@ -23,6 +23,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
 
+            // Cegah inisiasi ganda untuk pegawai yang memiliki terminasi aktif
+            var existingActive = await _uow.Separations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.EmployeeId == request.EmployeeId &&
+                    x.SeparationStatus != "FinalizedCompleted" &&
+                    x.SeparationStatus != "Cancelled" &&
+                    !x.IsDelete, cancellationToken);
+
+            if (existingActive != null)
+            {
+                throw new InvalidOperationException($"Pegawai ini sudah memiliki proses terminasi aktif dengan nomor '{existingActive.SeparationNumber}' (status: {existingActive.SeparationStatus}). Tidak dapat membuat terminasi ganda.");
+            }
+
             // VR-EMP-19: Notice resign sukarela minimal 30 hari sebelum effective date
             if (string.Equals(request.SeparationReason, "VoluntaryResign", StringComparison.OrdinalIgnoreCase))
             {
