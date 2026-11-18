@@ -92,5 +92,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             Stream stream = new FileStream(absoluteFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             return Task.FromResult((true, (Stream?)stream, (string?)contentType, (string?)Path.GetFileName(absoluteFilePath)));
         }
+
+        public Task DeleteAttachmentAsync(
+            string? storagePath,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(storagePath))
+            {
+                return Task.CompletedTask;
+            }
+
+            try
+            {
+                var rootPath = _environment.ContentRootPath ?? AppContext.BaseDirectory;
+                var absoluteFilePath = Path.Combine(rootPath, storagePath.Replace('/', Path.DirectorySeparatorChar));
+                if (File.Exists(absoluteFilePath))
+                {
+                    File.Delete(absoluteFilePath);
+                }
+            }
+            catch
+            {
+                // Kompensasi cleanup berkas non-blocking
+            }
+
+            return Task.CompletedTask;
+        }
     }
 }

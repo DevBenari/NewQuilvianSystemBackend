@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -73,7 +74,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _pipService.IssueContractAsync(dto, Guid.Empty, cancellationToken);
                 return StatusCode(201, ApiResponse<PipActiveSummaryDto>.Ok(result, "Surat kontrak pembinaan formal PIP 60 hari berhasil diterbitkan."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -100,7 +101,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _pipService.RecordWeeklyLogAsync(id, dto, mId, cancellationToken);
                 return Ok(ApiResponse<bool>.Ok(result, "Logbook pemantauan mingguan mentor PIP berhasil dicatat."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -132,7 +133,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             {
                 return StatusCode(422, ApiResponse<string>.Fail(422, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -165,7 +166,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             {
                 return StatusCode(422, ApiResponse<string>.Fail(422, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -192,7 +193,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _careerService.DeliverVerdictAsync(id, dto, aId, cancellationToken);
                 return Ok(ApiResponse<ClinicalCareerLadderDto>.Ok(result, "Putusan sidang komite dan penetapan SK Direktur Utama jenjang klinis baru berhasil diproses."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }

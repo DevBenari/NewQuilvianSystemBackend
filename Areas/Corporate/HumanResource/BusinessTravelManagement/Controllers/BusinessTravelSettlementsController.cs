@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManageme
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Controllers
 {
@@ -167,7 +168,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _settlementService.SubmitSettlementAsync(dto, userId);
                 return StatusCode(StatusCodes.Status201Created, ApiResponse<TravelSettlementResponseDto>.Ok(result, "Pertanggungjawaban settlement berhasil diserahkan"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelSettlementResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -189,7 +190,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _settlementService.VerifySettlementAsync(id, dto, userId);
                 return Ok(ApiResponse<TravelSettlementResponseDto>.Ok(result, "Verifikasi kuitansi settlement berhasil disimpan"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelSettlementResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -211,7 +212,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _settlementService.CloseSettlementAsync(id, dto, userId);
                 return Ok(ApiResponse<TravelSettlementResponseDto>.Ok(result, "Penyelesaian kas settlement berhasil disahkan"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelSettlementResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }

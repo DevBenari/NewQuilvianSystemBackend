@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using QuestPDF.Fluent;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
@@ -44,15 +45,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             CancellationToken cancellationToken = default)
         {
             // Query slip gaji milik pegawai yang sudah dirilis (IsEmployeeVisible = true, PayslipStatus = Published/Released)
+            // MSL-04 (18 Nov 2026): employeeId adalah kunci pegawai dari token (workforce_profile_id/employee_id), bukan ID akun.
+            var (ownerProfileId, ownerEmployeeId) = await ResolveOwnerKeysAsync(employeeId, cancellationToken);
             var query = _dbContext.PrlPayrollPayslips
                 .Include(p => p.PayrollRun)
                 .Include(p => p.PayrollRunEmployee)
                 .Where(p => p.IsEmployeeVisible &&
                             p.IsActive &&
                             (p.PayslipStatus == "Published" || p.PayslipStatus == "Released" || p.PayslipStatus == "Downloaded") &&
-                            (p.PayrollRunEmployee!.WorkforceProfileId == employeeId ||
-                             p.PayrollRunEmployee.EmployeeId == employeeId ||
-                             p.PayrollRunEmployee.Id == employeeId));
+                            ((ownerProfileId != null && p.PayrollRunEmployee!.WorkforceProfileId == ownerProfileId) ||
+                             (ownerEmployeeId != null && p.PayrollRunEmployee!.EmployeeId == ownerEmployeeId)));
 
             if (year.HasValue)
             {
@@ -242,10 +244,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             }
 
             var emp = slip.PayrollRunEmployee;
-            if (emp != null && emp.WorkforceProfileId != employeeId && emp.EmployeeId != employeeId && emp.Id != employeeId)
-            {
-                throw new UnauthorizedAccessException("Anda tidak memiliki wewenang untuk membuka slip gaji pegawai lain.");
-            }
+            await EnsureOwnedVisiblePayslipAsync(slip, employeeId, cancellationToken);
 
             // Ambil rincian komponen slip gaji jika ada di PrlPayrollEmployeeComponent
             var components = emp != null
@@ -391,10 +390,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             }
 
             var emp = slip.PayrollRunEmployee;
-            if (emp != null && emp.WorkforceProfileId != employeeId && emp.EmployeeId != employeeId && emp.Id != employeeId)
-            {
-                throw new UnauthorizedAccessException("Anda tidak memiliki wewenang untuk mengunduh slip gaji pegawai lain.");
-            }
+            await EnsureOwnedVisiblePayslipAsync(slip, employeeId, cancellationToken);
 
             // Update jejak audit pengunduhan slip gaji
             slip.DownloadCount++;
@@ -410,8 +406,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            // Bangkitkan dokumen PDF resmi ber-watermark (VR-PAY-24)
-            var pdfBytes = GeneratePayslipPdfDocument(slip, emp);
+            // MSL-09 (18 Nov 2026): PDF ber-watermark dan berkata sandi AES-256 (FR-PAY-25, HRD-DEC-127 butir 3).
+            // Kata sandi pembuka = tanggal lahir pegawai DDMMYYYY (8 digit). Tanpa tanggal lahir, PDF tidak dibuat (fail-closed).
+            var (_, ownerEmployeeId) = await ResolveOwnerKeysAsync(employeeId, cancellationToken);
+            var birthDate = await _dbContext.MstEmployees
+                .AsNoTracking()
+                .Where(e => (ownerEmployeeId != null && e.Id == ownerEmployeeId) || e.WorkforceProfileId == employeeId)
+                .Select(e => e.BirthDate)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (birthDate == default)
+            {
+                throw new InvalidOperationException("PDF slip gaji belum dapat dibuat karena tanggal lahir Anda belum tercatat di data kepegawaian. Hubungi bagian SDM.");
+            }
+
+            var pdfBytes = EncryptPdf(GeneratePayslipPdfDocument(slip, emp), birthDate.ToString("ddMMyyyy"));
             var safeNumber = slip.PayslipNumber.Replace("/", "-");
             var fileName = $"SlipGaji_{safeNumber}.pdf";
 
@@ -447,121 +455,168 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         }
 
         /// <summary>
-        /// Membentuk berkas PDF standar resmi slip gaji rumah sakit dengan stempel watermark konfidensial (VR-PAY-24).
+        /// Membentuk PDF slip gaji resmi dengan watermark nama dan NIK pegawai (VR-PAY-24, HRD-DEC-127).
+        /// Sejak 18 Nov 2026 (MSL-09) dibangun dengan QuestPDF; sebelumnya PDF ditulis manual tanpa tabel xref yang sah.
+        /// Nilai yang tidak tercatat ditampilkan "-", tidak lagi diperkirakan dari total potongan.
         /// </summary>
         private static byte[] GeneratePayslipPdfDocument(PrlPayrollPayslip slip, PrlPayrollRunEmployee? emp)
         {
-            var empNik = slip.EmployeeNumberSnapshot ?? "-";
-            var deptName = slip.DepartmentNameSnapshot ?? "Umum";
-            var posName = slip.PositionNameSnapshot ?? "Staf";
-            var bpjsDed = emp?.TotalEmployeeInsuranceContribution ?? (slip.TotalDeduction * 0.6m);
+            var culture = System.Globalization.CultureInfo.GetCultureInfo("id-ID");
+            string Rupiah(decimal? value) => value.HasValue ? "Rp " + value.Value.ToString("N2", culture) : "-";
+
+            var employeeName = slip.EmployeeNameSnapshot ?? "-";
+            var employeeNumber = slip.EmployeeNumberSnapshot ?? "-";
+            var watermark = $"RAHASIA - {employeeName} - {employeeNumber}";
             var allowances = slip.GrossPay - slip.BaseSalary;
+            var insurance = emp?.TotalEmployeeInsuranceContribution;
 
-            var contentBuilder = new StringBuilder();
-            contentBuilder.AppendLine("BT");
-            contentBuilder.AppendLine("/F1 16 Tf");
-            contentBuilder.AppendLine("50 780 Td");
-            contentBuilder.AppendLine("(RUMAH SAKIT QUILVIAN - SLIP GAJI PEGAWAI RESMI) Tj");
-            contentBuilder.AppendLine("0 -20 Td");
-            contentBuilder.AppendLine("/F1 10 Tf");
-            contentBuilder.AppendLine($"(Nomor Dokumen : {slip.PayslipNumber}) Tj");
-            contentBuilder.AppendLine("0 -15 Td");
-            contentBuilder.AppendLine($"(Periode Gaji  : {slip.PeriodStartDateSnapshot:dd MMMM yyyy} s.d. {slip.PeriodEndDateSnapshot:dd MMMM yyyy}) Tj");
-            contentBuilder.AppendLine("0 -20 Td");
-            contentBuilder.AppendLine($"(Nama Pegawai  : {slip.EmployeeNameSnapshot} / NIK: {empNik}) Tj");
-            contentBuilder.AppendLine("0 -15 Td");
-            contentBuilder.AppendLine($"(Unit Kerja    : {deptName} / Jabatan: {posName}) Tj");
-            contentBuilder.AppendLine("0 -25 Td");
-            contentBuilder.AppendLine("/F1 12 Tf");
-            contentBuilder.AppendLine("(RINCIAN PENERIMAAN DAN POTONGAN GAJI) Tj");
-            contentBuilder.AppendLine("0 -18 Td");
-            contentBuilder.AppendLine("/F1 10 Tf");
-            contentBuilder.AppendLine($"(+ Gaji Pokok                  : Rp {slip.BaseSalary:N2}) Tj");
-            contentBuilder.AppendLine("0 -15 Td");
-            contentBuilder.AppendLine($"(+ Tunjangan & Lembur Resmi    : Rp {allowances:N2}) Tj");
-            contentBuilder.AppendLine("0 -15 Td");
-            contentBuilder.AppendLine($"(= TOTAL PENGHASILAN BRUTO     : Rp {slip.GrossPay:N2}) Tj");
-            contentBuilder.AppendLine("0 -20 Td");
-            contentBuilder.AppendLine($"(- Potongan Iuran BPJS         : Rp {bpjsDed:N2}) Tj");
-            contentBuilder.AppendLine("0 -15 Td");
-            contentBuilder.AppendLine($"(- Pemotongan PPh 21 TER       : Rp {slip.TotalTax:N2}) Tj");
-            contentBuilder.AppendLine("0 -15 Td");
-            contentBuilder.AppendLine($"(= TOTAL POTONGAN              : Rp {slip.TotalDeduction:N2}) Tj");
-            contentBuilder.AppendLine("0 -25 Td");
-            contentBuilder.AppendLine("/F1 14 Tf");
-            contentBuilder.AppendLine($"(>> TAKE HOME PAY (NET PAY)    : Rp {slip.NetPay:N2}) Tj");
-            contentBuilder.AppendLine("0 -30 Td");
-            contentBuilder.AppendLine("/F1 9 Tf");
-            contentBuilder.AppendLine("(WATERMARK: DOKUMEN RAHASIA - DILINDUNGI HUKUM KETENAGAKERJAAN RS QUILVIAN) Tj");
-            contentBuilder.AppendLine("0 -12 Td");
-            contentBuilder.AppendLine($"(Dicetak secara digital pada: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC) Tj");
-            contentBuilder.AppendLine("ET");
+            var rows = new List<(string Label, string Value, bool Strong)>
+            {
+                ("Gaji pokok", Rupiah(slip.BaseSalary), false),
+                ("Tunjangan dan lembur", Rupiah(allowances), false),
+                ("Total penghasilan bruto", Rupiah(slip.GrossPay), true),
+                ("Potongan iuran BPJS pegawai", Rupiah(insurance), false),
+                ("PPh 21", Rupiah(slip.TotalTax), false),
+                ("Total potongan", Rupiah(slip.TotalDeduction), true),
+                ("Gaji bersih (take home pay)", Rupiah(slip.NetPay), true)
+            };
 
-            var textStream = contentBuilder.ToString();
-            var streamBytes = Encoding.ASCII.GetBytes(textStream);
+            return QuestPDF.Fluent.Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(QuestPDF.Helpers.PageSizes.A4);
+                    page.Margin(36);
+                    page.DefaultTextStyle(x => x.FontSize(10));
 
-            using var ms = new MemoryStream();
-            using var writer = new StreamWriter(ms, Encoding.ASCII);
+                    page.Background().AlignCenter().AlignMiddle().Rotate(-30)
+                        .Text(watermark).FontSize(26).FontColor(QuestPDF.Helpers.Colors.Grey.Lighten2);
 
-            // Header PDF 1.4
-            writer.WriteLine("%PDF-1.4");
+                    page.Header().Column(column =>
+                    {
+                        column.Item().Text("SLIP GAJI PEGAWAI").FontSize(16).Bold();
+                        column.Item().Text($"Nomor dokumen: {slip.PayslipNumber}");
+                        column.Item().Text($"Periode: {slip.PeriodStartDateSnapshot.ToString("dd MMMM yyyy", culture)} s.d. {slip.PeriodEndDateSnapshot.ToString("dd MMMM yyyy", culture)}");
+                    });
 
-            // Object 1: Catalog
-            var offsetObj1 = ms.Position;
-            writer.WriteLine("1 0 obj");
-            writer.WriteLine("<< /Type /Catalog /Pages 2 0 R >>");
-            writer.WriteLine("endobj");
+                    page.Content().PaddingVertical(12).Column(column =>
+                    {
+                        column.Spacing(6);
+                        column.Item().Text($"Nama pegawai: {employeeName}");
+                        column.Item().Text($"NIK pegawai: {employeeNumber}");
+                        column.Item().Text($"Unit kerja: {slip.DepartmentNameSnapshot ?? "-"}  |  Jabatan: {slip.PositionNameSnapshot ?? "-"}");
+                        column.Item().PaddingTop(8).Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.RelativeColumn(3);
+                                columns.RelativeColumn(2);
+                            });
 
-            // Object 2: Pages
-            var offsetObj2 = ms.Position;
-            writer.WriteLine("2 0 obj");
-            writer.WriteLine("<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
-            writer.WriteLine("endobj");
+                            foreach (var (label, value, strong) in rows)
+                            {
+                                var labelText = table.Cell().BorderBottom(0.5f).PaddingVertical(4).Text(label);
+                                var valueText = table.Cell().BorderBottom(0.5f).PaddingVertical(4).AlignRight().Text(value);
+                                if (strong)
+                                {
+                                    labelText.Bold();
+                                    valueText.Bold();
+                                }
+                            }
+                        });
+                    });
 
-            // Object 3: Page
-            var offsetObj3 = ms.Position;
-            writer.WriteLine("3 0 obj");
-            writer.WriteLine("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>");
-            writer.WriteLine("endobj");
+                    page.Footer().Column(column =>
+                    {
+                        column.Item().Text("Dokumen rahasia. Dilarang menyebarluaskan tanpa izin pegawai yang bersangkutan.").FontSize(8);
+                        column.Item().Text($"Dicetak secara digital pada {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC").FontSize(8);
+                    });
+                });
+            }).GeneratePdf();
+        }
 
-            // Object 4: Stream
-            var offsetObj4 = ms.Position;
-            writer.WriteLine("4 0 obj");
-            writer.WriteLine($"<< /Length {streamBytes.Length} >>");
-            writer.WriteLine("stream");
-            writer.Flush();
-            ms.Write(streamBytes, 0, streamBytes.Length);
-            ms.Position = ms.Length;
-            writer.WriteLine();
-            writer.WriteLine("endstream");
-            writer.WriteLine("endobj");
+        /// <summary>
+        /// Mengunci PDF dengan enkripsi AES-256 lewat <c>QuestPDF.Fluent.DocumentOperation</c> (qpdf bawaan paket QuestPDF).
+        /// Sandi pemilik dibuat acak per dokumen, sehingga izin cetak/salin tidak dapat dilonggarkan oleh penerima.
+        /// </summary>
+        private static byte[] EncryptPdf(byte[] pdf, string userPassword)
+        {
+            var workDir = Path.Combine(Path.GetTempPath(), "quilvian-payslip");
+            Directory.CreateDirectory(workDir);
+            var input = Path.Combine(workDir, $"{Guid.NewGuid():N}.pdf");
+            var output = Path.Combine(workDir, $"{Guid.NewGuid():N}.pdf");
+            try
+            {
+                File.WriteAllBytes(input, pdf);
+                QuestPDF.Fluent.DocumentOperation
+                    .LoadFile(input)
+                    .Encrypt(new QuestPDF.Fluent.DocumentOperation.Encryption256Bit
+                    {
+                        UserPassword = userPassword,
+                        OwnerPassword = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)),
+                        AllowPrinting = true,
+                        AllowContentExtraction = false,
+                        AllowAnnotation = false,
+                        AllowAssembly = false,
+                        AllowFillingForms = false,
+                        EncryptMetadata = true
+                    })
+                    .Save(output);
+                return File.ReadAllBytes(output);
+            }
+            finally
+            {
+                TryDelete(input);
+                TryDelete(output);
+            }
+        }
 
-            // Object 5: Font
-            var offsetObj5 = ms.Position;
-            writer.WriteLine("5 0 obj");
-            writer.WriteLine("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
-            writer.WriteLine("endobj");
+        private static void TryDelete(string path)
+        {
+            try
+            {
+                if (File.Exists(path)) File.Delete(path);
+            }
+            catch (IOException)
+            {
+                // Berkas sementara di folder temp; kegagalan hapus tidak boleh menggagalkan unduhan.
+            }
+        }
+        private async Task<(Guid? ProfileId, Guid? EmployeeId)> ResolveOwnerKeysAsync(Guid ownerKey, CancellationToken cancellationToken)
+        {
+            if (ownerKey == Guid.Empty)
+            {
+                return (null, null);
+            }
 
-            // XRef Table
-            var startXref = ms.Position;
-            writer.WriteLine("xref");
-            writer.WriteLine("0 6");
-            writer.WriteLine("0000000000 65535 f ");
-            writer.WriteLine($"{offsetObj1:D10} 00000 n ");
-            writer.WriteLine($"{offsetObj2:D10} 00000 n ");
-            writer.WriteLine($"{offsetObj3:D10} 00000 n ");
-            writer.WriteLine($"{offsetObj4:D10} 00000 n ");
-            writer.WriteLine($"{offsetObj5:D10} 00000 n ");
+            var employee = await _dbContext.MstEmployees
+                .AsNoTracking()
+                .Where(e => e.WorkforceProfileId == ownerKey || e.Id == ownerKey)
+                .Select(e => new { e.Id, e.WorkforceProfileId })
+                .FirstOrDefaultAsync(cancellationToken);
 
-            // Trailer
-            writer.WriteLine("trailer");
-            writer.WriteLine("<< /Size 6 /Root 1 0 R >>");
-            writer.WriteLine("startxref");
-            writer.WriteLine(startXref);
-            writer.WriteLine("%%EOF");
-            writer.Flush();
+            return employee == null
+                ? (ownerKey, null)
+                : (employee.WorkforceProfileId != Guid.Empty ? employee.WorkforceProfileId : ownerKey, employee.Id);
+        }
 
-            return ms.ToArray();
+        /// <summary>
+        /// MSL-04: slip hanya terbuka bagi pemiliknya dan hanya bila sudah dirilis ke pegawai. Slip milik orang lain
+        /// dijawab "tidak ditemukan" agar keberadaannya tidak bocor.
+        /// </summary>
+        private async Task EnsureOwnedVisiblePayslipAsync(PrlPayrollPayslip slip, Guid ownerKey, CancellationToken cancellationToken)
+        {
+            var (ownerProfileId, ownerEmployeeId) = await ResolveOwnerKeysAsync(ownerKey, cancellationToken);
+            var emp = slip.PayrollRunEmployee;
+            var owned = emp != null &&
+                        ((ownerProfileId != null && emp.WorkforceProfileId == ownerProfileId) ||
+                         (ownerEmployeeId != null && emp.EmployeeId == ownerEmployeeId));
+            var visible = slip.IsEmployeeVisible && slip.IsActive &&
+                          (slip.PayslipStatus == "Published" || slip.PayslipStatus == "Released" || slip.PayslipStatus == "Downloaded");
+            if (!owned || !visible)
+            {
+                throw new KeyNotFoundException("Dokumen slip gaji tidak ditemukan.");
+            }
         }
     }
 }

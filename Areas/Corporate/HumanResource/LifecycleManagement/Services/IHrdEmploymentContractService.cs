@@ -129,5 +129,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             UploadLegacyContractDocumentRequest request,
             ClaimsPrincipal user,
             CancellationToken cancellationToken = default);
+
+        // --- FIN-HRD-08: Worklist Keputusan & Ringkasan Dashboard ---
+
+        Task<RecruitmentResult<PagedResult<ContractDecisionResponse>>> GetDecisionsPagedAsync(
+            ContractDecisionQuery query,
+            ClaimsPrincipal user,
+            CancellationToken cancellationToken = default);
+
+        Task<RecruitmentResult<EmploymentContractSummaryResponse>> GetContractSummaryAsync(
+            Guid? hospitalSiteId,
+            CancellationToken cancellationToken = default);
+
+        Task<RecruitmentResult<ContractRenewalSummaryResponse>> GetRenewalSummaryAsync(
+            Guid? hospitalSiteId,
+            CancellationToken cancellationToken = default);
+
+        Task<RecruitmentResult<EmploymentStatusChangeSummaryResponse>> GetConversionSummaryAsync(
+            Guid? hospitalSiteId,
+            CancellationToken cancellationToken = default);
     }
 }

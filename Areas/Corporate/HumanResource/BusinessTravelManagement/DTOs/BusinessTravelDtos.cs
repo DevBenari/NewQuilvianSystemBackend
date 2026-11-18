@@ -263,8 +263,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
 
     public class CloseSettlementDto
     {
-        [Required, MaxLength(100)]
-        public string PaymentOrRefundRef { get; set; } = string.Empty;
+        /// <summary>
+        /// Nomor bukti setor balik (lebih bayar) atau bukti bayar (kurang bayar). Wajib bila ada selisih;
+        /// boleh kosong bila settlement seimbang (MSL-12, 18 Nov 2026 — diperiksa di TravelSettlementService).
+        /// </summary>
+        [MaxLength(100)]
+        public string? PaymentOrRefundRef { get; set; }
 
         [MaxLength(500)]
         public string? ReceiptDocUrl { get; set; }

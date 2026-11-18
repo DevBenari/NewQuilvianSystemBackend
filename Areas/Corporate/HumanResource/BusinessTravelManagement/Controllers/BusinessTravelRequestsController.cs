@@ -105,7 +105,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _travelRequestService.CreateRequestAsync(dto, userId, empId);
                 return StatusCode(StatusCodes.Status201Created, ApiResponse<BusinessTravelResponseDto>.Ok(result, "Pengajuan SPPD berhasil didaftarkan"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<BusinessTravelResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -127,7 +127,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _travelRequestService.UpdateRequestAsync(id, dto, userId);
                 return Ok(ApiResponse<BusinessTravelResponseDto>.Ok(result, "Draf pengajuan SPPD berhasil diperbarui"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<BusinessTravelResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -149,7 +149,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _travelRequestService.CancelRequestAsync(id, dto, userId);
                 return Ok(ApiResponse<BusinessTravelResponseDto>.Ok(result, "Perjalanan dinas berhasil dibatalkan"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<BusinessTravelResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }

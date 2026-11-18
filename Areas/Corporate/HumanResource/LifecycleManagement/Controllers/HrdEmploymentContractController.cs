@@ -46,6 +46,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             return ToActionResult(result);
         }
 
+        [HttpGet("summary")]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<EmploymentContractSummaryResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetSummary([FromQuery] Guid? hospitalSiteId, CancellationToken cancellationToken)
+        {
+            var result = await _contractService.GetContractSummaryAsync(hospitalSiteId, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("renewal-summary")]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<ContractRenewalSummaryResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetRenewalSummary([FromQuery] Guid? hospitalSiteId, CancellationToken cancellationToken)
+        {
+            var result = await _contractService.GetRenewalSummaryAsync(hospitalSiteId, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("conversion-summary")]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<EmploymentStatusChangeSummaryResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetConversionSummary([FromQuery] Guid? hospitalSiteId, CancellationToken cancellationToken)
+        {
+            var result = await _contractService.GetConversionSummaryAsync(hospitalSiteId, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("decisions")]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<ContractDecisionResponse>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetDecisionsPaged([FromQuery] ContractDecisionQuery query, CancellationToken cancellationToken)
+        {
+            var result = await _contractService.GetDecisionsPagedAsync(query, User, cancellationToken);
+            return ToActionResult(result);
+        }
+
         [HttpGet("{id:guid}")]
         [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkforceEmploymentContract", "Read")]
@@ -55,6 +95,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         {
             var result = await _contractService.GetByIdAsync(id, cancellationToken);
             return ToActionResult(result);
+        }
+
+        [HttpGet("{id:guid}/salary-detail")]
+        [AccessAction("ViewAmount", "Melihat Nominal Gaji Kontrak", AccessType = AccessTypes.Read, SortOrder = 7)]
+        [AccessPermission("WorkforceEmploymentContract", "ViewAmount")]
+        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+        public IActionResult CheckViewAmountPermission(Guid id)
+        {
+            return Ok(ApiResponse<bool>.Ok(true, "Izin melihat nominal gaji terverifikasi."));
         }
 
         [HttpGet("{id:guid}/print-data")]

@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -112,7 +113,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<string>.Fail(500, $"Terjadi kegagalan saat penyesuaian tier: {ex.Message}"));
             }
@@ -151,7 +152,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<string>.Fail(500, $"Terjadi kegagalan saat penerbitan putusan: {ex.Message}"));
             }
@@ -185,7 +186,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<string>.Fail(500, $"Terjadi kegagalan saat transmisi ke SIMRS: {ex.Message}"));
             }

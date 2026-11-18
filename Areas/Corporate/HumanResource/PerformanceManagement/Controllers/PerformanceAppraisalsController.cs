@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -36,6 +37,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             _appraisalService = appraisalService ?? throw new ArgumentNullException(nameof(appraisalService));
         }
 
+        private const string ProfileNotLinkedMessage = "Akun Anda belum terhubung dengan data pegawai, sehingga penilaian kinerja belum dapat dibuka. Hubungi bagian SDM.";
+
+        // MSL-02 (18 Nov 2026): identitas pegawai/atasan selalu dari klaim token workforce_profile_id, tidak pernah dari query string.
+        private Guid? CurrentWorkforceProfileId() => User.GetWorkforceProfileId();
+
+        private IActionResult ProfileNotLinked() =>
+            StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(StatusCodes.Status403Forbidden, ProfileNotLinkedMessage));
+
+        private IActionResult MapError(Exception ex) => ex switch
+        {
+            KeyNotFoundException => NotFound(ApiResponse<string>.Fail(StatusCodes.Status404NotFound, ex.Message)),
+            UnauthorizedAccessException => StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(StatusCodes.Status403Forbidden, ex.Message)),
+            _ => BadRequest(ApiResponse<string>.Fail(StatusCodes.Status400BadRequest, ex.Message))
+        };
+
         /// <summary>
         /// Menampilkan lembar kerja evaluasi kinerja mandiri pegawai yang sedang login (ESS)
         /// </summary>
@@ -44,15 +60,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         [AccessPermission("PerformanceAppraisal", "ViewOwn")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<PerformanceAppraisalDto>), 200)]
+        [ProducesResponseType(typeof(ApiResponse<string>), 403)]
+        [ProducesResponseType(typeof(ApiResponse<string>), 404)]
         public async Task<IActionResult> GetMyAppraisal(
-            [FromQuery] Guid? workforceProfileId = null,
             [FromQuery] Guid? cycleId = null,
             CancellationToken cancellationToken = default)
         {
-            var staffId = workforceProfileId ?? Guid.Empty;
-            var cId = cycleId ?? Guid.Empty;
-            var result = await _appraisalService.GetMyAppraisalAsync(staffId, cId, cancellationToken);
-            return Ok(ApiResponse<PerformanceAppraisalDto>.Ok(result, "Lembar kerja evaluasi mandiri berhasil diambil."));
+            var staffId = CurrentWorkforceProfileId();
+            if (staffId == null) return ProfileNotLinked();
+
+            try
+            {
+                var result = await _appraisalService.GetMyAppraisalAsync(staffId.Value, cycleId, cancellationToken);
+                return Ok(ApiResponse<PerformanceAppraisalDto>.Ok(result, "Lembar kerja evaluasi mandiri berhasil diambil."));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return MapError(ex);
+            }
         }
 
         /// <summary>
@@ -65,19 +90,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         [ProducesResponseType(typeof(ApiResponse<PerformanceAppraisalDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
         public async Task<IActionResult> SubmitSelfAppraisal(
-            [FromQuery] Guid? workforceProfileId = null,
             [FromBody] SubmitSelfAppraisalRequestDto dto = null!,
             CancellationToken cancellationToken = default)
         {
+            var staffId = CurrentWorkforceProfileId();
+            if (staffId == null) return ProfileNotLinked();
+
             try
             {
-                var staffId = workforceProfileId ?? Guid.Empty;
-                var result = await _appraisalService.SubmitSelfAppraisalAsync(staffId, dto, cancellationToken);
+                var result = await _appraisalService.SubmitSelfAppraisalAsync(staffId.Value, dto, cancellationToken);
                 return Ok(ApiResponse<PerformanceAppraisalDto>.Ok(result, "Evaluasi mandiri pegawai berhasil diserahkan ke atasan langsung."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or KeyNotFoundException or UnauthorizedAccessException)
             {
-                return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
+                return MapError(ex);
             }
         }
 
@@ -90,13 +116,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<PerformanceAppraisalDto>>), 200)]
         public async Task<IActionResult> GetSubordinateAppraisals(
-            [FromQuery] Guid? managerId = null,
             [FromQuery] Guid? cycleId = null,
             CancellationToken cancellationToken = default)
         {
-            var mId = managerId ?? Guid.Empty;
-            var cId = cycleId ?? Guid.Empty;
-            var result = await _appraisalService.GetSubordinateAppraisalsAsync(mId, cId, cancellationToken);
+            var managerId = CurrentWorkforceProfileId();
+            if (managerId == null) return ProfileNotLinked();
+
+            var result = await _appraisalService.GetSubordinateAppraisalsAsync(managerId.Value, cycleId, cancellationToken);
             return Ok(ApiResponse<List<PerformanceAppraisalDto>>.Ok(result, "Daftar lembar evaluasi staf bawahan berhasil diambil."));
         }
 
@@ -111,19 +137,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
         public async Task<IActionResult> SubmitManagerAppraisal(
             [FromRoute] Guid id,
-            [FromQuery] Guid? managerId = null,
             [FromBody] SubmitManagerAppraisalRequestDto dto = null!,
             CancellationToken cancellationToken = default)
         {
+            var managerId = CurrentWorkforceProfileId();
+            if (managerId == null) return ProfileNotLinked();
+
             try
             {
-                var mId = managerId ?? Guid.Empty;
-                var result = await _appraisalService.SubmitManagerAppraisalAsync(id, mId, dto, cancellationToken);
+                var result = await _appraisalService.SubmitManagerAppraisalAsync(id, managerId.Value, dto, cancellationToken);
                 return Ok(ApiResponse<PerformanceAppraisalDto>.Ok(result, "Penilaian kinerja atasan berhasil disimpan dengan formula 60:40."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or KeyNotFoundException or UnauthorizedAccessException)
             {
-                return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
+                return MapError(ex);
             }
         }
 
@@ -138,19 +165,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
         public async Task<IActionResult> ProcessSecondLineReview(
             [FromRoute] Guid id,
-            [FromQuery] Guid? reviewerId = null,
             [FromBody] ProcessSecondLineReviewDto dto = null!,
             CancellationToken cancellationToken = default)
         {
+            var reviewerId = CurrentWorkforceProfileId();
+            if (reviewerId == null) return ProfileNotLinked();
+
             try
             {
-                var rId = reviewerId ?? Guid.Empty;
-                var result = await _appraisalService.ProcessSecondLineReviewAsync(id, rId, dto, cancellationToken);
+                var result = await _appraisalService.ProcessSecondLineReviewAsync(id, reviewerId.Value, dto, cancellationToken);
                 return Ok(ApiResponse<PerformanceAppraisalDto>.Ok(result, "Penelaahan berkas evaluasi atasan kedua berhasil diproses."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or KeyNotFoundException or UnauthorizedAccessException)
             {
-                return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
+                return MapError(ex);
             }
         }
 
@@ -165,19 +193,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
         public async Task<IActionResult> AcknowledgeAppraisal(
             [FromRoute] Guid id,
-            [FromQuery] Guid? staffId = null,
             [FromBody] AcknowledgeAppraisalRequestDto dto = null!,
             CancellationToken cancellationToken = default)
         {
+            var staffId = CurrentWorkforceProfileId();
+            if (staffId == null) return ProfileNotLinked();
+
             try
             {
-                var sId = staffId ?? Guid.Empty;
-                var result = await _appraisalService.AcknowledgeAppraisalAsync(id, sId, dto, cancellationToken);
+                var result = await _appraisalService.AcknowledgeAppraisalAsync(id, staffId.Value, dto, cancellationToken);
                 return Ok(ApiResponse<PerformanceAppraisalDto>.Ok(result, "Penerimaan hasil evaluasi kinerja berhasil dikonfirmasi pegawai."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or KeyNotFoundException or UnauthorizedAccessException)
             {
-                return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
+                return MapError(ex);
             }
         }
     }

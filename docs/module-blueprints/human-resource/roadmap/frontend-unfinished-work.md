@@ -603,11 +603,11 @@ yang boleh diberikan adalah `READY_WITH_CONDITIONS`, dengan pemilik dan mitigasi
 | `FE-HRD-R11` | 1 | S-B3, S-D3 | Perbaikan alamat Lembur dan Benefit | `FE-HRD-116`, `158` | — | ✅ 11 Nov 2026 — [laporan](../task/report/frontend/FE-HRD-R11.md) |
 | `FE-HRD-R12` | 1 | S-D1 | Bangun `S-D1` MVP-7: Pengaturan, Formasi, Batch Formasi | `FE-HRD-029`, `030`, `031` | — | 🟡 11 Nov 2026 — `029` ✅, `030` dan `031` 🟡 (belum ada data uji) — [laporan](../task/report/frontend/FE-HRD-R12.md) |
 | `FE-HRD-R13` | 1 | S-B1 | Bangun `S-B1` MVP-21: Monitoring Presensi | `FE-HRD-088`–`091`, `099` | — | 🟡 11 Nov 2026 — `088`, `091`, `099` ✅; `089`, `090` 🟡 — [laporan](../task/report/frontend/FE-HRD-R13.md) |
-| `FE-HRD-R14` | 2 | S-C6 | Layar K3RS: sambung dan migrasi (pola rujukan) | `FE-HRD-262`–`274` | `FE-HRD-R02` | 🟡 16 Nov 2026 — source, lint, build, kontrak, CSS gate, dan isolasi permission klinis lulus; live browser tertahan `/api/v1/auth/me` `401` — [laporan](../task/report/frontend/FE-HRD-R14.md) |
-| `FE-HRD-R15` | 2 | S-C5 | Layar Hubungan Industrial: sambung dan migrasi | `FE-HRD-248`–`260` | `FE-HRD-R03` | 🟡 16 Nov 2026 — API nyata, base component, dialog, lint/build, dan CSS gate lulus; live browser tertahan autentikasi lokal `401` — [laporan](../task/report/frontend/FE-HRD-R15.md) |
-| `FE-HRD-R16` | 2 | S-C3 | Layar Kinerja: sambung dan migrasi | `FE-HRD-232`–`244` | `FE-HRD-R04` | 🟡 16 Nov 2026 — API nyata, base component, lint/build, dan CSS gate lulus; live browser tertahan autentikasi lokal `401` — [laporan](../task/report/frontend/FE-HRD-R16.md) |
-| `FE-HRD-R17` | 2 | S-C2 | Layar Pelatihan: sambung dan migrasi | `FE-HRD-217`–`229` | `FE-HRD-R05` | 🟡 16 Nov 2026 — API nyata, radar sertifikat, base component, lint/build, dan CSS gate target lulus; browser tertahan autentikasi `401` — [laporan](../task/report/frontend/FE-HRD-R17.md) |
-| `FE-HRD-R18` | 2 | S-C1 | Kredensial bagian 1: ESS, PSV, radar, katalog | `FE-HRD-187`–`190` | `FE-HRD-R06` | 🟡 Source/API dan base component tervalidasi; browser tertahan auth 401. [Laporan](../task/report/frontend/FE-HRD-R18.md) |
+| `FE-HRD-R14` | 2 | S-C6 | Layar K3RS: sambung dan migrasi (pola rujukan) | `FE-HRD-262`–`274` | `FE-HRD-R02` | 🟡 16 Nov 2026 — source, lint, build, kontrak, CSS gate, dan isolasi permission klinis lulus; live browser tertahan `/api/v1/auth/me` `401` — [laporan](../task/report/frontend/FE-HRD-R14.md) · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R44` ([laporan](../task/report/frontend/FE-HRD-R44.md)); alur tulis per peran masih menunggu data uji (`MSL-34`) |
+| `FE-HRD-R15` | 2 | S-C5 | Layar Hubungan Industrial: sambung dan migrasi | `FE-HRD-248`–`260` | `FE-HRD-R03` | 🟡 16 Nov 2026 — API nyata, base component, dialog, lint/build, dan CSS gate lulus; live browser tertahan autentikasi lokal `401` — [laporan](../task/report/frontend/FE-HRD-R15.md) · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R44` ([laporan](../task/report/frontend/FE-HRD-R44.md)); alur tulis per peran masih menunggu data uji (`MSL-34`) |
+| `FE-HRD-R16` | 2 | S-C3 | Layar Kinerja: sambung dan migrasi | `FE-HRD-232`–`244` | `FE-HRD-R04` | 🟡 16 Nov 2026 — API nyata, base component, lint/build, dan CSS gate lulus; live browser tertahan autentikasi lokal `401` — [laporan](../task/report/frontend/FE-HRD-R16.md) · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R46` ([laporan](../task/report/frontend/FE-HRD-R46.md)); alur tulis per peran masih menunggu data uji (`MSL-34`) |
+| `FE-HRD-R17` | 2 | S-C2 | Layar Pelatihan: sambung dan migrasi | `FE-HRD-217`–`229` | `FE-HRD-R05` | 🟡 16 Nov 2026 — API nyata, radar sertifikat, base component, lint/build, dan CSS gate target lulus; browser tertahan autentikasi `401` — [laporan](../task/report/frontend/FE-HRD-R17.md) · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R46` ([laporan](../task/report/frontend/FE-HRD-R46.md)); alur tulis per peran masih menunggu data uji (`MSL-34`) |
+| `FE-HRD-R18` | 2 | S-C1 | Kredensial bagian 1: ESS, PSV, radar, katalog | `FE-HRD-187`–`190` | `FE-HRD-R06` | 🟡 Source/API dan base component tervalidasi; browser tertahan auth 401. [Laporan](../task/report/frontend/FE-HRD-R18.md) · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R44` ([laporan](../task/report/frontend/FE-HRD-R44.md)); alur tulis per peran masih menunggu data uji (`MSL-34`) |
 | `FE-HRD-R19` | 2 | S-D4 | Layanan SDM bagian 1: katalog dan helpdesk | `FE-HRD-173`–`177` | `FE-HRD-R06` | 🟡 API/base component tervalidasi; directory analis belum ada dan browser tertahan auth. [Laporan](../task/report/frontend/FE-HRD-R19.md) |
 | `FE-HRD-R20` | 2 | S-C1-OPPE | OPPE bagian 1: dasbor, periode, peer review | `FE-HRD-202`–`206` | `FE-HRD-R07` | 🟡 API/base component tervalidasi; daftar rapor server belum ada dan browser tertahan auth. [Laporan](../task/report/frontend/FE-HRD-R20.md) |
 | `FE-HRD-R21` | 2 | S-A7-V2 | Persetujuan bagian 1: kotak masuk, detail, aksi | `FE-HRD-277`–`283` | `FE-HRD-R08` | 🟡 API/base component tervalidasi; aksi lintas peran belum terbukti di browser. [Laporan](../task/report/frontend/FE-HRD-R21.md) |
@@ -866,7 +866,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 
 #### 🟡 `FE-HRD-R14` — Layar K3RS: sambung dan migrasi (pola rujukan)
 * **Slice / Gelombang**: S-C6 / 2
-* **Status**: 🟡 **SEBAGIAN 16 November 2026** — source dan validasi statis terpenuhi; screenshot setelah autentikasi serta uji akun tanpa hak belum dapat dijalankan karena `/api/v1/auth/me` mengembalikan `401`. [Laporan](../task/report/frontend/FE-HRD-R14.md).
+* **Status**: 🟡 **SEBAGIAN 16 November 2026** — source dan validasi statis terpenuhi; screenshot setelah autentikasi serta uji akun tanpa hak belum dapat dijalankan karena `/api/v1/auth/me` mengembalikan `401`. [Laporan](../task/report/frontend/FE-HRD-R14.md). · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R44` ([laporan](../task/report/frontend/FE-HRD-R44.md)); alur tulis per peran masih menunggu data uji (`MSL-34`).
 * **Task asal**: `FE-HRD-262`–`274`
 * **Outcome**: Seluruh layar K3RS memakai data nyata dan komponen standar, sekaligus menjadi rujukan migrasi slice lain.
 * **Requirement/decision**: kartu asal pada `frontend-roadmap.md`; temuan audit dokumen ini
@@ -881,7 +881,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 
 #### 🟡 `FE-HRD-R15` — Layar Hubungan Industrial: sambung dan migrasi
 * **Slice / Gelombang**: S-C5 / 2
-* **Status**: 🟡 **SEBAGIAN 16 November 2026** — source dan validasi statis terpenuhi; screenshot/alur browser setelah login belum dapat dibuktikan karena autentikasi lokal `401`. [Laporan](../task/report/frontend/FE-HRD-R15.md).
+* **Status**: 🟡 **SEBAGIAN 16 November 2026** — source dan validasi statis terpenuhi; screenshot/alur browser setelah login belum dapat dibuktikan karena autentikasi lokal `401`. [Laporan](../task/report/frontend/FE-HRD-R15.md). · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R44` ([laporan](../task/report/frontend/FE-HRD-R44.md)); alur tulis per peran masih menunggu data uji (`MSL-34`).
 * **Task asal**: `FE-HRD-248`–`260`
 * **Outcome**: Kasus disiplin dan keluhan tersimpan nyata dan tampil seragam.
 * **Requirement/decision**: kartu asal pada `frontend-roadmap.md`; temuan audit dokumen ini
@@ -896,7 +896,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 
 #### 🟡 `FE-HRD-R16` — Layar Kinerja: sambung dan migrasi
 * **Slice / Gelombang**: S-C3 / 2
-* **Status**: 🟡 **SEBAGIAN 16 November 2026** — source dan validasi statis lulus; browser setelah login belum dapat dibuktikan karena autentikasi lokal `401`. [Laporan](../task/report/frontend/FE-HRD-R16.md).
+* **Status**: 🟡 **SEBAGIAN 16 November 2026** — source dan validasi statis lulus; browser setelah login belum dapat dibuktikan karena autentikasi lokal `401`. [Laporan](../task/report/frontend/FE-HRD-R16.md). · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R46` ([laporan](../task/report/frontend/FE-HRD-R46.md)); alur tulis per peran masih menunggu data uji (`MSL-34`).
 * **Task asal**: `FE-HRD-232`–`244`
 * **Outcome**: Kinerja pegawai tampil dari data nyata.
 * **Requirement/decision**: kartu asal pada `frontend-roadmap.md`; temuan audit dokumen ini
@@ -911,7 +911,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 
 #### 🟡 `FE-HRD-R17` — Layar Pelatihan: sambung dan migrasi
 * **Slice / Gelombang**: S-C2 / 2
-* **Status**: 🟡 **SEBAGIAN 16 November 2026** — source target dan validasi statis lulus; bukti radar H-30 di browser belum dapat dijalankan karena autentikasi lokal `401`. [Laporan](../task/report/frontend/FE-HRD-R17.md).
+* **Status**: 🟡 **SEBAGIAN 16 November 2026** — source target dan validasi statis lulus; bukti radar H-30 di browser belum dapat dijalankan karena autentikasi lokal `401`. [Laporan](../task/report/frontend/FE-HRD-R17.md). · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R46` ([laporan](../task/report/frontend/FE-HRD-R46.md)); alur tulis per peran masih menunggu data uji (`MSL-34`).
 * **Task asal**: `FE-HRD-217`–`229`
 * **Outcome**: Radar sertifikat menampilkan staf yang sebenarnya.
 * **Requirement/decision**: kartu asal pada `frontend-roadmap.md`; temuan audit dokumen ini
@@ -937,7 +937,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko: keselamatan klinis. Mitigasi: uji per peran komite. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
-* **Status 16 November 2026**: 🟡 Source target memakai API nyata dan lolos CSS gate/lint/build; verifikasi per peran di browser belum dapat dilakukan karena `/api/v1/auth/me` lokal mengembalikan 401. [Laporan](../task/report/frontend/FE-HRD-R18.md).
+* **Status 16 November 2026**: 🟡 Source target memakai API nyata dan lolos CSS gate/lint/build; verifikasi per peran di browser belum dapat dilakukan karena `/api/v1/auth/me` lokal mengembalikan 401. [Laporan](../task/report/frontend/FE-HRD-R18.md). · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R44` ([laporan](../task/report/frontend/FE-HRD-R44.md)); alur tulis per peran masih menunggu data uji (`MSL-34`).
 
 #### `FE-HRD-R19` — Layanan SDM bagian 1: katalog dan helpdesk 🟡
 * **Slice / Gelombang**: S-D4 / 2
@@ -952,7 +952,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
-* **Status 16 November 2026**: 🟡 Katalog, templat, SLA, antrean, dan assign memakai API nyata; visual browser belum teruji karena auth lokal 401. [Laporan](../task/report/frontend/FE-HRD-R19.md).
+* **Status 16 November 2026**: 🟡 Katalog, templat, SLA, antrean, dan assign memakai API nyata; visual browser belum teruji karena auth lokal 401. [Laporan](../task/report/frontend/FE-HRD-R19.md). · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R45` ([laporan](../task/report/frontend/FE-HRD-R45.md)); alur tulis per peran masih menunggu data uji (`MSL-34`).
 
 #### `FE-HRD-R20` — OPPE bagian 1: dasbor, periode, peer review 🟡
 * **Slice / Gelombang**: S-C1-OPPE / 2
@@ -1042,7 +1042,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
-* **Status**: 🟡 **SEBAGIAN, diperiksa ulang 16 November 2026.** Enam dari tujuh kriteria R25 terpetakan ke source; lint 0 error, build 814 halaman, dan CSS gate lulus. Endpoint unggah/template batch belum tersedia dan Chromium headed tertahan auth 401. Bukti: [laporan](../task/report/frontend/FE-HRD-R25.md).
+* **Status**: 🟡 **SEBAGIAN, diperiksa ulang 16 November 2026.** Enam dari tujuh kriteria R25 terpetakan ke source; lint 0 error, build 814 halaman, dan CSS gate lulus. Endpoint unggah/template batch belum tersedia dan Chromium headed tertahan auth 401. Bukti: [laporan](../task/report/frontend/FE-HRD-R25.md). · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R46` ([laporan](../task/report/frontend/FE-HRD-R46.md)); alur tulis per peran masih menunggu data uji (`MSL-34`).
 
 #### 🟡 `FE-HRD-R26` — Bangun `S-D1` MVP-8: Angka Beban, Standar, Gap
 * **Slice / Gelombang**: S-D1 / 2
@@ -1057,7 +1057,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
-* **Status**: 🟡 **SEBAGIAN, diperiksa ulang 16 November 2026.** Empat layar/menu tersambung kontrak; lint 0 error, build 814 halaman, dan CSS gate lulus. Uji peran di Chromium tertahan auth 401. Bukti: [laporan](../task/report/frontend/FE-HRD-R26.md).
+* **Status**: 🟡 **SEBAGIAN, diperiksa ulang 16 November 2026.** Empat layar/menu tersambung kontrak; lint 0 error, build 814 halaman, dan CSS gate lulus. Uji peran di Chromium tertahan auth 401. Bukti: [laporan](../task/report/frontend/FE-HRD-R26.md). · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R42` ([laporan](../task/report/frontend/FE-HRD-R42.md)); alur tulis per peran masih menunggu data uji (`MSL-34`).
 
 #### 🟡 `FE-HRD-R27` — Bangun `S-D1` MVP-10: Rencana Tahunan
 * **Slice / Gelombang**: S-D1 / 2
@@ -1072,7 +1072,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
-* **Status**: 🟡 **SEBAGIAN, diperiksa ulang 16 November 2026.** Daftar, penyusun, addendum, kalkulasi, biaya estimasi, Finance, dan potret gap terpasang; endpoint cancel/availableActions Finance tetap tidak ada dan browser tertahan auth 401. [Laporan](../task/report/frontend/FE-HRD-R27.md).
+* **Status**: 🟡 **SEBAGIAN, diperiksa ulang 16 November 2026.** Daftar, penyusun, addendum, kalkulasi, biaya estimasi, Finance, dan potret gap terpasang; endpoint cancel/availableActions Finance tetap tidak ada dan browser tertahan auth 401. [Laporan](../task/report/frontend/FE-HRD-R27.md). · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R42` ([laporan](../task/report/frontend/FE-HRD-R42.md)); alur tulis per peran masih menunggu data uji (`MSL-34`).
 
 #### 🟡 `FE-HRD-R28` — Bangun `S-B1` MVP-22: Koreksi, Izin, Dinas Luar
 * **Slice / Gelombang**: S-B1 / 2
@@ -1087,7 +1087,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
-* **Status**: 🟡 **SEBAGIAN, diperiksa ulang 16 November 2026.** Tiga layar admin aktif; upload koreksi kuasa dan kontrak self-service tetap tidak tersedia, browser tertahan auth 401. [Laporan](../task/report/frontend/FE-HRD-R28.md).
+* **Status**: 🟡 **SEBAGIAN, diperiksa ulang 16 November 2026.** Tiga layar admin aktif; upload koreksi kuasa dan kontrak self-service tetap tidak tersedia, browser tertahan auth 401. [Laporan](../task/report/frontend/FE-HRD-R28.md). · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R43` ([laporan](../task/report/frontend/FE-HRD-R43.md)); alur tulis per peran masih menunggu data uji (`MSL-34`).
 
 #### 🟡 `FE-HRD-R29` — Bangun `S-B1` MVP-23: Penutupan Periode
 * **Slice / Gelombang**: S-B1 / 2
@@ -1102,7 +1102,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko: dampak ke gaji. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
-* **Status**: 🟡 **SEBAGIAN, diperiksa ulang 16 November 2026.** Guard tutup, issue pemblokir, dan buka darurat terpasang; metrik rekap tetap tidak ada di DTO dan browser tertahan auth 401. [Laporan](../task/report/frontend/FE-HRD-R29.md).
+* **Status**: 🟡 **SEBAGIAN, diperiksa ulang 16 November 2026.** Guard tutup, issue pemblokir, dan buka darurat terpasang; metrik rekap tetap tidak ada di DTO dan browser tertahan auth 401. [Laporan](../task/report/frontend/FE-HRD-R29.md). · 18 Nov 2026 (MSL-33): hambatan autentikasi `401` sudah tidak berlaku — login lokal berhasil dan layarnya dibuka di browser pada Gelombang 4 lewat `FE-HRD-R43` ([laporan](../task/report/frontend/FE-HRD-R43.md)); alur tulis per peran masih menunggu data uji (`MSL-34`).
 
 #### 🟡 `FE-HRD-R30` — Kredensial bagian 2: komite, direktur, registri
 * **Slice / Gelombang**: S-C1 / 3

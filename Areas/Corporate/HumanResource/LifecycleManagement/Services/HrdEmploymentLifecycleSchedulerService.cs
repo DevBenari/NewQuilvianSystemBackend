@@ -63,6 +63,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     }
                 }
 
+                // FIN-HRD-08-BE-008 / REG-HRD-08-005: Sinkronisasi mirror MstWorkforceProfile saat tanggal penempatan efektif tiba
+                var profile = await _dbContext.MstWorkforceProfiles
+                    .FirstOrDefaultAsync(p => p.Id == contract.WorkforceProfileId && !p.IsDelete, cancellationToken);
+                if (profile != null)
+                {
+                    var currentPos = await _dbContext.Set<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpPositionAssignment>()
+                        .Where(p => p.WorkforceProfileId == contract.WorkforceProfileId && p.IsPrimary && p.IsActive && !p.IsDelete && p.EffectiveStartDate <= todayDateTime)
+                        .OrderByDescending(p => p.EffectiveStartDate)
+                        .FirstOrDefaultAsync(cancellationToken);
+                    if (currentPos != null)
+                    {
+                        profile.PrimaryPositionId = currentPos.PositionId;
+                        if (currentPos.DepartmentId.HasValue && currentPos.DepartmentId.Value != Guid.Empty)
+                        {
+                            profile.PrimaryDepartmentId = currentPos.DepartmentId.Value;
+                        }
+                        profile.UpdateDateTime = DateTime.UtcNow;
+                    }
+                }
+
                 processedCount++;
             }
 

@@ -82,7 +82,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _advanceRequestService.CreateAdvanceRequestAsync(dto, userId, empId);
                 return StatusCode(StatusCodes.Status201Created, ApiResponse<TravelAdvanceResponseDto>.Ok(result, "Permohonan uang muka berhasil diajukan"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelAdvanceResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -106,7 +106,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _approvalService.ApproveAdvanceAsync(id, dto, userId, isFinance);
                 return Ok(ApiResponse<TravelAdvanceResponseDto>.Ok(result, "Persetujuan uang muka berhasil dicatat"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelAdvanceResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -128,7 +128,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _approvalService.ApproveAdvanceAsync(id, dto, userId, true);
                 return Ok(ApiResponse<TravelAdvanceResponseDto>.Ok(result, "Persetujuan Finance atas uang muka berhasil dicatat"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelAdvanceResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -150,7 +150,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _disbursementService.DisburseAdvanceAsync(id, dto, userId);
                 return Ok(ApiResponse<TravelAdvanceResponseDto>.Ok(result, "Pencairan dana uang muka berhasil dikonfirmasi kasir"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelAdvanceResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }

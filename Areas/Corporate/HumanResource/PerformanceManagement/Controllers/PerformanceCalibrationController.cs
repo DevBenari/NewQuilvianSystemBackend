@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -74,7 +75,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _calibrationService.CreateSessionAsync(dto, Guid.Empty, cancellationToken);
                 return StatusCode(201, ApiResponse<CalibrationSessionDto>.Ok(result, "Sidang pleno kalibrasi berhasil dijadwalkan."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -98,7 +99,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _calibrationService.OverrideScoreAsync(dto, Guid.Empty, cancellationToken);
                 return Ok(ApiResponse<bool>.Ok(result, "Penyesuaian skor hasil kalibrasi berhasil disimpan dengan nota justifikasi komite."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -123,7 +124,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _calibrationService.FinalizeSessionAsync(id, dto, Guid.Empty, cancellationToken);
                 return Ok(ApiResponse<bool>.Ok(result, "Sidang pleno kalibrasi disahkan; nilai resmi dirilis serentak ke portal ESS."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -151,7 +152,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _disputeService.SubmitDisputeAsync(dto, sId, cancellationToken);
                 return StatusCode(201, ApiResponse<AppraisalDisputeDto>.Ok(result, "Permohonan sanggah banding nilai resmi berhasil diregistrasi."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -178,7 +179,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _disputeService.AdjudicateDisputeAsync(id, dto, dId, cancellationToken);
                 return Ok(ApiResponse<AppraisalDisputeDto>.Ok(result, "Putusan majelis sanggah banding Direktur SDM berhasil disahkan."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
