@@ -41,7 +41,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     new() { Value = AttendanceValueConstants.AttendanceStatus.RestDay, Label = "Hari istirahat" },
                     new() { Value = AttendanceValueConstants.AttendanceStatus.Leave, Label = "Cuti/Izin" },
                     new() { Value = AttendanceValueConstants.AttendanceStatus.BusinessTrip, Label = "Perjalanan dinas" },
-                    new() { Value = AttendanceValueConstants.AttendanceStatus.Remote, Label = "Kehadiran remote" }
+                    new() { Value = AttendanceValueConstants.AttendanceStatus.Remote, Label = "Kehadiran remote" },
+                    new() { Value = AttendanceValueConstants.AttendanceStatus.NotYetPresent, Label = "Belum Hadir" },
+                    new() { Value = AttendanceValueConstants.AttendanceStatus.NoScan, Label = "Tidak Ada Scan" },
+                    new() { Value = AttendanceValueConstants.AttendanceStatus.StudyAssignment, Label = "Tugas Belajar" }
                 },
                 ProcessingStatusOptions = new List<AttendanceDailyOptionResponse>
                 {

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -33,13 +34,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly PayrollSalaryRangeRuleService _salaryRangeRule;
 
         public SalaryGradeController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            PayrollSalaryRangeRuleService salaryRangeRule)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _salaryRangeRule = salaryRangeRule;
         }
 
         [HttpGet("filters/metadata")]
@@ -368,6 +372,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
             if (!validation.IsValid)
                 return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage ?? "Data salary grade tidak valid."));
+
+            // PAY-BE-15: rentang baru tidak boleh membuat struktur aktif keluar batas (SR-04).
+            var rangeCheck = await _salaryRangeRule.ValidateGradeChangeAsync(
+                id, request.MinimumSalary, request.MaximumSalary, cancellationToken);
+
+            if (!rangeCheck.IsValid)
+                return Conflict(ApiResponse<object>.Fail(rangeCheck.StatusCode, rangeCheck.Message ?? "Rentang grade membuat struktur aktif keluar batas."));
 
             entity.EmployeeGradeId = NormalizeGuid(request.EmployeeGradeId);
             entity.SalaryGradeName = request.SalaryGradeName.Trim();

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
@@ -28,26 +29,105 @@ public sealed class StockRequestService
     private const string SubmitAction = "SubmitStockRequest";
     private const string CancelAction = "CancelStockRequest";
     private const string FulfillAction = "FulfillStockRequest";
+    private const string ApproveAction = "ApproveStockRequest";
+    private const string RejectAction = "RejectStockRequest";
+    private const string AuthorizeEmergencyAction = "AuthorizeEmergencyStockRequest";
+
+    // Verifikasi susulan CITO (LGS-DEC-005). Hasilnya dibedakan lewat nama aksi, sehingga
+    // terstruktur tanpa kolom atau tabel baru.
+    private const string VerifyEmergencyConfirmedAction = "VerifyEmergencyStockRequestConfirmed";
+    private const string VerifyEmergencyDeviationAction = "VerifyEmergencyStockRequestDeviation";
+
+    /// <summary>
+    /// Batas aktivasi (UTC) persetujuan atasan untuk penyerahan gudang, per lingkungan
+    /// (<c>LGS-DEC-006</c>). Aturannya ada pada <see cref="StockRequestApprovalCutover"/>.
+    /// </summary>
+    /// <remarks>
+    /// Diisi lewat konfigurasi lingkungan saat aktivasi (mis. variabel lingkungan
+    /// <c>PharmacyManagement__StockRequest__ApprovalEnforcedFromUtc</c>), bukan lewat API, sehingga
+    /// pengguna aplikasi tidak dapat mengubahnya. Lihat
+    /// <c>docs/module-blueprints/logistik/evidence/05-aktivasi-batas-persetujuan.md</c>.
+    /// </remarks>
+    public const string ApprovalEnforcedFromConfigKey =
+        "PharmacyManagement:StockRequest:ApprovalEnforcedFromUtc";
+
+    // Penanda batas terakhir yang tercatat di log, supaya setiap perubahan nilai konfigurasi
+    // meninggalkan jejak operasional tanpa menulis log pada setiap permintaan.
+    private static readonly object CutoverObservationLock = new();
+    private static string? _lastCutoverObservation;
 
     private readonly ApplicationDbContext _dbContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly LoggerService _loggerService;
     private readonly DrugStockService? _drugStockService;
+    private readonly StockRequestApprovalAuthority _approvalAuthority;
+    private readonly StockRequestApprovalCutover _approvalCutover;
 
     /// <summary>
     /// <paramref name="drugStockService"/> boleh kosong agar pengujian yang hanya memeriksa
     /// alur permintaan tidak perlu menyiapkan seluruh persediaan. Bila kosong, penyerahan
-    /// hanya mencatat jumlah dan tidak menyentuh stok.
+    /// hanya mencatat jumlah dan tidak menyentuh stok. <paramref name="configuration"/> hanya
+    /// dibaca untuk <see cref="ApprovalEnforcedFromConfigKey"/>.
     /// </summary>
     public StockRequestService(ApplicationDbContext dbContext,
         IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
-        DrugStockService? drugStockService = null)
+        DrugStockService? drugStockService = null, IConfiguration? configuration = null)
     {
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
         _drugStockService = drugStockService;
+        _approvalAuthority = new StockRequestApprovalAuthority(dbContext);
+        _approvalCutover = StockRequestApprovalCutover.Resolve(
+            configuration?[ApprovalEnforcedFromConfigKey], DateTime.UtcNow);
+        ObserveCutover(_approvalCutover);
     }
+
+    /// <summary>
+    /// Mencatat batas aktivasi ke log sekali per nilai yang berbeda: pertama kali terlihat,
+    /// setiap kali berubah, dan selalu sebagai galat bila nilainya tidak sah atau di masa depan.
+    /// Nilai yang tidak sah tidak menggagalkan service — yang terjadi justru sebaliknya: seluruh
+    /// permintaan wajib disetujui, sehingga kekeliruan konfigurasi tidak pernah membuka jalan
+    /// pintas dan gudang tetap dapat bekerja.
+    /// </summary>
+    private void ObserveCutover(StockRequestApprovalCutover cutover)
+    {
+        var observation = $"{cutover.State}|{cutover.RawValue}";
+        string? previous;
+
+        lock (CutoverObservationLock)
+        {
+            if (string.Equals(_lastCutoverObservation, observation, StringComparison.Ordinal)) return;
+            previous = _lastCutoverObservation;
+            _lastCutoverObservation = observation;
+        }
+
+        var data = new
+        {
+            ConfigKey = ApprovalEnforcedFromConfigKey,
+            cutover.State,
+            cutover.RawValue,
+            cutover.EffectiveFromUtc,
+            PreviousObservation = previous
+        };
+
+        _ = cutover.State is StockRequestApprovalCutoverState.Invalid
+                or StockRequestApprovalCutoverState.FutureRejected
+            ? _loggerService.ErrorAsync(LogCategory, "StockRequest.ApprovalCutover", cutover.Message,
+                data: data)
+            : previous == null
+                ? _loggerService.AuditAsync(LogCategory, "StockRequest.ApprovalCutover",
+                    cutover.Message, data)
+                : _loggerService.WarningAsync(LogCategory, "StockRequest.ApprovalCutoverChanged",
+                    $"Batas aktivasi persetujuan berubah. {cutover.Message}", data);
+    }
+
+    /// <summary>
+    /// Permintaan Submitted yang diajukan sebelum batas aktivasi (aturan peralihan).
+    /// </summary>
+    private bool IsLegacySubmission(PhmStockRequest entity) =>
+        entity.Status == StockRequestStatus.Submitted &&
+        _approvalCutover.IsBeforeCutover(entity.SubmittedAt);
 
     // ============================================ 1. riwayat permintaan obat
 
@@ -56,7 +136,38 @@ public sealed class StockRequestService
     {
         var query = _dbContext.PhmStockRequests.AsNoTracking().Where(x => !x.IsDelete);
 
+        // Sama dengan StockRequestApprovalCutover.IsBeforeCutover: hanya batas yang aktif, dan
+        // permintaan tanpa waktu pengajuan tidak pernah dianggap permintaan lama.
+        DateTime? cutover = _approvalCutover.AllowsLegacyTransition
+            ? _approvalCutover.EffectiveFromUtc
+            : null;
+
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
+
+        // Antrean gudang memakai aturan yang sama dengan CanFulfill di bawah, supaya permintaan
+        // lama yang boleh diserahkan langsung tidak hilang dari antrean.
+        if (request.FulfillableOnly)
+            query = query.Where(x => x.Status == StockRequestStatus.Approved ||
+                                     (cutover != null && x.Status == StockRequestStatus.Submitted &&
+                                      x.SubmittedAt != null && x.SubmittedAt < cutover));
+
+        // Verifikasi susulan CITO dihitung dari riwayat, bukan kolom status (LGS-DEC-005).
+        if (request.EmergencyReviewState.HasValue)
+        {
+            query = request.EmergencyReviewState.Value switch
+            {
+                StockRequestEmergencyReviewState.Pending => query.Where(x =>
+                    x.Histories.Any(h => !h.IsDelete && h.Action == AuthorizeEmergencyAction) &&
+                    !x.Histories.Any(h => !h.IsDelete &&
+                        (h.Action == VerifyEmergencyConfirmedAction || h.Action == VerifyEmergencyDeviationAction))),
+                StockRequestEmergencyReviewState.Confirmed => query.Where(x =>
+                    x.Histories.Any(h => !h.IsDelete && h.Action == VerifyEmergencyConfirmedAction)),
+                StockRequestEmergencyReviewState.Deviation => query.Where(x =>
+                    x.Histories.Any(h => !h.IsDelete && h.Action == VerifyEmergencyDeviationAction)),
+                _ => query.Where(x =>
+                    !x.Histories.Any(h => !h.IsDelete && h.Action == AuthorizeEmergencyAction))
+            };
+        }
         if (request.Priority.HasValue) query = query.Where(x => x.Priority == request.Priority);
         if (request.RequestingServiceUnitId.HasValue)
             query = query.Where(x => x.RequestingServiceUnitId == request.RequestingServiceUnitId);
@@ -99,8 +210,13 @@ public sealed class StockRequestService
 
         var total = await query.CountAsync(cancellationToken);
 
-        var items = await query
-            .OrderByDescending(x => x.RequestedAt)
+        // Antrean gudang: CITO menyalip seluruh antrean, lalu yang paling lama menunggu.
+        // Riwayat biasa tetap terbaru lebih dahulu.
+        var ordered = request.OrderByPriority
+            ? query.OrderByDescending(x => x.Priority).ThenBy(x => x.RequestedAt)
+            : query.OrderByDescending(x => x.RequestedAt);
+
+        var items = await ordered
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Select(x => new StockRequestSummaryResponse
@@ -123,9 +239,28 @@ public sealed class StockRequestService
                 ItemCount = x.ItemCount,
                 Version = x.Version,
                 IsEditable = x.Status == StockRequestStatus.Draft,
-                CanFulfill = x.Status == StockRequestStatus.Submitted,
+                CanFulfill = x.Status == StockRequestStatus.Approved ||
+                             (cutover != null && x.Status == StockRequestStatus.Submitted &&
+                              x.SubmittedAt != null && x.SubmittedAt < cutover),
+                IsLegacySubmission = cutover != null && x.Status == StockRequestStatus.Submitted &&
+                                     x.SubmittedAt != null && x.SubmittedAt < cutover,
+                EmergencyReviewState =
+                    x.Histories.Any(h => !h.IsDelete && h.Action == VerifyEmergencyDeviationAction)
+                        ? StockRequestEmergencyReviewState.Deviation
+                        : x.Histories.Any(h => !h.IsDelete && h.Action == VerifyEmergencyConfirmedAction)
+                            ? StockRequestEmergencyReviewState.Confirmed
+                            : x.Histories.Any(h => !h.IsDelete && h.Action == AuthorizeEmergencyAction)
+                                ? StockRequestEmergencyReviewState.Pending
+                                : StockRequestEmergencyReviewState.NotRequired,
                 CanCancel = x.Status == StockRequestStatus.Draft ||
-                            x.Status == StockRequestStatus.Submitted
+                            x.Status == StockRequestStatus.Submitted ||
+                            x.Status == StockRequestStatus.Approved,
+                CanApprove = x.Status == StockRequestStatus.Submitted,
+                CanAuthorizeEmergency = x.Status == StockRequestStatus.Submitted &&
+                                        x.Priority == StockRequestPriority.Emergency,
+                IsPartiallyFulfilled = x.Status == StockRequestStatus.Completed &&
+                                       x.Items.Any(i => !i.IsDelete && i.FulfilledQuantity != null &&
+                                                        i.FulfilledQuantity < i.RequestedQuantity)
             })
             .ToListAsync(cancellationToken);
 
@@ -145,8 +280,224 @@ public sealed class StockRequestService
         CancellationToken cancellationToken = default)
     {
         var entity = await LoadAsync(id, tracking: false, cancellationToken);
-        return entity == null ? null : MapDetail(entity);
+        if (entity == null) return null;
+
+        var detail = MapDetail(entity);
+
+        // Nama petugas pada riwayat dibaca dari akun penggunanya, supaya setiap keputusan
+        // menunjukkan siapa yang memutuskan, bukan sekadar kapan.
+        var actorIds = detail.Histories.Select(h => h.ActorUserId).Distinct().ToList();
+        if (actorIds.Count > 0)
+        {
+            var actors = await _dbContext.Users.AsNoTracking()
+                .Where(u => actorIds.Contains(u.Id))
+                .Select(u => new
+                {
+                    u.Id,
+                    Name = u.WorkforceProfile != null ? u.WorkforceProfile.DisplayName : u.UserName
+                })
+                .ToListAsync(cancellationToken);
+
+            var names = actors.ToDictionary(a => a.Id, a => a.Name);
+            foreach (var history in detail.Histories)
+                history.ActorName = names.GetValueOrDefault(history.ActorUserId);
+        }
+
+        // Aturan peralihan: permintaan lama yang diajukan sebelum persetujuan berlaku masih
+        // boleh diserahkan langsung (lihat ApprovalEnforcedFromConfigKey).
+        detail.IsLegacySubmission = IsLegacySubmission(entity);
+        if (detail.IsLegacySubmission) detail.CanFulfill = true;
+
+        // Otorisasi CITO dan verifikasi susulannya dibaca dari riwayat (LGS-DEC-005).
+        var authorization = FindEmergencyAuthorization(entity);
+        var review = FindEmergencyReview(entity);
+        detail.EmergencyReviewState = ResolveEmergencyReviewState(authorization, review);
+
+        if (authorization != null)
+            detail.EmergencyAuthorization = new StockRequestDecisionRecordResponse
+            {
+                ActorUserId = authorization.ActorUserId,
+                ActorName = detail.Histories.FirstOrDefault(h => h.Id == authorization.Id)?.ActorName,
+                OccurredAt = authorization.OccurredAt,
+                Reason = authorization.Reason
+            };
+
+        if (review != null)
+            detail.EmergencyReview = new StockRequestEmergencyReviewResponse
+            {
+                ActorUserId = review.ActorUserId,
+                ActorName = detail.Histories.FirstOrDefault(h => h.Id == review.Id)?.ActorName,
+                OccurredAt = review.OccurredAt,
+                Reason = review.Reason,
+                Outcome = review.Action == VerifyEmergencyDeviationAction
+                    ? StockRequestEmergencyReviewOutcome.Deviation
+                    : StockRequestEmergencyReviewOutcome.Confirmed
+            };
+
+        var currentUserId = TryGetCurrentUserId();
+        if (currentUserId.HasValue)
+        {
+            var userId = currentUserId.Value;
+            detail.IsOwnRequest = await IsRequesterAsync(entity, userId, cancellationToken);
+
+            // Kewenangan dihitung dengan aturan yang sama dengan DecideAsync dan
+            // VerifyEmergencyAsync, supaya layar menjelaskan sebab penolakan sebelum petugas
+            // menekan tombol — bukan sesudahnya. Layar tidak pernah menjadi sumber kewenangan.
+            var awaitingDecision = entity.Status == StockRequestStatus.Submitted;
+            var awaitingReview = detail.EmergencyReviewState == StockRequestEmergencyReviewState.Pending;
+
+            if (awaitingDecision || awaitingReview)
+            {
+                detail.HasApproveAuthority = await _approvalAuthority.HasApproveGrantAsync(userId,
+                    cancellationToken);
+
+                var authority = await _approvalAuthority.CheckUnitAuthorityAsync(userId,
+                    entity.RequestingServiceUnitId, cancellationToken);
+                detail.HasUnitAuthority = authority.IsAuthorized;
+                detail.UnitAuthorityMessage = authority.Message;
+            }
+
+            if (awaitingDecision && entity.Priority == StockRequestPriority.Emergency)
+                detail.HasEmergencyAuthority = await _approvalAuthority.HasEmergencyGrantAsync(
+                    userId, cancellationToken);
+
+            if (awaitingReview)
+            {
+                var verdict = await EvaluateEmergencyVerifierAsync(entity, authorization!, userId,
+                    cancellationToken);
+                detail.CanVerifyEmergency = verdict.Allowed;
+                detail.VerifyEmergencyMessage = verdict.Message;
+            }
+        }
+
+        return detail;
     }
+
+    // ============================================ kewenangan keputusan (domain)
+
+    private sealed record AuthorityVerdict(bool Allowed, string ReasonCode, string? Message)
+    {
+        public static readonly AuthorityVerdict Granted = new(true, "Granted", null);
+        public static AuthorityVerdict Denied(string code, string message) => new(false, code, message);
+    }
+
+    /// <summary>
+    /// Kewenangan setuju atau tolak: bukan pemohon, izin <c>StockRequest:Approve</c> eksplisit,
+    /// dan atasan unit peminta. Ketiganya diperiksa di sini, tidak bergantung pada filter
+    /// controller, peran SuperAdmin, maupun saklar pengembangan.
+    /// </summary>
+    private async Task<AuthorityVerdict> EvaluateDeciderAsync(PhmStockRequest entity, Guid userId,
+        CancellationToken cancellationToken)
+    {
+        if (await IsRequesterAsync(entity, userId, cancellationToken))
+            return AuthorityVerdict.Denied("SelfDecision",
+                "Pemohon tidak boleh menyetujui, menolak, maupun mengotorisasi permintaannya sendiri.");
+
+        if (!await _approvalAuthority.HasApproveGrantAsync(userId, cancellationToken))
+            return AuthorityVerdict.Denied("NoApprovePermission",
+                "Persetujuan dan penolakan hanya dapat dilakukan petugas yang penempatan jabatannya " +
+                "diberi izin StockRequest:Approve secara eksplisit.");
+
+        var unit = await _approvalAuthority.CheckUnitAuthorityAsync(userId,
+            entity.RequestingServiceUnitId, cancellationToken);
+        return unit.IsAuthorized
+            ? AuthorityVerdict.Granted
+            : AuthorityVerdict.Denied($"Unit{unit.Reason}", unit.Message
+                ?? "Anda tidak berwenang memutus permintaan unit ini.");
+    }
+
+    /// <summary>
+    /// Kewenangan otorisasi CITO: bukan pemohon dan izin <c>StockRequest:AuthorizeEmergency</c>
+    /// eksplisit pada penempatan jabatan yang aktif (<c>LGS-DEC-004</c>).
+    /// </summary>
+    private async Task<AuthorityVerdict> EvaluateEmergencyAuthorizerAsync(PhmStockRequest entity,
+        Guid userId, CancellationToken cancellationToken)
+    {
+        if (await IsRequesterAsync(entity, userId, cancellationToken))
+            return AuthorityVerdict.Denied("SelfDecision",
+                "Pemohon tidak boleh menyetujui, menolak, maupun mengotorisasi permintaannya sendiri.");
+
+        return await _approvalAuthority.HasEmergencyGrantAsync(userId, cancellationToken)
+            ? AuthorityVerdict.Granted
+            : AuthorityVerdict.Denied("NoEmergencyPermission",
+                "Otorisasi CITO hanya dapat dilakukan petugas yang penempatan jabatannya diberi " +
+                "izin StockRequest:AuthorizeEmergency secara eksplisit. Peran SuperAdmin saja " +
+                "tidak cukup.");
+    }
+
+    /// <summary>
+    /// Kewenangan verifikasi susulan CITO (<c>LGS-DEC-005</c>): bukan pemohon, bukan petugas yang
+    /// mengotorisasi CITO-nya, izin <c>StockRequest:Approve</c> eksplisit, dan atasan unit peminta.
+    /// </summary>
+    private async Task<AuthorityVerdict> EvaluateEmergencyVerifierAsync(PhmStockRequest entity,
+        PhmStockRequestHistory authorization, Guid userId, CancellationToken cancellationToken)
+    {
+        if (await IsRequesterAsync(entity, userId, cancellationToken))
+            return AuthorityVerdict.Denied("SelfReview",
+                "Pemohon tidak boleh memverifikasi otorisasi CITO atas permintaannya sendiri.");
+
+        if (authorization.ActorUserId == userId)
+            return AuthorityVerdict.Denied("AuthorizerReview",
+                "Petugas yang mengotorisasi CITO tidak boleh memverifikasi otorisasinya sendiri.");
+
+        if (!await _approvalAuthority.HasApproveGrantAsync(userId, cancellationToken))
+            return AuthorityVerdict.Denied("NoApprovePermission",
+                "Verifikasi susulan hanya dapat dilakukan atasan unit yang penempatan jabatannya " +
+                "diberi izin StockRequest:Approve secara eksplisit.");
+
+        var unit = await _approvalAuthority.CheckUnitAuthorityAsync(userId,
+            entity.RequestingServiceUnitId, cancellationToken);
+        return unit.IsAuthorized
+            ? AuthorityVerdict.Granted
+            : AuthorityVerdict.Denied($"Unit{unit.Reason}", unit.Message
+                ?? "Anda tidak berwenang memverifikasi permintaan unit ini.");
+    }
+
+    /// <summary>
+    /// Mencatat percobaan yang ditolak ke log audit — siapa, atas permintaan apa, aksi apa, dan
+    /// mengapa — lalu mengembalikan pengecualian untuk dilempar pemanggil.
+    /// </summary>
+    private async Task<StockRequestForbiddenException> DeniedAsync(PhmStockRequest entity,
+        string action, Guid actorUserId, AuthorityVerdict verdict)
+    {
+        await _loggerService.WarningAsync(LogCategory, "StockRequest.AuthorityDenied",
+            verdict.Message ?? "Tindakan atas permintaan stok ditolak karena kewenangan.",
+            new
+            {
+                entity.Id,
+                entity.RequestNumber,
+                entity.RequestingServiceUnitId,
+                Action = action,
+                verdict.ReasonCode,
+                ActorUserId = actorUserId
+            });
+
+        return new StockRequestForbiddenException(verdict.Message
+            ?? "Anda tidak berwenang melakukan tindakan ini.");
+    }
+
+    private static PhmStockRequestHistory? FindEmergencyAuthorization(PhmStockRequest entity) =>
+        entity.Histories
+            .Where(h => !h.IsDelete && h.Action == AuthorizeEmergencyAction)
+            .OrderBy(h => h.OccurredAt)
+            .FirstOrDefault();
+
+    private static PhmStockRequestHistory? FindEmergencyReview(PhmStockRequest entity) =>
+        entity.Histories
+            .Where(h => !h.IsDelete &&
+                        (h.Action == VerifyEmergencyConfirmedAction || h.Action == VerifyEmergencyDeviationAction))
+            .OrderBy(h => h.OccurredAt)
+            .FirstOrDefault();
+
+    private static StockRequestEmergencyReviewState ResolveEmergencyReviewState(
+        PhmStockRequestHistory? authorization, PhmStockRequestHistory? review) =>
+        review != null
+            ? review.Action == VerifyEmergencyDeviationAction
+                ? StockRequestEmergencyReviewState.Deviation
+                : StockRequestEmergencyReviewState.Confirmed
+            : authorization != null
+                ? StockRequestEmergencyReviewState.Pending
+                : StockRequestEmergencyReviewState.NotRequired;
 
     // ============================================ 3. buat permintaan
 
@@ -284,13 +635,26 @@ public sealed class StockRequestService
 
     // ============================================ perintah status
 
-    /// <summary>Mengirim permintaan ke gudang; sesudah ini isinya terkunci.</summary>
+    /// <summary>
+    /// Mengajukan permintaan untuk disetujui atasan unit; sesudah ini isinya terkunci.
+    /// </summary>
+    /// <remarks>
+    /// Permintaan CITO (<c>Emergency</c>) wajib menyertakan alasan darurat. Memilih CITO tidak
+    /// melewati persetujuan: permintaan tetap menunggu, hanya saja dapat diotorisasi lewat
+    /// jalur darurat oleh petugas berwenang (<c>LGS-DEC-002</c>).
+    /// </remarks>
     public async Task<StockRequestDetailResponse> SubmitAsync(Guid id,
         SubmitStockRequestRequest request, CancellationToken cancellationToken = default)
     {
         EnsureIdempotencyKey(request.IdempotencyKey);
         var actorUserId = GetCurrentUserId();
-        var fingerprint = Hash($"submit:{id}");
+        var emergencyReason = Normalize(request.EmergencyReason);
+
+        // Sidik jari lama dipertahankan untuk pengajuan tanpa alasan darurat, supaya kunci
+        // idempotensi yang tercatat sebelum perubahan ini tetap cocok saat dikirim ulang.
+        var fingerprint = emergencyReason == null
+            ? Hash($"submit:{id}")
+            : Hash($"submit:{id}|{emergencyReason}");
 
         var prior = await FindIdempotentAsync(SubmitAction, request.IdempotencyKey, cancellationToken);
         if (prior != null)
@@ -310,6 +674,10 @@ public sealed class StockRequestService
             throw new StockRequestUnprocessableException("PHM002",
                 "Permintaan tanpa satu pun item tidak dapat dikirim.");
 
+        if (entity.Priority == StockRequestPriority.Emergency && emergencyReason == null)
+            throw new StockRequestUnprocessableException("PHM014",
+                "Alasan CITO wajib diisi untuk permintaan darurat.");
+
         EnsureVersion(entity.Version, request.ExpectedVersion);
 
         var now = DateTime.UtcNow;
@@ -320,13 +688,14 @@ public sealed class StockRequestService
         entity.UpdateBy = actorUserId;
 
         _dbContext.PhmStockRequestHistories.Add(NewHistory(entity.Id, StockRequestStatus.Submitted,
-            StockRequestStatus.Draft, SubmitAction, null, request.IdempotencyKey, fingerprint,
-            actorUserId, now));
+            StockRequestStatus.Draft, SubmitAction,
+            entity.Priority == StockRequestPriority.Emergency ? emergencyReason : null,
+            request.IdempotencyKey, fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
         await _loggerService.AuditAsync(LogCategory, "StockRequest.Submit",
-            "Mengirim permintaan stok ke gudang.",
-            new { entity.Id, entity.RequestNumber, ActorUserId = actorUserId });
+            "Mengajukan permintaan stok untuk persetujuan atasan unit.",
+            new { entity.Id, entity.RequestNumber, entity.Priority, ActorUserId = actorUserId });
 
         return (await GetDetailAsync(id, cancellationToken))!;
     }
@@ -354,10 +723,12 @@ public sealed class StockRequestService
             ?? throw new KeyNotFoundException("Permintaan stok tidak ditemukan.");
 
         // Selama barangnya belum diserahkan, permintaan masih boleh dibatalkan peminta:
-        // kebutuhan unit dapat hilang setelah permintaan dikirim.
-        if (entity.Status is not (StockRequestStatus.Draft or StockRequestStatus.Submitted))
+        // kebutuhan unit dapat hilang setelah permintaan dikirim, juga setelah disetujui.
+        // Permintaan yang ditolak sudah tertutup dan tidak dibatalkan lagi.
+        if (entity.Status is not (StockRequestStatus.Draft or StockRequestStatus.Submitted
+            or StockRequestStatus.Approved))
             throw new StockRequestConflictException("PHM004",
-                "Permintaan yang sudah diserahkan atau sudah ditutup tidak dapat dibatalkan.");
+                "Permintaan yang sudah diserahkan, ditolak, atau sudah ditutup tidak dapat dibatalkan.");
 
         EnsureVersion(entity.Version, request.ExpectedVersion);
 
@@ -377,6 +748,268 @@ public sealed class StockRequestService
         return (await GetDetailAsync(id, cancellationToken))!;
     }
 
+    // ============================================ keputusan atasan dan jalur CITO
+
+    /// <summary>
+    /// Persetujuan atasan unit atas permintaan yang menunggu persetujuan (<c>LGS-DEC-002</c>).
+    /// </summary>
+    /// <remarks>
+    /// Izin <c>StockRequest:Approve</c> diperiksa di controller menurut kebijakan platform, lalu
+    /// diperiksa ulang di sini secara eksplisit terhadap penempatan jabatan (tidak ikut jalan
+    /// pintas SuperAdmin maupun saklar pengembangan). Di sini juga dijaga keadaan permintaan,
+    /// versi data, larangan menyetujui permintaan sendiri, dan kewenangan atas unit peminta:
+    /// hanya atasan unit (penempatan manajerial aktif pada unit organisasi yang ditautkan ke unit
+    /// layanan peminta, <c>LGS-DEC-003</c>) yang boleh memutus. Persetujuan tidak menyentuh stok;
+    /// saldo baru berubah saat gudang menyerahkan.
+    /// </remarks>
+    public Task<StockRequestDetailResponse> ApproveAsync(Guid id,
+        ApproveStockRequestRequest request, CancellationToken cancellationToken = default) =>
+        DecideAsync(id, ApproveAction, StockRequestStatus.Approved, Normalize(request.Note),
+            reasonRequired: false, emergencyOnly: false, request.ExpectedVersion,
+            request.IdempotencyKey, "StockRequest.Approve",
+            "Atasan unit menyetujui permintaan stok.", cancellationToken);
+
+    /// <summary>Penolakan atasan unit; alasannya wajib dan permintaan tidak dapat diproses lagi.</summary>
+    public Task<StockRequestDetailResponse> RejectAsync(Guid id,
+        RejectStockRequestRequest request, CancellationToken cancellationToken = default) =>
+        DecideAsync(id, RejectAction, StockRequestStatus.Rejected, Normalize(request.Reason),
+            reasonRequired: true, emergencyOnly: false, request.ExpectedVersion,
+            request.IdempotencyKey, "StockRequest.Reject",
+            "Atasan unit menolak permintaan stok.", cancellationToken);
+
+    /// <summary>
+    /// Otorisasi jalur CITO oleh petugas berwenang atas permintaan darurat yang menunggu.
+    /// </summary>
+    /// <remarks>
+    /// Izin <c>StockRequest:AuthorizeEmergency</c> diperiksa dua kali. Controller memeriksanya
+    /// menurut kebijakan platform, yang meloloskan SuperAdmin. Domain memeriksanya lagi tanpa
+    /// pengecualian: izin itu harus diberikan eksplisit kepada penempatan jabatan petugas
+    /// (<see cref="StockRequestApprovalAuthority.HasEmergencyGrantAsync"/>). Izin ini hanya
+    /// diberikan kepada jabatan operasional yang ditunjuk manajemen (<c>LGS-DEC-004</c>); sampai
+    /// ditunjuk, jalur CITO tertutup. Pemohon tetap tidak boleh mengotorisasi permintaannya
+    /// sendiri. Alasan wajib; identitas dan waktu otorisasi tercatat di riwayat. Otorisasi yang
+    /// sah membuat permintaan segera dapat diproses dan menunggu verifikasi susulan atasan unit
+    /// (<see cref="VerifyEmergencyAsync"/>).
+    /// </remarks>
+    public Task<StockRequestDetailResponse> AuthorizeEmergencyAsync(Guid id,
+        AuthorizeEmergencyStockRequestRequest request, CancellationToken cancellationToken = default) =>
+        DecideAsync(id, AuthorizeEmergencyAction, StockRequestStatus.Approved, Normalize(request.Reason),
+            reasonRequired: true, emergencyOnly: true, request.ExpectedVersion,
+            request.IdempotencyKey, "StockRequest.AuthorizeEmergency",
+            "Petugas berwenang mengotorisasi permintaan stok CITO.", cancellationToken);
+
+    private async Task<StockRequestDetailResponse> DecideAsync(Guid id, string action,
+        StockRequestStatus target, string? reason, bool reasonRequired, bool emergencyOnly,
+        int expectedVersion, string idempotencyKey, string auditEvent, string auditMessage,
+        CancellationToken cancellationToken)
+    {
+        EnsureIdempotencyKey(idempotencyKey);
+
+        if (reasonRequired && reason == null)
+            throw new StockRequestUnprocessableException("PHM015",
+                target == StockRequestStatus.Rejected
+                    ? "Alasan penolakan wajib diisi."
+                    : "Alasan otorisasi CITO wajib diisi.");
+
+        var actorUserId = GetCurrentUserId();
+        var fingerprint = Hash($"{action}:{id}|{reason}");
+
+        var prior = await FindIdempotentAsync(action, idempotencyKey, cancellationToken);
+        if (prior != null)
+        {
+            if (prior.StockRequestId != id)
+                throw new StockRequestConflictException("PHM013",
+                    "Idempotency key sudah dipakai untuk permintaan lain.");
+            EnsureSameFingerprint(prior.Source, fingerprint);
+            return (await GetDetailAsync(id, cancellationToken))!;
+        }
+
+        var entity = await LoadAsync(id, tracking: true, cancellationToken)
+            ?? throw new KeyNotFoundException("Permintaan stok tidak ditemukan.");
+
+        // Keputusan hanya sah sekali, dan hanya atas permintaan yang sedang menunggu. Upaya
+        // kedua — misalnya dua atasan menekan Setujui hampir bersamaan — ditolak di sini atau
+        // oleh token versi saat menyimpan.
+        if (entity.Status is StockRequestStatus.Approved or StockRequestStatus.Rejected)
+            throw new StockRequestConflictException("PHM018",
+                "Permintaan ini sudah diputuskan dan tidak dapat diputuskan ulang.");
+
+        if (entity.Status != StockRequestStatus.Submitted)
+            throw new StockRequestConflictException("PHM004",
+                "Hanya permintaan yang menunggu persetujuan yang dapat diputuskan.");
+
+        if (emergencyOnly && entity.Priority != StockRequestPriority.Emergency)
+            throw new StockRequestUnprocessableException("PHM017",
+                "Jalur otorisasi CITO hanya untuk permintaan berprioritas darurat.");
+
+        EnsureVersion(entity.Version, expectedVersion);
+
+        // Kewenangan domain, di atas izin controller. Tidak ikut jalan pintas SuperAdmin maupun
+        // saklar pengembangan (lihat StockRequestApprovalAuthority). Sumbernya hanya data server:
+        // akun yang login, penempatan jabatan, dan struktur organisasi — bukan isi permintaan.
+        var verdict = emergencyOnly
+            ? await EvaluateEmergencyAuthorizerAsync(entity, actorUserId, cancellationToken)
+            : await EvaluateDeciderAsync(entity, actorUserId, cancellationToken);
+
+        if (!verdict.Allowed)
+            throw await DeniedAsync(entity, action, actorUserId, verdict);
+
+        var now = DateTime.UtcNow;
+        var from = entity.Status;
+        entity.Status = target;
+        entity.DecidedAt = now;
+        entity.DecisionReason = reason;
+        entity.Version++;
+        entity.UpdateDateTime = now;
+        entity.UpdateBy = actorUserId;
+
+        _dbContext.PhmStockRequestHistories.Add(NewHistory(entity.Id, target, from, action,
+            reason, idempotencyKey, fingerprint, actorUserId, now));
+
+        // Satu simpanan: perubahan status dan riwayat masuk bersama, dijaga token versi. Bila
+        // keputusan lain tersimpan lebih dulu, simpanan ini gagal utuh (PHM012) dan tidak ada
+        // dua keputusan sah atas satu permintaan.
+        await SaveAsync(cancellationToken);
+        await _loggerService.AuditAsync(LogCategory, auditEvent, auditMessage,
+            new
+            {
+                entity.Id, entity.RequestNumber, entity.Priority, FromStatus = from, ToStatus = target,
+                Action = action, Reason = reason, OccurredAt = now, ActorUserId = actorUserId
+            });
+
+        return (await GetDetailAsync(id, cancellationToken))!;
+    }
+
+    // ============================================ verifikasi susulan CITO
+
+    /// <summary>
+    /// Verifikasi administratif susulan atas permintaan CITO yang diotorisasi lewat jalur
+    /// darurat (<c>LGS-DEC-005</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Dilakukan atasan unit peminta dengan izin <c>StockRequest:Approve</c> eksplisit. Pemohon
+    /// dan petugas yang mengotorisasi CITO tidak boleh memverifikasi permintaan yang sama.
+    /// </para>
+    /// <para>
+    /// Verifikasi <b>tidak mengubah status dan tidak menyentuh stok</b>, apa pun hasilnya. Temuan
+    /// penyimpangan tidak membatalkan atau membalik transaksi fisik yang sudah terjadi; ia
+    /// tercatat di riwayat dan log audit sebagai bahan tindak lanjut. Penelusuran tindak lanjut
+    /// (penanggung jawab, penyelesaian) belum memiliki tempat penyimpanan dan dicatat sebagai
+    /// blocker persistence.
+    /// </para>
+    /// <para>
+    /// Verifikasi hanya sah sekali. Versi permintaan ikut dinaikkan, sehingga dua verifikasi yang
+    /// berlangsung bersamaan tidak dapat sama-sama tersimpan.
+    /// </para>
+    /// </remarks>
+    public async Task<StockRequestDetailResponse> VerifyEmergencyAsync(Guid id,
+        VerifyEmergencyStockRequestRequest request, CancellationToken cancellationToken = default)
+    {
+        EnsureIdempotencyKey(request.IdempotencyKey);
+
+        if (!Enum.IsDefined(request.Outcome))
+            throw new StockRequestUnprocessableException("PHM011",
+                "Hasil verifikasi susulan tidak dikenal.");
+
+        var note = Normalize(request.Note);
+        if (request.Outcome == StockRequestEmergencyReviewOutcome.Deviation && note == null)
+            throw new StockRequestUnprocessableException("PHM008",
+                "Temuan penyimpangan wajib disertai catatan pemeriksaan.");
+
+        var action = request.Outcome == StockRequestEmergencyReviewOutcome.Deviation
+            ? VerifyEmergencyDeviationAction
+            : VerifyEmergencyConfirmedAction;
+
+        var actorUserId = GetCurrentUserId();
+        var fingerprint = Hash($"verify-emergency:{id}|{(int)request.Outcome}|{note}");
+
+        // Kunci yang sama dicari pada kedua hasil, supaya kunci yang dipakai ulang dengan hasil
+        // berbeda ditolak sebagai benturan, bukan diperlakukan sebagai verifikasi baru.
+        var prior = await FindIdempotentAsync(VerifyEmergencyConfirmedAction, request.IdempotencyKey,
+                        cancellationToken)
+                    ?? await FindIdempotentAsync(VerifyEmergencyDeviationAction, request.IdempotencyKey,
+                        cancellationToken);
+        if (prior != null)
+        {
+            if (prior.StockRequestId != id)
+                throw new StockRequestConflictException("PHM013",
+                    "Idempotency key sudah dipakai untuk permintaan lain.");
+            EnsureSameFingerprint(prior.Source, fingerprint);
+            return (await GetDetailAsync(id, cancellationToken))!;
+        }
+
+        var entity = await LoadAsync(id, tracking: true, cancellationToken)
+            ?? throw new KeyNotFoundException("Permintaan stok tidak ditemukan.");
+
+        var authorization = FindEmergencyAuthorization(entity)
+            ?? throw new StockRequestConflictException("PHM010",
+                "Permintaan ini tidak diotorisasi lewat jalur CITO, sehingga tidak memerlukan " +
+                "verifikasi susulan.");
+
+        if (FindEmergencyReview(entity) != null)
+            throw new StockRequestConflictException("PHM019",
+                "Verifikasi susulan untuk permintaan ini sudah tercatat dan tidak dapat diulang.");
+
+        EnsureVersion(entity.Version, request.ExpectedVersion);
+
+        var verdict = await EvaluateEmergencyVerifierAsync(entity, authorization, actorUserId,
+            cancellationToken);
+        if (!verdict.Allowed)
+            throw await DeniedAsync(entity, action, actorUserId, verdict);
+
+        var now = DateTime.UtcNow;
+
+        // Status sengaja tidak disentuh; yang naik hanya versi, sebagai penjaga verifikasi ganda.
+        entity.Version++;
+        entity.UpdateDateTime = now;
+        entity.UpdateBy = actorUserId;
+
+        _dbContext.PhmStockRequestHistories.Add(NewHistory(entity.Id, entity.Status, entity.Status,
+            action, note, request.IdempotencyKey, fingerprint, actorUserId, now));
+
+        await SaveAsync(cancellationToken);
+
+        var auditData = new
+        {
+            entity.Id, entity.RequestNumber, entity.RequestingServiceUnitId, Status = entity.Status,
+            Outcome = request.Outcome, Note = note, OccurredAt = now, ActorUserId = actorUserId,
+            AuthorizedByUserId = authorization.ActorUserId, AuthorizedAt = authorization.OccurredAt
+        };
+
+        await _loggerService.AuditAsync(LogCategory, "StockRequest.VerifyEmergency",
+            request.Outcome == StockRequestEmergencyReviewOutcome.Deviation
+                ? "Atasan unit mencatat temuan penyimpangan pada otorisasi CITO."
+                : "Atasan unit membenarkan otorisasi CITO.",
+            auditData);
+
+        // Temuan penyimpangan dinaikkan juga sebagai peringatan, supaya tertangkap pemantauan
+        // dan ditindaklanjuti — transaksinya sendiri tidak dihapus maupun dibalik.
+        if (request.Outcome == StockRequestEmergencyReviewOutcome.Deviation)
+            await _loggerService.WarningAsync(LogCategory, "StockRequest.EmergencyDeviation",
+                "Temuan penyimpangan pada otorisasi CITO memerlukan tindak lanjut.", auditData);
+
+        return (await GetDetailAsync(id, cancellationToken))!;
+    }
+
+    /// <summary>
+    /// Benar bila pengguna adalah pemohon permintaan: pembuatnya, pengirimnya, atau pemilik
+    /// akun dari profil petugas yang tercatat sebagai peminta.
+    /// </summary>
+    private async Task<bool> IsRequesterAsync(PhmStockRequest entity, Guid userId,
+        CancellationToken cancellationToken)
+    {
+        if (entity.CreateBy == userId) return true;
+
+        if (entity.Histories.Any(h => !h.IsDelete && h.ActorUserId == userId &&
+                                      (h.Action == CreateAction || h.Action == SubmitAction)))
+            return true;
+
+        return await _dbContext.Users.AsNoTracking()
+            .AnyAsync(u => u.Id == userId && u.WorkforceProfileId == entity.RequestedByWorkforceId,
+                cancellationToken);
+    }
+
     // ============================================ perintah gudang
 
     /// <summary>
@@ -386,13 +1019,16 @@ public sealed class StockRequestService
     /// <para>
     /// Ini satu-satunya perintah yang dimiliki gudang. Gudang tidak menyetujui dan tidak
     /// menolak permintaan; ia melihat apa yang diminta, lalu mencatat berapa yang benar-benar
-    /// diserahkan ketika depo mengambil. Karena itu penyerahan dilakukan langsung atas
-    /// permintaan yang berstatus Terkirim, tanpa keputusan apa pun sebelumnya.
+    /// diserahkan ketika depo mengambil. Sejak <c>LGS-DEC-002</c> penyerahan hanya sah atas
+    /// permintaan berstatus Disetujui. Satu-satunya pengecualian adalah aturan peralihan:
+    /// permintaan Submitted yang diajukan sebelum <see cref="ApprovalEnforcedFromConfigKey"/>
+    /// masih boleh diserahkan langsung, dan riwayatnya mencatat perpindahan Submitted →
+    /// Completed sehingga jalur itu selalu dapat ditelusuri.
     /// </para>
     /// <para>
     /// Perintah ini <b>mengurangi saldo gudang asal</b> dan menulis kartu stok, mengambil
     /// batch yang paling dekat kedaluwarsa lebih dahulu. Bila stoknya tidak mencukupi,
-    /// seluruh penyerahan dibatalkan dan permintaan tetap berstatus Terkirim — tidak ada
+    /// seluruh penyerahan dibatalkan dan status permintaan tidak berubah — tidak ada
     /// permintaan yang tertutup padahal barangnya tidak pernah keluar.
     /// </para>
     /// <para>
@@ -427,9 +1063,21 @@ public sealed class StockRequestService
         var entity = await LoadAsync(id, tracking: true, cancellationToken)
             ?? throw new KeyNotFoundException("Permintaan stok tidak ditemukan.");
 
-        if (entity.Status != StockRequestStatus.Submitted)
+        // LGS-DEC-002: gudang hanya menyerahkan permintaan yang sudah disetujui atasan unit
+        // atau diotorisasi lewat jalur CITO. Penjagaan ini di backend, bukan sekadar tombol
+        // yang dinonaktifkan di layar. Permintaan lama yang diajukan sebelum aturan ini
+        // berlaku tidak diblokir diam-diam: ia mengikuti aturan peralihan yang dikonfigurasi.
+        var legacySubmission = IsLegacySubmission(entity);
+
+        if (entity.Status == StockRequestStatus.Submitted && !legacySubmission)
+            throw new StockRequestConflictException("PHM016",
+                "Permintaan belum disetujui atasan unit, sehingga belum dapat diserahkan gudang.");
+
+        if (entity.Status != StockRequestStatus.Approved && !legacySubmission)
             throw new StockRequestConflictException("PHM004",
-                "Hanya permintaan yang sudah dikirim ke gudang yang dapat diserahkan.");
+                "Hanya permintaan yang sudah disetujui yang dapat diserahkan.");
+
+        var fromStatus = entity.Status;
 
         EnsureVersion(entity.Version, request.ExpectedVersion);
 
@@ -515,13 +1163,19 @@ public sealed class StockRequestService
         entity.UpdateBy = actorUserId;
 
         _dbContext.PhmStockRequestHistories.Add(NewHistory(entity.Id, StockRequestStatus.Completed,
-            StockRequestStatus.Submitted, FulfillAction, note, request.IdempotencyKey,
+            fromStatus, FulfillAction, note, request.IdempotencyKey,
             fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
         await _loggerService.AuditAsync(LogCategory, "StockRequest.Fulfill",
-            "Mencatat penyerahan barang atas permintaan stok.",
-            new { entity.Id, entity.RequestNumber, entity.ItemCount, ActorUserId = actorUserId });
+            legacySubmission
+                ? "Mencatat penyerahan barang atas permintaan stok lama dengan aturan peralihan."
+                : "Mencatat penyerahan barang atas permintaan stok.",
+            new
+            {
+                entity.Id, entity.RequestNumber, entity.ItemCount, FromStatus = fromStatus,
+                LegacyTransition = legacySubmission, ActorUserId = actorUserId
+            });
 
         return (await GetDetailAsync(id, cancellationToken))!;
     }
@@ -731,13 +1385,15 @@ public sealed class StockRequestService
         }
     }
 
-    private Guid GetCurrentUserId()
+    private Guid GetCurrentUserId() =>
+        TryGetCurrentUserId()
+        ?? throw new StockRequestForbiddenException("Identitas pengguna tidak valid.");
+
+    private Guid? TryGetCurrentUserId()
     {
         var value = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? _httpContextAccessor.HttpContext?.User.FindFirstValue("user_id");
-        if (!Guid.TryParse(value, out var id) || id == Guid.Empty)
-            throw new StockRequestForbiddenException("Identitas pengguna tidak valid.");
-        return id;
+        return Guid.TryParse(value, out var id) && id != Guid.Empty ? id : null;
     }
 
     private static string BuildFingerprint(Guid storageLocationId, StockRequestPriority priority,
@@ -776,8 +1432,15 @@ public sealed class StockRequestService
         ItemCount = x.ItemCount,
         Version = x.Version,
         IsEditable = x.Status == StockRequestStatus.Draft,
-        CanFulfill = x.Status == StockRequestStatus.Submitted,
-        CanCancel = x.Status is StockRequestStatus.Draft or StockRequestStatus.Submitted,
+        CanFulfill = x.Status == StockRequestStatus.Approved,
+        CanCancel = x.Status is StockRequestStatus.Draft or StockRequestStatus.Submitted
+            or StockRequestStatus.Approved,
+        CanApprove = x.Status == StockRequestStatus.Submitted,
+        CanAuthorizeEmergency = x.Status == StockRequestStatus.Submitted &&
+                                x.Priority == StockRequestPriority.Emergency,
+        IsPartiallyFulfilled = x.Status == StockRequestStatus.Completed &&
+                               x.Items.Any(i => !i.IsDelete && i.FulfilledQuantity != null &&
+                                                i.FulfilledQuantity < i.RequestedQuantity),
         Items = [.. x.Items.Where(i => !i.IsDelete).OrderBy(i => i.LineNumber)
             .Select(i => new StockRequestItemResponse
             {
@@ -800,7 +1463,8 @@ public sealed class StockRequestService
                 ToStatus = h.ToStatus,
                 Action = h.Action,
                 Reason = h.Reason,
-                OccurredAt = h.OccurredAt
+                OccurredAt = h.OccurredAt,
+                ActorUserId = h.ActorUserId
             })]
     };
 }

@@ -1,4 +1,4 @@
-# MASTER INSTRUKSI AGENT — REPAIR IMPLEMENTASI RIIL HRD MENU 12: PEMBERHENTIAN & PENSIUN
+﻿# MASTER INSTRUKSI AGENT — REPAIR IMPLEMENTASI RIIL HRD MENU 12: PEMBERHENTIAN & PENSIUN
 
 **Jenis dokumen:** Master prompt implementasi langsung, revisi atas `INSTRUKSI_AGENT_HRD_MENU_12_PEMBERHENTIAN_DAN_PENSIUN.md`; bukan laporan pekerjaan ataupun klaim hasil UAT.  
 **Tanggal dasar audit:** 16 November 2026.  
@@ -179,70 +179,70 @@ Tuntaskan Menu **Pemberhentian & Pensiun** sebagai proses nyata rumah sakit, buk
 
 | Urutan | ID usulan* | Prioritas | Pemilik area/scope nyata | Dependensi | Kaitan task canonical lama |
 |---|---|---|---|---|---|
-| B01 | `BE-HRD-334` | P0 | Audit-kontrak ringkas + adapter GET/paging data nyata enam Submenu | Governance/approved contract | `BE-HRD-014/282/284/285` |
-| B02 | `BE-HRD-335` | P0 | Actor identity, per-record access, permission dan audit yang tidak dapat dipalsukan | B01 | `BE-HRD-282/284/285` |
-| B03 | `BE-HRD-336` | P0 | One-separation owner, idempotensi, number series, transaction safety | B01, B02 | `BE-HRD-014/078/282/284` |
-| B04 | `BE-HRD-337` | P0 | Pengunduran diri: status, approval, handoff, persistence | B01–B03 | `BE-HRD-282` |
-| B05 | `BE-HRD-338` | P0 | Pensiun: policy, approval gate, handoff aman dan nomor sah | B01–B03 | `BE-HRD-282` |
-| B06 | `BE-HRD-339` | P1 | Akhir kontrak: list/filter riil, keputusan T16, nonrenewal handoff | B01–B03 | `BE-HRD-078/080/282` |
-| B07 | `BE-HRD-340` | P0 | Pemberhentian dan perhitungan/otorisasi pesangon authoritative | B01–B03 | `BE-HRD-282/283` |
-| B08 | `BE-HRD-341` | P0 | Serah Terima: task owner, verify, progress dan finalisasi persisten | B02, B03 | `BE-HRD-014` |
-| B09 | `BE-HRD-342` | P0 | Clearense: canonical owner, signoff per unit, kewajiban Finance, lock integration | B02, B03, B08 | `BE-HRD-014/284/285` |
-| B10 | `BE-HRD-343` | P0 | Pemeriksaan API/DB via service, concurrency, keselarasan 6 alur, report & retest | B04–B09 | `BE-HRD-285` |
+| B01 | `BE-HRD-364` | P0 | Audit-kontrak ringkas + adapter GET/paging data nyata enam Submenu | Governance/approved contract | `BE-HRD-014/282/284/285` |
+| B02 | `BE-HRD-365` | P0 | Actor identity, per-record access, permission dan audit yang tidak dapat dipalsukan | B01 | `BE-HRD-282/284/285` |
+| B03 | `BE-HRD-366` | P0 | One-separation owner, idempotensi, number series, transaction safety | B01, B02 | `BE-HRD-014/078/282/284` |
+| B04 | `BE-HRD-367` | P0 | Pengunduran diri: status, approval, handoff, persistence | B01–B03 | `BE-HRD-282` |
+| B05 | `BE-HRD-368` | P0 | Pensiun: policy, approval gate, handoff aman dan nomor sah | B01–B03 | `BE-HRD-282` |
+| B06 | `BE-HRD-369` | P1 | Akhir kontrak: list/filter riil, keputusan T16, nonrenewal handoff | B01–B03 | `BE-HRD-078/080/282` |
+| B07 | `BE-HRD-370` | P0 | Pemberhentian dan perhitungan/otorisasi pesangon authoritative | B01–B03 | `BE-HRD-282/283` |
+| B08 | `BE-HRD-371` | P0 | Serah Terima: task owner, verify, progress dan finalisasi persisten | B02, B03 | `BE-HRD-014` |
+| B09 | `BE-HRD-372` | P0 | Clearense: canonical owner, signoff per unit, kewajiban Finance, lock integration | B02, B03, B08 | `BE-HRD-014/284/285` |
+| B10 | `BE-HRD-373` | P0 | Pemeriksaan API/DB via service, concurrency, keselarasan 6 alur, report & retest | B04–B09 | `BE-HRD-285` |
 
 \* **USULAN/RESERVED IN THIS INSTRUCTION ONLY:** jangan mengklaim semua ID di atas sudah ada pada roadmap. Periksa dan sahkan sebelum Build Module sesuai rule.
 
 **Rincian BE yang wajib masuk ke tiap kartu task ketika registrasi disahkan:**
 
-#### BE-HRD-334 — Kontrak API, query dan database nyata
+#### BE-HRD-364 — Kontrak API, query dan database nyata
 
 - **Scope source:** `ResignationController/Service`, `RetirementController/Service`, `HrdEmploymentContractController/Service`, `EmployeeSeparationController/Service`, `OffboardingHandoverController/Service`, kedua controller/service Clearense serta DTO `ApiResponse<PagedResult<T>>` terkait.
 - **Implement:** cek `DbSet`, FK, predicate `IsDelete/IsActive`, master workforce, paging/filter/sort, query summary dan list, fields yang diperlukan tabel UI, data lifecycle yang sama di semua view; perbaiki parameter query sesuai pola controller, `pageNumber` vs `page`, `totalItems` vs `totalCount`, `Items` vs `Data`, dan response handling. Tambah read-only projection/metadata endpoint hanya bila diperlukan dan approved. Tidak membuat `seed` contoh untuk menyenangkan UI.
 - **Bukti selesai:** enam GET list + summary/detail mengembalikan data terstruktur dari EF query, semua `200 + []` benar-benar kosong, unauthorized `401/403`, unknown id `404`; lakukan validasi build BE. Laporan memuat method/tag/DTO/pagination sebenarnya, bukan bentuk tebak-tebakan.
 
-#### BE-HRD-335 — Identitas aktor, hak objek, audit
+#### BE-HRD-365 — Identitas aktor, hak objek, audit
 
 - **Scope source:** `ExitClearanceService.SignoffChecklistAsync`, `MultiDeptExitClearanceController`, `OffboardingHandoverService`, `ResignationRequestService`, `RetirementService`, `EmployeeSeparation` beserta mapping role.
 - **Implement:** hilangkan fallback identitas actor dari payload; derive principal server yang terverifikasi; tolak actor missing tanpa side-effect; pastikan pemegang role juga anggota unit/person/owner yang boleh melakukan tindakan pada **record tertentu**. Status `AvailableActions` dari server jika tersedia, tanpa mengarang claim baru. Cek self-approval, privilege escalation, multi-department, audit actor dan timestamp; tangani `401`, `403`, `404`, `409`, `422` sesuai kontrak. Jangan memperluas izin hanya agar tombol bekerja.
 - **Bukti selesai:** user unit A ditolak menandatangani item unit B, user tanpa hak tidak bisa memfinalisasi, tidak ada fallback `ApproverUserId` browser, audit sesudah mutasi sesuai session actor.
 
-#### BE-HRD-336 — Aggregate exit event, idempotensi, number series
+#### BE-HRD-366 — Aggregate exit event, idempotensi, number series
 
 - **Scope source:** `ResignationLifecycleHandoffService`, `RetirementService.HandoffAsync`, `HrdEmploymentContractService`, `EmployeeSeparationService`, offboarding/clearance service, `HrdNumberSeriesService` (jika owner mendukung) dan entity FK relevan.
 - **Implement:** tentukan separation canonical dan linking key idempoten; satu event yang sama tak boleh diproses oleh dua jalur hingga dua separation/clearance. Gunakan transaction boundary sesuai QBE, token/idempotency key atau unique invariant yang sesuai kontrak, anti double-submit/race, nomor unik disediakan server, bukan `new Random()`, `Count+1`, atau browser. Jika constraint DB baru diperlukan, jangan membuat/menjalankan migration tanpa otorisasi; implement source independen dan laporkan gap schema.
 - **Bukti selesai:** retry, dua tab, dua actor, response timeout lalu retry tidak menggandakan case; nomor tidak bentrok; FK/identitas jelas; alur yang membutuhkan migration diberi status BLOCKED, bukan dicatat PASS.
 
-#### BE-HRD-337 — Pengunduran diri end-to-end
+#### BE-HRD-367 — Pengunduran diri end-to-end
 
 - **Implement:** validasi profile/notice/status; workflow draf/submit/approve/reject/cancel sesuai keputusan; auth admin vs ESS, timeline audit, hanya approval sah dapat handoff, create offboarding yang sama tidak mengganda, status pegawai tetap benar sampai tanggal efektif. Gunakan controller, DTO, service yang ada.
 - **Bukti selesai:** API create/review/reject/handoff mengembalikan persisted record; error role/date/status ditolak, refetch konsisten; bukti data existing dan newly created di lingkungan dev yang sah.
 
-#### BE-HRD-338 — Pensiun end-to-end
+#### BE-HRD-368 — Pensiun end-to-end
 
 - **Implement:** baca kebijakan retirement owner, hilangkan usia/hari default hardcoded pada keputusan bisnis, aktifkan validasi jenis pensiun/kategori/status dan approval gate, terbitkan `RET-` dari number series aman, linked separation/clearance idempotent, employee eligibility berdasarkan DOB master. Bila kebijakan belum sah, blokir keputusan usia otomatis tetapi jangan menghapus kemampuan baca.
 - **Bukti selesai:** employee under-age tidak auto-final; detail & summary konsisten setelah refresh; tidak ada handoff dari `Planned`; nomor & FK benar; tak ada `new Random().Next` untuk nomor bisnis.
 
-#### BE-HRD-339 — Akhir kontrak nyata
+#### BE-HRD-369 — Akhir kontrak nyata
 
 - **Implement:** extend owner `HrdEmploymentContractService` untuk data kontrak yang akan berakhir dan `HrdContractDecision` yang sudah ada; pastikan pilihan jenis keputusan cocok enum/contract; verifikasi batas PKWT dari sumber resmi existing, workflow T16, catat notifikasi. Integrasikan `NotRenew` ke separation hanya setelah sah dan tanggal efektif. `Extend`/`Promote` tidak boleh men-trigger clearance.
 - **Bukti selesai:** data/filter tanggal dari DB, hasil fixed-term-check server, perubahan keputusan persist, tidak ada kontrak ganda atau nonrenewal palsu.
 
-#### BE-HRD-340 — Pemberhentian + kompensasi
+#### BE-HRD-370 — Pemberhentian + kompensasi
 
 - **Implement:** periksa `EmployeeSeparationService` & `SeveranceCalculationEngine` untuk rule, wage source, legal status, state transition, approve finance, audit, pemetaan role; pastikan finansial tidak diambil dari contoh UI; larang finalisasi sengketa atau belum sah dan cegah duplikasi lintas jenis separation. Dokumentasikan apakah API `calculate-severance` menyimpan snapshot DB atau hanya simulasi server dan bedakan jelas hasilnya; persetujuan Finance harus punya persistence yang nyata.
 - **Bukti selesai:** hasil breakdown berasal dari engine BE sesuai tipe kasus/policy; angka tidak bisa dipalsukan dengan payload terlarang; approval finance multi-role/negative test terlacak; GET kembali sama setelah reload.
 
-#### BE-HRD-341 — Serah Terima
+#### BE-HRD-371 — Serah Terima
 
 - **Implement:** mengaitkan checklist real ke separation canonical, permission per penanggung jawab, status task yang sah, keunikan kode task, kategori, target date, bukti yang aman, penghitungan progress/required item; finalisasi hanya setelah seluruh butir wajib dan verifikasi sah. Pertahankan `WfpOffboarding*`; tidak membuat entity paralel.
 - **Bukti selesai:** dua akun berwenang mendapatkan hasil sama, unauthorized 403, transisi tidak sah 409/422, selesai 100% hanya jika syarat terpenuhi.
 
-#### BE-HRD-342 — Clearense multi-departemen dan lock server
+#### BE-HRD-372 — Clearense multi-departemen dan lock server
 
 - **Implement:** putuskan canonical owner berbasis source & approved contract sebelum menghubungkan dua model clearance; buat adapter bila perlu. Sign-off pakai actor server & unit-assignment, finance liability dari sumber resminya, complete dengan checklist required + audit, outcome ke identity/payroll sesuai kontrak. Bila external integration belum tersedia, tandai pending authoritative, jangan buat success placeholder. `isFinalPayrollUnlocked` tidak boleh ditafsirkan sebagai transfer uang sudah dilakukan.
 - **Bukti selesai:** 5-unit (atau konfigurasi unit resmi yang dipakai RS) di-read dari server; signoff lintas unit ditolak; outstanding liability menahan tindakan yang memang disyaratkan; case selesai hanya jika semua gating yang sah terpenuhi; tidak ada clearance ganda.
 
-#### BE-HRD-343 — Gerbang validasi Backend sebelum Frontend
+#### BE-HRD-373 — Gerbang validasi Backend sebelum Frontend
 
 - **Implement:** verifikasi query/API sesungguhnya, build aplikasi utama, schema readiness dengan metadata/migration status **tanpa eksekusi database langsung**, request sukses & gagal di environment test yang authorized, audit persistence melalui API GET sesudah reload/re-login, negative permission, concurrency dan idempotensi. Buat **API-to-UI contract sheet** final yang disimpan di report task/blueprint yang diizinkan: method, URL, query, enum, DTO fields, envelope, paging, `AvailableActions`, status 400/401/403/404/409/422, state transition.
 - **Bukti selesai:** tujuh kelompok API (resign, retirement, contract, separation, handover, lifecycle-clearance, relation-clearance) diverifikasi source & runtime bila lingkungan tersedia. Jika schema/DB runtime belum siap, catat `BACKEND_RUNTIME_BLOCKED` dan **jangan mengizinkan frontend mengklaim integrated PASS**.
@@ -251,60 +251,60 @@ Tuntaskan Menu **Pemberhentian & Pensiun** sebagai proses nyata rumah sakit, buk
 
 | Urutan | ID usulan* | Prioritas | Pemilik area/scope nyata | Dependensi Backend | Kaitan task canonical lama |
 |---|---|---|---|---|---|
-| F01 | `FE-HRD-306` | P0 | Service/adapter error+paging, anti-fallback seluruh Menu 12 | `BE-HRD-334/343` | `FE-HRD-257/259` |
-| F02 | `FE-HRD-307` | P0 | UI Pengunduran Diri data nyata dan aksi sah | `BE-HRD-337` | `FE-HRD-257` |
-| F03 | `FE-HRD-308` | P0 | UI Pensiun kandidat dan kasus riil | `BE-HRD-338` | `FE-HRD-257` |
-| F04 | `FE-HRD-309` | P1 | UI Akhir Kontrak real data | `BE-HRD-339` | `FE-HRD-064` |
-| F05 | `FE-HRD-310` | P0 | UI Pemberhentian & server-only severance | `BE-HRD-340` | `FE-HRD-257/258` |
-| F06 | `FE-HRD-311` | P0 | UI Serah Terima dan progres nyata | `BE-HRD-341` | `FE-HRD-017` |
-| F07 | `FE-HRD-312` | P0 | UI Clearense dan payroll lock authoritative | `BE-HRD-342` | `FE-HRD-017/259/260` |
-| F08 | `FE-HRD-313` | P1 | Navigasi, base component, role, loading/error/empty, responsive | F01–F07 | `FE-HRD-017/247` |
-| F09 | `FE-HRD-314` | P0 | UAT browser 30 test, retest, integrasi UI API, report | F01–F08 | `FE-HRD-260` |
+| F01 | `FE-HRD-328` | P0 | Service/adapter error+paging, anti-fallback seluruh Menu 12 | `BE-HRD-364/343` | `FE-HRD-257/259` |
+| F02 | `FE-HRD-329` | P0 | UI Pengunduran Diri data nyata dan aksi sah | `BE-HRD-367` | `FE-HRD-257` |
+| F03 | `FE-HRD-330` | P0 | UI Pensiun kandidat dan kasus riil | `BE-HRD-368` | `FE-HRD-257` |
+| F04 | `FE-HRD-331` | P1 | UI Akhir Kontrak real data | `BE-HRD-369` | `FE-HRD-064` |
+| F05 | `FE-HRD-332` | P0 | UI Pemberhentian & server-only severance | `BE-HRD-370` | `FE-HRD-257/258` |
+| F06 | `FE-HRD-333` | P0 | UI Serah Terima dan progres nyata | `BE-HRD-371` | `FE-HRD-017` |
+| F07 | `FE-HRD-334` | P0 | UI Clearense dan payroll lock authoritative | `BE-HRD-372` | `FE-HRD-017/259/260` |
+| F08 | `FE-HRD-335` | P1 | Navigasi, base component, role, loading/error/empty, responsive | F01–F07 | `FE-HRD-017/247` |
+| F09 | `FE-HRD-336` | P0 | UAT browser 30 test, retest, integrasi UI API, report | F01–F08 | `FE-HRD-260` |
 
 \* Sama seperti backend, ID di atas **nomor USULAN pada instruksi, bukan ID canonical yang sudah approved**. Agent hanya memakai nomor yang disahkan/tersedia saat Build Module; nomor yang bentrok wajib direkonsiliasi dulu.
 
-#### FE-HRD-306 — Adapter API riil, anti mock dan state
+#### FE-HRD-328 — Adapter API riil, anti mock dan state
 
 - **File utama:** `src/lib/services/hr/separation-service.js`; hook state per Submenu bila mengikuti pola repo; view existing enam halaman.
 - **Implement:** cocokkan `InstanceAxios` base URL + prefiks `/v1` dengan `[Route("api/v1/...")]` BE, bentuk response `ApiResponse<T>`, list normalizer per endpoint, query `pageNumber`, `pageSize`, keyword/filter, sort dari server, summary total, `AbortController`/stale response guard. Hapus `DEFAULT_FALLBACK_*` pada semua view, sample item dan local fake mutation. Buat helper error mapping *dengan pola existing*, bukan HTTP client baru; selalu tampilkan pesan Backend/HTTP yang aman ke pengguna dan tombol Retry.
 - **Bukti selesai:** API 200+empty -> tabel empty, API 500/403 -> error/denied, failed POST -> no success/no row, pending state disable duplicate submit. Dua unit yang sama tidak membuat daftar palsu.
 
-#### FE-HRD-307 — Pengunduran Diri
+#### FE-HRD-329 — Pengunduran Diri
 
 - **Implement:** susun list+filter real, detail/timeline, grouped editor create, modal approve/reject/handoff sesuai permission; resource pegawai live; render status dari enum BE; refetch setelah berhasil. Tidak ada hardcode contoh.
 - **Bukti selesai:** UAT create + decision + reload + role negatif, CSS checker 0 temuan.
 
-#### FE-HRD-308 — Pensiun
+#### FE-HRD-330 — Pensiun
 
 - **Implement:** dua tab kasus/eligible berdata API, policy banner, filter usia/tanggal yang sah, create+approve+handoff, disable bila age policy tidak terkonfigurasi, bukti relasi separation setelah selesai. Jangan hardcode 58.
 - **Bukti selesai:** eligible riil dari master, empty/error jujur, sesuai API.
 
-#### FE-HRD-309 — Akhir Kontrak
+#### FE-HRD-331 — Akhir Kontrak
 
 - **Implement:** list PKWT riil, filter horizon, decision + validation result server, riwayat, link kontrak, notify, loading/error/409, decision refetch.
 - **Bukti selesai:** filter dan keputusan persist, tidak ada simulasi fixed-term check.
 
-#### FE-HRD-310 — Pemberhentian
+#### FE-HRD-332 — Pemberhentian
 
 - **Implement:** list/summary, form inisiasi, legal status/detail, severance server-only, modal rincian dari engine, finance approval hanya berizin, audit timeline. Tidak ada contoh gaji/pesangon sebagai nilai final.
 - **Bukti selesai:** calculation API failed -> no fictional value; unauthorized -> no approval.
 
-#### FE-HRD-311 — Serah Terima
+#### FE-HRD-333 — Serah Terima
 
 - **Implement:** list, detail checklist per item, step submit/verify/return, progress dari server, modal reason/bukti, linked separation, status & actor timestamp; invalid action server ditolak tanpa local update.
 - **Bukti selesai:** hasil berubah hanya sesudah server sukses, lalu survive reload.
 
-#### FE-HRD-312 — Clearense
+#### FE-HRD-334 — Clearense
 
 - **Implement:** daftar + matriks lintas unit dari API owner, separation picker, finance status dan lock yang jelas, action signoff hanya untuk unit berwenang, finalisasi setelah semua gate server true, audit; tidak ada actor ID browser, `proc-demo`, atau `setLockStatus(false)` dalam catch.
 - **Bukti selesai:** role unit B tidak bisa signoff unit A, lock status tidak berubah saat API error, refresh sama.
 
-#### FE-HRD-313 — Konsistensi UI/menu
+#### FE-HRD-335 — Konsistensi UI/menu
 
 - **Implement:** pertahankan 6 route dan label; tambah active breadcrumb/permission guard, jaga legacy route; gunakan `Hero`, `SummaryGrid`, `DataFilter`, `DataTable`, `Pagination`, `StatusBadge`, `ConfirmModal`, `BaseDetailView`, `BaseGroupedEditorView`, keluarga `BaseFormControl`, `ResourceFilterSelect`, `ToastStack`, `AccessDeniedGate`. Jalankan Base Component Decision Gate per elemen, design tokens + Poppins; detail responsive desktop/tablet/mobile, screenshot & CSS checker. Jangan Tailwind, CSS hex, modal mentah atau raw UUID.
 - **Bukti selesai:** lint, CSS usage 0, screenshot 6 halaman pada breakpoint wajib, error/empty/403 terlihat, menu lama tidak rusak.
 
-#### FE-HRD-314 — UAT integrasi live dan regresi
+#### FE-HRD-336 — UAT integrasi live dan regresi
 
 - **Implement:** headed Chromium di staging/local aman, UAT `UAT-M12-01` s.d. `UAT-M12-30`; verifikasi network API dan perubahan state yang benar-benar ter-persist, laporan screenshot dan hasil. Retest setiap FAIL dalam scope; jika environment tidak tersedia, catat `UAT NOT RUN` dan tidak mengklaim lulus.
 - **Bukti selesai:** hasil eksekusi dengan timestamp, role, URL, HTTP code, screenshot, bukti persisted, status PASS/FAIL/BLOCKED per test, tanpa data sensitif.
@@ -315,55 +315,55 @@ Tuntaskan Menu **Pemberhentian & Pensiun** sebagai proses nyata rumah sakit, buk
 [Preflight governance + kontrak approved + ID task sah]
                    |
                    v
-            BE-HRD-334 (real query/API)
+            BE-HRD-364 (real query/API)
                    |
                    v
-            BE-HRD-335 (actor/security)
+            BE-HRD-365 (actor/security)
                    |
                    v
-            BE-HRD-336 (number/idempotency/aggregate)
+            BE-HRD-366 (number/idempotency/aggregate)
                    |
        +-----------+-----------+---------------+
        |           |           |               |
        v           v           v               v
-  BE-HRD-337  BE-HRD-338  BE-HRD-339      BE-HRD-340
+  BE-HRD-367  BE-HRD-368  BE-HRD-369      BE-HRD-370
   Resign      Retirement   Contract        Termination
        |           |           |               |
        +-----------+-----------+---------------+
                    |
                    v
-            BE-HRD-341 (handover)
+            BE-HRD-371 (handover)
                    |
                    v
-            BE-HRD-342 (clearance + payroll/IT)
+            BE-HRD-372 (clearance + payroll/IT)
                    |
                    v
-            BE-HRD-343 (API contract/runtime GATE)
+            BE-HRD-373 (API contract/runtime GATE)
                    |
            BACKEND GATE PASS
                    |
                    v
-            FE-HRD-306 (service anti-mock)
+            FE-HRD-328 (service anti-mock)
                    |
        +-----------+-----------+---------------+
        |           |           |               |
        v           v           v               v
-  FE-HRD-307  FE-HRD-308  FE-HRD-309      FE-HRD-310
+  FE-HRD-329  FE-HRD-330  FE-HRD-331      FE-HRD-332
   Resign       Pensiun     Kontrak         PHK
        |           |           |               |
        +-----------+-----------+---------------+
                    |
                    v
-            FE-HRD-311 (handover)
+            FE-HRD-333 (handover)
                    |
                    v
-            FE-HRD-312 (clearense)
+            FE-HRD-334 (clearense)
                    |
                    v
-            FE-HRD-313 (menu, UX, responsive)
+            FE-HRD-335 (menu, UX, responsive)
                    |
                    v
-            FE-HRD-314 (UAT 30 skenario)
+            FE-HRD-336 (UAT 30 skenario)
 ```
 
 Grafik ini **grafik instruksi usulan**, bukan pengganti grafik canonical roadmap. Pada registrasi resmi, salin/rekonsiliasi ketergantungan sesuai format `rules/rule-output/grafik-dependency-roadmap.md` tanpa mengubah dependency approved secara sepihak. Bila per-task dependency tidak saling terkait, Agent boleh menuntaskan task independen sesuai aturan, tetapi **Frontend tidak boleh diklaim selesai sebelum Backend yang dipakai valid**.

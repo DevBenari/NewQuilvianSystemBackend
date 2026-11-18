@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -44,13 +45,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly PayrollSalaryRangeRuleService _salaryRangeRule;
 
         public SalaryStructureController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            PayrollSalaryRangeRuleService salaryRangeRule)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _salaryRangeRule = salaryRangeRule;
         }
 
         [HttpGet("filters/metadata")]
@@ -289,6 +293,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             if (!validation.IsValid)
                 return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage ?? "Data salary structure tidak valid."));
 
+            // PAY-BE-15: batas struktur wajib di dalam rentang grade (SR-01..SR-03).
+            var rangeCheck = await _salaryRangeRule.ValidateStructureAsync(
+                request.SalaryGradeId, request.DefaultBaseSalary, request.MinimumBaseSalary, request.MaximumBaseSalary, cancellationToken);
+
+            if (!rangeCheck.IsValid)
+                return BadRequest(ApiResponse<object>.Fail(rangeCheck.StatusCode, rangeCheck.Message ?? "Batas gaji struktur di luar rentang grade."));
+
             var now = DateTime.UtcNow;
             var actor = GetCurrentUserId();
 
@@ -364,6 +375,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
             if (!validation.IsValid)
                 return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage ?? "Data salary structure tidak valid."));
+
+            // PAY-BE-15: batas struktur wajib di dalam rentang grade (SR-01..SR-03).
+            var rangeCheck = await _salaryRangeRule.ValidateStructureAsync(
+                request.SalaryGradeId, request.DefaultBaseSalary, request.MinimumBaseSalary, request.MaximumBaseSalary, cancellationToken);
+
+            if (!rangeCheck.IsValid)
+                return BadRequest(ApiResponse<object>.Fail(rangeCheck.StatusCode, rangeCheck.Message ?? "Batas gaji struktur di luar rentang grade."));
 
             var now = DateTime.UtcNow;
             var actor = GetCurrentUserId();

@@ -13,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Services;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Configuration.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Services;
@@ -63,6 +64,7 @@ using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services;
@@ -435,6 +437,9 @@ try
     // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run (kini milik modul Payroll).
     builder.Services.AddScoped<PayrollInstallmentDeductionService>();
     builder.Services.AddScoped<PayrollCalculationService>();
+    // Penyiapan profil payroll otomatis dari data HRD tanpa impor CSV (PAY-BE-24): dipanggil di dalam transaksi buka dan hitung payroll run.
+    builder.Services.AddScoped<PayrollHrdSourceReader>();
+    builder.Services.AddScoped<PayrollProfileProvisioningService>();
     builder.Services.AddScoped<PayrollRunService>();
     // BE-FIN-111: Layanan restitusi salah potong cicilan piutang RS ke slip gaji periode berikutnya.
     builder.Services.AddScoped<PayrollRestitutionService>();
@@ -446,6 +451,16 @@ try
     builder.Services.AddScoped<PayrollPayslipService>();
     builder.Services.AddScoped<PayrollMedicalFeeIntakeService>();
     builder.Services.AddScoped<PayrollReportService>();
+    // PAY-BE-15: batas gaji struktur di dalam rentang grade (SR-01..SR-04), murni baca.
+    builder.Services.AddScoped<PayrollSalaryRangeRuleService>();
+    // PAY-BE-16: tunjangan tetap per struktur gaji (SA-01..SA-07).
+    builder.Services.AddScoped<PayrollSalaryStructureAllowanceService>();
+    // PAY-BE-19: penghasilan variabel manual per run (VI-01..VI-09, VI-12); nomor PVI dari NumberSeriesAllocator.
+    builder.Services.AddScoped<PayrollVariableInputService>();
+    // PAY-BE-21: simulasi payroll di transaksi yang selalu dibatalkan (SIM-01..SIM-03); tanpa impor HR, Finance, number series.
+    builder.Services.AddScoped<PayrollSimulationService>();
+    // Kelengkapan data payroll per pegawai dan dokter (profil, penetapan gaji, rekening dari HRD); murni baca, tanpa impor.
+    builder.Services.AddScoped<PayrollDataReadinessService>();
     // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
     builder.Services.AddScoped<FinanceReceivableClearanceService>();
     // BE-FIN-112/BE-FIN-113: Notifikasi pemisahan pegawai ke Finance (INT-HR-FIN-003 §P.5).
@@ -1052,6 +1067,10 @@ try
     // RM BE-45: probe kelengkapan poli Rehabilitasi Medik (RM-DEC-087), persetujuan pemilik Rehab Medik RM-DEC-090.
     builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<RhbMedicalRecordDocumentSource>());
 
+    // PBJ-BP-001 — Pengadaan Barang & Jasa (prefix Prc, PBJ-DEC-035). Seluruh service modul ini
+    // didaftarkan di ProcurementManagementServiceCollectionExtensions.
+    builder.Services.AddProcurementManagement();
+
     // OPT-BP-001, BE-OPT-004. Nomor dokumen Optik (OPT-EXM/RX/ORD/CLM-RSMMC-) lewat NumberSeriesAllocator
     // (QBE-CODE-006) dan pembaca izin praktik per tanggal kalender WIB (OPT-DEC-012).
     builder.Services.AddScoped<OptNumberService>();
@@ -1096,6 +1115,14 @@ try
     builder.Services.AddScoped<NvwDeviceContextService>();
     builder.Services.AddScoped<NvwFloorBoardQueryService>();
     builder.Services.AddScoped<NvwRealtimeService>();
+    builder.Services.AddScoped<NvwBedTabletService>();
+    builder.Services.AddScoped<NvwPatientCallWaitThresholdService>();
+    builder.Services.AddScoped<NvwPatientCallQueryService>();
+    builder.Services.AddScoped<NvwBedTabletContextService>();
+    builder.Services.AddScoped<NvwPatientCallService>();
+    builder.Services.AddScoped<NvwPatientCallReconciliationService>();
+
+    builder.Services.AddAssetManagement(builder.Configuration);
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
@@ -1115,6 +1142,8 @@ try
     builder.Services.AddScoped<HumanResourceContextService>();
     builder.Services.AddScoped<EmployeeProfileChangeService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WorkforceCoreCrossEmployeeQueryService>();
+    // Workforce Core - kelengkapan dan impor data penggajian (penetapan gaji utama dan rekening payroll) yang dikelola HRD.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WorkforcePayrollDataService>();
     // Workforce Core - Unified SK Kepegawaian, Employee 360, & Initial Batch Placement (BE-HRD-024..027)
     builder.Services.AddScoped<IHrdPersonnelActionOrderService, HrdPersonnelActionOrderService>();
     builder.Services.AddScoped<IHrdEmployee360Service, HrdEmployee360Service>();
@@ -1303,9 +1332,12 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.SchedulingSettingService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.IRosterValidationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.RosterValidationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.RosterValidationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.HrdUnitScopeService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.RosterPeriodService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ShiftReplacementService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ShiftAssignmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ShiftRevisionRecorder>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.TemporaryPlacementRosterImpactService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallAssignmentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallCompensationHandoffService>();
 
@@ -1829,6 +1861,7 @@ try
         builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
         builder.Services.AddHostedService<InpatientIntegrationOutboxWorker>();
         builder.Services.AddHostedService<EmergencyTriageSlaMonitorHostedService>();
+        builder.Services.AddHostedService<NvwPatientCallReconciliationHostedService>();
         builder.Services.AddHostedService<AttendanceSchedulerHostedService>();
         builder.Services.AddHostedService<AccRecurringJournalSchedulerHostedService>();
         builder.Services.AddHostedService<AccAccountingEventSchedulerHostedService>();
@@ -1977,6 +2010,16 @@ try
             policy.RequireAssertion(context =>
                 context.User.HasClaim(claim =>
                     claim.Type == NvwDeviceContextService.DeviceIdClaim &&
+                    !string.IsNullOrWhiteSpace(claim.Value)));
+        });
+
+        options.AddPolicy(AuthorizationPolicies.NurseViewBedTabletAccess, policy =>
+        {
+            policy.RequireAuthenticatedUser();
+
+            policy.RequireAssertion(context =>
+                context.User.HasClaim(claim =>
+                    claim.Type == NvwBedTabletContextService.TabletIdClaim &&
                     !string.IsNullOrWhiteSpace(claim.Value)));
         });
     });
@@ -2856,6 +2899,14 @@ try
         // dan tanpa profesi sampai admin memetakan profesi HR) serta peta jenis instrumen asesmen.
         // Idempoten — baris yang sudah ada atau sudah dihapus admin tidak diisi ulang.
         await RunStartupSeederAsync("RehabilitationMasterDataSeeder", () => RehabilitationMasterDataSeeder.SeedAsync(app.Services));
+
+        // PBJ-BP-001, BE-PBJ-003. Data awal master Pengadaan: empat jenis pengadaan, kategori UMUM,
+        // dan sumber dana OPERASIONAL/INVESTASI. Idempoten; data yang diubah atau dihapus admin tidak diisi ulang.
+        await RunStartupSeederAsync("ProcurementMasterDataSeeder", () => QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Seeders.ProcurementMasterDataSeeder.SeedAsync(app.Services));
+
+        // PBJ-BP-001, BE-PBJ-005. Kerangka lima definisi approval Pengadaan pada mesin workflow bersama,
+        // dibuat TIDAK AKTIF sampai admin mengisi jabatan penyetuju sesuai SOP (PBJ-OQ-019). Idempoten.
+        await RunStartupSeederAsync("ProcurementWorkflowDefinitionSeeder", () => QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Seeders.ProcurementWorkflowDefinitionSeeder.SeedAsync(app.Services));
 
         // MCU-BP-001, BE-MCU-004. Kategori kelayakan dan jenis Pemeriksaan MCU USULAN — bertanda
         // belum diratifikasi pada keterangannya (MCU-OQ-002/003). Idempoten; isian yang sudah

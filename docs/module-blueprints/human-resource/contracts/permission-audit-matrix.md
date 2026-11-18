@@ -1602,3 +1602,143 @@ Seluruh perubahan siklus, penyesuaian skor kalibrasi, penerbitan kontrak pembina
 | `HRD_TRV_ROSTER_LOCK_APPLIED` | Pemasangan gembok hard-stop roster dinas bangsal | `EmployeeId`, `RestrictedDates`, `WardUnitId` | Keselamatan Pasien |
 | `HRD_EXP_CLAIM_SUBMITTED` | Staf mengajukan klaim operasional non-trip | `ExpenseClaimNumber`, `EmployeeId`, `TotalAmount`, `CategoryId`| Normal |
 | `HRD_EXP_CLAIM_PAID` | Kasir mencairkan klaim operasional non-trip | `ExpenseClaimNumber`, `PaidAmount`, `VoucherNumber`, `CashierId` | Finansial Kritis |
+
+---
+
+## 30. Matriks Hak Akses & Audit Amandemen `S-B4`/`S-B1` (`A52`, kontrak `v26`, 12 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `contract_version` | `v26` — `approved` (pengguna, 12 November 2026) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| `input_revision` | `00-interview-decisions.md` revision `37`; `02-backend-architecture.md` bagian 35 |
+| Aturan string | Argumen pertama `[AccessPermission]` sama persis dengan `ControllerName`; argumen kedua sama dengan argumen pertama `[AccessAction]` (`evidence/03-hr-authorization-remediation.md` bagian 2.1) |
+| Selisih dengan kontrak `v10` | String `v10` bagian 14 (`HrdScheduling`, `HrdOnCall`, `HrdSchedulingSetting`) tidak dipakai kode. Kontrak `v26` memakai string kode yang berlaku |
+
+### 30.1 String hak akses
+
+| Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
+| --- | --- | --- | --- | :---: |
+| `GET roster-periods/{id}/revisions` | `RosterPeriod` | `Read` | `[AccessPermission("RosterPeriod", "Read")]` | Tidak |
+| `POST roster-periods/{id}/assignments` | `RosterPeriod` | `Create` | `[AccessPermission("RosterPeriod", "Create")]` | Ya |
+| `POST roster-periods/{id}/shifts/{shiftAssignmentId}/remove` | `RosterPeriod` | `RemoveShift` | `[AccessPermission("RosterPeriod", "RemoveShift")]` | Ya |
+| `POST shift-replacements/{id}/replace`, `/retroactive-correct` | `ShiftReplacement` | `Update` | `[AccessPermission("ShiftReplacement", "Update")]` | Ya |
+| `GET on-call-assignments/{id}/backups`, `/calls` | `OnCallAssignment` | `Read` | `[AccessPermission("OnCallAssignment", "Read")]` | Tidak |
+| `PUT on-call-assignments/{id}/backups` | `OnCallAssignment` | `ManageBackup` | `[AccessPermission("OnCallAssignment", "ManageBackup")]` | Ya |
+| `POST on-call-assignments/{id}/calls` dan `/calls/{callId}/accept`, `/decline`, `/expire`, `/complete` | `OnCallAssignment` | `RecordCall` | `[AccessPermission("OnCallAssignment", "RecordCall")]` | Ya |
+| `GET`/`PUT attendance-management/settings` | `AttendanceSetting` | `Read` / `Update` | `[AccessPermission("AttendanceSetting", "Read")]`, `[AccessPermission("AttendanceSetting", "Update")]` | `PUT` ya |
+| `GET attendance/dispensations`, `/{id}`, `/filters/metadata` | `AttendanceDispensation` | `Read` | `[AccessPermission("AttendanceDispensation", "Read")]` | Tidak |
+| `POST attendance/dispensations` | `AttendanceDispensation` | `Create` | `[AccessPermission("AttendanceDispensation", "Create")]` | Ya |
+| `POST attendance/dispensations/{id}/approve`, `/reject` | `AttendanceDispensation` | `Approve` | `[AccessPermission("AttendanceDispensation", "Approve")]` | Ya |
+| `GET self-services/.../attendance-dispensations` | `MyAttendanceDispensation` | `Read` | `[AccessPermission("MyAttendanceDispensation", "Read")]` | Tidak |
+| `POST self-services/.../attendance-dispensations` | `MyAttendanceDispensation` | `Create` | `[AccessPermission("MyAttendanceDispensation", "Create")]` | Ya |
+| `POST self-services/.../attendance-dispensations/{id}/cancel` | `MyAttendanceDispensation` | `Cancel` | `[AccessPermission("MyAttendanceDispensation", "Cancel")]` | Ya |
+| `GET attendance/study-assignments`, `/{id}` | `StudyAssignment` | `Read` | `[AccessPermission("StudyAssignment", "Read")]` | Tidak |
+| `POST attendance/study-assignments` | `StudyAssignment` | `Create` | `[AccessPermission("StudyAssignment", "Create")]` | Ya |
+| `PUT attendance/study-assignments/{id}` | `StudyAssignment` | `Update` | `[AccessPermission("StudyAssignment", "Update")]` | Ya |
+| `POST attendance/study-assignments/{id}/cancel` | `StudyAssignment` | `Cancel` | `[AccessPermission("StudyAssignment", "Cancel")]` | Ya |
+| `GET attendance/device-incidents` | `AttendanceDeviceIncident` | `Read` | `[AccessPermission("AttendanceDeviceIncident", "Read")]` | Tidak |
+| `POST attendance/device-incidents` | `AttendanceDeviceIncident` | `Create` | `[AccessPermission("AttendanceDeviceIncident", "Create")]` | Ya |
+| `POST attendance/device-incidents/{id}/cancel` | `AttendanceDeviceIncident` | `Cancel` | `[AccessPermission("AttendanceDeviceIncident", "Cancel")]` | Ya |
+| `GET self-services/.../attendance-corrections/device-incident-options` | `MyAttendanceCorrection` | `Read` | `[AccessPermission("MyAttendanceCorrection", "Read")]` | Tidak |
+| `GET master-data/holidays*` | `Holiday` | `Read` | `[AccessPermission("Holiday", "Read")]` | Tidak |
+| `POST master-data/holidays` | `Holiday` | `Create` | `[AccessPermission("Holiday", "Create")]` | Ya |
+| `PUT`/`PATCH master-data/holidays/{id}` | `Holiday` | `Update` | `[AccessPermission("Holiday", "Update")]` | Ya |
+| `DELETE master-data/holidays/{id}` | `Holiday` | `Delete` | `[AccessPermission("Holiday", "Delete")]` | Ya |
+| `GET master-data/attendance-devices*` | `AttendanceDevice` | `Read` | `[AccessPermission("AttendanceDevice", "Read")]` | Tidak |
+| `POST master-data/attendance-devices` | `AttendanceDevice` | `Create` | `[AccessPermission("AttendanceDevice", "Create")]` | Ya |
+| `PUT`/`PATCH master-data/attendance-devices/{id}` | `AttendanceDevice` | `Update` | `[AccessPermission("AttendanceDevice", "Update")]` | Ya |
+| `DELETE master-data/attendance-devices/{id}` | `AttendanceDevice` | `Delete` | `[AccessPermission("AttendanceDevice", "Delete")]` | Ya |
+| `GET attendance/dashboard*` | `AttendanceDashboard` | `Read` | `[AccessPermission("AttendanceDashboard", "Read")]` | Tidak |
+| `GET attendance/reports/{reportCode}` | `AttendanceReport` | `Read` | `[AccessPermission("AttendanceReport", "Read")]` | Tidak |
+| `GET attendance/reports/{reportCode}/export` | `AttendanceReport` | `Export` | `[AccessPermission("AttendanceReport", "Export")]` | **Ya** — pengecualian aturan "GET tidak dicatat", karena `HRD-DEC-206` mewajibkan setiap ekspor tercatat |
+| `GET self-services/.../my-schedule`, `/unit-roster` | `MySchedule` | `Read` | `[AccessPermission("MySchedule", "Read")]` | Tidak |
+
+**Penanda tanpa endpoint** (`[assembly: AccessExplicitPermission(...)]`):
+
+| Resource | Action | Arti |
+| --- | --- | --- |
+| `RosterPeriod` | `ManageAllUnits` | Mengelola roster semua unit |
+| `AttendanceReport` | `ReadAllUnits` | Membaca dashboard, laporan, roster, dan dispensasi semua unit |
+
+### 30.2 Matriks peran dan tindakan
+
+| Tindakan | Kepala Unit | Kepala Bidang | Admin HRD | Petugas IT | Unit pemanggil siaga | Pegawai |
+| --- | :---: | :---: | :---: | :---: | :---: | :---: |
+| Ubah roster terbit (Ganti Petugas, tambah, hapus, koreksi ≤ 3 hari) | Unit sendiri | 403 | Bila diberi `ManageAllUnits` | 403 | 403 | 403 |
+| Lihat Riwayat Revisi | Unit sendiri | Unit di bawahnya | Semua (`ReadAllUnits`) | 403 | 403 | 403 |
+| Kelola cadangan siaga | Unit sendiri (staf penunjang) | 403 | Ya | 403 | 403 | 403 |
+| Catat panggilan dan jawaban siaga | Ya | 403 | Ya | 403 | Ya | 403 |
+| Ajukan dispensasi | Atas nama pegawai unitnya | 403 | 403 | 403 | 403 | Untuk diri sendiri |
+| Setujui/tolak dispensasi | Bila tercatat sebagai atasan langsung | Bila atasan langsung | 403 | 403 | 403 | 403 |
+| Catat tugas belajar | 403 | 403 | Ya | 403 | 403 | 403 |
+| Catat gangguan mesin | 403 | 403 | Ya | Ya | 403 | 403 |
+| Kelola daftar mesin | 403 | 403 | 403 | Ya | 403 | 403 |
+| Kelola hari libur | 403 | 403 | Ya | 403 | 403 | 403 |
+| Dashboard dan laporan | Unit sendiri | Unit di bawahnya | Semua | 403 | 403 | 403 |
+| Ekspor laporan | Unit sendiri | Unit di bawahnya | Semua | 403 | 403 | 403 |
+| Jadwal Saya | Ya | Ya | Ya | Ya | Ya | Ya |
+| Penempatan sementara (penugasan tambahan) | 403 | 403 | Ya (hak `WfpOrganizationAssignment` yang ada) | 403 | 403 | 403 |
+
+Auditor, petugas payroll, dan direksi dapat diberi `AttendanceReport : Read`/`Export` dan
+`ReadAllUnits` sesuai kebutuhan (`HRD-ASM-79`).
+
+### 30.3 Jejak audit
+
+Ditulis lewat `LoggerService.AuditAsync`. **Isi ditulis di teks pesan**, karena metode itu tidak
+menyimpan objek payload. Kolom bertanda sensitif pada kamus data bagian 27 tidak pernah masuk.
+
+| Kejadian | Isi teks pesan | Tidak boleh dimuat |
+| --- | --- | --- |
+| Perubahan roster terbit | Jenis perubahan, ID shift, tanggal, ID pegawai sebelum/sesudah, kategori alasan, pelaku | `ReasonNote` |
+| Catat/jawab/kedaluwarsa/selesai panggilan siaga | ID penugasan, ID panggilan, status baru, pelaku, jam | `CallReason`, `DeclineReason` |
+| Dispensasi diajukan/disetujui/ditolak/dibatalkan | ID dispensasi, ID pegawai, tanggal, status baru, pelaku | `Reason` |
+| Tugas belajar dicatat/diubah/dibatalkan | ID, ID pegawai, tanggal mulai/selesai, pelaku | — |
+| Gangguan mesin dicatat/dibatalkan | ID kejadian, ID mesin, rentang jam, pelaku | — |
+| Mesin didaftarkan/diaktifkan | ID mesin, jumlah scan tertahan yang dilepas, pelaku | — |
+| Setelan kehadiran diubah | Nilai lama dan baru toleransi serta jendela, pelaku | — |
+| **Ekspor laporan** | Kode laporan, filter (unit, rentang tanggal, status), jumlah baris, pelaku, waktu | Isi baris |
+
+---
+
+## 31. Matriks Hak Akses & Jejak Audit Slice `S-A8`: Data Penggajian Pegawai (HRD) (Kontrak `v27`, APPROVED)
+
+| Field | Nilai |
+| --- | --- |
+| Slice | `S-A8` — Data Penggajian Pegawai (HRD): karyawan, perawat, dan dokter |
+| `contract_version` | `v27` |
+| `last_changed_in` | `v27` — bagian 31 ditambahkan 16 November 2026 |
+| Status | `approved` |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — 16 November 2026 (jawaban: "setujui kontrak S-A8") |
+| `input_revision` | `00-interview-decisions.md` revision `38` bagian 54 (`HRD-DEC-218` s.d. `HRD-DEC-223`, `HRD-ASM-84` s.d. `HRD-ASM-87`, `HRD-Q-218` s.d. `HRD-Q-220`) |
+| `input_hash` — decision log | `c1c2483a61f8f2bc4fb533494898469423941195be025f8b90b95fb25c303bf4` |
+| Backend SHA | `25c35ded4b2a (branch `Yasmina`) — source slice ini belum di-commit` |
+| Frontend SHA | `b61ab2116bf8 (branch `yasmina`) — source slice ini belum di-commit` |
+| Dampak kompatibilitas | Penambahan saja (endpoint dan hak akses baru); tidak ada endpoint, DTO, atau tabel lama yang berubah. Endpoint impor `POST .../payroll-data/import` versi sebelumnya tidak pernah dirilis (belum pernah di-commit) dan dihapus (`HRD-DEC-223`) |
+| Bukti as-is | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/WorkforcePayrollDataController.cs`, `.../Services/WorkforcePayrollDataService.cs`, `.../DTOs/WorkforcePayrollDataDtos.cs` — **belum di-build** |
+
+Hak akses diberikan admin lewat Pengaturan → Manajemen Role → **Akses Role**. Tidak ada nama peran, departemen, atau posisi yang ditulis di kode.
+
+### 31.1 Matriks Hak Akses
+
+| `[AccessPermission]` | `[AccessAction]` | `AccessType` | Endpoint | Kegunaan |
+| --- | --- | --- | --- | --- |
+| `WorkforcePayrollData`, `Read` | `Read` — "Read Workforce Payroll Data" | `Read` | `GET /`, `GET /summary` | Melihat daftar dan ringkasan, tanpa gaji pokok; nomor rekening disamarkan (`HRD-DEC-219`) |
+| `WorkforcePayrollData`, `Update` | `Update` — "Update Workforce Payroll Data" | `Update` | `GET /{workforceProfileId}`, `PUT /{workforceProfileId}` | Memuat isian lengkap dan menyimpan perubahan |
+| `WfpSalaryAssignment`, `Update` (sudah ada) | — | `Update` | dicek di dalam `PUT` | Syarat tambahan opsi **Setujui penetapan gaji** (`HRD-ASM-86`) |
+| `WorkforceBankAccount`, `Update` (sudah ada) | — | `Update` | dicek di dalam `PUT` | Syarat tambahan opsi **Tandai rekening terverifikasi** (`HRD-ASM-86`) |
+| `SalaryStructure`, `Read` (sudah ada) | — | `Read` | `salary-structures/options` | Mengisi pilihan struktur gaji pada formulir (`HRD-DEC-221`) |
+| `Bank`, `Read` (sudah ada) | — | `Read` | `banks/options` | Mengisi pilihan bank pada formulir (`HRD-DEC-221`) |
+
+Argumen ke-1 `[AccessPermission]` sama persis dengan `ControllerName = "WorkforcePayrollData"`; argumen ke-2 sama persis dengan argumen ke-1 `[AccessAction]` pada method yang sama. Hak `Import` dari versi sebelumnya **tidak ada lagi** (`HRD-DEC-223`). SuperAdmin lolos otomatis kecuali kebijakan keamanan menyatakan lain.
+
+### 31.2 Matriks Jejak Audit
+
+| Peristiwa | Kategori / aksi log | Pemicu | Data yang direkam | **Tidak** direkam |
+| --- | --- | --- | --- | --- |
+| Data penggajian diperbarui | `Corporate.HumanResource.WorkforceCore.PayrollData` / `WorkforcePayrollData.Update` | `PUT` yang mengubah sesuatu | `WorkforceProfileId`, hasil `SalaryAssignment` dan `BankAccount` (misalnya "Diperbarui dan disetujui"), `Status = Updated`, `ActorUserId` | Gaji pokok, nomor rekening, nama pemilik rekening |
+
+Simpan yang tidak mengubah apa pun tidak menulis log. Jejak pelaku juga tersimpan pada kolom `UpdateBy`/`UpdateDateTime`, `ApprovedByUserId`/`ApprovedAt`, dan `VerifiedByUserId`/`VerifiedAt` tabel yang diubah.
+
+**Privasi:** gaji pokok dan nomor rekening lengkap hanya keluar dari `GET /{workforceProfileId}` (hak `Update`). Daftar memakai `accountNumberMasked`. Log aplikasi tidak memuat kolom bertanda **Sensitif**.

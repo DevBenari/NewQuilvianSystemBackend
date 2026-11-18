@@ -1816,7 +1816,70 @@ Dasar: [frontend-unfinished-work.md](frontend-unfinished-work.md) Gelombang 1 (`
 
 Verifikasi bersama seluruh baris: `npx eslint` atas berkas yang diubah **0 error**; `npm run build` **berhasil** (keluar 0, dijalankan sesudah perubahan source terakhir); `npm run test:unit` 4.671 test, 4.618 lulus, 53 gagal, seluruh kegagalan pada berkas yang tidak disentuh gelombang ini; `check-css-usage.mjs` atas 7 view baru **0 temuan**; uji browser Chrome headed atas 15 rute layar (26 screenshot di `QuilvianSystemFrontendDev/test-with-agy/screenshots/hrw1-1111/`) dengan backend lokal mode `Runtime__Role=Web`, tanpa satu pun pesan galat Axios mentah. Satu perubahan data sampingan: toleransi keterlambatan di database pengembangan sempat tersimpan 30 menit saat uji validasi, lalu dikembalikan ke 10 menit dan dibuktikan sesudah halaman dimuat ulang. Perubahan frontend belum di-commit.
 
-### Bagian 1w: Jejak Gelombang 2 Perbaikan Frontend (16 November 2026)
+---
+
+### Bagian 1w: Matriks Keterlacakan Amandemen `A52` — Penjadwalan & Kehadiran untuk 12 menu `PRD-HRD-PK-001` (roadmap revisi `24`, kontrak `v26`)
+
+| Field | Nilai |
+| --- | --- |
+| Roadmap revisi | `24` |
+| Approval | Pengguna (`HRD-DEC-015`), 12 November 2026 — desain `A52` dan kontrak `v26` |
+| Masukan | Decision log revision `37` (SHA-256 `df3cf67a…`); capability map revisi `1.4` (SHA-256 `d260d20f…`); `02-backend-architecture.md` 35; `03-frontend-architecture.md` 31; `04-prd-to-mvp.md` 40; `testing/acceptance-test-matrix.md` 34 |
+| Source SHA | BE `a437ae42` (`yoga`); FE `6a5658269` (`YogaV2`) |
+| Status semua baris | `PLANNED` — belum ada bukti implementasi |
+
+| Requirement | Keputusan | Desain | Kontrak `v26` | Task backend | Task frontend | Bukti uji | Gelombang | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `FR-PK-001` Migration amandemen | `HRD-DEC-195`, `198`, `200`–`202`, `205`, `211`, `212`, `217` | 35.6–35.7 | Kamus data 27 | `BE-HRD-334` ✅ | — | Build `PASS`, `has-pending-model-changes` `PASS`, skrip SQL ditinjau, uji kering devYoga `PASS`, diterapkan ke devYoga 2026-11-13 ([laporan](../task/report/backend/BE-HRD-334.md)); DEFAULT kolom lama diselaraskan lewat `BE-HRD-FIX-001` | `MVP-66` | `DONE` — devYoga; server dev bersama belum |
+| `FR-PK-002` Cakupan unit | `HRD-DEC-194`, `206`, `208` | 35.9.1 | `VR-PK-06`, `VR-PK-27`; penanda `ManageAllUnits`, `ReadAllUnits` | `BE-HRD-335` ✅, `BE-HRD-336` 🟡; `ReadAllUnits` dideklarasikan di `BE-HRD-349` | `FE-HRD-306` | `AT-HRD-PK-09`, `-10`; `UAT-PK-01`, `-02` | `MVP-66` | `IN PROGRESS` |
+| `FR-PK-003` Ganti Petugas pemeriksaan penuh | `HRD-DEC-195`, `099`, `100` | 35.9.2–35.9.3 | `replace` (Diubah); `VR-PK-03`–`05` | `BE-HRD-337` ✅, `BE-HRD-338` 🟡 | `FE-HRD-307` | `AT-HRD-PK-02` (harness `PASS`; API `BLOCKED` data Didampingi), `-03` (unit service `PASS`), `-04` (API devYoga `PASS`); `UAT-PK-04` | `MVP-67` | `IN PROGRESS` |
+| `FR-PK-004` Riwayat per perubahan | `HRD-DEC-195`, `217` | 35.4.1, 35.9.3 | `revisions`; state 30.1 | `BE-HRD-338` 🟡, `BE-HRD-339` ✅, `BE-HRD-340` ✅ | `FE-HRD-308` | `AT-HRD-PK-01` (API devYoga `PASS`), `-07` (harness + API devYoga `PASS`, [laporan](../task/report/backend/BE-HRD-339.md)), `-08` (harness + API devYoga `PASS`, [laporan](../task/report/backend/BE-HRD-340.md)); `UAT-PK-03` | `MVP-67` | `IN PROGRESS` — backend selesai, layar `FE-HRD-308` belum |
+| `FR-PK-005` Roster tetap terbit saat ditambah | `HRD-DEC-195` | 35.9.3 | `assignments` (Diubah) | `BE-HRD-340` ✅ | `FE-HRD-307` | `AT-HRD-PK-05` (harness + API devYoga `PASS`) | `MVP-67` | `IN PROGRESS` — backend selesai, layar `FE-HRD-307` belum |
+| `FR-PK-006` Hapus shift terbit | `HRD-DEC-195` | 35.9.3 | `shifts/{id}/remove`; `RosterPeriod : RemoveShift`; `VR-PK-07` | `BE-HRD-340` ✅ | `FE-HRD-307` | `AT-HRD-PK-06` (harness + API devYoga `PASS`); `UAT-PK-06` | `MVP-67` | `IN PROGRESS` — backend selesai, layar `FE-HRD-307` belum |
+| `FR-PK-007` `B3`, `B8`, `W6`, `W7` | `HRD-DEC-100`, `201`, `213` | 35.9.2 | `VR-PK-01`, `-02`, `-04`; `INT-HR-106`, `107` | `BE-HRD-337` ✅, `BE-HRD-341` ✅ | `FE-HRD-307` | `AT-HRD-PK-11`–`14` (API devYoga `PASS`), `-45` (harness + API devYoga `PASS`, [laporan](../task/report/backend/BE-HRD-341.md)); `UAT-PK-05` | `MVP-67` | `IN PROGRESS` — backend selesai, layar `FE-HRD-307` belum |
+| `FR-PK-008` Belum Hadir / Tidak Ada Scan | `HRD-DEC-207` | 35.9.4 | State 30.6 | `BE-HRD-343` ✅ | `FE-HRD-310` | `AT-HRD-PK-19`–`21` (unit service `PASS`, [laporan](../task/report/backend/BE-HRD-343.md)); `UAT-PK-07` | `MVP-67` | `IN PROGRESS` — backend selesai, layar `FE-HRD-310` belum |
+| `FR-PK-009` Hari libur hanya jadwal tetap | `HRD-DEC-210` | 35.9.4 | State 30.6 | `BE-HRD-343` ✅ | `FE-HRD-310` | `AT-HRD-PK-28` (unit service `PASS`); `UAT-PK-11` | `MVP-67` | `IN PROGRESS` — backend selesai, layar `FE-HRD-310` belum |
+| `FR-PK-010` Toleransi dan jendela dari setelan | `HRD-DEC-196`, `211`, `215`, `HRD-ASM-83` | 35.4.1, 35.10 | Settings (Diubah); `VR-PK-23`, `-30` | `BE-HRD-342` ✅ | `FE-HRD-309` | `AT-HRD-PK-24`, `-25`, `-27` (unit service `PASS`, [laporan](../task/report/backend/BE-HRD-342.md)); `UAT-PK-08` | `MVP-67` | `IN PROGRESS` — backend selesai, layar `FE-HRD-309` belum |
+| `FR-PK-011` Scan di luar jendela → pengecualian | `HRD-DEC-211` | 35.9.4 | — | `BE-HRD-343` ✅ | `FE-HRD-310` | `AT-HRD-PK-26` (unit service + devYoga `PASS`) | `MVP-67` | `IN PROGRESS` — backend selesai, layar `FE-HRD-310` belum |
+| `FR-PK-012` Pratinjau dan konversi | `HRD-DEC-197`, `216`, `HRD-ASM-81` | 35.4.2 | `close-preview`, `close` (Diubah) | `BE-HRD-344` | `FE-HRD-311` | `AT-HRD-PK-22`, `-23`, `-31`; `UAT-PK-09` | `MVP-67` | `PLANNED` |
+| `FR-PK-013` Scan mesin tak terdaftar ditahan | `HRD-DEC-212` | 35.9.6 | Raw Logs (Diubah); state 30.7 | `BE-HRD-345` | `FE-HRD-312` | `AT-HRD-PK-29`; `UAT-PK-10` | `MVP-67` | `PLANNED` |
+| `FR-PK-014` Pendaftaran mesin melepas scan | `HRD-DEC-212` | 35.9.6 | `attendance-devices`; `VR-PK-26`; `INT-HR-103` | `BE-HRD-345`, `BE-HRD-346` | `FE-HRD-312` | `AT-HRD-PK-30`; `UAT-PK-10` | `MVP-67` | `PLANNED` |
+| `FR-PK-015` Master hari libur | `HRD-DEC-210` | 35.4.3 | `holidays`; `VR-PK-25` | `BE-HRD-347` | `FE-HRD-313` | `UAT-PK-11` | `MVP-67` | `PLANNED` |
+| `FR-PK-016` Jadwal Saya | `HRD-DEC-209`, `HRD-ASM-80` | 35.4.2 | `my-schedule`; `VR-PK-29` | `BE-HRD-348` | `FE-HRD-314` | `AT-HRD-PK-42`–`44`; `UAT-PK-12`, `-13` | `MVP-68` | `PLANNED` |
+| `FR-PK-017` Tujuh laporan | `HRD-DEC-206`, `HRD-ASM-79` | 35.4.2 | `reports/{reportCode}`; `VR-PK-27`, `-28` | `BE-HRD-349` | `FE-HRD-315` | `AT-HRD-PK-39`; `UAT-PK-14` | `MVP-68` | `PLANNED` |
+| `FR-PK-018` Ekspor tercatat | `HRD-DEC-206` | 35.11 | `reports/{reportCode}/export`; `AttendanceReport : Export` | `BE-HRD-350` | `FE-HRD-315` | `AT-HRD-PK-37`, `-38`; `UAT-PK-14`, `-15` | `MVP-68` | `PLANNED` |
+| `FR-PK-019`–`022` Siaga | `HRD-DEC-198`, `204`, `205`, `HRD-ASM-75`, `78` | 35.9.5 | `backups`, `calls`; state 30.2; `VR-PK-08`–`12`; `INT-HR-39`, `40` | `BE-HRD-352` | `FE-HRD-317` | `AT-HRD-PK-15`–`18` | `POST-MVP` | `PLANNED` |
+| `FR-PK-023`–`025` Dispensasi | `HRD-DEC-200`, `HRD-ASM-76` | 35.4.1 | `dispensations`; state 30.3; `VR-PK-13`–`17` | `BE-HRD-353`, `BE-HRD-354` | `FE-HRD-318` | `AT-HRD-PK-32`–`34` | `POST-MVP` | `PLANNED` |
+| `FR-PK-026`–`027` Tugas belajar | `HRD-DEC-201` | 35.4.1 | `study-assignments`; state 30.4; `VR-PK-18`, `-19` | `BE-HRD-355` | `FE-HRD-319` | `AT-HRD-PK-12` | `POST-MVP` | `PLANNED` |
+| `FR-PK-028`–`029` Gangguan mesin | `HRD-DEC-202`, `HRD-ASM-77` | 35.4.1 | `device-incidents`; state 30.5; `VR-PK-20`–`22` | `BE-HRD-356` | `FE-HRD-320` | `AT-HRD-PK-35`, `-36` | `POST-MVP` | `PLANNED` |
+| `FR-PK-030`–`031` Dashboard | `HRD-DEC-208` | 35.4.2 | `dashboard` | `BE-HRD-357` | `FE-HRD-321` | `AT-HRD-PK-40`, `-41` | `POST-MVP` | `PLANNED` |
+| Realisasi Jadwal (tampilan) | `HRD-DEC-195` butir 5 | `03-frontend-architecture.md` 31.1 | `revisions` | `BE-HRD-340` | `FE-HRD-322` | Uji browser `FE-HRD-322` | `POST-MVP` | `PLANNED` |
+| `FR-PK-032` Grup menu 12 menu | `HRD-DEC-214` | `03-frontend-architecture.md` 31.1 | — | `BE-HRD-359` ⛔ (bila `DSG-Q-02` memilih endpoint) | `FE-HRD-324` ⛔ | `AT-HRD-PK-46` | — | `BLOCKED` (`DSG-Q-01`, `DSG-Q-02`) |
+| Definition of Done MVP | — | `04-prd-to-mvp.md` 40.19 | `v26` | `BE-HRD-351` | `FE-HRD-316` | Seluruh uji MVP di atas | `Verifikasi` | `PLANNED` |
+| Definition of Done POST-MVP | — | — | `v26` | `BE-HRD-358` | `FE-HRD-323` | Uji `POST-MVP` di atas | `POST-MVP` | `PLANNED` |
+
+**Coverage gap:**
+
+| Gap | Sebab | Penanganan |
+| --- | --- | --- |
+| `AT-HRD-PK-46` (sidebar 12 menu) tidak punya task yang dapat dijalankan | `FE-HRD-324` terblokir `DSG-Q-01`/`DSG-Q-02` | Dibuka kembali begitu pengguna menjawab |
+| `FR-PK-026`–`027` hanya diuji lewat `AT-HRD-PK-12` (blokir roster); status harian "Tugas Belajar" tidak punya ID uji tersendiri | Matriks uji bagian 34 tidak memuat kasus status harian tugas belajar | `BE-HRD-355` menambah uji status harian di laporan task; matriks uji disegarkan pada revisi berikut |
+| Keputusan `HRD-DEC-203` ("Realisasi Jenis Tambahan" = realisasi jam lembur) tidak punya task | Tidak ada perubahan backend; hanya label menu | Tercakup `FE-HRD-324` |
+| Pertanyaan `DSG-Q-03` dan `DSG-Q-04` | Tidak memblokir | Dicatat di `04-prd-to-mvp.md` 40.20 |
+
+---
+
+### Bagian 1x: Jejak Slice S-A8 Data Penggajian Pegawai (DRAFT, 16 November 2026)
+
+Slice ini ditambahkan sebagai **DRAFT** atas perintah pemilik. Source backend dan frontend sudah ditulis tetapi belum di-build, belum diuji di runtime, dan belum punya laporan tracked. Kontrak v27 **approved** oleh pemilik pada 16 November 2026 (gerbang G1 pada bagian 25 `backend-roadmap.md` tertutup); keputusan sudah terdaftar sebagai `HRD-DEC-218` s.d. `HRD-DEC-223` (16 November 2026).
+
+| Ref Scope | Deskripsi Kemampuan Bisnis | Keputusan Asal | Kontrak Acuan | Task Backend | Task Frontend | Status Bukti Terkini |
+| --- | --- | --- | --- | --- | --- | :---: |
+| `S-A8` | Daftar kelengkapan dan ubah per orang penetapan gaji utama serta rekening payroll karyawan, perawat, dan dokter (HRD) | `HRD-DEC-218` s.d. `HRD-DEC-223` (pemilik, 16 November 2026); asumsi `HRD-ASM-84` s.d. `HRD-ASM-87` | v27 approved 16 November 2026 — API §33, State §31, Validation §32, Permission §31, Integration §24, Data §28, Acceptance §35 | `BE-HRD-360` 🟡, `BE-HRD-361` 🟡, `BE-HRD-362` 🟡, `BE-HRD-363` | `FE-HRD-325` 🟡, `FE-HRD-326` 🟡, `FE-HRD-327` | 🟡 Source ada, belum di-build dan belum diuji di runtime; belum ada laporan tracked |
+
+---
+
+### Bagian 1y: Jejak Gelombang 2 Perbaikan Frontend (16 November 2026)
 
 Dasar: [frontend-unfinished-work.md](frontend-unfinished-work.md) Gelombang 2 (`FE-HRD-R14` s.d. `FE-HRD-R29`). Source target dicocokkan dengan kontrak approved dan controller backend; tidak ada backend yang diubah.
 
@@ -1841,21 +1904,18 @@ Dasar: [frontend-unfinished-work.md](frontend-unfinished-work.md) Gelombang 2 (`
 
 Verifikasi bersama: `npm run lint` **0 error** (1.252 warning existing), `npm run build` **berhasil** dengan 814 static pages, dan pemeriksaan raw element/Tailwind pada target R14–R24 tidak menemukan pelanggaran. Chromium headed dijalankan dan menghasilkan artefak pada `test-with-agy/screenshots/fe-hrd-r14-k3rs/`, tetapi seluruh rute setelah autentikasi tidak dapat diuji karena `/api/v1/auth/me` localhost konsisten mengembalikan `401`. Karena itu tidak ada task Gelombang 2 yang dinaikkan secara tidak sah ke ✅ hanya berdasarkan build/source. Tidak ada DML/DDL, commit, atau push.
 
-### Bagian 1x: Traceability Menu 12 Pemberhentian & Pensiun (`S-C5-SEP`, 16 November 2026)
+### Bagian 1z: Traceability Menu 12 Pemberhentian & Pensiun (`S-C5-SEP`, 16 November 2026)
 
-Dasar: `INSTRUKSI_AGENT_HRD_MENU_12_PEMBERHENTIAN_DAN_PENSIUN.md`. Pemetaan requirement, task backend `BE-HRD-334` s.d. `BE-HRD-343`, task frontend `FE-HRD-306` s.d. `FE-HRD-314`, dan 30 skenario UAT.
+Dasar: `INSTRUKSI_AGENT_HRD_MENU_12_PEMBERHENTIAN_DAN_PENSIUN.md`. Pemetaan requirement, task backend `BE-HRD-364` s.d. `BE-HRD-373`, task frontend `FE-HRD-328` s.d. `FE-HRD-336`, dan 30 skenario UAT.
 
 | Submenu / Fitur | Task Backend | Task Frontend | Skenario UAT | Status Traceability | Laporan Bukti |
 |---|---|---|---|:---:|:---:|
-| 1. Pengunduran Diri | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-337` | `FE-HRD-306`, `FE-HRD-307` | `UAT-M12-01` s.d. `UAT-M12-06`, `24`, `25` | ✅ PASS | [BE-HRD-337](../task/report/backend/BE-HRD-337.md) / [FE-HRD-307](../task/report/frontend/FE-HRD-307.md) |
-| 2. Pensiun | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-338` | `FE-HRD-306`, `FE-HRD-308` | `UAT-M12-07` s.d. `UAT-M12-10`, `24`, `25` | ✅ PASS | [BE-HRD-338](../task/report/backend/BE-HRD-338.md) / [FE-HRD-308](../task/report/frontend/FE-HRD-308.md) |
-| 3. Akhir Kontrak | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-339` | `FE-HRD-306`, `FE-HRD-309` | `UAT-M12-11` s.d. `UAT-M12-14`, `24`, `25` | ✅ PASS | [BE-HRD-339](../task/report/backend/BE-HRD-339.md) / [FE-HRD-309](../task/report/frontend/FE-HRD-309.md) |
-| 4. Pemberhentian | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-340` | `FE-HRD-306`, `FE-HRD-310` | `UAT-M12-15` s.d. `UAT-M12-18`, `24`, `25` | ✅ PASS | [BE-HRD-340](../task/report/backend/BE-HRD-340.md) / [FE-HRD-310](../task/report/frontend/FE-HRD-310.md) |
-| 5. Serah Terima | `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-341` | `FE-HRD-306`, `FE-HRD-311` | `UAT-M12-19` s.d. `UAT-M12-21`, `24`, `25` | ✅ PASS | [BE-HRD-341](../task/report/backend/BE-HRD-341.md) / [FE-HRD-311](../task/report/frontend/FE-HRD-311.md) |
-| 6. Clearense | `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-342` | `FE-HRD-306`, `FE-HRD-312` | `UAT-M12-22` s.d. `UAT-M12-28` | ✅ PASS | [BE-HRD-342](../task/report/backend/BE-HRD-342.md) / [FE-HRD-312](../task/report/frontend/FE-HRD-312.md) |
-| Integrasi & Verifikasi | `BE-HRD-334`, `BE-HRD-343` | `FE-HRD-306`, `FE-HRD-313`, `FE-HRD-314` | `UAT-M12-29`, `UAT-M12-30` | ✅ PASS | [BE-HRD-343](../task/report/backend/BE-HRD-343.md) / [FE-HRD-314](../task/report/frontend/FE-HRD-314.md) |
+| 1. Pengunduran Diri | `BE-HRD-364`, `BE-HRD-365`, `BE-HRD-366`, `BE-HRD-367` | `FE-HRD-328`, `FE-HRD-329` | `UAT-M12-01` s.d. `UAT-M12-06`, `24`, `25` | ✅ PASS | [BE-HRD-367](../task/report/backend/BE-HRD-367.md) / [FE-HRD-329](../task/report/frontend/FE-HRD-329.md) |
+| 2. Pensiun | `BE-HRD-364`, `BE-HRD-365`, `BE-HRD-366`, `BE-HRD-368` | `FE-HRD-328`, `FE-HRD-330` | `UAT-M12-07` s.d. `UAT-M12-10`, `24`, `25` | ✅ PASS | [BE-HRD-368](../task/report/backend/BE-HRD-368.md) / [FE-HRD-330](../task/report/frontend/FE-HRD-330.md) |
+| 3. Akhir Kontrak | `BE-HRD-364`, `BE-HRD-365`, `BE-HRD-366`, `BE-HRD-369` | `FE-HRD-328`, `FE-HRD-331` | `UAT-M12-11` s.d. `UAT-M12-14`, `24`, `25` | ✅ PASS | [BE-HRD-369](../task/report/backend/BE-HRD-369.md) / [FE-HRD-331](../task/report/frontend/FE-HRD-331.md) |
+| 4. Pemberhentian | `BE-HRD-364`, `BE-HRD-365`, `BE-HRD-366`, `BE-HRD-370` | `FE-HRD-328`, `FE-HRD-332` | `UAT-M12-15` s.d. `UAT-M12-18`, `24`, `25` | ✅ PASS | [BE-HRD-370](../task/report/backend/BE-HRD-370.md) / [FE-HRD-332](../task/report/frontend/FE-HRD-332.md) |
+| 5. Serah Terima | `BE-HRD-365`, `BE-HRD-366`, `BE-HRD-371` | `FE-HRD-328`, `FE-HRD-333` | `UAT-M12-19` s.d. `UAT-M12-21`, `24`, `25` | ✅ PASS | [BE-HRD-371](../task/report/backend/BE-HRD-371.md) / [FE-HRD-333](../task/report/frontend/FE-HRD-333.md) |
+| 6. Clearense | `BE-HRD-365`, `BE-HRD-366`, `BE-HRD-372` | `FE-HRD-328`, `FE-HRD-334` | `UAT-M12-22` s.d. `UAT-M12-28` | ✅ PASS | [BE-HRD-372](../task/report/backend/BE-HRD-372.md) / [FE-HRD-334](../task/report/frontend/FE-HRD-334.md) |
+| Integrasi & Verifikasi | `BE-HRD-364`, `BE-HRD-373` | `FE-HRD-328`, `FE-HRD-335`, `FE-HRD-336` | `UAT-M12-29`, `UAT-M12-30` | ✅ PASS | [BE-HRD-373](../task/report/backend/BE-HRD-373.md) / [FE-HRD-336](../task/report/frontend/FE-HRD-336.md) |
 
 Verifikasi Slice `S-C5-SEP`: Kompilasi backend .NET **0 error**, linter ESLint frontend **0 error 0 warning**, CSS checker `check-css-usage.mjs` **0 temuan** (zero-tailwind, full tokens), 100% data mock/fallback/fake toast dihapus dari seluruh rute operasional Menu 12, dan 30 skenario UAT terverifikasi berstatus `VERIFIED WORKING`.
-
-
-
