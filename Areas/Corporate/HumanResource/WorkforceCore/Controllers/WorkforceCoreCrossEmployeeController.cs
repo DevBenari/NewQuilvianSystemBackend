@@ -213,5 +213,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
 
             return Ok(ApiResponse<WfpSalaryAmountResponse>.Ok(result, "Nominal penetapan gaji berhasil diambil."));
         }
+
+        /// <summary>
+        /// Mengambil uraian tugas efektif per pegawai berdasarkan posisi penempatan pada tanggal acuan (HRD-DEC-047).
+        /// </summary>
+        [HttpGet("employees/{workforceProfileId:guid}/effective-job-description")]
+        [ProducesResponseType(typeof(ApiResponse<EmployeeEffectiveJobDescriptionResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Employee Effective Job Description", Description = "Melihat uraian tugas efektif per pegawai berdasarkan penempatan jabatan pada tanggal acuan (HRD-DEC-047)", AccessType = AccessTypes.Read, SortOrder = 7)]
+        [AccessPermission("WorkforceCoreCrossEmployee", "Read")]
+        public async Task<IActionResult> GetEmployeeEffectiveJobDescription(
+            Guid workforceProfileId,
+            [FromQuery] DateTime? asOfDate,
+            CancellationToken ct = default)
+        {
+            var result = await _queryService.GetEmployeeEffectiveJobDescriptionAsync(workforceProfileId, asOfDate, ct);
+            if (result == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(404, "Data pegawai tidak ditemukan."));
+            }
+
+            return Ok(ApiResponse<EmployeeEffectiveJobDescriptionResponse>.Ok(result, "Uraian tugas efektif pegawai berhasil diambil."));
+        }
     }
 }

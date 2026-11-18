@@ -157,16 +157,72 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             }
         }
 
+        [HttpPost("{id:guid}/submit")]
+        [ProducesResponseType(typeof(ApiResponse<InitialBatchDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Update",
+            "Update Initial Placement Batch",
+            Description = "Mengajukan batch penempatan awal untuk persetujuan resmi",
+            AccessType = AccessTypes.Update,
+            SortOrder = 7)]
+        [AccessPermission("HrdInitialPlacementBatch", "Update")]
+        public async Task<IActionResult> SubmitBatch(Guid id, CancellationToken ct)
+        {
+            if (!TryGetCurrentUserId(out var userId))
+            {
+                return Unauthorized(ApiResponse<object>.Fail(StatusCodes.Status401Unauthorized, "Pengguna tidak terautentikasi."));
+            }
+
+            try
+            {
+                var result = await _batchService.SubmitBatchAsync(id, userId, ct);
+                return Ok(ApiResponse<InitialBatchDetailResponse>.Ok(result, "Batch penempatan awal berhasil diajukan untuk persetujuan."));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
+        [HttpPost("{id:guid}/approve")]
+        [ProducesResponseType(typeof(ApiResponse<InitialBatchDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Approve",
+            "Approve Initial Placement Batch",
+            Description = "Menyetujui batch penempatan awal secara resmi",
+            AccessType = AccessTypes.Update,
+            SortOrder = 8)]
+        [AccessPermission("HrdInitialPlacementBatch", "Approve")]
+        public async Task<IActionResult> ApproveBatch(Guid id, CancellationToken ct)
+        {
+            if (!TryGetCurrentUserId(out var userId))
+            {
+                return Unauthorized(ApiResponse<object>.Fail(StatusCodes.Status401Unauthorized, "Pengguna tidak terautentikasi."));
+            }
+
+            try
+            {
+                var result = await _batchService.ApproveBatchAsync(id, userId, ct);
+                return Ok(ApiResponse<InitialBatchDetailResponse>.Ok(result, "Batch penempatan awal berhasil disetujui."));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
         [HttpPost("{id:guid}/execute")]
         [ProducesResponseType(typeof(ApiResponse<InitialBatchDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
             "Approve",
             "Approve Initial Placement Batch",
-            Description = "Mengeksekusi penempatan posisi, atasan, dan gaji secara massal dalam transaksi atomik",
+            Description = "Mengeksekusi penempatan posisi dan atasan secara massal dalam transaksi atomik",
             AccessType = AccessTypes.Update,
-            SortOrder = 6)]
-        [AccessPermission("HrdInitialPlacementBatch", "Update")]
+            SortOrder = 9)]
+        [AccessPermission("HrdInitialPlacementBatch", "Approve")]
         public async Task<IActionResult> ExecuteBatch(Guid id, CancellationToken ct)
         {
             if (!TryGetCurrentUserId(out var userId))

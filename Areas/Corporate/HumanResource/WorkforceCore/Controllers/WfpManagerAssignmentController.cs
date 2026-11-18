@@ -188,6 +188,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             var validation = await ValidateRequestAsync(workforceProfileId, null, request, ct);
             if (!validation.IsValid) return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage!));
 
+            // Guard: larangan direct create primary manager assignment jika sudah ada yang aktif (HRD-DEC-036/HRD-DEC-048)
+            if (request.IsPrimaryManager && await _dbContext.Set<WfpManagerAssignment>().AnyAsync(x => x.WorkforceProfileId == workforceProfileId && x.IsPrimaryManager && x.IsActive && !x.IsDelete, ct))
+            {
+                return BadRequest(ApiResponse<object>.Fail(400, "Pegawai sudah memiliki atasan langsung utama aktif. Penetapan atasan langsung baru wajib melalui Pengajuan Perubahan Atasan Resmi atau SK Mutasi (HRD-DEC-036/HRD-DEC-048)."));
+            }
+
             var now = DateTime.UtcNow;
             var actor = GetCurrentUserId();
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
@@ -234,6 +240,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         {
             var entity = await FindEntityAsync(workforceProfileId, id, ct);
             if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Manager assignment tidak ditemukan."));
+
+            // Guard: larangan direct edit atas atasan langsung utama aktif (HRD-DEC-036/HRD-DEC-055)
+            if (entity.IsPrimaryManager && entity.IsActive)
+            {
+                return BadRequest(ApiResponse<object>.Fail(400, "Perubahan langsung atas atasan langsung utama aktif dilarang. Pengalihan atasan wajib melalui pengajuan perubahan atasan berpersetujuan (HRD-DEC-036/HRD-DEC-055)."));
+            }
+
             var validation = await ValidateRequestAsync(workforceProfileId, id, request, ct);
             if (!validation.IsValid) return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage!));
 
@@ -274,6 +287,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         {
             var entity = await FindEntityAsync(workforceProfileId, id, ct);
             if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Manager assignment tidak ditemukan."));
+
+            // Guard: larangan direct deactivation atas primary manager (HRD-DEC-036/HRD-DEC-049)
+            if (entity.IsPrimaryManager && entity.IsActive && !request.IsActive)
+            {
+                return BadRequest(ApiResponse<object>.Fail(400, "Penonaktifan langsung atas atasan langsung utama aktif dilarang tanpa transisi resmi berpersetujuan (HRD-DEC-036/HRD-DEC-049)."));
+            }
+
             entity.IsActive = request.IsActive;
             if (!request.IsActive) entity.IsPrimaryManager = false;
             entity.UpdateDateTime = DateTime.UtcNow;
@@ -290,6 +310,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             var entity = await FindEntityAsync(workforceProfileId, id, ct);
             if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Manager assignment tidak ditemukan."));
             if (request.IsPrimaryManager && !entity.IsActive) return BadRequest(ApiResponse<object>.Fail(400, "Manager assignment tidak aktif tidak dapat dijadikan primary."));
+
+            // Guard: larangan direct switch of primary manager (HRD-DEC-036)
+            if (entity.IsActive && entity.IsPrimaryManager != request.IsPrimaryManager)
+            {
+                return BadRequest(ApiResponse<object>.Fail(400, "Pengubahan status atasan langsung utama secara langsung dilarang. Penetapan atasan utama wajib melalui pengajuan berpersetujuan (HRD-DEC-036)."));
+            }
 
             var now = DateTime.UtcNow;
             var actor = GetCurrentUserId();
@@ -318,6 +344,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         {
             var entity = await FindEntityAsync(workforceProfileId, id, ct);
             if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Manager assignment tidak ditemukan."));
+
+            // Guard: larangan direct delete primary atau SK-based assignment (HRD-DEC-036/HRD-DEC-055)
+            if (entity.IsPrimaryManager || entity.PersonnelActionOrderId.HasValue)
+            {
+                return BadRequest(ApiResponse<object>.Fail(400, "Penghapusan langsung atas atasan langsung utama atau penempatan berbasis SK dilarang (HRD-DEC-036/HRD-DEC-055)."));
+            }
+
             var now = DateTime.UtcNow;
             var actor = GetCurrentUserId();
             entity.IsDelete = true;

@@ -20,6 +20,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
         private readonly ApplicationDbContext _dbContext;
         private const string OrderNumberPrefix = "SK-RSMMC-";
         private const string AdvisoryLockName = "HR_PERSONNEL_ACTION_ORDER_NUMBER";
+        private static readonly object _orderNumberLock = new();
 
         public HrdPersonnelActionOrderService(ApplicationDbContext dbContext)
         {
@@ -204,7 +205,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 TargetDepartmentId = request.TargetDepartmentId,
                 TargetPositionId = request.TargetPositionId,
                 TargetManagerProfileId = request.TargetManagerProfileId,
-                TargetBaseSalary = request.TargetBaseSalary,
+                TargetBaseSalary = null, // Protected: gaji wajib melalui workflow payroll tersendiri (HRD-DEC-036/054)
                 Notes = request.Notes,
                 CreateBy = userId,
                 CreateDateTime = DateTime.UtcNow
@@ -247,7 +248,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             order.TargetDepartmentId = request.TargetDepartmentId;
             order.TargetPositionId = request.TargetPositionId;
             order.TargetManagerProfileId = request.TargetManagerProfileId;
-            order.TargetBaseSalary = request.TargetBaseSalary;
+            order.TargetBaseSalary = null; // Protected: gaji tidak dimutasi via SK langsung (HRD-DEC-036/054)
             order.Notes = request.Notes;
             order.UpdateBy = userId;
             order.UpdateDateTime = DateTime.UtcNow;
@@ -378,9 +379,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 throw new InvalidOperationException($"Hanya SK berstatus 'PendingApproval' yang dapat disetujui (Status saat ini: '{order.OrderStatus}').");
 
             // Invariant VR-WFC-05 / HRD-DEC-031: Anti self-approval
-            if (order.SubmittedByUserId.HasValue && order.SubmittedByUserId.Value == userId)
+            if (order.CreateBy == userId || (order.SubmittedByUserId.HasValue && order.SubmittedByUserId.Value == userId))
             {
-                throw new InvalidOperationException("Persetujuan SK ditolak: Petugas pembuat draf SK dilarang menyetujui dokumen yang dibuatnya sendiri (Segregation of Duties / HRD-DEC-031).");
+                throw new InvalidOperationException("Persetujuan SK ditolak: Petugas pembuat draf SK maupun pengaju dilarang menyetujui dokumen yang dibuat atau diajukannya sendiri (Segregation of Duties / HRD-DEC-031).");
+            }
+
+            // Invariant VR-WFC-04 / HRD-DEC-056: Mandatory physical signed scan upload verification
+            if (string.IsNullOrWhiteSpace(order.SignedDocumentPath) && !await _dbContext.HrdPersonnelActionOrderAttachments.AnyAsync(a => a.PersonnelActionOrderId == order.Id && !a.IsDelete, ct))
+            {
+                throw new InvalidOperationException("Persetujuan SK ditolak: Berkas fisik hasil pindai (scan) bertanda tangan wajib dilampirkan terlebih dahulu (HRD-DEC-056).");
             }
 
             // Invariant VR-WFC-03 / HRD-DEC-050: Retroactive mutation cannot fall in a closed attendance period
@@ -487,17 +494,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 throw new InvalidOperationException("Dokumen SK tidak ditemukan.");
 
             // Invariant VR-WFC-12 / HRD-DEC-057:
-            // Scheduled: can be cancelled before effective date
-            // Applied: requires CounterOrderNumber
+            // SK yang sudah berstatus 'Applied' TIDAK DAPAT dibatalkan langsung.
+            // Untuk membalik kondisi, wajib menerbitkan peristiwa/SK baru.
             if (order.OrderStatus == "Applied")
             {
-                if (string.IsNullOrWhiteSpace(counterOrderNumber))
-                {
-                    throw new InvalidOperationException("SK yang sudah berstatus 'Applied' hanya dapat dibatalkan melalui penerbitan SK Pembatalan / Kontra resmi (Nomor SK Kontra wajib diisi) (HRD-DEC-057).");
-                }
-                order.CounterOrderNumber = counterOrderNumber;
+                throw new InvalidOperationException("SK yang sudah berstatus 'Applied' tidak dapat dibatalkan secara langsung. Untuk membalik kondisi atau membatalkan penempatan yang sudah efektif, wajib menerbitkan peristiwa/SK baru (Counter-Event) dengan referensi ke SK semula (HRD-DEC-057).");
             }
-            else if (order.OrderStatus != "Scheduled" && order.OrderStatus != "PendingApproval" && order.OrderStatus != "Draft")
+            else if (order.OrderStatus == "Scheduled")
+            {
+                if (order.EffectiveDate.Date <= DateTime.UtcNow.Date)
+                {
+                    throw new InvalidOperationException("SK yang telah memasuki atau melewati tanggal efektif tidak dapat dibatalkan (HRD-DEC-057).");
+                }
+
+                // Segregation of duties for cancellation
+                if (order.CancellationRequestedByUserId.HasValue && order.CancellationRequestedByUserId.Value == userId)
+                {
+                    throw new InvalidOperationException("Persetujuan pembatalan SK ditolak: Petugas yang mengajukan permohonan pembatalan dilarang menyetujui pembatalan sendiri (Segregation of Duties / HRD-DEC-057).");
+                }
+            }
+            else if (order.OrderStatus != "PendingApproval" && order.OrderStatus != "Draft")
             {
                 throw new InvalidOperationException($"SK berstatus '{order.OrderStatus}' tidak dapat dibatalkan.");
             }
@@ -508,6 +524,57 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             order.CancellationReason = reason;
             order.UpdateBy = userId;
             order.UpdateDateTime = DateTime.UtcNow;
+
+            await _dbContext.SaveChangesAsync(ct);
+            return (await GetOrderByIdAsync(order.Id, ct))!;
+        }
+
+        public async Task<PersonnelActionOrderDetailResponse> RequestCancelOrderAsync(
+            Guid id,
+            string reason,
+            Guid userId,
+            CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+                throw new ArgumentException("Alasan permohonan pembatalan SK wajib diisi.");
+
+            var order = await _dbContext.HrdPersonnelActionOrders
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, ct);
+
+            if (order == null)
+                throw new InvalidOperationException("Dokumen SK tidak ditemukan.");
+
+            if (order.OrderStatus == "Applied")
+            {
+                throw new InvalidOperationException("SK yang sudah berstatus 'Applied' tidak dapat dibatalkan secara langsung. Terbitkan peristiwa/SK baru (HRD-DEC-057).");
+            }
+
+            if (order.OrderStatus == "Draft" || order.OrderStatus == "PendingApproval")
+            {
+                order.OrderStatus = "Cancelled";
+                order.CancellationRequestedByUserId = userId;
+                order.CancellationRequestedAt = DateTime.UtcNow;
+                order.CancellationReason = reason;
+                order.UpdateBy = userId;
+                order.UpdateDateTime = DateTime.UtcNow;
+            }
+            else if (order.OrderStatus == "Scheduled")
+            {
+                if (order.EffectiveDate.Date <= DateTime.UtcNow.Date)
+                {
+                    throw new InvalidOperationException("SK yang telah memasuki atau melewati tanggal efektif tidak dapat diajukan pembatalan (HRD-DEC-057).");
+                }
+
+                order.CancellationRequestedByUserId = userId;
+                order.CancellationRequestedAt = DateTime.UtcNow;
+                order.CancellationReason = reason;
+                order.UpdateBy = userId;
+                order.UpdateDateTime = DateTime.UtcNow;
+            }
+            else
+            {
+                throw new InvalidOperationException($"SK berstatus '{order.OrderStatus}' tidak dapat diajukan pembatalan.");
+            }
 
             await _dbContext.SaveChangesAsync(ct);
             return (await GetOrderByIdAsync(order.Id, ct))!;
@@ -619,38 +686,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 _dbContext.WfpManagerAssignments.Add(newMgr);
             }
 
-            // 4. Base Salary Assignment
-            if (order.TargetBaseSalary.HasValue)
-            {
-                var activeSalary = await _dbContext.WfpSalaryAssignments
-                    .Where(x => x.WorkforceProfileId == profileId && x.IsPrimary && x.IsActive && !x.IsDelete)
-                    .FirstOrDefaultAsync(ct);
-
-                if (activeSalary != null)
-                {
-                    activeSalary.EffectiveEndDate = effectiveDate.AddDays(-1);
-                    activeSalary.IsActive = false;
-                    activeSalary.UpdateBy = userId;
-                    activeSalary.UpdateDateTime = DateTime.UtcNow;
-                }
-
-                var newSalary = new WfpSalaryAssignment
-                {
-                    WorkforceProfileId = profileId,
-                    BaseSalary = order.TargetBaseSalary.Value,
-                    SalaryStructureId = activeSalary?.SalaryStructureId ?? Guid.Empty,
-                    SalaryGradeId = activeSalary?.SalaryGradeId ?? Guid.Empty,
-                    EffectiveStartDate = effectiveDate,
-                    IsPrimary = true,
-                    IsActive = true,
-                    PersonnelActionOrderId = order.Id,
-                    ApprovedByUserId = userId,
-                    ApprovedAt = DateTime.UtcNow,
-                    CreateBy = userId,
-                    CreateDateTime = DateTime.UtcNow
-                };
-                _dbContext.WfpSalaryAssignments.Add(newSalary);
-            }
+            // 4. Base Salary Assignment - STOPPED per HRD-DEC-036 & HRD-DEC-054
+            // Perubahan gaji wajib melalui alur persetujuan gaji terpisah (Payroll Workflow).
+            // SK Kepegawaian tidak boleh memutasi nominal kompensasi secara langsung.
+            // Referensi ke penetapan gaji yang sah disimpan pada LinkedSalaryAssignmentId jika ada.
 
             // 5. Employment History (Pencatatan riwayat transisi dari SK - ISSUE 06)
             var existingHistory = await _dbContext.WfpEmploymentHistories
@@ -681,6 +720,81 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 };
                 _dbContext.WfpEmploymentHistories.Add(history);
             }
+
+            // 6. Sinkronisasi mirror pada MstWorkforceProfile saat penempatan berlaku (HRD-DEC-047)
+            var profile = await _dbContext.MstWorkforceProfiles
+                .FirstOrDefaultAsync(x => x.Id == profileId && !x.IsDelete, ct);
+            if (profile != null)
+            {
+                if (order.TargetPositionId.HasValue)
+                {
+                    profile.PrimaryPositionId = order.TargetPositionId.Value;
+                }
+                if (order.TargetDepartmentId.HasValue)
+                {
+                    profile.PrimaryDepartmentId = order.TargetDepartmentId.Value;
+                }
+                else if (order.TargetOrganizationUnitId.HasValue)
+                {
+                    var targetUnit = await _dbContext.MstOrganizationUnits
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(u => u.Id == order.TargetOrganizationUnitId.Value && !u.IsDelete, ct);
+                    if (targetUnit?.DepartmentId != null)
+                    {
+                        profile.PrimaryDepartmentId = targetUnit.DepartmentId;
+                    }
+                }
+                profile.UpdateDateTime = DateTime.UtcNow;
+                profile.UpdateBy = userId;
+            }
+        }
+
+        public async Task<int> ProcessScheduledOrdersAsync(CancellationToken ct = default)
+        {
+            var today = DateTime.UtcNow.Date;
+            var scheduledOrders = await _dbContext.HrdPersonnelActionOrders
+                .Where(x => x.OrderStatus == "Scheduled" && x.EffectiveDate <= today && !x.IsDelete)
+                .OrderBy(x => x.EffectiveDate)
+                .ToListAsync(ct);
+
+            int appliedCount = 0;
+            foreach (var order in scheduledOrders)
+            {
+                // Invariant VR-WFC-03 / HRD-DEC-050: attendance period must still be open
+                var effectiveDateOnly = DateOnly.FromDateTime(order.EffectiveDate);
+                var closedPeriod = await _dbContext.Set<HrdAttendancePeriod>()
+                    .Where(p => !p.IsDelete && p.PeriodStatus == "Closed")
+                    .Where(p => p.StartDate <= effectiveDateOnly && p.EndDate >= effectiveDateOnly)
+                    .FirstOrDefaultAsync(ct);
+
+                if (closedPeriod != null)
+                {
+                    // Periode kehadiran telah ditutup, tunda penerapan dan catat catatan
+                    order.Notes = $"[AUTO-APPLY DEFERRED] Periode absensi {closedPeriod.PeriodCode} telah ditutup saat jatuh tempo tanggal efektif.";
+                    order.UpdateDateTime = DateTime.UtcNow;
+                    await _dbContext.SaveChangesAsync(ct);
+                    continue;
+                }
+
+                using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
+                try
+                {
+                    order.OrderStatus = "Applied";
+                    order.ExecutedAt = DateTime.UtcNow;
+                    order.UpdateDateTime = DateTime.UtcNow;
+
+                    await ApplyOrderAssignmentsAsync(order, order.ApprovedByUserId ?? Guid.Empty, ct);
+                    await _dbContext.SaveChangesAsync(ct);
+                    await transaction.CommitAsync(ct);
+                    appliedCount++;
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(ct);
+                }
+            }
+
+            return appliedCount;
         }
 
         private async Task<string> GenerateOrderNumberAsync(CancellationToken ct)
@@ -695,13 +809,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 .Select(x => x.ActionOrderNumber)
                 .ToListAsync(ct);
 
-            var maxNumber = existingNumbers
-                .Select(x => x[prefix.Length..])
-                .Select(x => int.TryParse(x, out var value) ? value : 0)
-                .DefaultIfEmpty(0)
-                .Max();
+            int nextNum;
+            lock (_orderNumberLock)
+            {
+                var maxNumber = existingNumbers
+                    .Select(x => x.Length > prefix.Length ? x[prefix.Length..] : "")
+                    .Select(x => int.TryParse(x, out var value) ? value : 0)
+                    .DefaultIfEmpty(0)
+                    .Max();
+                nextNum = maxNumber + 1;
+            }
 
-            return $"{prefix}{(maxNumber + 1):D4}";
+            var candidate = $"{prefix}{nextNum:D4}";
+            while (await _dbContext.HrdPersonnelActionOrders.IgnoreQueryFilters().AnyAsync(x => x.ActionOrderNumber == candidate, ct))
+            {
+                nextNum++;
+                candidate = $"{prefix}{nextNum:D4}";
+            }
+
+            return candidate;
         }
 
         private async Task ValidatePlacementCombinationAsync(
@@ -836,7 +962,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 TargetManagerProfileId = order.TargetManagerProfileId,
                 TargetManagerName = order.TargetManagerProfile != null ? order.TargetManagerProfile.DisplayName : null,
                 LinkedSalaryAssignmentId = order.LinkedSalaryAssignmentId,
-                TargetBaseSalary = order.TargetBaseSalary,
+                TargetBaseSalary = null, // Confidential: disembunyikan untuk menjaga kerahasiaan kompensasi (HRD-DEC-033/054)
                 WorkflowDefinitionId = order.WorkflowDefinitionId,
                 WorkflowInstanceId = order.WorkflowInstanceId,
                 SubmittedByUserId = order.SubmittedByUserId,

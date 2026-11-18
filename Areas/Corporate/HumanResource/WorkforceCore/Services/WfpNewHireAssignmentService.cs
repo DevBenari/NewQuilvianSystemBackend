@@ -28,6 +28,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             Guid userId,
             CancellationToken cancellationToken = default)
         {
+            // Resolve actual DepartmentId from OrganizationUnit or Position master
+            var orgUnit = await _dbContext.MstOrganizationUnits
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == organizationUnitId && !u.IsDelete, cancellationToken);
+            var actualDeptId = orgUnit?.DepartmentId ?? Guid.Empty;
+
+            var pos = await _dbContext.MstPositions
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == positionId && !p.IsDelete, cancellationToken);
+            if (actualDeptId == Guid.Empty && pos?.DepartmentId != null)
+            {
+                actualDeptId = pos.DepartmentId;
+            }
+
             // 1. Organization Assignment
             var existingOrg = await _dbContext.Set<WfpOrganizationAssignment>()
                 .FirstOrDefaultAsync(o => o.WorkforceProfileId == workforceProfileId && o.IsPrimary && !o.IsDelete, cancellationToken);
@@ -40,7 +54,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     WorkforceProfileId = workforceProfileId,
                     HospitalSiteId = hospitalSiteId,
                     OrganizationUnitId = organizationUnitId,
-                    DepartmentId = organizationUnitId, // Unit organisasi
+                    DepartmentId = actualDeptId != Guid.Empty ? actualDeptId : organizationUnitId,
                     PositionId = positionId,
                     AssignmentType = "Primary",
                     IsPrimary = true,
@@ -64,7 +78,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     WorkforceProfileId = workforceProfileId,
                     HospitalSiteId = hospitalSiteId,
                     OrganizationUnitId = organizationUnitId,
-                    DepartmentId = organizationUnitId,
+                    DepartmentId = actualDeptId != Guid.Empty ? actualDeptId : (Guid?)null,
                     PositionId = positionId,
                     AssignmentType = "Substantive",
                     IsPrimary = true,
@@ -87,13 +101,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
                 var salaryStructure = await _dbContext.Set<MstSalaryStructure>()
                     .FirstOrDefaultAsync(s => s.SalaryGradeId == salaryGradeId && !s.IsDelete, cancellationToken)
-                    ?? await _dbContext.Set<MstSalaryStructure>().FirstOrDefaultAsync(s => !s.IsDelete, cancellationToken);
+                    ?? await _dbContext.Set<MstSalaryStructure>().FirstOrDefaultAsync(s => s.IsActive && !s.IsDelete, cancellationToken);
+
+                if (salaryStructure == null)
+                {
+                    throw new InvalidOperationException("Struktur penggajian aktif (MstSalaryStructure) tidak ditemukan. Penggajian awal tidak dapat ditetapkan dengan identifier acak (HRD-DEC-036/054).");
+                }
 
                 var salaryAssignment = new WfpSalaryAssignment
                 {
                     Id = Guid.NewGuid(),
                     WorkforceProfileId = workforceProfileId,
-                    SalaryStructureId = salaryStructure?.Id ?? Guid.NewGuid(),
+                    SalaryStructureId = salaryStructure.Id,
                     SalaryGradeId = salaryGradeId,
                     BaseSalary = basicSalary,
                     CurrencyCode = salaryGrade?.CurrencyCode ?? "IDR",
@@ -108,6 +127,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     CreateBy = userId
                 };
                 await _dbContext.Set<WfpSalaryAssignment>().AddAsync(salaryAssignment, cancellationToken);
+            }
+
+            // 4. Update Mirror on MstWorkforceProfile
+            var profile = await _dbContext.MstWorkforceProfiles
+                .FirstOrDefaultAsync(p => p.Id == workforceProfileId && !p.IsDelete, cancellationToken);
+            if (profile != null)
+            {
+                profile.PrimaryPositionId = positionId;
+                if (actualDeptId != Guid.Empty)
+                {
+                    profile.PrimaryDepartmentId = actualDeptId;
+                }
+                profile.UpdateDateTime = DateTime.UtcNow;
+                profile.UpdateBy = userId;
             }
 
             await _dbContext.SaveChangesAsync(cancellationToken);

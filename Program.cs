@@ -1148,6 +1148,7 @@ try
     builder.Services.AddScoped<IHrdPersonnelActionOrderService, HrdPersonnelActionOrderService>();
     builder.Services.AddScoped<IHrdEmployee360Service, HrdEmployee360Service>();
     builder.Services.AddScoped<IHrdInitialPlacementBatchService, HrdInitialPlacementBatchService>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Workers.PersonnelActionOrderScheduledApplyWorker>();
     builder.Services.AddScoped<WorkflowService>();
     builder.Services.AddScoped<WorkflowFileStorageService>();
     builder.Services.AddScoped<WorkflowCommentService>();

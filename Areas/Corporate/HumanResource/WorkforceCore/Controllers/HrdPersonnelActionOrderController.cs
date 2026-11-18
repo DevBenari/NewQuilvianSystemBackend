@@ -305,7 +305,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             Description = "Menyetujui SK kepegawaian dan menerapkan penempatan atomik",
             AccessType = AccessTypes.Update,
             SortOrder = 10)]
-        [AccessPermission("HrdPersonnelActionOrder", "Update")]
+        [AccessPermission("HrdPersonnelActionOrder", "Approve")]
         public async Task<IActionResult> ApproveOrder(Guid id, CancellationToken ct)
         {
             if (!TryGetCurrentUserId(out var userId))
@@ -333,7 +333,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             Description = "Menolak pengajuan SK kepegawaian",
             AccessType = AccessTypes.Update,
             SortOrder = 11)]
-        [AccessPermission("HrdPersonnelActionOrder", "Update")]
+        [AccessPermission("HrdPersonnelActionOrder", "Reject")]
         public async Task<IActionResult> RejectOrder(Guid id, [FromBody] RejectOrderRequest request, CancellationToken ct)
         {
             if (!TryGetCurrentUserId(out var userId))
@@ -361,7 +361,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             Description = "Membatalkan SK kepegawaian",
             AccessType = AccessTypes.Update,
             SortOrder = 12)]
-        [AccessPermission("HrdPersonnelActionOrder", "Update")]
+        [AccessPermission("HrdPersonnelActionOrder", "Cancel")]
         public async Task<IActionResult> CancelOrder(Guid id, [FromBody] CancelOrderRequest request, CancellationToken ct)
         {
             if (!TryGetCurrentUserId(out var userId))
@@ -386,13 +386,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         [AccessAction(
             "Cancel",
             "Cancel Personnel Action Order",
-            Description = "Membatalkan permohonan SK kepegawaian",
+            Description = "Mengajukan permohonan pembatalan SK kepegawaian",
             AccessType = AccessTypes.Update,
             SortOrder = 13)]
-        [AccessPermission("HrdPersonnelActionOrder", "Update")]
-        public Task<IActionResult> CancelRequest(Guid id, [FromBody] CancelOrderRequest request, CancellationToken ct)
+        [AccessPermission("HrdPersonnelActionOrder", "Cancel")]
+        public async Task<IActionResult> CancelRequest(Guid id, [FromBody] CancelOrderRequest request, CancellationToken ct)
         {
-            return CancelOrder(id, request, ct);
+            if (!TryGetCurrentUserId(out var userId))
+            {
+                return Unauthorized(ApiResponse<object>.Fail(StatusCodes.Status401Unauthorized, "Pengguna tidak terautentikasi."));
+            }
+
+            try
+            {
+                var result = await _orderService.RequestCancelOrderAsync(id, request.Reason, userId, ct);
+                return Ok(ApiResponse<PersonnelActionOrderDetailResponse>.Ok(result, "Permohonan pembatalan SK berhasil diajukan."));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
         }
 
         private bool TryGetCurrentUserId(out Guid userId)
