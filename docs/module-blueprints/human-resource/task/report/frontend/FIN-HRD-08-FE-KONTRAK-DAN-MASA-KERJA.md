@@ -11,4 +11,4 @@ Dokumen lengkap eksekusi dan verifikasi berada di:
 - **FIN-HRD-08-FE-005**: List & Detail Masa Percobaan PKWTT (`src/components/view/hr/lifecycle/probations-list-view.jsx` & `src/components/view/hr/lifecycle/probation-detail-view.jsx`) - **DONE**
 - **FIN-HRD-08-FE-006**: Halaman Perubahan Status Kerja / Konversi PKWT ke PKWTT (`src/app/hr/lifecycle/employment-status-changes/page.jsx` & `src/components/view/hr/lifecycle/employment-status-changes-view.jsx`) - **DONE**
 - **FIN-HRD-08-FE-007**: Penerapan Standar Base Components Quilvian V2 & CSS Modules (0 Tailwind, 0 mock) - **DONE**
-- **FIN-HRD-08-FE-008**: Verifikasi ESLint pada seluruh berkas Menu 08: 0 Errors - **PASS**
+- **FIN-HRD-08-FE-008**: Verifikasi ESLint scoped & `npm run lint:errors` repositori: 0 Errors (Exit code 0) - **PASS**

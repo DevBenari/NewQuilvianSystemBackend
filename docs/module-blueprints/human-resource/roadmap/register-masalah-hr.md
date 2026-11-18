@@ -36,6 +36,8 @@ Hingga 18 November 2026 tercatat **34 masalah terbuka**, ditambah **9 keputusan 
 4. **`MSL-04`** — setelah slip gaji diterbitkan, pegawai tetap tidak akan bisa melihat slipnya sendiri.
 5. **`MSL-05`** dan **`MSL-06`** — daftar delegasi dan penilaian proctoring FPPE belum dibatasi sesuai pemiliknya.
 
+**Perkembangan 18 November 2026 (sore).** Atas permintaan pemilik ("perbaiki seluruh masalahnya"), 19 masalah sudah dikerjakan di source: 2 selesai (`MSL-08` ditutup sesuai rancangan, `MSL-33`), 16 berstatus 🟡 karena tinggal uji live, dan 1 terblokir izin migration (`MSL-10`). Ke-14 kontrak backend (`MSL-14`–`MSL-27`), 9 keputusan pemilik, `MSL-34`, dan 3 isu lama belum dikerjakan karena butuh keputusan atau izin pemilik. Rinciannya ada di [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) dan [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md).
+
 ---
 
 ## 2. Cara membaca dan memperbarui
@@ -54,7 +56,7 @@ Hingga 18 November 2026 tercatat **34 masalah terbuka**, ditambah **9 keputusan 
 | Field | Isi |
 |---|---|
 | Pemilik | BE |
-| Status | Terbuka — menahan `FE-HRD-R45` (⛔) |
+| Status | 🟡 18 Nov 2026 — source diperbaiki (tiga penyebab: scope workflow, FK akun, Plh satu hari); build dan QBE lulus; uji ulang `hrw4-1118-r45-delegation.mjs` uji live menunggu izin menyalakan backend di DB dev bersama — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
 | Ditemukan | 18 Nov 2026, uji live Gelombang 4 ([laporan](../testing/test-by-agy/laporan-live-testing-gelombang4-operasional.md)) |
 
 **Contoh di rumah sakit.** Kepala Ruang ICU akan cuti tiga hari dan menunjuk Ketua Tim sebagai Plh. Setelah ia menekan **Terbitkan Surat Kuasa**, muncul pesan teknis berbahasa Inggris, dan surat kuasa tidak terbit. Selama cuti, permohonan cuti dan lembur perawat ICU menumpuk tanpa ada yang bisa menyetujui.
@@ -78,7 +80,7 @@ Hingga 18 November 2026 tercatat **34 masalah terbuka**, ditambah **9 keputusan 
 | Field | Isi |
 |---|---|
 | Pemilik | BE |
-| Status | Terbuka — menahan `FE-HRD-R46` (🟡) |
+| Status | 🟡 18 Nov 2026 — identitas dari token, siklus ditentukan server, GET tanpa tulis, cek kepemilikan di semua aksi; build dan QBE lulus; uji live menunggu izin menyalakan backend di DB dev bersama — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md), [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
 | Bukti | `PerformanceAppraisalsController.cs:42-56`, `PerformanceAppraisalService.GetMyAppraisalAsync` |
 
 **Contoh di rumah sakit.** Perawat membuka **Manajemen Kinerja → Penilaian Kinerja** untuk mengisi penilaian diri akhir tahun, tetapi layar menampilkan galat server. Hal yang sama terjadi di layar **Keberatan Penilaian**.
@@ -102,7 +104,7 @@ Hingga 18 November 2026 tercatat **34 masalah terbuka**, ditambah **9 keputusan 
 | Field | Isi |
 |---|---|
 | Pemilik | FE (pekerjaan Menu 07, commit `f7a1f0917`) |
-| Status | Terbuka |
+| Status | 🟡 18 Nov 2026 — impor diganti `todayInputValue`; galat ini tidak muncul lagi di `npm run build`, tetapi build penuh masih tertahan dua layar `lifecycle` baru dari pekerjaan paralel — [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
 | Bukti | `src/components/view/hr/workforce-core/employee-job-descriptions-view.jsx:19` |
 
 **Penyebab.** Berkas itu mengimpor `getTodayDate` dari `@/utils/hr/workforce-core/workforce-core-display-utils`, padahal fungsi tersebut tidak diekspor di sana. Turbopack menghentikan build dengan "Export getTodayDate doesn't exist in target module" dan tidak melaporkan galat lain.
@@ -120,6 +122,7 @@ Hingga 18 November 2026 tercatat **34 masalah terbuka**, ditambah **9 keputusan 
 | Field | Isi |
 |---|---|
 | Pemilik | BE |
+| Status | 🟡 18 Nov 2026 — kunci pegawai dari token; slip orang lain/belum dirilis dijawab 404; uji live menunggu izin menyalakan backend di DB dev bersama dan slip nyata (`MSL-34`) — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
 | Bukti | `PayrollRunModernController.GetCurrentUserId` (`ClaimTypes.NameIdentifier`); `PayrollPayslipDistributionService.cs:53-55` (daftar) dan `:131` (verifikasi PIN) |
 
 **Contoh.** Bulan depan slip gaji November diterbitkan. Ns. Mira membuka **Slip Gaji Saya**, tetapi daftarnya kosong. Saat ia memasukkan PIN tanggal lahirnya yang benar, server tetap menyatakan PIN salah, dan setelah tiga kali aksesnya terkunci 30 menit.
@@ -135,6 +138,7 @@ Hingga 18 November 2026 tercatat **34 masalah terbuka**, ditambah **9 keputusan 
 | Field | Isi |
 |---|---|
 | Pemilik | BE |
+| Status | 🟡 18 Nov 2026 — daftar dan pencabutan dibatasi pemilik; hak lingkup baru `WorkflowDelegation : ViewAllDelegations`; uji live menunggu izin menyalakan backend di DB dev bersama — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
 | Sumber | Laporan [FE-HRD-R33](../task/report/frontend/FE-HRD-R33.md) |
 
 `GET /api/v1/hrd/workflow/delegations` (`[Tags("Corporate - HRD Workflow Delegations")]`) mengembalikan **semua** surat kuasa Plh tanpa menyaring pemberi kuasa. Akibatnya, seorang kepala ruang bisa melihat daftar Plh unit lain.
@@ -146,6 +150,7 @@ Hingga 18 November 2026 tercatat **34 masalah terbuka**, ditambah **9 keputusan 
 | Field | Isi |
 |---|---|
 | Pemilik | BE |
+| Status | 🟡 18 Nov 2026 — penilaian ditolak 403 bila bukan proctor yang ditunjuk; uji live menunggu izin menyalakan backend di DB dev bersama — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
 | Sumber | Laporan [FE-HRD-R32](../task/report/frontend/FE-HRD-R32.md) |
 
 Backend tidak memeriksa bahwa `ProctorWorkforceId` sama dengan dokter proctor yang ditunjuk komite. Frontend sudah membatasi tombolnya, tetapi panggilan API langsung tetap diterima. Contoh: dokter lain bisa mengisi hasil proctoring seorang dokter yang sedang diawasi.
@@ -159,6 +164,7 @@ Backend tidak memeriksa bahwa `ProctorWorkforceId` sama dengan dokter proctor ya
 | Field | Isi |
 |---|---|
 | Pemilik | BE |
+| Status | 🟡 18 Nov 2026 — `claims/mine`, anti persetujuan diri, `PUT settings/{id}` + log audit, sinkron Finance tanpa data karangan; uji live menunggu izin menyalakan backend di DB dev bersama — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md), [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
 | Sumber | Laporan [FE-HRD-R40](../task/report/frontend/FE-HRD-R40.md) |
 
 1. `GET claims` mewajibkan `RestitutionClaim : Read`. Pegawai yang hanya punya `ViewOwn` tidak bisa melihat riwayat klaim kacamata atau berobatnya sendiri.
@@ -173,6 +179,7 @@ Backend tidak memeriksa bahwa `ProctorWorkforceId` sama dengan dokter proctor ya
 | Field | Isi |
 |---|---|
 | Pemilik | BE |
+| Status | ✅ 18 Nov 2026 — ditutup tanpa perubahan kode: controller sengaja `IsSystemOnly`, dan `AccessPermission` di sana akan memblokir presensi seluruh pegawai — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) bagian 3.8 |
 | Sumber | Laporan [FE-HRD-R43](../task/report/frontend/FE-HRD-R43.md) |
 
 `AttendanceSelfServiceController` (`[Tags("Self Services / Human Resource / Attendance")]`, `/api/v1/self-services/human-resource/attendance`) tidak memakai `AccessPermission`, sehingga menu **Presensi Saya** tidak bergerbang. **Rekomendasi:** tambahkan `AccessPermission` (misalnya `MyAttendance : Read`) dan pasang `requiredPermission` di menu.
@@ -182,6 +189,7 @@ Backend tidak memeriksa bahwa `ProctorWorkforceId` sama dengan dokter proctor ya
 | Field | Isi |
 |---|---|
 | Pemilik | BE |
+| Status | 🟡 18 Nov 2026 — PDF QuestPDF dikunci AES-256, sandi tanggal lahir DDMMYYYY; petunjuk tampil lagi di layar; uji live menunggu izin menyalakan backend di DB dev bersama — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md), [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
 | Bukti | `PayrollPayslipDistributionService.GeneratePayslipPdfDocument` (sekitar baris 452) menyusun PDF mentah tanpa enkripsi |
 
 VR-PAY-24 mewajibkan PDF slip berproteksi sandi. Layar lama menjanjikan "Password PDF: tanggal lahir DDMMYYYY", tetapi PDF dari server tidak berkata sandi; petunjuk itu sudah dihapus frontend pada 18 Nov 2026. **Rekomendasi:** pakai pustaka PDF yang mendukung enkripsi, lalu tampilkan kembali petunjuk sandi di layar.
@@ -191,6 +199,7 @@ VR-PAY-24 mewajibkan PDF slip berproteksi sandi. Layar lama menjanjikan "Passwor
 | Field | Isi |
 |---|---|
 | Pemilik | BE |
+| Status | ⛔ 18 Nov 2026 — butuh tabel baru `HrdOvertimeSetting`; pembuatan migration menunggu izin terpisah pemilik (`CLAUDE.md`) — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) bagian 3.9 |
 | Sumber | Laporan [FE-HRD-R35](../task/report/frontend/FE-HRD-R35.md); `backend-unfinished-work.md` Kelompok C |
 
 `OvertimeSettingService` menyimpan parameter di memori statis (`_cachedSettings`). Akibatnya pengaturan hilang saat server dimulai ulang, berbeda antar-instans, dan tidak teraudit. Karena itu layar **Pengaturan Lembur** dibuat baca-saja. `[Tags("HR Overtime - Settings")]`, `/api/v1/corporate/human-resource/overtime-settings`. **Rekomendasi:** simpan di tabel DB beserta jejak audit.
@@ -200,6 +209,7 @@ VR-PAY-24 mewajibkan PDF slip berproteksi sandi. Layar lama menjanjikan "Passwor
 | Field | Isi |
 |---|---|
 | Pemilik | BE |
+| Status | 🟡 18 Nov 2026 — filter `HrSafeError.IsDomain` di 120 blok/32 controller; middleware menjawab pesan Bahasa Indonesia (409 untuk pelanggaran aturan data); uji live menunggu izin menyalakan backend di DB dev bersama — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
 | Contoh | `POST /api/v1/hrd/workflow/delegations` → `"An error occurred while saving the entity changes. See the inner exception for details."` |
 
 Pengguna melihat kalimat teknis berbahasa Inggris dan tidak tahu harus berbuat apa. **Rekomendasi:** tangkap `DbUpdateException` di handler global, kirim pesan Bahasa Indonesia tanpa detail teknis, dan catat detailnya hanya di log server.
@@ -209,6 +219,7 @@ Pengguna melihat kalimat teknis berbahasa Inggris dan tidak tahu harus berbuat a
 | Field | Isi |
 |---|---|
 | Pemilik | BE |
+| Status | 🟡 18 Nov 2026 — verify/close memeriksa status; nomor bukti wajib bila ada selisih; settlement seimbang kini bisa ditutup; uji live menunggu izin menyalakan backend di DB dev bersama — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
 | Sumber | Laporan [FE-HRD-R34](../task/report/frontend/FE-HRD-R34.md) |
 
 `PaymentOrRefundRef` tidak diwajibkan server saat ada selisih lebih atau kurang bayar. Frontend sudah mewajibkannya, tetapi panggilan API langsung bisa menyelesaikan settlement tanpa nomor bukti setor atau bayar. `[Tags("Corporate - HRD Business Travel Settlements")]`.
@@ -218,6 +229,7 @@ Pengguna melihat kalimat teknis berbahasa Inggris dan tidak tahu harus berbuat a
 | Field | Isi |
 |---|---|
 | Pemilik | BE / infrastruktur |
+| Status | 🟡 18 Nov 2026 — 35 worker SDM digerbangi `runBackgroundJobs`; 7 worker modul lain dilaporkan ke pemiliknya — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) bagian 3.12 |
 | Bukti | `Program.cs`: 43 dari 66 `AddHostedService` (baris 722–1777) berada di luar blok `if (runBackgroundJobs)` (baris 1842) |
 
 Env `Runtime__Role=Web` seharusnya hanya menyalakan API. Pada kenyataannya, sebagian besar worker (HR, `BilInvoiceSyncWorker`, `PrescriptionReservationExpiryWorker`, `ClinicalFactDispatchWorker`, dan lain-lain) tetap berjalan. Akibatnya setiap pengembang yang menyalakan backend untuk uji ikut menulis ke basis data dev bersama. **Rekomendasi:** pindahkan worker ke dalam gerbang `runBackgroundJobs`, kecuali yang memang dikonsumsi endpoint HTTP.
@@ -259,6 +271,17 @@ Layar-layar berikut sudah dibangun jujur: tidak ada data karangan, dan kekuranga
 | `MSL-33` | P3 | Status `FE-HRD-R14` s.d. `R20` di roadmap masih "live browser tertahan 401", padahal sejak 18 Nov 2026 login lokal berhasil dan layarnya sudah dibuka di Gelombang 4 | Pembaca roadmap mengira layar belum pernah dibuka | Perbarui status saat audit `FE-HRD-R47` | [frontend-unfinished-work.md](frontend-unfinished-work.md) |
 
 ---
+
+**Status perbaikan 18 November 2026** ([laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md)):
+
+| No. | Status |
+|---|---|
+| `MSL-28` | 🟡 64 butir menu diberi `requiredPermission` (layanan mandiri tetap terbuka); penyaring menu menerima daftar hak "salah satu cukup"; screenshot per peran menunggu izin menyalakan backend |
+| `MSL-29` | 🟡 `AccessDeniedAlert` untuk pegawai tanpa `WorkforcePlanningSetting : Read`; screenshot menunggu izin yang sama |
+| `MSL-30` | 🟡 rute lama dialihkan ke `/hr/self-service/overtime` (`DEC-FER-04` opsi A); belum dibuka di browser |
+| `MSL-31` | 🟡 `?jenisCuti=CTO` mengisi jenis cuti otomatis; belum diuji karena DB dev hanya punya jenis cuti `LEG_DEFAULT` |
+| `MSL-32` | 🟡 sel kosong membuka modal **Tambah Shift** (`POST roster-periods/{id}/assignments`, alur alasan W1–W7); belum diuji di browser |
+| `MSL-33` | ✅ 16 baris status R14–R20 dan R25–R29 diberi catatan bahwa hambatan `401` sudah tidak berlaku |
 
 ## 7. Lingkungan uji
 
@@ -326,7 +349,7 @@ Butir berikut berstatus 🟡 di [backend-unfinished-work.md](backend-unfinished-
 
 ---
 
-## 11. Sudah diperbaiki pada Gelombang 4 (riwayat)
+## 11. Sudah diperbaiki (riwayat Gelombang 4 dan 18 November 2026)
 
 | Masalah | Perbaikan | Bukti |
 |---|---|---|
@@ -334,6 +357,9 @@ Butir berikut berstatus 🟡 di [backend-unfinished-work.md](backend-unfinished-
 | Pesan "Request failed with status code 404" di 4 layar ESS lama | Memakai pesan server (`getHrApiErrorMessage`) | FE-HRD-R46 |
 | PSV menampilkan 0 saat radar lisensi gagal | Ringkasan "-" dan pesan galat | [FE-HRD-R44](../task/report/frontend/FE-HRD-R44.md) |
 | Slip Gaji berdata contoh; PIN `123456` diterima saat API gagal; token PIN tidak dikirim | Ditulis ulang memakai API, header `X-Payroll-PIN`, nominal tersamar | FE-HRD-R46 |
+| Sinkron piutang Finance mengarang 10 pinjaman Rp6.000.000 bila dipanggil tanpa data (ditemukan saat `MSL-07`) | Sumber diganti perjanjian angsuran `DISETUJUI` modul Keuangan | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
+| Settlement SPPD seimbang selalu ditolak karena `PaymentOrRefundRef` `[Required]` (ditemukan saat `MSL-12`) | Nomor bukti hanya wajib bila ada selisih | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
+| `GET subordinates` penilaian kinerja memuat semua lembar dan butuh `managerId` dari query (ditemukan saat `MSL-02`) | Disaring per atasan dari token | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
 
 ---
 

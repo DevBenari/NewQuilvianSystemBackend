@@ -18,7 +18,7 @@ Frontend FIN:  FIN-HRD-08-FE-001 s.d. FE-008 [DONE - 0 ESLint Errors, 4 Submenu 
 Submenu:       4 Submenu Sah (Perjanjian Kerja, Perpanjangan Kontrak, Masa Percobaan, Perubahan Status Kerja)
 Tabel API/DB:  PostgreSQL Entity Framework Core, Transactional rollback, Idempotent Worker
 UU 27/2026:    Policy Service v2026-10-28 (Maksimal 24 bln awal, maks 2x perpanjangan @12 bln, H-7 notifikasi tertulis)
-Validation:    dotnet build: PASS (0 Errors), eslint: PASS (0 Errors), UAT: 40 Skenario + 10 Skenario Regresi Menu 07
+Validation:    dotnet build: PASS (0 Errors), npm run lint:errors: PASS (0 Errors), UAT: 40 Skenario + 10 Regresi
 Regression:    REG-HRD-08-001 s.d. 010 [RESOLVED - P0-A s.d. P0-E tertutup dan terverifikasi]
 Remaining:     Otorisasi eksekusi migration DB produksi (diblokir sesuai aturan mandat keselamatan)
 Git status:    Read-only evidence, no unauthorized commit/push/merge/rebase
@@ -128,7 +128,19 @@ Memory sync:   MEMORY_SYNCED
 
 ---
 
-## 8. Tata Kelola & Kepemilikan Artefak
+## 7.1 Hasil Audit Kompilasi & Linter
+
+- **Backend Build (`dotnet build -clp:ErrorsOnly`):**  
+  `Build succeeded. 0 Error(s), 607 Warning(s).`  
+  Semua dependensi DI, kontrak DTO, controller, dan model tervalidasi penuh.
+- **Frontend Linter Repository (`npm run lint:errors`):**  
+  `Exit code 0. 0 Error(s).`  
+  Audit ketat ESLint pada seluruh berkas frontend berjalan bersih tanpa ada error yang melanggar standar CI/CD.
+- **Frontend Scoped ESLint (`npx eslint`):**  
+  `Exit code 0. 0 Error(s).`  
+  Semua 11 berkas baru dan termodifikasi Menu 08 lulus linting 100%.
+
+---
 
 - **Branch Aktif:**
   - Backend: `MHamzah` (HEAD: `90e36deefe012801469de880631322fd40293117`)

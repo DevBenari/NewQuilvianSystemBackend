@@ -1919,3 +1919,31 @@ Dasar: `INSTRUKSI_AGENT_HRD_MENU_12_PEMBERHENTIAN_DAN_PENSIUN.md`. Pemetaan requ
 | Integrasi & Verifikasi | `BE-HRD-364`, `BE-HRD-373` | `FE-HRD-328`, `FE-HRD-335`, `FE-HRD-336` | `UAT-M12-29`, `UAT-M12-30` | ✅ PASS | [BE-HRD-373](../task/report/backend/BE-HRD-373.md) / [FE-HRD-336](../task/report/frontend/FE-HRD-336.md) |
 
 Verifikasi Slice `S-C5-SEP`: Kompilasi backend .NET **0 error**, linter ESLint frontend **0 error 0 warning**, CSS checker `check-css-usage.mjs` **0 temuan** (zero-tailwind, full tokens), 100% data mock/fallback/fake toast dihapus dari seluruh rute operasional Menu 12, dan 30 skenario UAT terverifikasi berstatus `VERIFIED WORKING`.
+
+### Bagian 1aa: Jejak Perbaikan Register Masalah SDM (18 November 2026)
+
+Sumber: [register-masalah-hr.md](register-masalah-hr.md). Status lengkap dan alasannya ada di register; bagian ini hanya memetakan masalah ke kebutuhan dan bukti.
+
+| Masalah | Kebutuhan / keputusan | Endpoint atau layar | Status | Bukti |
+|---|---|---|:---:|---|
+| `MSL-01` | `HRD-DEC-184`, `FR-WF-07` | `POST /api/v1/hrd/workflow/delegations` | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
+| `MSL-02` | `VR-PRF-04`, `PRF-B3` | `GET .../performance/appraisals/my-appraisal` dan aksi lembar | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md), [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
+| `MSL-03` | Build rilis | Uraian Tugas Pegawai | 🟡 | [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
+| `MSL-04` | `HRD-DEC-127`, `VR-PAY-22` | `.../payroll/runs/self-service/*` | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
+| `MSL-05` | `FR-WF-07`, `HRD-DEC-184` | `GET`/`PUT revoke` delegasi | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
+| `MSL-06` | `HRD-DEC-154` (FPPE proctoring) | `PUT .../fppe/case-logs/{id}/verify` | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
+| `MSL-07` | `DED-B8`, `VR-DED-08`, `INT-HR-55` | `GET claims/mine`, `PUT settings/{id}`, sinkron piutang | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md), [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
+| `MSL-08` | ESS presensi (rancangan `IsSystemOnly`) | `AttendanceSelfServiceController` | ✅ | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
+| `MSL-09` | `FR-PAY-25`, `VR-PAY-24` (PRD), `HRD-DEC-127` | `GET .../download-pdf` | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md), [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
+| `MSL-10` | `HRD-DEC-116`–`121` | `OvertimeSettingService` | ⛔ izin migration | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
+| `MSL-11` | Pesan galat Bahasa Indonesia | `GlobalExceptionMiddleware`, 32 controller SDM | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
+| `MSL-12` | Settlement SPPD (Kontrak v25) | `POST .../settlements/{id}/verify`, `close` | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
+| `MSL-13` | Runtime role `Web`/`Worker` | `Program.cs` | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
+| `MSL-28` | Visibilitas menu per hak (util `filter-menu-items-by-permission`) | `menu-items.jsx` | 🟡 | [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
+| `MSL-29` | `FE-HRD-029` | Pengaturan Perencanaan | 🟡 | [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
+| `MSL-30` | `DEC-FER-04` opsi A | Rute lembur ESS | 🟡 | [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
+| `MSL-31` | `HRD-DEC-118` (CTO) | Formulir cuti `?jenisCuti=` | 🟡 | [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
+| `MSL-32` | `HRD-DEC-195`, `VR-PK-04` | Kisi roster — Tambah Shift | 🟡 | [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
+| `MSL-33` | Status roadmap | `frontend-unfinished-work.md` | ✅ | [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
+
+Validasi: `dotnet build` 0 error; QBE Strict 16 berkas `PASS`; ESLint 0 error; test menu M9 lulus (9 kegagalan lain identik dengan HEAD); `check-css-usage.mjs` 0 temuan pada 12 berkas. Uji live belum dijalankan (menunggu izin menyalakan backend di DB dev bersama).
