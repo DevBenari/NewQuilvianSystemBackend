@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.DTOs;
@@ -52,6 +53,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
         private const string CodePrefix = "HAP-RSMMC-";
         private const int CodeNumberLength = 5;
+        private const int MaxCodeGenerationAttempts = 3;
+        private const string LogCategory = "Corporate.PayrollManagement.MasterData";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -348,15 +351,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [AccessAction("Create", "Create Hazard Allowance Policy", Description = "Membuat hazard allowance policy", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("HazardAllowancePolicy", "Create")]
         public async Task<IActionResult> Create(
-            [FromBody] CreateHazardAllowancePolicyRequest request)
+            [FromBody] CreateHazardAllowancePolicyRequest? request)
         {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Data kebijakan tunjangan risiko wajib diisi."));
+            }
+
             var validation = await ValidateRequestAsync(null, request);
 
             if (!validation.IsValid)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data tidak valid."));
+                return BuildValidationErrorResult(
+                    validation.StatusCode,
+                    validation.ErrorMessage ?? "Data tidak valid.");
             }
 
             var now = DateTime.UtcNow;
@@ -365,7 +375,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             var entity = new MstHazardAllowancePolicy
             {
                 Id = Guid.NewGuid(),
-                HazardAllowancePolicyCode = await GenerateCodeAsync(),
                 AllowanceTypeId = request.AllowanceTypeId,
                 LegalEntityId = NormalizeGuid(request.LegalEntityId),
                 HospitalSiteId = NormalizeGuid(request.HospitalSiteId),
@@ -374,17 +383,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 EmployeeCategoryId = NormalizeGuid(request.EmployeeCategoryId),
                 EmploymentTypeId = NormalizeGuid(request.EmploymentTypeId),
                 HazardAllowancePolicyName = request.HazardAllowancePolicyName.Trim(),
-                HazardLevel = request.HazardLevel.Trim(),
-                CalculationMethod = request.CalculationMethod.Trim(),
-                CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant(),
+                HazardLevel = NormalizeHazardLevel(request.HazardLevel),
+                CalculationMethod = NormalizeMethod(request.CalculationMethod),
+                CurrencyCode = NormalizeCurrencyCode(request.CurrencyCode),
                 RateAmount = request.RateAmount,
                 PercentageOfBaseSalary = request.PercentageOfBaseSalary,
                 MinimumExposureDays = request.MinimumExposureDays,
                 MaximumAmountPerPeriod = request.MaximumAmountPerPeriod,
                 RequireOccupationalHealthClearance = request.RequireOccupationalHealthClearance,
                 RequireActiveAssignment = request.RequireActiveAssignment,
-                EffectiveStartDate = request.EffectiveStartDate?.Date,
-                EffectiveEndDate = request.EffectiveEndDate?.Date,
+                EffectiveStartDate = NormalizeDateOnly(request.EffectiveStartDate),
+                EffectiveEndDate = NormalizeDateOnly(request.EffectiveEndDate),
                 Description = NormalizeText(request.Description),
                 Priority = request.Priority,
                 IsDefault = request.IsDefault,
@@ -395,8 +404,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 IsCancel = false
             };
 
-            _dbContext.Set<MstHazardAllowancePolicy>().Add(entity);
-            await _dbContext.SaveChangesAsync();
+            if (entity.IsDefault)
+            {
+                await UnsetOtherDefaultAsync(entity.Id, entity.AllowanceTypeId, now, actor);
+            }
+
+            for (var attempt = 1; attempt <= MaxCodeGenerationAttempts; attempt++)
+            {
+                entity.HazardAllowancePolicyCode = await GenerateCodeAsync();
+                _dbContext.Set<MstHazardAllowancePolicy>().Add(entity);
+
+                try
+                {
+                    await _dbContext.SaveChangesAsync();
+                    break;
+                }
+                catch (DbUpdateException ex) when (IsPolicyCodeUniqueViolation(ex) && attempt < MaxCodeGenerationAttempts)
+                {
+                    _dbContext.Entry(entity).State = EntityState.Detached;
+                }
+                catch (DbUpdateException ex)
+                {
+                    await TryLogErrorAsync("HazardAllowancePolicy.Create", "Gagal menyimpan hazard allowance policy.", ex, new { entity.Id, entity.HazardAllowancePolicyCode });
+                    var mapped = TryMapDatabaseException(ex);
+                    if (mapped != null) return mapped;
+                    throw;
+                }
+            }
 
             return Ok(ApiResponse<object>.Ok(
                 new { entity.Id },
@@ -408,8 +442,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [AccessPermission("HazardAllowancePolicy", "Update")]
         public async Task<IActionResult> Update(
             Guid id,
-            [FromBody] UpdateHazardAllowancePolicyRequest request)
+            [FromBody] UpdateHazardAllowancePolicyRequest? request)
         {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Data kebijakan tunjangan risiko wajib diisi."));
+            }
+
             var entity = await _dbContext.Set<MstHazardAllowancePolicy>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
@@ -424,10 +465,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
             if (!validation.IsValid)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data tidak valid."));
+                return BuildValidationErrorResult(
+                    validation.StatusCode,
+                    validation.ErrorMessage ?? "Data tidak valid.");
             }
+
+            var now = DateTime.UtcNow;
+            var actor = GetCurrentUserId();
 
             entity.AllowanceTypeId = request.AllowanceTypeId;
             entity.LegalEntityId = NormalizeGuid(request.LegalEntityId);
@@ -437,25 +481,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             entity.EmployeeCategoryId = NormalizeGuid(request.EmployeeCategoryId);
             entity.EmploymentTypeId = NormalizeGuid(request.EmploymentTypeId);
             entity.HazardAllowancePolicyName = request.HazardAllowancePolicyName.Trim();
-            entity.HazardLevel = request.HazardLevel.Trim();
-            entity.CalculationMethod = request.CalculationMethod.Trim();
-            entity.CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant();
+            entity.HazardLevel = NormalizeHazardLevel(request.HazardLevel);
+            entity.CalculationMethod = NormalizeMethod(request.CalculationMethod);
+            entity.CurrencyCode = NormalizeCurrencyCode(request.CurrencyCode);
             entity.RateAmount = request.RateAmount;
             entity.PercentageOfBaseSalary = request.PercentageOfBaseSalary;
             entity.MinimumExposureDays = request.MinimumExposureDays;
             entity.MaximumAmountPerPeriod = request.MaximumAmountPerPeriod;
             entity.RequireOccupationalHealthClearance = request.RequireOccupationalHealthClearance;
             entity.RequireActiveAssignment = request.RequireActiveAssignment;
-            entity.EffectiveStartDate = request.EffectiveStartDate?.Date;
-            entity.EffectiveEndDate = request.EffectiveEndDate?.Date;
+            entity.EffectiveStartDate = NormalizeDateOnly(request.EffectiveStartDate);
+            entity.EffectiveEndDate = NormalizeDateOnly(request.EffectiveEndDate);
             entity.Description = NormalizeText(request.Description);
             entity.Priority = request.Priority;
-            entity.IsDefault = request.IsDefault;
+            entity.IsDefault = request.IsActive && request.IsDefault;
             entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actor;
 
-            await _dbContext.SaveChangesAsync();
+            if (entity.IsDefault)
+            {
+                await UnsetOtherDefaultAsync(entity.Id, entity.AllowanceTypeId, now, actor);
+            }
+
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                await TryLogErrorAsync("HazardAllowancePolicy.Update", "Gagal memperbarui hazard allowance policy.", ex, new { entity.Id, entity.HazardAllowancePolicyCode });
+                var mapped = TryMapDatabaseException(ex);
+                if (mapped != null) return mapped;
+                throw;
+            }
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -543,21 +602,55 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 .Where(x => !x.IsDelete);
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
+        private async Task<(bool IsValid, int StatusCode, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
             CreateHazardAllowancePolicyRequest request)
         {
             if (request.AllowanceTypeId == Guid.Empty)
-                return (false, "Allowance type wajib dipilih.");
+                return (false, StatusCodes.Status400BadRequest, "Allowance type wajib dipilih.");
 
             if (string.IsNullOrWhiteSpace(request.HazardAllowancePolicyName))
-                return (false, "Nama wajib diisi.");
+                return (false, StatusCodes.Status400BadRequest, "Nama wajib diisi.");
 
-            if (request.EffectiveStartDate.HasValue &&
-                request.EffectiveEndDate.HasValue &&
-                request.EffectiveEndDate.Value.Date < request.EffectiveStartDate.Value.Date)
+            if (string.IsNullOrWhiteSpace(request.HazardLevel))
+                return (false, StatusCodes.Status400BadRequest, "Hazard level wajib diisi.");
+
+            if (!AllowedHazardLevels.Contains(request.HazardLevel.Trim()))
+                return (false, StatusCodes.Status400BadRequest, "Hazard level tidak valid.");
+
+            if (string.IsNullOrWhiteSpace(request.CalculationMethod))
+                return (false, StatusCodes.Status400BadRequest, "Calculation method wajib diisi.");
+
+            var calculationMethod = request.CalculationMethod.Trim();
+            if (!AllowedMethods.Contains(calculationMethod))
+                return (false, StatusCodes.Status400BadRequest, "Calculation method tidak valid.");
+
+            var currencyCode = NormalizeCurrencyCode(request.CurrencyCode);
+            if (currencyCode.Length != 3)
+                return (false, StatusCodes.Status400BadRequest, "Kode mata uang harus terdiri dari 3 karakter.");
+
+            if (request.RateAmount < 0 ||
+                request.PercentageOfBaseSalary < 0 ||
+                request.PercentageOfBaseSalary > 100 ||
+                request.MinimumExposureDays < 0 ||
+                (request.MaximumAmountPerPeriod.HasValue && request.MaximumAmountPerPeriod.Value < 0) ||
+                request.Priority < 0)
             {
-                return (false, "EffectiveEndDate tidak boleh sebelum EffectiveStartDate.");
+                return (false, StatusCodes.Status400BadRequest, "Nilai tarif, persentase, hari paparan minimum, batas maksimum, dan prioritas tidak valid.");
+            }
+
+            if (calculationMethod.Equals("PercentageOfBaseSalary", StringComparison.OrdinalIgnoreCase) &&
+                request.PercentageOfBaseSalary <= 0)
+            {
+                return (false, StatusCodes.Status400BadRequest, "PercentageOfBaseSalary harus lebih dari 0.");
+            }
+
+            var startDate = NormalizeDateOnly(request.EffectiveStartDate);
+            var endDate = NormalizeDateOnly(request.EffectiveEndDate);
+
+            if (startDate.HasValue && endDate.HasValue && endDate.Value < startDate.Value)
+            {
+                return (false, StatusCodes.Status400BadRequest, "EffectiveEndDate tidak boleh sebelum EffectiveStartDate.");
             }
 
             if (!await _dbContext.Set<MstAllowanceType>().AnyAsync(x =>
@@ -565,22 +658,43 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     x.IsActive &&
                     !x.IsDelete))
             {
-                return (false, "Allowance type tidak ditemukan atau tidak aktif.");
+                return (false, StatusCodes.Status400BadRequest, "Allowance type tidak ditemukan atau tidak aktif.");
             }
 
-            if (!AllowedHazardLevels.Contains(request.HazardLevel.Trim()))
-                return (false, "Hazard level tidak valid.");
-
-            if (!AllowedMethods.Contains(request.CalculationMethod.Trim()))
-                return (false, "Calculation method tidak valid.");
-
-            if (request.WorkLocationId.HasValue &&
-                !await _dbContext.Set<MstWorkLocation>().AnyAsync(x =>
-                    x.Id == request.WorkLocationId.Value &&
-                    x.IsActive &&
-                    !x.IsDelete))
+            if (NormalizeGuid(request.LegalEntityId) is { } legalEntityId &&
+                !await _dbContext.Set<MstLegalEntity>().AnyAsync(x => x.Id == legalEntityId && x.IsActive && !x.IsDelete))
             {
-                return (false, "Work location tidak valid.");
+                return (false, StatusCodes.Status400BadRequest, "Legal entity tidak ditemukan atau tidak aktif.");
+            }
+
+            if (NormalizeGuid(request.HospitalSiteId) is { } hospitalSiteId &&
+                !await _dbContext.Set<MstHospitalSite>().AnyAsync(x => x.Id == hospitalSiteId && x.IsActive && !x.IsDelete))
+            {
+                return (false, StatusCodes.Status400BadRequest, "Hospital site tidak ditemukan atau tidak aktif.");
+            }
+
+            if (NormalizeGuid(request.OrganizationUnitId) is { } organizationUnitId &&
+                !await _dbContext.Set<MstOrganizationUnit>().AnyAsync(x => x.Id == organizationUnitId && x.IsActive && !x.IsDelete))
+            {
+                return (false, StatusCodes.Status400BadRequest, "Organization unit tidak ditemukan atau tidak aktif.");
+            }
+
+            if (NormalizeGuid(request.WorkLocationId) is { } workLocationId &&
+                !await _dbContext.Set<MstWorkLocation>().AnyAsync(x => x.Id == workLocationId && x.IsActive && !x.IsDelete))
+            {
+                return (false, StatusCodes.Status400BadRequest, "Work location tidak valid atau tidak aktif.");
+            }
+
+            if (NormalizeGuid(request.EmployeeCategoryId) is { } employeeCategoryId &&
+                !await _dbContext.Set<MstEmployeeCategory>().AnyAsync(x => x.Id == employeeCategoryId && x.IsActive && !x.IsDelete))
+            {
+                return (false, StatusCodes.Status400BadRequest, "Kategori karyawan tidak ditemukan atau tidak aktif.");
+            }
+
+            if (NormalizeGuid(request.EmploymentTypeId) is { } employmentTypeId &&
+                !await _dbContext.Set<MstEmploymentType>().AnyAsync(x => x.Id == employmentTypeId && x.IsActive && !x.IsDelete))
+            {
+                return (false, StatusCodes.Status400BadRequest, "Tipe kepegawaian tidak ditemukan atau tidak aktif.");
             }
 
             var normalizedName = request.HazardAllowancePolicyName.Trim().ToLower();
@@ -595,10 +709,78 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 duplicateQuery = duplicateQuery.Where(x => x.Id != excludeId.Value);
 
             if (await duplicateQuery.AnyAsync())
-                return (false, "Nama sudah digunakan.");
+                return (false, StatusCodes.Status409Conflict, "Nama kebijakan tunjangan risiko sudah digunakan.");
 
-            return (true, null);
+            return (true, StatusCodes.Status200OK, null);
         }
+
+        private IActionResult BuildValidationErrorResult(int statusCode, string message)
+        {
+            if (statusCode == StatusCodes.Status409Conflict)
+            {
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, message));
+            }
+
+            return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, message));
+        }
+
+        private static bool IsPolicyCodeUniqueViolation(DbUpdateException exception)
+        {
+            var pgException = exception.InnerException as PostgresException
+                ?? exception.GetBaseException() as PostgresException;
+
+            return pgException != null &&
+                pgException.SqlState == PostgresErrorCodes.UniqueViolation &&
+                !string.IsNullOrWhiteSpace(pgException.ConstraintName) &&
+                pgException.ConstraintName.Contains("HazardAllowancePolicyCode", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private IActionResult? TryMapDatabaseException(DbUpdateException exception)
+        {
+            var pgException = exception.InnerException as PostgresException
+                ?? exception.GetBaseException() as PostgresException;
+
+            if (pgException == null)
+                return null;
+
+            return pgException.SqlState switch
+            {
+                PostgresErrorCodes.UniqueViolation => Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Data kebijakan tunjangan risiko bentrok dengan data yang sudah ada. Muat ulang daftar sebelum mencoba kembali.")),
+                "23503" => BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Referensi data terkait pada kebijakan tunjangan risiko tidak valid atau tidak ditemukan.")),
+                "22001" or "22003" or "22007" or "23502" => BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Format atau batas nilai pada data kebijakan tunjangan risiko tidak memenuhi ketentuan.")),
+                _ => null
+            };
+        }
+
+        private async Task TryLogErrorAsync(string action, string message, Exception exception, object? data = null)
+        {
+            try
+            {
+                await _loggerService.ErrorAsync(LogCategory, action, message, exception, data);
+            }
+            catch
+            {
+                // Jangan biarkan kegagalan logger menutupi exception utama.
+            }
+        }
+
+        private static DateTime? NormalizeDateOnly(DateTime? value) =>
+            value.HasValue ? DateTime.SpecifyKind(value.Value.Date, DateTimeKind.Unspecified) : null;
+
+        private static string NormalizeHazardLevel(string value) =>
+            AllowedHazardLevels.First(x => x.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        private static string NormalizeMethod(string value) =>
+            AllowedMethods.First(x => x.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        private static string NormalizeCurrencyCode(string? value) =>
+            string.IsNullOrWhiteSpace(value) ? "IDR" : value.Trim().ToUpperInvariant();
 
 
         private async Task UnsetOtherDefaultAsync(

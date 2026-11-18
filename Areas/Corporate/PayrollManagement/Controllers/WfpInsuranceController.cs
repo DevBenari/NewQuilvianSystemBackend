@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Features;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 
@@ -35,13 +36,38 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly IBpjsFeatureGate _bpjsGate;
 
         public WfpInsuranceController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            IBpjsFeatureGate bpjsGate)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _bpjsGate = bpjsGate;
+        }
+
+        /// <summary>
+        /// Fitur BPJS nonaktif: isian BPJS (kepesertaan, nomor, tarif per pegawai, program) tidak lagi ditampilkan atau dikirim Frontend,
+        /// jadi request membawa nilai bawaan DTO (false/0/null). Menulisnya akan mereset data BPJS yang sudah tersimpan dan, pada profil
+        /// baru, membuat kepesertaan BPJS tampak ditetapkan. Karena itu nilai BPJS request diganti nilai tersimpan (profil lama) atau
+        /// dikosongkan (profil baru); isian asuransi swasta dan isian umum tidak tersentuh. Perubahan BPJS lewat API langsung tidak
+        /// berlaku saat nonaktif. Nilai tersimpan dipakai kembali bila BPJS diaktifkan lagi.
+        /// </summary>
+        private void PreserveBpjsFieldsWhenDisabled(CreateWfpInsuranceRequest request, PrlInsurance? existing)
+        {
+            if (_bpjsGate.IsEnabled) return;
+
+            request.IsBpjsKesehatanEnabled = existing?.IsBpjsKesehatanEnabled ?? false;
+            request.BpjsKesehatanNumber = existing?.BpjsKesehatanNumber;
+            request.IsBpjsKetenagakerjaanEnabled = existing?.IsBpjsKetenagakerjaanEnabled ?? false;
+            request.BpjsKetenagakerjaanNumber = existing?.BpjsKetenagakerjaanNumber;
+            request.BpjsHealthEmployeeRate = existing?.BpjsHealthEmployeeRate ?? 0m;
+            request.BpjsHealthEmployerRate = existing?.BpjsHealthEmployerRate ?? 0m;
+            request.BpjsEmploymentEmployeeRate = existing?.BpjsEmploymentEmployeeRate ?? 0m;
+            request.BpjsEmploymentEmployerRate = existing?.BpjsEmploymentEmployerRate ?? 0m;
+            request.BpjsEmploymentPrograms = existing?.BpjsEmploymentPrograms;
         }
 
         [HttpGet("filters/metadata")]
@@ -59,13 +85,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     new() { Value = InsuranceParticipationStatuses.NotParticipating, Label = "Tidak Mengikuti Program", Note = "Wajib dasar yang sah. Semua program harus nonaktif." },
                     new() { Value = InsuranceParticipationStatuses.NotApplicable, Label = "Tidak Berlaku untuk Jenis Penerima", Note = "Wajib dasar yang sah. Semua program harus nonaktif." }
                 },
-                EmploymentProgramOptions = new List<WfpInsuranceOptionResponse>
-                {
-                    new() { Value = InsurancePrograms.Jht, Label = "JHT (Jaminan Hari Tua)" },
-                    new() { Value = InsurancePrograms.Jp, Label = "JP (Jaminan Pensiun)" },
-                    new() { Value = InsurancePrograms.Jkk, Label = "JKK (Jaminan Kecelakaan Kerja)", Note = "Ditanggung pemberi kerja." },
-                    new() { Value = InsurancePrograms.Jkm, Label = "JKM (Jaminan Kematian)", Note = "Ditanggung pemberi kerja." }
-                },
+                // Program BPJS Ketenagakerjaan tidak ditawarkan saat fitur BPJS nonaktif (daftar kosong, bukan daftar karangan).
+                EmploymentProgramOptions = !_bpjsGate.IsEnabled
+                    ? new List<WfpInsuranceOptionResponse>()
+                    : new List<WfpInsuranceOptionResponse>
+                    {
+                        new() { Value = InsurancePrograms.Jht, Label = "JHT (Jaminan Hari Tua)" },
+                        new() { Value = InsurancePrograms.Jp, Label = "JP (Jaminan Pensiun)" },
+                        new() { Value = InsurancePrograms.Jkk, Label = "JKK (Jaminan Kecelakaan Kerja)", Note = "Ditanggung pemberi kerja." },
+                        new() { Value = InsurancePrograms.Jkm, Label = "JKM (Jaminan Kematian)", Note = "Ditanggung pemberi kerja." }
+                    },
                 SortOptions = new List<WfpInsuranceSortOptionResponse>
                 {
                     new() { Value = "bpjsKesehatan", Label = "BPJS Kesehatan" },
@@ -117,7 +146,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             var today = DateTime.UtcNow.Date;
             var rows = await query.ToListAsync(cancellationToken);
             result.ConfiguredProfile = rows.Count(x => PayrollTaxInsuranceRules
-                .AssessInsurance(PayrollInsuranceConfigFacts.From(x), 0m, null, 0m, today, today, calculate: false).IsConfigured);
+                .AssessInsurance(PayrollInsuranceConfigFacts.From(x), 0m, null, 0m, today, today, calculate: false, enableBpjs: _bpjsGate.IsEnabled).IsConfigured);
             result.NotConfiguredProfile = rows.Count - result.ConfiguredProfile;
 
             return Ok(ApiResponse<WfpInsuranceSummaryResponse>.Ok(
@@ -230,6 +259,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     "Profil asuransi untuk workforce ini sudah tersedia."));
             }
 
+            PreserveBpjsFieldsWhenDisabled(request, null);
             var validation = await ValidateRequestAsync(request, null, cancellationToken);
             if (!validation.IsValid)
             {
@@ -286,6 +316,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     "Profil asuransi workforce tidak ditemukan."));
             }
 
+            PreserveBpjsFieldsWhenDisabled(request, entity);
             var validation = await ValidateRequestAsync(request, id, cancellationToken);
             if (!validation.IsValid)
             {
@@ -509,7 +540,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
         {
             var today = DateTime.UtcNow.Date;
             var facts = PayrollInsuranceConfigFacts.From(entity);
-            var assessment = PayrollTaxInsuranceRules.AssessInsurance(facts, 0m, null, 0m, today, today, calculate: false);
+            var assessment = PayrollTaxInsuranceRules.AssessInsurance(facts, 0m, null, 0m, today, today, calculate: false, enableBpjs: _bpjsGate.IsEnabled);
 
             return new WfpInsuranceResponse
             {
@@ -636,12 +667,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             }
 
             // Kepesertaan eksplisit: semua flag false bukan bukti tidak wajib mengikuti program. Aturan sama dengan mesin hitung.
+            // Saat BPJS nonaktif, isian BPJS yang tersimpan tidak boleh menghalangi perubahan status kepesertaan ke "tidak mengikuti"
+            // atau "tidak berlaku" (Frontend tidak menampilkannya, jadi pengguna tidak dapat mengosongkannya); nilai tersimpan tetap
+            // dipertahankan dan tidak diubah oleh penyimpanan ini.
+            var participationStatus = PayrollTaxInsuranceRules.NormalizeCode(request.ParticipationStatus);
+            var ignoreStoredBpjsFlags = !_bpjsGate.IsEnabled && participationStatus is not null && participationStatus != InsuranceParticipationStatuses.Active;
             var configurationErrors = PayrollTaxInsuranceRules.ValidateInsuranceConfiguration(
-                PayrollTaxInsuranceRules.NormalizeCode(request.ParticipationStatus),
+                participationStatus,
                 NormalizeNullableText(request.ParticipationBasis),
-                request.IsBpjsKesehatanEnabled,
-                request.IsBpjsKetenagakerjaanEnabled,
-                NormalizeNullableText(request.BpjsEmploymentPrograms),
+                !ignoreStoredBpjsFlags && request.IsBpjsKesehatanEnabled,
+                !ignoreStoredBpjsFlags && request.IsBpjsKetenagakerjaanEnabled,
+                ignoreStoredBpjsFlags ? null : NormalizeNullableText(request.BpjsEmploymentPrograms),
                 request.IsPrivateInsuranceEnabled,
                 request.PrivateInsuranceEmployeeContribution,
                 request.PrivateInsuranceEmployerContribution);

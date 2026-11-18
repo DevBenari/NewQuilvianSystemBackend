@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Serv
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Services.Features;
 using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Controllers
@@ -150,6 +151,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 var result = await _enrollmentService.UpdatePolicyNumbersAsync(
                     id, request, GetCurrentUserId(), cancellationToken);
                 return Ok(result);
+            }
+            catch (BpjsFeatureDisabledException ex)
+            {
+                // Nomor kepesertaan BPJS tidak dapat diubah saat fitur BPJS nonaktif; nomor polis swasta tidak terdampak.
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(StatusCodes.Status409Conflict, ex.Message));
             }
             catch (KeyNotFoundException ex)
             {

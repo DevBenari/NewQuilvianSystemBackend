@@ -61,6 +61,38 @@ public static class WorkforceAllowanceEligibilityRules
     }
 
     /// <summary>
+    /// Mengurutkan <see cref="MstAllowanceType"/> di level query database SEBELUM pagination sehingga jenis tunjangan
+    /// yang layak ditetapkan langsung kepada pegawai selalu muncul lebih dulu di halaman awal, diikuti jenis lain
+    /// berdasarkan nama dan kode agar data Master Tunjangan yang belum layak tetap dapat ditemukan beserta alasannya.
+    /// </summary>
+    public static IOrderedQueryable<MstAllowanceType> OrderByWorkforceEligibilityFirst(
+        IQueryable<MstAllowanceType> query,
+        ApplicationDbContext dbContext)
+    {
+        var allowedMethods = AllowedMethodsLower;
+        var policyCategories = PolicyCategoriesLower;
+
+        return query
+            .OrderByDescending(x =>
+                !x.IsDelete
+                && x.IsActive
+                && x.IsRecurring
+                && allowedMethods.Contains(x.CalculationMethod.ToLower())
+                && !policyCategories.Contains(x.AllowanceCategory.ToLower())
+                && !x.ShiftAllowancePolicies.Any(p => p.IsActive && !p.IsDelete)
+                && !x.OnCallAllowancePolicies.Any(p => p.IsActive && !p.IsDelete)
+                && !x.HazardAllowancePolicies.Any(p => p.IsActive && !p.IsDelete)
+                && (x.PayrollComponentId == null
+                    || (x.PayrollComponent != null
+                        && x.PayrollComponent.IsActive
+                        && !x.PayrollComponent.IsDelete
+                        && !dbContext.PrlTransportAllowancePolicies.Any(p =>
+                            p.PayrollComponentId == x.PayrollComponentId && p.IsActive && !p.IsDelete))))
+            .ThenBy(x => x.AllowanceTypeName)
+            .ThenBy(x => x.AllowanceTypeCode);
+    }
+
+    /// <summary>
     /// Mengevaluasi alasan ketidaklayakan satu jenis tunjangan untuk penetapan khusus pegawai.
     /// Mengembalikan <c>null</c> bila layak; bila tidak layak, mengembalikan pesan spesifik yang juga dipakai pada validasi POST/PUT.
     /// </summary>
@@ -73,24 +105,48 @@ public static class WorkforceAllowanceEligibilityRules
         bool hasActivePolicy,
         bool hasInvalidPayrollComponent)
     {
+        var safeName = string.IsNullOrWhiteSpace(name) ? "ini" : name.Trim();
+        var safeCategory = (category ?? string.Empty).Trim();
+        var safeMethod = (calculationMethod ?? string.Empty).Trim();
+
         if (!isActive)
             return "Jenis tunjangan tidak ditemukan atau tidak aktif di Master Tunjangan.";
 
-        if (string.Equals(calculationMethod, MasterManualInput, StringComparison.OrdinalIgnoreCase) || !isRecurring)
-            return $"Tunjangan {name} bersifat input per periode. Masukkan lewat Penghasilan Variabel pada Payroll Run, bukan sebagai tunjangan tetap pegawai.";
+        if (string.Equals(safeMethod, MasterManualInput, StringComparison.OrdinalIgnoreCase))
+            return $"Tunjangan {safeName} bersifat input per periode (metode Input Manual). Masukkan lewat Penghasilan Variabel pada Payroll Run, bukan sebagai tunjangan tetap pegawai.";
 
-        if (string.Equals(calculationMethod, MasterPolicyBased, StringComparison.OrdinalIgnoreCase)
-            || PolicyCategories.Contains(category)
-            || hasActivePolicy)
-            return $"Tunjangan {name} dihitung dari kebijakan atau aktivitas kerja. Kelola lewat kebijakannya (mis. Tunjangan Transportasi), bukan sebagai tunjangan tetap pegawai.";
+        if (!isRecurring)
+            return $"Tunjangan {safeName} bersifat input per periode (opsi Berulang nonaktif di Master Tunjangan). Aktifkan Berulang di Master Tunjangan atau masukkan lewat Penghasilan Variabel pada Payroll Run.";
 
-        if (!string.Equals(calculationMethod, MasterFixed, StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(calculationMethod, MasterPercentage, StringComparison.OrdinalIgnoreCase))
-            return $"Metode hitung tunjangan {name} ({calculationMethod}) belum didukung untuk penetapan per pegawai.";
+        if (string.Equals(safeMethod, MasterPolicyBased, StringComparison.OrdinalIgnoreCase))
+            return $"Tunjangan {safeName} dihitung dari kebijakan (metode Berdasarkan Kebijakan). Kelola lewat kebijakannya, bukan sebagai tunjangan tetap pegawai.";
+
+        if (PolicyCategories.Contains(safeCategory))
+            return $"Tunjangan {safeName} dihitung dari kebijakan atau aktivitas kerja (kategori {BuildPolicyCategoryLabel(safeCategory)}). Kelola lewat kebijakannya, bukan sebagai tunjangan tetap pegawai.";
+
+        if (hasActivePolicy)
+            return $"Tunjangan {safeName} dihitung dari kebijakan tunjangan aktif yang sudah terhubung (Shift/On Call/Risiko/Transportasi). Kelola lewat kebijakannya agar tidak terhitung ganda.";
+
+        if (!string.Equals(safeMethod, MasterFixed, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(safeMethod, MasterPercentage, StringComparison.OrdinalIgnoreCase))
+            return $"Metode hitung tunjangan {safeName} ({safeMethod}) belum didukung untuk penetapan per pegawai.";
 
         if (hasInvalidPayrollComponent)
-            return $"Komponen payroll untuk tunjangan {name} tidak valid atau tidak aktif. Perbaiki di Master Tunjangan.";
+            return $"Komponen payroll untuk tunjangan {safeName} tidak valid atau tidak aktif. Perbaiki di Master Tunjangan.";
 
         return null;
+    }
+
+    private static string BuildPolicyCategoryLabel(string category)
+    {
+        return category.ToLowerInvariant() switch
+        {
+            "shift" => "Shift",
+            "oncall" => "On Call",
+            "hazard" => "Risiko",
+            "transport" => "Transportasi",
+            "variable" => "Variabel",
+            _ => category
+        };
     }
 }

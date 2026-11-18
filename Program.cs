@@ -490,6 +490,9 @@ try
     builder.Services.AddScoped<CompanyGuarantorCoverageRuleService>();
     builder.Services.AddScoped<WfpCertificationFileStorageService>();
     builder.Services.AddScoped<ApplicationVersionService>();
+    // Gerbang tunggal fitur BPJS (Payroll:Policy:EnableBpjsInPayroll): dipakai Payroll, HRD, K3, dan GET api/v1/system/features sehingga
+    // BE dan FE tidak pernah berbeda perilaku. Singleton: nilainya dari IOptions (tetap selama proses berjalan).
+    builder.Services.AddSingleton<QuilvianSystemBackend.Services.Features.IBpjsFeatureGate, QuilvianSystemBackend.Services.Features.BpjsFeatureGate>();
     builder.Services.AddScoped<AccessPermissionService>();
     builder.Services.AddScoped<PermissionRegistryValidator>();
     builder.Services.AddScoped<OrganizationAuthorizationProjectionService>();

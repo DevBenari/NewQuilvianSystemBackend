@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Services.Features;
 using QuilvianSystemBackend.Services.Logging;
 
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
@@ -25,11 +26,22 @@ public sealed class PayrollBpjsPolicyService
 
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
+    private readonly IBpjsFeatureGate _bpjsGate;
 
-    public PayrollBpjsPolicyService(ApplicationDbContext dbContext, LoggerService loggerService)
+    public PayrollBpjsPolicyService(ApplicationDbContext dbContext, LoggerService loggerService, IBpjsFeatureGate bpjsGate)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
+        _bpjsGate = bpjsGate;
+    }
+
+    /// <summary>
+    /// Fitur BPJS nonaktif = tidak ada kebijakan BPJS baru atau perubahan status kebijakan (pertahanan berlapis: controller sudah
+    /// menolak 409). Pembacaan tidak melewatinya. Riwayat kebijakan tidak disentuh.
+    /// </summary>
+    private void EnsureFeatureEnabled()
+    {
+        if (!_bpjsGate.IsEnabled) throw new PayrollPolicyNotConfirmedException(_bpjsGate.DisabledMessage);
     }
 
     // ------------------------------------------------------------------------------------------------------------------------
@@ -89,6 +101,7 @@ public sealed class PayrollBpjsPolicyService
         SavePayrollBpjsPolicyRequest request, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
         {
+            EnsureFeatureEnabled();
             var entity = new PrlBpjsPolicy { Id = Guid.NewGuid(), CreateDateTime = DateTime.UtcNow, CreateBy = actorUserId };
             await ApplyAsync(entity, request, cancellationToken);
             _dbContext.PrlBpjsPolicies.Add(entity);
@@ -105,6 +118,7 @@ public sealed class PayrollBpjsPolicyService
         CreatePayrollBpjsPolicyFromSettingRequest request, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
         {
+            EnsureFeatureEnabled();
             var setting = await _dbContext.Set<HrdPayrollSetting>().AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive)
                 .OrderByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
@@ -145,6 +159,7 @@ public sealed class PayrollBpjsPolicyService
         Guid id, SavePayrollBpjsPolicyRequest request, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
         {
+            EnsureFeatureEnabled();
             var entity = await LoadAsync(id, cancellationToken);
             if (!StatutoryPolicyStatuses.IsEditable(entity.PolicyStatus))
                 throw new PayrollInvalidTransitionException(
@@ -164,6 +179,7 @@ public sealed class PayrollBpjsPolicyService
         Guid id, PayrollStatutoryPolicyReviseRequest request, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
         {
+            EnsureFeatureEnabled();
             var source = await LoadAsync(id, cancellationToken);
             var copy = new SavePayrollBpjsPolicyRequest
             {
@@ -199,6 +215,7 @@ public sealed class PayrollBpjsPolicyService
         Guid id, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
         {
+            EnsureFeatureEnabled();
             var entity = await LoadAsync(id, cancellationToken);
             if (!StatutoryPolicyStatuses.IsEditable(entity.PolicyStatus))
                 throw new PayrollInvalidTransitionException("Hanya draf atau kebijakan yang ditolak yang dapat diajukan.");
@@ -224,6 +241,7 @@ public sealed class PayrollBpjsPolicyService
         Guid id, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
         {
+            EnsureFeatureEnabled();
             var entity = await LoadAsync(id, cancellationToken);
             if (entity.PolicyStatus != StatutoryPolicyStatuses.PendingApproval)
                 throw new PayrollInvalidTransitionException("Hanya kebijakan yang sudah diajukan yang dapat disahkan.");
@@ -256,6 +274,7 @@ public sealed class PayrollBpjsPolicyService
         Guid id, string? reason, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
         {
+            EnsureFeatureEnabled();
             var entity = await LoadAsync(id, cancellationToken);
             if (entity.PolicyStatus != StatutoryPolicyStatuses.PendingApproval)
                 throw new PayrollInvalidTransitionException("Hanya kebijakan yang sudah diajukan yang dapat ditolak.");
@@ -276,6 +295,7 @@ public sealed class PayrollBpjsPolicyService
         Guid id, string? reason, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
         {
+            EnsureFeatureEnabled();
             var entity = await LoadAsync(id, cancellationToken);
             if (entity.PolicyStatus != StatutoryPolicyStatuses.Approved)
                 throw new PayrollInvalidTransitionException("Hanya kebijakan yang sudah disahkan yang dapat dipensiunkan.");
@@ -294,6 +314,7 @@ public sealed class PayrollBpjsPolicyService
     public Task<bool> DeleteAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
         {
+            EnsureFeatureEnabled();
             var entity = await LoadAsync(id, cancellationToken);
             if (!StatutoryPolicyStatuses.IsEditable(entity.PolicyStatus))
                 throw new PayrollInvalidTransitionException("Hanya draf atau kebijakan yang ditolak yang dapat dihapus; kebijakan yang pernah disahkan dipensiunkan, bukan dihapus.");

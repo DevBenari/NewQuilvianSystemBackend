@@ -29,6 +29,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers;
     Description = "Kebijakan tarif dan plafon iuran BPJS berversi (klasifikasi risiko JKK, JHT, JP, JKM, BPJS Kesehatan) yang diverifikasi HRD dan disahkan Finance",
     SortOrder = 71)]
 [Tags("Corporate / Payroll Management / BPJS Policy")]
+// Fitur BPJS dinonaktifkan sementara (IBpjsFeatureGate): seluruh operasi tulis (buat, salin dari pengaturan, ubah, revisi, ajukan,
+// sahkan, tolak, pensiunkan, hapus) ditolak 409. Pembacaan daftar, detail, dan metadata tetap berjalan sehingga riwayat kebijakan
+// tidak hilang.
+[BpjsFeatureRequired(AllowReads = true)]
 public sealed class PayrollBpjsPoliciesController : ControllerBase
 {
     private const string Resource = "PayrollBpjsPolicy";

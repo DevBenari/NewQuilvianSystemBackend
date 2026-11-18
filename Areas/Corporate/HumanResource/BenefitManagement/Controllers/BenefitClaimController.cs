@@ -116,9 +116,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Pegawai mengajukan klaim penjamin sekunder (COB) di ESS wajib menyertakan nomor SEP BPJS (BE-HRD-188, BEN-B5, VR-BEN-16..18).
         /// </summary>
         [HttpPost]
+        [BpjsFeatureRequired] // Klaim COB berbasis SEP BPJS Kesehatan: tidak ada pengajuan baru saat fitur BPJS nonaktif (409). Klaim lama tetap dapat dibaca, diverifikasi, dan diselesaikan.
         [AccessAction("SubmitClaim", "Mengajukan Klaim Benefit", AccessType = AccessTypes.Create, SortOrder = 3)]
         [AccessPermission("BenefitClaim", "SubmitClaim")]
         [ProducesResponseType(typeof(BenefitClaimDetailDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
         public async Task<IActionResult> CreateEssClaim(

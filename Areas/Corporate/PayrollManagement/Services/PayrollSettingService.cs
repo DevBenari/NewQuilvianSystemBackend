@@ -86,16 +86,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             var setting = await GetOrCreateDefaultSettingAsync(cancellationToken);
 
             setting.SettingName = command.SettingName;
-            setting.BpjsKesehatanCapAmount = command.BpjsKesehatanCapAmount;
-            setting.BpjsKesehatanEmployeeRate = command.BpjsKesehatanEmployeeRate;
-            setting.BpjsKesehatanEmployerRate = command.BpjsKesehatanEmployerRate;
-            setting.BpjsKetenagakerjaanJpCapAmount = command.BpjsKetenagakerjaanJpCapAmount;
-            setting.BpjsKetenagakerjaanJpEmployeeRate = command.BpjsKetenagakerjaanJpEmployeeRate;
-            setting.BpjsKetenagakerjaanJpEmployerRate = command.BpjsKetenagakerjaanJpEmployerRate;
-            setting.BpjsKetenagakerjaanJhtEmployeeRate = command.BpjsKetenagakerjaanJhtEmployeeRate;
-            setting.BpjsKetenagakerjaanJhtEmployerRate = command.BpjsKetenagakerjaanJhtEmployerRate;
-            setting.BpjsKetenagakerjaanJkkRate = command.BpjsKetenagakerjaanJkkRate;
-            setting.BpjsKetenagakerjaanJkmRate = command.BpjsKetenagakerjaanJkmRate;
+
+            // Parameter BPJS hanya diubah saat fitur BPJS aktif. Saat nonaktif, Frontend tidak lagi menampilkan atau mengirimnya, sehingga
+            // command membawa nilai bawaan DTO; menimpa kolom dengan nilai itu akan mereset tarif dan plafon yang sudah tersimpan. Nilai
+            // tersimpan dipertahankan apa adanya (non-destruktif) dan dipakai kembali bila BPJS diaktifkan lagi.
+            if (_policy.EnableBpjsInPayroll)
+            {
+                setting.BpjsKesehatanCapAmount = command.BpjsKesehatanCapAmount;
+                setting.BpjsKesehatanEmployeeRate = command.BpjsKesehatanEmployeeRate;
+                setting.BpjsKesehatanEmployerRate = command.BpjsKesehatanEmployerRate;
+                setting.BpjsKetenagakerjaanJpCapAmount = command.BpjsKetenagakerjaanJpCapAmount;
+                setting.BpjsKetenagakerjaanJpEmployeeRate = command.BpjsKetenagakerjaanJpEmployeeRate;
+                setting.BpjsKetenagakerjaanJpEmployerRate = command.BpjsKetenagakerjaanJpEmployerRate;
+                setting.BpjsKetenagakerjaanJhtEmployeeRate = command.BpjsKetenagakerjaanJhtEmployeeRate;
+                setting.BpjsKetenagakerjaanJhtEmployerRate = command.BpjsKetenagakerjaanJhtEmployerRate;
+                setting.BpjsKetenagakerjaanJkkRate = command.BpjsKetenagakerjaanJkkRate;
+                setting.BpjsKetenagakerjaanJkmRate = command.BpjsKetenagakerjaanJkmRate;
+            }
             setting.VarianceThresholdPercentage = command.VarianceThresholdPercentage;
             setting.VarianceThresholdAmount = command.VarianceThresholdAmount;
             setting.MonthlyCutoffDay = command.MonthlyCutoffDay;

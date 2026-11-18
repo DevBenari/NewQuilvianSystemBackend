@@ -1,14 +1,17 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Features;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 
@@ -41,17 +44,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
 
         private const string CodePrefix = "TAP-RSMMC-";
         private const int CodeNumberLength = 5;
+        private const int MaxCodeGenerationAttempts = 3;
         private const string LogCategory = "Corporate.HumanResource.PayrollManagement";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly IBpjsFeatureGate _bpjsGate;
 
         public WfpTransportAllowancePolicyController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            IBpjsFeatureGate bpjsGate)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _bpjsGate = bpjsGate;
         }
 
         [HttpGet("filters/metadata")]
@@ -256,17 +263,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
         [AccessAction("Create", "Create Transport Allowance Policy", Description = "Membuat transport allowance policy", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("TransportAllowancePolicy", "Create")]
         public async Task<IActionResult> Create(
-            [FromBody] CreateWfpTransportAllowancePolicyRequest request,
+            [FromBody] CreateWfpTransportAllowancePolicyRequest? request,
             CancellationToken cancellationToken)
         {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Data transport allowance policy wajib diisi."));
+            }
+
             var validation = await ValidateRequestAsync(null, request, cancellationToken);
 
             if (!validation.IsValid)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data transport allowance policy tidak valid."));
+                return BuildValidationErrorResult(
+                    validation.StatusCode,
+                    validation.ErrorMessage ?? "Data transport allowance policy tidak valid.");
             }
+
+            var normalizedStartDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveStartDate);
+            var normalizedEndDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate);
+            var actorId = GetCurrentUserId();
 
             var entity = new PrlTransportAllowancePolicy
             {
@@ -275,7 +293,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 HospitalSiteId = NormalizeGuid(request.HospitalSiteId),
                 EmployeeGradeId = NormalizeGuid(request.EmployeeGradeId),
                 PayrollComponentId = NormalizeGuid(request.PayrollComponentId),
-                PolicyCode = await GenerateCodeAsync(cancellationToken),
                 PolicyName = request.PolicyName.Trim(),
                 CalculationMethod = NormalizeCalculationMethod(request.CalculationMethod),
                 FixedMonthlyAmount = request.FixedMonthlyAmount,
@@ -286,32 +303,66 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 IsAttendanceBased = request.IsAttendanceBased,
                 IsProrated = request.IsProrated,
                 IsTaxable = request.IsTaxable,
-                IsFixedAllowance = request.IsFixedAllowance,
-                IncludeInBpjsWageBase = request.IncludeInBpjsWageBase,
+                // Kebijakan baru saat BPJS nonaktif: belum diklasifikasikan (null), bukan false.
+                IsFixedAllowance = _bpjsGate.IsEnabled ? request.IsFixedAllowance : null,
+                IncludeInBpjsWageBase = _bpjsGate.IsEnabled ? request.IncludeInBpjsWageBase : null,
                 IsIncludedInPayroll = request.IsIncludedInPayroll,
                 IncludeBusinessTravelDay = request.IncludeBusinessTravelDay,
                 IncludePaidLeaveDay = request.IncludePaidLeaveDay,
                 IncludeHoliday = request.IncludeHoliday,
-                EffectiveStartDate = request.EffectiveStartDate,
-                EffectiveEndDate = request.EffectiveEndDate,
+                EffectiveStartDate = normalizedStartDate,
+                EffectiveEndDate = normalizedEndDate,
                 Description = NormalizeText(request.Description),
                 IsActive = true,
                 CreateDateTime = DateTime.UtcNow,
-                CreateBy = GetCurrentUserId(),
+                CreateBy = actorId,
                 IsDelete = false,
                 IsCancel = false
             };
 
-            _dbContext.Set<PrlTransportAllowancePolicy>().Add(entity);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            for (var attempt = 1; attempt <= MaxCodeGenerationAttempts; attempt++)
+            {
+                entity.PolicyCode = await GenerateCodeAsync(cancellationToken);
+                _dbContext.Set<PrlTransportAllowancePolicy>().Add(entity);
 
-            await _loggerService.InfoAsync(
+                try
+                {
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    break;
+                }
+                catch (DbUpdateException ex) when (IsPolicyCodeUniqueViolation(ex) && attempt < MaxCodeGenerationAttempts)
+                {
+                    _dbContext.Entry(entity).State = EntityState.Detached;
+                }
+                catch (DbUpdateException ex)
+                {
+                    await TryLogErrorAsync(
+                        LogCategory,
+                        "TransportAllowancePolicy.Create",
+                        "Gagal menyimpan transport allowance policy ke database.",
+                        ex,
+                        new { entity.Id, entity.PolicyCode, entity.PolicyName });
+
+                    var mapped = TryMapDatabaseException(ex);
+                    if (mapped != null)
+                    {
+                        return mapped;
+                    }
+
+                    throw;
+                }
+            }
+
+            await TryLogInfoAsync(
                 LogCategory,
                 "TransportAllowancePolicy.Create",
                 "Membuat transport allowance policy.",
                 new { entity.Id, entity.PolicyCode });
 
-            return await GetById(entity.Id, cancellationToken);
+            return await BuildPersistedDetailResultAsync(
+                entity,
+                "Detail transport allowance policy berhasil diambil.",
+                cancellationToken);
         }
 
         [HttpPut("{id:guid}")]
@@ -319,9 +370,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
         [AccessPermission("TransportAllowancePolicy", "Update")]
         public async Task<IActionResult> Update(
             Guid id,
-            [FromBody] UpdateWfpTransportAllowancePolicyRequest request,
+            [FromBody] UpdateWfpTransportAllowancePolicyRequest? request,
             CancellationToken cancellationToken)
         {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Data transport allowance policy wajib diisi."));
+            }
+
             var entity = await _dbContext.Set<PrlTransportAllowancePolicy>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
@@ -336,9 +394,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
 
             if (!validation.IsValid)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data transport allowance policy tidak valid."));
+                return BuildValidationErrorResult(
+                    validation.StatusCode,
+                    validation.ErrorMessage ?? "Data transport allowance policy tidak valid.");
             }
 
             entity.LegalEntityId = NormalizeGuid(request.LegalEntityId);
@@ -355,22 +413,55 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             entity.IsAttendanceBased = request.IsAttendanceBased;
             entity.IsProrated = request.IsProrated;
             entity.IsTaxable = request.IsTaxable;
-            entity.IsFixedAllowance = request.IsFixedAllowance;
-            entity.IncludeInBpjsWageBase = request.IncludeInBpjsWageBase;
+            // Saat BPJS nonaktif klasifikasi tersimpan dipertahankan (isian tidak ditampilkan dan tidak dikirim Frontend).
+            if (_bpjsGate.IsEnabled)
+            {
+                entity.IsFixedAllowance = request.IsFixedAllowance;
+                entity.IncludeInBpjsWageBase = request.IncludeInBpjsWageBase;
+            }
             entity.IsIncludedInPayroll = request.IsIncludedInPayroll;
             entity.IncludeBusinessTravelDay = request.IncludeBusinessTravelDay;
             entity.IncludePaidLeaveDay = request.IncludePaidLeaveDay;
             entity.IncludeHoliday = request.IncludeHoliday;
-            entity.EffectiveStartDate = request.EffectiveStartDate;
-            entity.EffectiveEndDate = request.EffectiveEndDate;
+            entity.EffectiveStartDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveStartDate);
+            entity.EffectiveEndDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate);
             entity.Description = NormalizeText(request.Description);
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex)
+            {
+                await TryLogErrorAsync(
+                    LogCategory,
+                    "TransportAllowancePolicy.Update",
+                    "Gagal memperbarui transport allowance policy ke database.",
+                    ex,
+                    new { entity.Id, entity.PolicyCode, entity.PolicyName });
 
-            return await GetById(entity.Id, cancellationToken);
+                var mapped = TryMapDatabaseException(ex);
+                if (mapped != null)
+                {
+                    return mapped;
+                }
+
+                throw;
+            }
+
+            await TryLogInfoAsync(
+                LogCategory,
+                "TransportAllowancePolicy.Update",
+                "Memperbarui transport allowance policy.",
+                new { entity.Id, entity.PolicyCode });
+
+            return await BuildPersistedDetailResultAsync(
+                entity,
+                "Detail transport allowance policy berhasil diambil.",
+                cancellationToken);
         }
 
         [HttpPatch("{id:guid}/status")]
@@ -616,46 +707,66 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             };
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
+        private async Task<(bool IsValid, int StatusCode, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
             CreateWfpTransportAllowancePolicyRequest request,
             CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request.PolicyName))
-                return (false, "Nama policy wajib diisi.");
+                return (false, StatusCodes.Status400BadRequest, "Nama policy wajib diisi.");
 
-            if (!AllowedCalculationMethods.Contains(request.CalculationMethod.Trim()))
-                return (false, "CalculationMethod tidak valid.");
+            if (string.IsNullOrWhiteSpace(request.CalculationMethod))
+                return (false, StatusCodes.Status400BadRequest, "CalculationMethod wajib diisi.");
+
+            var calculationMethod = request.CalculationMethod.Trim();
+
+            if (!AllowedCalculationMethods.Contains(calculationMethod))
+                return (false, StatusCodes.Status400BadRequest, "CalculationMethod tidak valid.");
+
+            if (request.FixedMonthlyAmount < 0 ||
+                request.PerAttendanceAmount < 0 ||
+                request.DailyLimitAmount < 0 ||
+                request.MonthlyLimitAmount < 0 ||
+                request.MinimumAttendanceMinutes < 0)
+            {
+                return (false, StatusCodes.Status400BadRequest, "Nilai nominal, batas, dan minimum menit kehadiran tidak boleh bernilai negatif.");
+            }
 
             // Klasifikasi dasar upah BPJS: kedua isian ditetapkan bersamaan; hanya tunjangan tetap yang boleh masuk dasar upah; transportasi
             // berbasis kehadiran atau per hari tidak pernah tunjangan tetap.
-            if (request.IsFixedAllowance.HasValue != request.IncludeInBpjsWageBase.HasValue)
-                return (false, "Klasifikasi tunjangan tetap dan dasar upah BPJS harus diisi bersamaan (atau dikosongkan bersamaan).");
-            if (request.IncludeInBpjsWageBase == true && request.IsFixedAllowance != true)
-                return (false, "Hanya tunjangan tetap yang boleh masuk dasar upah BPJS.");
-            if (request.IsFixedAllowance == true &&
-                (request.IsAttendanceBased || !string.Equals(request.CalculationMethod.Trim(), "FixedMonthly", StringComparison.OrdinalIgnoreCase)))
+            if (_bpjsGate.IsEnabled)
             {
-                return (false, "Transportasi berbasis kehadiran atau per hari bukan tunjangan tetap; hanya metode FixedMonthly tanpa dasar kehadiran yang dapat diklasifikasikan sebagai tunjangan tetap.");
+                if (request.IsFixedAllowance.HasValue != request.IncludeInBpjsWageBase.HasValue)
+                    return (false, StatusCodes.Status400BadRequest, "Klasifikasi tunjangan tetap dan dasar upah BPJS harus diisi bersamaan (atau dikosongkan bersamaan).");
+                if (request.IncludeInBpjsWageBase == true && request.IsFixedAllowance != true)
+                    return (false, StatusCodes.Status400BadRequest, "Hanya tunjangan tetap yang boleh masuk dasar upah BPJS.");
+                if (request.IsFixedAllowance == true &&
+                    (request.IsAttendanceBased || !string.Equals(calculationMethod, "FixedMonthly", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return (false, StatusCodes.Status400BadRequest, "Transportasi berbasis kehadiran atau per hari bukan tunjangan tetap; hanya metode FixedMonthly tanpa dasar kehadiran yang dapat diklasifikasikan sebagai tunjangan tetap.");
+                }
             }
 
-            if (request.EffectiveStartDate.HasValue &&
-                request.EffectiveEndDate.HasValue &&
-                request.EffectiveEndDate.Value < request.EffectiveStartDate.Value)
+            var effectiveStartDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveStartDate);
+            var effectiveEndDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate);
+
+            if (effectiveStartDate.HasValue &&
+                effectiveEndDate.HasValue &&
+                effectiveEndDate.Value < effectiveStartDate.Value)
             {
-                return (false, "EffectiveEndDate tidak boleh sebelum EffectiveStartDate.");
+                return (false, StatusCodes.Status400BadRequest, "EffectiveEndDate tidak boleh sebelum EffectiveStartDate.");
             }
 
-            if (request.CalculationMethod.Equals("FixedMonthly", StringComparison.OrdinalIgnoreCase) &&
+            if (calculationMethod.Equals("FixedMonthly", StringComparison.OrdinalIgnoreCase) &&
                 request.FixedMonthlyAmount <= 0)
             {
-                return (false, "FixedMonthlyAmount harus lebih besar dari 0 untuk metode FixedMonthly.");
+                return (false, StatusCodes.Status400BadRequest, "FixedMonthlyAmount harus lebih besar dari 0 untuk metode FixedMonthly.");
             }
 
-            if (request.CalculationMethod.Equals("PerAttendance", StringComparison.OrdinalIgnoreCase) &&
+            if (calculationMethod.Equals("PerAttendance", StringComparison.OrdinalIgnoreCase) &&
                 request.PerAttendanceAmount <= 0)
             {
-                return (false, "PerAttendanceAmount harus lebih besar dari 0 untuk metode PerAttendance.");
+                return (false, StatusCodes.Status400BadRequest, "PerAttendanceAmount harus lebih besar dari 0 untuk metode PerAttendance.");
             }
 
             if (request.LegalEntityId.HasValue && request.LegalEntityId.Value != Guid.Empty &&
@@ -663,7 +774,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     x.Id == request.LegalEntityId.Value && x.IsActive && !x.IsDelete,
                     cancellationToken))
             {
-                return (false, "Legal entity tidak ditemukan atau tidak aktif.");
+                return (false, StatusCodes.Status400BadRequest, "Legal entity tidak ditemukan atau tidak aktif.");
             }
 
             if (request.HospitalSiteId.HasValue && request.HospitalSiteId.Value != Guid.Empty &&
@@ -671,7 +782,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     x.Id == request.HospitalSiteId.Value && x.IsActive && !x.IsDelete,
                     cancellationToken))
             {
-                return (false, "Hospital site tidak ditemukan atau tidak aktif.");
+                return (false, StatusCodes.Status400BadRequest, "Hospital site tidak ditemukan atau tidak aktif.");
             }
 
             if (request.EmployeeGradeId.HasValue && request.EmployeeGradeId.Value != Guid.Empty &&
@@ -679,7 +790,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     x.Id == request.EmployeeGradeId.Value && x.IsActive && !x.IsDelete,
                     cancellationToken))
             {
-                return (false, "Employee grade tidak ditemukan atau tidak aktif.");
+                return (false, StatusCodes.Status400BadRequest, "Employee grade tidak ditemukan atau tidak aktif.");
             }
 
             if (request.PayrollComponentId.HasValue && request.PayrollComponentId.Value != Guid.Empty &&
@@ -687,7 +798,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     x.Id == request.PayrollComponentId.Value && x.IsActive && !x.IsDelete,
                     cancellationToken))
             {
-                return (false, "Payroll component tidak ditemukan atau tidak aktif.");
+                return (false, StatusCodes.Status400BadRequest, "Payroll component tidak ditemukan atau tidak aktif.");
             }
 
             var normalizedName = request.PolicyName.Trim().ToLower();
@@ -699,9 +810,173 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 duplicateQuery = duplicateQuery.Where(x => x.Id != excludeId.Value);
 
             if (await duplicateQuery.AnyAsync(cancellationToken))
-                return (false, "Nama transport allowance policy sudah digunakan.");
+                return (false, StatusCodes.Status409Conflict, "Nama transport allowance policy sudah digunakan.");
 
-            return (true, null);
+            return (true, StatusCodes.Status200OK, null);
+        }
+
+        private IActionResult BuildValidationErrorResult(int statusCode, string message)
+        {
+            if (statusCode == StatusCodes.Status409Conflict)
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    message));
+            }
+
+            return BadRequest(ApiResponse<object>.Fail(
+                StatusCodes.Status400BadRequest,
+                message));
+        }
+
+        private static bool IsPolicyCodeUniqueViolation(DbUpdateException exception)
+        {
+            var pgException = exception.InnerException as PostgresException
+                ?? exception.GetBaseException() as PostgresException;
+
+            if (pgException == null || pgException.SqlState != PostgresErrorCodes.UniqueViolation)
+            {
+                return false;
+            }
+
+            return !string.IsNullOrWhiteSpace(pgException.ConstraintName) &&
+                pgException.ConstraintName.Contains("PolicyCode", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private IActionResult? TryMapDatabaseException(DbUpdateException exception)
+        {
+            var pgException = exception.InnerException as PostgresException
+                ?? exception.GetBaseException() as PostgresException;
+
+            if (pgException == null)
+            {
+                return null;
+            }
+
+            return pgException.SqlState switch
+            {
+                PostgresErrorCodes.UniqueViolation => Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Data transport allowance policy bentrok dengan data yang sudah ada. Muat ulang daftar sebelum mencoba kembali.")),
+                "23503" => BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Referensi data terkait pada transport allowance policy tidak valid atau tidak ditemukan.")),
+                "22001" or "22003" or "22007" or "23502" => BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Format atau panjang nilai pada data transport allowance policy tidak memenuhi ketentuan.")),
+                _ => null
+            };
+        }
+
+        private async Task<IActionResult> BuildPersistedDetailResultAsync(
+            PrlTransportAllowancePolicy entity,
+            string successMessage,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var saved = await BuildBaseQuery()
+                    .FirstOrDefaultAsync(x => x.Id == entity.Id, cancellationToken);
+
+                if (saved != null)
+                {
+                    return Ok(ApiResponse<WfpTransportAllowancePolicyDetailResponse>.Ok(
+                        MapDetailResponse(saved),
+                        successMessage));
+                }
+            }
+            catch (Exception ex)
+            {
+                await TryLogErrorAsync(
+                    LogCategory,
+                    "TransportAllowancePolicy.PostCommitRead",
+                    "Data tersimpan tetapi pembacaan detail ulang gagal; mengembalikan ringkasan entitas tersimpan.",
+                    ex,
+                    new { entity.Id, entity.PolicyCode });
+            }
+
+            return Ok(ApiResponse<WfpTransportAllowancePolicyDetailResponse>.Ok(
+                MapDetailResponseFallback(entity),
+                successMessage));
+        }
+
+        private WfpTransportAllowancePolicyDetailResponse MapDetailResponseFallback(
+            PrlTransportAllowancePolicy entity)
+        {
+            return new WfpTransportAllowancePolicyDetailResponse
+            {
+                Id = entity.Id,
+                LegalEntityId = entity.LegalEntityId,
+                HospitalSiteId = entity.HospitalSiteId,
+                EmployeeGradeId = entity.EmployeeGradeId,
+                PayrollComponentId = entity.PayrollComponentId,
+                PayrollComponentCode = entity.PayrollComponent?.PayrollComponentCode,
+                PayrollComponentName = entity.PayrollComponent?.PayrollComponentName,
+                PolicyCode = entity.PolicyCode,
+                PolicyName = entity.PolicyName,
+                CalculationMethod = entity.CalculationMethod,
+                FixedMonthlyAmount = entity.FixedMonthlyAmount,
+                PerAttendanceAmount = entity.PerAttendanceAmount,
+                DailyLimitAmount = entity.DailyLimitAmount,
+                MonthlyLimitAmount = entity.MonthlyLimitAmount,
+                MinimumAttendanceMinutes = entity.MinimumAttendanceMinutes,
+                IsAttendanceBased = entity.IsAttendanceBased,
+                IsProrated = entity.IsProrated,
+                IsTaxable = entity.IsTaxable,
+                IsFixedAllowance = entity.IsFixedAllowance,
+                IncludeInBpjsWageBase = entity.IncludeInBpjsWageBase,
+                IsIncludedInPayroll = entity.IsIncludedInPayroll,
+                IncludeBusinessTravelDay = entity.IncludeBusinessTravelDay,
+                IncludePaidLeaveDay = entity.IncludePaidLeaveDay,
+                IncludeHoliday = entity.IncludeHoliday,
+                EffectiveStartDate = entity.EffectiveStartDate,
+                EffectiveEndDate = entity.EffectiveEndDate,
+                Description = entity.Description,
+                IsActive = entity.IsActive,
+                TransportAllowanceCount = entity.TransportAllowances?.Count(x => !x.IsDelete) ?? 0,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : entity.CreateBy,
+                CreateByName = TryGetUserDisplayName(entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : entity.UpdateBy,
+                UpdateByName = TryGetUserDisplayName(entity.UpdateBy)
+            };
+        }
+
+        private async Task TryLogInfoAsync(string module, string action, string message, object? data = null)
+        {
+            try
+            {
+                await _loggerService.InfoAsync(module, action, message, data);
+            }
+            catch
+            {
+                // Logging pasca-commit tidak boleh membatalkan respons sukses yang sudah tersimpan ke database.
+            }
+        }
+
+        private async Task TryLogErrorAsync(string module, string action, string message, Exception exception, object? data = null)
+        {
+            try
+            {
+                await _loggerService.ErrorAsync(module, action, message, exception, data);
+            }
+            catch
+            {
+                // Jangan biarkan kegagalan logger menutupi exception bisnis atau database utama.
+            }
+        }
+
+        private string? TryGetUserDisplayName(Guid userId)
+        {
+            try
+            {
+                return GetUserDisplayName(userId);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private async Task<string> GenerateCodeAsync(CancellationToken cancellationToken)

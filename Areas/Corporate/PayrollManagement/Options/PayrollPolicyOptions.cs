@@ -80,12 +80,16 @@ public sealed class PayrollPolicyOptions
     public int SimulationMaxEmployees { get; set; } = 50;
 
     /// <summary>
-    /// Saklar terpusat komponen BPJS Kesehatan dan BPJS Ketenagakerjaan pada alur Payroll (BE-06).
-    /// Bawaan <c>true</c> agar lingkungan produksi tetap menjalankan kewajiban iuran BPJS. Setel <c>false</c> secara eksplisit
-    /// pada lingkungan development/testing untuk menonaktifkan kalkulasi BPJS sementara dalam mode pengujian terkontrol.
-    /// Run yang dihitung saat <c>false</c> ditandai mode pengujian dan ditahan dari Finance Handoff produksi.
+    /// Saklar tunggal fitur BPJS Kesehatan dan BPJS Ketenagakerjaan (BE-06), dibaca lewat <c>IBpjsFeatureGate</c>: Payroll (iuran,
+    /// kebijakan, kepesertaan), HRD (klaim COB/SEP, nomor kepesertaan benefit), dan K3 (klaim dan worker JKK) mengikuti nilai yang sama,
+    /// begitu pula Frontend lewat <c>GET api/v1/system/features</c>.
+    ///
+    /// Bawaan <c>false</c> (BPJS dinonaktifkan sementara, keputusan pemilik 2026-11-18): BPJS tidak dihitung, tidak ada kebijakan,
+    /// kepesertaan, nomor klaim, atau formulir BPJS baru, dan konfigurasinya tidak tampil. Data dan riwayat tidak dihapus. Setel
+    /// <c>true</c> secara eksplisit untuk mengaktifkan kembali. Run yang dihitung saat <c>false</c> ditandai mode pengujian dan
+    /// ditahan dari Finance Handoff produksi sampai ada keputusan bisnis yang sah (pengaman tidak dilemahkan).
     /// </summary>
-    public bool EnableBpjsInPayroll { get; set; } = true;
+    public bool EnableBpjsInPayroll { get; set; } = false;
 }
 
 public static class PayrollPayslipPublishTriggers

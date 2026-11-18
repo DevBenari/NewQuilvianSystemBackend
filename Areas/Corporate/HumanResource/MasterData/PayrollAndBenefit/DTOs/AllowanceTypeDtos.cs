@@ -88,11 +88,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public int TotalData { get; set; }
         public int TotalPage { get; set; }
 
-        /// <summary>Jumlah total Master Tunjangan (tidak terhapus) tanpa filter kelayakan/pencarian. Terisi saat eligibleForWorkforceAssignment=true.</summary>
+        /// <summary>Jumlah total Master Tunjangan (tidak terhapus) tanpa filter kelayakan/pencarian. Terisi saat eligibleForWorkforceAssignment=true atau prioritizeWorkforceEligible=true.</summary>
         public int? TotalMasterCount { get; set; }
 
-        /// <summary>Jumlah Master Tunjangan aktif tanpa filter kelayakan/pencarian. Terisi saat eligibleForWorkforceAssignment=true.</summary>
+        /// <summary>Jumlah Master Tunjangan aktif tanpa filter kelayakan/pencarian. Terisi saat eligibleForWorkforceAssignment=true atau prioritizeWorkforceEligible=true.</summary>
         public int? TotalActiveMasterCount { get; set; }
+
+        /// <summary>Jumlah Master Tunjangan aktif yang layak ditetapkan langsung kepada pegawai (tanpa filter pencarian). Terisi saat eligibleForWorkforceAssignment=true atau prioritizeWorkforceEligible=true.</summary>
+        public int? TotalEligibleCount { get; set; }
 
         public List<AllowanceTypeOptionResponse> Items { get; set; } = new();
     }

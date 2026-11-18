@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Features;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 
@@ -57,13 +58,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly IBpjsFeatureGate _bpjsGate;
 
         public AllowanceTypeController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            IBpjsFeatureGate bpjsGate)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _bpjsGate = bpjsGate;
         }
 
         [HttpGet("filters/metadata")]
@@ -201,6 +205,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             [FromQuery] string? calculationMethod,
             [FromQuery] bool onlyActive = true,
             [FromQuery] bool eligibleForWorkforceAssignment = false,
+            [FromQuery] bool prioritizeWorkforceEligible = false,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25,
@@ -214,12 +219,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
+            var includeEligibilityMeta = eligibleForWorkforceAssignment || prioritizeWorkforceEligible;
             int? totalMasterCount = null;
             int? totalActiveMasterCount = null;
-            if (eligibleForWorkforceAssignment)
+            int? totalEligibleCount = null;
+            if (includeEligibilityMeta)
             {
                 totalMasterCount = await baseQuery.CountAsync(cancellationToken);
                 totalActiveMasterCount = await baseQuery.CountAsync(x => x.IsActive, cancellationToken);
+                totalEligibleCount = await WorkforceAllowanceEligibilityRules
+                    .ApplyEligibleForWorkforceAssignmentFilter(baseQuery, _dbContext)
+                    .CountAsync(cancellationToken);
             }
 
             var query = ApplyFilter(
@@ -241,9 +251,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
             var totalData = await query.CountAsync(cancellationToken);
 
-            var rows = await query
-                .OrderBy(x => x.AllowanceTypeName)
-                .ThenBy(x => x.AllowanceTypeCode)
+            var orderedQuery = prioritizeWorkforceEligible && !eligibleForWorkforceAssignment
+                ? WorkforceAllowanceEligibilityRules.OrderByWorkforceEligibilityFirst(query, _dbContext)
+                : query
+                    .OrderBy(x => x.AllowanceTypeName)
+                    .ThenBy(x => x.AllowanceTypeCode);
+
+            var rows = await orderedQuery
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(x => new
@@ -323,6 +337,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
                     TotalMasterCount = totalMasterCount,
                     TotalActiveMasterCount = totalActiveMasterCount,
+                    TotalEligibleCount = totalEligibleCount,
                     Items = items
                 },
                 "Data pilihan allowance type berhasil diambil."));
@@ -410,8 +425,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 MaximumAmount = request.MaximumAmount,
                 IsRecurring = request.IsRecurring,
                 IsTaxable = request.IsTaxable,
-                IsFixedAllowance = request.IsFixedAllowance,
-                IncludeInBpjsWageBase = request.IncludeInBpjsWageBase,
+                // Jenis tunjangan baru saat BPJS nonaktif: belum diklasifikasikan (null), bukan false.
+                IsFixedAllowance = _bpjsGate.IsEnabled ? request.IsFixedAllowance : null,
+                IncludeInBpjsWageBase = _bpjsGate.IsEnabled ? request.IncludeInBpjsWageBase : null,
                 IsProrated = request.IsProrated,
                 RequiresAttendance = request.RequiresAttendance,
                 RequiresApproval = request.RequiresApproval,
@@ -470,8 +486,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             entity.MaximumAmount = request.MaximumAmount;
             entity.IsRecurring = request.IsRecurring;
             entity.IsTaxable = request.IsTaxable;
-            entity.IsFixedAllowance = request.IsFixedAllowance;
-            entity.IncludeInBpjsWageBase = request.IncludeInBpjsWageBase;
+            if (_bpjsGate.IsEnabled)
+            {
+                entity.IsFixedAllowance = request.IsFixedAllowance;
+                entity.IncludeInBpjsWageBase = request.IncludeInBpjsWageBase;
+            }
             entity.IsProrated = request.IsProrated;
             entity.RequiresAttendance = request.RequiresAttendance;
             entity.RequiresApproval = request.RequiresApproval;
@@ -608,10 +627,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 return (false, "Nama allowance type wajib diisi.");
 
             // Klasifikasi dasar upah BPJS: kedua isian ditetapkan bersamaan, dan hanya tunjangan tetap yang boleh masuk dasar upah.
-            if (request.IsFixedAllowance.HasValue != request.IncludeInBpjsWageBase.HasValue)
-                return (false, "Klasifikasi tunjangan tetap dan dasar upah BPJS harus diisi bersamaan (atau dikosongkan bersamaan).");
-            if (request.IncludeInBpjsWageBase == true && request.IsFixedAllowance != true)
-                return (false, "Hanya tunjangan tetap yang boleh masuk dasar upah BPJS.");
+            // Diperiksa hanya saat BPJS aktif; saat nonaktif isian ini diabaikan (lihat penyimpanan di bawah).
+            if (_bpjsGate.IsEnabled)
+            {
+                if (request.IsFixedAllowance.HasValue != request.IncludeInBpjsWageBase.HasValue)
+                    return (false, "Klasifikasi tunjangan tetap dan dasar upah BPJS harus diisi bersamaan (atau dikosongkan bersamaan).");
+                if (request.IncludeInBpjsWageBase == true && request.IsFixedAllowance != true)
+                    return (false, "Hanya tunjangan tetap yang boleh masuk dasar upah BPJS.");
+            }
 
             if (!AllowedCategories.Contains(request.AllowanceCategory.Trim()))
                 return (false, "Allowance category tidak valid.");

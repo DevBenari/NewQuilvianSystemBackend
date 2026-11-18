@@ -542,7 +542,8 @@ public static class PayrollTaxInsuranceRules
         if (article is null) missing.Add("Jenis PPh belum ditentukan HRD.");
         if (category is null) missing.Add("Kategori penerima pajak belum ditentukan HRD.");
         if (mode is null) missing.Add("Skema perhitungan pajak belum ditentukan HRD.");
-        if (missing.Count > 0) return TaxUnconfigured(cfg, missing, legacyAmount);
+        // Pemeriksaan null eksplisit (setara missing.Count > 0) agar analisis aliran null tahu article/category/mode tidak null di bawah.
+        if (article is null || category is null || mode is null) return TaxUnconfigured(cfg, missing, legacyAmount);
 
         var errors = ValidateTaxConfiguration(
             article, category, mode, method, cfg.IsTaxResident, cfg.ExemptionReason, cfg.DecisionBasis, cfg.ApprovedManualAmount,
@@ -752,24 +753,7 @@ public static class PayrollTaxInsuranceRules
         PayrollInsuranceConfigFacts? cfg, decimal legacyAmount, PayrollInsurancePolicy? policy, decimal wageBase,
         DateTime periodStart, DateTime periodEnd, bool calculate = true, bool enableBpjs = true)
     {
-        if (!enableBpjs)
-        {
-            return new PayrollInsuranceAssessment(
-                PayrollConfigurationStatuses.TestingModeDisabled,
-                PayrollComponentResultStatuses.TestingModeDisabled,
-                PayrollTaxInsuranceSources.TestingModeDisabled,
-                cfg?.ParticipationStatus,
-                Array.Empty<string>(),
-                null,
-                wageBase,
-                0m,
-                0m,
-                Array.Empty<PayrollInsuranceLine>(),
-                false,
-                Array.Empty<string>(),
-                new[] { "Mode pengujian aktif: kalkulasi BPJS Kesehatan dan BPJS Ketenagakerjaan dinonaktifkan sementara (belum dihitung)." },
-                cfg?.Id);
-        }
+        if (!enableBpjs) return AssessWithoutBpjs(cfg, wageBase, periodStart, periodEnd, calculate);
 
         legacyAmount = Round(legacyAmount);
 
@@ -867,13 +851,7 @@ public static class PayrollTaxInsuranceRules
                 Add(PayrollInsuranceComponentCodes.BpjsJkmEmployer, "Kontribusi BPJS TK JKM (Pemberi Kerja)", InsurancePrograms.Jkm, false, wageBase, policy.JkmRate);
         }
 
-        if (cfg.PrivateEnabled)
-        {
-            if (cfg.PrivateEmployeeContribution > 0m)
-                lines.Add(new PayrollInsuranceLine(PayrollInsuranceComponentCodes.PrivateEmployee, "Iuran Asuransi Swasta (Pegawai)", "PRIVATE", true, 0m, 0m, Round(cfg.PrivateEmployeeContribution)));
-            if (cfg.PrivateEmployerContribution > 0m)
-                lines.Add(new PayrollInsuranceLine(PayrollInsuranceComponentCodes.PrivateEmployer, "Kontribusi Asuransi Swasta (Pemberi Kerja)", "PRIVATE", false, 0m, 0m, Round(cfg.PrivateEmployerContribution)));
-        }
+        AddPrivateInsuranceLines(cfg, lines);
 
         var employeeTotal = Round(lines.Where(l => l.EmployeePaid).Sum(l => l.Amount));
         var employerTotal = Round(lines.Where(l => !l.EmployeePaid).Sum(l => l.Amount));
@@ -886,6 +864,71 @@ public static class PayrollTaxInsuranceRules
             PolicyLegalBasis = policy?.LegalBasis,
             JkkRiskClass = policy?.JkkRiskClass
         };
+    }
+
+    private static void AddPrivateInsuranceLines(PayrollInsuranceConfigFacts cfg, List<PayrollInsuranceLine> lines)
+    {
+        if (!cfg.PrivateEnabled) return;
+        if (cfg.PrivateEmployeeContribution > 0m)
+            lines.Add(new PayrollInsuranceLine(PayrollInsuranceComponentCodes.PrivateEmployee, "Iuran Asuransi Swasta (Pegawai)", "PRIVATE", true, 0m, 0m, Round(cfg.PrivateEmployeeContribution)));
+        if (cfg.PrivateEmployerContribution > 0m)
+            lines.Add(new PayrollInsuranceLine(PayrollInsuranceComponentCodes.PrivateEmployer, "Kontribusi Asuransi Swasta (Pemberi Kerja)", "PRIVATE", false, 0m, 0m, Round(cfg.PrivateEmployerContribution)));
+    }
+
+    /// <summary>
+    /// Penilaian iuran saat fitur BPJS nonaktif. BPJS Kesehatan dan BPJS Ketenagakerjaan TIDAK dihitung dan tidak memblokir payroll run
+    /// (status eksplisit TESTING_MODE_DISABLED, berbeda dari NOT_APPLICABLE, VALID_ZERO, dan belum dikonfigurasi). Asuransi swasta BUKAN
+    /// BPJS dan tetap dihitung persis seperti biasa bila HRD menetapkannya (peserta aktif, program swasta aktif, berlaku pada periode):
+    /// menonaktifkan BPJS tidak boleh menghilangkan potongan atau kontribusi asuransi swasta.
+    /// </summary>
+    private static PayrollInsuranceAssessment AssessWithoutBpjs(
+        PayrollInsuranceConfigFacts? cfg, decimal wageBase, DateTime periodStart, DateTime periodEnd, bool calculate)
+    {
+        const string notice = "Mode pengujian aktif: kalkulasi BPJS Kesehatan dan BPJS Ketenagakerjaan dinonaktifkan sementara (belum dihitung).";
+
+        var lines = new List<PayrollInsuranceLine>();
+        var privateApplies = calculate
+            && cfg is { IsActive: true, PrivateEnabled: true }
+            && NormalizeCode(cfg.ParticipationStatus) == InsuranceParticipationStatuses.Active
+            && OverlapsPeriod(cfg.EffectiveStartDate, cfg.EffectiveEndDate, periodStart, periodEnd);
+        if (privateApplies) AddPrivateInsuranceLines(cfg!, lines);
+
+        if (lines.Count == 0)
+        {
+            return new PayrollInsuranceAssessment(
+                PayrollConfigurationStatuses.TestingModeDisabled,
+                PayrollComponentResultStatuses.TestingModeDisabled,
+                PayrollTaxInsuranceSources.TestingModeDisabled,
+                cfg?.ParticipationStatus,
+                Array.Empty<string>(),
+                null,
+                wageBase,
+                0m,
+                0m,
+                Array.Empty<PayrollInsuranceLine>(),
+                false,
+                Array.Empty<string>(),
+                new[] { notice },
+                cfg?.Id);
+        }
+
+        var employeeTotal = Round(lines.Where(l => l.EmployeePaid).Sum(l => l.Amount));
+        var employerTotal = Round(lines.Where(l => !l.EmployeePaid).Sum(l => l.Amount));
+        return new PayrollInsuranceAssessment(
+            PayrollConfigurationStatuses.TestingModeDisabled,
+            PayrollComponentResultStatuses.Calculated,
+            PayrollTaxInsuranceSources.HrdProfile,
+            cfg!.ParticipationStatus,
+            Array.Empty<string>(),
+            null,
+            wageBase,
+            employeeTotal,
+            employerTotal,
+            lines,
+            false,
+            Array.Empty<string>(),
+            new[] { notice, "Asuransi swasta tetap dihitung; hanya komponen BPJS yang tidak dihitung." },
+            cfg.Id);
     }
 
     private static PayrollInsuranceAssessment InsuranceUnconfigured(
@@ -925,7 +968,9 @@ public static class PayrollTaxInsuranceRules
         PayrollTaxConfigFacts? tax, PayrollInsuranceConfigFacts? insurance, decimal legacyTax, decimal legacyInsurance, DateTime asOf,
         PayrollPolicyAvailability? availability = null)
     {
-        var enableBpjs = availability?.EnableBpjsInPayroll ?? true;
+        // Tanpa informasi ketersediaan kebijakan, BPJS dianggap nonaktif (gagal-tertutup): konfigurasi BPJS tidak boleh dinilai/ditampilkan
+        // seolah aktif hanya karena penilai tidak diberi tahu keadaan saklar.
+        var enableBpjs = availability?.EnableBpjsInPayroll ?? false;
         var taxResult = AssessTax(tax, legacyTax, asOf, asOf);
         var insuranceResult = AssessInsurance(insurance, legacyInsurance, null, 0m, asOf, asOf, calculate: false, enableBpjs: enableBpjs);
 
