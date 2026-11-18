@@ -377,11 +377,12 @@ public sealed class PayrollRestitutionService
             RunType = "Regular",
             RunStatus = PayrollRunStatuses.Draft,
             CurrencyCode = "IDR",
-            PeriodStartDateSnapshot = period.StartDate,
-            PeriodEndDateSnapshot = period.EndDate,
-            AttendanceCutoffDateSnapshot = period.AttendanceCutoffDate,
-            VariableInputCutoffDateSnapshot = period.VariableInputCutoffDate,
-            PaymentDateSnapshot = period.PaymentDate,
+            // Kolom snapshot berjenis timestamptz; tanggal periode berkolom date terbaca Unspecified (PayrollDateNormalizer).
+            PeriodStartDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.StartDate),
+            PeriodEndDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.EndDate),
+            AttendanceCutoffDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.AttendanceCutoffDate),
+            VariableInputCutoffDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.VariableInputCutoffDate),
+            PaymentDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.PaymentDate),
             Notes = "Run penampung restitusi: populasi dilengkapi otomatis saat run dihitung.",
             CreateDateTime = DateTime.UtcNow,
             CreateBy = actorUserId

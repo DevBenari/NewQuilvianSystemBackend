@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 using QuilvianSystemBackend.Repositories;
 using System.Text.Json;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using PayrollTaxInsuranceRules = QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services.PayrollTaxInsuranceRules;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -14,15 +17,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         private readonly ApplicationDbContext _context;
         private readonly IPayrollSettingService _settingService;
         private readonly ILogger<PayrollBpjsCalculationService> _logger;
+        private readonly PayrollPolicyOptions _policy;
 
         public PayrollBpjsCalculationService(
             ApplicationDbContext context,
             IPayrollSettingService settingService,
-            ILogger<PayrollBpjsCalculationService> logger)
+            ILogger<PayrollBpjsCalculationService> logger,
+            IOptions<PayrollPolicyOptions> policyOptions)
         {
             _context = context;
             _settingService = settingService;
             _logger = logger;
+            _policy = policyOptions.Value;
         }
 
         public async Task<PayrollServiceResult<CalculateBpjsResultDto>> CalculateBpjsContributionsAsync(
@@ -30,6 +36,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
+            if (!_policy.EnableBpjsInPayroll)
+            {
+                return PayrollServiceResult<CalculateBpjsResultDto>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Kalkulasi BPJS dinonaktifkan sementara pada mode pengujian (Payroll:Policy:EnableBpjsInPayroll = false).");
+            }
             _logger.LogInformation(
                 "Memulai kalkulasi iuran BPJS Kesehatan dan BPJS Ketenagakerjaan untuk batch penggajian ID: {RunId}. Actor: {ActorId}",
                 runId, actorUserId);
@@ -51,6 +63,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 return PayrollServiceResult<CalculateBpjsResultDto>.Fail(
                     StatusCodes.Status422UnprocessableEntity,
                     $"Batch penggajian {run.RunNumber} telah berstatus '{run.RunStatus}' (Locked={run.IsLocked}) dan tidak dapat dimodifikasi.");
+            }
+
+            // Satu mesin aktif: run yang sudah dihitung mesin Payroll Run resmi tidak boleh dihitung ulang oleh jalur lama ini.
+            if (PayrollTaxInsuranceRules.IsCalculatedByOfficialEngine(run.PolicySnapshotJson))
+            {
+                return PayrollServiceResult<CalculateBpjsResultDto>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    PayrollTaxInsuranceRules.LegacyEngineBlockedMessage);
             }
 
             var setting = await ResolveEffectiveSettingAsync(run.ConfigurationSnapshotJson, cancellationToken);
@@ -100,6 +120,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
+            if (!_policy.EnableBpjsInPayroll)
+            {
+                return PayrollServiceResult<EmployeeBpjsCalculationDto>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Kalkulasi BPJS dinonaktifkan sementara pada mode pengujian (Payroll:Policy:EnableBpjsInPayroll = false).");
+            }
             var emp = await _context.PrlPayrollRunEmployees
                 .Include(e => e.Components.Where(c => c.IsActive))
                 .Include(e => e.PayrollRun)
@@ -117,6 +143,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 return PayrollServiceResult<EmployeeBpjsCalculationDto>.Fail(
                     StatusCodes.Status422UnprocessableEntity,
                     $"Batch penggajian telah berstatus final dan tidak dapat diperbarui.");
+            }
+
+            if (PayrollTaxInsuranceRules.IsCalculatedByOfficialEngine(emp.PayrollRun.PolicySnapshotJson))
+            {
+                return PayrollServiceResult<EmployeeBpjsCalculationDto>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    PayrollTaxInsuranceRules.LegacyEngineBlockedMessage);
             }
 
             var setting = await ResolveEffectiveSettingAsync(emp.PayrollRun.ConfigurationSnapshotJson, cancellationToken);

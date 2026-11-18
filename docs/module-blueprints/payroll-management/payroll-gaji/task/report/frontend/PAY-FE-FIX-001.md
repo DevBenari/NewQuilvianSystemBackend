@@ -168,3 +168,16 @@ TC-10, TC-11, TC-12, TC-13, TC-14, TC-19, TC-20 ditangani dan diuji pada fungsi 
 | Frontend ini dengan backend lama | `salaryStatus` null: badge penetapan gaji tidak dirender dan baris status tampil "-" (tidak ditebak) |
 | Tidak ada cek visual | Susunan section, badge pita status, dan tombol baru belum dilihat |
 | Tidak ada dua kolom | Lihat 7.4 |
+
+---
+
+## 8. Addendum 2026-11-17 (3) — uji kontrak untuk perbaikan 400 `POST payroll-runs`
+
+Tidak ada source frontend yang diubah. Penyebab 400 "Cannot write DateTime with Kind=Unspecified …" ada di backend (tanggal periode berkolom `date` ditulis mentah ke snapshot `timestamptz`; lihat `PAY-BE-FIX-001` bagian 10). Satu berkas uji ditambahkan di repo frontend karena backend tidak memelihara project uji otomatis (`TEST_POLICY`), dan pola uji kontrak yang membaca source backend sudah dipakai di sini:
+
+| Berkas | Isi | Hasil |
+| --- | --- | --- |
+| `tests/unit/payroll-run-utc-dates.test.mjs` (baru) | 11 uji yang membaca source backend: helper `PayrollDateNormalizer` mencap UTC dan tidak mengonversi zona; tidak ada snapshot tanggal periode mentah; kelima snapshot `CreateAsync` dinormalkan; tidak ada pembandingan `Effective*Date` mentah pada tiga layanan; `EnsureProfilesAsync` menormalkan; alias `using` pada layanan lama | **11 dari 11 lulus** |
+| Seluruh uji Payroll (`payroll-*`, `workforce-payroll-*`) | 294 uji | **294 lulus, 0 gagal, 0 dilewati** (sebelumnya 283) |
+
+Uji ini membaca teks source; ia **bukan** bukti bahwa 400 hilang di runtime. Bukti itu baru ada setelah backend dibuild, dijalankan ulang, dan run benar-benar dibuka.

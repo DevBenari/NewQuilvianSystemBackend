@@ -24,7 +24,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 /// nomor rekening dan NPWP selalu disamarkan.
 ///
 /// Kesiapan memproses (<see cref="PayrollCompensationListItemResponse.IsReady"/>) lebih ketat daripada "Lengkap" pada Kelengkapan Data:
-/// profil payroll harus sudah ada dan operasional, profil pajak harus ada, dan tetapan PPh dan iuran tidak boleh sekadar nol bawaan.
+/// profil payroll harus sudah ada dan operasional, serta konfigurasi PPh dan iuran yang ditetapkan HRD harus sah dan berlaku (dinilai
+/// eksplisit oleh PayrollTaxInsuranceRules; nominal nol pada profil payroll bukan penentu).
 /// </summary>
 public sealed class PayrollCompensationService
 {
@@ -44,11 +45,14 @@ public sealed class PayrollCompensationService
 
     private readonly ApplicationDbContext _dbContext;
     private readonly PayrollHrdSourceReader _hrdSource;
+    private readonly PayrollStatutoryPolicyResolver _policyResolver;
 
-    public PayrollCompensationService(ApplicationDbContext dbContext, PayrollHrdSourceReader hrdSource)
+    public PayrollCompensationService(
+        ApplicationDbContext dbContext, PayrollHrdSourceReader hrdSource, PayrollStatutoryPolicyResolver policyResolver)
     {
         _dbContext = dbContext;
         _hrdSource = hrdSource;
+        _policyResolver = policyResolver;
     }
 
     private sealed record ProfileRow(
@@ -204,7 +208,9 @@ public sealed class PayrollCompensationService
             .OrderByDescending(t => t.EffectiveStartDate)
             .Select(t => new { t.TaxStatus, t.IsNpwpRegistered, t.NpwpNumber })
             .FirstOrDefaultAsync(cancellationToken);
-        var hasInsurance = (await LoadInsuranceIdsAsync(scope, cancellationToken)).Contains(workforceProfileId);
+        var taxConfig = (await LoadTaxConfigsAsync(scope, cancellationToken)).GetValueOrDefault(workforceProfileId);
+        var insuranceConfig = (await LoadInsuranceConfigsAsync(scope, cancellationToken)).GetValueOrDefault(workforceProfileId);
+        var hasInsurance = insuranceConfig is { IsActive: true };
         // Penempatan organisasi primer yang berlaku hari ini (hanya dibaca; kosong bila HRD belum mengisinya).
         var organization = await _dbContext.WfpOrganizationAssignments.AsNoTracking()
             .Where(x => !x.IsDelete && x.IsActive && x.IsPrimary && x.WorkforceProfileId == workforceProfileId
@@ -222,7 +228,8 @@ public sealed class PayrollCompensationService
         banks.TryGetValue(workforceProfileId, out var bank);
         profiles.TryGetValue(workforceProfileId, out var profile);
 
-        var evaluated = Evaluate(person, isActiveInHrd, profile, salary, bank, tax is not null, today);
+        var availability = await _policyResolver.GetAvailabilityAsync(today, cancellationToken);
+        var evaluated = Evaluate(person, isActiveInHrd, profile, salary, bank, taxConfig, insuranceConfig, today, availability);
 
         var detail = new PayrollCompensationDetailResponse();
         BuildItem(detail, evaluated, assignments, hasInsurance, includeAmounts, today);
@@ -285,15 +292,19 @@ public sealed class PayrollCompensationService
         var salaries = await _hrdSource.LoadSalariesAsync(today, today, cancellationToken, scope);
         var banks = await _hrdSource.LoadBanksAsync(today, cancellationToken, scope);
         var profiles = await LoadProfilesAsync(scope, today, cancellationToken);
-        var taxIds = await LoadTaxIdsAsync(scope, cancellationToken);
+        var taxConfigs = await LoadTaxConfigsAsync(scope, cancellationToken);
+        var insuranceConfigs = await LoadInsuranceConfigsAsync(scope, cancellationToken);
 
+        var availability = await _policyResolver.GetAvailabilityAsync(today, cancellationToken);
         var result = new List<Evaluated>(people.Count);
         foreach (var person in people)
         {
             salaries.TryGetValue(person.WorkforceProfileId, out var salary);
             banks.TryGetValue(person.WorkforceProfileId, out var bank);
             profiles.TryGetValue(person.WorkforceProfileId, out var profile);
-            result.Add(Evaluate(person, true, profile, salary, bank, taxIds.Contains(person.WorkforceProfileId), today));
+            taxConfigs.TryGetValue(person.WorkforceProfileId, out var taxConfig);
+            insuranceConfigs.TryGetValue(person.WorkforceProfileId, out var insuranceConfig);
+            result.Add(Evaluate(person, true, profile, salary, bank, taxConfig, insuranceConfig, today, availability));
         }
 
         return result;
@@ -305,28 +316,37 @@ public sealed class PayrollCompensationService
         ProfileRow? profile,
         PayrollHrdSalary? salary,
         PayrollHrdBank? bank,
-        bool hasTaxProfile,
-        DateTime today)
+        PayrollTaxConfigFacts? taxConfig,
+        PayrollInsuranceConfigFacts? insuranceConfig,
+        DateTime today,
+        PayrollPolicyAvailability? availability)
     {
         var hrd = PayrollReadinessEvaluator.AssessHrd(salary, bank);
+        // Konfigurasi PPh dan iuran milik HRD dinilai eksplisit (jenis PPh, kategori, skema, kepesertaan, masa berlaku); nominal nol pada
+        // profil payroll bukan penentu. Tetapan lama pada profil hanya cadangan bertanda.
+        var taxInsurance = PayrollTaxInsuranceRules.AssessReadiness(
+            taxConfig, insuranceConfig, profile?.TaxAmount ?? 0m, profile?.InsuranceAmount ?? 0m, today, availability);
         // Profil dinilai pada tanggal hari ini: profil masa depan atau yang sudah berakhir bukan profil yang sedang berlaku, dan
         // beberapa profil aktif yang berlaku bersamaan dilaporkan sebagai masalah integritas data.
         var assessment = PayrollReadinessEvaluator.AssessProfile(
             profile is null ? null : ToFacts(profile),
             PayrollProfileRules.CanAutoPrepare(salary is not null, bank is not null),
+            taxInsurance,
             today,
             profile?.ActiveConflict ?? false);
+        var hasTaxProfile = taxConfig is { IsActive: true };
 
         var issues = new List<string>();
         if (!isActiveInHrd) issues.Add("Pegawai atau dokter ini tidak aktif di HRD.");
         issues.AddRange(hrd.Issues);
         if (profile is null) issues.Add("Profil Payroll belum disiapkan secara otomatis.");
         else issues.AddRange(assessment.Issues);
-        if (!hasTaxProfile) issues.Add("Profil pajak belum diisi.");
-        // Nol bawaan bukan data sah: tidak boleh membuat orang tampil siap hanya karena tetapan PPh dan iuran bernilai nol.
-        if (assessment.TaxInsuranceUnset) issues.Add("Tetapan PPh dan iuran pada profil payroll belum ditetapkan (keduanya nol).");
+        // Kekurangan konfigurasi yang sebenarnya, bukan pesan generik "keduanya nol": tidak boleh membuat orang tampil siap hanya karena
+        // nominal bernilai nol, dan tidak boleh menahan orang yang nol-nya sah.
+        issues.AddRange(taxInsurance.TaxIssues);
+        issues.AddRange(taxInsurance.InsuranceIssues);
 
-        return new Evaluated(person, isActiveInHrd, profile, salary, hrd, assessment, hasTaxProfile, issues, assessment.Notes);
+        return new Evaluated(person, isActiveInHrd, profile, salary, hrd, assessment, hasTaxProfile, issues.Distinct().ToList(), assessment.Notes);
     }
 
     private static IEnumerable<Evaluated> ApplyStatusFilter(IEnumerable<Evaluated> rows, string? status)
@@ -375,6 +395,10 @@ public sealed class PayrollCompensationService
         target.HrdComplete = hrdComplete;
         target.HrdDataStatus = !ev.IsActiveInHrd ? HrdInactiveLabel : hrdComplete ? HrdCompleteLabel : HrdIncompleteLabel;
         target.TaxInsuranceStatus = ev.ProfileAssessment.TaxInsuranceStatus;
+        target.TaxConfigurationStatus = ev.ProfileAssessment.TaxConfigurationStatus;
+        target.InsuranceConfigurationStatus = ev.ProfileAssessment.InsuranceConfigurationStatus;
+        target.TaxConfigurationIssues = ev.ProfileAssessment.TaxIssues ?? new List<string>();
+        target.InsuranceConfigurationIssues = ev.ProfileAssessment.InsuranceIssues ?? new List<string>();
 
         target.SalaryAssignmentId = display?.Id;
         target.SalaryEffectiveStartDate = display?.EffectiveStartDate;
@@ -510,11 +534,33 @@ public sealed class PayrollCompensationService
                 });
     }
 
-    private async Task<HashSet<Guid>> LoadTaxIdsAsync(IReadOnlyCollection<Guid>? scope, CancellationToken cancellationToken)
+    /// <summary>
+    /// Konfigurasi PPh HRD per orang (proyeksi ramping tanpa NPWP). Profil nonaktif ikut dimuat supaya statusnya dinilai eksplisit,
+    /// bukan dianggap tidak ada. Yang aktif dan terbaru dipilih bila tetap ada beberapa.
+    /// </summary>
+    private async Task<Dictionary<Guid, PayrollTaxConfigFacts>> LoadTaxConfigsAsync(
+        IReadOnlyCollection<Guid>? scope, CancellationToken cancellationToken)
     {
-        var query = _dbContext.PrlTaxes.AsNoTracking().Where(t => !t.IsDelete && t.IsActive);
+        var query = _dbContext.PrlTaxes.AsNoTracking().Where(t => !t.IsDelete);
         if (scope is not null) query = query.Where(t => scope.Contains(t.WorkforceProfileId));
-        return (await query.Select(t => t.WorkforceProfileId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
+        return (await query.ToListAsync(cancellationToken))
+            .GroupBy(t => t.WorkforceProfileId)
+            .ToDictionary(
+                g => g.Key,
+                g => PayrollTaxConfigFacts.From(g.OrderByDescending(t => t.IsActive).ThenByDescending(t => t.EffectiveStartDate).First()));
+    }
+
+    /// <summary>Konfigurasi iuran HRD per orang; aturan pemilihan sama dengan konfigurasi PPh.</summary>
+    private async Task<Dictionary<Guid, PayrollInsuranceConfigFacts>> LoadInsuranceConfigsAsync(
+        IReadOnlyCollection<Guid>? scope, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.PrlInsurances.AsNoTracking().Where(t => !t.IsDelete);
+        if (scope is not null) query = query.Where(t => scope.Contains(t.WorkforceProfileId));
+        return (await query.ToListAsync(cancellationToken))
+            .GroupBy(t => t.WorkforceProfileId)
+            .ToDictionary(
+                g => g.Key,
+                g => PayrollInsuranceConfigFacts.From(g.OrderByDescending(t => t.IsActive).ThenByDescending(t => t.EffectiveStartDate).First()));
     }
 
     private async Task<HashSet<Guid>> LoadInsuranceIdsAsync(IReadOnlyCollection<Guid> scope, CancellationToken cancellationToken)

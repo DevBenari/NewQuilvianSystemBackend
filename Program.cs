@@ -70,6 +70,7 @@ using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Services;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services.Sources;
@@ -436,6 +437,10 @@ try
     builder.Services.Configure<PayrollPolicyOptions>(builder.Configuration.GetSection(PayrollPolicyOptions.SectionName));
     // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run (kini milik modul Payroll).
     builder.Services.AddScoped<PayrollInstallmentDeductionService>();
+    // Kebijakan regulasi penggajian berversi (tarif PPh dan iuran BPJS): pembaca kebijakan yang disahkan, dipakai mesin hitung dan kelengkapan data.
+    builder.Services.AddScoped<PayrollStatutoryPolicyResolver>();
+    builder.Services.AddScoped<PayrollTaxPolicyService>();
+    builder.Services.AddScoped<PayrollBpjsPolicyService>();
     builder.Services.AddScoped<PayrollCalculationService>();
     // Penyiapan profil payroll otomatis dari data HRD tanpa impor CSV (PAY-BE-24): dipanggil di dalam transaksi buka dan hitung payroll run.
     builder.Services.AddScoped<PayrollHrdSourceReader>();
@@ -455,6 +460,10 @@ try
     builder.Services.AddScoped<PayrollSalaryRangeRuleService>();
     // PAY-BE-16: tunjangan tetap per struktur gaji (SA-01..SA-07).
     builder.Services.AddScoped<PayrollSalaryStructureAllowanceService>();
+    // Tunjangan Pegawai pada Detail Profil Penggajian: penetapan tunjangan tetap khusus satu pegawai berbasis Master Tunjangan (PrlWorkforceAllowance).
+    builder.Services.AddScoped<PayrollWorkforceAllowanceService>();
+    // Alokasi kode kebijakan tunjangan (SAP/OAP/HAP-RSMMC) lewat NumberSeriesAllocator (QBE-CODE-002/006).
+    builder.Services.AddScoped<AllowancePolicyCodeService>();
     // PAY-BE-19: penghasilan variabel manual per run (VI-01..VI-09, VI-12); nomor PVI dari NumberSeriesAllocator.
     builder.Services.AddScoped<PayrollVariableInputService>();
     // PAY-BE-21: simulasi payroll di transaksi yang selalu dibatalkan (SIM-01..SIM-03); tanpa impor HR, Finance, number series.
@@ -484,6 +493,9 @@ try
     builder.Services.AddScoped<CompanyGuarantorCoverageRuleService>();
     builder.Services.AddScoped<WfpCertificationFileStorageService>();
     builder.Services.AddScoped<ApplicationVersionService>();
+    // Gerbang tunggal fitur BPJS (Payroll:Policy:EnableBpjsInPayroll): dipakai Payroll, HRD, K3, dan GET api/v1/system/features sehingga
+    // BE dan FE tidak pernah berbeda perilaku. Singleton: nilainya dari IOptions (tetap selama proses berjalan).
+    builder.Services.AddSingleton<QuilvianSystemBackend.Services.Features.IBpjsFeatureGate, QuilvianSystemBackend.Services.Features.BpjsFeatureGate>();
     builder.Services.AddScoped<AccessPermissionService>();
     builder.Services.AddScoped<PermissionRegistryValidator>();
     builder.Services.AddScoped<OrganizationAuthorizationProjectionService>();

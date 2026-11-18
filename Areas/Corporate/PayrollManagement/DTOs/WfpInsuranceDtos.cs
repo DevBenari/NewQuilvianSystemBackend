@@ -10,6 +10,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
         public int BpjsKesehatanEnabledProfile { get; set; }
         public int BpjsKetenagakerjaanEnabledProfile { get; set; }
         public int PrivateInsuranceEnabledProfile { get; set; }
+
+        /// <summary>Profil dengan status kepesertaan eksplisit, valid, dan berlaku saat ini (termasuk tidak mengikuti dengan dasar).</summary>
+        public int ConfiguredProfile { get; set; }
+
+        /// <summary>Profil yang belum menetapkan status kepesertaan, belum/tidak berlaku, atau tidak sah. Semua flag false bukan "tidak wajib".</summary>
+        public int NotConfiguredProfile { get; set; }
     }
 
     public class WfpInsuranceResponse
@@ -33,6 +39,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
         public decimal PrivateInsuranceEmployerContribution { get; set; }
         public DateTime? EffectiveStartDate { get; set; }
         public DateTime? EffectiveEndDate { get; set; }
+
+        // ---- Kepesertaan iuran HRD (additive). Kosong berarti belum dikonfigurasi. Tarif per pegawai di atas dipertahankan untuk
+        // kompatibilitas dan tidak dipakai mesin hitung: tarif dan batas BPJS berasal dari Pengaturan Penggajian run. ----
+
+        /// <summary>ACTIVE | NOT_PARTICIPATING | NOT_APPLICABLE; kosong = belum dikonfigurasi.</summary>
+        public string? ParticipationStatus { get; set; }
+        public string? ParticipationBasis { get; set; }
+
+        /// <summary>Program BPJS Ketenagakerjaan yang diikuti (JHT,JP,JKK,JKM). Kosong berarti semua program.</summary>
+        public string? BpjsEmploymentPrograms { get; set; }
+
+        /// <summary>NOT_CONFIGURED | CONFIGURED | NOT_EFFECTIVE | ERROR (turunan dari isi profil dan masa berlaku hari ini).</summary>
+        public string ConfigurationStatus { get; set; } = string.Empty;
+        public List<string> ConfigurationIssues { get; set; } = new();
+
+        /// <summary>Tarif per pegawai pada profil terisi (&gt; 0) tetapi diabaikan perhitungan; Payroll memakai kebijakan aktif.</summary>
+        public bool HasIgnoredPerEmployeeRates { get; set; }
+
         public string? Description { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
@@ -52,6 +76,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public string ResetButtonLabel { get; set; } = "Reset";
         public WfpInsuranceDefaultFilterResponse DefaultFilter { get; set; } = new();
+
+        /// <summary>Pilihan status kepesertaan dari kontrak Backend (bukan daftar tertanam di layar).</summary>
+        public List<WfpInsuranceOptionResponse> ParticipationStatusOptions { get; set; } = new();
+
+        /// <summary>Pilihan program BPJS Ketenagakerjaan.</summary>
+        public List<WfpInsuranceOptionResponse> EmploymentProgramOptions { get; set; } = new();
         public List<WfpInsuranceSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
@@ -74,6 +104,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
     {
         public string Value { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
+    }
+
+    public class WfpInsuranceOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string? Note { get; set; }
     }
 
     public class CreateWfpInsuranceRequest
@@ -104,6 +141,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
         public decimal PrivateInsuranceEmployerContribution { get; set; }
         public DateTime? EffectiveStartDate { get; set; }
         public DateTime? EffectiveEndDate { get; set; }
+
+        // ---- Kepesertaan iuran HRD (additive; kosong = belum dikonfigurasi, kompatibel dengan klien lama). ----
+
+        [MaxLength(30)]
+        public string? ParticipationStatus { get; set; }
+
+        [MaxLength(500)]
+        public string? ParticipationBasis { get; set; }
+
+        [MaxLength(50)]
+        public string? BpjsEmploymentPrograms { get; set; }
 
         [MaxLength(1000)]
         public string? Description { get; set; }
