@@ -1,36 +1,17 @@
 {
-  "releaseName": "Quilvian 0.30.0 - Billing Management and Human Resource Management and Inpatient Management Enhancement",
-  "backendVersion": "0.30.0",
-  "description": "Release 0.30.0 enhances Billing Management, Human Resource Management, Inpatient Management capabilities. Includes improvements across Billing Workflow. Includes 16 database migration update(s).",
+  "backendVersion": "0.31.0",
+  "description": "Release 0.31.0 enhances Pharmacy Management capabilities. Includes improvements across Pharmacy Workflow.",
   "releaseMetadata": {
-    "migrations": [
-      "20261106015006_AddNurseViewPatientCall.cs",
-      "20261112043425_AddSchedulingAttendanceAmendmentA52.cs",
-      "20261112070119_NormalizeHrdAndMstTablesToQuilvianStandard.cs",
-      "20261112090000_AddSalaryStructureAllowanceAndVariableInputDecision.cs",
-      "20261112120000_AddWorkflowStepActivationCondition.cs",
-      "20261112130000_AddProcurementFoundation.cs",
-      "20261112140000_AddProcurementCatalog.cs",
-      "20261112150000_AddProcurementAttachment.cs",
-      "20261112160000_AddProcurementPurchaseRequest.cs",
-      "20261113050000_AddMissingHrdColumnDefaults.cs",
-      "20261116030049_AddAssetManagementFoundation.cs",
-      "20261116031906_AddProcurementNeedPlan.cs",
-      "20261116032446_AddProcurementBudget.cs",
-      "20261116034131_AddProcurementPackagePlan.cs",
-      "20261117030708_AddBilTenderCashTenderedAndChange.cs",
-      "20261117044418_AllowBilTenderCancelledStatus.cs"
-    ],
-    "migrationCount": 16,
     "features": [
-      "Billing Workflow"
+      "Pharmacy Workflow"
     ],
-    "generatedAt": "2026-11-17T08:04:51",
+    "generatedAt": "2026-11-18T02:41:04",
     "generatedBy": "Quilvian Release Generator",
+    "migrations": [],
+    "migrationCount": 0,
     "modules": [
-      "Billing Management",
-      "Human Resource Management",
-      "Inpatient Management"
+      "Pharmacy Management"
     ]
-  }
+  },
+  "releaseName": "Quilvian 0.31.0 - Pharmacy Management Enhancement"
 }
