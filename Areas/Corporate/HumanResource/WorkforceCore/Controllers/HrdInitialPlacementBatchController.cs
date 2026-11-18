@@ -134,12 +134,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
-            "Read",
-            "Read Initial Placement Batch",
+            "Update",
+            "Validate Initial Placement Batch",
             Description = "Memvalidasi ulang integritas seluruh baris batch penempatan awal tersimpan",
-            AccessType = AccessTypes.Read,
+            AccessType = AccessTypes.Update,
             SortOrder = 6)]
-        [AccessPermission("HrdInitialPlacementBatch", "Read")]
+        [AccessPermission("HrdInitialPlacementBatch", "Update")]
         public async Task<IActionResult> ValidateBatch(Guid id, CancellationToken ct)
         {
             try

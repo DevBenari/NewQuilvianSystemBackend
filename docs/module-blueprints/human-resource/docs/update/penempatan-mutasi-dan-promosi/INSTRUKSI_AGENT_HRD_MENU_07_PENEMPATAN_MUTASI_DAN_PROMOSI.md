@@ -1,51 +1,50 @@
-# MASTER INSTRUKSI AGENT - FINISHING HRD MENU 07: PENEMPATAN, MUTASI & PROMOSI
+# MASTER INSTRUKSI AGENT — FINISHING ULANG HRD MENU 07: PENEMPATAN, MUTASI & PROMOSI
 
-**Jenis:** Satu master instruksi implementasi Agent Quilvian V2, **bukan** laporan eksekusi atau klaim fitur sudah berhasil diuji.  
-**Tanggal baseline:** 18 November 2026 (WIB).  
-**Target:** Kepegawaian > **Menu 07 - Penempatan, Mutasi & Promosi**; tepat **5 Submenu**.  
-**Mandat:** **LANGSUNG KERJAKAN SOURCE NYATA** pada workspace yang diotorisasi; kerjakan **BACKEND dahulu, lalu FRONTEND**, kemudian integrasi dan UAT; jangan berhenti pada audit, daftar gap, perencanaan ulang, atau mockup.  
-**Nomor task finishing:** `FIN-HRD-07-BE-001` s.d. `FIN-HRD-07-BE-009`; `FIN-HRD-07-FE-001` s.d. `FIN-HRD-07-FE-007`. Ini ID tambahan finishing, **bukan mengganti** ID `BE-HRD-*`/`FE-HRD-*` pada roadmap canonical.  
-**Target penyimpanan dokumen bila diizinkan:** `DevBenari/NewQuilvianSystemBackend` @ `MHamzah`, `docs/module-blueprints/human-resource/docs/update/penempatan-mutasi-dan-promosi/INSTRUKSI_AGENT_HRD_MENU_07_PENEMPATAN_MUTASI_DAN_PROMOSI.md`.  
-**Baseline dibaca read-only:** FE `HamzahV2` @ `f095e2e0a80ccc89bae5a43e6c9a3fd0300f6d68`; BE `MHamzah` @ `d498fb2ac69c6082e0a8319aee366613964d0527`; Engineering Skills `main` @ `201af64552b27873fd9af83c6722cf11b441bb1e`. SHA adalah titik baca pada penulisan instruksi; **Agent wajib verifikasi ulang HEAD/upstream saat memulai**.  
-**Status source awal:** `IMPLEMENTED, NOT VERIFIED` untuk capability yang terlihat; terdapat beberapa cacat `REPAIR`; **belum lulus build, database live, browser UAT, dan penilaian readiness** pada sesi penyusunan dokumen ini.
-
-> **Persetujuan yang sudah ada:** Pemilik produk menyetujui rancangan bisnis, 5 Submenu, penataan MenuItems, skema frontend per layar, reuse backend existing, serta urutan backend-first. Jangan mengulang sesi wawancara terkait keputusan yang sudah terkunci. Apabila ditemukan konflik nyata dengan kontrak yang sudah approved, rekonsiliasi secara terbatas dan jalankan pekerjaan independen; jangan mengarang keputusan baru yang berdampak keselamatan klinis atau kompensasi.
+**Versi:** Revisi pascaaudit source dan laporan Agent Antigravity — 18 November 2026 (WIB)  
+**Sifat:** **PROMPT EKSEKUSI PERBAIKAN SOURCE NYATA**, bukan dokumen audit-only, bukan klaim sudah selesai, bukan rencana untuk diwawancarai ulang.  
+**Menu target:** Kepegawaian > **07. Penempatan, Mutasi & Promosi**; **tepat lima Submenu** berdasarkan registry pengguna.  
+**Target penomoran FIN yang DIPERTAHANKAN:** `FIN-HRD-07-BE-001` s.d. `FIN-HRD-07-BE-009` (sembilan task) dan `FIN-HRD-07-FE-001` s.d. `FIN-HRD-07-FE-007` (tujuh task). Jangan buat namespace nomor baru untuk perbaikan ini.  
+**Urutan kerja WAJIB:** preflight izin/aturan singkat → **BACKEND dahulu** → penguncian kontrak API → **FRONTEND** → pengujian regresi dan UAT live (bila diizinkan dan tersedia) → laporan berbukti.  
+**File master yang harus DIPERBARUI di workspace BE bila penulisan dokumen diizinkan:** `docs/module-blueprints/human-resource/docs/update/penempatan-mutasi-dan-promosi/INSTRUKSI_AGENT_HRD_MENU_07_PENEMPATAN_MUTASI_DAN_PROMOSI.md`. **Perbarui file existing ini**, jangan menambah master prompt kedua.  
+**Laporan existing yang HARUS direkonsiliasi sesudah implementasi:** `docs/module-blueprints/human-resource/docs/update/penempatan-mutasi-dan-promosi/LAPORAN_IMPLEMENTASI_MENU_07_AGENT_ANTIGRAVITY.md`. Status laporan saat audit adalah **klaim Agent, bukan UAT PASS**.  
+**Snapshot GitHub read-only untuk analisis:** FE `DevBenari/QuilvianSystemFrontendDev` @ `HamzahV2` HEAD `f7a1f0917eb82e95b0a6d02842362637a8d2b089`; BE `DevBenari/NewQuilvianSystemBackend` @ `MHamzah` HEAD `90e36deefe012801469de880631322fd40293117`; Engineering Skills `DevBenari/QuilvianEngineeringSkills` @ `main` HEAD `201af64552b27873fd9af83c6722cf11b441bb1e`. **Agent harus cek ulang HEAD dan perubahan lokal sebelum mulai.**  
+**Batas kejujuran:** `IMPLEMENTED IN SOURCE` bukan `VERIFIED WORKING`; `CSS CHECK PASS` bukan `BUILD PASS`; `READY FOR UAT` bukan `UAT PASS`; laporan `100%` tidak sah bila ditemukan P0, test wajib belum dijalankan, atau bukti database tidak ada.
 
 ---
 
 ## 1. Role
 
-Anda adalah **Senior ASP.NET Core/EF Core Backend Engineer, Next.js Fullstack Engineer, Hospital HR Business Process Analyst, UI/UX Engineer, dan QA/UAT Engineer** Quilvian V2. Tugas Anda adalah **memperbaiki dan menyelesaikan** alur penempatan awal, mutasi unit, rotasi/promosi, uraian tugas pegawai, serta penetapan atasan langsung dengan database nyata, transaksi persisten, server authorization, riwayat tanggal efektif, dan integrasi lintas modul yang aman.
+Anda adalah **Senior ASP.NET Core 9 / EF Core / PostgreSQL Engineer, Next.js 16 App Router Engineer, Analis Proses Bisnis Kepegawaian Rumah Sakit, Application Security Engineer, dan QA/UAT Engineer** untuk Quilvian V2. **Kerjakan langsung perbaikan kode**, jangan mengulang analisis sebagai output akhir. Ruang tugas Anda ialah **memperbaiki implementasi Menu 07 yang sudah sebagian dibangun**, menjaga integrasi dengan Menu 04/05/06/08, bukan membangun modul baru paralel.
 
-### 1.1 Repo, branch, mode dan target tulis
+### 1.1 Repository, branch, mode, target tulis
 
-| Fase berurutan | Mode dan repo | Target tulis yang diminta | Repo lain |
+| Fase | Mode resmi | Repository/branch | Target tulis terbatas |
 |---|---|---|---|
-| 0 (bila canonical belum sinkron dan izin dokumen sah) | `MODULE BLUEPRINT MODE`, BE `DevBenari/NewQuilvianSystemBackend` @ `MHamzah` | Hanya `docs/module-blueprints/human-resource/` terkait Menu 07 (kontrak, roadmap, traceability, task, memori bila diotorisasi) | FE dan source aplikasi BE **read-only** selama fase ini |
-| 1 (WAJIB FIRST) | `BACKEND MODE`, BE `DevBenari/NewQuilvianSystemBackend` @ `MHamzah` | File terkait Menu 07 di `Areas/Corporate/HumanResource/WorkforceCore/**`, file integrasi existing yang terbukti perlu di `LifecycleManagement/**`, `MasterData/**`, `WorkflowManagement/**` dan test scoped; perubahan wiring `Program.cs` hanya bila perlu dan diotorisasi | FE `HamzahV2` **read-only** |
-| 2 (setelah kontrak backend stabil) | `FRONTEND MODE`, FE `DevBenari/QuilvianSystemFrontendDev` @ `HamzahV2` | `src/app/hr/**` route khusus Menu 07, `src/components/view/hr/workforce-core/**`, `src/lib/services/hr/**`, hook/helper/style scoped, `src/utils/menu-sidebar/menu-items.jsx`, dan test scoped | BE `MHamzah` **read-only** |
-| 3 (hanya jika izin lintas repo eksplisit berlaku) | `CROSS-REPO MODE` | Perbaikan kontrak FE/BE hanya pada target file scoped yang **secara eksplisit** diotorisasi, tanpa membuka akses tak terbatas | Kedua repo mengikuti daftar target tulis |
-| 4 | QA/UAT & laporan menurut mode sah | Test/report scoped dan dokumen hasil yang diperbolehkan governance | Tidak menambah wewenang Git, DB, atau deployment |
+| 0 — hanya bila keputusan/kontrak canonical betul-betul perlu sinkronisasi dan izin dokumen tersedia | `MODULE BLUEPRINT MODE` | BE `DevBenari/NewQuilvianSystemBackend` @ `MHamzah` | Hanya `docs/module-blueprints/human-resource/` yang relevan dengan Menu 07; **source aplikasi read-only** pada fase ini |
+| 1 — **WAJIB PERTAMA** | `BACKEND MODE` | BE `DevBenari/NewQuilvianSystemBackend` @ `MHamzah` | `Areas/Corporate/HumanResource/WorkforceCore/{Controllers,Services,DTOs,Models,Workers}/**`, `Program.cs` bila memang diperlukan, file test scoped; dependencies `LifecycleManagement`/`MasterData` hanya untuk bug terbukti dan setelah ownership gate. FE **read-only** |
+| 2 — setelah API/DTO backend stabil | `FRONTEND MODE` | FE `DevBenari/QuilvianSystemFrontendDev` @ `HamzahV2` | `src/app/hr/workforce-core/**`, `src/components/view/hr/workforce-core/**`, `src/lib/services/hr/**` terkait, hook/utility/style yang memang dipakai, `src/utils/menu-sidebar/menu-items.jsx`, dan test scoped. BE **read-only** |
+| 3 — hanya bila pemilik memberikan izin eksplisit lintas repo | `CROSS-REPO MODE` | FE dan BE pada branch pin di atas | Hanya file pada fase 1–2 yang diperbolehkan; tidak membuka wewenang universal |
+| 4 — QA dan dokumentasi | Mode test dan mode dokumen yang sah | Repo terkait | Test/report berbukti; dokumen laporan hanya jika mode dan target tulis mengizinkan |
 
-**Mode bukan izin otomatis.** Sebelum menulis, pastikan workspace lokal benar, branch/upstream tepat, working tree aman, registered runtime Skill tersedia, target tulis disetujui, dan scope per task sah. Jangan melakukan `git pull`, `git checkout`, commit, push, merge/rebase, migration (membuat ataupun menjalankan), SQL write/seed, atau deploy tanpa **otorisasi terpisah yang eksplisit**. Bila langkah tertentu tertahan oleh izin, lanjutkan task lain yang tidak tertahan dan laporkan blocker yang presisi.
+**Mandat ini adalah permintaan implementasi pada workspace Agent yang sah, bukan perintah perubahan repository oleh penyusun prompt.** Sebelum menulis apa pun, verifikasi working tree, branch, upstream, dan izin mode serta target tulis. Jangan otomatis `git checkout`, `git fetch`, `git pull`, `git commit`, `git push`, `git merge`, `git rebase`, `git reset`, `git stash`, membuat PR, deploy, atau membuat/menjalankan migration dan SQL write tanpa izin tersendiri yang eksplisit. Tidak ada otorisasi otomatis menjalankan database produksi.
 
-### 1.2 Runtime engineering skills wajib
+### 1.2 Engineering Skills wajib dipanggil (bukan sekadar dibaca)
 
-- Untuk setiap implementasi backend, **invoke** registered runtime Skill `quilvian-engineering-skills:build-module-backend` terlebih dahulu.
-- Untuk setiap implementasi frontend, **invoke** registered runtime Skill `quilvian-engineering-skills:build-module-frontend` terlebih dahulu.
-- Baca `AGENTS.md` dan `CLAUDE.md` pada kedua branch target; `DevBenari/QuilvianEngineeringSkills` @ `main`: `agents/rules/GLOBAL_RULES.md`, `rules/README.md` atau padanan canonical, serta aturan relevan (`frontend-architecture`, `base-component-catalog`, `base-component-decision-gate`, `page-composition-patterns`, `design-tokens`, `ui-consistency-checklist`, `test-policy`, `backend/TASK_RULES`, `API_RULES`, `DATABASE_RULES`, `CROSS_REPO_RULES`, `REVIEW_RULES`, `testing`, `rule-output`).
-- Backend wajib patuh pada `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`: tentukan owner, ratchet (`NEW CODE`/`TOUCHED LEGACY`), penamaan, konfigurasi EF, dan gate QBE. Jangan meniru pola legacy yang dilarang pada kode baru; jangan membuat tabel/prefix paralel tanpa audit dan izin.
-- Jika registered Skill tidak tersedia, laporkan **`BLOCKED — Quilvian runtime skill unavailable`** (tanda pisah panjang mengikuti source governance asli), jangan menjalankan fallback manual seolah Skill sudah dipanggil.
+1. Baca `AGENTS.md` dan `CLAUDE.md` **kedua repo**, canonical `agents/rules/GLOBAL_RULES.md` dan `agents/rules/README.md` di Engineering Skills `main`.
+2. Untuk **setiap fase penulisan backend**, invoke registered runtime Skill **`quilvian-engineering-skills:build-module-backend`** lebih dahulu. Untuk **setiap fase penulisan frontend**, invoke **`quilvian-engineering-skills:build-module-frontend`** lebih dahulu. Jika runtime Skill tidak tersedia: laporkan persis **`BLOCKED — Quilvian runtime skill unavailable`** pada fase terkait; jangan mengaku telah memanggilnya atau fallback manual ke `SKILL.md`.
+3. Backend: taati `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`, `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, serta `rules/backend/{TASK_RULES,TASK_CLASSIFICATION,API_RULES,DATABASE_RULES,CROSS_REPO_RULES,REVIEW_RULES,TEST_POLICY,REPORT_TEMPLATE}.md` yang relevan. Tentukan owner dan ratchet `NEW CODE`/`TOUCHED LEGACY`; jangan membuat entity persisted baru, sequence/table baru, atau migrasi tanpa gate QBE dan izin.
+4. Frontend: taati `rules/frontend/{frontend-architecture,base-component-catalog,base-component-decision-gate,page-composition-patterns,design-tokens,ui-consistency-checklist,test-policy,REPORT_TEMPLATE}.md`; dokumentasi `rules/rule-output/`; UAT `rules/testing/`.
+5. **Jangan berhenti setelah membaca aturan, mengulang wawancara, atau membuat rencana baru.** Baseline Menu 07 dan perbaikan dalam dokumen ini telah disetujui; setelah preflight sah, langsung ubah source, jalankan test yang diizinkan, dan buktikan hasilnya.
 
 ---
 
 ## 2. Task
 
-### 2.1 Tujuan bisnis dan hasil yang WAJIB tercapai
+### 2.1 Tujuan, batas bisnis dan definisi hasil
 
-Rumah sakit perlu tahu **pada tanggal tertentu pegawai bekerja di unit mana, memegang jabatan apa, melapor kepada siapa, berdasarkan keputusan apa, siapa yang menyetujui, dan apakah penugasan tersebut sah untuk operasional rumah sakit**. Penggantian kolom unit/jabatan secara langsung, tabel dummy, atau tombol approval yang hanya mengubah state lokal **bukan** penyelesaian.
+Rumah sakit harus dapat mengetahui **pada tanggal acuan** pegawai bekerja di unit mana, jabatan apa, kepada siapa melapor, berdasarkan SK/batch apa, siapa pembuat/pengaju/penyetuju, dan apakah perubahan sudah **sah serta efektif**. Data harus benar-benar berasal dari database dan API riil. Jangan memakai dummy data, `setTimeout` untuk sukses palsu, optimistic success tanpa konfirmasi server, UUID acak untuk FK, atau menyetel status hanya dalam memori frontend.
 
-**Persis lima Submenu target (label dan urutan jangan diubah):**
+**Lima Submenu resmi (pertahankan label dan urutannya):**
 
 1. **Penempatan Awal**
 2. **Perpindahan Unit**
@@ -53,751 +52,517 @@ Rumah sakit perlu tahu **pada tanggal tertentu pegawai bekerja di unit mana, mem
 4. **Uraian Tugas**
 5. **Atasan Langsung**
 
-Satu Menu harus selesai sebagai satu rangkaian: dari master pegawai (Menu 04), organisasi/jabatan (Menu 05), dokumen/SK (Menu 06), kompetensi/kredensial (Menu 09), sampai penugasan dan penyampaian perubahan yang relevan ke Scheduling, Kehadiran, Identity/Authorization, dan Payroll dengan batas domain yang sah.
+**Batas kepemilikan modul:** Master Jabatan/Uraian Tugas tetap dikelola Menu 05; master pegawai Menu 04; penerbitan SK dan arsip berada pada capability Menu 06 yang direuse; kontrak awal dan tanggal masuk kerja dari Menu 08/onboarding; gaji dan nominal dari jalur Payroll tersendiri. Di Menu 07 gunakan **contextual views**, bukan master/approval/endpoint duplikat.
 
-### 2.2 Keputusan bisnis approved - INVARIANT yang mengikat
+**Keputusan canonical yang mengikat:** `HRD-DEC-031`, `HRD-DEC-036`, `HRD-DEC-047`, `HRD-DEC-048`, `HRD-DEC-049`, `HRD-DEC-050`, `HRD-DEC-054`, `HRD-DEC-055`, `HRD-DEC-056`, `HRD-DEC-057` pada `docs/module-blueprints/human-resource/00-interview-decisions.md`. Maknanya di antaranya: maker-checker; sumber penempatan berbasis tanggal efektif; satu SK satu event; satu primary per jenis dan tanggal; backdate tidak boleh melewati periode absensi Closed; batch data awal disetujui oleh aktor berbeda; gaji tidak dimutasi lewat SK/batch; scan SK bertanda tangan; SK Applied immutable dan reversal melalui event/SK baru.
 
-**WAJIB baca naskah keputusan canonical lengkap sebelum implementasi:** `docs/module-blueprints/human-resource/00-interview-decisions.md` @ BE `MHamzah`. Jangan memakai catatan dalam dokumen ini untuk menggantikan keputusan lengkap.
+### 2.2 Keputusan prioritas audit — bukan daftar yang cukup dicentang tanpa mengubah kode
 
-| ID | Aturan yang wajib diwujudkan | Dampak pada kode |
-|---|---|---|
-| `HRD-DEC-031` | Penempatan organisasi, jabatan, atasan, dan perubahan material wajib approval; approver **berbeda dari pembuat**; tidak boleh aktif sebelum disetujui | Permission, identitas creator, approval gate, pemisahan tugas, audit |
-| `HRD-DEC-036` | **Empat definisi workflow terpisah**: penetapan gaji, organisasi, jabatan, atasan; infrastruktur boleh reusable | Penempatan *stand-alone* tidak digabung paksa menjadi satu definisi approval |
-| `HRD-DEC-047` | `WfpOrganizationAssignment`, `WfpPositionAssignment`, `WfpManagerAssignment` berperiode efektif adalah source of truth; primary pada master hanya **mirror sistem**; master form tak boleh mengubah unit/jabatan setelah pegawai dibuat | Lock master edit, proyeksi tanggal efektif, histori |
-| `HRD-DEC-048` | **Satu peristiwa kepegawaian = satu SK/dokumen** (mutasi, promosi, rotasi, demosi, penugasan sementara), dengan satu approval dan perubahan unit/jabatan/atasan atomik; **tidak ada approval kedua** pada assignment turunan | Reuse `HrdPersonnelActionOrder`; satu event, satu nomor, satu tanggal efektif, satu histori |
-| `HRD-DEC-049` | Tepat satu penempatan utama per jenis per tanggal; tanpa gap saat pegawai aktif; secondary/Acting/Temporary boleh; jangan ada duplikasi identik | Validasi interval, algoritma close-old/open-new, concurrency |
-| `HRD-DEC-050` | Backdate hanya jika periode kehadiran masih terbuka; alasan wajib; cek ulang saat approve dan apply; tak merutekan ulang transaksi historis yang sudah diproses | Validasi periode, attendance guard, race-period close |
-| `HRD-DEC-054` | Data awal pegawai existing melalui satu batch divalidasi dan disetujui sekali oleh aktor berbeda; tidak boleh batch approved dua kali untuk pegawai sama; **batch gaji terpisah** | Batch `Validated` tidak otomatis boleh `Execute` sendiri; salary confidential |
-| `HRD-DEC-055` | Daftar penempatan lintas pegawai menunjukkan **Menunggu persetujuan / Dijadwalkan / Berlaku / Berakhir** dan tombol **mulai tindakan**; **tidak boleh inline edit/delete**; approval dari inbox/detail | Query status dan action per row, navigasi ke transaksi, no inline mutation |
-| `HRD-DEC-056` | SK wajib nomor dan scan SK bertanda tangan sebelum submit; rantai T8 HR Admin -> HR Manager/CorporateHr; direktur hanya via konfigurasi | Attachment, validation, workflow, distinct approver |
-| `HRD-DEC-057` | SK `Scheduled` dapat diajukan pembatalannya sebelum efektif, dengan approval orang lain; SK `Applied` **tidak boleh dibatalkan langsung**; untuk membalik kondisi harus **peristiwa baru** | Hapus celah `Cancel Applied` langsung, new counter-event workflow, audit |
+| ID temuan | Prioritas | Fakta source yang perlu diperbaiki | Task FIN pemilik |
+|---|---|---|---|
+| `AUD-HRD07-01` | **P0** | FE `initial-placement-batch-view.jsx` memakai `isPending` pada disabled button tanpa definisi → ReferenceError ketika evaluasi kondisi tersebut tercapai | `FE-002`, `FE-007` |
+| `AUD-HRD07-02` | **P0** | Backend `ValidateBatchByIdAsync` hanya menolak `Executed`, masih bisa menulis ulang `PendingApproval`/`Approved` menjadi `Validated`/`Draft`; API `POST /{id}/validate` mengubah DB tetapi permission hanya `Read` | `BE-006` |
+| `AUD-HRD07-03` | **P0** | FE Uraian Tugas meminta flat keys seperti `effectivePositionId`, `jobDescriptionId`, `duties`, sedangkan BE mengirim `positionId`, nested `jobDescription`, `items`, `versionHistory` | `BE-007`, `BE-008`, `FE-005` |
+| `AUD-HRD07-04` | **P0** | Route `/personnel-actions/create?category=Promotion|Rotation` tidak dibaca oleh editor; initial `actionCategory` selalu `Mutation` | `FE-004` |
+| `AUD-HRD07-05` | **P0** | `CancelOrderAsync` menerima `Scheduled` walau tidak ada `cancel-request` yang sah; jalur direct `POST /cancel` dapat melewati permintaan pembatalan | `BE-002`, `FE-003`, `FE-004` |
+| `AUD-HRD07-06` | **P0** | Worker `ProcessScheduledOrdersAsync` dapat menerapkan SK yang memiliki permintaan pembatalan menunggu keputusan | `BE-002`, `BE-005` |
+| `AUD-HRD07-07` | **P0** | `GenerateOrderNumberAsync` membaca list sebelum `lock` in-memory; tidak aman untuk multi-thread/multi-instance DB | `BE-003` |
+| `AUD-HRD07-08` | **P0** | Jalur SK `ValidatePlacementCombinationAsync` hanya jelas menolak manager=self, sedangkan jalur manager-assignment langsung memiliki `WouldCreateCycleAsync`; cycle lewat SK masih mungkin | `BE-004`, `BE-008` |
+| `AUD-HRD07-09` | **P1** | Query effective job memakai `IsActive` dan fallback `profile.PrimaryPositionId`, berisiko salah untuk `asOfDate` historis | `BE-007`, `FE-005` |
+| `AUD-HRD07-10` | **P1** | Eksekusi batch dengan `EffectiveStartDate` masa depan langsung mengubah mirror `PrimaryPositionId/PrimaryDepartmentId` | `BE-005`, `BE-006` |
+| `AUD-HRD07-11` | **P1** | Worker dan validasi beberapa tempat menggunakan `DateTime.UtcNow.Date`, bukan kalender tanggal bisnis RS yang dikonfigurasi | `BE-005` |
+| `AUD-HRD07-12` | **P0 (privacy)** | `GetBatchByIdAsync` mengembalikan `BaseSalary = r.BaseSalary`; endpoint baca memakai `Read`, tidak ada amount gate spesifik di jalur ini | `BE-003`, `BE-006`, `FE-002` |
+| `AUD-HRD07-13` | **P1** | Onboarding `WfpNewHireAssignmentService` masih fallback `DepartmentId = organizationUnitId` jika master departemen tidak ditemukan, padahal keduanya entity berbeda | `BE-006`, `BE-009` |
+| `AUD-HRD07-14` | **P0** | `employee-managers-view.jsx` mengarah ke editor SK tanpa kategori; editor default `Mutation`, sehingga penggantian atasan bisa tersimpan sebagai mutasi | `BE-008`, `FE-006` |
+| `AUD-HRD07-15` | **P1** | Guard once-per-employee batch hanya memeriksa batch berstatus `Executed` saat execute; dua batch dapat sama-sama `Approved` untuk pegawai yang sama | `BE-006` |
+| `AUD-HRD07-16` | **P1** | Worker menelan error per SK tanpa log detail dan tanpa outcome yang terobservasi; status, transaction dan idempotensi lintas instance belum terbukti | `BE-005`, `BE-009` |
+| `AUD-HRD07-17` | **P1** | Daftar direct assignment masih membuka `POST/PUT/PATCH/DELETE`; guard perlu diuji terhadap assignment terjadwal, status utama, dan jalan pintas bypass SK | `BE-004` |
+| `AUD-HRD07-18` | **P1** | Laporan Agent mengklaim 100% meskipun build dan UAT nyata belum terbukti; tabel laporan mencantumkan endpoint yang tidak tepat | `BE-009`, `FE-007` |
 
-**Amandemen penting yang tidak boleh salah:** `HRD-DEC-048` tidak menghapus `HRD-DEC-036`: **event SK** memiliki approval gabungan satu kali; **assignment berdiri sendiri** tanpa peristiwa tetap memakai definisi per jenis yang terpisah. Gaji selalu approval tersendiri, meski promosi berhubungan dengan SK.
-
-**Ketentuan dari planning yang disetujui dalam chat (belum otomatis menjadi revisi canonical):** Menu 07 menjadi kelompok sidebar sendiri dengan lima Submenu; frontend memakai context page untuk fungsi operasional namun reuse routes/views/backend existing; master Uraian Tugas tetap Menu 05; perubahan atasan stand-alone dan yang terikat SK mengikuti alur yang tepat; backend first -> frontend -> UAT; data riil, tidak ada mock/fake success.
+**Larangan khusus:** Jangan menghapus fitur lama yang sudah benar. Jangan menyimpulkan seluruh bug dengan grep saja: telusuri call chain aktual, bentuk response, status DB, dan permission. Ketika audit menemukan source berbeda dari snapshot, perbaiki menurut kontrak canonical terbaru, catat diff dan SHA baru. Tidak perlu melakukan wawancara ulang atas 18 gap di atas.
 
 ### 2.3 Instruksi rinci per Submenu
 
 ### Submenu 1 - Penempatan Awal
 
-**Tujuan operasional RS.** Menempatkan pegawai baru ke unit/jabatan/atasan sesuai kebutuhan rumah sakit serta memperbaiki baseline penempatan pegawai existing yang datanya belum lengkap, tanpa menghapus riwayat lama. Contoh: tiga perawat baru ditempatkan masing-masing ke Rawat Inap/IGD/Poliklinik; 55 pegawai existing dilakukan koreksi baseline berdasarkan SK terakhir yang sah (jumlah 55 adalah contoh dari keputusan canonical, **bukan angka wajib pada UI/seed**).
+**Bisnis RS dan aktor.** HR Admin menyiapkan data penempatan awal pegawai baru maupun baseline pegawai existing; HRD yang berbeda menyetujui; pelaksana resmi menjalankan batch setelah approval; atasan/unit tujuan dan Payroll memperoleh informasi sesuai hak akses. Contoh: 10 pegawai existing belum memiliki `WfpPositionAssignment` yang konsisten. HR membuat batch, validasi semua baris, ajukan, HRD lain menyetujui, lalu eksekusi atomik. Satu pegawai tidak boleh berhasil lewat dua batch awal.
 
-**Aktor, input, output:** HR Admin (penyusun), HR Manager/CorporateHr (approver berbeda), pegawai terkait, kepala unit (informasi/supervisi), petugas kredensial bila unit memerlukan kompetensi khusus. Input `workforceProfileId`, tipe awal (pegawai baru vs baseline existing), unit, departemen, site/lokasi, jabatan, atasan, jenis penempatan, tanggal efektif berdasarkan dokumen, referensi SK/kontrak, alasan/bukti, dan daftar validasi. Output penempatan organisasi/jabatan/atasan efektif, riwayat, status approval, dan audit.
+**Input dan output yang harus nyata.** Input pegawai (`WorkforceProfileId`), unit organisasi, departemen, posisi, manager bila ada, tanggal efektif, bukti dan alasan sesuai master existing. Output `HrdInitialPlacementBatch` status resmi, rincian validasi per baris, penempatan primer efektif dan riwayat. `BaseSalary` bukan sumber penetapan gaji batch, dan jangan dipaparkan melalui API `Read`.
 
-**Sumber reusable nyata (source terbaca, runtime BELUM DIVERIFIKASI):**
-- FE: `src/app/hr/initial-placement-batch/page.jsx` (alias) dan `src/app/hr/workforce-core/initial-batches/page.jsx` memakai komponen yang sama, `src/components/view/hr/workforce-core/initial-placement-batch-view.jsx`, `src/lib/services/hr/initial-placement-batch-service.js`; domain onboarding ada di `src/app/hr/lifecycle/onboarding-cases/**`.
-- BE: `WorkforceCore/Controllers/HrdInitialPlacementBatchController.cs`, `Services/HrdInitialPlacementBatchService.cs`, `Models/HrdInitialPlacementBatch.cs`, `DTOs/InitialPlacementBatchDtos.cs`; untuk pegawai baru `Services/WfpNewHireAssignmentService.cs`.
-- Endpoint existing: `GET /api/v1/corporate/human-resource/workforce-core/initial-batches/template`, `POST .../validate`, `POST ...`, `GET ...`, `GET .../{id}`, `POST .../{id}/validate`, `POST .../{id}/execute`. **Jangan samakan API existing `execute` dengan bukti approval yang sudah aman.**
+**Alur wajib:** `Draft → Validated → PendingApproval → Approved → Executed`; hanya aktor yang berhak melakukan transisi, dan pembuat/pengaju **tidak boleh** menjadi approver. Batch yang sudah diajukan/disetujui **immutable** terhadap validasi/edit tanpa proses revisi resmi yang tercatat. Pada akhir transisi, status dan data bertahan setelah reload serta re-query backend.
 
-**REPAIR WAJIB (P0):**
-1. `HrdInitialPlacementBatchService.ExecuteBatchAsync` saat ini memproses status `Validated` dan mengisi `ApprovedByUserId = userId` pada saat execute; tidak terlihat guard tegas `batch.CreateBy != approver`. Wujudkan workflow submit/approve/execute sesuai `HRD-DEC-054`, pisahkan creator-submitter-approver-executor; tidak ada auto-approve karena tombol Eksekusi. Periksa workflow existing dahulu, reuse mekanismenya.
-2. Batch harus benar-benar mendukung koreksi baseline pegawai existing tanpa menciptakan penempatan primer ganda; tanggal mulai mengacu **SK terakhir yang sah**, bukan selalu tanggal masuk. Validasi sebelum submit dan tepat sebelum apply; semua baris sukses **atomik** atau rollback total; tidak boleh mengakali error dengan menghapus penempatan historis.
-3. Batch gaji tidak boleh ikut menciptakan salary assignment dari input `BaseSalary` yang sama tanpa approval gaji yang sensitif. Pisahkan kontrak/proses gaji berdasarkan `HRD-DEC-054` dan `HRD-DEC-036` (kontrol baca nominal juga di DTO/server).
-4. `WfpNewHireAssignmentService` saat ini dapat membuat penempatan/gaji pada jalur onboarding. Periksa pemicu otoritatif (kontrak ditandatangani dan gate onboarding); cegah duplikasi dengan batch, jangan menautkan `DepartmentId` ke `OrganizationUnitId` tanpa mapping master sah, dan jangan memakai GUID acak sebagai pengganti referensi salary structure. Perbaiki kode dalam scope dependency yang sah, tanpa menyederhanakan alur approval salary.
-5. Jika butuh schema penanda `initial-batch` / event audit / immutable once-per-employee, gunakan model/migration yang diotorisasi; **jangan membuat/menjalankan migration tanpa izin terpisah**. Task lain tetap dilanjutkan.
+**Source reuse:**
+- BE `WorkforceCore/Services/HrdInitialPlacementBatchService.cs` (`ValidateBatchByIdAsync`, `SubmitBatchAsync`, `ApproveBatchAsync`, `ExecuteBatchAsync`); `Controllers/HrdInitialPlacementBatchController.cs`; `Models/HrdInitialPlacementBatch*`; `Services/WfpNewHireAssignmentService.cs`.
+- FE `src/app/hr/workforce-core/initial-placements/page.jsx`, `src/components/view/hr/workforce-core/initial-placement-batch-view.jsx`, `src/lib/services/hr/initial-placement-batch-service.js`.
+- API existing: `/api/v1/corporate/human-resource/workforce-core/initial-batches` (detail di tabel Kontrak API, **bukan** `/initial-placement-batches`).
 
-**Fitur target UI:** tampilan daftar `Pegawai Baru | Batch Data Awal | Riwayat`, ringkasan belum ditempatkan/menunggu approval/sudah berlaku, filter unit-jabatan-periode-status, form pegawai baru, unduh template data awal, upload/validasi per baris dengan error spesifik, tombol `Simpan Draf`, `Validasi`, `Ajukan`, `Setujui`, `Eksekusi` hanya sesuai state/role; status batch dan riwayat hasil setelah reload. Pilihan pegawai/unit/jabatan/atasan dari API master yang hidup, bukan UUID manual.
+**Perbaikan backend wajib:**
+1. Jadikan `ValidateBatchByIdAsync` **state-aware**: menolak mutasi untuk `PendingApproval`, `Approved`, `Executed`, atau status terminal yang relevan; jangan downgrade approval ke `Validated`. Jika revisi diizinkan, buat alur return/revision resmi dengan audit dan izin, jangan reset diam-diam. Pengujian meliputi direct HTTP call oleh role `Read`.
+2. `POST /{id}/validate` adalah operasi yang menulis database: pindahkan ke permission aksi write (`Update` atau action validasi tersendiri yang telah didaftarkan sesuai access governance) dan validasi actor di server. Pemanggilan unauthorized harus 403; authorized memiliki log actor.
+3. Validasi once-per-employee **sebelum approval dan saat execute**, terhadap batch lain dengan status `Approved`/`Executed` dan status lain yang menyebabkan konflik. Tangani race dua approver di dua sesi/instance melalui penguncian DB/transaksi atau constraint yang resmi. Jika perlu migration yang belum diotorisasi: tandai blocker schema, lanjut perbaikan yang tidak perlu schema.
+4. Validasi setiap row DB/live tepat sebelum eksekusi. Transaksi **all-or-nothing**: bila 1/10 baris invalid, 0 penempatan baru tersimpan; retry tidak menggandakan primary, manager, atau history. Jangan merusak baseline atau menimpa penempatan efektif lain.
+5. Data awal masa depan **boleh terjadwal** namun jangan langsung mengganti `MstWorkforceProfile.Primary*` mirror; mirror dihitung dari assignment efektif per tanggal bisnis. Jika alur batch tidak mendukung future effective date yang aman, tahan eksekusi dan tampilkan alasan jujur sampai mekanisme scheduler tersedia.
+6. Hapus `BaseSalary` dari DTO biasa, baik list maupun detail dan responses validasi yang dapat dibaca role HR biasa; atau mask di server berdasarkan permission amount eksplisit. Jangan hanya menghapus field FE, jangan menyimpan nilai salary input tanpa jalur Payroll yang disetujui.
+7. Perbaiki `WfpNewHireAssignmentService`: `DepartmentId` harus berasal dari `MstOrganizationUnit.DepartmentId`, `MstPosition.DepartmentId`, atau relasi master sah, tidak boleh memakai `organizationUnitId` sebagai `DepartmentId`. Bila tidak valid, fail closed/response validasi spesifik. Pastikan kontrak awal Menu 08, batch awal Menu 07 dan Payroll tidak membuat penempatan/gaji ganda serta tidak mengubah mirror sebelum efektif.
 
-**Kriteria selesai / UAT:** `HRD07-UAT-01..06`: creator tidak dapat approve batch; satu invalid row menolak apply semua; satu pegawai tidak boleh masuk dua batch approved; pegawai baru tidak diberi dua primary; data tetap ada setelah refresh; tidak ada nominal gaji bocor ke user HR non-payroll.
+**Perbaikan frontend wajib:**
+1. Tangani bug `isPending` dengan state yang terdefinisi dan guard yang benar. Tombol **Validasi Integritas** hanya aktif untuk status yang boleh divalidasi BE; jangan hanya menambahkan `const isPending` tanpa menyelesaikan kebenaran state machine.
+2. Setelah `submit`, `approve`, `execute`, reload detail dan ringkasan dari API; error harus menampilkan respons backend, tidak mengarang sukses. Tombol harus berdasarkan status **dan izin user**; unauthorized 403 tidak boleh tetap tersedia sebagai aksi seolah berhasil.
+3. Jika batch sudah `PendingApproval` atau `Approved`, tombol validasi **tidak tersedia**; jika status berubah di tab lain, action harus mendapat conflict response dan UI me-refresh.
+4. Pindahkan salary dari output yang terbaca pengguna biasa; status `Approved` sebelum execute dibedakan jelas dari `Executed`; tampilkan keterangan deferred future-date bila implementasinya memerlukan antrean.
+
+**Skema halaman target:**
+
+```text
+Penempatan Awal
+[Hero] Penempatan Awal Pegawai     [Buat Batch] [Template]
+[SummaryGrid] Draft | Perlu Validasi | Menunggu Persetujuan | Disetujui | Selesai
+[DataFilter] Pencarian pegawai | Unit | Status | Tanggal efektif
+[DataTable] Batch / Pegawai / Status / Masalah validasi / Tanggal efektif / Aksi
+[Panel detail] Ringkasan batch + error per baris + timeline approval
+[Actions by role/state] Validasi -> Ajukan -> Setujui (aktor lain) -> Eksekusi
+[InformationAlert] Hasil server dan alasan tindakan ditolak
+```
+
+**Acceptance:** tidak ada `ReferenceError`; read-only user tidak bisa mengubah batch via `/validate`; approval tidak dapat di-downgrade; status konsisten lintas refresh; gaji tidak bocor; future effective date tidak aktif prematur; dua eksekusi paralel tidak menggandakan primary.
 
 ### Submenu 2 - Perpindahan Unit
 
-**Tujuan operasional RS.** Memindahkan pegawai antarunit sesuai formasi/kebutuhan layanan dengan keputusan yang bisa diaudit; contoh perawat Rawat Inap dialihkan ke ICU dengan pemeriksaan kompetensi/izin klinis yang relevan sebelum mulai bertugas. Mutasi horizontal bisa mengubah unit dan atasan tanpa promosi.
+**Bisnis RS dan aktor.** Mutasi dari unit asal ke tujuan (misalnya Rawat Inap → ICU) memerlukan satu SK resmi, scan bertanda tangan, approval oleh aktor berbeda, cek periode absensi, kompetensi/kredensial sesuai unit, tanggal efektif dan histori. Perubahan unit tidak boleh memintas pengesahan melalui endpoint CRUD penempatan langsung.
 
-**Aktor, input, output:** Kepala Unit/pengusul bila diizinkan, HR Admin pembuat, HR Manager/CorporateHr penyetuju, unit asal/tujuan pemberi konteks, komite/kredensial pemberi status kelayakan bila tenaga klinis. Input pegawai, kondisi existing `asOf`, unit/site/departemen tujuan, jabatan jika berubah, atasan, tanggal efektif, alasan, nomor SK dan scan bertanda tangan. Output SK/status, penempatan baru yang berlaku tepat tanggal, riwayat, notifikasi/sinkronisasi scoped.
+**Alur:** Buat draf SK kategori `Mutation` → unggah scan → submit → approver berbeda memutuskan → jika tanggal efektif sekarang/masa lalu yang diizinkan maka `Applied`, jika masa depan `Scheduled` → worker apply tepat pada tanggal efektif. Pembatalan Scheduled memerlukan **permintaan**, pemeriksaan oleh pihak lain, keputusan; Applied tidak boleh cancel langsung, melainkan counter-event baru.
 
-**Sumber reuse:**
-- FE list `src/components/view/hr/workforce-core/organization-assignments-view.jsx`; `/hr/workforce-core/organization-assignments`; service `workforce-core-cross-employee-service.js`; SK `personnel-action-order-{list,create,detail}-view.jsx` dengan `personnel-action-order-service.js`.
-- BE `WfpOrganizationAssignmentController.cs`, `WfpOrganizationAssignment` dan `HrdPersonnelActionOrder{Controller,Service,DTO,Model}`. API SK di `/api/v1/corporate/human-resource/personnel-action-orders` (`POST`, `GET`, `GET /{id}`, `POST /{id}/submit`, `/approve`, `/reject`, `/cancel`, upload attachment).
+**Source reuse:** FE `src/app/hr/workforce-core/unit-transfers/page.jsx`, `src/components/view/hr/workforce-core/unit-transfers-view.jsx`, `personnel-action-order-{create,list,detail}-view.jsx`; BE `HrdPersonnelActionOrder{Controller,Service}.cs` dan `WfpOrganizationAssignmentController.cs`.
 
-**REPAIR WAJIB (P0):**
-1. `WfpOrganizationAssignmentController` masih menyediakan `PUT /{id}`, `PATCH /{id}/status`, `PATCH /{id}/primary`, `DELETE /{id}` yang berpotensi mengubah penempatan efektif tanpa approval. Lindungi backend: operasi langsung atas catatan berlaku tidak boleh bypass; sediakan jalur dokumen peristiwa atau perubahan stand-alone dengan workflow yang sah; jangan hanya menyembunyikan tombol FE.
-2. `HrdPersonnelActionOrderService.ApplyOrderAssignmentsAsync` saat menerapkan SK harus menutup penempatan lama tepat H-1, memulai baru saat efektif, menjaga satu primary per jenis per tanggal, tidak mengubah data historis di luar peristiwa; gunakan transaksi, optimistic concurrency/locking dan idempotensi.
-3. Cek `HRD-DEC-050` saat submit/approve/apply: backdate hanya periode kehadiran OPEN, alasan wajib; bila periode berubah menjadi Closed, tolak secara aman sebelum mutasi. Gunakan tanggal bisnis rumah sakit (bukan salah tafsir `UtcNow.Date` pada batas WIB).
-4. Rekonsiliasi proyeksi `PrimaryDepartmentId`/unit akun melalui mekanisme integrasi identity yang sudah ada tepat pada tanggal berlaku, **bukan** saat SK baru scheduled. Evaluasi efek ke jadwal unit dan permission sehingga perpindahan tidak memberi akses klinis baru secara otomatis.
-5. Cek kelayakan/kontrak kredensial pada unit tujuan lewat API/domain pemilik, tanpa menciptakan keputusan klinis otomatis oleh HRD.
+**Perbaikan backend wajib:**
+1. `POST /personnel-action-orders/{id}/cancel-request`: simpan permintaan dengan actor/time/reason dan state pending yang terbukti. `POST /{id}/cancel` hanya boleh menyetujui pembatalan Scheduled **yang benar-benar punya permintaan pending**, actor approval berbeda, belum efektif, dan izin benar. Tolak direct call tanpa permintaan, pemohon menyetujui sendiri, permintaan ganda, sudah efektif, atau SK `Applied`.
+2. Worker harus **mengecualikan atau menahan** SK Scheduled dengan permintaan pembatalan yang masih terbuka; setelah keputusan tolak/cabut, lanjut sesuai kebijakan waktu efektif (jangan diam-diam menerapkan terlambat tanpa keputusan). Sertakan status konflik/escalation bagi HRD.
+3. Backend direct `POST/PUT/PATCH/DELETE` organisasi/jabatan/atasan harus menolak bypass pada primary yang aktif maupun future-scheduled/ber-SK; jangan hanya larangan edit aktif dan membiarkan jalur create/patch mengubah primary secara tidak sah. Jika stand-alone assignment resmi ada, gunakan engine approval resminya.
+4. Cek unit/departemen/jabatan tujuan sebagai referensi sah, credential requirement klinis ke domain pemilik (jangan mengesahkan kompetensi klinis otomatis); periksa periode kehadiran Closed pada create/submit/approve/apply sesuai keputusan, bukan sekadar saat approve.
+5. Terapkan atomic close-old H-1/open-new tanggal efektif, satu primary per tanggal, histori SK, idempotent retry, permission and concurrency.
 
-**Fitur target UI:** daftar mutasi terfilter; kartu perbandingan `unit/jabatan/atasan asal -> tujuan`; pemeriksaan kesiapan, SK, status; rincian tanggal efektif, alasan, pemeriksa/penyetuju, timeline; `Buat Mutasi`, `Lihat Detail`, `Ajukan` (creator), `Setujui/Tolak` (approver di inbox/detail), `Batalkan Terjadwal` lewat permintaan berpersetujuan, tidak ada direct edit/delete row.
+**Perbaikan frontend wajib:** Halaman `UnitTransfersView` tetap reuse list SK dengan kategori Mutation terkunci. Tampilkan `unit asal → unit tujuan`, tanggal efektif, nomor SK, status Draft/PendingApproval/Scheduled/Applied/CancellationPending/Cancelled, tombol kontekstual sesuai role. `Ajukan Pembatalan` dan `Setujui/Tolak Pembatalan` harus berbeda, masing-masing menuju endpoint yang tepat, tidak boleh memanggil `/cancel` langsung sebagai pemohon.
 
-**Kriteria selesai / UAT:** `HRD07-UAT-07..12`: no direct mutation; scheduled tidak mengubah unit hari ini; perubahan tepat tanggal; closed attendance period menolak backdate; approval self ditolak; dua SK bersamaan tidak menciptakan double primary.
+**Skema halaman target:**
+
+```text
+Perpindahan Unit
+[Hero] Mutasi Unit Pegawai               [+ Ajukan Mutasi]
+[SummaryGrid] Draf | Menunggu HRD | Dijadwalkan | Sudah Berlaku
+[DataFilter] Pegawai | Unit asal/tujuan | Status | Tanggal efektif
+[DataTable] SK | Pegawai | Asal -> Tujuan | Berlaku | Status | Aksi
+[Detail SK] Sebelum/Sesudah | Scan SK | Pembuat/Penyetuju | Audit
+[Cancel request] Alasan + status menunggu persetujuan, bukan direct cancel
+```
+
+**Acceptance:** tanpa request, `/cancel` mengembalikan 400/409/403 sesuai kasus; pemohon tidak bisa menyetujui; worker tidak apply ketika cancellation pending; keputusan maker-checker dan riwayat tetap persisten; personel tidak berpindah unit sebelum tanggal efektif.
 
 ### Submenu 3 - Rotasi Promosi
 
-**Tujuan operasional RS.** Rotasi jabatan setara dan promosi ke jabatan dengan tanggung jawab lebih tinggi sebagai peristiwa formal terukur; contoh Perawat Pelaksana menjadi Kepala Ruang dengan perubahan atasan dan uraian tugas. Kategori `Demotion` dan `TemporaryAssignment` tetap bisa ditangani oleh dokumen SK existing **tanpa menambah dua submenu baru**.
+**Bisnis RS dan aktor.** Rotasi antarjabatan setara dan promosi ke jabatan lain harus memakai kategori transaksi yang benar serta satu SK; dampak grade/gaji bukan perubahan otomatis dari form SK dan harus melalui Payroll. Pengalihan manager/unit/jabatan terjadi atomik sesuai tanggal efektif.
 
-**Aktor, input, output:** HR Admin pembuat, HR Manager/CorporateHr penyetuju, penilai kinerja, penanggung jawab kompetensi dan Finance/Payroll bila berdampak penghasilan. Input pegawai, tipe `Rotation`/`Promotion` (dan kategori yang sah di master), jabatan/grade asal-tujuan, unit, atasan, tanggal, alasan, rujukan evaluasi/kompetensi, SK scan bertanda tangan. Output SK terpadu, assignment organisasi/jabatan/atasan, riwayat karier, link proses payroll terpisah.
+**Source reuse:** FE `src/app/hr/workforce-core/rotation-promotions/page.jsx`, `rotation-promotions-view.jsx`, `personnel-action-order-{create,list,detail}-view.jsx`; BE `HrdPersonnelActionOrderService.cs` dan `HrdPersonnelActionOrderController.cs`.
 
-**Sumber reuse:** FE `/hr/workforce-core/personnel-actions` plus `/create` dan `/[id]`, view `personnel-action-order-*-view.jsx`; BE `HrdPersonnelActionOrderController`, `HrdPersonnelActionOrderService`, `HrdPersonnelActionOrder`, `TrxEmployeeRotation`, `TrxEmployeePromotion` legacy untuk referensi; master posisi/jabatan pada `MasterData/Organization/**`.
+**Perbaikan frontend P0:** `rotation-promotions-view.jsx` mengirim `?category=Rotation` atau `?category=Promotion`, tetapi `personnel-action-order-create-view.jsx` masih `actionCategory: "Mutation"` dan tidak membaca query. Terapkan pembacaan query sesuai pola Next.js App Router existing (memperhatikan Suspense/hydration), validasi **allowlist enum** (`Mutation`, `Rotation`, `Promotion`, dan kategori lain yang memang disetujui). Gunakan sebagai initial form value; jangan ter-overwrite setelah user mengubah form dengan sengaja. Invalid query harus aman (pilihan default yang jujur, bukan salah kategori diam-diam). Setelah submit, kategori yang tersimpan di database harus sama dengan yang dipilih.
 
-**REPAIR WAJIB (P0):**
-1. `HrdPersonnelActionOrderService.ApplyOrderAssignmentsAsync` saat ini membangun `WfpSalaryAssignment` langsung jika `TargetBaseSalary` ada. **HENTIKAN bypass salary approval.** Pertahankan kompatibilitas data historis secara read-only bila perlu; batasi `TargetBaseSalary` pada create/update serta DTO response agar tidak bocor; gunakan `LinkedSalaryAssignmentId` atau kontrak terverifikasi untuk penautan persetujuan gaji terpisah, tanpa mengubah nominal secara otomatis.
-2. `HrdPersonnelActionOrderService.CancelOrderAsync` saat ini menerima `Applied` dengan `CounterOrderNumber` dan menandainya `Cancelled` pada event semula. Ini konflik eksplisit dengan `HRD-DEC-057`. SK sudah efektif tidak boleh dibatalkan langsung; buat event baru untuk pengembalian/penetapan baru. Status lama dan audit harus tetap utuh.
-3. Perkuat anti self-approval: layanan sekarang membandingkan `SubmittedByUserId` dengan approver; wajib juga membandingkan **`CreateBy` aktual pembuat** (serta delegated/acting identity sesuai engine), cek permission approver di server, bukan sekadar `Update`. Workflow T8 harus benar-benar ditautkan ke engine yang sah; kolom `WorkflowDefinitionId/WorkflowInstanceId` yang ada bukan bukti wiring.
-4. `GenerateOrderNumberAsync` sekarang menghitung `Max+1` dari daftar nomor SK. Ganti dengan mekanisme nomor yang aman terhadap concurrency, unik, audit dan retry, tanpa angka acak atau duplikasi. Tambahan unique constraint/migration memerlukan izin tersendiri.
-5. Periksa dan sediakan mekanisme apply untuk status `Scheduled` saat tanggal efektif tiba. Pada service yang dibaca, `ApplyOrderAssignmentsAsync` hanya dipanggil saat approve immediate; telusuri worker terkait sebelum membuat yang baru. Implementasikan bila belum ada, idempotent, restart-safe, aman pada dua instance dan gagal parsial.
-6. Pastikan peristiwa tunggal yang menyentuh unit, jabatan, atasan menghasilkan satu SK, satu approval, satu tanggal efektif dan satu baris histori referensial, tanpa approval turunan kedua. Jangan gunakan mutasi langsung yang terpisah satu per satu.
+**Perbaikan backend wajib:**
+1. `ActionCategory` divalidasi server terhadap allowlist; jangan bergantung pada query FE. Kategori dan tipe event harus konsisten sebelum submit/approve/apply.
+2. Penomoran SK harus aman pada **dua request paralel dan dua instance aplikasi**. Ganti pola `Max + 1` + `lock` proses lokal dengan nomor atomik di database/number-series existing (advisory lock/transaksi/unique+retry bounded sesuai governance). **Jangan** membuat migrasi otomatis; bila unik constraint baru diperlukan dan belum diberi izin, laporkan terblokir secara spesifik sambil menyelesaikan pekerjaan independen.
+3. **Larangan langsung mengubah gaji** tetap berlaku: `TargetBaseSalary` tidak boleh disimpan atau dipaparkan pada DTO biasa. Jika gaji promosi berubah, hubungkan ke alur penetapan gaji berpersetujuan, bukan mutasi otomatis.
+4. Periksa atomicity pergantian posisi, unit dan atasan, overlapping effectivity, double submit, rollback, unique primary as-of, serta penolakan backdate ketika attendance Closed.
+5. Selaraskan alur pembatalan Scheduled dan reversal Applied dengan Submenu 2; hindari dua implementasi paralel.
 
-**Fitur target UI:** halaman `Rotasi | Promosi | Riwayat`, filter pegawai, jenis, tanggal/status, panel jabatan/grade/unit lama vs baru, indikator persyaratan jabatan dan hasil penilaian/kompetensi bila data nyata tersedia, upload SK, timeline, status `Draft`, `Menunggu persetujuan`, `Dijadwalkan`, `Berlaku`, `Ditolak`, `Dibatalkan`, tautan ke perubahan gaji terpisah tanpa menampilkan nominal kepada role tidak berhak. Reuse BaseGroupedEditorView dan BaseDetailView existing, bukan membuat form SK kedua.
+**Skema halaman target:**
 
-**Kriteria selesai / UAT:** `HRD07-UAT-13..19`: promosi berhasil peristiwa atomik; salary tak berubah tanpa approval; Applied tak bisa Cancel; scan SK wajib; nomor SK unik saat concurrency; Scheduled benar-benar apply; creator tidak bisa approve walau submit dilakukan akun berbeda.
+```text
+Rotasi Promosi
+[Hero] Rotasi & Promosi Jabatan                [+ Buat SK]
+[Tab] Rotasi Jabatan | Promosi Jabatan | Semua Riwayat
+[DataFilter] Kategori terkunci dari tab | Status | Tanggal | Pegawai
+[DataTable] SK | Pegawai | Dari -> Ke | Tanggal efektif | Status
+[Form SK] Jenis aksi dari tab URL | Data pegawai | Sebelum/Sesudah
+          Scan tanda tangan | Alasan | Submit approval (bukan ubah gaji)
+```
+
+**Acceptance:** tombol Rotasi menyimpan `ActionCategory=Rotation`, tombol Promosi menyimpan `Promotion`, URL Mutation menyimpan `Mutation` (test klik UI, request network, response, dan reload DB). Nomor SK berbeda saat concurrent multi-user; tidak ada salary assignment baru hanya karena SK promosi.
 
 ### Submenu 4 - Uraian Tugas
 
-**Tujuan operasional RS.** Menampilkan uraian tugas **yang berlaku untuk jabatan pegawai pada tanggal terpilih** beserta versi, periode, dan riwayat; bukan menciptakan uraian tugas master baru di Menu 07. Contoh: perawat yang menjadi Kepala Ruang mulai tanggal efektif promosi melihat tugas kepala ruang yang berlaku pada tanggal itu, tetapi riwayat tugas perawat terdahulu tetap bisa ditelusuri.
+**Bisnis RS dan aktor.** HRD/kepala unit perlu melihat **uraian tugas jabatan yang berlaku bagi pegawai pada tanggal tertentu**, termasuk riwayat versi. Sumber master ada pada Menu 05; Menu 07 **read-only berdasarkan penempatan**. Pegawai yang belum punya penempatan efektif harus mendapat empty state jujur, bukan menampilkan jabatan masa kini untuk tanggal lampau.
 
-**Aktor, input, output:** HR Admin, kepala unit, pegawai yang berhak melihat tugasnya. Input pegawai, tanggal acuan, jabatan efektif, referensi versi uraian tugas. Output daftar tugas efektif, tanggung jawab, relasi jabatan, dokumen/cetak berizin, histori versi dan dasar penugasan.
+**Source reuse:** FE `src/app/hr/workforce-core/employee-job-descriptions/page.jsx`, `src/components/view/hr/workforce-core/employee-job-descriptions-view.jsx`, `src/lib/services/hr/workforce-core-cross-employee-service.js`; BE `WorkforceCoreCrossEmployeeController.GetEffectiveJobDescription`, `WorkforceCoreCrossEmployeeQueryService.GetEmployeeEffectiveJobDescriptionAsync`, `WorkforceCoreCrossEmployeeDtos.EmployeeEffectiveJobDescriptionResponse`, `MasterData/Organization/DTOs/JobDescriptionDtos.cs`.
 
-**Sumber reuse:** `src/app/hr/master-data/job-description/page.jsx`, view `src/components/view/hr/master-data/job-description/master-data-job-description-view.jsx`, service `src/lib/services/hr/job-description-service.js`; BE `MasterData/Organization/Controllers/JobDescriptionController.cs`, model `MstJobDescription`, `MstJobDescriptionItem`. Endpoint existing: `GET /api/v1/corporate/human-resource/master-data/job-descriptions/position/{positionId}/effective?asOfDate=...` dan `/position/{positionId}/history`.
+**Kontrak API nyata yang wajib diselaraskan:**
+- Endpoint `GET /api/v1/corporate/human-resource/workforce-core/employees/{workforceProfileId}/effective-job-description?asOfDate=YYYY-MM-DD` dengan permission `WorkforceCoreCrossEmployee:Read`.
+- Response backend object: `workforceProfileId`, `employeeName`, `profileCode`, `positionId`, `positionName`, `departmentId`, `departmentName`, `organizationUnitId`, `organizationUnitName`, `asOfDate`, **`jobDescription` object nested** dengan `id`, `versionNumber`, `effectiveStartDate`, `effectiveEndDate`, `purpose`, `items[{id,sectionType,sequence,content}]`, dan **`versionHistory[{id,versionNumber,effectiveStartDate,effectiveEndDate,status,...}]`**.
+- Source FE yang terbaca masih menunggu nama **flat** `effectivePositionId`, `effectivePositionName`, `effectiveDepartmentName`, `jobDescriptionId`, `purpose`, `duties[{dutyOrder,dutyDescription,performanceStandard}]`, dan `versionHistory[*].purpose/isActive` yang **tidak dijamin tersedia**.
 
-**REPAIR/ADD WAJIB (P1):**
-1. Buat facade/query per pegawai bila endpoint existing belum menyediakan join `pegawai -> penempatan jabatan efektif -> uraian tugas efektif`. Gunakan canonical `WfpPositionAssignment`, bukan posisi tersalin di master yang mungkin stale.
-2. Gunakan **master uraian tugas Menu 05** sebagai sumber tunggal; Menu 07 hanya *employee-effective view*. Tidak mengizinkan edit master di tampilan pegawai; tombol `Kelola Master` (jika berizin) membuka route Menu 05.
-3. Jika tidak ada versi aktif pada tanggal pilihan, tampilkan `Belum ada uraian tugas yang berlaku`, bukan dummy/hasil versi masa depan. Pastikan histori sebelum promosi tetap bisa dipilih.
-4. Konfirmasi penerimaan tugas digital **opsional**, bukan dibuat auto-wajib tanpa keputusan RS dan kontrak legal; bila belum approved, UI cukup lihat/cetak dan histori. Tugas administratif bukan pengganti SPK/RKK atau kewenangan klinis.
+**Perbaikan backend wajib:**
+1. Query `asOfDate` harus mencari riwayat penempatan yang efektif pada tanggal acuan (`EffectiveStartDate <= date` dan `EffectiveEndDate >= date` atau null, `!IsDelete`) tanpa membuang histori hanya karena `IsActive=false` saat ini. Validasi apakah entitas memiliki status lain (cancelled/void) dan exclude yang tidak sah. Pilih deterministik bila data historis overlapping, beri error/integrity flag jika ambiguous sesuai kontrak.
+2. **Jangan fallback ke `profile.PrimaryPositionId` saat tidak ada penempatan sah pada tanggal yang diminta**; mirror adalah data hari ini, bukan sumber historis. Kembalikan `positionId=null`, `jobDescription=null`, dan empty state yang benar jika memang belum ada.
+3. Untuk versi master uraian tugas, tampilkan yang efektif pada `asOfDate` dan history yang benar; jangan mengarang `purpose`, `isActive` pada history jika DTO tidak menyediakannya. Jika perlu memperkaya DTO, verifikasi domain ownership Menu 05, jangan mengubah master persisted sembarangan.
+4. Uji tanggal lampau saat jabatan lama telah ditutup (`IsActive=false`), tanggal sebelum pegawai memiliki jabatan, hari transisi dan future date.
 
-**Fitur target UI:** pencarian pegawai, tanggal acuan, kartu jabatan/unit/periode, uraian tugas versi aktif (tujuan, tanggung jawab dan item), tab versi historis, action lihat/cetak jika ada backend yang sah, link master hanya untuk admin berizin.
+**Perbaikan frontend wajib:**
+1. Buat **adapter/selector kontrak yang eksplisit** di service FE atau view scoped, bukan cek field yang tidak ada. Contoh mapping berbasis DTO nyata: `effectivePositionId <- positionId`, `employeeCode <- profileCode`, `jobDescriptionId <- jobDescription?.id`, `purpose <- jobDescription?.purpose`, `versionNumber <- jobDescription?.versionNumber`, `duties <- jobDescription?.items` lalu render `sectionType`, `sequence`, `content` tanpa mengarang `performanceStandard`. **Lebih baik** gunakan nama DTO asli langsung bila konsisten dengan UI; pilih satu metode dan buat unit test adapter.
+2. Halaman harus dapat membedakan: tidak ada pegawai dipilih; API loading; API error/403; belum ada effective position; ada position tetapi belum ada master uraian tugas; ada master dan butir; riwayat kosong. Semua status berasal dari data server.
+3. Riwayat versi gunakan `status` asli dan kolom yang memang ada dalam `JobDescriptionHistoryResponse`; jangan membaca `ver.purpose` dan `ver.isActive` seolah fakta jika belum tersedia. Detail versi boleh dimuat melalui endpoint resmi Menu 05 bila dibutuhkan, dengan permission sesuai.
 
-**Kriteria selesai / UAT:** `HRD07-UAT-20..23`: tanggal sebelum/ sesudah promosi menampilkan versi tepat; tak ada konten jika memang kosong; non-berhak tidak bisa edit master dari tampilan Menu 07; histori persist setelah reload.
+**Skema halaman target:**
+
+```text
+Uraian Tugas
+[Hero] Uraian Tugas Pegawai              [Buka Master Menu 05]
+[Filter] Pilih Pegawai (API real) | Tanggal Acuan
+[Context] Unit + Departemen + Jabatan berlaku pada tanggal acuan
+[Tab] Uraian Tugas Berlaku | Riwayat Versi
+[Detail] Tujuan jabatan, kelompok butir (Tugas/Tanggung Jawab/Wewenang/Relasi)
+[Empty/Error] Penempatan belum efektif / Master belum ada / Tidak berizin
+```
+
+**Acceptance:** jabatan efektif terbaca dari API dengan key benar; tanggal lampau tidak menampilkan jabatan sekarang bila historinya kosong; versi dan `items` tampil; 403 berbeda dengan empty; tombol ke master menavigasi route nyata yang benar.
 
 ### Submenu 5 - Atasan Langsung
 
-**Tujuan operasional RS.** Menampilkan dan mengelola perubahan relasi pelaporan utama pegawai dengan audit tanggal efektif, baik berubah karena SK mutasi/promosi maupun karena penetapan atasan *stand-alone* (misalnya Kepala Ruang lama pensiun). Atasan utama diperlukan untuk alur persetujuan dan supervisi, bukan sekadar label pada master pegawai.
+**Bisnis RS dan aktor.** Rantai atasan menentukan pengawasan staf dan sebagian approval SDM; kesalahan siklus dapat membuat permintaan persetujuan tak pernah selesai. Perubahan atasan akibat SK peristiwa direkam bersama SK; perubahan atasan mandiri mengikuti workflow khusus `HRD-DEC-036` (jangan dipaksakan menjadi `Mutation` tanpa dasar).
 
-**Aktor, input, output:** HR Admin pembuat, HR Manager/CorporateHr approver yang berbeda, kepala unit sebagai referensi; input pegawai, atasan lama/baru, unit, jenis `primary`/nonprimary jika kontrak mengizinkan, alasan, tanggal, dokumen/approval. Output relasi utama efektif, histori dan rute approver yang tepat untuk **pengajuan baru**; approval yang sudah diproses tidak dirutekan ulang.
+**Source reuse:** FE `src/app/hr/workforce-core/employee-managers/page.jsx`, `src/components/view/hr/workforce-core/employee-managers-view.jsx` dan `personnel-action-order-create-view.jsx`; BE `WorkforceCoreCrossEmployeeController.GetManagerAssignments`, `WfpManagerAssignmentController.ValidateRequestAsync/WouldCreateCycleAsync`, `HrdPersonnelActionOrderService.ValidatePlacementCombinationAsync`.
 
-**Sumber reuse:** FE `/hr/workforce-core/manager-assignments`, `src/components/view/hr/workforce-core/manager-assignments-view.jsx`, `src/lib/services/hr/workforce-core-cross-employee-service.js`; master Menu 05 memiliki label `Atasan Langsung` yang saat ini menuju route manager-assignments yang sama. BE `WorkforceCore/Controllers/WfpManagerAssignmentController.cs`, `WfpManagerAssignment`, `HrdPersonnelActionOrderService` untuk perubahan terkait SK.
+**Perbaikan backend wajib:**
+1. Terapkan deteksi **cycle** untuk jalur SK `HrdPersonnelActionOrderService` saat membuat, mengajukan, menyetujui, dan menerapkan SK; bukan hanya self-manager. Reuse satu validator domain yang terverifikasi, uji tanggal efektif dan perubahan lebih dari satu langkah pada rantai. Hindari exception yang hanya terjadi setelah data setengah tersimpan.
+2. Status atasan utama pada tanggal tertentu berasal dari assignment efektif, bukan sekadar `IsActive` hari ini. Toleransi acting/secondary tanpa mengubah primary secara tidak sah. Cegah dua atasan primary bersamaan dan self-reference.
+3. Pisahkan **SK event** (`HRD-DEC-048`) dari **stand-alone manager assignment** (`HRD-DEC-036`): bila backend belum punya workflow standalone resmi yang aman, implementasikan melalui mekanisme approval existing yang benar sesuai canonical; jangan membuat kategori SK baru secara asumtif, jangan bypass approval. Jika diperlukan keputusan owner baru yang benar-benar material, tahan hanya jalur itu, lanjutkan perbaikan lain.
+4. Periksa `WfpManagerAssignmentController` direct CRUD agar tidak ada bypass terhadap primary yang sudah terdaftar atau scheduled; test role server-side, bukan label UI.
 
-**REPAIR WAJIB (P0/P1):**
-1. Lindungi `PUT`, `PATCH /status`, `PATCH /primary`, `DELETE` pada `WfpManagerAssignmentController` agar tidak ada perubahan relasi berlaku tanpa approval; untuk perubahan *stand-alone*, gunakan definisi workflow penetapan atasan sendiri dari `HRD-DEC-036`.
-2. Perubahan atasan sebagai bagian SK yang sudah disetujui **tidak boleh mendapatkan approval kedua** (`HRD-DEC-048`). Terapkan satu perubahan relasi efektif dan satu histori yang mengacu ke SK.
-3. Pertahankan validasi anti-self manager dan anti-siklus yang sudah ada (`WouldCreateCycleAsync`); perluas ke tanggal efektif/overlap dan hirarki unit bila dibutuhkan, jangan melonggarkan guard. `CanApproveRequests` bukan bukti persetujuan assignment itu sendiri.
-4. Pastikan hanya atasan **utama** yang efektif pada tanggal pengajuan yang dipakai untuk `RequesterManager` (`HRD-DEC-049`); assignment Acting/Secondary tidak otomatis menjadi approver. Jangan re-route permohonan yang sudah diproses; permohonan pending sesuai mekanisme delegation/escalation yang approved.
+**Perbaikan frontend wajib:**
+1. Tombol `+ Ajukan Perubahan Atasan` **jangan** langsung membuka `/personnel-actions/create` yang default `Mutation` tanpa konteks. Arahkan ke workflow manager-only yang sah atau form SK berparameter jelas sesuai tipe event yang disetujui dan benar-benar ditangani backend. Jangan mengklaim sukses jika endpoint belum tersedia.
+2. Daftar atasan dan visual diagram memakai response API real. Tampilkan primary/secondary, tanggal efektif, dapat-approve, unit dan penanda pending; kosong dan 403 terpisah. Jangan mengarang hierarchy pada frontend dengan data yang belum dibaca.
+3. Gunakan interface/permission yang tepat pada tiap aksi, disabled/loading selama submit dan reset states setelah berhasil.
 
-**Fitur target UI:** daftar pegawai dengan unit/jabatan/atasan/status; detail dua kartu `Atasan Langsung -> Pegawai`, riwayat periode/jenis/SK, tombol `Ajukan Perubahan Atasan` dengan form alasan/tanggal efektif (berizin), tidak ada edit inline, status Menunggu Persetujuan/Dijadwalkan/Berlaku/Berakhir yang datang dari API.
-
-**Kriteria selesai / UAT:** `HRD07-UAT-24..28`: manager tidak bisa dirinya sendiri/siklus; approval stand-alone berbeda dari creator; mutasi mengubah atasan hanya saat efektif; aturan approval atasan utama benar; histori dan jejak SK tidak hilang saat reload.
-
-### 2.4 Invariant bersama 5 Submenu dan lintas modul
-
-1. Sumber identitas workforce tunggal (`MstWorkforceProfile` dan master terkait); **jangan duplikasi** profil, organisasi, posisi, atau uraian tugas.
-2. `WfpOrganizationAssignment`, `WfpPositionAssignment`, `WfpManagerAssignment` menjadi source of truth berperiode efektif; mirror master dan identity hanya proyeksi ketika sudah berlaku. Masa depan tidak boleh mengganti kondisi hari ini.
-3. Dua jalur yang **berbeda**: **SK event** (mutasi/promosi/rotasi/demosi/temporary, one approval) vs **stand-alone placement change** (workflow per jenis). Gaji memiliki approval terpisah.
-4. Klasifikasi status teknis `Draft`, `PendingApproval`, `Scheduled`, `Applied`, `Rejected`, `Cancelled` dan status batch harus dipetakan ke label bisnis hanya setelah kontrak backend benar. Status/izin/tanggal dihitung server, frontend tidak mengarang final state.
-5. No direct master-form reassignment after creation; salary tidak boleh tersisip dalam apply SK atau batch penempatan biasa; scope role tidak boleh bocor. Mutasi ke unit klinis tidak otomatis memperluas kewenangan SPK/RKK.
-6. Guard interval tanggal, conflict active, kompetensi, closed attendance, concurrency, audit, actor, role/permission, no invalid GUID fallback, no success palsu, save-and-reload persist, no hard delete histori.
-7. Semua efek downstream (scheduling, kehadiran, otorisasi unit, payroll) memakai kontrak integrasi terverifikasi dengan owner domain, reentrancy dan error handling; bila integrasi belum approved, siapkan event/outbox atau status pending yang sah, **jangan mutasi tabel domain lain sembarangan**.
-
-
-### 2.5 Penomoran task FIN - gelombang BACKEND FIRST
-
-**Eksekusi tugas ini, bukan audit ulang.** Pemeriksaan yang disebut tiap task adalah precondition teknis singkat untuk menghindari menimpa source yang sudah berubah. Jika source HEAD terbaru sudah memperbaiki suatu defect, verifikasi tesnya dan tandai `REUSED / VERIFIED`, lalu lanjutkan tugas berikutnya. Setiap task wajib mencatat file aktual, hasil tes, dan bukti endpoint/persistence.
-
-| ID | Prioritas | Target implementasi dan dependensi | Acceptance minimum |
-|---|---|---|---|
-| `FIN-HRD-07-BE-001` | P0 | SK event approval, pemisahan aktor, permission, workflow T8; prasyarat semua pekerjaan SK | Creator tidak bisa approve; approver berizin; status/instance approval persisten; no fake approval |
-| `FIN-HRD-07-BE-002` | P0 | Cancel SK sebelum efektif melalui approval; Applied -> dokumen baru; setelah BE-001 | Cancel pending tidak langsung menghapus Scheduled; Applied immutable dan counter-event terpisah |
-| `FIN-HRD-07-BE-003` | P0 | Stop salary direct apply; nomor SK concurrency-safe; sesudah BE-001 | Tidak mengubah gaji tanpa approval sendiri; nomor tetap unik concurrent |
-| `FIN-HRD-07-BE-004` | P0 | Assignment period constraints dan larangan bypass CRUD; setelah BE-001 | Exactly-one primary per tanggal; history valid; direct HTTP bypass ditolak |
-| `FIN-HRD-07-BE-005` | P0 | Worker/apply SK Scheduled, mirror tanggal efektif, idempotensi; setelah BE-002/004 | Job menerapkan tepat sekali, restart-safe, tidak aktif prematur |
-| `FIN-HRD-07-BE-006` | P0 | Batch penempatan awal + onboarding, guard approval, pemisahan salary; setelah BE-001/004 | All-or-nothing; creator beda approver; no duplicate awal; payroll terpisah |
-| `FIN-HRD-07-BE-007` | P1 | API daftar/summary/metadata/detail/status 5 konteks dan per-row allowed actions; setelah BE-004/006 | Filter valid, pagination, permission/scope, labels akurat |
-| `FIN-HRD-07-BE-008` | P1 | Uraian tugas efektif, atasan, assignment history, integrasi HR identity/scheduling; setelah BE-004/005 | Query as-of konsisten; tidak ada master duplikat; audit dan domain boundaries terjaga |
-| `FIN-HRD-07-BE-009` | P0 | Unit/integration/concurrency/security tests + kompatibilitas kontrak FE; setelah BE-001..008 | Test P0 lulus di lingkungan berizin; bukti hasil, bukan checkmark manual |
-
-#### FIN-HRD-07-BE-001 - Approval dan otorisasi yang benar
-
-1. Baca `HrdPersonnelActionOrderController.cs` (`[HttpPost("{id}/approve")]`, `AccessAction("Approve")`, `AccessPermission("HrdPersonnelActionOrder", "Update")`) dan service `ApproveOrderAsync` yang pada snapshot hanya memeriksa `SubmittedByUserId`. Implementasikan guard **creator (`CreateBy`) dan submitter berbeda dari approver** sesuai keputusan; anti self-approval wajib server-side, termasuk retry dan aktor delegated. Pemetaan permission `Approve`/`Reject`/`Cancel` ikuti registry aktual, jangan mengasumsikan seluruh pemegang `Update` adalah pejabat pengesah.
-2. Verifikasi workflow `T8` dari `WorkflowManagement` dan pendaftaran resource action. Link `WorkflowDefinitionId`, `WorkflowInstanceId`, state transition, actor, delegation, approval inbox, versi definisi; tidak cukup mengisi dua kolom ID tanpa membuat instance/tindakan persetujuan nyata. Direktur step hanya sesuai konfigurasi dan bukan asumsi default.
-3. Perbaiki validation error menjadi respons terstruktur (`400`/`403`/`409` sesuai kontrak), bukan generic success. Gunakan audit actor/timestamp dan optimistic locking/state guard agar dua penyetuju tidak dapat memproses SK yang sama dua kali.
-4. Verifikasi bahwa scan SK benar-benar bertanda tangan **sebagai kewajiban dokumen yang dilampirkan** (validasi keberadaan/tipe/ukuran/kepemilikan dan unduh berizin; sistem tidak mengklaim verifikasi keaslian tanda tangan digital jika tidak ada layanan verifikasi).
-5. Test: creator==approver -> denied; submitter!=creator tetapi creator berupaya approve -> denied; unauthorized approval -> denied; simultaneous approval -> satu transisi; akses lintas unit -> scope enforced.
-
-#### FIN-HRD-07-BE-002 - Pembatalan SK sesuai status hukum bisnis
-
-1. Di `HrdPersonnelActionOrderService.CancelOrderAsync`, cabut cabang yang membolehkan `Applied` langsung menjadi `Cancelled` walau `CounterOrderNumber` tersedia. `Applied` tetap immutable; pengembalian kondisi hanya melalui event/SK baru dengan alasan dan referensi ke SK semula.
-2. Untuk `Scheduled`, pisahkan **permintaan pembatalan** dari **persetujuan pembatalan** oleh pejabat berbeda; pertahankan penempatan lama sampai pembatalan sah. Cari apakah sudah ada request model/endpoint yang bisa dipakai; jika belum, tambah kontrak terpisah scoped yang terotorisasi. Jangan menjadikan `POST /cancel-request` sekadar alias `POST /cancel` yang mengubah status final langsung.
-3. Validasi tanggal pembatalan `< tanggal efektif` pada server dengan tanggal bisnis yang disepakati, cek konflik job Scheduled, dan audit alasan/pengaju/approver. `Draft`/`PendingApproval` withdrawal mengikuti kontrak status sendiri, jangan menyamakan withdrawal dengan pembatalan keputusan Scheduled.
-4. Concurrency: persetujuan cancellation vs scheduler apply harus serializable secara bisnis; tepat satu hasil sah, tidak boleh memiliki SK `Cancelled` yang telah mengubah assignment tanpa reversal event.
-5. Test status Draft/Pending/Scheduled/Applied/Rejected, creator approval cancellation, race apply vs cancellation, dan pembatalan setelah jam efektif.
-
-#### FIN-HRD-07-BE-003 - Gaji terpisah + nomor SK unik
-
-1. Di `ApplyOrderAssignmentsAsync`, hilangkan jalur pembuatan `WfpSalaryAssignment` langsung dari `order.TargetBaseSalary`. Perbaiki create/update/DTO dan permission agar nilai gaji tidak mengalir lewat event mutasi/promosi. Jika field legacy tetap ada untuk kompatibilitas data, buat `read-only legacy` terkontrol dan audit klien yang masih mengirimnya; request baru harus ditolak atau diarahkan ke workflow gaji resmi.
-2. `LinkedSalaryAssignmentId` hanya penautan referensi ke proses gaji **yang sudah sah**, tidak boleh dipakai untuk mengesahkan gaji. Controller dan list tidak mengembalikan nominal sensitif kepada HR non-payroll.
-3. `GenerateOrderNumberAsync` (`Max()+1` atas nomor per tanggal) rentan balapan. Gunakan nomor seri/transaksi atomic yang sudah menjadi pola/kapabilitas approved; enforce uniqueness di storage jika skema memungkinkan. Tidak boleh counter in-memory/random atau retry yang dapat menyebabkan nomor dua kali untuk dokumen yang sama. Perubahan schema membutuhkan izin migration terpisah.
-4. Test 20+ parallel create (environment dev), retry idempotensi, identitas nomor unik; promosi tanpa approval salary meninggalkan payroll lama unchanged.
-
-#### FIN-HRD-07-BE-004 - Penempatan berperiode dan endpoint direct mutation
-
-1. Pada `WfpOrganizationAssignmentController`, `WfpPositionAssignmentController`, `WfpManagerAssignmentController`, lindungi endpoint `POST`, `PUT`, `PATCH /status`, `PATCH /primary`, `DELETE` pada assignment utama yang telah/akan berlaku. Jangan membiarkan API langsung membatalkan efek peristiwa tanpa approved workflow. Reuse izin untuk draft/correction yang sah dan tolak perubahan langsung terhadap final active. Pastikan klien lama tidak diam-diam berubah menjadi bypass.
-2. Kembangkan validator per jenis: tepat satu primary per tanggal, tidak ada gap primary unit selama aktif, secondary/Acting/Temporary tidak mengganti primary, duplicate exact overlap ditolak, transisi close-old H-1 dan start-new pada DateOnly tanggal efektif. Jangan hanya cek `IsActive` saat ini, sebab SK future/past butuh interval historis.
-3. Validasi FK pegawai, unit, posisi, manager aktif dan relasi organisasi; untuk manager larang self/cycle dan kesalahan scope, termasuk perubahan future. Gunakan serialisasi transaksi, index/constraint yang tepat **jika** migration terotorisasi.
-4. Cek `EmployeeController`, `DoctorController`, `ExternalUserController` yang dapat mengubah mirror unit/jabatan dari form master setelah creation; kunci perubahan master yang melanggar `HRD-DEC-047`. Perbaiki proyeksi hanya ketika assignment efektif, tidak menulis masa depan ke master hari ini.
-5. Uji as-of tanggal, overlap same day, close-old gap, primary+secondary, race concurrent API, edit/delete abuse, unauthorized object access.
-
-#### FIN-HRD-07-BE-005 - Penerapan SK terjadwal dan efek downstream
-
-1. Telusuri seluruh scheduler/job terkait `HrdPersonnelActionOrders` pada HEAD terbaru. Worker lifecycle yang terlihat di `Program.cs` **belum membuktikan** pemrosesan SK `Scheduled`. Jika tidak ada consumer yang benar, buat worker terkelola yang **diotorisasi** dan reuse service aplikasi sehingga tidak ada dua implementasi apply.
-2. Pada `Scheduled`, verifikasi tanggal efektif telah tiba dan approval masih valid; validasi ulang attendance period/overlap/target, lakukan assignment organization+position+manager+history dan update mirror dalam transaksi idempotent. Gunakan lease/outbox/row state atau mekanisme concurrency repo yang sah agar dua instance/restart tidak apply ganda.
-3. Pastikan status `Applied`, `ExecutedAt`, referensi SK/histori, audit, dan projection menjadi konsisten walau worker restart di tengah proses. Jika kegagalan, retry safely dengan status error yang dapat dimonitor dan tanpa mutasi parsial; jangan job log-only.
-4. Sinkronisasi otorisasi unit mengikuti source identity/projection (`OrganizationAuthorizationProjectionService` atau kontrak pengganti), bukan otomatis memberi hak klinis; jadwal/attendance diperiksa dampaknya melalui owner, no automatic reassignment of historical approvals.
-5. Test: SK future tidak mengubah mirror sebelum tanggal, menjadi efektif saat tanggal, proses dua worker paralel, retry setelah exception, closed-period race, cross-module stale read.
-
-#### FIN-HRD-07-BE-006 - Batch historis + pegawai baru
-
-1. Di `HrdInitialPlacementBatchController/Service`, implementasikan submit/approve/execute **berbeda** secara state/actor; `Validated` tidak boleh langsung diklaim approved. Audit satu batch approval semua baris, validasi ulang saat execute, once-per-employee approved, rollback atomik.
-2. Dukung existing 55 sebagai *data audit* untuk baseline, **bukan hardcode jumlah target**. Correction data lama berdasarkan SK terakhir; jika sudah ada organization primary, rencanakan replacement/rekonsiliasi yang benar terhadap riwayat daripada sekadar gagal atau overwrite data. `InitialBatch` tidak boleh dipakai berulang setelah berhasil.
-3. Pisahkan input salary (termasuk `SalaryGradeId`, `BaseSalary`) dari batch penempatan reguler, atau tandai proses gaji terpisah dan blokir apply tanpa approval payroll. Pasang field-level access di API dan response, jangan hanya menyembunyikan kolom.
-4. Pada `WfpNewHireAssignmentService`, tetapkan idempotent onboarding trigger, pengaitan departemen/unit benar dan salary approval terpisah; jangan gunakan `Guid.NewGuid()` untuk foreign key salary structure yang hilang; bedakan new-hire first assignment dengan batch historis.
-5. Test: batch creator cannot approve, 1 invalid row no partial, dua batch pegawai sama ditolak, existing baseline corrected without fake delete, onboarding repeat request no duplicates, confidentiality.
-
-#### FIN-HRD-07-BE-007 - Endpoint data operasional untuk 5 context page
-
-1. Reuse `WorkforceCoreCrossEmployeeController`, `HrdPersonnelActionOrderController`, assignment controllers dan master options. Tambahkan query/DTO **hanya bila benar-benar diperlukan** untuk menyajikan data nyata berbasis pegawai, tanggal efektif (`asOfDate`), unit, tipe dan status.
-2. Untuk setiap baris sediakan status bisnis yang server-computed (pending approval, scheduled, applied, ended), `allowedActions` atau mekanisme permission/capability yang benar (tidak berasal dari `isAdmin` di browser), referensi `workforceProfileId`, route target, alasan dan SK jika berizin. Hindari N+1 dan leaking gaji/NIK/keluarga.
-3. API summary, pagination, filter/status list harus konsisten dengan data detail; query tanpa izin object scope ditolak walau user mengubah query manually; tutup akses silang rumah sakit/unit bila kontrak tenant memerlukannya.
-4. Selaraskan response type `PagedResult`/`ApiResponse` dan error mapping yang benar; jika FE butuh alias endpoint untuk route target, gunakan adapter service tanpa menduplikasi tabel/aggregate.
-5. Test 0/1/banyak item, pagination+filter kombinasi, audit empty/error, `404`/`403`, double submit.
-
-#### FIN-HRD-07-BE-008 - Uraian tugas, atasan, query as-of, integrasi
-
-1. Gunakan `JobDescriptionController.GetEffectiveByPosition` dan `GetHistoryByPosition`; join ke posisi efektif pegawai dari `WfpPositionAssignment`, bukan `PrimaryPositionId` yang hanya mirror. Kembalikan versi/tujuan/item/periode dengan batas objek yang terotorisasi.
-2. Untuk perubahan manager stand-alone, konfigurasikan definisi penetapan atasan sendiri, cek anti-self/cycle dan periode. Untuk manager hasil SK, gunakan satu approval event, bukan approve kedua. Status penerimaan dokumen, bila diperlukan, hanya setelah approved business decision.
-3. Periksa interaksi `RequesterManager` dengan atasan utama dan pending workflow; gunakan delegation/escalation yang existing, tidak re-route transaksi yang sudah selesai. Sync identity dan roster hanya via kontrak owner, tidak memperluas clinical privilege dari HR.
-4. API read job description and manager history mengembalikan data akurat pada berbagai as-of dates. Test no version, future version, acting manager vs primary, foreign manager ID.
-
-#### FIN-HRD-07-BE-009 - Gerbang backend sebelum frontend
-
-1. Build backend sesuai governance + targeted unit/integration/EF tests untuk semua P0, `QBE` conformance area yang disentuh, kontrak API nyata, role dan approval security, nomor seri, penjadwalan, `DateOnly`/timezone, 403/409/validation, concurrency.
-2. Jalankan pengujian DB **hanya pada environment yang diotorisasi**, dengan fixture anonim/reversible. Jangan langsung menulis database produksi atau melakukan migration tanpa izin.
-3. Catat request/response contoh **tanpa secret/personally identifying data**, status test `PASS/FAIL/NOT RUN`, referensi commit/source SHA, rollback plan dan blocker sebelum FE diubah. Endpoint perlu stabil dan terdokumentasi melalui kontrak yang diotorisasi.
-4. Jangan menandai BE selesai jika hanya lulus kompilasi atau test mock; minimal kasus P0 dengan persistence yang tersedia harus diverifikasi. Jika environment tidak ada, beri `NOT RUN` dan jelaskan pengaruh pada readiness.
-
-### 2.6 Penomoran task FIN - gelombang FRONTEND SETELAH BACKEND
-
-| ID | Prioritas | Pekerjaan dan reuse | Acceptance minimum |
-|---|---|---|---|
-| `FIN-HRD-07-FE-001` | P0 | Penataan `menuItems.jsx`, route Menu 07, izin, alias lama tanpa duplikasi link | 5 Submenu tampil sesuai role, link valid, active sidebar tepat |
-| `FIN-HRD-07-FE-002` | P0 | Penempatan Awal (pegawai baru, batch baseline, riwayat) reuse initial batch view/service | API nyata, validation row, approval berbeda, persistence |
-| `FIN-HRD-07-FE-003` | P0 | Perpindahan Unit (list, create SK, before-after, detail, status) | Tidak ada edit inline; izin action dan status dari server |
-| `FIN-HRD-07-FE-004` | P0 | Rotasi Promosi (2 tab, kriteria jabatan, SK detail, salary link) | Event SK tunggal, tidak menampilkan/menulis gaji direct |
-| `FIN-HRD-07-FE-005` | P1 | Uraian Tugas per pegawai/as-of versi; reuse master | Hanya menampilkan versi efektif, tidak ada master kedua |
-| `FIN-HRD-07-FE-006` | P1 | Atasan Langsung: detail struktur, assignment history, stand-alone change | Approval stand-alone, no self/cycle, as-of/date audit |
-| `FIN-HRD-07-FE-007` | P0 | Service adapter, integration, error/loading/empty, permission, responsive, browser UAT | FE/BE payload cocok; no mock; UAT/retest jujur |
-
-#### FIN-HRD-07-FE-001 - MenuItems, route dan permission
-
-**Existing menu yang terverifikasi pada** `src/utils/menu-sidebar/menu-items.jsx` @ FE `HamzahV2`:
-- `Sumber Daya Manusia > Master Data > Organisasi & Struktur Jabatan > Uraian Tugas` -> `/hr/master-data/job-description`.
-- `Sumber Daya Manusia > Master Data > Organisasi & Struktur Jabatan > Atasan Langsung` -> `/hr/workforce-core/manager-assignments`.
-- `Sumber Daya Manusia > Administrasi Kepegawaian`: `Penempatan Organisasi` -> `/hr/workforce-core/organization-assignments`; `Penempatan Jabatan` -> `/hr/workforce-core/position-assignments`; `Relasi Atasan` -> `/hr/workforce-core/manager-assignments`; `Riwayat Kepegawaian` -> `/hr/workforce-core/employment-histories`; `Dokumen SK Kepegawaian` -> `/hr/workforce-core/personnel-actions`; `Batch Data Awal` -> `/hr/workforce-core/initial-batches`; `Surat Tugas Resmi` -> `/hr/workforce-core/official-duties`.
-- Sidebar renderer `src/components/features/left-sidebar/left-sidebar-items-virtualized.jsx` memakai `menuItems` + filter izin/role dan mencari active item berdasarkan path. **Dua leaf berbeda dengan pathname sama dapat membingungkan active state**.
-
-**Target MenuItems disetujui (tepat 5 child):**
+**Skema halaman target:**
 
 ```text
-Sumber Daya Manusia
-  +-- Master Data                         [existing, pertahankan]
-  +-- Data Induk Pegawai                  [Menu 04, pertahankan]
-  +-- Struktur Organisasi & Jabatan       [Menu 05, pertahankan/selaraskan]
-  +-- Administrasi Kepegawaian            [Menu 06, tetap mengelola dokumen SK, Surat Tugas, dsb.]
-  +-- Penempatan, Mutasi & Promosi        [MENU 07, satu grup baru]
-      +-- Penempatan Awal
-      +-- Perpindahan Unit
-      +-- Rotasi Promosi
-      +-- Uraian Tugas
-      +-- Atasan Langsung
-  +-- [Kelompok HRD lain]                 [JANGAN DIUBAH tanpa kebutuhan scope]
+Atasan Langsung
+[Hero] Atasan Langsung Pegawai         [+ Ajukan Perubahan Atasan]
+[SummaryGrid] Relasi aktif | Atasan utama | Relasi tambahan | Perlu keputusan
+[DataFilter] Pegawai | Atasan | Unit | Tipe | As-of date
+[DataTable] Pegawai | Atasan | Jenis | Berlaku sejak | Jalur approval | Status
+[Detail] Hierarki atasan -> pegawai, effective history dan sumber SK/workflow
+[Form] Atasan baru, alasan, tanggal efektif, bukti, approval berbeda aktor
 ```
 
-**Mapping route context page target (route baru jika belum ada):**
+**Acceptance:** hubungan A→B→C tidak boleh diubah menjadi C→A lewat SK; direct endpoint juga ditolak; perubahan manager-only tidak dicatat sebagai Mutation palsu; data tetap konsisten untuk tanggal masa depan dan masa lalu.
 
-| Label Menu 07 | Route target yang diusulkan/disetujui | Source yang digunakan ulang |
-|---|---|---|
-| Penempatan Awal | `/hr/workforce-core/initial-placements` | `/hr/workforce-core/initial-batches` + `/hr/initial-placement-batch` alias + onboarding |
-| Perpindahan Unit | `/hr/workforce-core/unit-transfers` | `/hr/workforce-core/organization-assignments` + `/hr/workforce-core/personnel-actions` |
-| Rotasi Promosi | `/hr/workforce-core/rotation-promotions` | `/hr/workforce-core/personnel-actions` create/detail, filter kategori |
-| Uraian Tugas | `/hr/workforce-core/employee-job-descriptions` | `/hr/master-data/job-description` (master tetap di Menu 05) |
-| Atasan Langsung | `/hr/workforce-core/employee-managers` | `/hr/workforce-core/manager-assignments` (sumber relasi existing) |
+### 2.4 Integrasi lintas Submenu, tanpa scope creep
 
-**Instruksi tegas:** kelima route target adalah usulan yang disetujui, **bukan** klaim sudah ada. Buat route kontekstual tipis bila route existing tidak menyediakan komposisi, jangan menyalin semua lógica API dan tabel ke modul baru. Pertahankan route lama sebagai deep-link/alias/redirect bila belum bisa dihapus aman; rapikan navigasi agar tidak ada duplikasi leaf pathname, jangan diam-diam memutus menu lain. Di Menu 06, akses dokumen SK tetap sah; workflow event SK sama, bukan sistem SK kedua. Di Menu 05, master Uraian Tugas dan pengaturan struktur atasan tetap satu source, dengan link konteks yang berbeda.
+- **Menu 04 (Data Induk):** `PrimaryPositionId`/`PrimaryDepartmentId` pada `MstWorkforceProfile` merupakan **mirror**, bukan sumber kebenaran historis; tidak boleh berubah sebelum tanggal efektif.
+- **Menu 05 (Struktur Organisasi & Jabatan):** master `MstOrganizationUnit`, `MstDepartment`, `MstPosition`, master `JobDescription` dan version history **direuse**; jangan membuat master jabatan terpisah untuk Menu 07.
+- **Menu 06 (Administrasi Kepegawaian):** SK, bukti scan, workflow dan history **direuse**; nomor dan approval tidak boleh ganda.
+- **Menu 08 (Kontrak & Masa Kerja):** `RecordSignedAsync` memanggil `WfpNewHireAssignmentService`; perbaikan di service itu harus diregression-test agar kontrak pertama, penempatan awal dan payroll tidak terputus atau menimbulkan data ganda.
+- **Payroll:** `WfpSalaryAssignment` tidak boleh dibuat/diubah dari SK mutasi, promosi atau batch penempatan; source nominal hanya dapat dibaca dengan permission khusus, dan tidak boleh ada amount leak pada response umum.
+- **Scheduling/Kehadiran:** tanggal efektif perpindahan tidak boleh menghasilkan jadwal atau identitas unit baru sebelum sah; backdate ditolak jika periode attendance Closed; jangan mengedit jadwal klinis otomatis di luar domain owner.
+- **Kredensial klinis:** perubahan unit ke IGD/ICU/OK tidak berarti otorisasi klinis otomatis. Gunakan status resmi sesuai batas domain dan eskalasi jika validasi kredensial belum tersedia.
 
-**Permission:** tambahkan `requiredPermission` hanya berdasarkan resource/action yang benar-benar terdaftar di backend; `filterMenuItemsByPermission` dan `filterMenuItemsByRole` sudah tersedia, tetapi sidebar hide tidak menggantikan backend `[AccessPermission]`/per-object checks. Breadcrumb, active state, search sidebar, collapse/expand, keyboard/mobile, bookmark dan redirect lama harus benar.
+### 2.5 Penugasan implementasi — pertahankan 9 task backend FIN yang sudah ada
 
-#### FIN-HRD-07-FE-002 - Penempatan Awal
+Semua task di bawah **harus dijalankan**, bukan sekadar checklist. Pekerjaan yang sudah benar harus dipertahankan; fokus pada gap per task.
 
-- Reuse `initial-placement-batch-view.jsx` dan `initial-placement-batch-service.js`; bedakan tab Pegawai Baru/Batch Data Awal/Riwayat. Tambahkan adapters jika backend menuntut submit/approve/execute state baru; jangan memanggil `/execute` sebagai pengganti tombol `Setujui`.
-- Form picker pegawai/unit/jabatan/atasan from real master API, tanggal valid dan referensi dokumen. Validasi row seperti `Atasan tidak valid`, `Tumpang tindih primary`, `SK tidak cocok`; tidak menghapus baris invalid tanpa memberi tahu user.
-- Sediakan summary server, pagination/filter/search, tabel status, hasil refresh dari server. Tombol sesuai server rights, no dummy result. Berikan instruksi keberhasilan dengan nomor batch/penempatan dari response nyata.
+#### `FIN-HRD-07-BE-001` — Maker-checker dan guard scan SK (P0)
 
-#### FIN-HRD-07-FE-003 - Perpindahan Unit
+**File utama:** `HrdPersonnelActionOrderService.cs`, `HrdPersonnelActionOrderController.cs`. Pastikan submit menolak SK tanpa signed scan (dokumen benar-benar tersedia dan aman), approve menolak creator maupun submitter, permission `Approve` di backend, check identity delegated actor dan concurrency. Reuse validasi, bukan cukup hide button. **Test:** creator/submitter mendapat 400/403; user lain berpermission berhasil; scan kosong/gagal tidak berubah status; dua approval paralel hanya sekali.
 
-- Buat halaman list/filter mutasi; reuse `personnel-action-order-list-view.jsx` dengan context category `Mutation` atau adapter yang setara, dan `personnel-action-order-create-view.jsx`, `-detail-view.jsx` untuk form/detail; tanpa salinan form kedua.
-- Form menampilkan data penempatan asal `asOfDate` read-only, panel tujuan, alasan, tanggal, skema persyaratan, nomor+scan SK. Status workflow dan timeline dari API. Tabel tidak memiliki tombol edit/delete assignment langsung; aksi pindahkan hanya membuka transaksi.
-- Tampilkan error 409 saat overlap/closed period, larangan self approval dan alasan secara jelas; hindari tombol `Setujui` untuk HR Admin yang tidak berwenang. Pengajuan di inbox dan detail transaksi yang sesuai.
+#### `FIN-HRD-07-BE-002` — State machine pembatalan SK, worker tidak mendahului approval (P0)
 
-#### FIN-HRD-07-FE-004 - Rotasi Promosi
+**File utama:** `HrdPersonnelActionOrderService.cs`, `HrdPersonnelActionOrderController.cs`, model/DTO existing dan worker. Perbaiki `RequestCancelOrderAsync`/`CancelOrderAsync`: `Scheduled` hanya dapat dibatalkan setelah request sah dan persetujuan orang berbeda; worker wajib menunda saat cancellation pending. `Applied` tetap immutable; reversal via counter-event baru yang punya referensi SK asal. Penolakan/cabut cancellation harus benar-benar terwakili bila canonical mengizinkan. Gunakan transaction + conflict/RowVersion. **Test:** direct `/cancel` tanpa request gagal; request oleh A approval oleh A gagal; A→B berhasil; worker pending tidak apply; applied tidak terhapus.
 
-- Gunakan satu sumber `PersonnelActionOrderService`; list/tab `Rotasi`, `Promosi`, `Riwayat`, filter dan KPI; detail before/after jabatan, grade, unit, atasan, persyaratan jabatan/kinerja jika tersedia dan berizin.
-- Di `personnel-action-order-create-view.jsx` dan detail, **hapus input/edit/eksekusi nominal `targetBaseSalary`** dari event SK. Ganti dengan informasi/link proses penetapan gaji terpisah (jika resource/permission tersedia); jangan membuat `salary=0` atau hide-only sementara backend masih menerima nominal.
-- Pertahankan jenis lain `Demotion`/`TemporaryAssignment` di resource SK existing tanpa menambah submenu. Verifikasi route `/personnel-actions/create` dan `/[id]` saat navigasi dari context; URL query filter harus aman dan tetap role-aware.
-- Pastikan tombol cancel hanya untuk state yang sah, request cancellation/approval terpisah, tidak menawarkan `Applied -> Cancelled`; error/state tampil konsisten dengan server.
+#### `FIN-HRD-07-BE-003` — Privacy gaji dan nomor SK atomik lintas instance (P0)
 
-#### FIN-HRD-07-FE-005 - Uraian Tugas
+**File utama:** `HrdPersonnelActionOrderService.cs`, DTO SK dan response batch gaji terkait. Hilangkan `Max+1` yang dikunci hanya oleh `private static lock`, gunakan number series resmi/advisory lock DB yang aman dan unique constraint jika telah ada; transaksi dan bounded retry. Jangan membuat GUID random sebagai nomor. TargetBaseSalary tetap null pada input/output SK; batch Read response tidak mengungkap BaseSalary. Jangan membuat schema tanpa izin. **Test:** 20 create paralel/two app instances menghasilkan nomor unik; gaji tidak bocor pada HTTP response user non-payroll; promosi tidak menciptakan salary assignment.
 
-- Buat employee-centric view: pilih pegawai, pilih tanggal, tampilkan posisi/unit efektif, versi `MstJobDescription` yang efektif, item tanggung jawab dan histori versi. Gunakan `job-description-service.js`, master selector dan endpoint effective/history.
-- Read-only di Menu 07. Tautan `Kelola Uraian Tugas` menuju Menu 05 hanya jika user memiliki hak. Jangan menampilkan dummy item, jangan membuat master tambahan, jangan membuat form tanda tangan/persetujuan tugas baru bila belum ada aturan owner.
+#### `FIN-HRD-07-BE-004` — Tutup bypass direct CRUD serta cycle validator (P0)
 
-#### FIN-HRD-07-FE-006 - Atasan Langsung
+**File utama:** `WfpOrganizationAssignmentController.cs`, `WfpPositionAssignmentController.cs`, `WfpManagerAssignmentController.cs`, validator shared scoped. Lanjutkan guard yang sudah dibuat untuk update/status/primary/delete dan perluas pada create primary pertama/masa depan/overlap bila memerlukan approval. Pastikan tidak ada jalur direct CRUD yang menyalahi `HRD-DEC-031/036/047/048/055`; direct manager validator dan SK memakai aturan cycle yang konsisten. **Test:** PUT/PATCH/DELETE dan create-bypass blocked, termasuk API langsung Postman/curl, role dengan permission Create biasa, dan future scheduled.
 
-- Buat daftar dan detail as-of memakai `manager-assignments-view.jsx`/cross-employee service yang ada; panel manager -> employee, histori, SK referensi dan status. Untuk penetapan stand-alone, tombol `Ajukan Perubahan Atasan` membuka workflow khusus; perubahan akibat SK hanya menampilkan referensi SK.
-- Tidak ada inline edit/hapus. Form pastikan role, alasan, tanggal efektif, manager baru valid, peringatan siklus/primary; server tetap sumber validasi. Pastikan Menu 05 `Atasan Langsung` tetap merujuk master/struktur yang sesuai, bukan dua editor yang bersaing.
+#### `FIN-HRD-07-BE-005` — Scheduled apply worker, timezone, mirror dan idempotensi (P0)
 
-#### FIN-HRD-07-FE-007 - Integrasi FE, QA dan aksesibilitas
+**File utama:** `PersonnelActionOrderScheduledApplyWorker.cs`, `HrdPersonnelActionOrderService.cs`, `Program.cs`. Pertahankan worker terdaftar, tapi gunakan tanggal bisnis hospital site dari konfigurasi dan clock yang testable; hindari `UtcNow.Date` untuk penentuan hari efektif. Filter cancellation pending. Lock/claim per SK jika multi-instance, pastikan exactly-once business effect saat retry; transaction rollback tidak bocor ke next SK; log `orderId`, status dan error tanpa data sensitif. Periode attendance closed = stop + escalated status jujur, bukan `Notes` berulang tanpa lifecycle. Mirror dari assignment efektif saja. **Test:** WIB 00:01 vs UTC hari sebelumnya; double tick; concurrent workers; error satu SK tidak menggagalkan semua; future-dated mirror tetap lama.
 
-- Semua API melalui service existing (`InstanceAxios`/base URL HR yang sah); kesalahan jaringan/API -> error nyata, **bukan sukses kosong** atau fallback data contoh; metadata filter, pagination dan status harus sinkron dengan BE. Unit tests dan browser role-based per layar.
-- Reuse Base Components & design tokens, periksa prop valid, error/empty/loading, server pagination, sticky/scroll table sesuai pola existing, keyboard/tab order, disabled state dan anti double submit, responsive 360/768/1366 px (atau breakpoint canonical yang berlaku). Jangan mengarang CSS Tailwind jika project tidak memasangnya.
-- Uji keselarasan aktif sidebar, route alias, akses unauthorized dan menu lain (Menu 04/05/06); jalankan lint/build/check-css-usage sesuai repo, lalu UAT headed yang diizinkan.
+#### `FIN-HRD-07-BE-006` — Batch approval integrity, validation permission, efektif-date, integrasi onboarding (P0)
 
-### 2.7 Skema tampilan frontend WAJIB - bukan gambar dekorasi
+**File utama:** `HrdInitialPlacementBatchService.cs`, `HrdInitialPlacementBatchController.cs`, `WfpNewHireAssignmentService.cs`, DTO/model yang terbukti diperlukan. `ValidateBatchByIdAsync` hanya menulis pada draft/validated sah, tidak downgrade pending/approved; ubah permission POST validate menjadi write. Cegah dua batch approved/executed untuk pegawai sama; transaksikan submit/approve/execute dengan concurrency. Hapus leak BaseSalary, cegah duplicate primary, dan sinkron mirror saat efektif. Mapping `DepartmentId` harus FK departemen benar atau fail closed. Test integrasi dengan kontrak pertama sesuai Menu 08, no duplicate salary assignment. **Test:** direct POST validate dengan Read-only 403; downgrade disallow; two batch concurrent; 1 invalid row => 0 apply; future-date mirror; DB FK valid.
 
-**Semua skema di bawah adalah acceptance layout (bukan screenshot dari aplikasi live).** Komponen dan nama label mengikuti konsep yang disetujui; pengisian `[ ... ]` berasal dari API riil. Jangan gunakan angka/tabel dummy di production. Untuk semua halaman list, komposisi canonical: `Hero -> SummaryGrid -> DataFilter -> InformationAlert -> DataTable -> ToastStack`. Untuk form panjang gunakan `BaseGroupedEditorView`/`BaseEditorView`; detail gunakan `BaseDetailView`/`BaseDetailSection`. `ConfirmModal` untuk aksi penting dengan alasan wajib bila relevan. Periksa `base-component-catalog.md`, `page-composition-patterns.md`, `design-tokens.md`, `ui-consistency-checklist.md`.
+#### `FIN-HRD-07-BE-007` — Uraian tugas per as-of date yang benar (P0)
 
-#### UI-07.1 - Penempatan Awal (`/hr/workforce-core/initial-placements`)
+**File utama:** `WorkforceCoreCrossEmployeeQueryService.cs` dan service JobDescription Menu 05 yang direuse read-only. Gunakan data histori `WfpPositionAssignment` efektif pada target date tanpa fallback mirror masa kini. Jangan hilangkan penempatan lama valid karena `IsActive=false`; bedakan cancelled/deleted; gunakan master JD efektif versi sah. Return explicit null/empty, bukan posisi palsu. **Test:** pergantian jabatan 2025/2026, tanggal sebelum penempatan, tanggal transisi, versi JD berubah, arsip history.
 
-```text
-+----------------------------------------------------------------------------------+
-| HERO  Penempatan Awal                           [Penempatan Baru] [Batch Data]    |
-|       Kelola pegawai baru dan baseline existing secara resmi                     |
-+----------------------------------------------------------------------------------+
-| SUMMARY  [Belum Ditempatkan] [Menunggu Approval] [Dijadwalkan] [Berlaku]         |
-+----------------------------------------------------------------------------------+
-| TABS     [Pegawai Baru] [Batch Data Awal] [Riwayat]                              |
-| FILTER   [Cari Pegawai] [Unit] [Jabatan] [Status] [Tanggal] [Terapkan] [Reset]   |
-| ALERT    [Error validasi, permission, atau informasi hasil proses bila ada]      |
-+----------------------------------------------------------------------------------+
-| TABLE    Pegawai | No Pegawai | Unit | Jabatan | Atasan | Tgl Efektif | Status     |
-|          [Dari API] .............................................. [Detail]       |
-+----------------------------------------------------------------------------------+
-| ACTIONS  [Buat Penempatan] [Unduh Template] [Validasi Batch] [Ajukan Batch]     |
-+----------------------------------------------------------------------------------+
-| FORM/DRAWER (ketika membuat):                                                  |
-|   Pegawai [Resource picker]  Jenis [Awal/Batch]  Unit [Picker]                   |
-|   Jabatan [Picker]  Atasan [Picker]  Tanggal efektif [Date picker]               |
-|   Dasar penugasan/No SK [Input]  Lampiran [Upload bila diwajibkan kontrak]       |
-|   Hasil validasi per baris [Tabel error]    [Simpan Draft] [Ajukan]             |
-+----------------------------------------------------------------------------------+
-```
+#### `FIN-HRD-07-BE-008` — Kontrak response DTO, rantai atasan, perizinan (P0)
 
-**Field dan aturan:** pegawai harus unik dalam batch approved, referensi master valid, tanggal sesuai SK, kategori pegawai baru/baseline ditentukan sistem, validasi sebelum submit/approve/execute dan status akhir setelah reload. **Jangan tampilkan gaji** dalam form penempatan reguler.
+**File utama:** `WorkforceCoreCrossEmployeeController.cs`, `WorkforceCoreCrossEmployeeDtos.cs`, `WorkforceCoreCrossEmployeeQueryService.cs`, `HrdPersonnelActionOrderService.cs`, `WfpManagerAssignmentController.cs`. Kunci response `EmployeeEffectiveJobDescriptionResponse` dan nested `JobDescriptionDetailResponse` untuk konsumen FE; tambahkan field hanya bila benar-benar dibutuhkan dan sesuai governance. Pastikan cycle via SK tertolak, role `WorkforceCoreCrossEmployee:Read` dan `WfpManagerAssignment:ReadAll` benar. Sediakan entrypoint manager-only melalui workflow valid tanpa menyamakan dengan Mutation. **Test:** kontrak JSON FE/BE, cycle 3 node, as-of manager, 403, invalid GUID, maker checker.
 
-#### UI-07.2 - Perpindahan Unit (`/hr/workforce-core/unit-transfers`)
+#### `FIN-HRD-07-BE-009` — Regression/integration tests dan bukti QA BE (P0)
 
-```text
-+----------------------------------------------------------------------------------+
-| HERO  Perpindahan Unit                                 [Ajukan Mutasi]          |
-+----------------------------------------------------------------------------------+
-| SUMMARY  [Draft] [Menunggu Persetujuan] [Dijadwalkan] [Berlaku]                 |
-| FILTER   [Cari] [Unit Asal] [Unit Tujuan] [Periode] [Status]                     |
-| ALERT    [Periode kehadiran, kelayakan, konflik penempatan]                     |
-| TABLE    Pegawai | Unit asal -> tujuan | Jabatan | Tgl efektif | SK | Status    |
-+----------------------------------------------------------------------------------+
-| DETAIL / CREATE SK EVENT (reuses personnel-action-order)                       |
-|  [Pegawai Picker] [Kategori Mutasi] [Tanggal Efektif] [Alasan]                  |
-|  +------------------------------+  +---------------------------------------+   |
-|  | SEBELUM (read-only)          |  | SESUDAH (form/preview)                |   |
-|  | Unit:      [unit lama]       |  | Unit:      [unit tujuan]               |   |
-|  | Jabatan:   [posisi lama]     |  | Jabatan:   [posisi tujuan]             |   |
-|  | Atasan:    [atasan lama]     |  | Atasan:    [atasan baru]               |   |
-|  +------------------------------+  +---------------------------------------+   |
-|  Validasi: [kompetensi] [kredensial] [periode] [primary conflict]                |
-|  SK: [Nomor] [Unggah Scan Bertanda Tangan]                                      |
-|  Timeline: Draf -> Diajukan -> Disetujui -> Dijadwalkan/Berlaku                 |
-|  ACTIONS: [Simpan Draft] [Ajukan] [Lihat SK]  (approval hanya di inbox/detail)  |
-+----------------------------------------------------------------------------------+
-```
+**File:** test scoped + laporan task jika mode diizinkan. Jalankan test otomatis atas state machine, privilege escalation, concurrency, transaction, client errors, data seeding test yang nonproduksi dan tidak menyentuh DB operasional. Jalankan build/compile hanya bila diizinkan oleh aturan dan instruksi pengguna saat eksekusi. Bila sebelumnya ada mandat `SKIP dotnet build`, periksa apakah berlaku untuk sesi ini; **jangan klaim build PASS** bila tidak dijalankan: laporkan `NOT RUN (user mandate)`; hasil build lama tidak menutup perubahan source baru. Sertakan pemeriksaan response HTTP dan query persisted melalui lingkungan test yang sah. Target semua P0 minimal kode+test tertutup; jika blocked, status `BLOCKED` eksplisit.
 
-**Khusus:** untuk mutasi ke unit klinis (mis. ICU), tampilkan status kelayakan **berdasarkan verifikasi domain yang berwenang**. Jika tidak ada data, tampilkan `Belum diverifikasi` dan perlakukan sesuai kebijakan approval, jangan munculkan centang hijau palsu.
+### 2.6 Penugasan implementasi — pertahankan 7 task frontend FIN yang sudah ada
 
-#### UI-07.3 - Rotasi Promosi (`/hr/workforce-core/rotation-promotions`)
+**Frontend dikerjakan setelah kontrak backend stabil**, bukan sebagai tampilan dummy untuk menutupi endpoint yang belum berfungsi.
 
-```text
-+----------------------------------------------------------------------------------+
-| HERO  Rotasi Promosi                             [Ajukan Rotasi/Promosi]        |
-+----------------------------------------------------------------------------------+
-| SUMMARY [Draft] [Menunggu Approval] [Dijadwalkan] [Berlaku]                     |
-| TABS [Rotasi] [Promosi] [Riwayat]                                               |
-| FILTER [Pegawai] [Jenis] [Unit] [Periode] [Status]                              |
-| TABLE  Pegawai | Jenis | Jabatan lama -> baru | Grade | Efektif | SK | Status   |
-+----------------------------------------------------------------------------------+
-| FORM (reuse SK editor; bukan copy halaman baru)                                 |
-|  Pegawai: [Picker]  Kategori: [Rotation/Promotion]  Efektif: [Date]              |
-|  +------------------------------+  +---------------------------------------+   |
-|  | JABATAN SAAT INI             |  | JABATAN BARU                          |   |
-|  | Nama, Unit, Grade, Atasan    |  | Nama, Unit, Grade, Atasan             |   |
-|  +------------------------------+  +---------------------------------------+   |
-|  Kelayakan: [Persyaratan Jabatan] [Kinerja] [Kompetensi bila ada]               |
-|  Dokumen: [Nomor SK] [Scan SK tertandatangani] [Alasan]                          |
-|  Payroll: [Lihat permohonan gaji terkait jika berizin; TANPA nominal umum]       |
-|  [Simpan Draft] [Ajukan] [Lihat Detail/Histori]                                 |
-+----------------------------------------------------------------------------------+
-```
+#### `FIN-HRD-07-FE-001` — Sidebar, routes, izin (P1)
 
-**Khusus:** tidak ada edit `TargetBaseSalary`, tidak ada approval gaji di halaman SK. Kategori lain di engine SK existing tidak membuat submenu baru.
+Recheck `src/utils/menu-sidebar/menu-items.jsx` untuk tepat lima Submenu 07, tidak menduplikasi Menu 05/06; route terdaftar, active navigation, requiredPermission sesuai backend. Pertahankan route legacy yang diakses Menu 06. Uji user HRD yang berizin dan user tanpa izin.
 
-#### UI-07.4 - Uraian Tugas (`/hr/workforce-core/employee-job-descriptions`)
+#### `FIN-HRD-07-FE-002` — Penempatan Awal runtime error dan workflow (P0)
 
-```text
-+----------------------------------------------------------------------------------+
-| HERO Uraian Tugas                               [Kelola Master]*               |
-+----------------------------------------------------------------------------------+
-| FILTER [Cari Pegawai] [Tanggal Acuan] [Jabatan] [Unit]                           |
-| SUMMARY/DETAIL PEGAWAI [Nama] [Jabatan efektif] [Unit] [Mulai]                  |
-+----------------------------------------------------------------------------------+
-| KARTU URAIAN TUGAS BERLAKU                                                 [vN] |
-|  Tujuan Jabatan: [Dari master JobDescription]                                   |
-|  Tanggung Jawab:                                                                |
-|   1. [Item tugas dari API]                                                       |
-|   2. [Item tugas dari API]                                                       |
-|  Periode Berlaku [start - end]  Sumber [Master/Referensi]                        |
-+----------------------------------------------------------------------------------+
-| TABS [Versi Aktif] [Riwayat Versi]  [Lihat/Cetak] bila diizinkan                |
-| EMPTY: 'Belum ada uraian tugas berlaku pada tanggal ini'                        |
-+----------------------------------------------------------------------------------+
-| *Tombol Kelola Master hanya untuk user berizin, navigasi ke Menu 05.            |
-+----------------------------------------------------------------------------------+
-```
+Perbaiki `isPending` undefined pada `initial-placement-batch-view.jsx` dan seluruh state/action guard. Validasi hanya untuk Draft/Validated yang sah; submit, approve, execute berdasarkan state dan role backend; error 403/409 terlihat jelas. Jangan memaksa reload penuh kalau refetch API sudah ada; pastikan state persisted setelah refresh. Hilangkan nominal gaji dari UI biasa. Test render dengan batch aktif, snapshot invalid/pending/approved/executed dan mutation role separation.
 
-**Khusus:** no inline CRUD, no write to master dari Menu 07, tanggal as-of dan historical version konsisten; hak klinis tidak disimpulkan dari job description.
+#### `FIN-HRD-07-FE-003` — Perpindahan Unit dan pembatalan berpersetujuan (P0)
 
-#### UI-07.5 - Atasan Langsung (`/hr/workforce-core/employee-managers`)
+Pertahankan `UnitTransfersView` yang mengunci kategori `Mutation` pada list. Pastikan tombol create benar mengirim `Mutation`; detail menyediakan request-cancel dan action approval terpisah, bukan self-approval. Tampilkan blokir Closed attendance/clinical requirements sebagai respons server. Uji Scheduled/cancellation-pending/Applied dan return/403/409.
 
-```text
-+----------------------------------------------------------------------------------+
-| HERO Atasan Langsung                       [Ajukan Perubahan Atasan]*             |
-+----------------------------------------------------------------------------------+
-| SUMMARY [Relasi Berlaku] [Menunggu Approval] [Dijadwalkan] [Kosong/Perlu Review]|
-| FILTER  [Cari Pegawai] [Unit] [Jabatan] [Status] [Tanggal Acuan]                |
-| TABLE   Pegawai | Unit | Jabatan | Atasan utama | Masa berlaku | Status | Detail|
-+----------------------------------------------------------------------------------+
-| DETAIL PEGAWAI [Identitas ringkas]  [Tanggal As-of]                              |
-|              +-------------------------------------------+                       |
-|              | ATASAN LANGSUNG [Nama, Jabatan, Unit]       |                       |
-|              +-------------------------------------------+                       |
-|                                   |                                               |
-|                                   v                                               |
-|              +-------------------------------------------+                       |
-|              | PEGAWAI [Nama, Jabatan, Unit]              |                       |
-|              +-------------------------------------------+                       |
-| HISTORI    Periode | Atasan | Primary/Additional | SK / Workflow | Status        |
-| FORM*      [Atasan Baru] [Tanggal Efektif] [Alasan] [Ajukan]                     |
-+----------------------------------------------------------------------------------+
-| *Perubahan stand-alone menggunakan approval sendiri; perubahan SK tidak dobel.  |
-+----------------------------------------------------------------------------------+
-```
+#### `FIN-HRD-07-FE-004` — Rotasi Promosi kategori URL dan SK form (P0)
 
-**Khusus:** peringatan jika self-manager/cycle/overlap, role-scope server, no inline edit/delete, riwayat setelah refresh. Untuk label `Kosong/Perlu Review`, jika source sebenarnya belum memiliki data valid, jangan menyebut data telah lengkap.
+Di `personnel-action-order-create-view.jsx` baca allowlisted query `category`, isi `actionCategory` awal sesuai tab, dan jaga pilihan user. Implementasi mengikuti pola Next.js App Router existing (`searchParams` dan boundary client/server yang benar), tanpa hydration warning. Uji kategori `Rotation`, `Promotion`, `Mutation`, invalid, klik kembali dari detail; network POST dan database harus benar. Tidak ada form gaji langsung.
 
-### 2.8 Standar UI lintas halaman (wajib)
+#### `FIN-HRD-07-FE-005` — Uraian Tugas contract adapter dan empty states (P0)
 
-- **Base component langsung dari file:** `@/components/features/base-features/hero`, `summary-grid`, `data-filter`, `data-table`, `base-button`, `base-form-control`, `filter-select`, `resource-filter-select`, `base-grouped-editor-view`, `base-detail-view`, `base-detail-section`, `confirm-modal`, `status-badge`, `information-alert`, `toast-stack`, `access-denied-gate`, sesuai kebutuhan. **Jangan menulis custom table/modal/form ulang** ketika base component memadai.
-- Wajib gunakan actual prop contract pada `base-component-catalog.md`; contoh jangan `BaseButton variant="outline"` yang tidak didukung; `StatusBadge status` menerima key status semantik, bukan label Indonesia. Jika ada konflik source dengan rules, laporkan dan pilih yang canonical.
-- Pencarian minimum 2 karakter/debounce wajar, filter kombinasi, server pagination, state tersimpan sesuai navigasi bila diperlukan, reset aman, empty/loading/error yang jelas, responsive ponsel/tablet/desktop, focus management modal dan keyboard.
-- Modal untuk konfirmasi/aksi singkat; **form besar** gunakan Base Grouped Editor page/panel, bukan modal yang memotong bidang di tablet. Pastikan scroll container, ukuran form dan pesan validasi dapat dibaca.
-- Jangan mengarang icon, gambar rumah sakit, nama pegawai, nilai KPI, statistik, atau konten demo pada production. Saat API error tampilkan pesan error yang benar dan retry jika aman.
-- Akses `Read/Create/Approve/Cancel/Update` berdasarkan backend dan *per-row* allowed actions; authorization tidak hanya gate rendering tombol.
+Perbaiki komponen/service dengan DTO nyata: `positionId/positionName/profileCode`, nested `jobDescription` beserta `items`, dan `versionHistory.status`. Jangan gunakan `effectivePositionId`, `jobDescriptionId`, `duties` atau `purpose` flat tanpa adapter eksplisit yang dites. `items` dikelompokkan berdasarkan `sectionType` dan urutan `sequence`; jangan buat-buat standar kinerja. Tidak ada effective-position saat as-of date harus menjadi empty state, bukan kesalahan palsu. Akses ditolak != data kosong. Reuse Master Uraian Tugas Menu 05 via route benar.
 
+#### `FIN-HRD-07-FE-006` — Atasan Langsung action benar dan diagram (P0)
+
+Jangan route ke create SK default `Mutation` untuk aksi perubahan atasan mandiri. Sambungkan ke workflow manager-only existing/yang diimplementasi sah atau contextual SK sesuai keputusan; kategori, permission, alasan dan effective date jelas. Hubungan A→B→C dengan upaya C→A harus ditolak backend dan ditampilkan error asli. Summary dan diagram tetap memakai API, tidak membuat dummy manager tree.
+
+#### `FIN-HRD-07-FE-007` — Base components, CSS, responsive, unit/E2E dan QA FE (P0)
+
+Gunakan `Hero`, `SummaryGrid`, `DataFilter`, `DataTable`, `InformationAlert`, `BaseButton`, `BaseGroupedEditorView/Field`, `StatusBadge`, `AccessDeniedGate`, `ConfirmModal`, `ToastStack` dan token existing sesuai aturan; jangan tulis base component baru tanpa gate. Periksa aksesibilitas label, keyboard/focus, mobile/tablet. Jalankan `check-css-usage.mjs` dan lint/test/build menurut izin, **sertakan output command**, jangan hanya menyebut sudah PASS. Tambahkan test untuk ReferenceError, query category, adapter nested DTO, feedback error API, permission UI serta reload. UAT headed browser bila akses tersedia.
 
 ---
 
 ## 3. Context
 
-### 3.1 Snapshot repository, sumber bukti dan status pengujian
+### 3.1 Bukti source dan lokasi laporan (dibaca pada snapshot audit)
 
-| Peran | Repository @ branch | SHA HEAD yang benar-benar diperiksa | Status |
-|---|---|---|---|
-| FE | `DevBenari/QuilvianSystemFrontendDev` @ `HamzahV2` | `f095e2e0a80ccc89bae5a43e6c9a3fd0300f6d68` | Source terbaca; browser/build belum dijalankan oleh pembuat instruksi |
-| BE + blueprint | `DevBenari/NewQuilvianSystemBackend` @ `MHamzah` | `d498fb2ac69c6082e0a8319aee366613964d0527` | Source terbaca; DB/migration/UAT belum dijalankan oleh pembuat instruksi |
-| Governance | `DevBenari/QuilvianEngineeringSkills` @ `main` | `201af64552b27873fd9af83c6722cf11b441bb1e` | Rule canonical terbaca; invokasi runtime Skill hanya dapat dilakukan oleh Agent yang memilikinya |
-
-**Jangan mencampur sumber:** arsip backend `NewQuilvianSystemBackend-master.zip` bukan bukti branch `MHamzah`. Semua keputusan kode baru harus berbasis HEAD yang benar saat Agent mulai, bukan file ZIP branch lain, ringkasan chat, atau roadmap `DONE` semata.
-
-### 3.2 File dan simbol FE yang nyata, perlu di-reuse
-
-| Fungsi | Path yang dibaca pada FE `HamzahV2` | Relevansi |
+| Area | Source spesifik yang telah diperiksa | Status saat audit |
 |---|---|---|
-| Sidebar menuItems | `src/utils/menu-sidebar/menu-items.jsx` | Label, pathname, pengelompokan lama yang harus diperbaiki |
-| Renderer sidebar | `src/components/features/left-sidebar/left-sidebar-items-virtualized.jsx` | Filter role/permission, active navigation, menu search |
-| Penempatan organisasi | `src/app/hr/workforce-core/organization-assignments/page.jsx` + `src/components/view/hr/workforce-core/organization-assignments-view.jsx` | Daftar organisasi lintas pegawai sudah ada |
-| Penempatan jabatan | `src/app/hr/workforce-core/position-assignments/page.jsx` + `src/components/view/hr/workforce-core/position-assignments-view.jsx` | Daftar jabatan lintas pegawai sudah ada |
-| Atasan | `src/app/hr/workforce-core/manager-assignments/page.jsx` + `src/components/view/hr/workforce-core/manager-assignments-view.jsx` | Relasi atasan existing |
-| Daftar lintas pegawai | `src/components/view/hr/workforce-core/workforce-core-cross-employee-list-view.jsx` | Table/filter shared; pada snapshot yang dibaca belum ditemukan `router`/link aksi mutasi per row, jadi harus disediakan dari konteks baru |
-| SK list/create/detail | `src/app/hr/workforce-core/personnel-actions/{page.jsx,create/page.jsx,[id]/page.jsx}`; `src/components/view/hr/workforce-core/personnel-action-order-{list,create,detail}-view.jsx` | Reuse create/update/submit/approve/reject/attachments; create view masih punya `targetBaseSalary` |
-| Service SK | `src/lib/services/hr/personnel-action-order-service.js` | `getOrders`, `getSummary`, `createOrder`, `submitOrder`, `approveOrder`, `rejectOrder`, `cancelOrder`, upload/download |
-| Batch | `src/app/hr/workforce-core/initial-batches/page.jsx`, `src/app/hr/initial-placement-batch/page.jsx` (alias), `src/components/view/hr/workforce-core/initial-placement-batch-view.jsx` | Batch upload/validate/execute UI nyata; belum dinyatakan benar secara approval |
-| Service batch | `src/lib/services/hr/initial-placement-batch-service.js` | Existing `getTemplate`, `validateRows`, `createBatch`, `validateBatch`, `executeBatch`; `approveAndApplyBatch` kini juga memanggil `/execute` |
-| Uraian tugas master | `src/app/hr/master-data/job-description/page.jsx`; `src/components/view/hr/master-data/job-description/master-data-job-description-view.jsx`; `src/lib/services/hr/job-description-service.js` | Sumber master JobDescription dan versi efektif, tidak boleh diduplikasi |
-| Data/selector | `src/lib/hooks/select/hr/use-hr-select.js`; `src/lib/services/hr/workforce-core-cross-employee-service.js` | Pilihan master & cross-employee API |
-| UI dasar | `src/components/features/base-features/**` | Komponen standar yang harus dipakai ulang |
+| Laporan Agent | `docs/module-blueprints/human-resource/docs/update/penempatan-mutasi-dan-promosi/LAPORAN_IMPLEMENTASI_MENU_07_AGENT_ANTIGRAVITY.md` | Klaim 100%, 34 UAT `READY`, bukan bukti PASS |
+| BE SK | `Areas/Corporate/HumanResource/WorkforceCore/Services/HrdPersonnelActionOrderService.cs`, `Controllers/HrdPersonnelActionOrderController.cs` | Source tersedia; cancellation/numbering/cycle/date repair |
+| BE batch | `.../Services/HrdInitialPlacementBatchService.cs`, `.../Controllers/HrdInitialPlacementBatchController.cs` | Source tersedia; permission/state mutation/duplicate/mirror repair |
+| BE per pegawai | `.../Services/WorkforceCoreCrossEmployeeQueryService.cs`, `.../DTOs/WorkforceCoreCrossEmployeeDtos.cs`, `.../Controllers/WorkforceCoreCrossEmployeeController.cs` | Query as-of dan nested DTO perlu FE-BE reconciliation |
+| BE assignment | `.../Controllers/WfpOrganizationAssignmentController.cs`, `WfpPositionAssignmentController.cs`, `WfpManagerAssignmentController.cs` | Guard direct CRUD sebagian ada; cek bypass dan cycle SK |
+| BE onboarding | `.../Services/WfpNewHireAssignmentService.cs`; `LifecycleManagement/Services/HrdEmploymentContractService.cs` | Contract-signing path perlu regression, DepartmentId fallback |
+| BE scheduler | `.../Workers/PersonnelActionOrderScheduledApplyWorker.cs`, `Program.cs` | Worker terdaftar; timezone/pending-cancel/concurrency repair |
+| FE batch | `src/components/view/hr/workforce-core/initial-placement-batch-view.jsx` | **P0 ReferenceError** `isPending` |
+| FE SK form | `src/components/view/hr/workforce-core/personnel-action-order-create-view.jsx` | **P0 URL query category diabaikan** |
+| FE JD | `src/components/view/hr/workforce-core/employee-job-descriptions-view.jsx`, `src/lib/services/hr/workforce-core-cross-employee-service.js` | **P0 JSON response mismatch** |
+| FE managers | `src/components/view/hr/workforce-core/employee-managers-view.jsx` | **P0 CTA membuka form Mutation tanpa konteks** |
+| FE routes | `src/app/hr/workforce-core/{initial-placements,unit-transfers,rotation-promotions,employee-job-descriptions,employee-managers}/page.jsx` | Kelima route ADA, tidak perlu remake |
+| FE sidebar | `src/utils/menu-sidebar/menu-items.jsx` | Lima label Menu 07 ADA, tidak perlu duplicate |
 
-**Fakta penting FE:** `official-duties-view.jsx` saat ini adalah layar `Surat Tugas Resmi` untuk pengawalan ambulans, kurir spesimen, seminar, home care, dsb.; **jangan** mengartikan layar itu sebagai master `Uraian Tugas` jabatan pegawai. Uraian Tugas Menu 07 harus berbasis master `JobDescription` dan effective position.
+**Penting:** Laporan Agent mungkin menyebut path API yang keliru. Verifikasi dari controller attributes, bukan menyalin tabel laporan. FE menggunakan `InstanceAxios` dengan base URL `/v1/...` sedangkan route backend umumnya berawalan `api/v1/...` melalui konfigurasi Axios existing. Jangan menggandakan `/api` pada FE bila baseURL sudah mengandungnya.
 
-### 3.3 File dan simbol BE nyata, perlu diperbaiki
+### 3.2 Kontrak API aktual — verifikasi kembali signature sebelum mengubah
 
-Semua path relatif ke `Areas/Corporate/HumanResource/` pada BE `MHamzah`, kecuali bila dinyatakan lain.
+**[Tags(Corporate / Human Resource / Workforce Core / Initial Placement Batch)]**
 
-| Fungsi | Path / symbol existing | Temuan dari source pada SHA baseline |
+| Method | Endpoint backend | Fungsi/aksi izin |
 |---|---|---|
-| SK API | `WorkforceCore/Controllers/HrdPersonnelActionOrderController.cs` | `POST /submit`, `/approve`, `/reject`, `/cancel`, `/cancel-request`; beberapa aksi memakai `AccessPermission("HrdPersonnelActionOrder", "Update")` |
-| SK service | `WorkforceCore/Services/HrdPersonnelActionOrderService.cs` | `ApproveOrderAsync`, `CancelOrderAsync`, `ApplyOrderAssignmentsAsync`, `GenerateOrderNumberAsync`; approval cek submitted actor; Applied cancel via counter order; salary apply langsung; Max+1 nomor |
-| SK entity/DTO | `WorkforceCore/Models/HrdPersonnelActionOrder.cs`; `WorkforceCore/DTOs/PersonnelActionOrderDtos.cs` | `WorkflowDefinitionId`, `WorkflowInstanceId`, `LinkedSalaryAssignmentId`, `TargetBaseSalary`, approval metadata dan status ada; wiring dan permission tetap perlu diperbaiki |
-| Organisasi | `WorkforceCore/Controllers/WfpOrganizationAssignmentController.cs` | Direct POST/PUT/PATCH/DELETE masih tersedia; perlu gate approval/period |
-| Jabatan | `WorkforceCore/Controllers/WfpPositionAssignmentController.cs` | Direct POST/PUT/PATCH/DELETE masih tersedia; perlu gate approval/period |
-| Atasan | `WorkforceCore/Controllers/WfpManagerAssignmentController.cs` | Direct POST/PUT/PATCH/DELETE masih tersedia; `WouldCreateCycleAsync` sudah ada |
-| Assignment models | `WorkforceCore/Models/WfpOrganizationAssignment.cs`, `WfpPositionAssignment.cs`, `WfpManagerAssignment.cs`, `WfpEmploymentHistory.cs` (termasuk referensi historis) | Sumber data penempatan efektif/riwayat; cek schema aktual dan EF mapping sebelum perubahan |
-| Batch API | `WorkforceCore/Controllers/HrdInitialPlacementBatchController.cs` | `/template`, `/validate`, POST batch, `/{id}/validate`, `/{id}/execute` |
-| Batch service/models | `WorkforceCore/Services/HrdInitialPlacementBatchService.cs`, `Models/HrdInitialPlacementBatch.cs`, `DTOs/InitialPlacementBatchDtos.cs` | `ExecuteBatchAsync` menerima `Validated`, sekaligus mencatat approval, membuat position/manager dan bisa membuat salary |
-| New hire | `WorkforceCore/Services/WfpNewHireAssignmentService.cs` | Menambah assignment/salary langsung; `DepartmentId=organizationUnitId`, fallback salary structure GUID acak; perlu integritas referensi dan approval |
-| Job description | `MasterData/Organization/Controllers/JobDescriptionController.cs`, `Models/MstJobDescription.cs`, `Models/MstJobDescriptionItem.cs` | `GET position/{positionId}/effective`, `/history`; versi dan masa berlaku ada |
-| Other integration | `WorkforceCore/Controllers/WorkforceCoreCrossEmployeeController.cs`, `LifecycleManagement/**`, `WorkflowManagement/**`, identity projection existing, `Program.cs` | Verifikasi wiring/worker/owner aktual; jangan menyimpulkan semua sinkron otomatis |
+| `GET` | `/api/v1/corporate/human-resource/workforce-core/initial-batches/template` | Template; `HrdInitialPlacementBatch:Read` |
+| `POST` | `/api/v1/corporate/human-resource/workforce-core/initial-batches/validate` | Validasi baris input; kontrak permission perlu ditinjau bila tidak mutasi DB |
+| `POST` | `/api/v1/corporate/human-resource/workforce-core/initial-batches` | Create draft; `Create` |
+| `GET` | `/api/v1/corporate/human-resource/workforce-core/initial-batches` | List; `Read` |
+| `GET` | `/api/v1/corporate/human-resource/workforce-core/initial-batches/{id}` | Detail; `Read`; **tidak boleh membocorkan BaseSalary** |
+| `POST` | `/api/v1/corporate/human-resource/workforce-core/initial-batches/{id}/validate` | **Mutasi status/hasil validasi**; wajib permission write dan state guard |
+| `POST` | `/api/v1/corporate/human-resource/workforce-core/initial-batches/{id}/submit` | Ajukan; `Update` |
+| `POST` | `/api/v1/corporate/human-resource/workforce-core/initial-batches/{id}/approve` | Setujui; `Approve` + actor berbeda |
+| `POST` | `/api/v1/corporate/human-resource/workforce-core/initial-batches/{id}/execute` | Terapkan; `Approve` (atau action execute canonical bila sudah disetujui), perlu transaksi + idempotensi |
 
-**Sumber canonical dan governansi (wajib bandingkan dengan HEAD terbaru):**
+**[Tags(Corporate / Human Resource / Workforce Core / Personnel Action Order)]**
 
-- `AGENTS.md`, `CLAUDE.md` FE/BE; `DevBenari/QuilvianEngineeringSkills/agents/rules/GLOBAL_RULES.md` dan rules terkait pada `main`.
-- `docs/module-blueprints/human-resource/README.md`, `MODULE-STATUS.md`, `00-interview-decisions.md`, `00-business-overview.md`, `01-existing-capability-map.md`, `01-prerequisite-readiness.md`.
-- `docs/module-blueprints/human-resource/roadmap/{00-slice-roadmap.md,backend-roadmap.md,frontend-roadmap.md,backend-unfinished-work.md,frontend-unfinished-work.md,requirement-traceability.md}`.
-- `docs/module-blueprints/human-resource/contracts/`, `data/`, `flowcharts/`, `task/report/backend/`, `task/report/frontend/`; `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`, `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`.
-- Referensi format: `docs/module-blueprints/human-resource/docs/update/administrasi-kepegawaian/INSTRUKSI_AGENT_ADMINISTRASI_KEPEGAWAIAN_UAT_LIVE.md` dan `docs/update/pemberhentian-dan-pensiun/INSTRUKSI_AGENT_HRD_MENU_12_PEMBERHENTIAN_DAN_PENSIUN.md`.
+| Method | Endpoint backend | Fungsi/aksi izin |
+|---|---|---|
+| `GET/POST` | `/api/v1/corporate/human-resource/personnel-action-orders` | List / create SK; `Read` / `Create` |
+| `GET` | `/api/v1/corporate/human-resource/personnel-action-orders/{id}` | Detail; `Read` |
+| `PUT` | `/api/v1/corporate/human-resource/personnel-action-orders/{id}` | Edit draft; `Update` |
+| `POST` | `/api/v1/corporate/human-resource/personnel-action-orders/{id}/attachments` | Upload signed scan; `Update` |
+| `POST` | `/api/v1/corporate/human-resource/personnel-action-orders/{id}/submit` | Submit; `Update` |
+| `POST` | `/api/v1/corporate/human-resource/personnel-action-orders/{id}/approve` | Approve; `Approve`, anti self-approval |
+| `POST` | `/api/v1/corporate/human-resource/personnel-action-orders/{id}/reject` | Reject; `Reject` |
+| `POST` | `/api/v1/corporate/human-resource/personnel-action-orders/{id}/cancel-request` | Ajukan pembatalan; `Cancel`, wajib actor+reason |
+| `POST` | `/api/v1/corporate/human-resource/personnel-action-orders/{id}/cancel` | Penyelesaian pembatalan; `Cancel`, **guard pending maker-checker** |
 
-### 3.4 Matriks gap source vs target, per Submenu
+**[Tags(Corporate / Human Resource / Workforce Core / Cross Employee)]**
 
-| Submenu | Existing yang teramati | Status awal | Keputusan implementasi | Gate validasi |
-|---|---|---|---|---|
-| Penempatan Awal | FE initial batch + API/Service batch dan new hire | `REPAIR` (approval/gaji/duplikasi); runtime `NOT VERIFIED` | BE-006, FE-002; pisahkan baseline dan onboarding | Real DB, anti self-approval, atomicity |
-| Perpindahan Unit | Org assignment list + SK order + CRUD assignment | `REPAIR` (bypass/tanggal); runtime `NOT VERIFIED` | BE-001/004/005/007, FE-003 | SK, effective dates, closed attendance |
-| Rotasi Promosi | Personnel action order list/create/detail + BE event | `REPAIR` (Applied cancel, salary direct, nomor, workflow); runtime `NOT VERIFIED` | BE-001/002/003/005, FE-004 | One event one SK, payroll separate, scheduler |
-| Uraian Tugas | Master JobDescription + effective/history API | `IMPLEMENTED, NOT VERIFIED` untuk master; employee view `MISSING` | BE-008, FE-005; reuse master | Query per employee/as-of, RBAC |
-| Atasan Langsung | Manager assignment list/controller + approval-related fields | `REPAIR` (direct mutation/stand-alone workflow); runtime `NOT VERIFIED` | BE-004/008, FE-006 | Manager validity, status as-of, history |
+| Method | Endpoint backend | Permission |
+|---|---|---|
+| `GET` | `/api/v1/corporate/human-resource/workforce-core/manager-assignments` | `WfpManagerAssignment:ReadAll` |
+| `GET` | `/api/v1/corporate/human-resource/workforce-core/employees/{workforceProfileId}/effective-job-description?asOfDate=YYYY-MM-DD` | `WorkforceCoreCrossEmployee:Read` |
+| `GET` | `/api/v1/corporate/human-resource/workforce-core/salary-assignments/{id}/amount` | `WfpSalaryAssignment:ViewAmount` — sumber pola izin nominal untuk audit kebocoran |
 
-**Catatan status:** penilaian di atas mengacu **pembacaan source**, bukan hasil live database atau UAT. Roadmap `DONE`, test report lama, dan layar yang bisa dibuka belum menyatakan `VERIFIED WORKING`. Jika HEAD berpindah, periksa delta, tandai evidence `STALE` yang relevan, lalu terapkan task tanpa mengulang perencanaan bisnis.
+**Jangan mengarang endpoint manager-only.** Jika jalur stand-alone belum ada, tetapkan kontrak dengan canonical/reuse yang sah di backend-first, barulah FE memakainya. Bila memerlukan kontrak bisnis baru di luar keputusan approved, blok hanya sub-action itu.
 
-### 3.5 Kontrak API existing dan target adapter
+### 3.3 Source-of-truth, data dan identitas
 
-**Endpoint existing yang telah terlihat (route relatif ditulis secara lengkap untuk controller kunci):**
-
-```text
-GET    /api/v1/corporate/human-resource/personnel-action-orders
-GET    /api/v1/corporate/human-resource/personnel-action-orders/summary
-GET    /api/v1/corporate/human-resource/personnel-action-orders/filters/metadata
-GET    /api/v1/corporate/human-resource/personnel-action-orders/{id}
-POST   /api/v1/corporate/human-resource/personnel-action-orders
-PUT    /api/v1/corporate/human-resource/personnel-action-orders/{id}
-POST   /api/v1/corporate/human-resource/personnel-action-orders/{id}/attachments
-GET    /api/v1/corporate/human-resource/personnel-action-orders/{id}/attachments/{attachmentId}
-POST   /api/v1/corporate/human-resource/personnel-action-orders/{id}/submit
-POST   /api/v1/corporate/human-resource/personnel-action-orders/{id}/approve
-POST   /api/v1/corporate/human-resource/personnel-action-orders/{id}/reject
-POST   /api/v1/corporate/human-resource/personnel-action-orders/{id}/cancel
-POST   /api/v1/corporate/human-resource/personnel-action-orders/{id}/cancel-request
-
-GET    /api/v1/corporate/human-resource/workforce-core/initial-batches/template
-POST   /api/v1/corporate/human-resource/workforce-core/initial-batches/validate
-GET    /api/v1/corporate/human-resource/workforce-core/initial-batches
-POST   /api/v1/corporate/human-resource/workforce-core/initial-batches
-GET    /api/v1/corporate/human-resource/workforce-core/initial-batches/{id}
-POST   /api/v1/corporate/human-resource/workforce-core/initial-batches/{id}/validate
-POST   /api/v1/corporate/human-resource/workforce-core/initial-batches/{id}/execute
-
-GET    /api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/organization-assignments
-GET    /api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/position-assignments
-GET    /api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/manager-assignments
-GET    /api/v1/corporate/human-resource/master-data/job-descriptions/position/{positionId}/effective
-GET    /api/v1/corporate/human-resource/master-data/job-descriptions/position/{positionId}/history
-```
-
-**Perubahan endpoint yang merupakan TARGET, bukan klaim sudah ada:** endpoint/workflow `submit`, `approve`, `approve-cancellation`, `execute` batch bila model existing belum mendukung pemisahan aktor; cancellation request/approval SK yang benar; query employee-centric/as-of/summary/allowedActions; worker Scheduled dan atau API monitoring; job description by employee (bila join dari existing belum aman). Agent wajib menyesuaikan path dan DTO berdasarkan pola existing serta registrasi permission/route di BE, bukan menebak path final dari dokumen ini lalu menghasilkan 404.
-
-**Kontrak data prinsip:**
-
-- **SK event:** `workforceProfileId`, `actionCategory`, `effectiveDate`, `reasonText`, `actionOrderNumber`/referensi SK, target unit/department/position/manager, attachment signed, submission/approval metadata, `orderStatus`, `executedAt`, cancellation request/reviewer/approval, `workflow...`, `personnelActionOrderId` pada assignment turunan. `TargetBaseSalary` **tidak boleh menjadi write path salary** pada SK.
-- **Assignment:** tipe primary/secondary/acting sesuai master, tanggal mulai/akhir, source event/workflow, approver dan audit; satu primary per tanggal; overlap divalidasi di server.
-- **Batch:** `rows`, `validationErrors` per baris, `creatorId`, `submittedAt`, `approvedAt`, `executedAt`, actor berbeda, status dan idempotency key per proses, tanpa nominal salary pada view non-payroll.
-- **Uraian tugas:** nama pegawai dan `positionId` yang efektif pada `asOfDate`, versi, purpose, item, tanggal mulai/akhir, read permission.
-- **Atasan:** pegawai, manager profile, jenis primary, peristiwa SK atau workflow stand-alone, periode, status, histori.
-- **Response dan error:** gunakan `ApiResponse`, `PagedResult`, validasi/permission/action errors yang konsisten dengan repo; pagination, access scope, audit dan data minimization; jangan mengirim payload confidential ke FE hanya untuk disembunyikan dengan CSS.
-
-### 3.6 Dependensi bisnis dan risiko
-
-1. Menu 04 `Data Induk Pegawai` memasok workforce/master; form edit unit/jabatan harus read-only setelah initial creation.
-2. Menu 05 `Struktur Organisasi & Jabatan` memasok unit, jabatan, atasan, uraian tugas, grade/master; jangan bikin master duplikat di Menu 07.
-3. Menu 06 `Administrasi Kepegawaian` memiliki dokumen SK/surat; Menu 07 **menggunakan** SK untuk memproses event dan boleh memberi context action ke halaman SK yang sama.
-4. Menu 09 kompetensi/kredensial menilai persyaratan profesi/izin klinis; **bukan** diberikan otomatis oleh HR setelah mutasi ke ICU/IGD/OK.
-5. Scheduling/Kehadiran: perubahan efektif dapat memengaruhi jadwal unit; mutasi retroactive tidak boleh melewati periode kehadiran Closed. Jangan rewrite raw attendance atau payroll locked secara diam-diam.
-6. Finance/Payroll: penetapan gaji sensitif dan harus punya approval sendiri; riwayat payroll lama immutable kecuali prosedur adjustment yang disetujui.
-7. Identity/Authorization: organisasi efektif bisa memengaruhi cakupan akses pengguna; akses baru tidak boleh berlaku prematur dan tidak berarti izin membaca pasien baru tanpa kebijakan role/clinical access.
-8. Operasional 24/7: mutasi ke ICU/Ruang Operasi yang memperburuk rasio staf/sertifikasi memerlukan review kompetensi dan kebutuhan unit, sesuai kontrak owner, bukan keputusan boolean FE.
+- `MstWorkforceProfile` adalah profil pegawai dan mirror untuk kondisi terkini. Riwayat efektif asli: `WfpOrganizationAssignment`, `WfpPositionAssignment`, `WfpManagerAssignment`; peristiwa SK: `HrdPersonnelActionOrder`; batch: `HrdInitialPlacementBatch` dan rows; sejarah: `WfpEmploymentHistory`.
+- Simpan `effectiveDate`, actor maker/checker, `RowVersion`/concurrency token yang sudah ada, attachment metadata, event audit dan referensi SK terkait. **Tidak** boleh membuat state penting hanya di `useState` frontend atau catatan `Notes` tanpa state persistence.
+- Semua daftar/filter/opsi pegawai, unit, posisi, atasan, master uraian tugas dan riwayat diambil dari layanan nyata. Jika gagal, tampilkan error yang benar, jangan fallback data dummy.
+- Hari bisnis RS bersifat berdasarkan zona waktu hospital site, bukan mengasumsikan `UTC.Date` setara tanggal lokal pada jam 00:00 WIB.
+- Perubahan UI tidak dapat menggantikan permission server. Cek negative tests dengan HTTP langsung, bukan hanya tombol tidak muncul.
 
 ---
 
 ## 4. Reasoning / Execution Workflow
 
-`Reasoning` adalah nama fase instruksi teknis yang dapat diverifikasi, **bukan** permintaan membuka pemikiran internal agent. Jalankan urutan operasional di bawah, dengan gate dan bukti.
+> Bagian ini adalah **workflow eksekusi operasional yang diaudit**, bukan permintaan mengungkap chain-of-thought privat. Keputusan bisnis sudah terkunci; Agent wajib **mulai implementasi** setelah preflight singkat dan izin scope sah.
 
-### 4.1 Preflight governance singkat dan benar
+### 4.1 Preflight singkat dan aman
 
-1. Baca `AGENTS.md` dan `CLAUDE.md` kedua repo, `GLOBAL_RULES.md`, QBE, runtime Engineering Skills (invoke bukan sekadar membaca), matrix permission, roadmap source/reports relevan, dan checkpoint `memory.md` jika tersedia.
-2. Verifikasi `git branch --show-current`, `git rev-parse HEAD`, `git status --short`, remote/upstream secara **read-only** pada kedua workspace; pastikan FE `HamzahV2`, BE `MHamzah`; tidak checkout/pull otomatis. Bandingkan SHA dengan baseline dokumen; jika beda, lakukan impact review hanya file terkait dan lanjutkan implementasi dari kode latest.
-3. Tentukan task mode yang diotorisasi, target write scope, prefix/owner backend dan test environment. **Persetujuan planning ini merupakan baseline bisnis, bukan wewenang otomatis untuk membuat migration/commit/deploy.** Jangan gunakan AUDIT MODE untuk menulis kode. Jika user menjalankan instruksi dalam agent dengan izin yang sah, mulailah implementasi tanpa meminta ulang approval cakupan bisnis yang sudah ada.
-4. Jika requirement/chat approved tidak tercermin dalam `contracts/`/roadmap, tandai `NEEDS_SYNC`; bila `MODULE BLUEPRINT MODE` dan izin tulis docs sah, sinkronkan hanya canonical terkait Menu 07, sertakan traceability `FIN-HRD-07-*` vs task `BE-HRD-*`/`FE-HRD-*`. Jika tidak ada izin doc mode, laporkan `MEMORY_PENDING_SYNC/NEEDS_SYNC` dan kerjakan source scoped yang tidak bergantung pada kontrak yang diperselisihkan; **jangan hentikan seluruh Menu hanya untuk menunggu laporan**.
-5. Snapshot data atau bukti source tidak boleh memuat data pegawai/pasien nyata, password, token, connection string, `.env` atau data kesehatan pribadi.
+1. Baca `AGENTS.md`, `CLAUDE.md` repo FE/BE, Engineering Skills `main` dan aturan sesuai task; verifikasi registered Skills benar-benar bisa dipanggil.
+2. Periksa `git branch --show-current`, `git rev-parse HEAD`, `git status --short`, `git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}'` di kedua working tree menggunakan **perintah read-only**. Jika branch/upstream salah, jangan checkout otomatis; laporkan blocker dan tunggu koreksi pihak berwenang.
+3. Bandingkan source lokal terhadap SHA snapshot di header secara read-only; **jangan menimpa uncommitted changes** dan jangan membatalkan kerja developer lain. Jika source lebih baru, rekonsiliasi temuan audit yang telah benar-benar diperbaiki, lanjutkan sisanya.
+4. Periksa canonical HRD-DEC dan endpoint/DTO dalam source lokal; ini verifikasi singkat, **bukan** sesi requirement planning ulang.
+5. Bila canonical perlu update yang sudah disetujui, laksanakan hanya pada `MODULE BLUEPRINT MODE` dengan izin dokumen yang sah; implementasi independen tidak boleh tertunda.
+6. Pastikan akses test DB nonproduksi terotorisasi dan tidak memuat data rahasia; jangan menjalankan migration/seed tanpa izin eksplisit.
 
-### 4.2 Tahap A - Backend FIRST, perubahan source nyata
+### 4.2 Urutan wajib implementasi BACKEND → FRONTEND → integration
 
-**Urutan yang harus dijalankan:**
+**Backend fase 1** (seluruh 9 FIN BE): prioritaskan **`BE-006` state batch/permission**, **`BE-002` cancellation**, **`BE-003` numbering/privacy**, **`BE-008` cycle/DTO**, **`BE-005` worker/timezone**, lalu `BE-004`, `BE-007`, `BE-001`, `BE-009` sesuai dependensi. Nomor task tetap asli, urutan pengerjaan dapat mengikuti risiko P0.
 
-```mermaid
-flowchart TD
-  A[Preflight branch dan governance] --> B{Kontrak/izin task sah?}
-  B -- Tidak --> C[Catat blocker pada area terdampak]
-  B -- Ya --> D[BE-001 Approval dan permission]
-  D --> E[BE-002 Cancel state]
-  D --> F[BE-003 Salary terpisah dan nomor SK]
-  D --> G[BE-004 Assignment interval dan bypass]
-  E --> H[BE-005 Scheduled worker]
-  G --> H
-  G --> I[BE-006 Initial batch dan onboarding]
-  D --> I
-  H --> J[BE-007 Query dan allowed actions]
-  I --> J
-  G --> K[BE-008 As-of dan integrasi]
-  J --> L[BE-009 Backend test gate]
-  K --> L
-  F --> L
-  L --> M{BE contract stable dan tests recorded?}
-  M -- Ya --> N[Frontend fase B]
-  M -- Tidak --> O[Repair BE error dalam scope atau BLOCKED]
-```
+Untuk setiap task:
+- Baca source paling dekat dan kontrak current; ubah service/controller/DTO/entity yang benar-benar diperlukan.
+- Terapkan validasi **di backend**, permission+actor, state transition yang sah, transaction/idempotency, audit dan error respons yang dapat dipakai FE. Buktikan dengan unit/integration test scoped.
+- Bila perlu constraint/model/migration yang belum diizinkan, jangan bypass; catat blocker yang tepat dan selesaikan hal independen.
+- Kunci API/response setelah BE diperbaiki; dokumentasikan contract drift yang perlu FE konsumsi.
 
-- Untuk setiap task: panggil runtime backend Skill, ubah kode hanya pada target scope yang sah, refactor sebatas touched legacy, tambahkan DTO/validation/service/controller/permission/config/EF/test bila diperlukan.
-- Hindari operasi `DbContext` langsung pada controller baru bila QBE mewajibkan service; gunakan persistence transaction boundary yang jelas, tidak membuat master `Employee`/`Position`/`JobDescription` baru.
-- Setiap langkah mempunyai test tidak hanya `200 OK`: pastikan state database persisted setelah request, fresh query, restart, dan concurrency.
-- Jika ada perubahan schema/model baru, identifikasi kebutuhan migration dan berhenti **hanya bagian schema-dependent** sampai izin terpisah; jangan diam-diam menjalankan `dotnet ef migrations add` atau `database update`.
-- Hanya setelah API/status/permission stabil dan validasi backend tersedia, kerjakan frontend. Jika test DB live tidak bisa dijalankan karena akses, tandai `BE CONTRACT PREPARED / DB NOT VERIFIED`, dan tindak lanjuti sesuai gate security; jangan menyatakan seluruh fase P0 PASS.
+**Frontend fase 2** (seluruh 7 FIN FE): kerjakan FE-002 error render lebih dahulu, FE-004 category, FE-005 adapter, FE-006 manager CTA, FE-003 cancellation UI, FE-001 sidebar consistency, dan FE-007 QA. Pertahankan App Router dan base-components existing; jangan membuat mock API atau menulis ulang seluruh halaman.
 
-### 4.3 Tahap B - Frontend AFTER backend
+**Integrasi fase 3**: jalankan FE terhadap API backend sah, uji 2 role terpisah, beberapa status, HTTP error, reload, as-of history, scheduled date, double submit dan permission. Jika CORS/backend env belum tersedia, jangan menyebut UAT PASS; `NOT RUN` disertai blocker, dan selesaikan unit/contract tests yang bisa dijalankan.
 
-1. Panggil `quilvian-engineering-skills:build-module-frontend`, baca page patterns, base component/catalog dan styles; implementasikan `FIN-HRD-07-FE-001` (MenuItems & route) setelah endpoint/allowed action contracts backend disepakati.
-2. Implementasikan `FE-002` penempatan awal, `FE-003` mutasi unit, `FE-004` rotasi/promosi, `FE-005` uraian tugas, `FE-006` atasan menggunakan views/services existing. Reuse SK form/detail; navigasi context disesuaikan, jangan menggandakan workflow.
-3. Terapkan `FE-007`: service adapter, filter, permissions, error/loading/empty, CSS Modules/tokens, responsive/accessible, no dummy, confirm/pending states. No user-visible `Success` sampai server benar-benar mengembalikan state sah; sesudah aksi refetch data source.
-4. Jika menemukan bug backend selama FE test, kembalikan ke mode backend/cross-repo yang sah secara eksplisit, perbaiki BE, lalu retest FE; **jangan** membuat fallback client untuk menyembunyikan bug server.
-5. Pastikan Menu 05 & Menu 06 tidak rusak: master JobDescription tetap source tunggal, SK Administrasi dan link lama tetap berfungsi, hanya satu menu item aktif pada route target, permission per role utuh.
+### 4.3 Kontrak UI — base components, keamanan dan a11y
 
-### 4.4 Tahap C - UAT live browser (headed) dan negative/API tests
+- Gunakan base UI existing (`Hero`, `SummaryGrid`, `DataFilter`, `DataTable`, `InformationAlert`, `BaseButton`, `BaseGroupedEditorView`, `BaseGroupedEditorField`, `BaseDetailView` bila sesuai, `StatusBadge`, `ConfirmModal`, `ToastStack`, `AccessDeniedGate`) dan CSS modules/tokens; jangan membuat base component kembar.
+- `Loading`, `error`, `403`, `404`, `409/conflict`, `empty`, `no permissions`, `success after server persistence` harus dibedakan. Pilihan tanggal tidak boleh beda timezone secara tersembunyi.
+- Setiap tombol mutasi harus disabled saat in-flight, server memastikan idempotency. Modal konfirmasi menunjukkan dampak permanen dan actor; gunakan keyboard focus, aria label, contrast, responsive tablet/mobile.
+- Query/route parameter tidak boleh mengganti permission backend. Escape/sanitize output backend sesuai library existing; jangan mengirim atau mencatat nominal salary ke console/browser log user biasa.
+- Jangan menyamarkan API error dengan placeholder sukses, jangan menyembunyikan kegagalan integrasi dengan label “data belum tersedia”.
 
-**Wajib jalankan pada environment dev/UAT yang diizinkan dan browser headed bila tersedia** menurut `QuilvianEngineeringSkills/agents/rules/testing/`. Gunakan akun test dengan hak minimal **HR Admin**, **HR Manager/CorporateHr**, **Kepala Unit/Approver relevan**, **Pegawai read-only**, dan **akun tanpa izin**; jangan membuat/menebak password. Bila akun/DB/server/browser tidak ada, tulis `NOT RUN` dan blocker, bukan PASS. Satu Menu = satu laporan UAT sesuai rules, dengan screenshot yang disanitasi.
+### 4.4 Rencana pengujian UAT utama — 34 skenario yang WAJIB dilaksanakan jika environment tersedia
 
-| ID | Level | Submenu | Skenario test riil | Expected result |
-|---|---|---|---|---|
-| `HRD07-UAT-01` | P0 | Penempatan Awal | HR membuat penempatan pegawai baru dan reload | Data penempatan/atasan/jabatan efektif konsisten di API, DB, UI |
-| `HRD07-UAT-02` | P0 | Penempatan Awal | Validasi batch semua baris sah; submit -> approve aktor lain -> execute | Satu batch diproses atomik, audit creator/approver tersedia |
-| `HRD07-UAT-03` | P0 | Penempatan Awal | Batch salah satu baris FK/atasan/overlap invalid | Error baris jelas; **tidak ada** data diterapkan sebagian |
-| `HRD07-UAT-04` | P0 | Penempatan Awal | Pembuat batch menekan approve/execute sendiri lewat UI dan HTTP | Ditolak server, status tidak berubah |
-| `HRD07-UAT-05` | P0 | Penempatan Awal | Pegawai yang sudah sukses batch dimasukkan batch kedua + concurrent submit | Ditolak tanpa primary rangkap; histori tetap |
-| `HRD07-UAT-06` | P0 | Penempatan Awal | Akun tanpa hak payroll membaca batch/DTO/detail | Nominal salary tidak tersedia; tak bisa mengubah gaji |
-| `HRD07-UAT-07` | P0 | Perpindahan Unit | Buat SK mutasi lengkap dan submit oleh HR Admin | Pending approval, unit yang aktif belum berubah |
-| `HRD07-UAT-08` | P0 | Perpindahan Unit | Approver berbeda menyetujui mutasi tanggal hari ini | Tepat satu primary baru + histori dengan SK, UI refetch benar |
-| `HRD07-UAT-09` | P0 | Perpindahan Unit | Approve SK tanggal mendatang; bandingkan as-of hari ini dan efektif | Hari ini unit lama; pada tanggal efektif unit baru + mirror benar |
-| `HRD07-UAT-10` | P0 | Perpindahan Unit | Backdate masuk periode kehadiran Closed / periode ditutup setelah submit | Ditolak saat approve/apply; tidak ada penempatan berubah |
-| `HRD07-UAT-11` | P0 | Perpindahan Unit | Panggil langsung PUT/PATCH/DELETE assignment berlaku via HTTP | Ditolak tanpa workflow; menyembunyikan tombol FE tidak cukup |
-| `HRD07-UAT-12` | P0 | Perpindahan Unit | Dua pengajuan concurrent target tanggal tumpang tindih | Tepat satu hasil sah, conflict terstruktur, tidak double primary |
-| `HRD07-UAT-13` | P1 | Rotasi Promosi | Buat SK rotasi jabatan setara dan approve | Satu SK satu histori dan perubahan jabatan saat efektif |
-| `HRD07-UAT-14` | P0 | Rotasi Promosi | Promosi mengubah jabatan+unit+atasan sekaligus | Perubahan atomik; tidak ada approval assignment kedua |
-| `HRD07-UAT-15` | P0 | Rotasi Promosi | Kirim `TargetBaseSalary` lewat API SK meski disembunyikan dari UI | Tidak tercipta/perbarui salary tanpa workflow gaji sendiri |
-| `HRD07-UAT-16` | P0 | Rotasi Promosi | Submit SK tanpa scan tertandatangani/nomor sah atau file berbahaya | Ditolak dengan validasi; attachment tak bocor ke role lain |
-| `HRD07-UAT-17` | P0 | Rotasi Promosi | Pembuat SK menyetujui sendiri setelah submit oleh user berbeda | Ditolak di backend dan audit actor tetap benar |
-| `HRD07-UAT-18` | P0 | Rotasi Promosi | Cancel langsung SK Applied/isi CounterOrderNumber | Ditolak; event lama tetap Applied, perlu peristiwa baru |
-| `HRD07-UAT-19` | P0 | Rotasi Promosi | Membuat banyak SK dalam waktu bersamaan/retry | Nomor SK unik persisten dan retry tidak menghasilkan dua event |
-| `HRD07-UAT-20` | P1 | Uraian Tugas | Pilih tanggal sebelum dan setelah promosi | Uraian tugas dan versi sesuai posisi efektif tiap tanggal |
-| `HRD07-UAT-21` | P1 | Uraian Tugas | Pilih versi future/tanggal yang belum berlaku | UI tidak menyebut future sebagai current, tidak ada fallback dummy |
-| `HRD07-UAT-22` | P1 | Uraian Tugas | Pegawai tanpa hak master mencoba edit via link/API | 403 / read-only; master Menu 05 tetap utuh |
-| `HRD07-UAT-23` | P1 | Uraian Tugas | Uraian belum ada di tanggal pilihan; reload | Empty state jujur, histori versi tetap sesuai DB |
-| `HRD07-UAT-24` | P0 | Atasan Langsung | Ajukan perubahan atasan stand-alone, actor berbeda approve | Workflow manager terpisah, status/dates/persistence benar |
-| `HRD07-UAT-25` | P0 | Atasan Langsung | Mutasi SK sekaligus ganti atasan | Manager baru efektif dengan SK; tanpa double approval |
-| `HRD07-UAT-26` | P0 | Atasan Langsung | Pilih pegawai sebagai atasannya sendiri | Ditolak server, bukan cuma validasi FE |
-| `HRD07-UAT-27` | P0 | Atasan Langsung | Buat rantai manager A->B->C->A | Ditolak server, tidak merusak graf hierarki |
-| `HRD07-UAT-28` | P0 | Atasan Langsung | Primary vs Acting; approved request lama dan request baru | Hanya manager primary efektif menerima routing baru; histori processed tidak reroute |
-| `HRD07-UAT-29` | P0 | Lintas submenu | Cancel Scheduled sebelum tanggal efektif; approver berbeda menyetujui | Tidak diterapkan oleh worker; penempatan lama tetap |
-| `HRD07-UAT-30` | P0 | Lintas submenu | Balapan cancellation request/approval dengan worker apply | Tepat satu hasil bisnis valid, no half-applied |
-| `HRD07-UAT-31` | P0 | Lintas submenu | Worker SK scheduled jalan paralel/restart/retry | Apply tepat sekali; transaksi/audit/history konsisten |
-| `HRD07-UAT-32` | P0 | Lintas submenu | HR Admin, HR Manager, pegawai, akun tanpa izin; query tenant/unit lain | Menu/action/HTTP scope benar, tidak bocor gaji/dokumen pribadi |
-| `HRD07-UAT-33` | P1 | Lintas submenu | API error/timeout/retry + reload setelah aksi | Pesan error nyata, tanpa fake success; state dari DB dan tidak duplicate |
-| `HRD07-UAT-34` | P2 | Lintas submenu | Navigasi sidebar, filter/search, layar 360/768/1366, keyboard/modal | 5 Submenu dapat dicapai, layout terbaca, focus aman, alias lama tetap berfungsi |
+**Untuk setiap case catat:** `ID`, prasyarat/akun/role, aksi klik atau HTTP, expected, observed, bukti layar/network/DB test, `PASS|FAIL|BLOCKED|NOT RUN`, dan build/commit SHA. Gunakan Chrome headed dan klik nyata sesuai `rules/testing/`, bukan klaim hanya karena source ada.
 
-**Bukti minimum per test yang dijalankan:** tanggal/waktu, HEAD commit, environment tanpa secret, role actor uji (tanpa password), langkah UI klik dan request/response status, hasil persisted/reload, screenshot teredaksi jika aman, PASS/FAIL, bug yang ditemukan, file perbaikan, dan hasil retest. Prioritas pengujian: P0 Critical/Fatal -> Business Compliance -> Functional/Validation -> Visual/UI -> UI/UX; jangan menggunakan snapshot screenshot sebagai satu-satunya bukti API benar.
+| ID | Area | Skenario dan expected |
+|---|---|---|
+| `HRD07-UAT-01` | Penempatan Awal | Daftar/template memuat pegawai riil sesuai role dan status; tanpa dummy fallback |
+| `HRD07-UAT-02` | Penempatan Awal | Draft valid → Validated, 1 baris invalid mencegah submit |
+| `HRD07-UAT-03` | Penempatan Awal | HR A submit → PendingApproval; HR A tidak bisa approve batch miliknya |
+| `HRD07-UAT-04` | Penempatan Awal | HR B approve → Approved, audit actor/time; reload tetap sama |
+| `HRD07-UAT-05` | Penempatan Awal | Execute sukses → Executed; satu pegawai tidak membuat dua primary |
+| `HRD07-UAT-06` | Penempatan Awal | Seluruh perubahan rollback bila satu row gagal; salary nonpayroll tidak terlihat |
+| `HRD07-UAT-07` | Perpindahan Unit | Draft Mutation memuat data pegawai dan asal/tujuan sesuai tanggal efektif |
+| `HRD07-UAT-08` | Perpindahan Unit | Scan tidak ada → submit ditolak backend; scan valid bisa diajukan |
+| `HRD07-UAT-09` | Perpindahan Unit | Maker tidak dapat approve, approver sah menandai Scheduled future date |
+| `HRD07-UAT-10` | Perpindahan Unit | Scheduled tidak mengubah unit saat ini dan tidak memberi akses prematur |
+| `HRD07-UAT-11` | Perpindahan Unit | Backdate ke attendance Closed ditolak dan tidak ada mutasi DB |
+| `HRD07-UAT-12` | Perpindahan Unit | Direct CRUD bypass organisasi/job utama ditolak tanpa event resmi |
+| `HRD07-UAT-13` | Rotasi Promosi | Buka Rotasi dan `create?category=Rotation` → category form/simpan benar |
+| `HRD07-UAT-14` | Rotasi Promosi | Buka Promosi dan `create?category=Promotion` → category form/simpan benar |
+| `HRD07-UAT-15` | Rotasi Promosi | Pilih jabatan/departemen mismatch ditolak server dengan error spesifik |
+| `HRD07-UAT-16` | Rotasi Promosi | Setelah approve, assignment posisi + organisasi + manager berubah atomik |
+| `HRD07-UAT-17` | Rotasi Promosi | Gaji tidak berubah/terbuat dari SK; nominal tidak bocor ke response biasa |
+| `HRD07-UAT-18` | Rotasi Promosi | Cancel SK Applied ditolak; counter-event baru tidak menghapus SK lama |
+| `HRD07-UAT-19` | Rotasi Promosi | Concurrent submit/approve tidak menghasilkan nomor SK ganda / history duplikat |
+| `HRD07-UAT-20` | Uraian Tugas | Pegawai dan asOfDate terpilih → jabatan efektif yang benar muncul |
+| `HRD07-UAT-21` | Uraian Tugas | Version JD terpilih sesuai asOfDate; items tampil dari nested DTO |
+| `HRD07-UAT-22` | Uraian Tugas | Tanggal sebelum penempatan → empty jujur, bukan jabatan saat ini |
+| `HRD07-UAT-23` | Uraian Tugas | Riwayat versi sesuai DTO, Master Menu 05 tetap read/write owner |
+| `HRD07-UAT-24` | Atasan Langsung | Daftar manager menampilkan pegawai, primary/secondary, unit/tanggal efektif |
+| `HRD07-UAT-25` | Atasan Langsung | Atasan=self ditolak oleh backend |
+| `HRD07-UAT-26` | Atasan Langsung | Cycle A→B→C→A ditolak melalui SK dan direct API |
+| `HRD07-UAT-27` | Atasan Langsung | Manager-only change menggunakan workflow sah, bukan Mutation palsu |
+| `HRD07-UAT-28` | Atasan Langsung | Data manager tetap sesuai histori as-of setelah reload |
+| `HRD07-UAT-29` | Lintas Modul | Worker Scheduled apply tepat tanggal bisnis setempat |
+| `HRD07-UAT-30` | Lintas Modul | Pembatalan pending menahan worker, maker-checker di API berlaku |
+| `HRD07-UAT-31` | Lintas Modul | API unauthorized role mendapat 403; tidak ada write diam-diam |
+| `HRD07-UAT-32` | Lintas Modul | Respons API gagal tidak berubah menjadi UI success/empty palsu |
+| `HRD07-UAT-33` | Lintas Modul | Responsive desktop/tablet/mobile, navigasi/keyboard/focus dan CSS tokens |
+| `HRD07-UAT-34` | Lintas Modul | Reload browser dan regression onboarding/Payroll/roster tidak merusak data |
 
-### 4.5 Definition of Done (DoD) / urutan penutupan
+### 4.5 Regression test khusus temuan audit — wajib selain 34 UAT
 
-- [ ] Kelima Submenu terlihat dan dapat digunakan dari MenuItems dengan role/permission tepat, tanpa route patah atau dua active path.
-- [ ] Tidak ada perubahan organisasi/jabatan/atasan efektif via bypass form master atau direct assignment CRUD; source of truth assignment berperiode.
-- [ ] Satu event SK mengubah unit/jabatan/atasan atomik; `Draft -> PendingApproval -> Scheduled -> Applied` (atau reject/cancel sah) benar server/DB.
-- [ ] Creator/submitter tidak dapat self-approve; cancellation membutuhkan otorisasi sesuai state; `Applied` tidak dapat direct cancel.
-- [ ] Gaji tidak langsung diproses dari SK/batch penempatan; data sensitif ditangani oleh domain owner yang benar.
-- [ ] Batch initial once-per-employee, approval aktor berbeda, row validation, atomic apply dan pemisahan new-hire vs baseline.
-- [ ] Scheduled worker benar-benar apply pada tanggal efektif dan retry aman; proyeksi profil/identity tidak diubah prematur.
-- [ ] Uraian tugas efektif dan atasan langsung sesuai tanggal acuan, histori/version benar, tidak ada master duplikat.
-- [ ] Semua forms dari API nyata, filter & pagination benar, error/loading/empty, confirm modal, keyboard dan responsive.
-- [ ] Build/lint/QBE/check-css-usage, backend unit/integration, FE automated tests dan UAT live (bila environment sah) dijalankan dengan hasil dan bukti; FAIL harus diperbaiki & retest di scope.
-- [ ] Source path dan diff serta status task/roadmap/traces yang ditulis sesuai wewenang dicatat; laporan resmi engineering dibuat, satu UAT report per Menu.
-- [ ] Tidak ada password/token/data pegawai/pasien sebenarnya di dokumen/screenshot/log.
-- [ ] `VERIFIED WORKING` hanya jika acceptance diuji; bila environment tak tersedia status `IMPLEMENTED, NOT VERIFIED` / `PARTIAL` / `BLOCKED` dilaporkan jujur.
+| ID | Tingkat | Input/aksi test | Expected backend/frontend |
+|---|---|---|---|
+| `HRD07-REG-01` | P0 | Render Penempatan Awal dengan batch yang belum executed | Tidak ada `ReferenceError: isPending is not defined` |
+| `HRD07-REG-02` | P0 | Role `Read` POST `/initial-batches/{id}/validate` | 403, tidak ada DB write |
+| `HRD07-REG-03` | P0 | `PendingApproval` dan `Approved` dikirim ke validate | Ditolak, status tidak mundur |
+| `HRD07-REG-04` | P0 | Dua approver menyetujui batch berbeda untuk pegawai sama secara paralel | Maksimum satu approved/executed sah |
+| `HRD07-REG-05` | P0 | SK Scheduled call `/cancel` tanpa `/cancel-request` | Ditolak, status tetap Scheduled |
+| `HRD07-REG-06` | P0 | A request cancel, A approve cancel | Ditolak; B berizin dapat menyelesaikan |
+| `HRD07-REG-07` | P0 | Scheduled dengan cancellation pending disapu worker | Tidak di-apply, tercatat dan eskalasi |
+| `HRD07-REG-08` | P0 | 2 instance paralel masing-masing membuat SK | Semua nomor unik, tanpa silent duplicate |
+| `HRD07-REG-09` | P0 | Klik tab Rotasi/Promosi lalu submit | Payload dan DB `ActionCategory` tepat |
+| `HRD07-REG-10` | P0 | Backend mengirim nested `jobDescription` dengan `items` | FE merender jabatan + tujuan + butir + versi benar |
+| `HRD07-REG-11` | P0 | Manager hierarchy A→B→C, buat C sebagai atasan A via SK | Ditolak sebelum apply, tidak ada cycle |
+| `HRD07-REG-12` | P0 | Klik `+ Ajukan Perubahan Atasan` | Alur manager-only atau event yang valid, bukan Mutation default |
+| `HRD07-REG-13` | P0 | Detail batch berisi old `BaseSalary` dan user tanpa `ViewAmount` membaca API | Tidak ada nominal dalam JSON, screenshot, console |
+| `HRD07-REG-14` | P1 | Pegawai mutasi hari depan; baca mirror sebelum tanggal efektif | Unit/jabatan hari ini tetap lama |
+| `HRD07-REG-15` | P1 | AsOf 2025, kini penempatan 2026; old assignment IsActive=false | Mengembalikan posisi 2025 sesuai histori, bukan 2026 |
+| `HRD07-REG-16` | P1 | WIB 00:01 dengan UTC masih hari sebelumnya | Worker menginterpretasikan hari bisnis sesuai site |
+| `HRD07-REG-17` | P1 | Onboarding memakai org unit tanpa dept relation | Fail-closed dengan pesan, tidak memakai OrganizationUnitId sebagai DepartmentId |
+| `HRD07-REG-18` | P1 | Worker gagal di satu SK kemudian memproses SK berikut | Error tercatat, state tak tertinggal, SK lain aman |
+| `HRD07-REG-19` | P1 | User berhak baca tetapi tidak approve SK/batch | UI tidak memberi misleading action dan server 403 |
+| `HRD07-REG-20` | P1 | DB rollback saat batch row ke-3 dari lima gagal | 0 penempatan parsial, retry aman |
+
+### 4.6 Gate validasi untuk setiap task dan pelaporan
+
+**Per task FIN** catat minimal: `task ID`, 5 Submenu yang terdampak, file touched (path & diff), DTO/API sebelum-sesudah, test added, command test dan hasil (timestamp, PASS/FAIL/NOT RUN), izin/mode, blocker dan residual risk. Jika standar menetapkan test khusus, penuhi sesuai `TEST_POLICY`; jangan menonaktifkan test untuk memaksakan green.
+
+**Command disesuaikan project dan izin, jangan dibuat-buat:**
+- Backend: gunakan SDK `.NET 9` yang benar, targeted build/test/lint/static analyzer sesuai governance dan mandat user saat eksekusi. **Jika user secara eksplisit meminta SKIP build**, hormati dan tulis `NOT RUN`, jangan mengutip build lama sebagai hasil perubahan terbaru.
+- Frontend: gunakan npm sesuai lockfile existing; jalankan lint/targeted unit/E2E dan script `check-css-usage.mjs` yang memang ada; browser headed jika tersedia. Jangan install dependencies atau ubah lockfile tanpa izin.
+- Database: integration test hanya pada database test/staging yang **secara eksplisit diizinkan**, bukan dengan SQL write pada database produksi; gunakan transaction cleanup/test fixture yang aman. Bila tidak ada environment, gunakan unit/contract tests dan laporkan `DB INTEGRATION NOT RUN`.
+- Jalankan setelah perbaikan FE/BE: `git diff --check` dan pemeriksaan diff scoped (read-only); jangan mengubah file lain untuk mempercantik build.
+
+**Definition of Done (wajib semuanya untuk mengklaim Menu 07 siap UAT):**
+1. Tidak ada P0 dari tabel 18 temuan yang belum diperbaiki/diblok sesuai alasan sah.
+2. Lima Submenu dapat dibuka dan memuat data real, tidak ada runtime exception, endpoint benar, permission backend cocok.
+3. Maker-checker SK dan batch, cancellation worker, unique SK number, manager cycle, tanggal efektif dan mirror diuji pada skenario negatif dan concurrency yang relevan.
+4. Job description FE dan DTO backend identik secara kontrak; histori as-of bisa dipercaya.
+5. Tidak ada gaji terpapar dari endpoint non-payroll atau perubahan salary langsung dari SK/batch.
+6. Setiap FIN BE-001..009 dan FE-001..007 memiliki bukti test (PASS/FAIL/NOT RUN) dan linked source changes.
+7. **UAT `PASS` hanya setelah browser/headed atau API integration nyata;** `READY FOR UAT` tidak berarti `PASS`. Jika tidak ada akses test, status terakhir adalah `IMPLEMENTED, NOT VERIFIED`, bukan selesai 100%.
+8. Laporan lama direkonsiliasi: ubah klaim 100% menjadi berdasarkan bukti mutakhir, termasuk daftar kegagalan tersisa. Jika dokumen belum boleh ditulis pada mode source, siapkan perubahan dan laporkan `DOC UPDATE BLOCKED BY MODE` tanpa menyentuh file di luar target.
 
 ---
 
 ## 5. Stop conditions
 
-**DILARANG STOP** hanya karena audit selesai, master instruction sudah dibaca, source sebagian tersedia, mock UI tampak bagus, `dotnet build` lulus, atau frontend route sudah dibuat. Ini **perintah implementasi kode nyata**, bukan tugas menulis hasil analisis.
+**DILARANG berhenti** setelah audit ulang, membuat tabel gap, menyelesaikan hanya `isPending`, hanya memperbaiki CSS, atau menulis laporan baru tanpa implementasi source. Apabila ditemukan satu bug tambahan dalam scope, perbaiki dan uji; jangan meminta ulang persetujuan untuk requirement yang sudah dikunci.
 
-Hentikan **hanya area terdampak**, sembari tetap mengerjakan tugas independen, ketika:
+**HENTIKAN hanya area terdampak** bila:
 
-1. Branch/upstream tidak sesuai FE `HamzahV2` atau BE `MHamzah`, target write mode tidak sah, atau working tree konflik yang tidak bisa direkonsiliasi aman.
-2. `AGENTS.md`, `CLAUDE.md`, governance canonical, QBE registry, atau runtime `quilvian-engineering-skills:build-module-backend`/`build-module-frontend` tidak tersedia; bila runtime Skill unavailable laporkan persis **`BLOCKED — Quilvian runtime skill unavailable`**.
-3. Migration (pembuatan atau eksekusi), DB write/test seed, commit, push, pull, merge/rebase, deploy, atau tindakan destructive memerlukan izin terpisah yang belum diberikan; jangan mencoba bypass; siapkan rincian perubahan dan lanjutkan area lain yang aman.
-4. Desain baru menyentuh kebijakan klinis/kewenangan perawatan, kompensasi/Payroll final, pemindahan pending workflow, atau kewenangan pejabat yang tidak diputuskan; jangan mengarang approval owner, labeli `BLOCKED DECISION` hanya bagian tersebut.
-5. Perubahan schema berpotensi menghilangkan data pegawai/riwayat, ada leakage PII, risiko privilege escalation atau concurrency tidak terkendali. Jangan menghapus histori untuk membuat tes hijau.
-6. API/DB/UAT environment tidak tersedia: kode dan tes yang sah tetap dilanjutkan, tetapi tandai `NOT RUN` untuk pengujian yang tidak dieksekusi. Jangan menyebut production-ready atau 100% jika ada P0/P1/UAT yang belum lulus.
+- branch/upstream berbeda dari mandat; kode belum dapat dimasukkan ke working tree tanpa menimpa perubahan lain;
+- `AGENTS.md`, backend engineering contract, registry atau canonical rules tidak dapat dibaca: `BLOCKED — canonical governance unavailable`;
+- registered runtime skill implementasi tidak tersedia: **`BLOCKED — Quilvian runtime skill unavailable`**;
+- operasi perlu izin yang belum ada: schema/migration, DB production/staging write, deployment, Git mutation, atau target file di luar scope;
+- keputusan canonical material belum ada (mis. kategori manager-only yang benar-benar memerlukan keputusan baru) — tahan hanya fitur itu dan lanjutkan yang independen;
+- akses test browser/server/akun belum tersedia — tandai `NOT RUN` untuk test terkait, bukan menutup pekerjaan kode.
 
-Semua perubahan GitHub read-only pada sisi ChatGPT pembuat instruksi ini. Agent IDE boleh mengedit source **lokal** hanya dalam scope task/mode yang secara aktual telah diotorisasi; tidak ada izin commit/push tersirat dari dokumen ini.
+Jangan membuat/dijalankan migration atau SQL write, jangan auto commit/push/pull, dan jangan mengklaim kebijakan keamanan telah lulus hanya dari keberadaan `[Authorize]`. Jangan memperluas scope ke Payroll penuh atau sistem klinis tanpa izin. Jangan menciptakan role, status, API, data, atau persetujuan bisnis baru yang tidak didukung canonical.
 
 ---
 
 ## 6. Output
 
-### 6.1 Keluaran Agent setelah benar-benar mengerjakan source
+**Output Agent WAJIB setelah mengubah source (bukan sekadar opini):**
 
-Buat **satu laporan ringkasan eksekusi** dalam jawaban Agent, disertai laporan tracked per task dan satu laporan UAT Menu 07 sesuai rule lokasi yang berlaku (bila mode/izin dokumen sah). Laporan Agent setelah implementasi **bukan** master instruksi ChatGPT kedua. Jawaban Agent harus berisi:
+1. **Ringkasan implementasi riil** dengan SHA awal, branch, mode, registered Skills yang benar-benar dipanggil, file yang benar-benar diubah, simbol dan diff ringkas per task FIN.
+2. **Matriks tepat lima Submenu**: Penempatan Awal, Perpindahan Unit, Rotasi Promosi, Uraian Tugas, Atasan Langsung; isi `IMPLEMENTED/REPAIR/PARTIAL/BLOCKED/NOT VERIFIED` berdasarkan kode dan bukti, bukan rasio buatan.
+3. **Matriks seluruh 16 FIN**: `BE-001..009`, `FE-001..007`; status per task dan alasan termasuk bug P0/P1 yang telah ditutup serta bukti uji.
+4. **Matriks 18 temuan `AUD-HRD07-01..18`** dengan `FIXED / NOT FIXED / BLOCKED`, file:line, test/response aktual; plus 34 `HRD07-UAT` dan 20 `HRD07-REG` jika environment tersedia.
+5. **Kontrak API final** dengan method, URL, permission, request/response JSON aman, termasuk schema DTO nested JD dan status cancellation; error 401/403/409.
+6. **Bukti validasi yang nyata**: perintah+hasil build/lint/unit/integration/CSS, waktu, browser click/headed, network responses dan re-query DB test; gunakan `NOT RUN` jika tidak dilakukan, tanpa menyembunyikan kegagalan.
+7. **Perbarui laporan existing** `LAPORAN_IMPLEMENTASI_MENU_07_AGENT_ANTIGRAVITY.md` melalui mode dokumen sah, mempertahankan riwayat; koreksi endpoint yang salah dan klaim `100%` bila belum memenuhi DoD. Jika governance mengizinkan, tulis report FIN ke lokasi `docs/module-blueprints/human-resource/task/report/{backend,frontend}/` dan rekonsiliasi roadmap/traceability.
+8. Tampilkan `git status --short` setelah pekerjaan dan jelaskan file di luar scope yang tetap untouched; **jangan lakukan commit atau push** tanpa instruksi baru.
+9. Berikan **satu rekomendasi langkah selanjutnya yang konkret** untuk blocker tersisa dan checkpoint `MEMORY_PENDING_SYNC` jika memori proyek belum terotorisasi untuk disimpan.
 
-1. **Repository, branch, HEAD before/after, status Git, mode tulis dan registered Skill yang benar-benar invoked** (jangan mengklaim terpasang bila tidak ada).
-2. **Task traceability:** `FIN-HRD-07-BE-001..009` dan `FIN-HRD-07-FE-001..007`: status `IMPLEMENTED / PARTIAL / BLOCKED / NOT VERIFIED`, path kode yang diubah, penjelasan diff, link report sesuai aturan; tautkan dengan ID roadmap `BE-HRD-*`/`FE-HRD-*` existing tanpa mengubah nomor.
-3. **Matriks kelima Submenu:** status implementasi, source/API, data/persistence, role/approval, masalah residual, tes (PASS/FAIL/NOT RUN), dan next action. Jangan klaim `VERIFIED WORKING` tanpa bukti runtime/UAT.
-4. **Perubahan MenuItems:** tree sebelum/sesudah, route baru, redirect/alias lama, permission, penempatan fungsi SK Menu 06 dan Uraian Tugas Menu 05; lampirkan bukti aktif sidebar untuk masing-masing submenu jika browser benar-benar dijalankan.
-5. **Kontrak FE-BE final:** controller/endpoint/status/DTO dan `allowedActions` yang nyata, termasuk penanganan Scheduled, cancel-request/approval, payroll linking dan employee job description as-of.
-6. **Validasi:** daftar perintah lint/build/unit/integration/security/UI check/UAT yang benar-benar berjalan, waktu, hasil dan error; untuk P0 harus ada negative/DB/concurrency retest atau tulis tepat apa yang belum dapat diuji.
-7. **Bukti UAT browser:** satu laporan Menu 07 dengan 34 skenario `HRD07-UAT-*` (yang benar-benar dijalankan vs not run), screenshot aman, error dan retest; jangan mengarang akun, browser screenshots, ataupun hasil database.
-8. **Risiko/dependensi lanjutan:** kebutuhan migration/izin DB, deployment, cross-domain owner, approval konfigurasi, UAT environment, dan satu next action paling penting untuk setiap blocker.
-9. **Checkpoint memory:** bila `docs/module-blueprints/human-resource/memory.md` tersedia dan mode dokumen sah, update ringkas pada repo tanpa data sensitif; bila tidak tersedia/izin tidak ada, catat `MEMORY_NOT_INITIALIZED` atau `MEMORY_PENDING_SYNC`, jangan klaim telah mengubah GitHub.
+**PERINTAH FINAL AGENT — EKSEKUSI SEKARANG:**
 
-### 6.2 Lokasi laporan dan disiplin status
-
-- Ikuti `rules/backend/REPORT_TEMPLATE.md`, `rules/frontend/REPORT_TEMPLATE.md`, dan `rules/rule-output/` untuk lokasi laporan task; path awal yang dikenal: `docs/module-blueprints/human-resource/task/report/backend/` dan `task/report/frontend/`. Laporan UAT mengikuti `rules/testing/` dengan satu laporan Menu 07, jangan menciptakan lokasi resmi baru dari tebakan.
-- Reconcile `roadmap/backend-roadmap.md`, `frontend-roadmap.md`, `requirement-traceability.md` **hanya** jika `MODULE BLUEPRINT MODE`/izin dokumentasi sah. Jangan menandai task `DONE` berdasarkan file placeholder, state lokal atau klaim agent sendiri.
-- Jangan simpan konten sebenarnya dari pasien/pegawai/identitas sensitif ke laporan, termasuk contoh payload raw dan screenshot tanpa redaksi.
-
-### 6.3 Definition of ready for sign-off
-
-Status `READY FOR UAT/PRODUCTION` **tidak boleh** diberikan jika ada: bypass approval, `Applied` bisa dibatalkan langsung, perubahan salary dari SK, proyeksi unit berubah sebelum efektif, kesalahan double primary, batch self-approval, Scheduled tidak pernah apply, route tidak tersedia, API error dipalsukan, atau P0 belum diuji. Bedakan `SOURCE IMPLEMENTED`, `TESTED`, `UAT ACCEPTED`, dan `DEPLOYED` secara eksplisit.
-
-**PERINTAH FINAL UNTUK AGENT IDE:** Setelah memastikan branch, governance, runtime Skill, task mode dan target tulis valid, **MULAI SEKARANG FIN-HRD-07-BE-001, lanjutkan seluruh task BACKEND FIRST sampai gate BE-009**, kemudian kerjakan **FIN-HRD-07-FE-001 s.d. FE-007** dan UAT Menu 07. Implementasikan perubahan kode nyata serta perbaiki bug yang ditemukan di scope; **jangan** menutup tugas hanya dengan analisis, mockup, dokumen, checklist, atau klaim selesai yang belum terbukti. **Jangan** menjalankan commit/push/pull/merge/rebase, migration/DB write, atau deployment tanpa otorisasi terpisah.
-
----
-
-**CHECKPOINT DOKUMEN:** Planning bisnis Menu 07 telah disetujui pengguna; dokumen ini berfungsi sebagai satu instruksi implementasi untuk lima Submenu. Pada saat dibuat, ChatGPT **tidak** mengubah source/GitHub dan **tidak** menjalankan UAT live. File `docs/module-blueprints/human-resource/memory.md` tidak ditemukan pada BE `MHamzah` ketika dibaca; `MEMORY_NOT_INITIALIZED / MEMORY_PENDING_SYNC` sampai benar-benar disimpan dan diverifikasi. Penilaian status baru yang lebih baik hanya sah setelah Agent mengimplementasi dan menyertakan bukti source/runtime.
+> Setelah preflight, verifikasi mode/izin dan pemanggilan registered runtime Skills sesuai governance, **LANGSUNG KERJAKAN PERBAIKAN SOURCE MENU 07**, dimulai dari **BACKEND**, dilanjutkan **FRONTEND**, lalu regression test dan UAT. Pertahankan lima Submenu dan 16 task FIN, perbaiki seluruh temuan P0/P1 yang terbukti, gunakan database/API nyata, dan jangan mengakhiri sesi hanya dengan audit, planning, atau laporan tanpa perubahan kode. Laporkan semua kondisi tidak teruji atau terblokir secara jujur.

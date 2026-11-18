@@ -444,7 +444,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     PositionName = r.Position?.PositionName,
                     ManagerWorkforceProfileId = r.ManagerWorkforceProfileId,
                     ManagerName = r.ManagerWorkforceProfile?.DisplayName,
-                    BaseSalary = r.BaseSalary,
+                    BaseSalary = null, // Confidential: disembunyikan demi kepatuhan privasi data gaji HR non-payroll (AUD-HRD07-12 / HRD-DEC-033)
                     EffectiveStartDate = r.EffectiveStartDate,
                     IsValid = r.IsValid,
                     ValidationMessage = r.ValidationMessage,
@@ -461,9 +461,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
             if (batch == null) return null;
 
-            if (batch.BatchStatus == "Executed")
+            if (batch.BatchStatus == "Executed" || batch.BatchStatus == "PendingApproval" || batch.BatchStatus == "Approved")
             {
-                throw new InvalidOperationException("Batch penempatan awal ini sudah dieksekusi sebelumnya dan tidak dapat divalidasi ulang.");
+                throw new InvalidOperationException($"Batch penempatan awal dalam status '{batch.BatchStatus}' tidak dapat divalidasi ulang atau diubah statusnya (AUD-HRD07-02 / HRD-DEC-054).");
             }
 
             var rowsDto = batch.Rows.Select(r => new CreateInitialBatchRowDto
@@ -542,6 +542,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             if (batch.CreateBy == userId || (batch.SubmittedByUserId.HasValue && batch.SubmittedByUserId.Value == userId))
             {
                 throw new InvalidOperationException("Persetujuan batch penempatan awal ditolak: Pembuat draf maupun pengaju batch dilarang menyetujui batch yang diajukannya sendiri (Segregation of Duties / HRD-DEC-054).");
+            }
+
+            // Guard once-per-employee approved (AUD-HRD07-15 / HRD-DEC-054)
+            var profileIds = batch.Rows.Select(r => r.WorkforceProfileId).Distinct().ToList();
+            var conflictingEmployee = await _dbContext.HrdInitialPlacementBatchRows
+                .Include(r => r.Batch)
+                .Where(r => r.BatchId != batch.Id && profileIds.Contains(r.WorkforceProfileId) && (r.Batch.BatchStatus == "Approved" || r.Batch.BatchStatus == "Executed") && !r.Batch.IsDelete)
+                .Select(r => new { r.WorkforceProfileId, r.Batch.BatchNumber, r.Batch.BatchStatus })
+                .FirstOrDefaultAsync(ct);
+
+            if (conflictingEmployee != null)
+            {
+                throw new InvalidOperationException($"Persetujuan batch ditolak: Pegawai dengan ID '{conflictingEmployee.WorkforceProfileId}' telah tercatat dalam batch '{conflictingEmployee.BatchNumber}' yang berstatus '{conflictingEmployee.BatchStatus}'. Satu pegawai dilarang berada di dua batch penempatan yang sama-sama disetujui (AUD-HRD07-15 / HRD-DEC-054).");
             }
 
             var now = DateTime.UtcNow;
@@ -664,8 +677,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     };
                     _dbContext.WfpPositionAssignments.Add(newPos);
 
-                    // Update primary position & department on profile
-                    if (profiles.TryGetValue(row.WorkforceProfileId, out var profile))
+                    // Update primary position & department on profile HANYA jika tanggal mulai sudah efektif hari ini (AUD-HRD07-10 / HRD-DEC-047)
+                    if (profiles.TryGetValue(row.WorkforceProfileId, out var profile) && row.EffectiveStartDate.Date <= now.Date)
                     {
                         profile.PrimaryPositionId = row.PositionId.Value;
                         if (row.DepartmentId.HasValue && row.DepartmentId.Value != Guid.Empty)

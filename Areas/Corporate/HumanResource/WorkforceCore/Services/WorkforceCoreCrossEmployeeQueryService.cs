@@ -728,22 +728,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
             if (profile == null) return null;
 
-            // Source of truth: WfpPositionAssignment effective as of targetDate (HRD-DEC-047)
+            // Source of truth: WfpPositionAssignment effective as of targetDate (HRD-DEC-047 / AUD-HRD07-09)
+            // Tanpa filter x.IsActive (agar riwayat lampau tetap sah), dan tanpa fallback PrimaryPositionId hari ini
             var effectivePos = await _dbContext.WfpPositionAssignments
                 .Include(x => x.Position)
                 .Include(x => x.Department)
                 .Include(x => x.OrganizationUnit)
                 .AsNoTracking()
                 .Where(x => x.WorkforceProfileId == workforceProfileId &&
-                            x.IsPrimary && x.IsActive && !x.IsDelete &&
+                            x.IsPrimary && !x.IsDelete &&
                             x.EffectiveStartDate <= targetDate &&
                             (x.EffectiveEndDate == null || x.EffectiveEndDate >= targetDate))
                 .OrderByDescending(x => x.EffectiveStartDate)
                 .FirstOrDefaultAsync(ct);
 
-            var positionId = effectivePos?.PositionId ?? profile.PrimaryPositionId;
+            var positionId = effectivePos?.PositionId;
             string? positionName = effectivePos?.Position?.PositionName;
-            Guid? deptId = effectivePos?.DepartmentId ?? profile.PrimaryDepartmentId;
+            Guid? deptId = effectivePos?.DepartmentId;
             string? deptName = effectivePos?.Department?.DepartmentName;
             Guid? orgUnitId = effectivePos?.OrganizationUnitId;
             string? orgUnitName = effectivePos?.OrganizationUnit?.UnitName;

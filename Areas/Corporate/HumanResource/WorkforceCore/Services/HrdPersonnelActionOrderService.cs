@@ -190,29 +190,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 request.EffectiveDate,
                 ct);
 
-            var orderNumber = await GenerateOrderNumberAsync(ct);
-
-            var order = new HrdPersonnelActionOrder
+            HrdPersonnelActionOrder? order = null;
+            for (int attempt = 0; attempt < 3; attempt++)
             {
-                ActionOrderNumber = orderNumber,
-                WorkforceProfileId = request.WorkforceProfileId,
-                ActionCategory = request.ActionCategory,
-                EffectiveDate = request.EffectiveDate.Date,
-                PostingDate = DateTime.UtcNow,
-                OrderStatus = "Draft",
-                ReasonText = request.ReasonText,
-                TargetOrganizationUnitId = request.TargetOrganizationUnitId,
-                TargetDepartmentId = request.TargetDepartmentId,
-                TargetPositionId = request.TargetPositionId,
-                TargetManagerProfileId = request.TargetManagerProfileId,
-                TargetBaseSalary = null, // Protected: gaji wajib melalui workflow payroll tersendiri (HRD-DEC-036/054)
-                Notes = request.Notes,
-                CreateBy = userId,
-                CreateDateTime = DateTime.UtcNow
-            };
+                var orderNumber = await GenerateOrderNumberAsync(ct);
+                order = new HrdPersonnelActionOrder
+                {
+                    ActionOrderNumber = orderNumber,
+                    WorkforceProfileId = request.WorkforceProfileId,
+                    ActionCategory = request.ActionCategory,
+                    EffectiveDate = request.EffectiveDate.Date,
+                    PostingDate = DateTime.UtcNow,
+                    OrderStatus = "Draft",
+                    ReasonText = request.ReasonText,
+                    TargetOrganizationUnitId = request.TargetOrganizationUnitId,
+                    TargetDepartmentId = request.TargetDepartmentId,
+                    TargetPositionId = request.TargetPositionId,
+                    TargetManagerProfileId = request.TargetManagerProfileId,
+                    TargetBaseSalary = null, // Protected: gaji wajib melalui workflow payroll tersendiri (HRD-DEC-036/054)
+                    Notes = request.Notes,
+                    CreateBy = userId,
+                    CreateDateTime = DateTime.UtcNow
+                };
 
-            _dbContext.HrdPersonnelActionOrders.Add(order);
-            await _dbContext.SaveChangesAsync(ct);
+                _dbContext.HrdPersonnelActionOrders.Add(order);
+                try
+                {
+                    await _dbContext.SaveChangesAsync(ct);
+                    break;
+                }
+                catch (DbUpdateException) when (attempt < 2)
+                {
+                    _dbContext.Entry(order).State = EntityState.Detached;
+                    await Task.Delay(50 * (attempt + 1), ct);
+                }
+            }
+
+            if (order == null || order.Id == Guid.Empty)
+            {
+                throw new InvalidOperationException("Gagal menyimpan dokumen SK kepegawaian.");
+            }
 
             return (await GetOrderByIdAsync(order.Id, ct))!;
         }
@@ -502,13 +519,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             }
             else if (order.OrderStatus == "Scheduled")
             {
-                if (order.EffectiveDate.Date <= DateTime.UtcNow.Date)
+                if (order.EffectiveDate.Date <= GetHospitalBusinessDate())
                 {
                     throw new InvalidOperationException("SK yang telah memasuki atau melewati tanggal efektif tidak dapat dibatalkan (HRD-DEC-057).");
                 }
 
-                // Segregation of duties for cancellation
-                if (order.CancellationRequestedByUserId.HasValue && order.CancellationRequestedByUserId.Value == userId)
+                // Invariant AUD-HRD07-05 / HRD-DEC-057: Wajib memiliki permohonan pembatalan terdahulu
+                if (!order.CancellationRequestedByUserId.HasValue || order.CancellationRequestedAt == null)
+                {
+                    throw new InvalidOperationException("Pembatalan SK berstatus 'Scheduled' tidak dapat dilakukan secara langsung; wajib diajukan terlebih dahulu melalui permohonan pembatalan resmi (Cancel Request) sebelum disetujui (AUD-HRD07-05 / HRD-DEC-057).");
+                }
+
+                // Segregation of duties for cancellation (pemohon dilarang menyetujui sendiri)
+                if (order.CancellationRequestedByUserId.Value == userId)
                 {
                     throw new InvalidOperationException("Persetujuan pembatalan SK ditolak: Petugas yang mengajukan permohonan pembatalan dilarang menyetujui pembatalan sendiri (Segregation of Duties / HRD-DEC-057).");
                 }
@@ -560,7 +583,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             }
             else if (order.OrderStatus == "Scheduled")
             {
-                if (order.EffectiveDate.Date <= DateTime.UtcNow.Date)
+                if (order.EffectiveDate.Date <= GetHospitalBusinessDate())
                 {
                     throw new InvalidOperationException("SK yang telah memasuki atau melewati tanggal efektif tidak dapat diajukan pembatalan (HRD-DEC-057).");
                 }
@@ -749,11 +772,34 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             }
         }
 
+        private static DateTime GetHospitalBusinessDate()
+        {
+            try
+            {
+                var tz = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz).Date;
+            }
+            catch
+            {
+                try
+                {
+                    var tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Jakarta");
+                    return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz).Date;
+                }
+                catch
+                {
+                    return DateTime.UtcNow.AddHours(7).Date;
+                }
+            }
+        }
+
         public async Task<int> ProcessScheduledOrdersAsync(CancellationToken ct = default)
         {
-            var today = DateTime.UtcNow.Date;
+            var businessToday = GetHospitalBusinessDate();
+            // AUD-HRD07-06 & AUD-HRD07-11: Saring SK 'Scheduled' per tanggal bisnis RS dan kecualikan yang pending cancellation
             var scheduledOrders = await _dbContext.HrdPersonnelActionOrders
-                .Where(x => x.OrderStatus == "Scheduled" && x.EffectiveDate <= today && !x.IsDelete)
+                .Where(x => x.OrderStatus == "Scheduled" && x.EffectiveDate <= businessToday && !x.IsDelete)
+                .Where(x => x.CancellationRequestedByUserId == null)
                 .OrderBy(x => x.EffectiveDate)
                 .ToListAsync(ct);
 
@@ -788,9 +834,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     await transaction.CommitAsync(ct);
                     appliedCount++;
                 }
-                catch
+                catch (Exception ex)
                 {
                     await transaction.RollbackAsync(ct);
+                    // AUD-HRD07-16: Logging observabilitas kegagalan per SK tanpa menggagalkan SK lain
+                    order.Notes = $"[AUTO-APPLY FAILED] Gagal menerapkan SK: {ex.Message}";
+                    order.UpdateDateTime = DateTime.UtcNow;
+                    try { await _dbContext.SaveChangesAsync(ct); } catch { /* ignore secondary log save failure */ }
                 }
             }
 
@@ -799,35 +849,51 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
         private async Task<string> GenerateOrderNumberAsync(CancellationToken ct)
         {
-            var dateCode = DateTime.UtcNow.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+            var dateCode = GetHospitalBusinessDate().ToString("yyyyMMdd", CultureInfo.InvariantCulture);
             var prefix = $"{OrderNumberPrefix}{dateCode}-";
 
-            var existingNumbers = await _dbContext.HrdPersonnelActionOrders
+            // AUD-HRD07-07: Query nomor SK tertinggi langsung dari DB dengan prefix hari ini
+            var latestNumber = await _dbContext.HrdPersonnelActionOrders
                 .IgnoreQueryFilters()
                 .AsNoTracking()
                 .Where(x => x.ActionOrderNumber.StartsWith(prefix))
+                .OrderByDescending(x => x.ActionOrderNumber)
                 .Select(x => x.ActionOrderNumber)
-                .ToListAsync(ct);
+                .FirstOrDefaultAsync(ct);
 
-            int nextNum;
+            int nextNum = 1;
+            if (!string.IsNullOrEmpty(latestNumber) && latestNumber.Length > prefix.Length)
+            {
+                var suffix = latestNumber[prefix.Length..];
+                if (int.TryParse(suffix, out var parsed))
+                {
+                    nextNum = parsed + 1;
+                }
+            }
+
             lock (_orderNumberLock)
             {
-                var maxNumber = existingNumbers
-                    .Select(x => x.Length > prefix.Length ? x[prefix.Length..] : "")
-                    .Select(x => int.TryParse(x, out var value) ? value : 0)
-                    .DefaultIfEmpty(0)
-                    .Max();
-                nextNum = maxNumber + 1;
+                var candidate = $"{prefix}{nextNum:D4}";
+                return candidate;
             }
+        }
 
-            var candidate = $"{prefix}{nextNum:D4}";
-            while (await _dbContext.HrdPersonnelActionOrders.IgnoreQueryFilters().AnyAsync(x => x.ActionOrderNumber == candidate, ct))
+        private async Task<bool> WouldCreateCycleAsync(Guid workforceProfileId, Guid managerWorkforceProfileId, DateTime activeDate, CancellationToken ct)
+        {
+            var current = managerWorkforceProfileId;
+            var visited = new HashSet<Guid>();
+            for (var depth = 0; depth < 100; depth++)
             {
-                nextNum++;
-                candidate = $"{prefix}{nextNum:D4}";
+                if (current == workforceProfileId) return true;
+                if (!visited.Add(current)) return true;
+                var next = await _dbContext.Set<WfpManagerAssignment>().AsNoTracking()
+                    .Where(x => x.WorkforceProfileId == current && x.IsPrimaryManager && x.IsActive && !x.IsDelete &&
+                                x.EffectiveStartDate <= activeDate && (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= activeDate))
+                    .Select(x => (Guid?)x.ManagerWorkforceProfileId).FirstOrDefaultAsync(ct);
+                if (!next.HasValue || next.Value == Guid.Empty) return false;
+                current = next.Value;
             }
-
-            return candidate;
+            return true;
         }
 
         private async Task ValidatePlacementCombinationAsync(
@@ -859,6 +925,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     .FirstOrDefaultAsync(x => x.Id == targetManagerProfileId.Value && !x.IsDelete, ct);
                 if (manager == null || !manager.IsActive)
                     throw new InvalidOperationException("Atasan langsung yang dipilih tidak valid atau tidak aktif.");
+
+                // AUD-HRD07-08: Deteksi siklus hierarki komando melingkar (Cycle detection)
+                if (await WouldCreateCycleAsync(workforceProfileId, targetManagerProfileId.Value, effectiveDate.Date, ct))
+                {
+                    throw new InvalidOperationException("Penetapan atasan langsung ditolak: Relasi atasan akan membentuk siklus hierarki komando melingkar (Circular Cycle / AUD-HRD07-08).");
+                }
             }
 
             // 2. Organization Unit validation
