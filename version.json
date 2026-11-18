@@ -1,17 +1,15 @@
 {
-  "backendVersion": "0.31.0",
-  "description": "Release 0.31.0 enhances Pharmacy Management capabilities. Includes improvements across Pharmacy Workflow.",
   "releaseMetadata": {
-    "features": [
-      "Pharmacy Workflow"
-    ],
-    "generatedAt": "2026-11-18T02:41:04",
-    "generatedBy": "Quilvian Release Generator",
-    "migrations": [],
+    "features": [],
     "migrationCount": 0,
     "modules": [
-      "Pharmacy Management"
-    ]
+      "Human Resource Management"
+    ],
+    "migrations": [],
+    "generatedBy": "Quilvian Release Generator",
+    "generatedAt": "2026-11-18T03:36:10"
   },
-  "releaseName": "Quilvian 0.31.0 - Pharmacy Management Enhancement"
+  "backendVersion": "0.32.0",
+  "releaseName": "Quilvian 0.32.0 - Human Resource Management Enhancement",
+  "description": "Release 0.32.0 enhances Human Resource Management capabilities."
 }
