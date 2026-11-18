@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Mode
 using QuilvianSystemBackend.Repositories;
 using System.Text.Json;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using PayrollTaxInsuranceRules = QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services.PayrollTaxInsuranceRules;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -51,6 +52,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 return PayrollServiceResult<CalculateBpjsResultDto>.Fail(
                     StatusCodes.Status422UnprocessableEntity,
                     $"Batch penggajian {run.RunNumber} telah berstatus '{run.RunStatus}' (Locked={run.IsLocked}) dan tidak dapat dimodifikasi.");
+            }
+
+            // Satu mesin aktif: run yang sudah dihitung mesin Payroll Run resmi tidak boleh dihitung ulang oleh jalur lama ini.
+            if (PayrollTaxInsuranceRules.IsCalculatedByOfficialEngine(run.PolicySnapshotJson))
+            {
+                return PayrollServiceResult<CalculateBpjsResultDto>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    PayrollTaxInsuranceRules.LegacyEngineBlockedMessage);
             }
 
             var setting = await ResolveEffectiveSettingAsync(run.ConfigurationSnapshotJson, cancellationToken);
@@ -117,6 +126,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 return PayrollServiceResult<EmployeeBpjsCalculationDto>.Fail(
                     StatusCodes.Status422UnprocessableEntity,
                     $"Batch penggajian telah berstatus final dan tidak dapat diperbarui.");
+            }
+
+            if (PayrollTaxInsuranceRules.IsCalculatedByOfficialEngine(emp.PayrollRun.PolicySnapshotJson))
+            {
+                return PayrollServiceResult<EmployeeBpjsCalculationDto>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    PayrollTaxInsuranceRules.LegacyEngineBlockedMessage);
             }
 
             var setting = await ResolveEffectiveSettingAsync(emp.PayrollRun.ConfigurationSnapshotJson, cancellationToken);

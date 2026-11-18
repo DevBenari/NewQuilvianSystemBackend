@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
@@ -22,8 +23,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 ///   meninggalkan jejak;
 /// - sinkronisasi Finance dan potongan cicilan piutang (kriteria 4);
 /// - NumberSeriesAllocator (kriteria 4).
-/// Akibatnya simulasi menghitung gaji pokok, tunjangan struktur atau cadangan profil, transport bulanan, serta pajak dan iuran
-/// tetapan profil; komponen dari impor HR, input variabel, dan cicilan tidak ada. Hal ini dinyatakan di Notes respons.
+/// Akibatnya simulasi menghitung gaji pokok, tunjangan struktur atau cadangan profil, transport bulanan, serta PPh dan iuran dari
+/// konfigurasi HRD (penahan konfigurasi tampil sebagai peringatan); komponen dari impor HR, input variabel, dan cicilan tidak ada.
+/// Hal ini dinyatakan di Notes respons.
 /// </summary>
 public sealed class PayrollSimulationService
 {
@@ -35,17 +37,20 @@ public sealed class PayrollSimulationService
     private readonly PayrollCalculationService _calculationService;
     private readonly LoggerService _loggerService;
     private readonly PayrollPolicyOptions _policy;
+    private readonly IPayrollSettingService _settingService;
 
     public PayrollSimulationService(
         ApplicationDbContext dbContext,
         PayrollCalculationService calculationService,
         LoggerService loggerService,
-        IOptions<PayrollPolicyOptions> policyOptions)
+        IOptions<PayrollPolicyOptions> policyOptions,
+        IPayrollSettingService settingService)
     {
         _dbContext = dbContext;
         _calculationService = calculationService;
         _loggerService = loggerService;
         _policy = policyOptions.Value;
+        _settingService = settingService;
     }
 
     private sealed record Candidate(PrlPayroll Profile, Guid? EmployeeId, string Number, string Name);
@@ -190,6 +195,10 @@ public sealed class PayrollSimulationService
             VariableInputCutoffDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.VariableInputCutoffDate),
             PaymentDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.PaymentDate),
             Notes = "Simulasi — transaksi selalu dibatalkan.",
+            // Snapshot Pengaturan Penggajian untuk parameter operasional (variansi, batas potongan). Tarif PPh dan iuran BPJS TIDAK dari sini:
+            // mesin yang sama dengan run resmi membaca kebijakan berversi yang disahkan, sehingga simulasi menahan perhitungan yang sama
+            // (Menunggu Verifikasi Kebijakan) alih-alih menghitung nol. Seluruhnya di dalam transaksi simulasi yang selalu dibatalkan.
+            ConfigurationSnapshotJson = await _settingService.GetSettingSnapshotJsonAsync(cancellationToken),
             CreateDateTime = now,
             CreateBy = actorUserId
         };
@@ -257,6 +266,9 @@ public sealed class PayrollSimulationService
         {
             calculation.EmployeeWarnings.TryGetValue(row.Id, out var warnings);
             calculation.EmployeeErrors.TryGetValue(row.Id, out var errors);
+            // Penahan konfigurasi PPh/iuran menahan pengajuan run resmi; simulasi menampilkannya sebagai peringatan bertanda.
+            if (calculation.EmployeeBlockers.TryGetValue(row.Id, out var configurationBlockers))
+                warnings = (warnings ?? new List<string>()).Concat(configurationBlockers.Select(b => $"Penahan konfigurasi: {b}")).ToList();
             response.Employees.Add(new PayrollSimulationEmployeeResponse
             {
                 WorkforceProfileId = row.WorkforceProfileId,

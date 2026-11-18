@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using PayrollTaxInsuranceRules = QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services.PayrollTaxInsuranceRules;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -48,6 +49,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 return PayrollServiceResult<CalculatePph21ResultDto>.Fail(
                     StatusCodes.Status422UnprocessableEntity,
                     $"Batch penggajian {run.RunNumber} telah berstatus '{run.RunStatus}' (Locked={run.IsLocked}) dan tidak dapat dimodifikasi.");
+            }
+
+            // Satu mesin aktif: run yang sudah dihitung mesin Payroll Run resmi tidak boleh dihitung ulang oleh jalur lama ini.
+            if (PayrollTaxInsuranceRules.IsCalculatedByOfficialEngine(run.PolicySnapshotJson))
+            {
+                return PayrollServiceResult<CalculatePph21ResultDto>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    PayrollTaxInsuranceRules.LegacyEngineBlockedMessage);
             }
 
             var employees = run.Employees.ToList();
@@ -122,6 +131,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 return PayrollServiceResult<EmployeePph21CalculationDto>.Fail(
                     StatusCodes.Status422UnprocessableEntity,
                     $"Batch penggajian telah berstatus final dan tidak dapat diperbarui.");
+            }
+
+            if (PayrollTaxInsuranceRules.IsCalculatedByOfficialEngine(emp.PayrollRun.PolicySnapshotJson))
+            {
+                return PayrollServiceResult<EmployeePph21CalculationDto>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    PayrollTaxInsuranceRules.LegacyEngineBlockedMessage);
             }
 
             var taxProfile = await _context.PrlTaxes

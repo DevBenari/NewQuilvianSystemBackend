@@ -25,6 +25,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.PayrollMan
             entity.Property(x => x.PrivateInsuranceEmployerContribution).HasPrecision(18, 2);
             entity.Property(x => x.EffectiveStartDate).HasColumnType("timestamp with time zone").IsRequired(false);
             entity.Property(x => x.EffectiveEndDate).HasColumnType("timestamp with time zone").IsRequired(false);
+            entity.Property(x => x.ParticipationStatus).HasMaxLength(30);
+            entity.Property(x => x.ParticipationBasis).HasMaxLength(500);
+            entity.Property(x => x.BpjsEmploymentPrograms).HasMaxLength(50);
             entity.Property(x => x.Description).HasMaxLength(1000);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
             ConfigureIdentity(entity);

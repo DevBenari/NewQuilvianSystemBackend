@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
@@ -15,6 +16,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
     [Route("api/v1/corporate/human-resource/payroll/runs")]
     [Route("api/payroll/runs")]
     [Tags("HR Payroll - Runs & Batches")]
+    // Satu jalur kalkulasi: jalur lama tidak boleh menghitung PPh/BPJS, tidak boleh mengubah run yang sudah dihitung mesin Payroll Run
+    // resmi, dan seluruh aksi tulisnya dapat dimatikan lewat Payroll:Policy:LegacyModernMutationsEnabled.
+    [TypeFilter(typeof(LegacyModernPayrollGateFilter))]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_PAYROLL",
         moduleName: "Human Resource Payroll",

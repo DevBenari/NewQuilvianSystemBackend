@@ -436,6 +436,10 @@ try
     builder.Services.Configure<PayrollPolicyOptions>(builder.Configuration.GetSection(PayrollPolicyOptions.SectionName));
     // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run (kini milik modul Payroll).
     builder.Services.AddScoped<PayrollInstallmentDeductionService>();
+    // Kebijakan regulasi penggajian berversi (tarif PPh dan iuran BPJS): pembaca kebijakan yang disahkan, dipakai mesin hitung dan kelengkapan data.
+    builder.Services.AddScoped<PayrollStatutoryPolicyResolver>();
+    builder.Services.AddScoped<PayrollTaxPolicyService>();
+    builder.Services.AddScoped<PayrollBpjsPolicyService>();
     builder.Services.AddScoped<PayrollCalculationService>();
     // Penyiapan profil payroll otomatis dari data HRD tanpa impor CSV (PAY-BE-24): dipanggil di dalam transaksi buka dan hitung payroll run.
     builder.Services.AddScoped<PayrollHrdSourceReader>();

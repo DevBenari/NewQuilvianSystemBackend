@@ -13,6 +13,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
+using System.Text.Json;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -324,23 +326,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                     });
                 }
 
-                if (slip.TotalDeduction > 0)
+                // Potongan iuran hanya dari nilai hasil hitung penerima; tidak ada perkiraan dari total potongan. Tanpa baris penerima,
+                // yang tersedia hanya total potongan dan ditampilkan apa adanya.
+                if (emp != null && emp.TotalEmployeeInsuranceContribution > 0)
                 {
                     deductions.Add(new PayslipItemLineDto
                     {
                         ComponentCode = "BPJS_CONTRIBUTION",
-                        ComponentName = "Iuran BPJS Kesehatan & TK",
+                        ComponentName = "Iuran Karyawan (BPJS/asuransi)",
                         ComponentCategory = "Deduction",
-                        Amount = emp?.TotalEmployeeInsuranceContribution ?? (slip.TotalDeduction * 0.6m)
+                        Amount = emp.TotalEmployeeInsuranceContribution
+                    });
+                }
+                else if (emp == null && slip.TotalDeduction > 0)
+                {
+                    deductions.Add(new PayslipItemLineDto
+                    {
+                        ComponentCode = "DEDUCTION_TOTAL",
+                        ComponentName = "Total Potongan (rincian tidak tersedia)",
+                        ComponentCategory = "Deduction",
+                        Amount = slip.TotalDeduction
                     });
                 }
 
+                // Label pajak diturunkan dari jenis, skema, cara hitung, dan versi kebijakan yang dipakai pada hasil hitung.
                 if (slip.TotalTax > 0)
                 {
                     deductions.Add(new PayslipItemLineDto
                     {
-                        ComponentCode = "PPH21_TER",
-                        ComponentName = "Pajak PPh 21 TER PMK 168/2023",
+                        ComponentCode = "INCOME_TAX",
+                        ComponentName = PayrollTaxLabels.BuildFromSnapshot(ReadTaxSnapshot(emp)),
                         ComponentCategory = "Tax",
                         Amount = slip.TotalTax
                     });
@@ -441,6 +456,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             }
         }
 
+        private static readonly JsonSerializerOptions SnapshotJsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+        /// <summary>Snapshot pajak penerima pada run; null bila tidak ada atau tidak terbaca.</summary>
+        private static PayrollTaxSnapshot? ReadTaxSnapshot(PrlPayrollRunEmployee? emp)
+        {
+            if (emp == null || string.IsNullOrWhiteSpace(emp.TaxSnapshotJson)) return null;
+            try { return JsonSerializer.Deserialize<PayrollTaxSnapshot>(emp.TaxSnapshotJson, SnapshotJsonOptions); }
+            catch (JsonException) { return null; }
+        }
+
         private static string HashToken(string token)
         {
             return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
@@ -454,7 +479,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             var empNik = slip.EmployeeNumberSnapshot ?? "-";
             var deptName = slip.DepartmentNameSnapshot ?? "Umum";
             var posName = slip.PositionNameSnapshot ?? "Staf";
-            var bpjsDed = emp?.TotalEmployeeInsuranceContribution ?? (slip.TotalDeduction * 0.6m);
+            var bpjsDed = emp?.TotalEmployeeInsuranceContribution ?? 0m;
+            var taxLabel = PayrollTaxLabels.BuildFromSnapshot(ReadTaxSnapshot(emp));
             var allowances = slip.GrossPay - slip.BaseSalary;
 
             var contentBuilder = new StringBuilder();
@@ -484,7 +510,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             contentBuilder.AppendLine("0 -20 Td");
             contentBuilder.AppendLine($"(- Potongan Iuran BPJS         : Rp {bpjsDed:N2}) Tj");
             contentBuilder.AppendLine("0 -15 Td");
-            contentBuilder.AppendLine($"(- Pemotongan PPh 21 TER       : Rp {slip.TotalTax:N2}) Tj");
+            contentBuilder.AppendLine($"(- {taxLabel} : Rp {slip.TotalTax:N2}) Tj");
             contentBuilder.AppendLine("0 -15 Td");
             contentBuilder.AppendLine($"(= TOTAL POTONGAN              : Rp {slip.TotalDeduction:N2}) Tj");
             contentBuilder.AppendLine("0 -25 Td");

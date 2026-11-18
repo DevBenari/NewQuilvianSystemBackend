@@ -1179,13 +1179,27 @@ public sealed class PayrollRunService
         var warnings = new List<string>(result.Warnings);
         warnings.AddRange(ForEmployee(validation.Warnings));
 
-        // ---- Pajak dan iuran: nominal dari tetapan profil payroll; nol pada keduanya = belum ditetapkan, bukan pajak sah Rp0 ----
-        var taxUnset = PayrollProfileRules.IsTaxInsuranceUnset(employee.TotalTax, employee.TotalEmployeeInsuranceContribution);
+        // ---- PPh dan iuran: dibaca dari snapshot hasil hitung (TaxSnapshotJson dan InsuranceSnapshotJson), bukan dari perbandingan nominal
+        // nol. Status konfigurasi, status hasil, dan alasannya ditetapkan saat hitung oleh PayrollTaxInsuranceRules; GET hanya membaca. ----
+        var taxSnapshot = ReadSnapshot<PayrollTaxSnapshot>(employee.TaxSnapshotJson);
+        var insuranceSnapshot = ReadSnapshot<PayrollInsuranceSnapshot>(employee.InsuranceSnapshotJson);
         var taxIssues = new List<string>();
         if (succeeded)
         {
-            if (!employee.TaxProfileId.HasValue) taxIssues.Add("Profil pajak belum diisi.");
-            if (taxUnset) taxIssues.Add("Tetapan PPh dan iuran belum ditetapkan (keduanya nol); nilai nol bukan pajak atau iuran yang sah.");
+            if (taxSnapshot is null || insuranceSnapshot is null)
+            {
+                // Run lama (dihitung sebelum snapshot ada): statusnya tidak dapat disimpulkan dari nominal. Run yang sudah dibekukan
+                // tidak dituduh; hitung ulang hanya relevan selama run masih menerima input.
+                if (!finalized)
+                    taxIssues.Add("Run dihitung sebelum snapshot konfigurasi PPh dan iuran tersedia; hitung ulang untuk mendapatkan status konfigurasinya.");
+            }
+            else
+            {
+                if (taxSnapshot.ConfigurationStatus != PayrollConfigurationStatuses.Configured)
+                    taxIssues.AddRange(taxSnapshot.Issues.Count > 0 ? taxSnapshot.Issues : new List<string> { "Konfigurasi PPh belum lengkap." });
+                if (insuranceSnapshot.ConfigurationStatus != PayrollConfigurationStatuses.Configured)
+                    taxIssues.AddRange(insuranceSnapshot.Issues.Count > 0 ? insuranceSnapshot.Issues : new List<string> { "Konfigurasi iuran belum lengkap." });
+            }
         }
 
         var state = finalized ? "SnapshotFrozen"
@@ -1301,9 +1315,79 @@ public sealed class PayrollRunService
             TotalOtherDeduction = otherDeduction,
             TotalEmployerInsuranceContribution = employee.TotalEmployerInsuranceContribution,
 
-            TaxCalculationSource = TaxCalculationSourceText,
-            TaxCalculationStatus = !succeeded ? "NotCalculated" : taxUnset ? "NotConfigured" : "Configured",
+            TaxCalculationSource = taxSnapshot is null ? TaxCalculationSourceText : DescribeTaxSource(taxSnapshot.Source),
+            // Kompatibel dengan klien lama: Configured hanya bila konfigurasi PPh dan iuran HRD lengkap; selain itu NotConfigured.
+            TaxCalculationStatus = !succeeded ? "NotCalculated" : taxIssues.Count > 0 ? "NotConfigured" : "Configured",
             TaxConfigurationIssues = taxIssues,
+            Tax = taxSnapshot is null ? null : new PayrollRunTaxResultResponse
+            {
+                Source = taxSnapshot.Source,
+                ConfigurationStatus = taxSnapshot.ConfigurationStatus,
+                ResultStatus = taxSnapshot.ResultStatus,
+                Article = taxSnapshot.Article,
+                RecipientCategory = taxSnapshot.RecipientCategory,
+                CalculationMode = taxSnapshot.CalculationMode,
+                TaxMethod = taxSnapshot.TaxMethod,
+                PtkpStatus = taxSnapshot.PtkpStatus,
+                PolicyVersion = taxSnapshot.PolicyVersion,
+                Treatment = taxSnapshot.Treatment,
+                EmployeeAmount = taxSnapshot.EmployeeAmount,
+                EmployerBorneAmount = taxSnapshot.EmployerBorneAmount,
+                EffectiveStartDate = taxSnapshot.EffectiveStartDate,
+                EffectiveEndDate = taxSnapshot.EffectiveEndDate,
+                DecisionBasis = taxSnapshot.DecisionBasis,
+                ExemptionReason = taxSnapshot.ExemptionReason,
+                Issues = taxSnapshot.Issues,
+                Warnings = taxSnapshot.Warnings,
+                PolicyId = taxSnapshot.PolicyId,
+                PolicyLegalBasis = taxSnapshot.PolicyLegalBasis,
+                ManualAmountApprovalStatus = taxSnapshot.ManualAmountApprovalStatus,
+                TaxYear = taxSnapshot.TaxYear,
+                TaxMonth = taxSnapshot.TaxMonth,
+                IsLastTaxPeriod = taxSnapshot.IsLastTaxPeriod,
+                TaxableGross = taxSnapshot.TaxableGross,
+                EmployerPremium = taxSnapshot.EmployerPremium,
+                EmployeePension = taxSnapshot.EmployeePension,
+                Detail = taxSnapshot.Detail
+            },
+            Insurance = insuranceSnapshot is null ? null : new PayrollRunInsuranceResultResponse
+            {
+                Source = insuranceSnapshot.Source,
+                ConfigurationStatus = insuranceSnapshot.ConfigurationStatus,
+                ResultStatus = insuranceSnapshot.ResultStatus,
+                ParticipationStatus = insuranceSnapshot.ParticipationStatus,
+                Programs = insuranceSnapshot.Programs,
+                PolicyVersion = insuranceSnapshot.PolicyVersion,
+                PolicyId = insuranceSnapshot.PolicyId,
+                PolicyLegalBasis = insuranceSnapshot.PolicyLegalBasis,
+                JkkRiskClass = insuranceSnapshot.JkkRiskClass,
+                WageBase = insuranceSnapshot.WageBase,
+                WageBaseItems = (insuranceSnapshot.WageBaseItems ?? new List<PayrollWageBaseItem>())
+                    .Select(i => new PayrollRunWageBaseItemResponse
+                    {
+                        Source = i.Source,
+                        Name = i.Name,
+                        Amount = i.Amount,
+                        Classification = i.Classification,
+                        Reason = i.Reason
+                    })
+                    .ToList(),
+                EmployeeTotal = insuranceSnapshot.EmployeeTotal,
+                EmployerTotal = insuranceSnapshot.EmployerTotal,
+                Lines = insuranceSnapshot.Lines
+                    .Select(l => new PayrollRunInsuranceLineResponse
+                    {
+                        Code = l.Code,
+                        Program = l.Program,
+                        PaidBy = l.PaidBy,
+                        BaseAmount = l.BaseAmount,
+                        Rate = l.Rate,
+                        Amount = l.Amount
+                    })
+                    .ToList(),
+                Issues = insuranceSnapshot.Issues,
+                Warnings = insuranceSnapshot.Warnings
+            },
 
             Installments = installments
         };
@@ -1312,10 +1396,27 @@ public sealed class PayrollRunService
     private const string InstallmentSourceType = "FinanceReceivableInstallment";
 
     /// <summary>
-    /// Nominal pajak dan iuran pegawai di jalur run aktif berasal dari tetapan profil payroll (PrlPayroll.TaxAmount/InsuranceAmount): belum
-    /// ada rumus PPh 21 atau BPJS yang disahkan dan terhubung ke perhitungan run ini. Kontribusi pemberi kerja tidak mengurangi gaji bersih.
+    /// Sumber PPh dan iuran bila run belum punya snapshot konfigurasi. Sumber resminya adalah konfigurasi HRD (Profil Pajak dan Profil
+    /// Iuran); skema otomatis PPh belum tersedia karena belum ada kebijakan tarif berversi. Kontribusi pemberi kerja tidak mengurangi
+    /// gaji bersih.
     /// </summary>
-    private const string TaxCalculationSourceText = "Tetapan profil payroll (rumus PPh 21 dan BPJS belum disahkan di perhitungan run)";
+    private const string TaxCalculationSourceText = "Konfigurasi HRD (Profil Pajak dan Profil Iuran); belum ada hasil hitung dengan snapshot konfigurasi";
+
+    private static readonly JsonSerializerOptions SnapshotJsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    private static T? ReadSnapshot<T>(string? json) where T : class
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try { return JsonSerializer.Deserialize<T>(json, SnapshotJsonOptions); }
+        catch (JsonException) { return null; }
+    }
+
+    private static string DescribeTaxSource(string source) => source switch
+    {
+        PayrollTaxInsuranceSources.HrdProfile => "Konfigurasi HRD (Profil Pajak) dan kebijakan tarif PPh berversi",
+        PayrollTaxInsuranceSources.LegacyProfileAmount => "Tetapan lama profil payroll (cadangan; konfigurasi HRD belum lengkap)",
+        _ => "Belum ada sumber PPh yang sah"
+    };
 
     /// <summary>Galat dan peringatan per penerima dari hasil hitung terakhir (CalculationResultJson). JSON lama tanpa daftar terbaca kosong.</summary>
     private static (List<string> Errors, List<string> Warnings) ReadEmployeeResult(string? json)

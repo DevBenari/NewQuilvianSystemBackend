@@ -50,11 +50,8 @@ public static class PayrollProfileRules
     /// </summary>
     public static bool CanAutoPrepare(bool hasSalaryAssignment, bool hasBankAccount) => hasSalaryAssignment && hasBankAccount;
 
-    /// <summary>
-    /// Tetapan PPh dan iuran per orang belum punya sumber di HRD dan rumus PPh/BPJS belum disahkan. Keduanya nol dianggap BELUM
-    /// ditetapkan, bukan hasil perhitungan yang sah.
-    /// </summary>
-    public static bool IsTaxInsuranceUnset(decimal taxAmount, decimal insuranceAmount) => taxAmount == 0m && insuranceAmount == 0m;
+    // Penentu kelengkapan PPh dan iuran BUKAN lagi "TaxAmount == 0 && InsuranceAmount == 0": nol bisa merupakan hasil yang sah. Status
+    // dinilai eksplisit dari konfigurasi HRD (PrlTax, PrlInsurance) oleh PayrollTaxInsuranceRules.
 }
 
 /// <summary>

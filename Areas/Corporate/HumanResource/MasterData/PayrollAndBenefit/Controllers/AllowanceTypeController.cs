@@ -285,6 +285,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 MaximumAmount = entity.MaximumAmount,
                 IsRecurring = entity.IsRecurring,
                 IsTaxable = entity.IsTaxable,
+                IsFixedAllowance = entity.IsFixedAllowance,
+                IncludeInBpjsWageBase = entity.IncludeInBpjsWageBase,
                 IsProrated = entity.IsProrated,
                 RequiresAttendance = entity.RequiresAttendance,
                 RequiresApproval = entity.RequiresApproval,
@@ -336,6 +338,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 MaximumAmount = request.MaximumAmount,
                 IsRecurring = request.IsRecurring,
                 IsTaxable = request.IsTaxable,
+                IsFixedAllowance = request.IsFixedAllowance,
+                IncludeInBpjsWageBase = request.IncludeInBpjsWageBase,
                 IsProrated = request.IsProrated,
                 RequiresAttendance = request.RequiresAttendance,
                 RequiresApproval = request.RequiresApproval,
@@ -394,6 +398,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             entity.MaximumAmount = request.MaximumAmount;
             entity.IsRecurring = request.IsRecurring;
             entity.IsTaxable = request.IsTaxable;
+            entity.IsFixedAllowance = request.IsFixedAllowance;
+            entity.IncludeInBpjsWageBase = request.IncludeInBpjsWageBase;
             entity.IsProrated = request.IsProrated;
             entity.RequiresAttendance = request.RequiresAttendance;
             entity.RequiresApproval = request.RequiresApproval;
@@ -501,6 +507,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 MaximumAmount = x.MaximumAmount,
                 IsRecurring = x.IsRecurring,
                 IsTaxable = x.IsTaxable,
+                IsFixedAllowance = x.IsFixedAllowance,
+                IncludeInBpjsWageBase = x.IncludeInBpjsWageBase,
                 IsProrated = x.IsProrated,
                 RequiresAttendance = x.RequiresAttendance,
                 RequiresApproval = x.RequiresApproval,
@@ -526,6 +534,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         {
             if (string.IsNullOrWhiteSpace(request.AllowanceTypeName))
                 return (false, "Nama allowance type wajib diisi.");
+
+            // Klasifikasi dasar upah BPJS: kedua isian ditetapkan bersamaan, dan hanya tunjangan tetap yang boleh masuk dasar upah.
+            if (request.IsFixedAllowance.HasValue != request.IncludeInBpjsWageBase.HasValue)
+                return (false, "Klasifikasi tunjangan tetap dan dasar upah BPJS harus diisi bersamaan (atau dikosongkan bersamaan).");
+            if (request.IncludeInBpjsWageBase == true && request.IsFixedAllowance != true)
+                return (false, "Hanya tunjangan tetap yang boleh masuk dasar upah BPJS.");
 
             if (!AllowedCategories.Contains(request.AllowanceCategory.Trim()))
                 return (false, "Allowance category tidak valid.");

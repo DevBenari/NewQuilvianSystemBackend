@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using System.Text.Json;
 
@@ -27,7 +29,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         {
             var setting = await GetOrCreateDefaultSettingAsync(cancellationToken);
 
-            return MapToDto(setting);
+            var dto = MapToDto(setting);
+            await ApplyPolicyStatusAsync(dto, cancellationToken);
+            return dto;
+        }
+
+        /// <summary>
+        /// Menandai status verifikasi nilai BPJS: tanpa kebijakan iuran BPJS yang disahkan dan berlaku hari ini, nilai pada pengaturan
+        /// ini berstatus "Menunggu Verifikasi Kebijakan" dan tidak dipakai payroll. Murni baca.
+        /// </summary>
+        private async Task ApplyPolicyStatusAsync(HrdPayrollSettingDto dto, CancellationToken cancellationToken)
+        {
+            var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+            var bpjs = await _context.Set<PrlBpjsPolicy>().AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive && x.PolicyStatus == StatutoryPolicyStatuses.Approved
+                    && x.EffectiveStartDate <= today && (x.EffectiveEndDate == null || x.EffectiveEndDate >= today))
+                .OrderByDescending(x => x.EffectiveStartDate)
+                .Select(x => new { x.Id, x.PolicyVersion })
+                .FirstOrDefaultAsync(cancellationToken);
+            var tax = await _context.Set<PrlTaxPolicy>().AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive && x.PolicyStatus == StatutoryPolicyStatuses.Approved
+                    && x.EffectiveStartDate <= today && (x.EffectiveEndDate == null || x.EffectiveEndDate >= today))
+                .OrderByDescending(x => x.EffectiveStartDate)
+                .Select(x => x.PolicyVersion)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            dto.BpjsPolicyApproved = bpjs is not null;
+            dto.BpjsPolicyId = bpjs?.Id;
+            dto.BpjsPolicyVersion = bpjs?.PolicyVersion;
+            dto.BpjsValuesStatus = bpjs is null ? "PENDING_VERIFICATION" : "REPLACED_BY_APPROVED_POLICY";
+            dto.BpjsValuesStatusLabel = bpjs is null
+                ? StatutoryPolicyLabels.AwaitingVerification
+                : $"Tidak dipakai payroll; tarif resmi mengikuti kebijakan {bpjs.PolicyVersion}";
+            dto.TaxPolicyApproved = tax is not null;
+            dto.TaxPolicyVersion = tax;
         }
 
         public async Task<HrdPayrollSettingDto> UpdateSettingAsync(
@@ -61,7 +96,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             _logger.LogInformation("Parameter master penggajian berhasil diperbarui oleh {UserId}.", actorUserId);
 
-            return MapToDto(setting);
+            var updated = MapToDto(setting);
+            await ApplyPolicyStatusAsync(updated, cancellationToken);
+            return updated;
         }
 
         public async Task<string> GetSettingSnapshotJsonAsync(CancellationToken cancellationToken = default)

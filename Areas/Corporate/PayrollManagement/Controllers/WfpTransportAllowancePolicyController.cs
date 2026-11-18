@@ -286,6 +286,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 IsAttendanceBased = request.IsAttendanceBased,
                 IsProrated = request.IsProrated,
                 IsTaxable = request.IsTaxable,
+                IsFixedAllowance = request.IsFixedAllowance,
+                IncludeInBpjsWageBase = request.IncludeInBpjsWageBase,
                 IsIncludedInPayroll = request.IsIncludedInPayroll,
                 IncludeBusinessTravelDay = request.IncludeBusinessTravelDay,
                 IncludePaidLeaveDay = request.IncludePaidLeaveDay,
@@ -353,6 +355,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             entity.IsAttendanceBased = request.IsAttendanceBased;
             entity.IsProrated = request.IsProrated;
             entity.IsTaxable = request.IsTaxable;
+            entity.IsFixedAllowance = request.IsFixedAllowance;
+            entity.IncludeInBpjsWageBase = request.IncludeInBpjsWageBase;
             entity.IsIncludedInPayroll = request.IsIncludedInPayroll;
             entity.IncludeBusinessTravelDay = request.IncludeBusinessTravelDay;
             entity.IncludePaidLeaveDay = request.IncludePaidLeaveDay;
@@ -550,6 +554,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 IsAttendanceBased = entity.IsAttendanceBased,
                 IsProrated = entity.IsProrated,
                 IsTaxable = entity.IsTaxable,
+                IsFixedAllowance = entity.IsFixedAllowance,
+                IncludeInBpjsWageBase = entity.IncludeInBpjsWageBase,
                 IsIncludedInPayroll = entity.IsIncludedInPayroll,
                 IncludeBusinessTravelDay = entity.IncludeBusinessTravelDay,
                 IncludePaidLeaveDay = entity.IncludePaidLeaveDay,
@@ -590,6 +596,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 IsAttendanceBased = response.IsAttendanceBased,
                 IsProrated = response.IsProrated,
                 IsTaxable = response.IsTaxable,
+                IsFixedAllowance = response.IsFixedAllowance,
+                IncludeInBpjsWageBase = response.IncludeInBpjsWageBase,
                 IsIncludedInPayroll = response.IsIncludedInPayroll,
                 IncludeBusinessTravelDay = response.IncludeBusinessTravelDay,
                 IncludePaidLeaveDay = response.IncludePaidLeaveDay,
@@ -618,6 +626,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
 
             if (!AllowedCalculationMethods.Contains(request.CalculationMethod.Trim()))
                 return (false, "CalculationMethod tidak valid.");
+
+            // Klasifikasi dasar upah BPJS: kedua isian ditetapkan bersamaan; hanya tunjangan tetap yang boleh masuk dasar upah; transportasi
+            // berbasis kehadiran atau per hari tidak pernah tunjangan tetap.
+            if (request.IsFixedAllowance.HasValue != request.IncludeInBpjsWageBase.HasValue)
+                return (false, "Klasifikasi tunjangan tetap dan dasar upah BPJS harus diisi bersamaan (atau dikosongkan bersamaan).");
+            if (request.IncludeInBpjsWageBase == true && request.IsFixedAllowance != true)
+                return (false, "Hanya tunjangan tetap yang boleh masuk dasar upah BPJS.");
+            if (request.IsFixedAllowance == true &&
+                (request.IsAttendanceBased || !string.Equals(request.CalculationMethod.Trim(), "FixedMonthly", StringComparison.OrdinalIgnoreCase)))
+            {
+                return (false, "Transportasi berbasis kehadiran atau per hari bukan tunjangan tetap; hanya metode FixedMonthly tanpa dasar kehadiran yang dapat diklasifikasikan sebagai tunjangan tetap.");
+            }
 
             if (request.EffectiveStartDate.HasValue &&
                 request.EffectiveEndDate.HasValue &&
