@@ -55,7 +55,7 @@ FE-AST-004 ✅┬─────────────────────
             │                                               │
             │  BE-AST-010 [BE] ✅ ─┐                        │
             │                     │                         │
-            ├─────────────────────┴─> FE-AST-007 ─────────┐ │
+            ├─────────────────────┴─> FE-AST-007 ✅ ──────┐ │
             │                                             │ │
             │    BE-AST-011 [BE] ─┐                       │ │
             │                     │                       │ │
@@ -137,11 +137,11 @@ Pasangan prasyarat→task: **18** (7 pada `REG-FE-S1`, 11 pada `REG-FE-S2`).
 | **Status** | ✅ **SELESAI 17 November 2026.** Layar Berita Acara Penyerahan (kartu ringkasan, tab status + "Menunggu Konfirmasi Anda (n)", saringan tujuan/unit/tanggal, aksi baris sesuai `availableActions`), Serahkan Aset (tujuan, unit → ruangan milik unit → pegawai PJ; pemilih aset lintas halaman maks 200, aset terkunci/hilang tidak dapat dipilih), rincian (Konfirmasi Terima, Tolak Terima, Batalkan beralasan, Cetak Berita Acara), dan tiga layar penempatan (per unit/ruangan, penanggung jawab, riwayat); grup menu "Penempatan & Tanggung Jawab Aset" 4 butir. Keempat kriteria terpetakan ke source; tanpa perubahan backend. `npx eslint --max-warnings=0` 27 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-17 15:31:36, 6 route `placement`). Uji layar Playwright **29/29 langkah** dengan penyerah (superadmin), penerima (Dimas), penyetuju tanpa hak, dan LOKET; 0 galat halaman, 0 respons 5xx. Dua perbaikan tampilan sesudah uji (footer tabel butir, lebar kolom Riwayat/daftar) lulus lint, rupanya dilihat sesudah build berikutnya. Penanda untuk Kepala Unit tujuan memakai jalur data yang sama, tetapi DB dev belum punya penugasan manajerial aktif. Belum di-commit. Laporan: [`FE-AST-006.md`](../task/report/frontend/FE-AST-006.md) |
 | Acceptance criteria | 1. `SCR-AST-REG-18..21`. 2. Kepala Unit melihat penanda "menunggu konfirmasi Anda". 3. Konfirmasi/tolak hanya bagi penerima yang dituju. 4. Cetak berita acara |
 
-### `FE-AST-007` — Kondisi dan status
+### ✅ `FE-AST-007` — Kondisi dan status
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 18 November 2026.** Pemeriksaan Kondisi (kartu, tab "Menunggu Penetapan"/"Menunggu Persetujuan Kehilangan", Tetapkan/Tolak/Setujui Hilang/Ditemukan Kembali, berita acara kehilangan), formulir Laporkan Kondisi (foto lewat `UploadPhotoField.jsx` dengan kamera, aset terisi dari daftar), Aset Aktif/Rusak Ringan-Berat/Tidak Digunakan/Hilang memakai satu view Daftar Inventaris bervarian, Riwayat Perubahan Status; grup menu "Kondisi & Status Aset" 6 butir. Ketiga kriteria terpetakan ke source; tanpa perubahan backend. `SCR-AST-REG-27` memakai laporan kondisi yang ditetapkan atas keputusan Rizki (delta dari `/reports/history` milik `BE-AST-013`). `npx eslint --max-warnings=0` 35 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-18 09:29:34). Uji layar Playwright **27/27 langkah** dengan pelapor (Dimas), superadmin, penyetuju tanpa hak, dan LOKET; 0 galat halaman, 0 respons 5xx. Ikut dikerjakan atas permintaan Rizki: formulir tambah master Aset diseragamkan dengan master Akuntansi; label pilihan aset kini memuat nomor inventaris (diperiksa di layar, belum masuk `BUILD_ID`). Belum di-commit. Laporan: [`FE-AST-007.md`](../task/report/frontend/FE-AST-007.md) |
 | Acceptance criteria | 1. `SCR-AST-REG-22..27`; empat daftar kondisi memakai satu komponen bersaringan tetap. 2. Foto memakai `UploadPhotoField.jsx`. 3. Setujui Hilang mewajibkan lampiran berita acara |
 
 ### `FE-AST-008` — Dokumen, pengamanan, pemanfaatan, menganggur
