@@ -396,7 +396,7 @@ BE-HRD-044 [BE] ─────────────────────�
 ```text
      BE-HRD-046 [BE] ─┐
                       │
-FE-HRD-029 ✅ [F6] ───┴─> FE-HRD-041 ─> FE-HRD-042 ─┬──┬──┬──┬──┬──┬─> FE-HRD-043
+FE-HRD-029 ✅ [F6] ───┴─> FE-HRD-041 ─> FE-HRD-042 ─┬──┬──┬──┬──┬──┬─> FE-HRD-043 ✅
                                                     │  │  │  │  │  │
 FE-HRD-030 🟡 [F6] ─────────────────────────────────┘  │  │  │  │  │
                                                        │  │  │  │  │
@@ -669,7 +669,7 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 | `FE-HRD-040` | `S-D1` · `MVP-9` | Panel potret gap pada Pemantauan Gap Tenaga | | `FE-HRD-035`, `BE-HRD-039` [BE] | — |
 | `FE-HRD-041` | `S-D1` · `MVP-10` | Layar Daftar Rencana Tahunan dan Addendum (`FE-HRD-104`) | 🟡 | `FE-HRD-029`, `BE-HRD-046` [BE] | [FE-HRD-R27.md](../task/report/frontend/FE-HRD-R27.md) |
 | `FE-HRD-042` | `S-D1` · `MVP-10` | Layar Penyusun dan Detail Rencana (`FE-HRD-105`) | 🟡 | `FE-HRD-041` | [FE-HRD-R27.md](../task/report/frontend/FE-HRD-R27.md) |
-| `FE-HRD-043` | `S-D1` · Verifikasi | Verifikasi menu, hak akses, dan keterjangkauan seluruh layar `S-D1` | | `FE-HRD-030`, `FE-HRD-031`, `FE-HRD-034`, `FE-HRD-038`, `FE-HRD-039`, `FE-HRD-040`, `FE-HRD-042` | — |
+| `FE-HRD-043` | `S-D1` · Verifikasi | Verifikasi menu, hak akses, dan keterjangkauan seluruh layar `S-D1` | ✅ | `FE-HRD-030`, `FE-HRD-031`, `FE-HRD-034`, `FE-HRD-038`, `FE-HRD-039`, `FE-HRD-040`, `FE-HRD-042` | [FE-HRD-R42.md](../task/report/frontend/FE-HRD-R42.md) |
 | `FE-HRD-044` | `S-D2` · `MVP-11` | Layar Antrean & Permintaan Requisition (`FE-HRD-110`, `/hr/recruitment/requisitions`) | ✅ | `BE-HRD-052` ✅ [BE] | [FE-HRD-044.md](../task/report/frontend/FE-HRD-044.md) |
 | `FE-HRD-045` | `S-D2` · `MVP-11` | Layar Detail & Draf Requisition (`FE-HRD-111`, `/hr/recruitment/requisitions/[id]`) | ✅ | `FE-HRD-044` ✅ | [FE-HRD-045.md](../task/report/frontend/FE-HRD-045.md) |
 | `FE-HRD-046` | `S-D2` · `MVP-11` | Layar Pengelolaan Lowongan Kerja (*Job Vacancies*) (`FE-HRD-112`, `/hr/recruitment/vacancies`) | ✅ | `FE-HRD-044` ✅, `BE-HRD-053` ✅ [BE] | [FE-HRD-046.md](../task/report/frontend/FE-HRD-046.md) |
@@ -1874,9 +1874,9 @@ FE-HRD-167 [F44] ───┴─────────────────
 * **Risiko & pemilik**: Pemilik: Frontend HR UI Lead. Risiko: angka biaya bocor ke pengguna tanpa hak lewat tooltip atau ekspor — tidak ada jalur tampilan biaya selain kolom yang dijaga `costVisible`.
 * **Definition of Done**: Penyusun dan detail rencana aktif sesuai kontrak; laporan tracked ada.
 
-### `FE-HRD-043` — Verifikasi menu, hak akses, dan keterjangkauan seluruh layar `S-D1`
+### ✅ `FE-HRD-043` — Verifikasi menu, hak akses, dan keterjangkauan seluruh layar `S-D1`
 * **Slice / MVP**: `S-D1` / Verifikasi
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R42` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: ✅ **SELESAI 18 November 2026** lewat `FE-HRD-R42` pada [frontend-unfinished-work.md](frontend-unfinished-work.md): 10/10 layar `S-D1` terjangkau (9 dari menu, formulir permintaan baru dari tombol **+ Buat Permintaan**); hak akses admin dan non-admin terbukti di browser. [Laporan](../task/report/frontend/FE-HRD-R42.md).
 * **Outcome**: Terbukti bahwa kesembilan butir menu `S-D1` terlihat sesuai hak akses setiap peran, ketiga belas layar dapat dicapai, butir lama tidak lagi bermakna sama, dan aturan tampilan yang mengikat dipatuhi di seluruh layar.
 * **Requirement/decision**: `AT-HRD-D1-22`; bagian layar `AT-HRD-D1-05b`, `AT-HRD-D1-06`, `AT-HRD-D1-11`, `AT-HRD-D1-16`; `04-prd-to-mvp.md` bagian 21.19 butir "Seluruh layar `S-D1` dapat dicapai lewat menu"; `03-frontend-architecture.md` bagian 12.4.
 * **Kontrak**: Frontend Architecture rev 3 bagian 12.2 dan 12.4; Permission v7 bagian 11.2.
@@ -2131,7 +2131,7 @@ FE-HRD-167 [F44] ───┴─────────────────
 
 ### `FE-HRD-057` — Verifikasi Menu, Hak Akses, dan Keterjangkauan Seluruh Layar Rekrutmen `S-D2`
 * **Slice / MVP**: `S-D2` / Verifikasi
-* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-057.md](../task/report/frontend/FE-HRD-057.md).
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-057.md](../task/report/frontend/FE-HRD-057.md). · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R46` 🟡 — 7 layar Rekrutmen termuat; NIK 5 digit ditolak (VR-REC-05). [Laporan](../task/report/frontend/FE-HRD-R46.md).
 * **Outcome**: Membuktikan bahwa seluruh 13 layar rekrutmen `S-D2` (`FE-HRD-110` s.d. `FE-HRD-122`) dapat diakses via navigasi sidebar menu "Rekrutmen & Seleksi", hak akses RBAC sesuai peran (HR Manager, Recruiter, Unit Assessor, K3RS Doctor, Finance Director, Dirut), dan aturan kerahasiaan medis staf ditaati.
 * **Requirement/decision**: `AT-HRD-D2-12`, `03-frontend-architecture.md` bagian 13.2 & 13.3, `04-prd-to-mvp.md` bagian 22.6.
 * **Kontrak**: Frontend Architecture rev 4 bagian 13.2, Permission v8 bagian 12.
@@ -2480,7 +2480,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-074` — Verifikasi menu, hak akses, dan keterjangkauan seluruh layar `S-C4-ONB`
 * **Slice / MVP**: `S-C4-ONB` / Verifikasi
-* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-074.md](../task/report/frontend/FE-HRD-074.md).
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-074.md](../task/report/frontend/FE-HRD-074.md). · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R46` 🟡 — 9 layar Onboarding & Kontrak termuat tanpa galat. [Laporan](../task/report/frontend/FE-HRD-R46.md).
 * **Outcome**: Kelima belas layar `FE-HRD-123` s.d. `FE-HRD-137` terjangkau dari menu atau dari layar induknya, tombol tersembunyi bagi peran yang tidak berhak, dan perubahan layar lama berfungsi.
 * **Requirement/decision**: `03-frontend-architecture.md` 14.1, 14.2, 14.5; `04-prd-to-mvp.md` 23.19.
 * **Kontrak**: Seluruh kontrak `v9` bagian `S-C4-ONB` yang dikonsumsi layar.
@@ -2713,7 +2713,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-087` — Verifikasi menu, hak akses peran, dan keterjangkauan seluruh layar `S-B4`
 * **Slice / MVP**: `S-B4` / Verifikasi
-* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-087.md](../task/report/frontend/FE-HRD-087.md).
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-087.md](../task/report/frontend/FE-HRD-087.md). · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R46` 🟡 — 3 layar Roster termuat; validasi periode kosong benar. [Laporan](../task/report/frontend/FE-HRD-R46.md).
 * **Outcome**: Seluruh layar `S-B4` (`FE-HRD-138` s.d. `FE-HRD-143`) terverifikasi terjangkau dari navigasi sidebar, hak akses peran teruji (Kepala Unit vs Kepala Bidang vs Admin), dan lolos uji linter CI/CD.
 * **Requirement/decision**: `03-frontend-architecture.md` 15.2, 15.4; `04-prd-to-mvp.md` 24.5.
 * **Kontrak**: Seluruh kontrak `v10` bagian `S-B4`.
@@ -3219,7 +3219,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-115` — Verifikasi ujung-ke-ujung antarmuka, linter, dan akses peran Slice `S-B2`
 * **Slice / MVP**: `S-B2` / Verifikasi
-* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-115.md](../task/report/frontend/FE-HRD-115.md).
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-115.md](../task/report/frontend/FE-HRD-115.md). · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R46` 🟡 — 7 layar Cuti termuat; validasi draf penyesuaian dan dialog tutup periode benar. [Laporan](../task/report/frontend/FE-HRD-R46.md).
 * **Outcome**: Seluruh 6 layar baru `S-B2` (`FE-HRD-150` s.d. `FE-HRD-155`) dan modal dialog pendukung terverifikasi terjangkau dari sidebar menu `Cuti & Perizinan`, hak akses peran teruji (Staf ESS vs Atasan Unit vs HR Manager), dan lolos uji linter CI/CD.
 * **Requirement/decision**: `03-frontend-architecture.md` 17.1, 17.2; `04-prd-to-mvp.md` 26.5 (DoD `S-B2`).
 * **Kontrak**: Seluruh kontrak `v12` bagian `S-B2`.
@@ -3474,7 +3474,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-129` — Verifikasi ujung-ke-ujung antarmuka, linter, dan akses peran Slice `S-B3`
 * **Slice / MVP**: `S-B3` / Verifikasi
-* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-129.md](../task/report/frontend/FE-HRD-129.md).
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-129.md](../task/report/frontend/FE-HRD-129.md). · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R45` ⛔ — 7 layar Lembur termuat dan simulasi galat lulus; keputusan verifikasi lembur belum diuji (task verifikasi terblokir delegasi). [Laporan](../task/report/frontend/FE-HRD-R45.md).
 * **Outcome**: Seluruh 6 layar baru `S-B3` (`FE-HRD-156` s.d. `FE-HRD-161`) dan modal drawer investigasi terverifikasi terjangkau dari sidebar menu navigasi `Manajemen Lembur`, hak akses peran teruji (Staf Medis ESS vs Supervisor Ruangan vs HR Attendance vs Direktur Medik vs HR Payroll), dan lolos uji ketat linter CI/CD.
 * **Requirement/decision**: `03-frontend-architecture.md` 18.1, 18.2; `04-prd-to-mvp.md` 27.5 (DoD `S-B3`).
 * **Kontrak**: Seluruh kontrak `v13` bagian `S-B3`.
@@ -4001,7 +4001,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### ✅ `FE-HRD-157` — Verifikasi ujung-ke-ujung antarmuka UI/UX, linter CI/CD, build Next.js, dan hak akses peran Slice S-B6
 * **Slice / MVP**: `S-B6` / Verifikasi
-* **Status**: ✅ Selesai (`PASS`)
+* **Status**: ✅ Selesai (`PASS`) · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R46` 🟡 — 5 layar Restitusi termuat; tab voucher kasir tersedia; batas potongan dikoreksi otomatis ke 10–100%. [Laporan](../task/report/frontend/FE-HRD-R46.md).
 * **Outcome**: Audit komprehensif kepatuhan antarmuka frontend, zero error linter CI/CD (`npm run lint:errors`), verifikasi kompilasi produksi standalone Next.js App Router (`npm run build`), kepatuhan akses peran RBAC, serta pemenuhan seluruh kriteria UAT `UAT-DED-01` s.d. `UAT-DED-05`.
 * **Requirement/decision**: `03-frontend-architecture.md` Bagian 20.1 & 20.2, `04-prd-to-mvp.md` Bagian 29.4 & 29.5.
 * **Kontrak**: Seluruh kontrak operasional `v15` Slice `S-B6`.
@@ -4228,7 +4228,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### ✅ `FE-HRD-171` — Verifikasi ujung-ke-ujung antarmuka UI/UX, linter CI/CD, build Next.js, dan hak akses peran Slice S-D3
 * **Slice / MVP**: `S-D3` / `MVP-38` & Verifikasi
-* **Status**: ✅ Selesai (`PASS`)
+* **Status**: ✅ Selesai (`PASS`) · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R46` 🟡 — 11 layar Manfaat termuat tanpa galat. [Laporan](../task/report/frontend/FE-HRD-R46.md).
 * **Outcome**: Audit komprehensif seluruh layar modul benefit (`FE-HRD-174` s.d. `FE-HRD-179`), verifikasi konsistensi token visual Quilvian, validasi linting CI/CD bebas error (`npm run lint:errors`), verifikasi kompilasi produksi standalone Next.js App Router (`npm run build`), kepatuhan akses peran RBAC, dan pemenuhan seluruh kriteria UAT `UAT-HRD-BEN-01` s.d. `UAT-HRD-BEN-05`.
 * **Requirement/decision**: `03-frontend-architecture.md` Bagian 21.1 & 21.2, `04-prd-to-mvp.md` Bagian 30.4 & 30.5.
 * **Kewenangan UI**: Kepatuhan penuh standar antarmuka Next.js Quilvian.
@@ -4485,7 +4485,7 @@ FE-HRD-182 [F48] ───┴─────────────────
 
 #### ✅ `FE-HRD-185` — Pusat Arsip Digital Kepegawaian (Dokumen Saya ESS), Kartu PIN Rahasia & Verifikasi Ujung-ke-Ujung Slice `S-D4` (`FE-HRD-186`)
 * **Slice / MVP**: `S-D4` / `MVP-41` & Verifikasi
-* **Status**: ✅ PASS
+* **Status**: ✅ PASS · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R45` ⛔ — 5 layar Layanan SDM termuat dan simulasi galat lulus; resolusi tiket belum diuji (task verifikasi terblokir delegasi). [Laporan](../task/report/frontend/FE-HRD-R45.md).
 * **Outcome**: Antarmuka repositori mandiri "Dokumen Saya" di portal ESS, kartu pengungkapan PIN privat berproteksi password, audit komprehensif linter CI/CD (`npm run lint:errors`), build Next.js produksi (`npm run build`), dan validasi seluruh skenario UAT.
 * **Requirement/decision**: `HRD-DEC-145`, `03-frontend-architecture.md` Layar `FE-HRD-186`, `04-prd-to-mvp.md` Bagian 31.4 & 31.5.
 * **Cakupan**: `src/app/portal/services/my-documents/page.jsx`.
@@ -4679,7 +4679,7 @@ BE-HRD-221 [BE] ────┘
 
 #### ✅ `FE-HRD-200` — Verifikasi Integrasi Menyeluruh Next.js, Linting 0 Error & UAT Acceptance `S-C1`
 * **Slice / MVP**: `S-C1` / Verifikasi
-* **Status**: ✅ PASS
+* **Status**: ✅ PASS · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R44` 🟡 — 10 layar kredensial termuat dan tersembunyi dari pegawai non-admin; PSV yang menampilkan 0 saat radar gagal diperbaiki; alur tulis belum diuji. [Laporan](../task/report/frontend/FE-HRD-R44.md).
 * **Outcome**: Verifikasi kompilasi produksi Next.js App Router (`npm run build`), audit ketat linter CI/CD (`npm run lint:errors`) dengan hasil 0 error, verifikasi responsive rendering di desktop/tablet/mobile, serta verifikasi kelulusan skenario UAT 1-5.
 * **Dependencies**: Seluruh task frontend `FE-HRD-186` s.d. `FE-HRD-199` dan `BE-HRD-221`
 * **Acceptance Criteria**: Build standalone Next.js sukses; linter 0 error 0 warning; seluruh 8 layar baru beroperasi mulus dan aman.
@@ -4857,7 +4857,7 @@ BE-HRD-237 [BE] ───┘
 
 #### ✅ `FE-HRD-215` — Verifikasi Integrasi Menyeluruh Next.js, Linting 0 Error & UAT Acceptance `S-C1-OPPE`
 * **Slice / MVP**: `S-C1-OPPE` / Verifikasi
-* **Status**: ✅ PASS
+* **Status**: ✅ PASS · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R44` 🟡 — 7 layar OPPE/FPPE/rekredensial termuat; simulasi `500`/`403` menampilkan pesan jelas; alur tulis belum diuji. [Laporan](../task/report/frontend/FE-HRD-R44.md).
 * **Outcome**: Verifikasi kompilasi produksi Next.js App Router (`npm run build`), audit ketat linter CI/CD (`npm run lint:errors`) dengan hasil 0 error, verifikasi responsive rendering di desktop/tablet/mobile, serta verifikasi kelulusan skenario `UAT-OPP-01` s.d. `UAT-OPP-05`.
 * **Dependencies**: Seluruh task frontend `FE-HRD-201` s.d. `FE-HRD-214` dan `BE-HRD-237`
 * **Acceptance Criteria**: Build standalone Next.js sukses; linter 0 error 0 warning; seluruh 8 layar baru beroperasi mulus dan aman.
@@ -5045,7 +5045,7 @@ BE-HRD-253 [BE] ───┘
 
 #### ✅ `FE-HRD-230` — Verifikasi Integrasi Menyeluruh Next.js App Router, Linting 0 Error & UAT Acceptance `S-C2`
 * **Slice / MVP**: `S-C2` / Verifikasi
-* **Status**: ✅ PASS
+* **Status**: ✅ PASS · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R46` 🟡 — 8 layar Diklat termuat; crash Portofolio SKP diperbaiki dan terverifikasi. [Laporan](../task/report/frontend/FE-HRD-R46.md).
 * **Outcome**: Verifikasi kompilasi produksi Next.js App Router (`npm run build`), audit ketat linter CI/CD (`npm run lint:errors`) dengan hasil 0 error, verifikasi responsive rendering di desktop/tablet/mobile, pengujian interaksi 8 layar antarmuka baru, serta pembuktian kelulusan skenario `UAT-01` s.d. `UAT-05` secara visual dan fungsional.
 * **Dependencies**: Seluruh task frontend `FE-HRD-216` s.d. `FE-HRD-229` dan task verifikasi backend `BE-HRD-253`.
 * **Acceptance Criteria**: Build standalone Next.js sukses tanpa peringatan kritis; linter 0 error 0 warning; seluruh 8 layar baru dan 5 modal beroperasi konsisten.
@@ -5241,7 +5241,7 @@ Legenda:
 
 #### ✅ `FE-HRD-245` — Verifikasi Menyeluruh Next.js App Router, Linting 0 Error & UAT Acceptance `S-C3`
 * **Slice / MVP**: `S-C3` / Verifikasi
-* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error) · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R46` 🟡 — Penilaian Kinerja dan Keberatan HTTP 500 karena backend `GET my-appraisal`; 6 layar lain termuat. [Laporan](../task/report/frontend/FE-HRD-R46.md).
 * **Outcome**: Eksekusi audit integritas frontend Next.js: pemeriksaan linting `npm run lint:errors` menghasilkan 0 error, build produksi `npm run build` sukses tanpa warning kritis, validasi konsistensi design tokens dan base components Quilvian, verifikasi kelancaran alur kerja UI ujung-ke-ujung (E2E), serta pengujian penerimaan terhadap 5 skenario UAT utama Sub-Modul 17.
 * **Dependencies**: Seluruh task frontend `FE-HRD-231` s.d. `FE-HRD-244` dan task verifikasi backend `BE-HRD-269`.
 * **Acceptance Criteria**: Linting lulus 0 error; build produksi Next.js standalone sukses; seluruh 8 layar dan 5 modal dialog beroperasi mulus; 5 skenario UAT terverifikasi lulus.
@@ -5624,7 +5624,7 @@ FE-HRD-274 [F73] ─┘
 
 #### ✅ `FE-HRD-275` — Integrasi Navigasi Sidebar K3RS, Indikator Hard-Stop Roster Sub-06 & Uji Linter Build E2E
 * **Slice / MVP**: `S-C6` / Verifikasi
-* **Status**: ✅ PASS
+* **Status**: ✅ PASS · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R44` 🟡 — 8 layar K3RS termuat; menu K3RS masih terlihat oleh pegawai non-admin; alur tulis belum diuji. [Laporan](../task/report/frontend/FE-HRD-R44.md).
 * **Outcome**: Pendaftaran rute dan menu navigasi K3RS pada sidebar utama modul HRD Next.js App Router, integrasi badge peringatan kelaikan medis pada modul penyusunan roster Sub-06 (menampilkan tooltip restriksi dinas), serta eksekusi audit kualitas frontend secara menyeluruh: validasi linting `npm run lint:errors` lulus 0 error dan kompilasi build produksi `npm run build` sukses 100%.
 * **Dependencies**: Seluruh task frontend `FE-HRD-261` s.d. `FE-HRD-274` serta task backend `BE-HRD-301` [BE]
 * **Acceptance Criteria**: Menu K3RS tampil rapi sesuai permission user; gembok restriksi muncul di layar roster Sub-06; `npm run lint:errors` dan `npm run build` lulus tanpa error.
@@ -5805,7 +5805,7 @@ BE-HRD-317 ⏳ [BE] ────────────────────
 
 #### ✅ `FE-HRD-290` — Pendaftaran Navigasi Sidebar, Prompt Otomasi Plh Cuti (`INT-HR-94`) & Uji Build Linting Standalone
 * **Slice / MVP**: `S-A7-V2` / Verifikasi
-* **Status**: ✅ PASS
+* **Status**: ✅ PASS · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R45` ⛔ — 6 layar termuat; penerbitan surat kuasa Plh HTTP 500 (`CK_TrxApprovalDelegation_WorkflowScope`, backend). [Laporan](../task/report/frontend/FE-HRD-R45.md).
 * **Outcome**: Pendaftaran seluruh rute menu navigasi kotak masuk persetujuan dan portal ESS pada sidebar utama aplikasi Next.js App Router, integrasi prompt modal otomatis pembuatan delegasi Plh saat pengajuan cuti pejabat disetujui di modul Sub-08 (`INT-HR-94`), serta eksekusi audit kualitas frontend secara menyeluruh: validasi linting `npm run lint:errors` lulus 0 error dan kompilasi build produksi `npm run build` sukses 100%.
 * **Dependencies**: Seluruh task frontend `FE-HRD-276` s.d. `FE-HRD-289` serta task backend `BE-HRD-317` [BE]
 * **Acceptance Criteria**: Menu approvals dan self-service tampil rapi sesuai permission akun; prompt Plh muncul saat cuti disetujui; `npm run lint:errors` dan `npm run build` lulus tanpa error.
@@ -5982,7 +5982,7 @@ BE-HRD-333 ⏳ [BE]  ───────────────────�
 
 #### ✅ `FE-HRD-305` — Integrasi Navigasi Sidebar, Penanda Indikator Hard-Stop Roster Sub-06 & Uji Linter Build Standalone
 * **Slice / MVP**: `S-D5` / Verifikasi
-* **Status**: ✅ PASS
+* **Status**: ✅ PASS · Gelombang 4 (18 Nov 2026): diverifikasi ulang di browser lewat `FE-HRD-R45` ⛔ — 8 layar SPPD termuat dan simulasi galat lulus; keputusan settlement belum diuji (task verifikasi terblokir delegasi). [Laporan](../task/report/frontend/FE-HRD-R45.md).
 * **Outcome**: Pendaftaran seluruh rute menu navigasi Perjalanan Dinas & Biaya pada sidebar utama modul HRD Next.js App Router, integrasi badge peringatan penugasan dinas luar kota pada modul penyusunan roster dinas Sub-06 (memicu tooltip hard-stop jadwal bangsal), serta eksekusi audit kualitas frontend menyeluruh: validasi linter `npm run lint:errors` lulus 0 error dan kompilasi build produksi `npm run build` sukses 100%.
 * **Dependencies**: Seluruh task frontend `FE-HRD-291` s.d. `FE-HRD-304` serta task backend `BE-HRD-333` [BE]
 * **Acceptance Criteria**: Menu travel & expenses tampil rapi sesuai hak akses; indikator hard-stop aktif di roster Sub-06; `npm run lint:errors` dan `npm run build` lulus tanpa error.

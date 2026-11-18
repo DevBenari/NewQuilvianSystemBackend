@@ -465,12 +465,12 @@ FE-HRD-R11 ✅ ─┬─> FE-HRD-R23 🟡 ─> FE-HRD-R35 🟡
 ### Grafik G2 — Layar yang belum dikerjakan (`S-D1`, `S-B1`)
 
 ```text
-FE-HRD-R12 🟡 ─┬─> FE-HRD-R26 🟡 ─> FE-HRD-R36 🟡 ─┬─> FE-HRD-R42
-               │                             │
-               └─> FE-HRD-R27 🟡 ────────────┘
+FE-HRD-R12 🟡 ─┬─> FE-HRD-R26 🟡 ─> FE-HRD-R36 🟡 ─┬─> FE-HRD-R42 ✅
+               │                                   │
+               └─> FE-HRD-R27 🟡 ──────────────────┘
 
 FE-HRD-R13 🟡 ─┬─> FE-HRD-R28 🟡 ─┬─> FE-HRD-R43 🟡
-               │               │
+               │                  │
                └─> FE-HRD-R29 🟡 ─┘
 ```
 
@@ -478,50 +478,50 @@ FE-HRD-R13 🟡 ─┬─> FE-HRD-R28 🟡 ─┬─> FE-HRD-R43 🟡
 
 ```text
 FE-HRD-R14 🟡 [G1] ─┐
-                 │
+                    │
 FE-HRD-R15 🟡 [G1] ─┴─┐
-                   │
-FE-HRD-R30 [G1] ───┴─┐
-                     │
-FE-HRD-R32 🟡 [G1] ─────┴─> FE-HRD-R44
+                      │
+FE-HRD-R30 [G1] ──────┴─┐
+                        │
+FE-HRD-R32 🟡 [G1] ─────┴─> FE-HRD-R44 🟡
 
-FE-HRD-R31 [G1] ─┐
-                 │
+FE-HRD-R31 [G1] ────┐
+                    │
 FE-HRD-R33 🟡 [G1] ─┴─┐
-                   │
+                      │
 FE-HRD-R34 🟡 [G1] ───┴─┐
-                     │
-FE-HRD-R35 🟡 [G1] ─────┴─> FE-HRD-R45
+                        │
+FE-HRD-R35 🟡 [G1] ─────┴─> FE-HRD-R45 ⛔
 
 FE-HRD-R16 🟡 [G1] ─┐
-                 │
+                    │
 FE-HRD-R17 🟡 [G1] ─┴─┐
-                   │
-FE-HRD-R24 🟡 [G1] ─┴─┐
-                     │
-FE-HRD-R25 🟡 [G1] ──┴─┐
-                       │
+                      │
+FE-HRD-R24 🟡 [G1] ───┴─┐
+                        │
+FE-HRD-R25 🟡 [G1] ─────┴─┐
+                          │
 FE-HRD-R37 🟡 [G1] ───────┴─┐
-                         │
+                            │
 FE-HRD-R38 🟡 [G1] ─────────┴─┐
-                           │
+                              │
 FE-HRD-R39 🟡 [G1] ───────────┴─┐
-                             │
+                                │
 FE-HRD-R40 🟡 [G1] ─────────────┴─┐
-                               │
-FE-HRD-R41 🟡 [G1] ───────────────┴─> FE-HRD-R46
+                                  │
+FE-HRD-R41 🟡 [G1] ───────────────┴─> FE-HRD-R46 🟡
 
-FE-HRD-R01 ✅ ───┐
-                 │
-FE-HRD-R42 [G2] ─┴─┐
-                   │
+FE-HRD-R01 ✅ ──────┐
+                    │
+FE-HRD-R42 ✅ [G2] ─┴─┐
+                      │
 FE-HRD-R43 🟡 [G2] ───┴─┐
-                     │
-FE-HRD-R44 [G3] ─────┴─┐
-                       │
-FE-HRD-R45 [G3] ───────┴─┐
-                         │
-FE-HRD-R46 [G3] ─────────┴─> FE-HRD-R47
+                        │
+FE-HRD-R44 🟡 [G3] ─────┴─┐
+                          │
+FE-HRD-R45 ⛔ [G3] ───────┴─┐
+                            │
+FE-HRD-R46 🟡 [G3] ─────────┴─> FE-HRD-R47
 ```
 
 ### Grafik G4 — Task yang tertahan keputusan
@@ -631,11 +631,11 @@ yang boleh diberikan adalah `READY_WITH_CONDITIONS`, dengan pemilik dan mitigasi
 | `FE-HRD-R39` | 3 | S-D2 | Migrasi Rekrutmen dan perbaikan isian UUID | `FE-HRD-044`–`056` | `FE-HRD-R14` | 🟡 13 layar bermigrasi, 13 isian UUID menjadi pilihan bernama, formulir kembali berfungsi; unggah dokumen kandidat/MCU terblokir backend. [Laporan](../task/report/frontend/FE-HRD-R39.md) |
 | `FE-HRD-R40` | 3 | S-B6 | Migrasi Restitusi dan pasang layar yang tertinggal | `FE-HRD-146`–`156` | `FE-HRD-R14` | 🟡 rute `deductions/approvals` dibuat, pratinjau nota dan voucher QR dapat dibuka dari menu, data contoh dihapus; unggah nota terblokir backend. [Laporan](../task/report/frontend/FE-HRD-R40.md) |
 | `FE-HRD-R41` | 3 | S-A1 s.d. S-A7, S-C4, FE-020 | Migrasi layar administrasi dan ESS lama | `FE-HRD-002`–`008`, `017`, `020` | `FE-HRD-R14` | 🟡 elemen mentah dan prop salah pada layar sisa dimigrasi (modal exit clearance dan label tombol ESS kembali benar); 3 elemen unik dipertahankan. [Laporan](../task/report/frontend/FE-HRD-R41.md) |
-| `FE-HRD-R42` | 4 | S-D1 | Verifikasi `S-D1` | `FE-HRD-043` | `FE-HRD-R27`, `FE-HRD-R36` | Belum |
+| `FE-HRD-R42` | 4 | S-D1 | Verifikasi `S-D1` | `FE-HRD-043` | `FE-HRD-R27`, `FE-HRD-R36` | ✅ 18 Nov 2026 — 10/10 layar terjangkau (9 menu + 1 tombol), hak akses admin/non-admin benar di browser. [Laporan](../task/report/frontend/FE-HRD-R42.md) |
 | `FE-HRD-R43` | 3 | S-B1 | Verifikasi `S-B1` | `FE-HRD-101` | `FE-HRD-R28`, `FE-HRD-R29` | 🟡 8/8 rute S-B1 terjangkau dari menu (2 layar ESS ditambahkan), permission cocok dengan backend; `live-browser-testing` belum dijalankan. [Laporan](../task/report/frontend/FE-HRD-R43.md) |
-| `FE-HRD-R44` | 4 | S-C6, S-C5, S-C1, S-C1-OPPE | Verifikasi layar klinis dan keselamatan | `FE-HRD-200`, `215`, `275` | `FE-HRD-R14`, `FE-HRD-R15`, `FE-HRD-R30`, `FE-HRD-R32` | Belum |
-| `FE-HRD-R45` | 4 | S-A7-V2, S-D5, S-D4, S-B3 | Verifikasi layar operasional | `FE-HRD-290`, `305`, `185`, `129` | `FE-HRD-R31`, `FE-HRD-R33`, `FE-HRD-R34`, `FE-HRD-R35` | Belum |
-| `FE-HRD-R46` | 4 | S-C2, S-C3, S-D3, S-C4-ONB, S-B2, S-B4, S-D2, S-B6, lama | Verifikasi layar pengembangan dan administrasi | `FE-HRD-230`, `245`, `171`, `074`, `115`, `087`, `057`, `157` | `FE-HRD-R16`, `FE-HRD-R17`, `FE-HRD-R24`, `FE-HRD-R25`, `FE-HRD-R37`, `FE-HRD-R38`, `FE-HRD-R39`, `FE-HRD-R40`, `FE-HRD-R41` | Belum |
+| `FE-HRD-R44` | 4 | S-C6, S-C5, S-C1, S-C1-OPPE | Verifikasi layar klinis dan keselamatan | `FE-HRD-200`, `215`, `275` | `FE-HRD-R14`, `FE-HRD-R15`, `FE-HRD-R30`, `FE-HRD-R32` | 🟡 18 Nov 2026 — 32 layar dan simulasi `500`/`403` lulus (PSV diperbaiki); alur tulis klinis belum diuji. [Laporan](../task/report/frontend/FE-HRD-R44.md) |
+| `FE-HRD-R45` | 4 | S-A7-V2, S-D5, S-D4, S-B3 | Verifikasi layar operasional | `FE-HRD-290`, `305`, `185`, `129` | `FE-HRD-R31`, `FE-HRD-R33`, `FE-HRD-R34`, `FE-HRD-R35` | ⛔ 18 Nov 2026 — penerbitan Plh HTTP 500 (`CK_TrxApprovalDelegation_WorkflowScope`, backend); 26 layar dan simulasi lulus. [Laporan](../task/report/frontend/FE-HRD-R45.md) |
+| `FE-HRD-R46` | 4 | S-C2, S-C3, S-D3, S-C4-ONB, S-B2, S-B4, S-D2, S-B6, lama | Verifikasi layar pengembangan dan administrasi | `FE-HRD-230`, `245`, `171`, `074`, `115`, `087`, `057`, `157` | `FE-HRD-R16`, `FE-HRD-R17`, `FE-HRD-R24`, `FE-HRD-R25`, `FE-HRD-R37`, `FE-HRD-R38`, `FE-HRD-R39`, `FE-HRD-R40`, `FE-HRD-R41` | 🟡 18 Nov 2026 — SKP, 4 ESS lama, Slip Gaji, dan PIN diperbaiki dan terverifikasi; Penilaian/Keberatan 500 karena backend. [Laporan](../task/report/frontend/FE-HRD-R46.md) |
 | `FE-HRD-R47` | 5 | Semua | Audit akhir dan pembaruan status | Seluruh task | `FE-HRD-R01`, `FE-HRD-R42`, `FE-HRD-R43`, `FE-HRD-R44`, `FE-HRD-R45`, `FE-HRD-R46` | Belum |
 | `FE-HRD-R48` | ⛔ | Bersama | Base component `BaseDrawer` | Kelompok F | `{DEC-FER-01}` | ⛔ |
 | `FE-HRD-R49` | ⛔ | Bersama | Base component `BaseFileUpload` | Kelompok F | `{DEC-FER-02}` | ⛔ |
@@ -1284,7 +1284,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Definition of Done**: `DoD`
 * **Status**: 🟡 **SEBAGIAN 16 November 2026.** Sisa layar administrasi dan ESS lama bermigrasi; modal exit clearance yang tidak pernah terbuka dan label tombol ESS "Hapus" diperbaiki. Lifecycle dan approvals V2 sudah bersih sejak Gelombang 2/R33; 3 elemen unik dipertahankan. ESLint target 0 error, CSS gate 0 temuan, build 832 halaman; `VISUAL CHECK: NOT FEASIBLE`. [Laporan](../task/report/frontend/FE-HRD-R41.md).
 
-#### `FE-HRD-R42` — Verifikasi `S-D1`
+#### ✅ `FE-HRD-R42` — Verifikasi `S-D1`
 * **Slice / Gelombang**: S-D1 / 4
 * **Task asal**: `FE-HRD-043`
 * **Outcome**: Menu, hak akses, dan keterjangkauan `S-D1` terbukti.
@@ -1297,6 +1297,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: ✅ **SELESAI 18 November 2026.** `live-browser-testing`: 10/10 layar `S-D1` terjangkau — 9 dari menu, `/headcount-requests/baru` dari tombol **+ Buat Permintaan**. Admin 10/10 termuat tanpa 5xx/crash; non-admin 0/9 menu terlihat dan 9/10 layar menolak dengan pesan tanpa hak (Pengaturan Perencanaan tanpa pesan, P3). Tidak ada source yang diubah. `npm run build` pada HEAD `f7a1f0917` gagal di berkas di luar cakupan (`employee-job-descriptions-view.jsx`, impor `getTodayDate`). `VISUAL CHECK: PASS`. [Laporan](../task/report/frontend/FE-HRD-R42.md) · [Uji live](../testing/test-by-agy/laporan-live-testing-gelombang4-perencanaan-tenaga-kerja.md).
 
 #### 🟡 `FE-HRD-R43` — Verifikasi `S-B1`
 * **Slice / Gelombang**: S-B1 / 3
@@ -1313,7 +1314,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Definition of Done**: `DoD`
 * **Status**: 🟡 **SEBAGIAN 16 November 2026.** Verifikasi statis: 8/8 rute S-B1 terjangkau dari menu setelah 2 layar ESS ditambahkan; seluruh permission cocok dengan backend. Uji `live-browser-testing` per peran belum dijalankan. ESLint target 0 error, CSS gate 0 temuan, build 832 halaman; `VISUAL CHECK: NOT FEASIBLE`. [Laporan](../task/report/frontend/FE-HRD-R43.md).
 
-#### `FE-HRD-R44` — Verifikasi layar klinis dan keselamatan
+#### 🟡 `FE-HRD-R44` — Verifikasi layar klinis dan keselamatan
 * **Slice / Gelombang**: S-C6, S-C5, S-C1, S-C1-OPPE / 4
 * **Task asal**: `FE-HRD-200`, `215`, `275`
 * **Outcome**: Alur klinis terbukti berjalan.
@@ -1326,8 +1327,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko: butuh data uji. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 18 November 2026.** 32 layar dimuat admin dan non-admin tanpa 5xx/crash; simulasi `500`/`403` di 5 layar menampilkan pesan jelas setelah PSV diperbaiki (radar gagal tidak lagi tampil 0). Belum terpenuhi: skenario keberhasilan alur **tulis** klinis (kelaikan kerja, insiden, PSV, FPPE) karena penulisan data di luar izin Gelombang 4. ESLint 0 error, CSS gate 0 temuan; build HEAD gagal di berkas di luar cakupan. `VISUAL CHECK: PASS`. [Laporan](../task/report/frontend/FE-HRD-R44.md) · [Uji live](../testing/test-by-agy/laporan-live-testing-gelombang4-klinis-keselamatan.md).
 
-#### `FE-HRD-R45` — Verifikasi layar operasional
+#### ⛔ `FE-HRD-R45` — Verifikasi layar operasional
 * **Slice / Gelombang**: S-A7-V2, S-D5, S-D4, S-B3 / 4
 * **Task asal**: `FE-HRD-290`, `305`, `185`, `129`
 * **Outcome**: Alur persetujuan, dinas, layanan, dan lembur terbukti.
@@ -1340,8 +1342,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko: butuh data uji. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: ⛔ **TERBLOKIR 18 November 2026** — blocker `BE: ApprovalDelegationV2Service tidak mengisi cakupan delegasi (CK_TrxApprovalDelegation_WorkflowScope)`. Satu-satunya penulisan yang diizinkan, yaitu penerbitan surat kuasa Plh, selalu HTTP 500, sehingga AC "keputusan tetap tersimpan setelah dimuat ulang" tidak dapat dibuktikan. Tidak ada data tersimpan. 26 layar termuat; simulasi `500`/`403` 8/8 pesan jelas; validasi formulir Plh benar. [Laporan](../task/report/frontend/FE-HRD-R45.md) · [Uji live](../testing/test-by-agy/laporan-live-testing-gelombang4-operasional.md).
 
-#### `FE-HRD-R46` — Verifikasi layar pengembangan dan administrasi
+#### 🟡 `FE-HRD-R46` — Verifikasi layar pengembangan dan administrasi
 * **Slice / Gelombang**: S-C2, S-C3, S-D3, S-C4-ONB, S-B2, S-B4, S-D2, S-B6, lama / 4
 * **Task asal**: `FE-HRD-230`, `245`, `171`, `074`, `115`, `087`, `057`, `157`
 * **Outcome**: Sisa slice terbukti tidak regresi.
@@ -1354,6 +1357,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 18 November 2026.** Regresi frontend diperbaiki dan terverifikasi di browser: crash Portofolio SKP; pesan Axios di 4 layar ESS lama; Slip Gaji berdata contoh disambungkan ke API (`X-Payroll-PIN`, nominal tersamar); PIN demo `123456` saat API gagal dihapus. Belum terpenuhi: Penilaian Kinerja dan Keberatan masih HTTP 500 karena backend `GET my-appraisal`; Slip Gaji belum teruji dengan data nyata (DB tanpa slip; endpoint memakai ID akun, bukan ID pegawai). ESLint 0 error, CSS gate 0 temuan; build HEAD gagal di berkas di luar cakupan. `VISUAL CHECK: PASS`. [Laporan](../task/report/frontend/FE-HRD-R46.md) · [Uji live](../testing/test-by-agy/laporan-live-testing-gelombang4-pengembangan-administrasi.md).
 
 #### `FE-HRD-R47` — Audit akhir dan pembaruan status
 * **Slice / Gelombang**: Semua / 5

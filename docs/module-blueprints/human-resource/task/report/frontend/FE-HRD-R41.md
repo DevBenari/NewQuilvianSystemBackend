@@ -131,3 +131,12 @@ Uji manual: `NOT FEASIBLE`.
 | Interupsi | Konteks sesi dipadatkan sekali |
 | Status Git | 81 entri belum di-commit di repo frontend untuk Gelombang 3 |
 | Langkah berikutnya | Keputusan DEC-FER-02; uji browser modal exit clearance |
+
+## 9. Koreksi 18 November 2026 (temuan `FE-HRD-R46`)
+
+Uji browser Gelombang 4 menemukan bahwa layar Slip Gaji ESS (`payslips-ess-view.jsx`) ternyata **belum** bermigrasi seperti yang tertulis pada cakupan R41:
+
+- Layar masih memakai data contoh `INITIAL_PAYSLIPS` tanpa panggilan API, dengan gaya inline berwarna heksadesimal.
+- `PayslipPinKeypadModal.jsx` menerima PIN demo saat API gagal.
+
+Keduanya ditulis ulang dan diverifikasi di browser pada `FE-HRD-R46`; lihat [FE-HRD-R46.md](FE-HRD-R46.md). Status R41 tetap 🟡.
