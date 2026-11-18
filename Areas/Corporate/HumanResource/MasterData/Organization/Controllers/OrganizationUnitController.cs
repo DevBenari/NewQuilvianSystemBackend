@@ -165,6 +165,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                     LegalEntityId = x.LegalEntityId,
                     HospitalSiteId = x.HospitalSiteId,
                     ParentOrganizationUnitId = x.ParentOrganizationUnitId,
+                    ParentUnitName = x.ParentOrganizationUnit != null ? x.ParentOrganizationUnit.UnitName : null,
                     DepartmentId = x.DepartmentId,
                     UnitCode = x.UnitCode,
                     UnitName = x.UnitName,
@@ -261,6 +262,94 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 "Pilihan organization unit berhasil diambil."));
         }
 
+        [HttpGet("hierarchy")]
+        [AccessAction("Read", "Read Organization Unit", Description = "Melihat hierarki organization unit", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("OrganizationUnit", "Read")]
+        public async Task<IActionResult> GetHierarchy(
+            [FromQuery] Guid? legalEntityId,
+            [FromQuery] Guid? hospitalSiteId,
+            [FromQuery] DateTime? asOfDate,
+            [FromQuery] bool onlyActive = true)
+        {
+            var query = _dbContext.Set<MstOrganizationUnit>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (onlyActive)
+            {
+                query = query.Where(x => x.IsActive);
+            }
+
+            if (legalEntityId.HasValue && legalEntityId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.LegalEntityId == legalEntityId.Value);
+            }
+
+            if (hospitalSiteId.HasValue && hospitalSiteId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.HospitalSiteId == hospitalSiteId.Value);
+            }
+
+            if (asOfDate.HasValue)
+            {
+                var targetDate = asOfDate.Value.Date;
+                query = query.Where(x =>
+                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= targetDate) &&
+                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= targetDate));
+            }
+
+            var units = await query
+                .OrderBy(x => x.LevelNumber)
+                .ThenBy(x => x.UnitName)
+                .Select(x => new OrganizationUnitHierarchyNodeResponse
+                {
+                    Id = x.Id,
+                    LegalEntityId = x.LegalEntityId,
+                    HospitalSiteId = x.HospitalSiteId,
+                    ParentOrganizationUnitId = x.ParentOrganizationUnitId,
+                    ParentUnitName = x.ParentOrganizationUnit != null ? x.ParentOrganizationUnit.UnitName : null,
+                    DepartmentId = x.DepartmentId,
+                    UnitCode = x.UnitCode,
+                    UnitName = x.UnitName,
+                    UnitType = x.UnitType,
+                    LevelNumber = x.LevelNumber,
+                    IsOperationalUnit = x.IsOperationalUnit,
+                    EffectiveStartDate = x.EffectiveStartDate,
+                    EffectiveEndDate = x.EffectiveEndDate,
+                    Description = x.Description,
+                    IsActive = x.IsActive,
+                    ChildCount = 0
+                })
+                .ToListAsync();
+
+            var nodeMap = units.ToDictionary(x => x.Id);
+            var rootNodes = new List<OrganizationUnitHierarchyNodeResponse>();
+
+            foreach (var unit in units)
+            {
+                if (unit.ParentOrganizationUnitId.HasValue &&
+                    unit.ParentOrganizationUnitId.Value != Guid.Empty &&
+                    unit.ParentOrganizationUnitId.Value != unit.Id &&
+                    nodeMap.TryGetValue(unit.ParentOrganizationUnitId.Value, out var parentNode))
+                {
+                    parentNode.Children.Add(unit);
+                }
+                else
+                {
+                    rootNodes.Add(unit);
+                }
+            }
+
+            foreach (var unit in units)
+            {
+                unit.ChildCount = unit.Children.Count;
+            }
+
+            return Ok(ApiResponse<List<OrganizationUnitHierarchyNodeResponse>>.Ok(
+                rootNodes,
+                "Hierarki organization unit berhasil diambil."));
+        }
+
         [HttpGet("{id:guid}")]
         [AccessAction("Read", "Read Organization Unit", Description = "Melihat detail organization unit", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("OrganizationUnit", "Read")]
@@ -284,6 +373,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 LegalEntityId = entity.LegalEntityId,
                 HospitalSiteId = entity.HospitalSiteId,
                 ParentOrganizationUnitId = entity.ParentOrganizationUnitId,
+                ParentUnitName = entity.ParentOrganizationUnit != null ? entity.ParentOrganizationUnit.UnitName : null,
                 DepartmentId = entity.DepartmentId,
                 UnitCode = entity.UnitCode,
                 UnitName = entity.UnitName,
@@ -325,17 +415,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                     validation.ErrorMessage ?? "Data organization unit tidak valid."));
             }
 
+            var parentId = NormalizeGuid(request.ParentOrganizationUnitId);
+            int calculatedLevel = 1;
+            if (parentId.HasValue)
+            {
+                var parentLevel = await _dbContext.Set<MstOrganizationUnit>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == parentId.Value && !x.IsDelete)
+                    .Select(x => x.LevelNumber)
+                    .FirstOrDefaultAsync();
+                calculatedLevel = parentLevel + 1;
+            }
+
             var entity = new MstOrganizationUnit
             {
                 Id = Guid.NewGuid(),
                 LegalEntityId = request.LegalEntityId,
                 HospitalSiteId = NormalizeGuid(request.HospitalSiteId),
-                ParentOrganizationUnitId = NormalizeGuid(request.ParentOrganizationUnitId),
+                ParentOrganizationUnitId = parentId,
                 DepartmentId = NormalizeGuid(request.DepartmentId),
                 UnitCode = await GenerateCodeAsync(),
                 UnitName = request.UnitName.Trim(),
                 UnitType = NormalizeUnitType(request.UnitType),
-                LevelNumber = request.LevelNumber,
+                LevelNumber = calculatedLevel,
                 IsOperationalUnit = request.IsOperationalUnit,
                 EffectiveStartDate = request.EffectiveStartDate?.Date,
                 EffectiveEndDate = request.EffectiveEndDate?.Date,
@@ -393,13 +495,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                     validation.ErrorMessage ?? "Data organization unit tidak valid."));
             }
 
+            var parentId = NormalizeGuid(request.ParentOrganizationUnitId);
+            int calculatedLevel = 1;
+            if (parentId.HasValue)
+            {
+                var parentLevel = await _dbContext.Set<MstOrganizationUnit>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == parentId.Value && !x.IsDelete)
+                    .Select(x => x.LevelNumber)
+                    .FirstOrDefaultAsync();
+                calculatedLevel = parentLevel + 1;
+            }
+
             entity.LegalEntityId = request.LegalEntityId;
             entity.HospitalSiteId = NormalizeGuid(request.HospitalSiteId);
-            entity.ParentOrganizationUnitId = NormalizeGuid(request.ParentOrganizationUnitId);
+            entity.ParentOrganizationUnitId = parentId;
             entity.DepartmentId = NormalizeGuid(request.DepartmentId);
             entity.UnitName = request.UnitName.Trim();
             entity.UnitType = NormalizeUnitType(request.UnitType);
-            entity.LevelNumber = request.LevelNumber;
+            entity.LevelNumber = calculatedLevel;
             entity.IsOperationalUnit = request.IsOperationalUnit;
             entity.EffectiveStartDate = request.EffectiveStartDate?.Date;
             entity.EffectiveEndDate = request.EffectiveEndDate?.Date;
@@ -508,6 +622,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         {
             return _dbContext.Set<MstOrganizationUnit>()
                 .AsNoTracking()
+                .Include(x => x.ParentOrganizationUnit)
                 .Include(x => x.ChildOrganizationUnits)
                 .Include(x => x.CostCenters)
                 .Include(x => x.WorkLocations)
@@ -623,6 +738,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 return (false, "Organization unit tidak dapat menjadi parent untuk dirinya sendiri.");
             }
 
+            if (excludeId.HasValue &&
+                request.ParentOrganizationUnitId.HasValue &&
+                request.ParentOrganizationUnitId.Value != Guid.Empty &&
+                await IsDescendantAsync(excludeId.Value, request.ParentOrganizationUnitId.Value))
+            {
+                return (false, "Parent organization unit tidak boleh merupakan turunan (descendant) dari unit yang sedang diubah karena akan membentuk perulangan (cycle).");
+            }
+
             if (!await _dbContext.Set<MstLegalEntity>()
                     .AnyAsync(x =>
                         x.Id == request.LegalEntityId &&
@@ -649,15 +772,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             if (request.ParentOrganizationUnitId.HasValue &&
                 request.ParentOrganizationUnitId.Value != Guid.Empty)
             {
-                var parentValid = await _dbContext.Set<MstOrganizationUnit>()
-                    .AnyAsync(x =>
+                var parent = await _dbContext.Set<MstOrganizationUnit>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x =>
                         x.Id == request.ParentOrganizationUnitId.Value &&
-                        x.LegalEntityId == request.LegalEntityId &&
-                        x.IsActive &&
                         !x.IsDelete);
 
-                if (!parentValid)
-                    return (false, "Parent organization unit tidak valid.");
+                if (parent == null || !parent.IsActive)
+                    return (false, "Parent organization unit tidak ditemukan atau tidak aktif.");
+
+                if (parent.LegalEntityId != request.LegalEntityId)
+                    return (false, "Parent organization unit tidak berada dalam legal entity yang sama.");
             }
 
             var normalizedName = request.UnitName.Trim().ToLower();
@@ -754,6 +879,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         {
             return AllowedUnitTypes.First(x =>
                 x.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        private async Task<bool> IsDescendantAsync(Guid rootId, Guid targetId)
+        {
+            var current = (Guid?)targetId;
+            var visited = new HashSet<Guid>();
+            const int maxDepth = 100;
+            var depth = 0;
+
+            while (current.HasValue && current.Value != Guid.Empty && depth++ < maxDepth)
+            {
+                if (current.Value == rootId)
+                    return true;
+
+                if (!visited.Add(current.Value))
+                    break;
+
+                current = await _dbContext.Set<MstOrganizationUnit>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == current.Value && !x.IsDelete)
+                    .Select(x => x.ParentOrganizationUnitId)
+                    .FirstOrDefaultAsync();
+            }
+
+            return false;
         }
 
         private static List<OrganizationUnitCustomPeriodOptionResponse> BuildPeriodOptions()

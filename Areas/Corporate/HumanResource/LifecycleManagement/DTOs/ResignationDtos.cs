@@ -116,4 +116,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public ResignationDetailResponse? Resignation { get; set; }
         public WorkflowInstanceDetailResponse? Workflow { get; set; }
     }
+
+    public class ResignationApproveRequest
+    {
+        [MaxLength(2000)] public string? Comment { get; set; }
+    }
+
+    public class ResignationRejectRequest
+    {
+        [Required, MaxLength(2000)] public string RejectionReason { get; set; } = string.Empty;
+    }
+
+    public class CreateResignationAdminRequest
+    {
+        [Required] public Guid WorkforceProfileId { get; set; }
+        public Guid? RequestReasonId { get; set; }
+        [Required] public DateTime ProposedLastWorkingDate { get; set; }
+        [Required, MaxLength(2000)] public string ResignationReason { get; set; } = string.Empty;
+        [MaxLength(2000)] public string? HandoverPlan { get; set; }
+        [MaxLength(2000)] public string? Notes { get; set; }
+    }
 }

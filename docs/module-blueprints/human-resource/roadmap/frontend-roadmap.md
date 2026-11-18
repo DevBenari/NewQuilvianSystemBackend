@@ -1,4 +1,4 @@
-# Roadmap Delivery Frontend — Modul Human Resource
+﻿# Roadmap Delivery Frontend — Modul Human Resource
 
 ## Metadata
 
@@ -932,6 +932,15 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 | `FE-HRD-303` | `S-D5` / Verifikasi | 🟡 SEBAGIAN | Layar Portal Klaim Pengeluaran Operasional Non-Trip (`/hrd/travel/expenses` - `FE-HRD-296`) |
 | `FE-HRD-304` | `S-D5` / Verifikasi | 🟡 SEBAGIAN | Modal Upload Struk Bukti Kasir & Drawer Pratinjau Faktur Pajak / Boarding Pass |
 | `FE-HRD-305` | `S-D5` / Verifikasi | ✅ PASS | Integrasi Navigasi Sidebar, Penanda Indikator Hard-Stop Roster Sub-06 & Uji Linter Build Standalone |
+| `FE-HRD-328` | `S-C5-SEP` / Fondasi | ✅ PASS | Service/adapter API riil, anti-fallback seluruh Menu 12 (`separation-service.js`) |
+| `FE-HRD-329` | `S-C5-SEP` / Resign | ✅ PASS | Layar Pengunduran Diri data nyata dan aksi sah (`resignation-list-view.jsx`) |
+| `FE-HRD-330` | `S-C5-SEP` / Pensiun | ✅ PASS | Layar Pensiun kandidat dan kasus riil (`retirement-list-view.jsx`) |
+| `FE-HRD-331` | `S-C5-SEP` / Kontrak | ✅ PASS | Layar Akhir Kontrak real data (`contract-expiry-view.jsx`) |
+| `FE-HRD-332` | `S-C5-SEP` / PHK | ✅ PASS | Layar Pemberhentian & server-only severance (`termination-list-view.jsx`) |
+| `FE-HRD-333` | `S-C5-SEP` / Serah Terima | ✅ PASS | Layar Serah Terima dan progres nyata (`handover-list-view.jsx`) |
+| `FE-HRD-334` | `S-C5-SEP` / Kliring | ✅ PASS | Layar Clearense dan payroll lock authoritative (`exit-clearance-matrix-view.jsx`) |
+| `FE-HRD-335` | `S-C5-SEP` / Navigasi | ✅ PASS | Navigasi, base component, role, loading/error/empty, responsive |
+| `FE-HRD-336` | `S-C5-SEP` / UAT | ✅ PASS | UAT browser 30 test, retest, integrasi UI API, report |
 
 
 ---
@@ -6360,3 +6369,103 @@ BE-HRD-363 [BE] ─────────────────────�
   3. Setiap layar dibuka di browser pada lebar desktop dan ponsel, dengan tangkapan layar; pemeriksa `check-css-usage` 0 temuan.
   4. Alamat service dicocokkan dengan `[Route]` controller backend, bukan dengan service frontend sendiri.
 * **Verifikasi**: `npm run lint:errors`, `npm run build`, uji browser, dan laporan task tracked `FE-HRD-327.md`.
+
+---
+
+## 27. Rencana Pengiriman Frontend Menu 12: Pemberhentian & Pensiun (`S-C5-SEP`)
+
+### 27.1 Grafik Urutan Ketergantungan Frontend Menu 12 (Pohon Teks)
+
+```text
+FE-HRD-328 (Service/adapter API riil, anti-mock & error-handling seluruh Menu 12)
+   │
+   ├─> FE-HRD-329 (Layar Pengunduran Diri data nyata dan aksi sah)
+   ├─> FE-HRD-330 (Layar Pensiun kandidat dan kasus riil)
+   ├─> FE-HRD-331 (Layar Akhir Kontrak real data & filter horizon)
+   ├─> FE-HRD-332 (Layar Pemberhentian & kalkulator pesangon server-only)
+   │      │
+   │      └─────────────┬────────────────────────┐
+   │                    │                        │
+   └─> FE-HRD-333 (Layar Serah Terima dan progres nyata)
+          │             │                        │
+          └─────────────┼─> FE-HRD-334 (Layar Clearense & gembok payroll akhir)
+                        │                        │
+                        └────────────────────────┴─> FE-HRD-335 (Navigasi, base components, UX & responsive)
+                                                        │
+                                                        └─> FE-HRD-336 (UAT browser 30 skenario E2E & Report)
+```
+
+### 22.2 Rincian 9 Task Frontend Menu 12 (`FE-HRD-328` s.d. `FE-HRD-336`)
+
+#### `FE-HRD-328` — Service/adapter API riil, anti-fallback seluruh Menu 12 (`separation-service.js`)
+* **Slice / MVP**: `S-C5-SEP` / Fondasi
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [FE-HRD-328.md](../task/report/frontend/FE-HRD-328.md).
+* **Outcome**: Normalisasi service API frontend pada `separation-service.js` terhadap controller ASP.NET Core aktual, pencocokan baseURL, perbaikan parameter query (`pageNumber`, `pageSize`, filter, sort), normalisasi response envelope `ApiResponse<T>`, penghapusan seluruh fallback dummy, dan penanganan status error `401/403/404/409/422/500`.
+* **Dependencies**: `BE-HRD-364`, `BE-HRD-373` [BE]
+* **Acceptance Criteria**: Service terintegrasi penuh ke endpoint backend; GET kosong menghasilkan array kosong tanpa fallback; gagal mutasi memunculkan error jujur; tidak ada mock lokal.
+* **Verifikasi**: Uji kontrak pemanggilan endpoint dan verifikasi mapping error.
+
+#### `FE-HRD-329` — Layar Pengunduran Diri data nyata dan aksi sah (`resignation-list-view.jsx`)
+* **Slice / MVP**: `S-C5-SEP` / Resign
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [FE-HRD-329.md](../task/report/frontend/FE-HRD-329.md).
+* **Outcome**: Pemutakhiran layar Pengunduran Diri (`/hr/separation/resignations`): pembersihan total `DEFAULT_FALLBACK_RESIGNATIONS` dan record demo, integrasi pemanggilan API live untuk list, summary, detail, pengajuan, persetujuan, penolakan, dan handoff ke offboarding. Menampilkan `ResourceFilterSelect` pegawai nyata, validasi input, dan empty/error state yang jujur.
+* **Dependencies**: `FE-HRD-328`, `BE-HRD-367` [BE]
+* **Acceptance Criteria**: List dan summary berasal dari database backend; 0 data menghasilkan empty state resmi; aksi create, approve, reject, dan handoff hanya berhasil bila server memvalidasi; tidak ada fake toast.
+* **Verifikasi**: Uji fungsional layar pengunduran diri, CSS usage check, dan visual check.
+
+#### `FE-HRD-330` — Layar Pensiun kandidat dan kasus riil (`retirement-list-view.jsx`)
+* **Slice / MVP**: `S-C5-SEP` / Pensiun
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [FE-HRD-330.md](../task/report/frontend/FE-HRD-330.md).
+* **Outcome**: Pemutakhiran layar Pensiun (`/hr/separation/retirements`): pembersihan total `DEFAULT_FALLBACK_CASES` dan `DEFAULT_FALLBACK_ELIGIBLE`. Integrasi live data tab Kasus Pensiun dan Calon Pensiun dari backend, penghapusan usia pensiun hardcoded 58 di UI, form rencana pensiun dengan `ResourceFilterSelect`, dan aksi persetujuan serta handoff berbasis data server.
+* **Dependencies**: `FE-HRD-328`, `BE-HRD-368` [BE]
+* **Acceptance Criteria**: Data kasus dan calon pensiun murni dari API server; empty state jujur saat data kosong; approval dan handoff tersinkronisasi server; tidak ada data simulasi saat error.
+* **Verifikasi**: Uji fungsional tab kasus & calon pensiun, CSS usage check, dan visual check.
+
+#### `FE-HRD-331` — Layar Akhir Kontrak real data (`contract-expiry-view.jsx`)
+* **Slice / MVP**: `S-C5-SEP` / Kontrak
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [FE-HRD-331.md](../task/report/frontend/FE-HRD-331.md).
+* **Outcome**: Pemutakhiran layar Akhir Kontrak (`/hr/separation/contract-expiry`): pembersihan total `DEFAULT_FALLBACK_CONTRACTS` dan simulasi fixed-term check. Menampilkan daftar kontrak PKWT nyata, filter horizon jatuh tempo (30, 60, 90 hari), integrasi hasil evaluasi masa kerja server, modal keputusan perpanjangan/pengakhiran T16, dan pencatatan notifikasi ke pegawai.
+* **Dependencies**: `FE-HRD-328`, `BE-HRD-369` [BE]
+* **Acceptance Criteria**: Daftar kontrak dan filter horizon memanggil backend riil; fixed-term check menampilkan data kalkulasi server; keputusan tersimpan di backend; refetch setelah mutasi.
+* **Verifikasi**: Uji fungsional filter kontrak dan modal keputusan, CSS usage check, dan visual check.
+
+#### `FE-HRD-332` — Layar Pemberhentian & server-only severance (`termination-list-view.jsx`)
+* **Slice / MVP**: `S-C5-SEP` / PHK
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [FE-HRD-332.md](../task/report/frontend/FE-HRD-332.md).
+* **Outcome**: Pemutakhiran layar Pemberhentian (`/hr/separation/terminations`): pembersihan total `DEFAULT_FALLBACK_TERMINATIONS`, penghapusan rumus pesangon hardcode di klien, form inisiasi terminasi dengan resource selector pegawai, kalkulasi pesangon murni dari `SeveranceCalculationEngine` backend, dan otorisasi persetujuan Direktur Keuangan yang dibatasi hak akses.
+* **Dependencies**: `FE-HRD-328`, `BE-HRD-370` [BE]
+* **Acceptance Criteria**: List pemutusan hubungan kerja dari server; kalkulasi pesangon tidak memuat formula lokal; persetujuan finance hanya aktif untuk role berwenang; status tersinkronisasi.
+* **Verifikasi**: Uji form inisiasi dan panel kalkulasi pesangon, CSS usage check, dan visual check.
+
+#### `FE-HRD-333` — Layar Serah Terima dan progres nyata (`handover-list-view.jsx`)
+* **Slice / MVP**: `S-C5-SEP` / Serah Terima
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [FE-HRD-333.md](../task/report/frontend/FE-HRD-333.md).
+* **Outcome**: Pemutakhiran layar Serah Terima (`/hr/separation/handovers`): pembersihan total `DEFAULT_FALLBACK_HANDOVERS`. Menampilkan daftar checklist offboarding dan progres persentase riil dari backend, detail item tugas, modal penambahan tugas, penyerahan tugas (submit), verifikasi atasan/unit, dan penyelesaian akhir (complete) dengan perlindungan double-submit.
+* **Dependencies**: `FE-HRD-328`, `BE-HRD-371` [BE]
+* **Acceptance Criteria**: Daftar checklist dan item tugas berasal dari database server; progres terhitung akurat dari backend; verifikasi dan penyelesaian tervalidasi server tanpa fake toast.
+* **Verifikasi**: Uji penambahan, submit, verifikasi tugas, CSS usage check, dan visual check.
+
+#### `FE-HRD-334` — Layar Clearense dan payroll lock authoritative (`exit-clearance-matrix-view.jsx`)
+* **Slice / MVP**: `S-C5-SEP` / Kliring
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [FE-HRD-334.md](../task/report/frontend/FE-HRD-334.md).
+* **Outcome**: Pemutakhiran layar Clearense (`/hr/separation/exit-clearance`): pembersihan total `DEFAULT_FALLBACK_SEPARATIONS`, `DEFAULT_FALLBACK_CLEARANCES`, dan `DEFAULT_FALLBACK_PROCESS_DETAIL`. Integrasi matriks kliring lintas unit dari API live, pemilihan proses terminasi nyata, form signoff per departemen dengan verifikasi hak unit, visualisasi status gembok payroll akhir, dan modal finalisasi.
+* **Dependencies**: `FE-HRD-328`, `BE-HRD-372` [BE]
+* **Acceptance Criteria**: Matriks kliring memuat status unit nyata dari server; signoff unit lain ditolak backend; gembok payroll akhir tidak dipalsukan; penyelesaian clearance tervalidasi 100%.
+* **Verifikasi**: Uji matriks serah terima 5 unit dan signoff, CSS usage check, dan visual check.
+
+#### `FE-HRD-335` — Navigasi, base component, role, loading/error/empty, responsive
+* **Slice / MVP**: `S-C5-SEP` / Navigasi
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [FE-HRD-335.md](../task/report/frontend/FE-HRD-335.md).
+* **Outcome**: Audit konsistensi UI 6 submenu kepegawaian: memastikan kepatuhan base component Quilvian (`Hero`, `SummaryGrid`, `DataFilter`, `DataTable`, `Pagination`, `StatusBadge`, `ConfirmModal`, `BaseDetailView`, `BaseGroupedEditorView`, `ResourceFilterSelect`), penegakan `AccessDeniedGate` untuk otorisasi, penataan responsif (1440px desktop, 768px tablet, 390px mobile), dan CSS module tanpa kelas Tailwind atau warna literal.
+* **Dependencies**: `FE-HRD-329` s.d. `FE-HRD-334`
+* **Acceptance Criteria**: Linter dan `check-css-usage.mjs` menghasilkan 0 temuan; 6 rute responsif dan navigable; base component digunakan secara konsisten sesuai katalog baku.
+* **Verifikasi**: Eksekusi CSS checker, linter frontend, dan visual inspection pada 3 resolusi.
+
+#### `FE-HRD-336` — UAT browser 30 test, retest, integrasi UI API, report
+* **Slice / MVP**: `S-C5-SEP` / UAT
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [FE-HRD-336.md](../task/report/frontend/FE-HRD-336.md).
+* **Outcome**: Pelaksanaan pengujian terpadu antarmuka langsung (live browser testing) mencakup 30 skenario UAT Menu 12 (`UAT-M12-01` s.d. `UAT-M12-30`), pengujian alur positif, negatif (401, 403, 404, 409, 422, 500), konkurensi, verifikasi data read-after-write, dan penyusunan laporan bukti resmi.
+* **Dependencies**: Seluruh task frontend `FE-HRD-328` s.d. `FE-HRD-335`
+* **Acceptance Criteria**: 30 skenario UAT terdokumentasi dengan status riil (PASS/NOT RUN/BLOCKED); tidak ada data palsu; laporan UAT tersimpan resmi.
+* **Verifikasi**: Eksekusi pengujian browser terarah dan penyusunan laporan akhir Menu 12.
+

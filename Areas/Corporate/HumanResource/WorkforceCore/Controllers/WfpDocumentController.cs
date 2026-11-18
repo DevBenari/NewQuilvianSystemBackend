@@ -237,6 +237,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                     "Dokumen workforce tidak ditemukan."));
             }
 
+            // Guard FIN-HRD-04-BE-011: Proteksi dokumen rahasia (confidential)
+            if (entity.IsConfidential)
+            {
+                var canAccess = await CanAccessConfidentialDocumentAsync(workforceProfileId, cancellationToken);
+                if (!canAccess)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                        StatusCodes.Status403Forbidden,
+                        "Akses ditolak. Dokumen ini bersifat rahasia (confidential) dan hanya dapat diakses oleh HR berwenang atau pemilik dokumen.",
+                        "CONFIDENTIAL_DOCUMENT_RESTRICTED"
+                    ));
+                }
+            }
+
             var actorNames = await GetActorNameMapAsync(
                 new[] { entity.CreateBy, entity.UpdateBy, entity.VerifiedByUserId ?? Guid.Empty },
                 cancellationToken);
@@ -541,6 +555,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             }
 
             var actorUserId = GetCurrentUserId();
+
+            // Guard FIN-HRD-04-BE-012: Segregasi tugas verifikator dokumen
+            if (request.IsVerified && entity.CreateBy == actorUserId)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Petugas verifikasi dokumen harus berbeda dari pembuat/pengunggah data (segregasi tugas / dual-actor verification / FIN-HRD-04-BE-012).",
+                    "SELF_VERIFICATION_PROHIBITED"
+                ));
+            }
+
             entity.IsVerified = request.IsVerified;
             entity.VerifiedAt = request.IsVerified ? DateTime.UtcNow : null;
             entity.VerifiedByUserId = request.IsVerified ? actorUserId : null;
@@ -571,6 +596,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Dokumen workforce tidak ditemukan."));
+            }
+
+            // Guard FIN-HRD-04-BE-011: Proteksi unduh berkas rahasia
+            if (entity.IsConfidential)
+            {
+                var canAccess = await CanAccessConfidentialDocumentAsync(workforceProfileId, cancellationToken);
+                if (!canAccess)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                        StatusCodes.Status403Forbidden,
+                        "Akses unduh ditolak. Dokumen ini bersifat rahasia (confidential) dan dilindungi di server (FIN-HRD-04-BE-011).",
+                        "CONFIDENTIAL_FILE_ACCESS_DENIED"
+                    ));
+                }
             }
 
             var physicalPath = ResolvePhysicalPath(entity.FilePath);
@@ -967,6 +1006,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             return workforceProfileId != Guid.Empty && await _dbContext.MstWorkforceProfiles
                 .AsNoTracking()
                 .AnyAsync(x => x.Id == workforceProfileId && x.IsActive && !x.IsDelete, cancellationToken);
+        }
+
+        private async Task<bool> CanAccessConfidentialDocumentAsync(Guid workforceProfileId, CancellationToken cancellationToken)
+        {
+            var callerUserId = GetCurrentUserId();
+            if (callerUserId == Guid.Empty) return false;
+
+            var user = await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == callerUserId, cancellationToken);
+            if (user != null && user.WorkforceProfileId.HasValue && user.WorkforceProfileId.Value == workforceProfileId)
+            {
+                return true;
+            }
+
+            var hasAccess = User.HasClaim(c => (c.Type == "permission" && (c.Value == "WorkforceDocument.Confidential" || c.Value == "WorkforceDocument.All" || c.Value == "HUMAN_RESOURCE_ADMIN")) ||
+                                               (c.Type == ClaimTypes.Role && (c.Value == "SuperAdmin" || c.Value == "Admin" || c.Value == "HRAdmin" || c.Value == "HRManager")));
+            return hasAccess;
         }
 
         private async Task<Dictionary<Guid, string>> GetActorNameMapAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken)

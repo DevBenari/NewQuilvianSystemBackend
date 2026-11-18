@@ -54,10 +54,11 @@ Kontrak diverifikasi langsung terhadap controller dan DTO lifecycle backend. Con
 | `npx eslint src/components/view/hr/lifecycle ...` | PASS — 0 error |
 | `npm run lint:errors` | PASS — exit 0, tidak ada error |
 | `node .../check-css-usage.mjs <8 view yang berubah>` | PASS — 8 berkas, 0 temuan |
-| `npm run build` | PASS — compiled 86 detik, 805 halaman dibangkitkan, standalone runtime siap |
+| `npm run build` | PASS — verifikasi akhir lintas R25–R29 menghasilkan 813 halaman dan standalone runtime siap |
+| `npm run test:unit` | FAIL — issue existing lintas modul dan test yang merujuk file lama/hilang; tidak menunjuk view R25–R29 |
 | Pemeriksaan data contoh/inline style pada view lifecycle | PASS untuk view yang dimigrasikan pada R25 |
 | Uji browser dan screenshot | `VISUAL CHECK: NOT FEASIBLE` — tool kontrol browser tidak tersedia pada sesi ini |
-| Test otomatis baru | SKIPPED (opsional) — perubahan adalah komposisi layar dan kontrak API, bukan logika murni terisolasi |
+| Test otomatis baru | Tidak ditambahkan; suite unit existing telah dijalankan dan hasil non-hijau dicatat di atas |
 
 ## 5. Acceptance criteria
 
@@ -75,3 +76,7 @@ Kontrak diverifikasi langsung terhadap controller dan DTO lifecycle backend. Con
 ## 6. Risiko dan langkah berikutnya
 
 R25 belum dapat menjadi ✅ sampai endpoint unggah/template batch tersedia atau acceptance criteria disesuaikan, serta uji browser per peran dilakukan. Source backend tidak diubah. Working tree belum di-commit atau di-push.
+
+## 7. Pemutakhiran 16 November 2026
+
+Kontrak diperiksa ulang: `HrdInitialContractBatchController` tetap hanya menyediakan operasi daftar/detail/buat batch, tambah/hapus baris, submit, dan cancel; endpoint upload spreadsheet/template belum ada. Validasi bersama Gelombang 2 terbaru menghasilkan lint **0 error** dan build **814 halaman**. Chromium headed kini tersedia, tetapi `/api/v1/auth/me` lokal mengembalikan `401`, sehingga blocker visual berubah dari “alat tidak tersedia” menjadi “sesi test tidak terautentikasi”. Status tetap 🟡.

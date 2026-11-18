@@ -100,7 +100,8 @@ public sealed class ExitClearanceService
             _ => descending ? dbQuery.OrderByDescending(x => x.CreateDateTime) : dbQuery.OrderBy(x => x.CreateDateTime)
         };
 
-        var page = query.Page < 1 ? 1 : query.Page;
+        var requestedPage = query.PageNumber ?? query.Page;
+        var page = requestedPage < 1 ? 1 : requestedPage;
         var pageSize = query.PageSize < 1 ? 10 : query.PageSize;
 
         var items = await dbQuery

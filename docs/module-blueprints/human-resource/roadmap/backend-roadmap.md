@@ -1,4 +1,4 @@
-# Roadmap Delivery Backend — Modul Human Resource
+﻿# Roadmap Delivery Backend — Modul Human Resource
 
 ## Metadata
 
@@ -1033,6 +1033,16 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-331` | `S-D5` · Verifikasi | Layanan Verifikasi Struk Kasir & Pencairan Reimbursement Non-Trip (`ExpenseVerificationAndPaymentService` - `VR-TRV-16`, `VR-TRV-18`) | ✅ | `BE-HRD-330` |
 | `BE-HRD-332` | `S-D5` · Verifikasi | Integrasi Sinkronisasi Presensi Hadir Dinas Luar (Sub-07) & Gembok Hard-Stop Roster (Sub-06) (`TravelAttendanceAndRosterLockService` - `TRV-B6`, `HRD-DEC-193`, `INT-HR-97`) | ✅ | `BE-HRD-320` |
 | `BE-HRD-333` | `S-D5` · Verifikasi | 5 Controller API Kontrak v25 (24 Endpoint Swagger), Worker Kurs BI `TRV-W4`, 24 Permissions & Audit Verifikasi E2E QBE Conformance | 🟡 | Seluruh task backend `BE-HRD-318` s.d. `BE-HRD-332` |
+| `BE-HRD-364` | `S-C5-SEP` · Fondasi | Audit-kontrak ringkas + adapter GET/paging data nyata enam Submenu | ✅ | Governance/approved contract |
+| `BE-HRD-365` | `S-C5-SEP` · Keamanan | Actor identity, per-record access, permission dan audit yang tidak dapat dipalsukan | ✅ | `BE-HRD-364` |
+| `BE-HRD-366` | `S-C5-SEP` · Transaksi | One-separation owner, idempotensi, number series, transaction safety | ✅ | `BE-HRD-364`, `BE-HRD-365` |
+| `BE-HRD-367` | `S-C5-SEP` · Resign | Pengunduran diri: status, approval, handoff, persistence | ✅ | `BE-HRD-364` s.d. `BE-HRD-366` |
+| `BE-HRD-368` | `S-C5-SEP` · Pensiun | Pensiun: policy, approval gate, handoff aman dan nomor sah | ✅ | `BE-HRD-364` s.d. `BE-HRD-366` |
+| `BE-HRD-369` | `S-C5-SEP` · Kontrak | Akhir kontrak: list/filter riil, keputusan T16, nonrenewal handoff | ✅ | `BE-HRD-364` s.d. `BE-HRD-366` |
+| `BE-HRD-370` | `S-C5-SEP` · PHK | Pemberhentian dan perhitungan/otorisasi pesangon authoritative | ✅ | `BE-HRD-364` s.d. `BE-HRD-366` |
+| `BE-HRD-371` | `S-C5-SEP` · Serah Terima | Serah Terima: task owner, verify, progress dan finalisasi persisten | ✅ | `BE-HRD-365`, `BE-HRD-366` |
+| `BE-HRD-372` | `S-C5-SEP` · Kliring | Clearense: canonical owner, signoff per unit, kewajiban Finance, lock integration | ✅ | `BE-HRD-365`, `BE-HRD-366`, `BE-HRD-371` |
+| `BE-HRD-373` | `S-C5-SEP` · Verifikasi | Pemeriksaan API/DB via service, concurrency, keselarasan 6 alur, report & retest | ✅ | `BE-HRD-367` s.d. `BE-HRD-372` |
 
 > **Pemutakhiran register 10 November 2026.** Kolom status `BE-HRD-079` dan `BE-HRD-104` s.d. `BE-HRD-130` yang kosong diisi dari kartu task (seluruhnya ✅); baris `BE-HRD-146` s.d. `BE-HRD-175` yang kolomnya tertukar dirapikan ke urutan kolom tabel (dependency tertulis pada kartu task); 158 baris `BE-HRD-176` s.d. `BE-HRD-333` yang belum tercantum ditambahkan dari kartu task. Tanda 🟡 mengikuti pengerjaan ulang Gelombang 1 (`backend-unfinished-work.md`).
 
@@ -6846,3 +6856,113 @@ Gerbang G1 tertutup 16 November 2026 (kontrak `v27` approved), sehingga task men
   3. `dotnet build` project aplikasi lulus 0 error; QBE preflight dan conformance tanpa pelanggaran.
   4. Tidak ada migration, dan keadaan itu disebut eksplisit pada laporan.
 * **Verifikasi**: `dotnet build`, QBE conformance, verifikasi kontrak, dan laporan task tracked `BE-HRD-363.md`.
+
+---
+
+## 26. Rencana Pengiriman Backend Menu 12: Pemberhentian & Pensiun (`S-C5-SEP`)
+
+### 26.1 Grafik Urutan Ketergantungan Backend Menu 12 (Pohon Teks)
+
+```text
+BE-HRD-364 (Audit-kontrak ringkas + adapter GET/paging data nyata enam Submenu)
+   │
+   └─> BE-HRD-365 (Actor identity, per-record access, permission dan audit server)
+          │
+          └─> BE-HRD-366 (One-separation owner, idempotensi, number series aman)
+                 │
+                 ├─> BE-HRD-367 (Pengunduran diri: status, approval, handoff, persistence)
+                 ├─> BE-HRD-368 (Pensiun: policy, approval gate, handoff aman)
+                 ├─> BE-HRD-369 (Akhir kontrak: list/filter riil, keputusan T16, nonrenewal)
+                 ├─> BE-HRD-370 (Pemberhentian & otorisasi pesangon authoritative)
+                 │      │
+                 │      └─────────────┬────────────────────────┐
+                 │                    │                        │
+                 └─> BE-HRD-371 (Serah Terima: task owner, verify, progress)
+                        │             │                        │
+                        └─────────────┼─> BE-HRD-372 (Clearense multi-unit & payroll lock)
+                                      │                        │
+                                      └────────────────────────┴─> BE-HRD-373 (Gate validasi Backend E2E)
+```
+
+### 22.2 Rincian 10 Task Backend Menu 12 (`BE-HRD-364` s.d. `BE-HRD-373`)
+
+#### `BE-HRD-364` — Audit-kontrak ringkas + adapter GET/paging data nyata enam Submenu
+* **Slice / MVP**: `S-C5-SEP` / Fondasi
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [BE-HRD-364.md](../task/report/backend/BE-HRD-364.md).
+* **Outcome**: Audit kontrak endpoint dan normalisasi query paging/filtering data nyata untuk 6 submenu kepegawaian (Pengunduran Diri, Pensiun, Akhir Kontrak, Pemberhentian, Serah Terima, Clearense). Memastikan response envelope `ApiResponse<PagedResult<T>>` konsisten (`pageNumber`, `pageSize`, `totalItems`, `items`), empty state mengembalikan array kosong `[]`, dan penanganan error `401/403/404/500` tanpa rekayasa data.
+* **Dependencies**: Tata kelola governance & kontrak canonical
+* **Acceptance Criteria**: 6 endpoint GET list + detail/summary mengambil data terstruktur dari EF Core query; 0 data menghasilkan array kosong; unauthorized menghasilkan 401/403; unknown ID menghasilkan 404.
+* **Verifikasi**: Uji query EF Core, build backend, dan dokumentasi kontrak data aktual.
+
+#### `BE-HRD-365` — Actor identity, per-record access, permission dan audit yang tidak dapat dipalsukan
+* **Slice / MVP**: `S-C5-SEP` / Keamanan
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [BE-HRD-365.md](../task/report/backend/BE-HRD-365.md).
+* **Outcome**: Penegakan fail-closed actor resolution pada controller dan service exit clearance dan offboarding. Menghapus fallback `resolvedActorId ?? request.ApproverUserId` pada `ExitClearanceService.SignoffChecklistAsync` sehingga hanya identitas pengguna terautentikasi server yang dapat menandatangani checklist unit. Memvalidasi batasan wewenang per-unit dan per-record akses serta jejak audit aktor dan timestamp.
+* **Dependencies**: `BE-HRD-364`
+* **Acceptance Criteria**: Verifikasi actor gagal langsung menghasilkan `401/403 Unauthorized` tanpa efek samping pada database; penandatanganan item unit lain ditolak.
+* **Verifikasi**: Uji otorisasi fail-closed dan verifikasi log audit actor.
+
+#### `BE-HRD-366` — One-separation owner, idempotensi, number series, transaction safety
+* **Slice / MVP**: `S-C5-SEP` / Transaksi
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [BE-HRD-366.md](../task/report/backend/BE-HRD-366.md).
+* **Outcome**: Pengelolaan satu entitas separation canonical (`TrxEmployeeSeparation`) untuk satu peristiwa keluar, perlindungan double-submit/race condition, penomoran atomik aman tanpa `new Random()`, dan isolasi transaksi database yang tepat pada handoff resignation, retirement, non-renewal contract, dan termination.
+* **Dependencies**: `BE-HRD-364`, `BE-HRD-365`
+* **Acceptance Criteria**: Pemanggilan handoff berulang mengembalikan transaksi yang sudah ada secara idempoten; nomor bisnis unik dan tidak bertabrakan; transaction boundary menjaga integritas relasi FK.
+* **Verifikasi**: Uji idempotensi handoff dan verifikasi keunikan nomor bisnis.
+
+#### `BE-HRD-367` — Pengunduran diri: status, approval, handoff, persistence
+* **Slice / MVP**: `S-C5-SEP` / Resign
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [BE-HRD-367.md](../task/report/backend/BE-HRD-367.md).
+* **Outcome**: Pemutakhiran alur pengunduran diri end-to-end: validasi profil aktif, pemeriksaan batas waktu notice period yang berlaku, alur persetujuan ter-audit, pencegahan self-approval bila disyaratkan, handoff idempoten ke separation dan offboarding checklist, serta persistensi data yang konsisten setelah reload.
+* **Dependencies**: `BE-HRD-364` s.d. `BE-HRD-366`
+* **Acceptance Criteria**: Pengajuan, persetujuan, penolakan, dan serah terima pengunduran diri tersimpan nyata di database; data tetap konsisten setelah refetch.
+* **Verifikasi**: Uji API alur pengunduran diri dan verifikasi data read-after-write.
+
+#### `BE-HRD-368` — Pensiun: policy, approval gate, handoff aman dan nomor sah
+* **Slice / MVP**: `S-C5-SEP` / Pensiun
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [BE-HRD-368.md](../task/report/backend/BE-HRD-368.md).
+* **Outcome**: Pemutakhiran alur pensiun pegawai: penghapusan usia pensiun hardcoded, pembacaan kandidat pensiun dari tanggal lahir master pegawai aktif, validasi status persetujuan sebelum handoff (`HandoffAsync` wajib menolak bila status belum `Approved`), nomor kasus `RET-` dari penomoran unik aman tanpa `new Random()`, serta pembentukan separation yang idempoten.
+* **Dependencies**: `BE-HRD-364` s.d. `BE-HRD-366`
+* **Acceptance Criteria**: Handoff ditolak jika status belum `Approved`; nomor kasus unik; kandidat pensiun dihitung dari master pegawai; persistensi transaksi utuh.
+* **Verifikasi**: Uji validasi approval gate pensiun dan verifikasi nomor urut kasus.
+
+#### `BE-HRD-369` — Akhir kontrak: list/filter riil, keputusan T16, nonrenewal handoff
+* **Slice / MVP**: `S-C5-SEP` / Kontrak
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [BE-HRD-369.md](../task/report/backend/BE-HRD-369.md).
+* **Outcome**: Penambahan filter horizon jatuh tempo (30, 60, 90 hari) pada `EmploymentContractQuery` dan service `HrdEmploymentContractService`, hasil evaluasi `fixed-term-check` akurat dari kalkulasi masa kerja database, pencatatan keputusan perpanjangan/pengakhiran T16 yang persisten, dan pengalihan nonrenewal ke separation hanya pada saat sah.
+* **Dependencies**: `BE-HRD-364` s.d. `BE-HRD-366`
+* **Acceptance Criteria**: Filter jatuh tempo mengembalikan data kontrak riil; keputusan kontrak tersimpan di basis data; extend tidak memicu clearance.
+* **Verifikasi**: Uji query filter horizon kontrak dan verifikasi riwayat keputusan.
+
+#### `BE-HRD-370` — Pemberhentian dan perhitungan/otorisasi pesangon authoritative
+* **Slice / MVP**: `S-C5-SEP` / PHK
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [BE-HRD-370.md](../task/report/backend/BE-HRD-370.md).
+* **Outcome**: Pengelolaan inisiasi pemutusan hubungan kerja (PHK) terpadu, kalkulasi hak finansial pesangon deterministik PP 35/2021 via `SeveranceCalculationEngine` dari sumber gaji dan masa kerja sah, penolakan parameter upah palsu, otorisasi persetujuan Direktur Keuangan yang tersimpan persisten, dan relasi langsung ke matriks exit clearance.
+* **Dependencies**: `BE-HRD-364` s.d. `BE-HRD-366`
+* **Acceptance Criteria**: Inisiasi PHK menghasilkan nomor transaksi server; nominal pesangon dihitung dari engine backend; persetujuan Finance tersimpan nyata.
+* **Verifikasi**: Uji engine pesangon PP 35/2021 dan verifikasi otorisasi keuangan.
+
+#### `BE-HRD-371` — Serah Terima: task owner, verify, progress dan finalisasi persisten
+* **Slice / MVP**: `S-C5-SEP` / Serah Terima
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [BE-HRD-371.md](../task/report/backend/BE-HRD-371.md).
+* **Outcome**: Penegakan transisi status item serah terima (`Pending -> Submitted -> Completed / Returned`), pencegahan verifikasi sebelum item disubmit, penomoran kode tugas unik tanpa benturan, pencegahan penyelesaian checklist jika masih ada tugas wajib belum selesai atau jika jumlah tugas nol, serta komputasi progres yang akurat.
+* **Dependencies**: `BE-HRD-365`, `BE-HRD-366`
+* **Acceptance Criteria**: Transisi status tidak sah ditolak; penyelesaian checklist tanpa tugas lengkap ditolak; penomoran task unik; progres terhitung akurat.
+* **Verifikasi**: Uji validasi transisi status tugas dan verifikasi komputasi progres.
+
+#### `BE-HRD-372` — Clearense: canonical owner, signoff per unit, kewajiban Finance, lock integration
+* **Slice / MVP**: `S-C5-SEP` / Kliring
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [BE-HRD-372.md](../task/report/backend/BE-HRD-372.md).
+* **Outcome**: Harmonisasi agregat exit clearance lintas unit, signoff checklist dengan verifikasi aktor server dan hak unit kerja, validasi sisa tanggungan finansial (tanggungan > 0 memblokir penyelesaian), finalisasi hanya bila seluruh 5 departemen berstatus `Approved`, dan pembukaan gembok rilis payroll akhir secara aman.
+* **Dependencies**: `BE-HRD-365`, `BE-HRD-366`, `BE-HRD-371`
+* **Acceptance Criteria**: Signoff unit lain ditolak; tanggungan belum lunas memblokir finalisasi; gembok payroll akhir hanya terbuka setelah tuntas 100%.
+* **Verifikasi**: Uji matriks kliring 5 unit dan verifikasi gembok payroll akhir.
+
+#### `BE-HRD-373` — Pemeriksaan API/DB via service, concurrency, keselarasan 6 alur, report & retest
+* **Slice / MVP**: `S-C5-SEP` / Verifikasi
+* **Status**: ✅ Selesai (2026-11-16). Terverifikasi melalui laporan tracked [BE-HRD-373.md](../task/report/backend/BE-HRD-373.md).
+* **Outcome**: Audit menyeluruh backend 6 submenu, pengujian konkurensi dan idempotensi pada endpoint mutasi, verifikasi kompilasi `dotnet build` 0 error, pemetaan kontrak API ke UI sheet lengkap, dan penyusunan laporan bukti engineering backend sebelum fase frontend dimulai.
+* **Dependencies**: Seluruh task backend `BE-HRD-367` s.d. `BE-HRD-372`
+* **Acceptance Criteria**: Seluruh endpoint 6 submenu terverifikasi; `dotnet build` lulus 0 error; lembar kontrak API siap dipakai frontend; tidak ada celah keamanan aktor.
+* **Verifikasi**: `dotnet build`, verifikasi kontrak API, dan laporan task tracked `BE-HRD-373.md`.
+
