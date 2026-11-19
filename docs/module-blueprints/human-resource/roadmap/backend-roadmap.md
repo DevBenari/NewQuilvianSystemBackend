@@ -6,7 +6,8 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 16
+roadmap_revision: 17
+amendment_s_d5_v28: "2026-11-19 — Amandemen S-D5 persetujuan SPPD lewat workflow persetujuan umum (bagian 27): BE-HRD-374 s.d. BE-HRD-380, gelombang MVP-70; kontrak v28 approved 19 November 2026; menutup celah BE-HRD-333"
 draft_slice_s_a8: "2026-11-16 — Slice DRAFT S-A8 Data Penggajian Pegawai (HRD) ditambahkan (bagian 24): BE-HRD-360 s.d. BE-HRD-363. Source sudah ditulis di luar siklus task dan belum di-build; kontrak v27 approved 16 November 2026 (gerbang G1 tertutup); keputusan terdaftar `HRD-DEC-218` s.d. `HRD-DEC-223` pada 16 November 2026 (gerbang G2 tertutup). Tidak ada tanda status yang berubah pada task lama."
 status: ACTIVE
 status_synced_at: "2026-11-03 — tanda status task lama disalin apa adanya dari revision 2; tidak ada task yang naik atau turun status pada revision ini"
@@ -997,7 +998,7 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-295` | `S-C6` · `MVP-58` | Service Fast-Track Resep Profilaksis Pasca Pajanan (PPP/PEP < 4 Jam) & Depo Farmasi Sub-12 | ✅ | `BE-HRD-294` |
 | `BE-HRD-296` | `S-C6` · `MVP-58` | Background Worker `SerialSurveillanceFollowUpWorker` (`OHS-W1`) Bulan 1, 3, dan 6 | 🟡 | `BE-HRD-295` |
 | `BE-HRD-297` | `S-C6` · `MVP-58` | Service Radar Imunisasi Staf, Log Batch Vaksin & Worker Pengingat Booster `OHS-W3` (`StaffVaccinationService`) | 🟡 | `BE-HRD-288` |
-| `BE-HRD-298` | `S-C6` · `MVP-58` | Service Surveilans Bahaya Ruangan, TLD Radiasi & Worker Alarm Batas Dosis `OHS-W5` (`HazardSurveillanceService`) | 🟡 | `BE-HRD-288` |
+| `BE-HRD-298` | `S-C6` · `MVP-58` | Service Surveilans Bahaya Ruangan, TLD Radiasi & Worker Alarm Batas Dosis `OHS-W5` (`HazardSurveillanceService`) | ✅ | `BE-HRD-288` |
 | `BE-HRD-299` | `S-C6` · `MVP-59` | Service Pelaksanaan MCU Berkala Berbasis Profil Ruangan, Laporan STARKES & Worker `OHS-W4` (`MedicalExaminationService`) | ✅ | `BE-HRD-288` |
 | `BE-HRD-300` | `S-C6` · `MVP-59` | Service Registrasi Kecelakaan Kerja KAK/PAK, Olah TKP & Integrasi BPJS JKK (`INT-HR-90`) (`OccupationalInjuryService`) | ✅ | `BE-HRD-299` |
 | `BE-HRD-301` | `S-C6` · Verifikasi | Controller API Kontrak v23 5 Tag Swagger, Worker BPJS `OHS-W6` & Audit Verifikasi E2E | 🟡 | Seluruh task backend `BE-HRD-286` s.d. `BE-HRD-300` |
@@ -1015,7 +1016,7 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-313` | `S-A7-V2` · `MVP-62` | Background Worker `BulkApprovalProcessingWorker` (`WF-W5`) Pemrosesan Antrean Batch Aman | 🟡 | `BE-HRD-312` |
 | `BE-HRD-314` | `S-A7-V2` · Verifikasi | Gateway Notifikasi Multikanal & Worker `DailyApprovalDigestWorker` (`WF-W3`) Pukul 07:00 Pagi (`UnifiedNotificationGatewayService` - `WF-B7`, `INT-HR-96`) | 🟡 | `BE-HRD-305`, `BE-HRD-309` |
 | `BE-HRD-315` | `S-A7-V2` · Verifikasi | Layanan Koreksi Draf Resubmit Mandiri Staf & Worker `ReturnedRequestExpiryWorker` (`WF-W6`) (`WorkflowResubmitService` - `VR-WF-06`) | ✅ | `BE-HRD-309` |
-| `BE-HRD-316` | `S-A7-V2` · Verifikasi | Eksekusi Transaksional Idempoten Domain Hilir (`IdempotentDownstreamExecutionService` - `WF-B8`, `INT-HR-93`, `INT-HR-94`) | 🟡 | `BE-HRD-309`, `BE-HRD-312` |
+| `BE-HRD-316` | `S-A7-V2` · Verifikasi | Eksekusi Transaksional Idempoten Domain Hilir (`IdempotentDownstreamExecutionService` - `WF-B8`, `INT-HR-93`, `INT-HR-94`) | ✅ | `BE-HRD-309`, `BE-HRD-312` |
 | `BE-HRD-317` | `S-A7-V2` · Verifikasi | Controller API Kontrak v24 5 Tag Swagger, Kunci 24 Permissions & Audit Verifikasi E2E QBE Conformance | 🟡 | Seluruh task backend `BE-HRD-302` s.d. `BE-HRD-316` |
 | `BE-HRD-318` | `S-D5` · `MVP-63` | Skema Basis Data Postgres, Pemutakhiran Model EF Core & Migration | ✅ | `BE-HRD-003` [B1] |
 | `BE-HRD-319` | `S-D5` · `MVP-63` | Master Matriks Tarif Lumpsum Uang Harian Per Diem & Zonasi Wilayah (`MstTravelAllowanceRateService` - `TRV-B3`, `HRD-DEC-190`) | ✅ | `BE-HRD-318` |
@@ -5751,7 +5752,7 @@ BE-HRD-288 [B72] ─┬─> BE-HRD-294 ✅ (Service Tanggap Darurat Tertusuk Jar
 #### Grafik B75: Radar Imunisasi STARKES, Bahaya Ruangan, MCU Berkala, Kecelakaan Kerja & Klaim BPJS JKK
 ```text
 BE-HRD-288 [B72] ─┬─> BE-HRD-297 🟡 (Service Radar Imunisasi Staf, Log Batch Vaksin & Worker Booster OHS-W3)
-                  ├─> BE-HRD-298 🟡 (Service Surveilans Bahaya Ruangan, TLD Radiasi & Worker Alarm OHS-W5)
+                  ├─> BE-HRD-298 ✅ (Service Surveilans Bahaya Ruangan, TLD Radiasi & Worker Alarm OHS-W5)
                   ├─> BE-HRD-299 ✅ (Service Pelaksanaan MCU Berkala Berbasis Profil Ruangan & Worker OHS-W4)
                   │      │
                   │      └─> BE-HRD-300 ✅ (Service Registrasi KAK/PAK, Olah TKP & Integrasi BPJS JKK INT-HR-90)
@@ -5892,9 +5893,9 @@ BE-HRD-300 [B75] ─┘
 * **Acceptance Criteria**: Log vaksinasi tercatat lengkap dengan nomor batch sah; titer < 10 mIU/mL otomatis memicu tiket rujukan vaksinasi booster.
 * **Verifikasi**: Uji validasi data log vaksin `AT-HRD-OHS-14`, deteksi titer rendah `AT-HRD-OHS-15`, dan reminder booster H-30 `AT-HRD-OHS-16`.
 
-#### 🟡 `BE-HRD-298` — Service Surveilans Bahaya Ruangan, TLD Radiasi & Worker Alarm Batas Dosis `OHS-W5` (`HazardSurveillanceService`)
+#### ✅ `BE-HRD-298` — Service Surveilans Bahaya Ruangan, TLD Radiasi & Worker Alarm Batas Dosis `OHS-W5` (`HazardSurveillanceService`)
 * **Slice / MVP**: `S-C6` / `MVP-58`
-* **Status**: 🟡 **SEBAGIAN 11 November 2026** (dikerjakan ulang; sebelumnya 🟡 10 November 2026) — radar dosis dari kolom `MeasuredDoseMsv`; `OHS-W5` kini mengirim alarm kritis ke pegawai dan pemegang `OccupationalMedicalExamination : RecordHazardSurveillance`. **Belum**: migration sudah dijalankan 11 November 2026; uji `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-298.md)
+* **Status**: ✅ **Selesai 18 November 2026** — `AT-HRD-OHS-17` terbukti lewat harness `RadiationDoseThresholdTests` 3/3 (pencatat dosis, radar, worker `OHS-W5`, dan pusat pemberitahuan sesungguhnya; tiga kontrol negatif tertangkap). Cacat `VR-OHS-17` diperbaiki: ambang dinilai per bacaan, padahal dosis diimpor bulanan — kini kumulatif triwulanan > 5 mSv dan tahunan > 20 mSv, dengan pesan wajib rotasi; total tahun 20,5 mSv memicu alarm kritis ke pegawai dan petugas K3RS (sekali) dan rekomendasi `RotasiWajibKeluarZonaRadiasi`. "Tiket rotasi dinas" tidak ada di kontrak (kontrak: rekomendasi rotasi). Proyek uji HR 287/287; QBE `Strict` 0 temuan; tanpa migration. Riwayat sebelumnya (🟡 11 November 2026) — radar dosis dari kolom `MeasuredDoseMsv`; `OHS-W5` kini mengirim alarm kritis ke pegawai dan pemegang `OccupationalMedicalExamination : RecordHazardSurveillance`. **Belum**: migration sudah dijalankan 11 November 2026; uji `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-298.md)
 * **Outcome**: Layanan pemantauan bahaya spesifik lingkungan kerja rumah sakit (pembacaan dosis radiasi badge TLD kuartalan/tahunan, penapisan spirometri debu/gas, dan audiometri kebisingan CSSD/Genset). Dilengkapi background worker `RadiationDoseThresholdAlertWorker` (`OHS-W5`) yang memantau dosis radiasi kumulatif triwulanan (> 5 mSv) dan tahunan (> 20 mSv) sesuai regulasi Bapeten untuk memicu alarm peringatan dini dan rekomendasi rotasi kerja staf (`VR-OHS-17`).
 * **Dependencies**: `BE-HRD-288`
 * **Acceptance Criteria**: Rekaman dosis TLD tersimpan per periode; dosis melebihi ambang 20 mSv memicu alarm bahaya dan tiket rotasi dinas.
@@ -5961,7 +5962,7 @@ BE-HRD-309 ✅ [B77] ─┬─> BE-HRD-310 ✅ ─> BE-HRD-311 ✅
 BE-HRD-305 ✅ [B76] ─┬─> BE-HRD-314 🟡
 BE-HRD-309 ✅ [B77] ─┘
 BE-HRD-309 ✅ [B77] ────> BE-HRD-315 ✅
-BE-HRD-309 ✅ [B77] ─┬─> BE-HRD-316 🟡
+BE-HRD-309 ✅ [B77] ─┬─> BE-HRD-316 ✅
 BE-HRD-312 ✅ [B78] ─┘
 BE-HRD-302 ✅ s.d. BE-HRD-316 🟡 ───────> BE-HRD-317 🟡
 ```
@@ -6093,9 +6094,9 @@ BE-HRD-302 ✅ s.d. BE-HRD-316 🟡 ───────> BE-HRD-317 🟡
 * **Acceptance Criteria**: Staf dapat mengajukan ulang data revisi tanpa tiket baru; tiket yang kedaluwarsa 7 hari otomatis dibatalkan sistem.
 * **Verifikasi**: Uji alur resubmit draf revisi `AT-HRD-WF-16` dan pembatalan otomatis 7 hari `AT-HRD-WF-17`.
 
-#### 🟡 `BE-HRD-316` — Eksekusi Transaksional Idempoten Domain Hilir (`IdempotentDownstreamExecutionService` - `WF-B8`, `INT-HR-93`, `INT-HR-94`)
+#### ✅ `BE-HRD-316` — Eksekusi Transaksional Idempoten Domain Hilir (`IdempotentDownstreamExecutionService` - `WF-B8`, `INT-HR-93`, `INT-HR-94`)
 * **Slice / MVP**: `S-A7-V2` / Verifikasi
-* **Status**: 🟡 **SEBAGIAN 11 November 2026** (dikerjakan ulang; sebelumnya 🟡 10 November 2026) — `INT-HR-94` kini ada: sesudah cuti disetujui penuh, pemohon yang tercatat manajer aktif (`WfpManagerAssignment.CanApproveRequests`) tanpa delegasi Plh yang menutup rentang cuti menerima pengingat wajib menunjuk Plh (satu kali per cuti). **Belum**: migration sudah dijalankan 11 November 2026; `AT-HRD-WF-18`/`AT-HRD-WF-19` `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-316.md)
+* **Status**: ✅ **Selesai 18 November 2026** — `AT-HRD-WF-18` (idempoten) dan `AT-HRD-WF-19` (pengingat Plh) menurut kartu ini terbukti lewat harness `DownstreamExecutionTests` 6/6 tanpa perubahan source: cuti pejabat 3 hari disetujui final → status `Approved`, saldo 12 → 9 dengan satu mutasi walau dieksekusi tiga kali; pengingat Plh sekali, tidak dikirim bila Plh menutup seluruh masa cuti atau pemohon bukan pejabat; workflow belum final tidak menyentuh apa pun; empat kontrol negatif tertangkap. Proyek uji HR 293/293. Catatan: matriks uji memakai nomor `WF-18`/`WF-19` untuk skenario lain (tukar shift, email 07.00) — dicatat untuk pass blueprint; hanya jalur cuti yang diuji. Riwayat sebelumnya (🟡 11 November 2026) — `INT-HR-94` kini ada: sesudah cuti disetujui penuh, pemohon yang tercatat manajer aktif (`WfpManagerAssignment.CanApproveRequests`) tanpa delegasi Plh yang menutup rentang cuti menerima pengingat wajib menunjuk Plh (satu kali per cuti). **Belum**: migration sudah dijalankan 11 November 2026; `AT-HRD-WF-18`/`AT-HRD-WF-19` `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-316.md)
 * **Outcome**: Layanan pemicu eksekusi transaksi domain hilir setelah permohonan berstatus `Approved` final (`INT-HR-93`). Mengirimkan sinyal idempoten untuk: pemotongan saldo cuti di Sub-08, pemutakhiran jadwal dinas di modul roster Sub-06, pencatatan lembur di Sub-09, dan pelepasan pencairan kasbon/klaim di Sub-11. Mengaktifkan prompt pembuatan delegasi Plh jika permohonan yang disetujui adalah cuti pejabat struktural (`INT-HR-94`).
 * **Dependencies**: `BE-HRD-309`, `BE-HRD-312`
 * **Acceptance Criteria**: Domain hilir terupdate seketika setelah persetujuan akhir; eksekusi ulang tidak menyebabkan duplikasi transaksi (idempoten).
@@ -6286,7 +6287,7 @@ BE-HRD-318 ✅ s.d. BE-HRD-332 ✅ ───────> BE-HRD-333 🟡
 
 #### 🟡 `BE-HRD-333` — 5 Controller API Kontrak v25 (24 Endpoint Swagger), Worker Kurs BI `TRV-W4`, 24 Permissions & Audit Verifikasi E2E QBE Conformance
 * **Slice / MVP**: `S-D5` / Verifikasi
-* **Status**: 🟡 **SEBAGIAN 11 November 2026** (dikerjakan ulang; sebelumnya 🟡 10 November 2026) — worker kurs `TRV-W4` kini menerapkan kurs tengah master Keuangan (`MstExchangeRate`) ke butir klaim valuta asing yang belum dikonversi (keputusan sumber kurs `HRD-ASM-72`); identitas pegawai 3 controller perjalanan dinas dari klaim `workforce_profile_id` (kelompok G). 5 hak akses yang kurang kini punya endpoint dan potongan payroll H+30 terjadwal nyata. **Belum**: `AT-HRD-TRV-22` `NOT RUN`, migration sudah dijalankan 11 November 2026. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-333.md)
+* **Status**: 🟡 **SEBAGIAN 18 November 2026** (keputusan pemilik) — `AT-HRD-TRV-22` kini lulus lewat `TravelContractV25Tests` 26/26 (24 endpoint kontrak v25 ada dengan tag, login, dan izin konsisten; validator registri bersih; tiga kontrol negatif tertangkap; proyek uji HR 319/319). Tetap 🟡 karena dua celah acceptance criteria: (1) SPPD tidak pernah disetujui — tidak ada endpoint/workflow persetujuan dan hak `Hrd.BusinessTravel.Request.Approve` tak terpakai, uang muka dapat diajukan untuk SPPD yang belum disahkan; (2) 5 dari 12 event audit `HRD_TRV_*` belum dicatat. Keduanya diusulkan sebagai task baru — **ditindaklanjuti 19 November 2026** oleh amandemen kontrak `v28` dan task `BE-HRD-374` s.d. `BE-HRD-380` (bagian 27); `BE-HRD-333` naik ke ✅ sesudah `BE-HRD-380`. Riwayat sebelumnya (🟡 11 November 2026) — worker kurs `TRV-W4` kini menerapkan kurs tengah master Keuangan (`MstExchangeRate`) ke butir klaim valuta asing yang belum dikonversi (keputusan sumber kurs `HRD-ASM-72`); identitas pegawai 3 controller perjalanan dinas dari klaim `workforce_profile_id` (kelompok G). 5 hak akses yang kurang kini punya endpoint dan potongan payroll H+30 terjadwal nyata. **Belum**: `AT-HRD-TRV-22` `NOT RUN`, migration sudah dijalankan 11 November 2026. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-333.md)
 * **Outcome**: Implementasi seluruh 24 endpoint API pada 5 Controller ASP.NET Core beranotasi Swagger `[Tags("Corporate - HRD Business Travel ...")]` sesuai Kontrak API `v25`. Mengonfigurasi background worker harian `TravelCurrencyRateSyncWorker` (`TRV-W4`) untuk kurs BI, mengunci hak akses 24 permissions `Hrd.BusinessTravel.*` dan `Hrd.Expense.*`, mencatat 14 event audit permanen (`HRD_TRV_*`), serta melakukan audit verifikasi menyeluruh kompilasi `dotnet build` 0 warning dan kepatuhan standar QBE Conformance.
 * **Dependencies**: Seluruh task backend `BE-HRD-318` s.d. `BE-HRD-332`
 * **Acceptance Criteria**: 24 endpoint API terdaftar rapi pada Swagger UI; seluruh permission dan audit event bekerja akuntabel; `dotnet build` lulus 0 error.
@@ -6981,3 +6982,206 @@ BE-HRD-364 (Audit-kontrak ringkas + adapter GET/paging data nyata enam Submenu)
 * **Acceptance Criteria**: Seluruh endpoint 6 submenu terverifikasi; `dotnet build` lulus 0 error; lembar kontrak API siap dipakai frontend; tidak ada celah keamanan aktor.
 * **Verifikasi**: `dotnet build`, verifikasi kontrak API, dan laporan task tracked `BE-HRD-373.md`.
 
+
+---
+
+## 27. Amandemen `S-D5` — Persetujuan SPPD lewat Workflow Persetujuan Umum (roadmap revisi `17`, kontrak `v28`)
+
+> **Status slice: kontrak `v28` APPROVED 19 November 2026** oleh Pengguna (`HRD-DEC-015`), jawaban: "setujui kontrak v28, lanjut plan". Task di bawah boleh dikirim ke builder satu per satu sesuai urutan dependency. Belum ada task yang dikerjakan.
+
+| Field | Nilai |
+| --- | --- |
+| `blueprint_id` / revision | `HRD-BP-001` / manifest revision `65` |
+| Keputusan | `HRD-DEC-224` s.d. `HRD-DEC-228` (decision log revision `39` bagian 55, SHA-256 `97de7755…`) |
+| Kontrak | `v28` approved — API 34, State 32, Validation 33 (`VR-TRV-26` s.d. `VR-TRV-33`), Integration 25 (`INT-HR-109`, `INT-HR-110`), Permission 32, Data 29, Acceptance 36 (`AT-HRD-TRV-23` s.d. `AT-HRD-TRV-39`) |
+| Desain | `02-backend-architecture.md` bagian 36; PRD `04-prd-to-mvp.md` bagian 41 (`EPIC HRD-121`, `EPIC HRD-122`, `MVP-70`) |
+| Source acuan | Backend `d7d4eb3b` (branch `yoga`) |
+| Migration | Tidak ada |
+| Menutup | Dua celah `BE-HRD-333` (SPPD tidak pernah disetujui; 5 event audit hilang) |
+
+### Latar belakang
+
+SPPD saat ini langsung berstatus `Submitted` saat dibuat dan tidak pernah dapat disetujui, tetapi uang muka tetap dapat diajukan. Amandemen ini menyambungkan SPPD ke workflow persetujuan umum (Workflow V2) yang sudah dipakai modul Pengadaan: modul perjalanan dinas menyediakan aksi **Ajukan** dan sebuah penangan yang menyalin hasil workflow ke SPPD. Atasan menyetujui dari kotak masuk persetujuan yang sudah ada.
+
+Contoh alur: Perawat Sari membuat SPPD seminar Rp 5.000.000 (Draf), menekan Ajukan (Menunggu Persetujuan), lalu Kepala Ruang menyetujui di kotak masuk. SPPD menjadi Disetujui, presensi "Hadir Dinas Luar" 1–3 Desember dan gembok roster terpasang, dan Sari dapat mengajukan uang muka paling banyak Rp 4.000.000.
+
+### Fakta source yang menopang rencana
+
+| Fakta | Bukti |
+| --- | --- |
+| `WorkflowService.SubmitAsync` menerima instance berstatus `Draft`, `RevisionRequested`, dan `Returned`, sehingga SPPD yang dikembalikan dapat diajukan ulang dengan instance yang sama | `WorkflowService.cs` baris 851–865 |
+| Pola penangan referensi dan seeder definisi sudah ada di Pengadaan | `ProcurementWorkflowLifecycleHandler.cs`, `ProcurementWorkflowDefinitionSeeder.cs` |
+| Layanan presensi/gembok sudah ada tetapi belum pernah dipanggil | `HRD-TF-077` |
+| Sumber data kelima event audit yang hilang sudah ada | `HRD-TF-078` |
+
+### Gerbang
+
+| Gerbang | Isi | Pemilik | Akibat |
+| --- | --- | --- | --- |
+| G1 | ~~Kontrak `v28` belum disetujui~~ **TERTUTUP 19 November 2026** | Pengguna (`HRD-DEC-015`) | Tidak memblokir |
+| G2 | `HRD-Q-222` — definisi workflow ditanam aktif (usulan desain yang ikut disetujui bersama kontrak) atau nonaktif | Pengguna | Tidak memblokir: `BE-HRD-374` memakai **aktif**; bila dijawab nonaktif, cukup satu nilai pada seeder |
+
+### API yang direncanakan
+
+#### Corporate - HRD Business Travel Requests
+
+Base URL: `api/v1/hrd/travel/requests` — kontrak `v28` bagian 34.1.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | Buat SPPD sebagai Draf (**diubah**) | `BusinessTravelRequest : Create` | `CreateBusinessTravelRequestDto` | `201`, `BusinessTravelDetailResponseDto` |
+| `PUT` | `/{id}` | Ubah SPPD hanya bila `Draft`/`NeedRevision`/`Submitted` lama tanpa workflow (**diubah**) | `BusinessTravelRequest : Update` | `UpdateBusinessTravelRequestDto` | `200`; `409` |
+| `POST` | `/{id}/submit` | **Ajukan** ke penyetuju lewat Workflow V2 (**baru**) | `BusinessTravelRequest : Create` | Tanpa body | `200`; `400`, `403`, `404`, `409` |
+| `PUT` | `/{id}/cancel` | Batal; menarik workflow bila menunggu, melepas gembok bila sudah disetujui (**diubah**) | `BusinessTravelRequest : Cancel` | `CancelTravelRequestDto` | `200`; `409` |
+
+`POST /api/v1/hrd/travel/advances` dan `POST /api/v1/hrd/travel/settlements` ditolak `409` untuk SPPD yang belum disetujui (bagian 34.2–34.3).
+
+**Preflight QBE (diselesaikan saat eksekusi dari `AGENTS.md` backend dan dokumen engineering canonical):** Area `Corporate`, Module `HumanResource`, Submodule `BusinessTravelManagement`; kelas perubahan `EXTEND` ditambah `NEW CODE` untuk penangan, konstanta, dan seeder; tanpa entity baru dan tanpa migration.
+
+### Grafik B90 — Persetujuan SPPD lewat Workflow V2 (`BE-HRD-374` s.d. `BE-HRD-380`)
+
+```text
+{Kontrak v28 ✅} ─> BE-HRD-374 ✅ ┬─> BE-HRD-375 ─┬─> BE-HRD-376 ─┬─> BE-HRD-377 ─┐
+                                │               │               │               │
+                                │               └───────────────┴─> BE-HRD-378 ─┤
+                                │                                               │
+                                └─> BE-HRD-379 (boleh paralel sesudah 374) ─────┴─> BE-HRD-380
+```
+
+### Tabel gelombang
+
+| Gelombang | Isi | Task | Prasyarat |
+| --- | --- | --- | --- |
+| 1 · `MVP-70` | Definisi workflow dan konstanta | `BE-HRD-374` | Gerbang G1 ✅ |
+| 2 · `MVP-70` | Draf dan Ajukan; jejak audit (paralel) | `BE-HRD-375`, `BE-HRD-379` | `BE-HRD-374` |
+| 3 · `MVP-70` | Penangan workflow, presensi, gembok | `BE-HRD-376` | `BE-HRD-375` |
+| 4 · `MVP-70` | Batal; gerbang uang muka dan settlement | `BE-HRD-377`, `BE-HRD-378` | `BE-HRD-376` |
+| 5 · Verifikasi | Kontrak `v28`, registri hak, build, QBE | `BE-HRD-380` | Semua di atas |
+
+### Rincian 7 task backend (`BE-HRD-374` s.d. `BE-HRD-380`)
+
+#### ✅ `BE-HRD-374` — Definisi workflow `BUSINESS_TRAVEL_REQUEST`: konstanta, seeder, dan pendaftaran startup
+* **Slice / MVP**: `S-D5` amandemen / `MVP-70` · `EPIC HRD-121`
+* **Status**: ✅ Selesai (2026-11-19) — 3/3 acceptance criteria terbukti. Uji harness `TravelWorkflowDefinitionSeederTests` 8/8 (kontrol negatif lima mutasi tertangkap), proyek uji HR 327/327 dengan build 0 galat, QBE Strict tanpa temuan (probe kontrol tertangkap). Startup Development menanam definisi dan tahap di devYoga (kueri baca-saja + API Master Workflow `200`), startup kedua 0/0. `RequestType` mengikuti kontrak (`HRD_TRV_REQUEST`), berbeda dari konvensi HR `OvertimeRequest` — dicatat, tidak diubah. Laporan: [BE-HRD-374](../task/report/backend/BE-HRD-374.md)
+* **Outcome**: Definisi "Persetujuan Perjalanan Dinas" versi 1 (satu tahap `HRD-TRV-01` atasan langsung pemohon, `RequesterManager`, SLA 48 jam, `AllowSelfApproval = false`, `AllowRequesterWithdraw = true`, aktif) tertanam idempoten saat startup dan tampil di Master Workflow.
+* **Requirement / keputusan**: `HRD-DEC-224`; desain 36.7; `HRD-Q-222` (bawaan aktif)
+* **Kontrak**: `v28` — Integration 25.1 (definisi), Permission 32.1
+* **Reuse**: pola `ProcurementWorkflowDefinitionSeeder`, `RunStartupSeederAsync` di `Program.cs`, `MstWorkflowDefinition`/`MstWorkflowStep`
+* **Cakupan**: `Constants/BusinessTravelWorkflowCodes.cs` (baru), `Seeders/BusinessTravelWorkflowDefinitionSeeder.cs` (baru), `Program.cs`
+* **Dependencies**: Gerbang G1
+* **Acceptance Criteria**:
+  1. Startup pertama menanam satu definisi `BUSINESS_TRAVEL_REQUEST` dengan satu tahap sesuai outcome; startup kedua tidak menambah apa pun.
+  2. Definisi yang sudah diubah admin (tahap ditambah, dinonaktifkan) tidak ditimpa seeder.
+  3. Kegagalan seeder tercatat di log startup dan tidak menghentikan aplikasi (perilaku `RunStartupSeederAsync`).
+* **Verifikasi**: uji harness (tanam dua kali, tanam sesudah diubah) dengan kontrol negatif; `dotnet build -p:RunAnalyzers=False`; log startup lokal.
+* **Risiko / pemilik**: menulis data master saat startup di devYoga — hanya lewat startup aplikasi, bukan eksekusi DB langsung; Technical Owner HR.
+* **DoD**: AC terbukti, laporan `task/report/backend/BE-HRD-374.md`.
+
+#### ⬜ `BE-HRD-375` — SPPD dibuat sebagai Draf, isi terkunci, dan endpoint Ajukan
+* **Slice / MVP**: `S-D5` amandemen / `MVP-70` · `EPIC HRD-121`
+* **Status**: ⬜ Belum dikerjakan
+* **Outcome**: `POST /requests` menghasilkan `Draft` dengan `ApprovedBudgetAmount = 0`; `PUT /requests/{id}` hanya untuk `Draft`/`NeedRevision`/`Submitted` lama tanpa workflow; `POST /requests/{id}/submit` membuat instance workflow (atau memakai ulang untuk `NeedRevision`) lalu mengirimkannya, mengisi `SubmittedAt`, `SubmittedByUserId`, `WorkflowDefinitionId`, `WorkflowInstanceId`.
+* **Requirement / keputusan**: `FR-TRV-26`, `FR-TRV-27`, `FR-TRV-32` (bagian ajukan SPPD lama); `HRD-DEC-224`, `HRD-DEC-225`, `HRD-DEC-227`
+* **Kontrak**: `v28` — API 34.1, 34.4 (`workflowInstanceId`, `currentApprovalStep`, `submittedAt`, `approvedAt`, `rejectedAt`, `isApproved`, `canSubmit`), 34.5; Validation `VR-TRV-26` s.d. `VR-TRV-29`; State 32.2; Permission 32.1
+* **Reuse**: `WorkflowService.CreateAsync`/`SubmitAsync`, `BusinessTravelRequestService`, `BusinessTravelRequestsController`
+* **Cakupan**: `BusinessTravelRequestService.cs`, `BusinessTravelRequestsController.cs` (action `Submit`, atribut sama dengan `POST /`, tanpa `<summary>` XML), `BusinessTravelDtos.cs`
+* **Dependencies**: `BE-HRD-374`
+* **Acceptance Criteria**:
+  1. SPPD baru `Draft`, `workflowInstanceId = null`, `canSubmit = true`, anggaran disetujui 0 (`AT-HRD-TRV-23`).
+  2. Ajukan oleh pemohon → `Submitted`, instance menunggu dengan tugas untuk atasan langsung (`AT-HRD-TRV-24`).
+  3. Ubah SPPD berworkflow yang menunggu → `409` `VR-TRV-27`, data tidak berubah (`AT-HRD-TRV-25`).
+  4. Ajukan dari status tidak sah → `409` `VR-TRV-26`; dari `Rejected` → `409` `VR-TRV-28`; tanpa atasan atau definisi nonaktif → pesan Workflow V2, status SPPD tidak berubah (`VR-TRV-29`).
+  5. Pengguna tanpa hak Create, atau pengguna yang bukan pemohon → `403` (`AT-HRD-TRV-37`).
+  6. SPPD lama `Submitted` tanpa workflow → `canSubmit = true` dan Ajukan lolos (`AT-HRD-TRV-34` bagian ajukan).
+* **Verifikasi**: uji harness Workflow V2 + SPPD (SQLite) dengan kontrol negatif tiap AC; `dotnet build`; uji API lokal bila data tersedia.
+* **Risiko / pemilik**: perubahan perilaku `POST /` bagi klien lama (frontend saat ini memakai data contoh, `HRD-TF-079`, sehingga dampak runtime kecil); Technical Owner HR.
+* **DoD**: AC terbukti, laporan `BE-HRD-375.md`.
+
+#### ⬜ `BE-HRD-376` — Penangan workflow SPPD dan sinkron presensi Dinas Luar serta gembok roster (`INT-HR-109`, `INT-HR-110`)
+* **Slice / MVP**: `S-D5` amandemen / `MVP-70` · `EPIC HRD-121`
+* **Status**: ⬜ Belum dikerjakan
+* **Outcome**: `BusinessTravelWorkflowLifecycleHandler` memetakan status workflow ke SPPD (State 32.3), mengisi `ApprovedAt`/`ApprovedByUserId`/`ApprovedBudgetAmount = EstimatedTotalAmount`/`RejectedAt`/`CurrentApprovalStep`, dan saat `Approved` memanggil `SyncAttendanceAndLockRosterAsync` dengan pelaku nyata (parameter `actorUserId` baru menggantikan `Guid.Empty`).
+* **Requirement / keputusan**: `FR-TRV-28`, `FR-TRV-29`; `HRD-DEC-225`, `HRD-DEC-226`; `HRD-TF-077`
+* **Kontrak**: `v28` — Integration 25.1, 25.2; State 32.2–32.3; Validation `VR-TRV-32`
+* **Reuse**: `IWorkflowReferenceLifecycleHandler` (pola `ProcurementWorkflowLifecycleHandler`), `ITravelAttendanceAndRosterLockService`
+* **Cakupan**: `BusinessTravelWorkflowLifecycleHandler.cs` (baru), `TravelAttendanceAndRosterLockService.cs` (parameter pelaku; pemanggil worker ikut disesuaikan), `Program.cs` (DI)
+* **Dependencies**: `BE-HRD-375`
+* **Acceptance Criteria**:
+  1. Persetujuan final → SPPD `Approved`, kolom persetujuan terisi, satu tautan presensi per hari dinas, `HasScheduleConflict = true` (`AT-HRD-TRV-26`).
+  2. Dikembalikan → `NeedRevision`, dapat diubah dan diajukan ulang memakai instance yang sama (`AT-HRD-TRV-27`).
+  3. Ditolak → `Rejected`, `RejectedAt` terisi (`AT-HRD-TRV-28`).
+  4. Tidak ada presensi/gembok sebelum `Approved` (`AT-HRD-TRV-32`).
+  5. Penyelarasan dua kali tidak mengubah apa pun (idempoten; status lanjutan tidak diturunkan) (`AT-HRD-TRV-33`).
+  6. Referensi tidak ditemukan → hasil `IsHandled = false`, tanpa galat; galat penangan menggagalkan aksi workflow (satu transaksi).
+  7. `CreateBy`/`UpdateBy` tautan presensi = pelaku persetujuan, bukan `Guid.Empty`.
+* **Verifikasi**: uji harness memanggil aksi Workflow V2 (setuju/kembalikan/tolak) ujung-ke-ujung; kontrol negatif; `dotnet build`.
+* **Risiko / pemilik**: `SaveChangesAsync` di dalam layanan presensi berjalan di transaksi Workflow V2 — dibuktikan oleh AC 6; Technical Owner HR.
+* **DoD**: AC terbukti, laporan `BE-HRD-376.md`.
+
+#### ⬜ `BE-HRD-377` — Batal SPPD menarik workflow dan melepas gembok roster
+* **Slice / MVP**: `S-D5` amandemen / `MVP-70` · `EPIC HRD-121`
+* **Status**: ⬜ Belum dikerjakan
+* **Outcome**: `PUT /requests/{id}/cancel` pada SPPD `Submitted` berworkflow menarik workflow (`WithdrawAsync`) lebih dulu; pada SPPD `Approved` atau lanjutan selain `Completed` memanggil `ReleaseRosterLockAsync` dengan pelaku nyata; semuanya dalam satu transaksi.
+* **Requirement / keputusan**: `FR-TRV-30`; `HRD-DEC-225`
+* **Kontrak**: `v28` — API 34.1 (`PUT /{id}/cancel`), 34.5; Validation `VR-TRV-33`; State 32.2; Integration 25.2 (pelepasan)
+* **Reuse**: `WorkflowService.WithdrawAsync`, `ReleaseRosterLockAsync`
+* **Cakupan**: `BusinessTravelRequestService.CancelRequestAsync`
+* **Dependencies**: `BE-HRD-376`
+* **Acceptance Criteria**:
+  1. Batal SPPD menunggu → workflow `Withdrawn`/`Cancelled`, SPPD `Cancelled`, tugas hilang dari kotak masuk (`AT-HRD-TRV-29`).
+  2. Penarikan ditolak engine → `409` dengan pesan Workflow V2, SPPD tetap `Submitted` (`VR-TRV-33`).
+  3. Batal SPPD disetujui → gembok dan presensi Dinas Luar dilepas.
+  4. Batal `Draft`/`NeedRevision` tetap seperti aturan lama (alasan minimal 15 karakter).
+* **Verifikasi**: uji harness dengan kontrol negatif; `dotnet build`.
+* **Risiko / pemilik**: pengecualian `AllowRequesterWithdraw` bila admin mematikannya — tertangkap AC 2; Technical Owner HR.
+* **DoD**: AC terbukti, laporan `BE-HRD-377.md`.
+
+#### ⬜ `BE-HRD-378` — Gerbang uang muka dan settlement untuk SPPD disetujui
+* **Slice / MVP**: `S-D5` amandemen / `MVP-70` · `EPIC HRD-121`
+* **Status**: ⬜ Belum dikerjakan
+* **Outcome**: Pengajuan uang muka ditolak `409` bila SPPD tanpa `ApprovedAt` (atau `Cancelled`/`Rejected`), plafon 80% dihitung dari `ApprovedBudgetAmount`; settlement ditolak `409` bila tanpa `ApprovedAt` **dan** tanpa uang muka `Paid`.
+* **Requirement / keputusan**: `FR-TRV-31`, `FR-TRV-32`; `HRD-DEC-226`, `HRD-DEC-227`; `HRD-TF-074`
+* **Kontrak**: `v28` — API 34.2–34.3, 34.5; Validation `VR-TRV-30`, `VR-TRV-31`
+* **Reuse**: `TravelAdvanceRequestService`, `TravelSettlementService`
+* **Cakupan**: kedua service di atas
+* **Dependencies**: `BE-HRD-376` (butuh SPPD yang dapat disetujui untuk jalur lolos)
+* **Acceptance Criteria**:
+  1. Uang muka untuk `Draft` dan `Submitted` → `409` pesan `VR-TRV-30`; untuk `Approved` lolos dengan plafon 80% (`AT-HRD-TRV-30`).
+  2. Settlement tanpa persetujuan dan tanpa uang muka `Paid` → `409` pesan `VR-TRV-31`; SPPD lama dengan uang muka `Paid` tetap dapat di-settle (`AT-HRD-TRV-31`).
+  3. SPPD lama: uang muka baru ditolak sebelum diajukan ulang dan lolos sesudah disetujui (`AT-HRD-TRV-34`).
+  4. Uang muka lama `Submitted`/`Paid` tetap dapat diproses dan di-settle (`AT-HRD-TRV-35`).
+* **Verifikasi**: uji harness dengan kontrol negatif; `dotnet build`.
+* **Risiko / pemilik**: data lama di devYoga dengan SPPD `Submitted` + uang muka — sengaja dibiarkan (`HRD-DEC-227`); Technical Owner HR.
+* **DoD**: AC terbukti, laporan `BE-HRD-378.md`.
+
+#### ⬜ `BE-HRD-379` — Jejak audit 12 event `HRD_TRV_*` bernama matriks
+* **Slice / MVP**: `S-D5` amandemen / `MVP-70` · `EPIC HRD-122`
+* **Status**: ⬜ Belum dikerjakan
+* **Outcome**: `TravelAuditTrailService` menurunkan 12 event matriks dari data yang ada (Permission 32.2), ditambah event `REQUEST_CREATED`, `REQUEST_REJECTED`, dan tiga event uang muka yang sudah ada; nama lama `REQUEST_APPROVAL`, `ADVANCE_SUBMITTED`, `SETTLEMENT_DEFAULTED` hilang.
+* **Requirement / keputusan**: `FR-TRV-33`; `HRD-DEC-228`; `HRD-TF-076`, `HRD-TF-078`
+* **Kontrak**: `v28` — Permission 32.2
+* **Reuse**: `TravelAuditTrailService`, `TrxTravelExpenseItem`, `TrxTravelSettlement.DefaultedAt`, `TrxPayrollDeductionSchedule` (`TRV-ADV-{id}`), `TrxTravelAttendanceLink`
+* **Cakupan**: `TravelAuditTrailService.cs`
+* **Dependencies**: `BE-HRD-374` (boleh paralel dengan `BE-HRD-375`; event 1, 2, 11, 12 baru terisi nyata sesudah `BE-HRD-376`)
+* **Acceptance Criteria**:
+  1. Satu SPPD yang dijalankan sampai settlement ditutup, dengan deklarasi tanpa nota dan tunggakan > 14 dan > 30 hari, memuat ke-12 kode matriks (`AT-HRD-TRV-36`).
+  2. Pesan tanpa rekening, gaji, atau alasan medis; alasan deklarasi dipotong 200 karakter.
+* **Verifikasi**: uji harness dengan data tiap sumber dan kontrol negatif per event; `dotnet build`.
+* **Risiko / pemilik**: event `SPPD_FROZEN_OVERDUE` bertumpu pada `DefaultedAt` dari worker, bukan fitur pembekuan `HRD-DEC-191`; Technical Owner HR.
+* **DoD**: AC terbukti, laporan `BE-HRD-379.md`.
+
+#### ⬜ `BE-HRD-380` — Verifikasi amandemen `S-D5` v28: kontrak, registri hak, build, QBE, dan penutupan celah `BE-HRD-333`
+* **Slice / MVP**: `S-D5` amandemen / Verifikasi
+* **Status**: ⬜ Belum dikerjakan
+* **Outcome**: Bukti 25 endpoint (24 + `submit`) sesuai kontrak `v28`, hak tampil di Akses Role, `dotnet build` 0 galat, QBE tanpa pelanggaran baru, proyek uji HR lulus, dan `BE-HRD-333` dapat dinaikkan ke ✅.
+* **Requirement / keputusan**: seluruh `FR-TRV-26` s.d. `FR-TRV-33`
+* **Kontrak**: `v28` seluruh bagian
+* **Reuse**: `TravelContractV25Tests` (diperluas), `PermissionRegistryValidator`, `tooling/qbe/Invoke-QbeConformanceCheck.ps1`
+* **Dependencies**: `BE-HRD-374` s.d. `BE-HRD-379`
+* **Acceptance Criteria**:
+  1. Uji kontrak reflektif lulus untuk 25 endpoint (tag, login, izin, kode status) dengan kontrol negatif (`AT-HRD-TRV-38`).
+  2. Validator registri bersih; startup "Permission registry valid".
+  3. `dotnet build -p:RunAnalyzers=False` 0 galat; QBE conformance tanpa pelanggaran pada berkas yang diubah.
+  4. Laporan menyatakan eksplisit tanpa migration; status `BE-HRD-333` diperbarui.
+* **Verifikasi**: build, proyek uji HR penuh, QBE, laporan `BE-HRD-380.md`.
+* **DoD**: AC terbukti; `MVP-70` siap untuk `FE-HRD-338` s.d. `FE-HRD-340`.

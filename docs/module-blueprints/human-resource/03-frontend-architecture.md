@@ -3746,3 +3746,95 @@ sidebar". Pilihannya dibawa ke approval desain; lihat `04-prd-to-mvp.md` bagian 
 4. Base component proyek wajib dipakai (utang `FE-HRD-R38` tidak boleh bertambah).
 5. Tidak ada data contoh tertanam pada layar baru; bila API gagal, tampilkan galat, bukan data
    contoh.
+
+---
+
+## 32. Arsitektur Frontend Amandemen `S-D5` — Persetujuan SPPD lewat Workflow Persetujuan Umum (kontrak `v28`, 18 November 2026; approved 19 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Status | `approved` — pengguna, 19 November 2026 ("setujui kontrak v28, lanjut plan"). `HRD-Q-221` tetap terbuka untuk cakupan `EPIC HRD-123` |
+| Frontend SHA | `e01411158` (branch `YogaV2`) |
+| `input_revision` | `00-interview-decisions.md` revision `39` bagian 55 (`HRD-DEC-224` s.d. `HRD-DEC-228`, `HRD-TF-079`); `contracts/api-contract.md` bagian 34 |
+| Hierarki kewenangan UI | Keamanan/privasi/invariant → keputusan `HRD-DEC-*` → konvensi proyek (base component, `AGENTS.md` frontend) → `DEV_DISCRETION` |
+
+Bagian ini menetapkan kontrak fungsional layar. Tata letak, posisi tombol, dan urutan kolom adalah
+`DEV_DISCRETION`, kecuali yang diikat di bawah. Layar persetujuan **tidak** dibuat di modul perjalanan
+dinas: atasan memakai kotak masuk persetujuan terpadu yang sudah ada (`HRD-DEC-224`).
+
+Contoh alur di layar: Perawat Sari membuka Daftar SPPD, membuat SPPD seminar (badge "Draf"), lalu
+menekan **Ajukan**. Badge berubah menjadi "Menunggu Persetujuan" dan tombol Ubah hilang. Kepala Ruang
+membuka Kotak Masuk Persetujuan, melihat baris berjenis "Perjalanan Dinas", lalu menyetujuinya. Saat
+Sari membuka daftar lagi, badge menjadi "Disetujui" dan tombol Ajukan Uang Muka aktif.
+
+### 32.1 Temuan awal: layar SPPD masih memakai data contoh (`HRD-TF-079`)
+
+Pada `FE@e01411158`, daftar SPPD membaca `MOCK_TRAVEL_REQUESTS` dari Redux
+(`src/lib/state/slice/hr/travel/businessTravelSlice.js`), dan formulir buat SPPD hanya
+`dispatch(addTravelRequest(...))` ke Redux tanpa memanggil API. Service
+`src/lib/services/hr/business-travel-service.js` sudah memanggil endpoint kontrak v25, tetapi belum
+dipakai layar mana pun; `submitTravelRequest` masih melempar "Pengajuan SPPD untuk persetujuan belum
+tersedia di server."
+
+Akibatnya, tombol Ajukan tidak berarti apa-apa sebelum daftar dan formulir SPPD tersambung ke API.
+Apakah penyambungan itu masuk epic amandemen ini atau task tersendiri adalah pertanyaan terbuka
+`HRD-Q-221` (tidak memblokir backend; lihat `04-prd-to-mvp.md` bagian 41.12).
+
+Ada dua pohon rute untuk layar yang sama: `/hrd/travel/...` dan `/corporate/hrd/travel/...`
+(`src/app/(dashboard)/…`), keduanya merender view `unified-travel-*-view.jsx` yang sama. Amandemen ini
+cukup mengubah view; kedua rute ikut berubah.
+
+### 32.2 Layar terdampak
+
+| Layar | File view | Status layar | Perubahan |
+| --- | --- | --- | --- |
+| Daftar SPPD | `src/components/view/hr/travel/unified-travel-requests-view.jsx` | Perlu ubah | Baca dari `GET /requests` (bila `HRD-Q-221` = disambung); label status 32.3; tombol **Ajukan** hanya bila `canSubmit`; tombol Ubah hanya bila `Draft`/`NeedRevision`; konfirmasi Batal menyebut "pengajuan ke atasan akan ditarik" bila status `Submitted` |
+| Formulir buat/ubah SPPD | `unified-travel-create-view.jsx` | Perlu ubah | Simpan menghasilkan Draf (bukan "terkirim"); pesan sukses "SPPD disimpan sebagai Draf. Tekan Ajukan untuk mengirim ke atasan." Langkah 4 "pengajuan uang muka" di formulir tidak boleh mengirim uang muka sebelum disetujui (`VR-TRV-30`) — dipindah ke layar uang muka atau dinonaktifkan dengan keterangan |
+| Uang muka | `unified-travel-advances-view.jsx` | Perlu ubah | Pilihan SPPD hanya yang `isApproved`; galat `409` `VR-TRV-30` ditampilkan apa adanya |
+| Settlement | `unified-travel-settlements-view.jsx` | Perlu ubah | Galat `409` `VR-TRV-31` ditampilkan apa adanya |
+| Kotak Masuk Persetujuan | `src/components/view/hr/workflow/approval-inbox-view.jsx` | Perlu ubah (kecil) | `getReferenceTypeLabel` mengenal `HRD_TRV_REQUEST` → "Perjalanan Dinas". Aksi setuju/kembalikan/tolak memakai yang sudah ada |
+| Dasbor perjalanan dinas | `unified-travel-dashboard-view.jsx` | Perlu ubah (kecil) | Memakai peta label 32.3 yang sama |
+
+### 32.3 Peta status dan label
+
+Backend mengirim `travelStatus` dalam PascalCase (kontrak API 34.4), sedangkan `TRAVEL_STATUS` di
+`src/utils/hr/travel/travel-display-utils.js` memakai kunci huruf besar contoh (`DRAFT`,
+`SETTLEMENT_PENDING`, dst.). Peta disesuaikan dengan nilai backend:
+
+| `travelStatus` | Label | Tombol yang boleh tampil |
+| --- | --- | --- |
+| `Draft` | Draf | Ubah, Ajukan, Batal |
+| `Submitted` (berworkflow) | Menunggu Persetujuan | Batal (menarik pengajuan) |
+| `Submitted` (lama, `canSubmit = true`) | Menunggu Persetujuan — perlu diajukan ulang | Ubah, Ajukan, Batal |
+| `NeedRevision` | Dikembalikan untuk Revisi | Ubah, Ajukan, Batal |
+| `Approved` | Disetujui | Ajukan Uang Muka, Batal |
+| `Rejected` | Ditolak | — |
+| `Cancelled` | Dibatalkan | — |
+| `AdvancePaid`, `SettlementSubmitted`, `SettlementVerified`, `Completed` | Label yang ada | Tidak berubah |
+
+Nilai yang tidak dikenal ditampilkan apa adanya dengan badge netral (perilaku yang ada).
+
+### 32.4 Service dan state
+
+| Unit | Perubahan |
+| --- | --- |
+| `businessTravelService.submitTravelRequest(id)` | Ganti lemparan "belum tersedia" dengan `POST /v1/hrd/travel/requests/{id}/submit` |
+| `businessTravelSlice.js` | Bila `HRD-Q-221` = disambung: data contoh diganti hasil API; bila tidak, slice tetap dan layar tetap bertanda data contoh |
+
+### 32.5 State wajib dan aturan yang diikat
+
+| Aturan | Sumber |
+| --- | --- |
+| Tombol Ajukan dinonaktifkan selama permintaan berjalan (tidak ada kirim ganda) | Konvensi proyek |
+| Konfirmasi Ajukan dan Batal memakai `ConfirmModal`; status nonaktif lewat `confirmProps={{ disabled }}` agar tombol Batal di modal tidak ikut terkunci | Konvensi proyek (temuan FE-HRD-326) |
+| Pesan galat `400`/`409` dari backend ditampilkan apa adanya, termasuk pesan Workflow V2 (`VR-TRV-29`, `VR-TRV-33`) | Kontrak API 34.5 |
+| Sesudah Ajukan/Batal berhasil, baris dimuat ulang dari server, bukan diubah lokal | Status ditentukan backend dan workflow |
+| Layar tidak menyediakan tombol Setujui/Tolak SPPD | `HRD-DEC-224` |
+| Tidak ada isian "anggaran disetujui" | `HRD-DEC-226` |
+
+### 32.6 Uji frontend
+
+| Uji | Bukti |
+| --- | --- |
+| Peta status 32.3 dan aturan tombol | Uji unit `node --test` untuk util peta status |
+| Alur Ajukan → kotak masuk → disetujui | `AT-HRD-TRV-39`, Playwright terhadap dev 3000 → backend lokal; bergantung `HRD-Q-221` |

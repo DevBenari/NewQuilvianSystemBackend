@@ -3134,3 +3134,75 @@ Base URL: `api/v1/corporate/human-resource/workforce-core/payroll-data`. Control
 | --- | --- | --- | --- |
 | `GET` | `api/v1/corporate/human-resource/master-data/salary-structures/options` | Pilihan struktur gaji pada formulir (`HRD-DEC-221`) | `SalaryStructure : Read` |
 | `GET` | `api/v1/administrator/master-data/banks/options` | Pilihan bank pada formulir (`HRD-DEC-221`) | `Bank : Read` |
+
+---
+
+## 34. Amandemen Slice `S-D5`: Persetujuan SPPD lewat Workflow Persetujuan Umum (Kontrak `v28`)
+
+| Field | Nilai |
+| --- | --- |
+| Slice | `S-D5` — Perjalanan Dinas & Manajemen Biaya Operasional (amandemen bagian 31) |
+| `contract_version` | `v28` |
+| `last_changed_in` | `v28` — bagian 34 ditambahkan 18 November 2026 |
+| Status | `approved` — pengguna, 19 November 2026 ("setujui kontrak v28, lanjut plan") |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna (`HRD-DEC-015`) / 19 November 2026 |
+| `input_revision` | `00-interview-decisions.md` revision `39` bagian 55 (`HRD-DEC-224` s.d. `HRD-DEC-228`, `HRD-TF-072` s.d. `HRD-TF-079`) |
+| `input_hash` — decision log | `97de77558d030cb183f8f30974ae4b7d6cf79d27b3dcf548c6d9bb6a69d7e25b` |
+| Backend SHA | `d7d4eb3b` (branch `yoga`) |
+| Frontend SHA | `e01411158` (branch `YogaV2`) |
+| Dampak kompatibilitas | **Mengubah perilaku**: membuat SPPD kini menghasilkan `Draft` (sebelumnya langsung `Submitted`); ubah SPPD hanya pada `Draft`/`NeedRevision`; pengajuan uang muka dan settlement ditolak `409` untuk SPPD yang belum disetujui. **Menambah**: endpoint ajukan, nilai status `NeedRevision`, dan ruas status persetujuan pada respons detail. Bagian 31 tetap berlaku untuk yang tidak disebut di sini |
+| Bukti as-is | `HRD-TF-072` s.d. `HRD-TF-079` (decision log bagian 55.2; `HRD-TF-077` s.d. `HRD-TF-079` ditambahkan saat desain); verifikasi `BE-HRD-333` 18 November 2026 |
+
+Bagian ini mengatur cara SPPD disetujui. Persetujuannya **tidak** memakai endpoint modul: atasan menyetujui, mengembalikan, atau menolak SPPD dari kotak masuk persetujuan Workflow V2 yang sudah ada (`HRD-DEC-224`). Modul perjalanan dinas hanya menyediakan aksi **Ajukan** dan menyelaraskan status SPPD setiap kali workflow berubah (`INT-HR-109`).
+
+Contoh alur: Perawat Sari membuat SPPD seminar ke Surabaya (status `Draft`), lalu menekan Ajukan (`Submitted`, menunggu persetujuan). Kepala Ruang menyetujuinya dari kotak masuk persetujuan. Status SPPD menjadi `Approved`, anggaran disetujui sama dengan estimasi Rp 5.000.000, presensi "Hadir Dinas Luar" dan gembok roster terpasang, dan Sari kini dapat mengajukan uang muka paling banyak Rp 4.000.000.
+
+### 34.1 Grup Tag Swagger `[Tags("Corporate - HRD Business Travel Requests")]` — perubahan
+
+Base URL: `api/v1/hrd/travel/requests`. Controller `BusinessTravelRequestsController`, `ControllerName = "BusinessTravelRequest"`.
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | **Diubah** | Membuat SPPD sebagai `Draft`; belum memulai workflow; `ApprovedBudgetAmount` = 0 sampai disetujui | `BusinessTravelRequest : Create` | `CreateBusinessTravelRequestDto` (tidak berubah) | `201 Created`, `ApiResponse<BusinessTravelDetailResponseDto>` |
+| `PUT` | `/{id}` | **Diubah** | Mengubah SPPD; hanya bila `Draft`, `NeedRevision`, atau `Submitted` lama tanpa workflow (`HRD-DEC-227`) | `BusinessTravelRequest : Update` | `UpdateBusinessTravelRequestDto` (tidak berubah) | `200 OK`; `409` bila status lain |
+| `POST` | `/{id}/submit` | **Rencana (belum tersedia)** | **Ajukan**: membuat atau memakai ulang instance workflow `BUSINESS_TRAVEL_REQUEST`, lalu mengirimkannya ke penyetuju | `BusinessTravelRequest : Create` | Tanpa body | `200 OK`, `ApiResponse<BusinessTravelDetailResponseDto>`; `400`, `404`, `409` |
+| `PUT` | `/{id}/cancel` | **Diubah** | Bila SPPD sedang menunggu persetujuan, workflow-nya ditarik (`Withdraw`) sebelum SPPD menjadi `Cancelled`; bila SPPD sudah disetujui, gembok roster dan presensi Dinas Luar dilepas (`INT-HR-110`) | `BusinessTravelRequest : Cancel` | `CancelTravelRequestDto` (tidak berubah) | `200 OK`; `409` bila penarikan workflow gagal |
+| `GET` | `/`, `/{id}`, `/{id}/document-pdf` | Tetap | Daftar, detail, dan dokumen SPPD | `BusinessTravelRequest : Read` | — | Respons detail ditambah ruas 34.4 |
+
+Persetujuan, pengembalian untuk revisi, dan penolakan dikerjakan lewat endpoint kotak masuk persetujuan Workflow V2 yang **sudah ada** (slice `S-A7-V2`). Penyetujunya ditentukan definisi workflow di Master Workflow; hak `Hrd.BusinessTravel.Request.Approve` diwujudkan sebagai penugasan approver workflow, bukan endpoint modul.
+
+### 34.2 Grup Tag Swagger `[Tags("Corporate - HRD Business Travel Advances")]` — perubahan
+
+| Method | Path | Status | Perubahan |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/hrd/travel/advances` | **Diubah** | Ditolak `409` bila SPPD belum disetujui (`VR-TRV-30`). Plafon 80% dihitung dari anggaran disetujui yang diisi saat persetujuan (`HRD-DEC-226`). Uang muka yang sudah ada sebelum v28 tidak terpengaruh (`HRD-DEC-227`) |
+
+### 34.3 Grup Tag Swagger `[Tags("Corporate - HRD Business Travel Settlements")]` — perubahan
+
+| Method | Path | Status | Perubahan |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/hrd/travel/settlements` | **Diubah** | Ditolak `409` bila SPPD belum disetujui dan tidak punya uang muka yang sudah dicairkan (`VR-TRV-31`); SPPD lama dengan uang muka `Paid` tetap dapat di-settle (`HRD-DEC-227`) |
+
+### 34.4 DTO response — tambahan pada `BusinessTravelDetailResponseDto`
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `travelStatus` | string | Nilai: `Draft`, `Submitted` (menunggu persetujuan), `NeedRevision` (**baru**, dikembalikan untuk revisi), `Approved`, `Rejected`, `Cancelled`, lalu status lanjutan yang sudah ada (`AdvancePaid`, `SettlementSubmitted`, `SettlementVerified`, `Completed`) |
+| `workflowInstanceId` | GUID? | Instance workflow persetujuan; `null` sebelum diajukan dan untuk SPPD lama |
+| `currentApprovalStep` | int | Tahap persetujuan saat ini |
+| `submittedAt`, `approvedAt`, `rejectedAt` | datetime? | Waktu diajukan, disetujui, ditolak (UTC) |
+| `isApproved` | bool | `true` bila `approvedAt` terisi dan status bukan `Cancelled`/`Rejected` — syarat gerbang `HRD-DEC-226` |
+| `canSubmit` | bool | Tombol Ajukan boleh tampil (status `Draft`, `NeedRevision`, atau `Submitted` lama tanpa workflow) |
+
+### 34.5 Kode status dan pesan
+
+| Kode | Kapan | Pesan |
+| --- | --- | --- |
+| `409` | Ajukan pada status yang tidak boleh diajukan (`VR-TRV-26`) | "SPPD hanya dapat diajukan dari status Draft atau Dikembalikan untuk revisi." |
+| `409` | Ubah SPPD saat menunggu persetujuan atau sesudahnya (`VR-TRV-27`) | "SPPD yang sedang menunggu persetujuan atau sudah diputuskan tidak dapat diubah." |
+| `409` | Ajukan ulang SPPD yang ditolak (`VR-TRV-28`) | "SPPD yang ditolak tidak dapat diajukan ulang. Buat SPPD baru." |
+| `400` | Workflow tidak dapat menentukan penyetuju, misalnya pemohon tidak punya atasan langsung (`VR-TRV-29`) | Pesan dari Workflow V2 diteruskan apa adanya |
+| `409` | Uang muka untuk SPPD belum disetujui (`VR-TRV-30`) | "SPPD belum disetujui. Ajukan SPPD dan tunggu persetujuan sebelum mengajukan uang muka." |
+| `409` | Penarikan workflow ditolak saat membatalkan SPPD yang menunggu (`VR-TRV-33`) | Pesan dari Workflow V2 diteruskan apa adanya |
+| `409` | Settlement untuk SPPD belum disetujui (`VR-TRV-31`) | "SPPD belum disetujui sehingga belum dapat dipertanggungjawabkan." |

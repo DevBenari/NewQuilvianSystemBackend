@@ -2917,6 +2917,11 @@ try
         // dibuat TIDAK AKTIF sampai admin mengisi jabatan penyetuju sesuai SOP (PBJ-OQ-019). Idempoten.
         await RunStartupSeederAsync("ProcurementWorkflowDefinitionSeeder", () => QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Seeders.ProcurementWorkflowDefinitionSeeder.SeedAsync(app.Services));
 
+        // HRD-BP-001, BE-HRD-374 (kontrak v28, HRD-DEC-224). Definisi workflow "Persetujuan Perjalanan Dinas"
+        // dengan satu tahap atasan langsung pemohon, dibuat AKTIF karena tahap itu tidak butuh isian admin
+        // (HRD-Q-222). Idempoten; definisi atau tahap yang diubah/dihapus admin tidak ditimpa.
+        await RunStartupSeederAsync("BusinessTravelWorkflowDefinitionSeeder", () => QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Seeders.BusinessTravelWorkflowDefinitionSeeder.SeedAsync(app.Services));
+
         // MCU-BP-001, BE-MCU-004. Kategori kelayakan dan jenis Pemeriksaan MCU USULAN — bertanda
         // belum diratifikasi pada keterangannya (MCU-OQ-002/003). Idempoten; isian yang sudah
         // diubah admin tidak ditimpa.

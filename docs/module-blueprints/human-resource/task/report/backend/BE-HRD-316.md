@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `edfd843bac1c2860da7ae9a5ddcb68a75cf42666` (branch `MHamzah`) |
 | Tanggal | 10 November 2026 |
-| Status | 🟡 **SEBAGIAN** — `INT-HR-93` dan idempotensi selesai di kode; `INT-HR-94` belum ada; uji runtime belum dijalankan |
+| Status | ✅ **Selesai 18 November 2026** — `AT-HRD-WF-18` (idempoten) dan `AT-HRD-WF-19` (pengingat Plh) terbukti lewat harness; lihat bagian "Pengerjaan Ulang 18 November 2026" di akhir laporan. Riwayat: 🟡 sebagian 10–11 November 2026 |
 
 **Dikerjakan ulang.** Laporan sebelumnya (9 November 2026) menyatakan task ini selesai. Audit roadmap
 10 November 2026 menemukan `IdempotentDownstreamExecutionService` hanya berisi cabang `if` dengan
@@ -245,3 +245,55 @@ Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamz
 Penyetuju kini wajib approver yang ditugaskan pada tahapan atau Plh aktifnya; selain itu ditolak `403`.
 
 `dotnet build` 0 error, 602 warning. QBE Strict `PASS`. Aplikasi dijalankan pada 11 November 2026: seluruh worker berjalan tanpa galat query dan lima dokumen Swagger berhasil dibuat. Uji API dengan akun sungguhan `NOT RUN`.
+
+## Pengerjaan Ulang 18 November 2026 — `AT-HRD-WF-18` dan `AT-HRD-WF-19` lewat harness
+
+| Field | Nilai |
+| --- | --- |
+| Task mode | `BACKEND` (instruksi pengguna 18 November 2026 "lanjut BE-HRD-316") |
+| Commit backend saat dikerjakan | `d7d4eb3b` (branch `yoga`) + perubahan `BE-HRD-298` yang belum di-commit |
+| Backend Governance Preflight | Area `Corporate`; Module `HumanResource` / `WorkflowManagement` dan `LeaveManagement`; prefix `Trx`/`Wfp` (berkas lama); keberlakuan `TOUCHED LEGACY` hanya sebagai objek uji — **tidak ada source yang diubah**; tanpa migration |
+| Status | ✅ Selesai — kedua uji acceptance pada kartu roadmap terbukti lewat harness dengan service sesungguhnya |
+
+### Acuan uji
+
+Kartu roadmap dan `requirement-traceability.md` memakai `AT-HRD-WF-18` = eksekusi hilir idempoten dan `AT-HRD-WF-19` = pengingat Plh (`INT-HR-94`). Matriks uji (`testing/acceptance-test-matrix.md`) memakai nomor yang sama untuk hal lain (`WF-18` = tukar shift Sub-06, `WF-19` = email ringkasan pukul 07.00 milik `WF-W3`/`BE-HRD-314`). Task ini mengikuti kartu roadmap; selisih penomoran dicatat untuk pass blueprint.
+
+### Perubahan
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Tests/QuilvianSystemBackend.HumanResourceTests/DownstreamExecutionTests.cs` (baru) | 6 uji (5 fakta + 1 teori dua baris) atas `IdempotentDownstreamExecutionService`, `WorkflowReferenceLifecycleService`, `LeaveRequestWorkflowLifecycleService`, `LeaveRequestBalanceLifecycleService`, dan `HrdNotificationService` sesungguhnya. Kunci baris saldo memakai SQL PostgreSQL (`public."WfpLeaveBalance" … FOR UPDATE`); di harness SQLite skema dan klausa kuncinya dilepas lewat interceptor uji, sehingga perilaku kunci PostgreSQL sendiri tidak dibuktikan di sini |
+
+### Verifikasi
+
+Data uji: Kepala Ruang ICU (atasan yang boleh menyetujui staf), cuti tahunan 3 hari mulai 10 hari lagi, saldo 12 hari, kebijakan potong saat disetujui.
+
+| Skenario | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `AT-HRD-WF-18`: workflow cuti disetujui final, lalu eksekusi hilir | Cuti `Approved`; saldo terpakai 3, tersedia 9; satu mutasi `Deduction` 3 hari berkunci `LEAVE-REQUEST-DEDUCTION:{cuti}:ON_APPROVAL` | `PASS` | `WF18_persetujuan_final_memotong_saldo_sekali_walau_dieksekusi_ulang` |
+| — Eksekusi diulang dua kali | Tetap satu mutasi; saldo tetap 3/9 | `PASS` | idem |
+| `AT-HRD-WF-19`: pejabat tanpa Plh | Satu pemberitahuan prioritas `High` "Cuti Anda disetujui — tunjuk Pelaksana Harian (Plh) sebelum cuti dimulai", tautan ke pembuatan delegasi berisi tanggal cuti; eksekusi ulang tidak menggandakan | `PASS` | `WF19_pejabat_tanpa_Plh_menerima_pengingat_sekali` |
+| — Plh menutup seluruh masa cuti / hanya sebagian | Seluruh: tanpa pengingat; sebagian: tetap diingatkan | `PASS` | `WF19_delegasi_Plh_yang_menutup_masa_cuti_meniadakan_pengingat` |
+| — Pemohon bukan pejabat | Tanpa pengingat; saldo tetap terpotong | `PASS` | `WF19_bukan_pejabat_tidak_diingatkan` |
+| Workflow belum final (`InProgress`) | Cuti tetap menunggu, saldo utuh, tanpa mutasi dan tanpa pengingat | `PASS` | `Workflow_belum_final_tidak_memotong_saldo_dan_tidak_mengingatkan` |
+| Kontrol negatif (berkas dipulihkan identik tiap putaran) | K1 kunci idempoten dibuat unik + pemakaian tercatat diabaikan → uji WF-18 gagal; K2 kunci anti-duplikat Plh dikosongkan → uji pengingat sekali gagal; K3 syarat delegasi menutup akhir cuti dihapus → kasus "sebagian" gagal; K4 syarat boleh menyetujui dihapus → uji bukan pejabat gagal | `PASS` | Keluaran `dotnet test` |
+| Proyek uji HR (`dotnet test -p:RunAnalyzers=False`, build penuh) | 293/293 lulus (287 + 6 baru) | `PASS` | Keluaran `dotnet test` |
+| Uji lewat API devYoga dengan akun approver | Tidak dijalankan; uji harness tanpa menulis basis data (pola keputusan pemilik pada `BE-HRD-235`/`240`) | `NOT RUN` | — |
+
+### Acceptance criteria
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| Domain hilir terupdate seketika setelah persetujuan akhir | Terpenuhi untuk jalur cuti (harness) | Status cuti dan saldo berubah dalam satu eksekusi |
+| Eksekusi ulang tidak menyebabkan duplikasi transaksi | Terpenuhi (harness) | Tiga eksekusi, satu mutasi; satu pengingat |
+| `AT-HRD-WF-18`, `AT-HRD-WF-19` (menurut kartu roadmap) | Terpenuhi lewat harness | Bagian verifikasi |
+
+### Catatan
+
+| Hal | Isi |
+| --- | --- |
+| Batas bukti | Hanya jalur cuti yang diuji. Domain hilir lain yang disebut *Outcome* (jadwal dinas Sub-06, lembur Sub-09, kasbon/klaim Sub-11) diteruskan oleh penangan yang sama lewat `WorkflowReferenceLifecycleService` tetapi tidak diuji di task ini. Kunci baris `FOR UPDATE` PostgreSQL tidak dibuktikan di SQLite |
+| Masalah lama yang masih tercatat | Bagian 7 laporan ini: status `ReturnedForRevision` V2 dan pencocokan approver (yang kedua sudah ditangani pada pengerjaan 11 November) — tidak disentuh |
+| Perubahan sampingan | `NONE`; tidak ada source dan data devYoga yang diubah |
+| Status Git | 1 berkas uji baru, laporan ini, roadmap/traceability/indeks uji. Tidak ada commit |

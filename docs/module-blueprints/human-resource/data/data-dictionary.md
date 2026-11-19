@@ -6131,3 +6131,40 @@ Model: `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpBankAccount.cs`.
 | `MstBank` | Master Data Administrator | `BankName`, `IsActive` | Validasi bank |
 
 **Konkurensi:** tidak ada token versi; simpan terakhir menang (`HRD-ASM-85`, `HRD-Q-219`).
+
+---
+
+## 29. Kamus Data Amandemen Slice `S-D5`: Persetujuan SPPD lewat Workflow (Kontrak `v28`, approved 19 November 2026)
+
+**Tidak ada perubahan skema.** Seluruh kolom yang dibutuhkan sudah ada di `TrxBusinessTravelRequest` (`Areas/Corporate/HumanResource/BusinessTravelManagement/Models/TrxBusinessTravelRequest.cs`); amandemen ini hanya mulai mengisinya. Tidak ada migration.
+
+### 29.1 `public.TrxBusinessTravelRequest` — kolom yang mulai dipakai (status tabel: `Sudah ada`)
+
+| Kolom | Tipe | Wajib | Sensitif | Dipakai v28 |
+| --- | --- | --- | --- | --- |
+| `TravelStatus` | `varchar(40)`, bawaan `Draft` | Ya | Tidak | Nilai baru `NeedRevision`; `Draft` kini benar-benar dipakai saat dibuat. Tidak ada CHECK constraint, sehingga nilai baru tidak memerlukan migration |
+| `WorkflowDefinitionId` | `uuid` null | Tidak | Tidak | Diisi definisi `BUSINESS_TRAVEL_REQUEST` saat Ajukan |
+| `WorkflowInstanceId` | `uuid` null | Tidak | Tidak | Diisi instance Workflow V2 saat Ajukan pertama; dipakai ulang saat diajukan ulang sesudah revisi |
+| `CurrentApprovalStep` | `int`, bawaan 0 | Ya | Tidak | Disalin dari tahap aktif instance saat penyelarasan |
+| `SubmittedAt`, `SubmittedByUserId` | `timestamptz` null, `uuid` null | Tidak | Tidak | Diisi saat Ajukan (diperbarui saat diajukan ulang) |
+| `ApprovedAt`, `ApprovedByUserId` | `timestamptz` null, `uuid` null | Tidak | Tidak | Diisi saat workflow disetujui final; penanda "Disetujui" untuk gerbang `HRD-DEC-226` |
+| `RejectedAt`, `RejectedByUserId` | `timestamptz` null, `uuid` null | Tidak | Tidak | Diisi saat workflow ditolak |
+| `ApprovedBudgetAmount` | `numeric`, bawaan 0 | Ya | Tidak | **Berubah makna**: 0 sampai disetujui, lalu = `EstimatedTotalAmount` (sebelumnya diisi saat dibuat/diubah, `HRD-TF-072`) |
+| `HasScheduleConflict` | `bool` | Ya | Tidak | Penanda gembok roster; `true` hanya sesudah `Approved` (`INT-HR-110`) |
+| `ManagerApprovedAt`, `BudgetApprovedAt`, `HrVerifiedAt`, `FinanceVerifiedAt` dan pasangan `…ByUserId` | — | Tidak | Tidak | **Tidak dipakai**; jejak per tahap ada di riwayat Workflow V2 |
+
+### 29.2 `public.TrxBusinessTravelApproval` (status tabel: `Sudah ada`)
+
+Tetap tidak ditulis (`HRD-TF-073`). Riwayat persetujuan per tahap dibaca dari riwayat instance Workflow V2. Tabel tidak dihapus agar tidak ada migration; ditandai utang teknis di `02-backend-architecture.md` 36.8.
+
+### 29.3 Nilai `TravelStatus`
+
+| Nilai | Label layar | Keterangan |
+| --- | --- | --- |
+| `Draft` | Draf | Dapat diubah dan diajukan |
+| `Submitted` | Menunggu Persetujuan | Terkunci; untuk SPPD lama tanpa workflow tetap dapat diajukan |
+| `NeedRevision` | Dikembalikan untuk Revisi | **Baru**; dapat diubah dan diajukan ulang |
+| `Approved` | Disetujui | Gerbang uang muka, settlement, presensi, gembok terbuka |
+| `Rejected` | Ditolak | Final |
+| `Cancelled` | Dibatalkan | Final |
+| `AdvancePaid`, `SettlementSubmitted`, `SettlementVerified`, `Completed` | Tidak berubah | Mengikuti bagian 26 kamus data |

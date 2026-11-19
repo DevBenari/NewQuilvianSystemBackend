@@ -6,7 +6,8 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 17
+roadmap_revision: 18
+amendment_s_d5_v28: "2026-11-19 — Amandemen S-D5 layar Ajukan dan status SPPD (bagian 28): FE-HRD-337 s.d. FE-HRD-340, gelombang MVP-71; kontrak v28 approved 19 November 2026"
 draft_slice_s_a8: "2026-11-16 — Slice DRAFT S-A8 Data Penggajian Pegawai (HRD) ditambahkan (bagian 25): FE-HRD-325 s.d. FE-HRD-327. Source sudah ditulis di luar siklus task dan belum di-build; menunggu BE-HRD-360 s.d. BE-HRD-363 (kontrak v27 approved 16 November 2026, gerbang G1 tertutup); keputusan terdaftar HRD-DEC-218 s.d. HRD-DEC-223 (G2 tertutup 16 November 2026). Tidak ada tanda status yang berubah pada task lama."
 status: ACTIVE
 status_synced_at: "11 November 2026 — FE-HRD-R01: 137 task diturunkan ke 🟡 sesuai audit frontend-unfinished-work.md; status register FE-HRD-058 s.d. 087 diisi; FE-HRD-216 s.d. 305 ditambahkan ke register; FE-HRD-027 disamakan dengan laporannya (🟡)"
@@ -6469,3 +6470,117 @@ FE-HRD-328 (Service/adapter API riil, anti-mock & error-handling seluruh Menu 12
 * **Acceptance Criteria**: 30 skenario UAT terdokumentasi dengan status riil (PASS/NOT RUN/BLOCKED); tidak ada data palsu; laporan UAT tersimpan resmi.
 * **Verifikasi**: Eksekusi pengujian browser terarah dan penyusunan laporan akhir Menu 12.
 
+
+---
+
+## 28. Amandemen `S-D5` — Layar Ajukan dan Status SPPD (roadmap revisi `18`, kontrak `v28`)
+
+> **Status slice: kontrak `v28` APPROVED 19 November 2026** oleh Pengguna (`HRD-DEC-015`). Belum ada task yang dikerjakan. Tata letak, posisi tombol, dan urutan kolom adalah `DEV_DISCRETION` kecuali yang diikat `03-frontend-architecture.md` bagian 32.5.
+
+| Field | Nilai |
+| --- | --- |
+| `blueprint_id` / revision | `HRD-BP-001` / manifest revision `65` |
+| Keputusan | `HRD-DEC-224` s.d. `HRD-DEC-228`; fakta `HRD-TF-079` |
+| Kontrak | `v28` approved — API 34 (khususnya 34.4 ruas respons dan 34.5 pesan) |
+| Desain | `03-frontend-architecture.md` bagian 32; PRD bagian 41 (`EPIC HRD-123`, `FR-TRV-34`, `MVP-71`) |
+| Source acuan | Frontend `e01411158` (branch `YogaV2`) |
+| Bergantung backend | `BE-HRD-375` (Ajukan), `BE-HRD-378` (gerbang), `BE-HRD-380` (verifikasi) — roadmap backend bagian 27 |
+
+### Latar belakang
+
+Layar SPPD saat ini masih memakai data contoh Redux (`HRD-TF-079`), sehingga tombol Ajukan baru bermakna sesudah daftar dan formulir tersambung ke API. Karena itu penyambungan dijadikan task pertama (`FE-HRD-337`) yang dapat dikerjakan lebih dulu memakai endpoint kontrak `v25` yang sudah ada, tanpa menunggu backend amandemen.
+
+Contoh alur: Sari membuka Daftar SPPD dan melihat SPPD miliknya dari server, membuat SPPD (badge "Draf"), menekan Ajukan, lalu badge menjadi "Menunggu Persetujuan" dan tombol Ubah hilang. Kepala Ruang melihat baris "Perjalanan Dinas" di Kotak Masuk Persetujuan dan menyetujuinya.
+
+### Gerbang
+
+| Gerbang | Isi | Pemilik | Akibat |
+| --- | --- | --- | --- |
+| G1 | ~~Kontrak `v28` belum disetujui~~ **TERTUTUP 19 November 2026** | Pengguna | Tidak memblokir |
+| G2 | `HRD-Q-221` — penyambungan layar ke API masuk `EPIC HRD-123` atau task tersendiri | Pengguna | Tidak memblokir rencana: penyambungan sudah dipisah sebagai `FE-HRD-337` dan dikerjakan lebih dulu; jawaban hanya menentukan label epic task itu |
+
+### Grafik F87 — Layar SPPD dan persetujuan (`FE-HRD-337` s.d. `FE-HRD-340`)
+
+```text
+FE-HRD-337 (sambung API) ─┬─> FE-HRD-338 ─┬─> FE-HRD-340
+BE-HRD-375 ───────────────┘               │      ▲
+FE-HRD-337 ─┬─> FE-HRD-339 ───────────────┘      │
+BE-HRD-378 ─┘                                    │
+BE-HRD-380 ──────────────────────────────────────┘
+```
+
+### Tabel gelombang
+
+| Gelombang | Isi | Task | Prasyarat |
+| --- | --- | --- | --- |
+| 1 · `MVP-71` | Daftar dan formulir SPPD dari API | `FE-HRD-337` | Endpoint `v25` yang ada (boleh mulai sebelum `MVP-70`) |
+| 2 · `MVP-71` | Ajukan, status, batal; gerbang uang muka/settlement dan label kotak masuk | `FE-HRD-338`, `FE-HRD-339` | `FE-HRD-337`; `BE-HRD-375` / `BE-HRD-378` |
+| 3 · Verifikasi | Uji browser ujung-ke-ujung | `FE-HRD-340` | `FE-HRD-338`, `FE-HRD-339`, `BE-HRD-380` |
+
+### Rincian 4 task frontend (`FE-HRD-337` s.d. `FE-HRD-340`)
+
+#### ⬜ `FE-HRD-337` — Daftar dan formulir SPPD memakai API, bukan data contoh
+* **Slice / MVP**: `S-D5` amandemen / `MVP-71` · `EPIC HRD-123` (label epic menunggu `HRD-Q-221`)
+* **Status**: ⬜ Belum dikerjakan
+* **Outcome**: `unified-travel-requests-view.jsx` membaca `GET /v1/hrd/travel/requests` (paging, filter status) dan formulir `unified-travel-create-view.jsx` menyimpan lewat `POST`/`PUT`; data contoh `MOCK_TRAVEL_REQUESTS` tidak lagi dipakai daftar SPPD.
+* **Requirement / keputusan**: `HRD-TF-079`; `HRD-Q-221`
+* **Kontrak**: `v25` bagian 31 (endpoint yang ada) + `v28` 34.4 (ruas respons baru dibaca bila ada)
+* **Reuse**: `businessTravelService`, `DataFilter`, `FilterSelect`, pola loading/error/empty proyek
+* **Cakupan**: dua view di atas, `businessTravelSlice.js` (bagian `requests`), util tampilan
+* **Dependencies**: — (endpoint `v25` sudah ada)
+* **Acceptance Criteria**:
+  1. Daftar menampilkan SPPD dari server dengan keadaan memuat, kosong, dan galat.
+  2. Simpan formulir memanggil API; galat validasi `400` tampil apa adanya; tidak ada kirim ganda.
+  3. Kedua rute `/hrd/travel/requests` dan `/corporate/hrd/travel/requests` memakai view yang sama dan ikut berubah.
+* **Verifikasi**: uji unit util (`node --import ./tests/helpers/register.mjs --test`); `npm run build`; uji browser dev 3000 → backend lokal.
+* **Risiko / pemilik**: bentuk DTO berbeda dari data contoh — dipetakan di util, bukan di view; UI Lead HR.
+* **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-337.md`.
+
+#### ⬜ `FE-HRD-338` — Tombol Ajukan, label status, dan batal yang menarik pengajuan
+* **Slice / MVP**: `S-D5` amandemen / `MVP-71` · `EPIC HRD-123`
+* **Status**: ⬜ Belum dikerjakan
+* **Outcome**: Peta status 32.3 (`Draft`, `Submitted`, `NeedRevision`, `Approved`, `Rejected`, `Cancelled`, lanjutan); tombol Ajukan hanya bila `canSubmit`, Ubah hanya `Draft`/`NeedRevision`; konfirmasi Batal menyebut penarikan pengajuan bila `Submitted`; `businessTravelService.submitTravelRequest` memanggil `POST /{id}/submit`.
+* **Requirement / keputusan**: `FR-TRV-34`; `HRD-DEC-224`, `HRD-DEC-225`
+* **Kontrak**: `v28` 34.1, 34.4, 34.5
+* **Reuse**: `ConfirmModal` (`confirmProps={{ disabled }}`), `TRAVEL_STATUS` di `travel-display-utils.js`
+* **Cakupan**: `unified-travel-requests-view.jsx`, `unified-travel-dashboard-view.jsx` (peta label), `travel-display-utils.js`, `business-travel-service.js`
+* **Dependencies**: `FE-HRD-337`, `BE-HRD-375`
+* **Acceptance Criteria**:
+  1. Label dan tombol per status sesuai tabel 32.3; status tak dikenal tampil apa adanya.
+  2. Ajukan berhasil memuat ulang baris dari server; tombol nonaktif selama permintaan berjalan.
+  3. Galat `409`/`400` (termasuk pesan Workflow V2) tampil apa adanya.
+  4. Tidak ada tombol Setujui/Tolak dan tidak ada isian anggaran disetujui.
+* **Verifikasi**: uji unit peta status; `npm run build`; uji browser.
+* **Risiko / pemilik**: UI Lead HR.
+* **DoD**: AC terbukti, laporan `FE-HRD-338.md`.
+
+#### ⬜ `FE-HRD-339` — Gerbang uang muka/settlement di layar dan jenis "Perjalanan Dinas" di kotak masuk
+* **Slice / MVP**: `S-D5` amandemen / `MVP-71` · `EPIC HRD-123`
+* **Status**: ⬜ Belum dikerjakan
+* **Outcome**: Pilihan SPPD pada uang muka hanya yang `isApproved`; galat `VR-TRV-30`/`VR-TRV-31` tampil apa adanya; langkah 4 formulir SPPD tidak mengirim uang muka sebelum disetujui (dipindah atau dinonaktifkan dengan keterangan, `DEV_DISCRETION`); `approval-inbox-view.jsx` menampilkan `HRD_TRV_REQUEST` sebagai "Perjalanan Dinas".
+* **Requirement / keputusan**: `FR-TRV-31`, `FR-TRV-34`; `HRD-DEC-226`
+* **Kontrak**: `v28` 34.2, 34.3, 34.5
+* **Reuse**: `getReferenceTypeLabel`, view uang muka dan settlement yang ada
+* **Cakupan**: `unified-travel-advances-view.jsx`, `unified-travel-settlements-view.jsx`, `unified-travel-create-view.jsx` (langkah 4), `approval-inbox-view.jsx`
+* **Dependencies**: `FE-HRD-337`, `BE-HRD-378`
+* **Acceptance Criteria**:
+  1. SPPD belum disetujui tidak dapat dipilih untuk uang muka; bila dipaksa lewat API, pesan `409` tampil.
+  2. Formulir SPPD tidak lagi mengirim uang muka bersamaan dengan SPPD Draf.
+  3. Baris workflow SPPD di kotak masuk berlabel "Perjalanan Dinas"; aksi setuju/kembalikan/tolak memakai yang sudah ada.
+* **Verifikasi**: uji unit label; `npm run build`; uji browser.
+* **Risiko / pemilik**: view uang muka/settlement mungkin juga masih data contoh — bila ya, dicatat sebagai temuan, tidak dikerjakan diam-diam di task ini; UI Lead HR.
+* **DoD**: AC terbukti, laporan `FE-HRD-339.md`.
+
+#### ⬜ `FE-HRD-340` — Verifikasi browser amandemen `S-D5` v28
+* **Slice / MVP**: `S-D5` amandemen / Verifikasi
+* **Status**: ⬜ Belum dikerjakan
+* **Outcome**: Bukti alur Buat → Ajukan → kotak masuk atasan → Disetujui/Dikembalikan/Ditolak → uang muka, di browser terhadap backend lokal, desktop dan ponsel.
+* **Requirement / keputusan**: `FR-TRV-34`; UAT `UAT-TRV-06` s.d. `UAT-TRV-12`
+* **Kontrak**: `v28`
+* **Dependencies**: `FE-HRD-338`, `FE-HRD-339`, `BE-HRD-380`
+* **Acceptance Criteria**:
+  1. `AT-HRD-TRV-39` lulus: label status Indonesia, Ajukan hanya bila `canSubmit`, pesan `409` tampil apa adanya, tidak ada kirim ganda.
+  2. `UAT-TRV-06` s.d. `UAT-TRV-11` lulus di layar; `UAT-TRV-12` lewat layar/endpoint jejak audit.
+  3. `npm run build` dan lint lulus.
+* **Verifikasi**: Playwright skrip scratchpad (dev 3000 → backend 7184), tangkapan layar, laporan `FE-HRD-340.md`. Butuh akun pemohon dan atasan langsung yang saling terhubung di devYoga (minta sandi ke pengguna; jangan simpan).
+* **DoD**: AC terbukti.
