@@ -24,7 +24,7 @@ BE-AST-004 [REG] ─> BE-AST-016 ✅ ─┬────┴─> BE-AST-017 ✅ �
                                 │                                    │
                                 │  BE-AST-010 [REG] ─┐               │
                                 │                    │               │
-                                └────────────────────┴─> BE-AST-018 ─┴─> BE-AST-019
+                                └────────────────────┴─> BE-AST-018 ✅ ─┴─> BE-AST-019
 ```
 
 `[REG]` = task backend sub-modul `register`, cermin baca-saja.
@@ -62,11 +62,11 @@ Pasangan prasyarat→task: **7** (sama dengan kolom `Dependency`).
 | **Status** | ✅ **SELESAI 19 November 2026.** `AssetTransferService` (+`.Query`, `CreateFromStockTakeAsync`), `AssetMovementDocumentService` (BA serah terima mutasi), `AssetTransfersController` (10 endpoint, resource `AssetTransfer` 6 aksi); register: sumber laporan kondisi `PenerimaanMutasi`, deret `AST-MUT`. QBE Strict 11 berkas `PASS`; atribut akses 10/10; nol baris komentar; build DLL 11:27:30. Runtime **65/65** dengan Kepala Unit dari penugasan HR (Siti = Instalasi Rawat Inap, Dimas = IGD, dibuat permanen atas izin Rizki): `AT-MOV-01`, `02`, `03`, `20..23`, `25..31` lulus (`21` lewat kunci pemanfaatan, `31` lewat versi basi; `24` opname menyusul `BE-AST-021`); validasi `001..005`, `007`, `008`, `010..016`; kondisi berbeda → `AST-KND-000012`; PDF diperiksa visual. `006` memakai gerbang opname yang terisi `BE-AST-021`. Delta (body keputusan, `rowVersion` wajib, linimasa hanya saat diterima) dicatat di laporan. Laporan: [`BE-AST-017.md`](../task/report/backend/BE-AST-017.md) |
 | Acceptance criteria | 1. Matriks state §1 lengkap, termasuk tahap 1 otomatis bila pengaju Kepala Unit asal. 2. Penempatan berpindah hanya saat diterima Kepala Unit tujuan (`ApplyPlacement`). 3. Kondisi diterima berbeda membuka laporan kondisi. 4. Kunci proses dipasang/dilepas. 5. `AST-VAL-MOV-001..016`. 6. `CreateFromStockTake` tersedia untuk `inventarisasi`. 7. `AvailableActions` dihitung backend |
 
-### `BE-AST-018` — Peminjaman dan pengembalian
+### ✅ `BE-AST-018` — Peminjaman dan pengembalian
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 19 November 2026.** `AssetLoanService` (+`.Query`), `AssetLoansController` (14 endpoint, resource `AssetLoan` 8 aksi), `RenderLoanReport` (BA peminjaman/pengembalian), deret `AST-PJM`, kode `020..023`. QBE Strict 8 berkas `PASS`; atribut akses 14/14; nol baris komentar; build Rizki DLL 14:28:05. Runtime **73/73** dengan Siti (Kepala Unit pemilik) dan Dimas (Kepala Unit peminjam): `AT-MOV-04` (Terlambat 1 hari, diuji hari ini dengan pinjaman 18–18 Nov), `05`, `06` (`AST-KND-000013`), `32..35` lulus; validasi `001..005`, `007`, `010`, `014..016`, `020..023`; PDF diperiksa visual. `006` memakai gerbang opname yang terisi `BE-AST-021`; `011` tidak punya jalur pemicu pada pinjaman (pengajuan Kepala Unit pemilik langsung `Disetujui`). Delta (`loanable-assets`, `metadata`/`summary`, body `rowVersion`, status ganda, perpanjangan terbuka ditolak otomatis saat konfirmasi kembali) dicatat di laporan. Cakupan negatif "di luar unit → 403" belum teruji dengan akun nyata (akun penyetuju punya hak seluruh unit). Laporan: [`BE-AST-018.md`](../task/report/backend/BE-AST-018.md) |
 | Acceptance criteria | 1. Matriks state §2–3. 2. `isOverdue` turunan pada respons. 3. Konfirmasi kembali dengan kondisi per butir; kondisi berubah → laporan kondisi `PengembalianPinjaman`. 4. Satu perpanjangan terbuka. 5. Aset tetap milik unit pemilik |
 
 ### `BE-AST-019` — Dashboard 1.4 dan laporan mutasi

@@ -19,6 +19,10 @@ public static class AssetMovementErrorCodes
     public const string ReasonRequired = "AST-VAL-MOV-014";
     public const string Status = "AST-VAL-MOV-015";
     public const string VersionMismatch = "AST-VAL-MOV-016";
+    public const string LoanDate = "AST-VAL-MOV-020";
+    public const string Borrower = "AST-VAL-MOV-021";
+    public const string ReturnCondition = "AST-VAL-MOV-022";
+    public const string OpenExtension = "AST-VAL-MOV-023";
     public const string Field = "AST-MOV-FIELD";
     public const string NotFound = "AST-MOV-NOT-FOUND";
     public const string OutsideScope = "AST-MOV-SCOPE";
@@ -49,6 +53,26 @@ public static class AssetMovementMessages
     public const string OutsideScope = "Mutasi ini tidak melibatkan unit Anda.";
     public const string CancelScope = "Hanya pengaju atau Kepala Bagian Aset yang dapat membatalkan mutasi ini.";
     public const string RowVersionRequired = "Muat ulang data lalu coba lagi.";
+    public const string LoanSingleOwnerUnit = "Satu pinjaman hanya untuk aset dari satu unit pemilik.";
+    public const string LoanSameUnit = "Unit peminjam harus berbeda dari unit pemilik aset.";
+    public const string BorrowerUnitRequired = "Pilih unit peminjam yang masih aktif.";
+    public const string LoanPurpose = "Tujuan peminjaman wajib diisi, paling panjang 1000 karakter.";
+    public const string LoanDateRequired = "Tanggal mulai dan rencana tanggal kembali wajib diisi.";
+    public const string LoanReturnBeforeStart = "Rencana tanggal kembali harus sama dengan atau sesudah tanggal mulai.";
+    public const string LoanStartTooEarly = "Tanggal mulai pinjaman paling awal kemarin.";
+    public const string ExtensionDate = "Tanggal kembali baru harus sesudah tanggal kembali yang berlaku.";
+    public const string OwnerConfirmFormat = "Hanya Kepala Unit {0} yang dapat mengonfirmasi pengembalian.";
+    public const string Borrower = "Hanya Kepala Unit peminjam yang dapat melakukan langkah ini.";
+    public const string ReturnConditionRequired = "Isi kondisi setiap aset yang dikembalikan.";
+    public const string ReturnConditionValue = "Kondisi saat kembali hanya Aktif, Rusak Ringan, Rusak Berat, atau Tidak Digunakan.";
+    public const string ReturnItems = "Kondisi kembali hanya untuk aset dalam pinjaman ini.";
+    public const string OpenExtension = "Masih ada permintaan perpanjangan yang belum diputuskan.";
+    public const string LoanNotFound = "Pinjaman tidak ditemukan atau sudah dihapus.";
+    public const string ExtensionNotFound = "Permintaan perpanjangan tidak ditemukan.";
+    public const string LoanOutsideScope = "Pinjaman ini tidak melibatkan unit Anda.";
+    public const string LoanCreateScope = "Pinjaman hanya dapat diajukan untuk unit Anda atau atas aset milik unit Anda.";
+    public const string LoanCancelScope = "Hanya pengaju atau Kepala Unit pemilik yang dapat membatalkan pinjaman ini.";
+    public const string ExtensionClosedOnReturn = "Pinjaman sudah dikembalikan sebelum perpanjangan diputuskan.";
 }
 
 public static class AssetMovementLabels
@@ -70,6 +94,26 @@ public static class AssetMovementLabels
         Enums.TransferReason.KoreksiOpname => "Koreksi Opname",
         Enums.TransferReason.KoreksiMutasi => "Koreksi Mutasi",
         Enums.TransferReason.Lainnya => "Lainnya",
+        _ => value.ToString()
+    };
+
+    public static string LoanStatus(LoanStatus value) => value switch
+    {
+        Enums.LoanStatus.Diajukan => "Diajukan",
+        Enums.LoanStatus.Disetujui => "Disetujui",
+        Enums.LoanStatus.Dipinjam => "Dipinjam",
+        Enums.LoanStatus.MenungguKonfirmasiKembali => "Menunggu Konfirmasi Kembali",
+        Enums.LoanStatus.Dikembalikan => "Dikembalikan",
+        Enums.LoanStatus.Ditolak => "Ditolak",
+        Enums.LoanStatus.Dibatalkan => "Dibatalkan",
+        _ => value.ToString()
+    };
+
+    public static string LoanExtensionStatus(LoanExtensionStatus value) => value switch
+    {
+        Enums.LoanExtensionStatus.Diajukan => "Diajukan",
+        Enums.LoanExtensionStatus.Disetujui => "Disetujui",
+        Enums.LoanExtensionStatus.Ditolak => "Ditolak",
         _ => value.ToString()
     };
 }
