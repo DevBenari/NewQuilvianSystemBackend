@@ -20,7 +20,7 @@ bukan task di sini.
 ```text
                    BE-AST-009 [REG] ─┐
                                      │
-BE-AST-004 [REG] ─> BE-AST-016 ─┬────┴─> BE-AST-017 ─────────────────┐
+BE-AST-004 [REG] ─> BE-AST-016 ✅ ─┬────┴─> BE-AST-017 ─────────────────┐
                                 │                                    │
                                 │  BE-AST-010 [REG] ─┐               │
                                 │                    │               │
@@ -48,11 +48,11 @@ Pasangan prasyarat→task: **7** (sama dengan kolom `Dependency`).
 
 ## Kartu task
 
-### `BE-AST-016` — Tabel pergerakan dan migration `AddAssetMovement`
+### ✅ `BE-AST-016` — Tabel pergerakan dan migration `AddAssetMovement`
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 19 November 2026.** 4 enum, 5 model, 5 configuration, 5 DbSet (`9514ed6b`); QBE Strict 12 berkas `PASS`, nol baris komentar. Migration `20261119042534_AddAssetMovement` dibuat dan diterapkan Rizki sesudah merge integration; DB baca-saja: 5 tabel Ast, 3 check constraint, 12 FK Restrict, index unik parsial perpanjangan terbuka, tanpa perubahan tabel lama. Kriteria 3 dengan pengecualian disetujui Rizki: migration ikut membuat `MstJobDescription`/`MstJobDescriptionItem` (model HR tanpa migration), Hamzah dikabari. Laporan: [`BE-AST-016.md`](../task/report/backend/BE-AST-016.md) |
 | Acceptance criteria | 1. Lima tabel sesuai data dict, check constraint unit berbeda dan tanggal kembali ≥ mulai. 2. `RowVersion` pada mutasi dan pinjaman. 3. Migration hanya menambah lima tabel; `Down()` menghapusnya |
 
 ### `BE-AST-017` — Mutasi antar unit

@@ -10,7 +10,7 @@ Bukti backend = `V-BE`; tidak adanya automated test bukan gap (`rules/backend/TE
 
 | Requirement | Decision / aturan | Desain | Task BE | Task FE | Verifikasi | Bukti | Status |
 |---|---|---|---|---|---|---|---|
-| `CAP-05.1` pengajuan pemindahan | `AST-DEC-011`, `048`; `AST-RULE-012` | state §1 | `BE-AST-016`, `017` | `FE-AST-012` | `AT-MOV-02`, `20..23` | — | belum |
+| `CAP-05.1` pengajuan pemindahan | `AST-DEC-011`, `048`; `AST-RULE-012` | state §1 | `BE-AST-016` ✅, `017` | `FE-AST-012` | `AT-MOV-02`, `20..23` | `BE-AST-016`: 5 tabel, check constraint unit berbeda/tanggal kembali, `RowVersion`, migration `20261119042534_AddAssetMovement` diterapkan — [`BE-AST-016.md`](../task/report/backend/BE-AST-016.md) | 🟡 2026-11-19 — tabel siap; alur `BE-AST-017`/`FE-AST-012` belum diuji |
 | `CAP-05.2` persetujuan mutasi | `AST-DEC-011`, `048`; `AST-ASM-003` | state §1 | `BE-AST-017` | `FE-AST-012` | `AT-MOV-25`, `26`, `31`; `UAT-MOV-02` | — | belum |
 | `CAP-05.3` serah terima antar unit | `AST-RULE-021`; `AST-DES-023`, `024` | `INT-MOV-02` | `BE-AST-017` | `FE-AST-012` | `AT-MOV-01`, `27..29`; `UAT-MOV-01`, `03` | — | belum |
 | Koreksi mutasi | `AST-RULE-060`; `AST-DES-025` | state §1 | `BE-AST-017` | `FE-AST-012` | `AT-MOV-03`, `30` | — | belum |
