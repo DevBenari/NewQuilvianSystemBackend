@@ -19,10 +19,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public string WorkforceProfileCode { get; set; } = string.Empty;
         public string WorkforceDisplayName { get; set; } = string.Empty;
         public Guid SalaryStructureId { get; set; }
+        public string? SalaryStructureCode { get; set; }
+        public string? SalaryStructureName { get; set; }
         public Guid SalaryGradeId { get; set; }
+        public string? SalaryGradeCode { get; set; }
+        public string? SalaryGradeName { get; set; }
         public Guid? EmployeeGradeId { get; set; }
+        public string? EmployeeGradeName { get; set; }
         public Guid? PayrollPeriodId { get; set; }
+        public string? PayrollPeriodCode { get; set; }
+        public string? PayrollPeriodName { get; set; }
         public decimal BaseSalary { get; set; }
+        public decimal? GradeMinimumSalary { get; set; }
+        public decimal? GradeMaximumSalary { get; set; }
+        public decimal? StructureMinimumSalary { get; set; }
+        public decimal? StructureMaximumSalary { get; set; }
+        public decimal? EffectiveMinimumSalary { get; set; }
+        public decimal? EffectiveMaximumSalary { get; set; }
+        public string? SalaryRangeText { get; set; }
+        public string? OperationalStatus { get; set; }
+        public bool AmountsVisible { get; set; } = true;
         public string CurrencyCode { get; set; } = "IDR";
         public string PaymentFrequency { get; set; } = "Monthly";
         public DateTime EffectiveStartDate { get; set; }

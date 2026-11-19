@@ -90,8 +90,7 @@ public static class PayrollReadinessEvaluator
         var conflict = salary is not null && salary.ApprovedCount > 1;
 
         if (salary is null) issues.Add(string.IsNullOrWhiteSpace(noSalaryMessage) ? NoSalaryMessage : noSalaryMessage);
-        else if (!approved) issues.Add("Penetapan gaji utama belum disetujui HRD.");
-        else if (conflict) issues.Add("Terdapat lebih dari satu penetapan gaji utama yang disetujui HRD dan berlaku bersamaan.");
+        else if (conflict) issues.Add("Terdapat lebih dari satu penetapan gaji utama yang berlaku bersamaan.");
 
         var bankStatus = BankStatusOf(bank);
         if (bank is null) issues.Add("Belum ada rekening payroll di HRD.");

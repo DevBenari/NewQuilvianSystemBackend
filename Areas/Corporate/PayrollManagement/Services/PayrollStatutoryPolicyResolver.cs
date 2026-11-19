@@ -81,7 +81,7 @@ public sealed class PayrollStatutoryPolicyResolver
             AsOf = ToUtcDate(asOf),
             TaxPolicyApproved = availability.TaxApproved,
             TaxPolicyVersion = availability.TaxVersion,
-            TaxPolicyStatusLabel = availability.TaxApproved ? "Kebijakan tarif PPh disahkan" : StatutoryPolicyLabels.AwaitingVerification,
+            TaxPolicyStatusLabel = availability.TaxApproved ? "Kebijakan tarif PPh aktif" : "Belum ada kebijakan tarif PPh yang berlaku",
             EnableBpjsInPayroll = _policyOptions.EnableBpjsInPayroll,
             BpjsPolicyApproved = availability.BpjsApproved,
             BpjsPolicyVersion = availability.BpjsVersion,

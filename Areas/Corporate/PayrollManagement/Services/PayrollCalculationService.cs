@@ -452,24 +452,23 @@ public sealed class PayrollCalculationService
             return;
         }
 
-        // ---- Gaji pokok dari penetapan gaji yang DISETUJUI, primer, dan efektif (prorata per segmen) ----
-        var approved = assignmentList.Where(a => a.ApprovedAt.HasValue && a.IsPrimary).OrderBy(a => a.EffectiveStartDate).ToList();
-        var pendingApproval = assignmentList.Count(a => !a.ApprovedAt.HasValue);
+        // ---- Gaji pokok dari penetapan gaji utama dan efektif (prorata per segmen) ----
+        var activeAssignments = assignmentList.Where(a => a.IsPrimary).OrderBy(a => a.EffectiveStartDate).ToList();
         var overlap = false;
-        for (var i = 0; i < approved.Count && !overlap; i++)
-            for (var j = i + 1; j < approved.Count; j++)
-                if (RangesOverlap(approved[i], approved[j])) { overlap = true; break; }
+        for (var i = 0; i < activeAssignments.Count && !overlap; i++)
+            for (var j = i + 1; j < activeAssignments.Count; j++)
+                if (RangesOverlap(activeAssignments[i], activeAssignments[j])) { overlap = true; break; }
         if (overlap)
             errors.Add("Terdapat lebih dari satu penetapan gaji utama yang berlaku bersamaan. Perbaiki di Penetapan Gaji.");
 
         decimal baseAmount = 0m;
         WfpSalaryAssignment? coveringAssignment = null;
         var segments = new List<object>();
-        // Segmen penetapan yang disetujui beserta jumlah harinya; dipakai juga untuk tunjangan dari struktur (PAY-BE-17).
+        // Segmen penetapan utama beserta jumlah harinya; dipakai juga untuk tunjangan dari struktur (PAY-BE-17).
         var salarySegments = new List<(WfpSalaryAssignment Assignment, int Days)>();
         if (!overlap)
         {
-            foreach (var assignment in approved)
+            foreach (var assignment in activeAssignments)
             {
                 var segmentStart = MaxDate(windowStart, assignment.EffectiveStartDate);
                 var segmentEnd = MinDate(windowEnd, assignment.EffectiveEndDate);
@@ -486,19 +485,13 @@ public sealed class PayrollCalculationService
                 if (_policy.AllowProfileSalaryFallback && profile.BaseSalary > 0m)
                 {
                     baseAmount = profile.BaseSalary * payableDays / totalDays;
-                    warnings.Add("Gaji pokok memakai kolom kompatibilitas profil payroll karena belum ada penetapan gaji yang disetujui.");
+                    warnings.Add("Gaji pokok memakai kolom kompatibilitas profil payroll karena belum ada penetapan gaji yang aktif.");
                     segments.Add(new { assignmentId = (Guid?)null, baseSalary = profile.BaseSalary, startDate = windowStart, endDate = windowEnd, days = payableDays, source = "PrlPayroll" });
                 }
                 else
                 {
-                    errors.Add(pendingApproval > 0
-                        ? "Penetapan gaji belum disetujui. Setujui penetapan gaji sebelum payroll dihitung."
-                        : "Belum ada penetapan gaji yang disetujui dan berlaku pada periode ini.");
+                    errors.Add("Belum ada penetapan gaji utama yang berlaku pada periode ini.");
                 }
-            }
-            else if (pendingApproval > 0)
-            {
-                warnings.Add($"{pendingApproval} penetapan gaji belum disetujui diabaikan.");
             }
         }
         baseAmount = Round(baseAmount);
@@ -1170,6 +1163,11 @@ public sealed class PayrollCalculationService
             if (structureTypeIds.Contains(allowance.AllowanceTypeId))
             {
                 warnings.Add($"Tunjangan {name} sudah dihitung dari Struktur Gaji, jadi penetapan khusus pegawai tidak dihitung dua kali.");
+                continue;
+            }
+            if (string.Equals(type.AllowanceCategory, "Transport", StringComparison.OrdinalIgnoreCase))
+            {
+                warnings.Add($"Tunjangan {name} dilewati dari Tunjangan Pegawai karena dikelola melalui Kebijakan Transportasi agar tidak terjadi perhitungan ganda.");
                 continue;
             }
             if (!string.Equals(allowance.CurrencyCode, currencyCode, StringComparison.OrdinalIgnoreCase))

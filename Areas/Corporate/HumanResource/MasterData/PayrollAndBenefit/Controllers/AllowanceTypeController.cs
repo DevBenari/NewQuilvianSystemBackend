@@ -306,6 +306,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                         x.HasActivePolicy,
                         x.HasInvalidPayrollComponent);
 
+                var isPolicy = string.Equals(x.AllowanceCategory, "Transport", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(x.CalculationMethod, "PolicyBased", StringComparison.OrdinalIgnoreCase)
+                    || x.HasActivePolicy;
+                var policySource = string.Equals(x.AllowanceCategory, "Transport", StringComparison.OrdinalIgnoreCase)
+                    ? "TransportPolicy"
+                    : (x.HasActivePolicy ? "ActivePolicy" : null);
+
                 return new AllowanceTypeOptionResponse
                 {
                     Id = x.Id,
@@ -324,7 +331,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     EffectiveStartDate = x.EffectiveStartDate,
                     EffectiveEndDate = x.EffectiveEndDate,
                     IsEligibleForWorkforceAssignment = ineligibleReason == null,
-                    IneligibleReason = ineligibleReason
+                    IneligibleReason = ineligibleReason,
+                    IsDirectlyAssignable = ineligibleReason == null,
+                    IsPolicyBased = isPolicy,
+                    PolicySource = policySource
                 };
             }).ToList();
 

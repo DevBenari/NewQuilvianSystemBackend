@@ -79,6 +79,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public DateTime? EffectiveEndDate { get; set; }
         public bool IsEligibleForWorkforceAssignment { get; set; }
         public string? IneligibleReason { get; set; }
+        public bool IsDirectlyAssignable { get; set; }
+        public bool IsPolicyBased { get; set; }
+        public string? PolicySource { get; set; }
     }
 
     public class AllowanceTypeOptionPagedResponse

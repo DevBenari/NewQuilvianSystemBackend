@@ -37,7 +37,7 @@ public sealed class PayrollCompensationService
     private const string HrdInactiveLabel = "Tidak aktif di HRD";
     private const string SalaryNone = "Belum Ada Penetapan Gaji";
     private const string SalaryPendingApproval = "Menunggu Persetujuan HRD";
-    private const string SalaryApprovedLabel = "Disetujui";
+    private const string SalaryApprovedLabel = "Berlaku";
     private const string SalaryNotYetEffective = "Belum Berlaku";
     private const string SalaryEnded = "Sudah Berakhir";
     private const string SalaryConflict = "Konflik Penetapan Gaji";
@@ -253,7 +253,7 @@ public sealed class PayrollCompensationService
             EffectiveEndDate = a.EffectiveEndDate,
             IsPrimary = a.IsPrimary,
             IsActive = a.IsActive,
-            IsApproved = a.ApprovedAt.HasValue,
+            IsApproved = a.IsActive || a.ApprovedAt.HasValue,
             ApprovedAt = a.ApprovedAt,
             BaseSalary = includeAmounts ? (decimal?)a.BaseSalary : null
         }).ToList();
@@ -337,16 +337,32 @@ public sealed class PayrollCompensationService
         var hasTaxProfile = taxConfig is { IsActive: true };
 
         var issues = new List<string>();
+        var notes = new List<string>(assessment.Notes);
         if (!isActiveInHrd) issues.Add("Pegawai atau dokter ini tidak aktif di HRD.");
         issues.AddRange(hrd.Issues);
-        if (profile is null) issues.Add("Profil Payroll belum disiapkan secara otomatis.");
-        else issues.AddRange(assessment.Issues);
-        // Kekurangan konfigurasi yang sebenarnya, bukan pesan generik "keduanya nol": tidak boleh membuat orang tampil siap hanya karena
-        // nominal bernilai nol, dan tidak boleh menahan orang yang nol-nya sah.
-        issues.AddRange(taxInsurance.TaxIssues);
-        issues.AddRange(taxInsurance.InsuranceIssues);
 
-        return new Evaluated(person, isActiveInHrd, profile, salary, hrd, assessment, hasTaxProfile, issues.Distinct().ToList(), assessment.Notes);
+        // Profil payroll yang belum disiapkan secara fisik bukan blocking issue jika data HRD sudah lengkap dan eligible untuk auto-provisioning
+        if (profile is not null)
+        {
+            issues.AddRange(assessment.Issues);
+        }
+        else if (hrd.HrdComplete && isActiveInHrd)
+        {
+            const string autoProvisionNote = "Profil operasional payroll akan disiapkan secara otomatis saat Payroll Run dipersiapkan.";
+            if (!notes.Contains(autoProvisionNote))
+            {
+                notes.Add(autoProvisionNote);
+            }
+        }
+
+        // Kekurangan konfigurasi PPh yang sebenarnya, bukan pesan generik "keduanya nol".
+        issues.AddRange(taxInsurance.TaxIssues);
+        if (availability?.EnableBpjsInPayroll == true)
+        {
+            issues.AddRange(taxInsurance.InsuranceIssues);
+        }
+
+        return new Evaluated(person, isActiveInHrd, profile, salary, hrd, assessment, hasTaxProfile, issues.Distinct().ToList(), notes.Distinct().ToList());
     }
 
     private static IEnumerable<Evaluated> ApplyStatusFilter(IEnumerable<Evaluated> rows, string? status)
@@ -403,7 +419,7 @@ public sealed class PayrollCompensationService
         target.SalaryAssignmentId = display?.Id;
         target.SalaryEffectiveStartDate = display?.EffectiveStartDate;
         target.SalaryEffectiveEndDate = display?.EffectiveEndDate;
-        target.SalaryApproved = display?.ApprovedAt.HasValue ?? false;
+        target.SalaryApproved = display != null && display.IsActive;
         target.SalaryApprovedAt = display?.ApprovedAt;
 
         target.AmountsVisible = includeAmounts;
@@ -432,10 +448,6 @@ public sealed class PayrollCompensationService
             salaryStatus = missing.Status;
             var index = issues.IndexOf(PayrollReadinessEvaluator.NoSalaryMessage);
             if (missing.Message is not null && index >= 0) issues[index] = missing.Message;
-        }
-        else if (!ev.Hrd.SalaryApproved)
-        {
-            salaryStatus = SalaryPendingApproval;
         }
         else
         {

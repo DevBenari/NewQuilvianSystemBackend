@@ -57,6 +57,9 @@ public sealed class PayrollDataReadinessItemResponse
     /// </summary>
     public string PayrollProfileStatus { get; set; } = string.Empty;
 
+    /// <summary>Status konfigurasi PPh: "Sudah ditetapkan" atau "Belum ditetapkan".</summary>
+    public string TaxStatus { get; set; } = string.Empty;
+
     /// <summary>
     /// "Sudah ditetapkan" (konfigurasi PPh DAN iuran yang ditetapkan HRD sah dan berlaku) atau "Belum ditetapkan" (salah satunya belum
     /// ada, belum lengkap, belum/tidak berlaku, atau tidak sah). Diturunkan dari status konfigurasi eksplisit di bawah, BUKAN dari
@@ -110,6 +113,12 @@ public sealed class PayrollDataReadinessSummaryResponse
 
     /// <summary>Orang yang profil payroll-nya ada tetapi tidak aktif, tidak eligible, atau bukan Active.</summary>
     public int ProfilesNeedAttention { get; set; }
+
+    /// <summary>
+    /// Orang yang konfigurasi PPh-nya di HRD belum ditetapkan secara sah dan berlaku (jenis PPh, kategori, atau skema
+    /// perhitungan belum ditentukan, belum/tidak berlaku, atau tidak sah). Bukan perbandingan nominal nol.
+    /// </summary>
+    public int TaxNotSet { get; set; }
 
     /// <summary>
     /// Orang yang konfigurasi PPh dan/atau iurannya di HRD belum ditetapkan secara sah dan berlaku (jenis PPh, kategori, skema, atau

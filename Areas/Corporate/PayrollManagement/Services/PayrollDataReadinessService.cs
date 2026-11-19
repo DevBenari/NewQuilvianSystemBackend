@@ -84,6 +84,7 @@ public sealed class PayrollDataReadinessService
     {
         var all = await LoadReadinessAsync(cancellationToken);
         var availability = await _policyResolver.GetAvailabilityAsync(DateTime.UtcNow.Date, cancellationToken);
+        var unconfiguredTaxCount = all.Count(x => x.TaxConfigurationStatus != PayrollConfigurationStatuses.Configured);
         return new PayrollDataReadinessSummaryResponse
         {
             TaxPolicyApproved = availability.TaxApproved,
@@ -103,7 +104,10 @@ public sealed class PayrollDataReadinessService
             HrdComplete = all.Count(x => x.HrdComplete),
             ProfilesToPrepare = all.Count(x => x.PayrollProfileStatus == PayrollReadinessEvaluator.ProfileAutoPrepare),
             ProfilesNeedAttention = all.Count(x => x.PayrollProfileStatus == PayrollReadinessEvaluator.ProfileNeedsAttention),
-            TaxInsuranceNotSet = all.Count(x => x.TaxInsuranceStatus == PayrollReadinessEvaluator.TaxNotSet)
+            TaxNotSet = unconfiguredTaxCount,
+            TaxInsuranceNotSet = availability.EnableBpjsInPayroll
+                ? all.Count(x => x.TaxInsuranceStatus == PayrollReadinessEvaluator.TaxNotSet)
+                : unconfiguredTaxCount
         };
     }
 
@@ -152,24 +156,33 @@ public sealed class PayrollDataReadinessService
                     return (Facts: chosen, Conflict: conflict);
                 });
 
-        // Konfigurasi PPh dan iuran milik HRD (satu baris per orang menurut indeks unik). Bila tetap ada beberapa, yang aktif dan terbaru dipilih.
+        // Konfigurasi PPh dan iuran milik HRD (satu baris per orang menurut indeks unik). Bila tetap ada beberapa (data legacy),
+        // record aktif yang berlaku hari ini dipilih secara deterministik dan konflik dilaporkan secara eksplisit.
         var taxConfigs = (await _dbContext.PrlTaxes.AsNoTracking().Where(x => !x.IsDelete).ToListAsync(cancellationToken))
             .GroupBy(x => x.WorkforceProfileId)
             .ToDictionary(
                 g => g.Key,
-                g => PayrollTaxConfigFacts.From(g.OrderByDescending(t => t.IsActive).ThenByDescending(t => t.EffectiveStartDate).First()));
-        var insuranceConfigs = (await _dbContext.PrlInsurances.AsNoTracking().Where(x => !x.IsDelete).ToListAsync(cancellationToken))
-            .GroupBy(x => x.WorkforceProfileId)
-            .ToDictionary(
-                g => g.Key,
-                g => PayrollInsuranceConfigFacts.From(g.OrderByDescending(t => t.IsActive).ThenByDescending(t => t.EffectiveStartDate).First()));
+                g => SelectTaxConfig(g, today));
+        var insuranceConfigs = availability.EnableBpjsInPayroll
+            ? (await _dbContext.PrlInsurances.AsNoTracking().Where(x => !x.IsDelete).ToListAsync(cancellationToken))
+                .GroupBy(x => x.WorkforceProfileId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => PayrollInsuranceConfigFacts.From(g.OrderByDescending(t => t.IsActive).ThenByDescending(t => t.EffectiveStartDate).First()))
+            : new Dictionary<Guid, PayrollInsuranceConfigFacts>();
 
         var items = new List<PayrollDataReadinessItemResponse>(people.Count);
         foreach (var person in people)
         {
             salaries.TryGetValue(person.WorkforceProfileId, out var salary);
             banks.TryGetValue(person.WorkforceProfileId, out var bank);
-            taxConfigs.TryGetValue(person.WorkforceProfileId, out var taxConfig);
+            PayrollTaxConfigFacts? taxConfig = null;
+            var taxConflict = false;
+            if (taxConfigs.TryGetValue(person.WorkforceProfileId, out var taxSelected))
+            {
+                taxConfig = taxSelected.Facts;
+                taxConflict = taxSelected.Conflict;
+            }
             insuranceConfigs.TryGetValue(person.WorkforceProfileId, out var insuranceConfig);
 
             // (1) Sumber HRD dan (2) profil operasional internal Payroll dinilai oleh evaluator yang SAMA dengan layar Profil
@@ -189,8 +202,38 @@ public sealed class PayrollDataReadinessService
             var profileAssessment = PayrollReadinessEvaluator.AssessProfile(
                 profile, PayrollProfileRules.CanAutoPrepare(salary is not null, bank is not null), taxInsurance, today, profileConflict);
 
+            var taxIssues = new List<string>(profileAssessment.TaxIssues ?? new List<string>());
+            var effectiveTaxConfigStatus = profileAssessment.TaxConfigurationStatus;
+            if (taxConflict)
+            {
+                effectiveTaxConfigStatus = PayrollConfigurationStatuses.Error;
+                taxIssues.Add("Terdapat lebih dari satu profil pajak aktif yang berlaku bersamaan di HRD. Perlu diperiksa HRD.");
+            }
+
             var issues = new List<string>(hrd.Issues);
             issues.AddRange(profileAssessment.Issues);
+            if (taxConflict)
+            {
+                issues.Add("Terdapat lebih dari satu profil pajak aktif yang berlaku bersamaan di HRD.");
+            }
+
+            var taxStatus = effectiveTaxConfigStatus == PayrollConfigurationStatuses.Configured
+                ? PayrollReadinessEvaluator.TaxSet
+                : PayrollReadinessEvaluator.TaxNotSet;
+
+            var itemNotes = availability.EnableBpjsInPayroll
+                ? profileAssessment.Notes
+                : profileAssessment.Notes
+                    .Where(n => !n.Contains("BPJS", StringComparison.OrdinalIgnoreCase)
+                             && !n.Contains("iuran", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+            if (!availability.EnableBpjsInPayroll
+                && effectiveTaxConfigStatus == PayrollConfigurationStatuses.Configured
+                && itemNotes.Count == 0)
+            {
+                itemNotes.Add("Konfigurasi PPh lengkap.");
+            }
 
             items.Add(new PayrollDataReadinessItemResponse
             {
@@ -204,18 +247,52 @@ public sealed class PayrollDataReadinessService
                 BankStatus = hrd.BankStatus,
                 HrdComplete = hrd.HrdComplete,
                 PayrollProfileStatus = profileAssessment.ProfileStatus,
-                TaxInsuranceStatus = profileAssessment.TaxInsuranceStatus,
-                TaxConfigurationStatus = profileAssessment.TaxConfigurationStatus,
-                InsuranceConfigurationStatus = profileAssessment.InsuranceConfigurationStatus,
-                TaxConfigurationIssues = profileAssessment.TaxIssues ?? new List<string>(),
-                InsuranceConfigurationIssues = profileAssessment.InsuranceIssues ?? new List<string>(),
-                // (3) Siap mengikuti proses Payroll: tidak ada penghalang. Tetapan PPh dan iuran dilaporkan terpisah.
+                TaxStatus = taxStatus,
+                TaxInsuranceStatus = availability.EnableBpjsInPayroll
+                    ? (taxConflict ? PayrollReadinessEvaluator.TaxNotSet : profileAssessment.TaxInsuranceStatus)
+                    : taxStatus,
+                TaxConfigurationStatus = effectiveTaxConfigStatus,
+                InsuranceConfigurationStatus = availability.EnableBpjsInPayroll
+                    ? profileAssessment.InsuranceConfigurationStatus
+                    : string.Empty,
+                TaxConfigurationIssues = taxIssues,
+                InsuranceConfigurationIssues = availability.EnableBpjsInPayroll
+                    ? (profileAssessment.InsuranceIssues ?? new List<string>())
+                    : new List<string>(),
+                // (3) Siap mengikuti proses Payroll: tidak ada penghalang. Tetapan PPh dilaporkan terpisah.
                 IsComplete = issues.Count == 0,
                 Issues = issues,
-                Notes = profileAssessment.Notes
+                Notes = itemNotes
             });
         }
 
         return items;
+    }
+
+    /// <summary>
+    /// Memilih satu konfigurasi PPh HRD secara deterministik dari seluruh record non-delete milik satu orang.
+    /// Record aktif yang berlaku pada hari ini didahulukan, lalu record aktif lainnya, lalu record nonaktif.
+    /// Bila lebih dari satu record aktif berlaku bersamaan pada hari ini, ditandai sebagai konflik integritas data.
+    /// </summary>
+    private static (PayrollTaxConfigFacts? Facts, bool Conflict) SelectTaxConfig(
+        IEnumerable<PrlTax> candidates, DateTime asOf)
+    {
+        var list = candidates.ToList();
+        if (list.Count == 0) return (null, false);
+        if (list.Count == 1) return (PayrollTaxConfigFacts.From(list[0]), false);
+
+        bool ActiveNow(PrlTax t) =>
+            t.IsActive &&
+            (!t.EffectiveStartDate.HasValue || t.EffectiveStartDate.Value.Date <= asOf.Date) &&
+            (!t.EffectiveEndDate.HasValue || t.EffectiveEndDate.Value.Date >= asOf.Date);
+
+        var conflict = list.Count(ActiveNow) > 1;
+        var chosen = list
+            .OrderBy(t => ActiveNow(t) ? 0 : t.IsActive ? 1 : 2)
+            .ThenByDescending(t => t.EffectiveStartDate ?? DateTime.MinValue)
+            .ThenByDescending(t => t.UpdateDateTime ?? t.CreateDateTime)
+            .First();
+
+        return (PayrollTaxConfigFacts.From(chosen), conflict);
     }
 }

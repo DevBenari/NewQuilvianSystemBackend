@@ -182,6 +182,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             [FromQuery] Guid? legalEntityId,
             [FromQuery] Guid? hospitalSiteId,
             [FromQuery] Guid? employeeGradeId,
+            [FromQuery] Guid? salaryGradeId = null,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
@@ -192,11 +193,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            if (!employeeGradeId.HasValue && salaryGradeId.HasValue && salaryGradeId.Value != Guid.Empty)
+            {
+                var resolvedGradeId = await _dbContext.Set<MstSalaryGrade>()
+                    .AsNoTracking()
+                    .Where(g => g.Id == salaryGradeId.Value && !g.IsDelete)
+                    .Select(g => g.EmployeeGradeId)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (resolvedGradeId.HasValue)
+                {
+                    employeeGradeId = resolvedGradeId;
+                }
+            }
+
             var query = ApplyFilter(
                 BuildBaseQuery(),
                 legalEntityId,
                 hospitalSiteId,
-                employeeGradeId,
+                null,
                 null,
                 null,
                 null,
@@ -204,10 +219,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 onlyActive ? true : null,
                 search);
 
+            if (employeeGradeId.HasValue && employeeGradeId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.EmployeeGradeId == employeeGradeId.Value || x.EmployeeGradeId == null);
+            }
+
             var totalData = await query.CountAsync(cancellationToken);
 
-            var items = await query
-                .OrderBy(x => x.PolicyName)
+            var orderedQuery = employeeGradeId.HasValue && employeeGradeId.Value != Guid.Empty
+                ? query.OrderByDescending(x => x.EmployeeGradeId == employeeGradeId.Value).ThenBy(x => x.PolicyName)
+                : query.OrderBy(x => x.PolicyName);
+
+            var items = await orderedQuery
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(x => new WfpTransportAllowancePolicyOptionResponse
@@ -217,7 +240,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     PolicyName = x.PolicyName,
                     CalculationMethod = x.CalculationMethod,
                     FixedMonthlyAmount = x.FixedMonthlyAmount,
-                    PerAttendanceAmount = x.PerAttendanceAmount
+                    PerAttendanceAmount = x.PerAttendanceAmount,
+                    MonthlyLimitAmount = x.MonthlyLimitAmount,
+                    EmployeeGradeId = x.EmployeeGradeId,
+                    EmployeeGradeName = x.EmployeeGrade != null ? x.EmployeeGrade.GradeName : null,
+                    PayrollComponentId = x.PayrollComponentId
                 })
                 .ToListAsync(cancellationToken);
 
@@ -539,6 +566,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
         {
             return _dbContext.Set<PrlTransportAllowancePolicy>()
                 .AsNoTracking()
+                .Include(x => x.EmployeeGrade)
                 .Include(x => x.PayrollComponent)
                 .Include(x => x.TransportAllowances)
                 .Where(x => !x.IsDelete);

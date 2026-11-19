@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndB
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -392,7 +393,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             entity.PayrollStatus = NormalizeAllowedValue(AllowedPayrollStatuses, request.PayrollStatus);
             entity.IsPayrollEligible = request.IsPayrollEligible;
             entity.IsActive = request.IsActive;
-            entity.EffectiveEndDate = request.EffectiveEndDate?.Date;
+            entity.EffectiveEndDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate);
             entity.Description = NormalizeNullableText(request.Description) ?? entity.Description;
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
@@ -819,8 +820,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             entity.PaymentMethod = NormalizeAllowedValue(AllowedPaymentMethods, request.PaymentMethod);
             entity.IsPayrollEligible = request.IsPayrollEligible;
             entity.IsConfidential = request.IsConfidential;
-            entity.EffectiveStartDate = request.EffectiveStartDate?.Date;
-            entity.EffectiveEndDate = request.EffectiveEndDate?.Date;
+            entity.EffectiveStartDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveStartDate);
+            entity.EffectiveEndDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate);
             entity.BaseSalary = request.BaseSalary;
             entity.TotalAllowance = request.TotalAllowance;
             entity.TotalDeduction = request.TotalDeduction;

@@ -67,6 +67,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
         public string CalculationMethod { get; set; } = string.Empty;
         public decimal FixedMonthlyAmount { get; set; }
         public decimal PerAttendanceAmount { get; set; }
+        public decimal MonthlyLimitAmount { get; set; }
+        public Guid? EmployeeGradeId { get; set; }
+        public string? EmployeeGradeName { get; set; }
+        public Guid? PayrollComponentId { get; set; }
     }
 
     public class WfpTransportAllowancePolicyOptionPagedResponse

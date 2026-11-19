@@ -428,9 +428,8 @@ public sealed class PayrollWorkforceAllowanceService
         await _dbContext.WfpSalaryAssignments.AsNoTracking()
             .Where(a => !a.IsDelete && a.IsActive && a.IsPrimary && a.WorkforceProfileId == workforceProfileId
                 && a.EffectiveStartDate <= today && (a.EffectiveEndDate == null || a.EffectiveEndDate >= today))
-            .OrderByDescending(a => a.ApprovedAt != null)
-            .ThenByDescending(a => a.EffectiveStartDate)
-            .Select(a => new SalaryBasis(a.Id, a.SalaryStructureId, a.BaseSalary, a.ApprovedAt != null, a.EffectiveStartDate, a.EffectiveEndDate))
+            .OrderByDescending(a => a.EffectiveStartDate)
+            .Select(a => new SalaryBasis(a.Id, a.SalaryStructureId, a.BaseSalary, a.IsActive, a.EffectiveStartDate, a.EffectiveEndDate))
             .FirstOrDefaultAsync(cancellationToken);
 
     private async Task<List<IndividualRow>> LoadIndividualRowsAsync(Guid workforceProfileId, Guid? id, CancellationToken cancellationToken) =>

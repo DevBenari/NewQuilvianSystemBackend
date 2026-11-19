@@ -322,8 +322,8 @@ public static class PayrollTaxInsuranceRules
         + "Gunakan skema Nominal Manual Disetujui atau Tidak Berlaku dengan dasar yang sah.";
 
     public const string AutoPolicyMissing =
-        "Belum ada kebijakan tarif PPh berversi yang disahkan dan berlaku pada periode ini (Menunggu Verifikasi Kebijakan). "
-        + "HRD menyusun dan memverifikasi kebijakan, lalu Finance mengesahkannya.";
+        "Belum ada kebijakan tarif PPh berversi yang aktif dan berlaku pada periode ini. "
+        + "Penggajian memerlukan kebijakan tarif PPh yang berlaku sesuai tanggal periode.";
 
     public const string GrossUpUnavailable =
         "Metode GrossUp belum memiliki formula yang sah; gunakan metode Gross atau Net.";
@@ -981,7 +981,7 @@ public static class PayrollTaxInsuranceRules
         if (availability is not null)
         {
             if (taxResult.IsConfigured && taxResult.CalculationMode == TaxCalculationModes.AutoRegulatory && !availability.TaxApproved)
-                notes.Add($"{StatutoryPolicyLabels.AwaitingVerification}: belum ada kebijakan tarif PPh yang disahkan dan berlaku; PPh otomatis menahan payroll run.");
+                notes.Add("Belum ada kebijakan tarif PPh yang berlaku; PPh otomatis menahan payroll run.");
             if (enableBpjs && insuranceResult.IsConfigured && insuranceResult.Programs.Count + (insurance?.HealthEnabled == true ? 1 : 0) > 0 && !availability.BpjsApproved
                 && insuranceResult.ParticipationStatus == InsuranceParticipationStatuses.Active)
                 notes.Add($"{StatutoryPolicyLabels.AwaitingVerification}: belum ada kebijakan iuran BPJS yang disahkan dan berlaku; iuran menahan payroll run.");

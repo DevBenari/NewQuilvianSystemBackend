@@ -89,7 +89,7 @@ public sealed class PayrollHrdImportService
         var periodStart = run.PeriodStartDateSnapshot;
         var periodEnd = run.PeriodEndDateSnapshot;
         var approvedSalary = (await _dbContext.WfpSalaryAssignments.AsNoTracking()
-                .Where(a => !a.IsDelete && a.IsActive && a.IsPrimary && a.ApprovedAt != null
+                .Where(a => !a.IsDelete && a.IsActive && a.IsPrimary
                     && workforceIds.Contains(a.WorkforceProfileId)
                     && a.EffectiveStartDate <= periodEnd && (a.EffectiveEndDate == null || a.EffectiveEndDate >= periodStart))
                 .Select(a => a.WorkforceProfileId).Distinct().ToListAsync(cancellationToken)).ToHashSet();

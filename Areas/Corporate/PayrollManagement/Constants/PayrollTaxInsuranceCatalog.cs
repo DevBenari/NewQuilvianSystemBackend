@@ -3,13 +3,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 // Kosakata konfigurasi PPh dan iuran yang dikelola HRD (PrlTax, PrlInsurance) dan hasilnya pada payroll run. Kolom string tanpa
 // check constraint: nilai dijaga validasi controller dan penilai (PayrollTaxInsuranceRules). Tidak ada tarif atau rumus di sini.
 
-/// <summary>Jenis PPh (PrlTax.TaxArticle). Dipisah dari metode pajak (Gross/GrossUp/Net) dan status PTKP.</summary>
+/// <summary>Jenis pasal perpajakan (PrlTax.TaxArticle, PrlTaxPolicy.TaxArticle). Dipisah dari metode pajak (Gross/GrossUp/Net) dan status PTKP.</summary>
 public static class TaxArticles
 {
     public const string Pph21 = "PPH21";
+    public const string Pph23 = "PPH23";
     public const string Pph26 = "PPH26";
 
+    /// <summary>Pasal PPh yang berlaku untuk profil pajak SDM (WfpTax / PrlTax).</summary>
     public static readonly IReadOnlyList<string> All = new[] { Pph21, Pph26 };
+
+    /// <summary>Pasal perpajakan yang dikelola pada kebijakan regulasi (PrlTaxPolicy).</summary>
+    public static readonly IReadOnlyList<string> StatutoryPolicyArticles = new[] { Pph21, Pph23 };
 }
 
 /// <summary>

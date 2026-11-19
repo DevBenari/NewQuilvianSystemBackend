@@ -6,12 +6,14 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndB
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Services.Security;
 using System.Security.Claims;
 
 using SalaryAssignmentPagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs.WfpSalaryAssignmentResponse>;
@@ -38,12 +40,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         private static readonly string[] PaymentFrequencies = { "Monthly", "Weekly", "Biweekly", "Daily", "Hourly" };
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly AccessPermissionService _accessPermissionService;
+        private readonly PayrollSalaryRangeRuleService _salaryRangeRuleService;
 
-        public WfpSalaryAssignmentController(ApplicationDbContext dbContext, LoggerService loggerService)
+        public WfpSalaryAssignmentController(
+            ApplicationDbContext dbContext,
+            LoggerService loggerService,
+            AccessPermissionService accessPermissionService,
+            PayrollSalaryRangeRuleService salaryRangeRuleService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _accessPermissionService = accessPermissionService;
+            _salaryRangeRuleService = salaryRangeRuleService;
         }
+
+        private Task<bool> CanViewAmountAsync() => _accessPermissionService.HasAccessAsync(User, "WfpSalaryAssignment", "ViewAmount");
 
         [HttpGet("filters/metadata")]
         [AccessAction("Read", "Read Workforce Salary Assignment", Description = "Melihat metadata salary assignment", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -157,7 +169,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct);
             var actorNames = await GetActorNamesAsync(entities.SelectMany(x => new[] { x.CreateBy, x.UpdateBy, x.ApprovedByUserId ?? Guid.Empty }), ct);
-            var items = entities.Select(x => MapResponse(x, actorNames)).ToList();
+            var includeAmounts = await CanViewAmountAsync();
+            var items = entities.Select(x => MapResponse(x, actorNames, includeAmounts)).ToList();
 
             return Ok(ApiResponse<SalaryAssignmentPagedResult>.Ok(new SalaryAssignmentPagedResult
             {
@@ -177,7 +190,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             var entity = await BuildBaseQuery(workforceProfileId).FirstOrDefaultAsync(x => x.Id == id, ct);
             if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
             var actorNames = await GetActorNamesAsync(new[] { entity.CreateBy, entity.UpdateBy, entity.ApprovedByUserId ?? Guid.Empty }, ct);
-            return Ok(ApiResponse<WfpSalaryAssignmentResponse>.Ok(MapResponse(entity, actorNames), "Detail salary assignment berhasil diambil."));
+            var includeAmounts = await CanViewAmountAsync();
+            return Ok(ApiResponse<WfpSalaryAssignmentResponse>.Ok(MapResponse(entity, actorNames, includeAmounts), "Detail salary assignment berhasil diambil."));
         }
 
         [HttpPost]
@@ -212,6 +226,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                     IsPrimary = request.IsPrimary,
                     IsConfidential = request.IsConfidential,
                     IsActive = request.IsActive,
+                    ApprovedAt = null,
+                    ApprovedByUserId = null,
                     Description = Normalize(request.Description),
                     CreateDateTime = now,
                     CreateBy = actor,
@@ -251,7 +267,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 entity.SalaryStructureId = request.SalaryStructureId;
                 entity.SalaryGradeId = request.SalaryGradeId;
                 entity.EmployeeGradeId = NormalizeGuid(request.EmployeeGradeId);
-                entity.PayrollPeriodId = NormalizeGuid(request.PayrollPeriodId);
+                if (request.PayrollPeriodId.HasValue && request.PayrollPeriodId.Value != Guid.Empty)
+                {
+                    entity.PayrollPeriodId = request.PayrollPeriodId.Value;
+                }
+                // Nilai historis PayrollPeriodId dipertahankan jika request tidak menyertakan periode payroll.
                 entity.BaseSalary = request.BaseSalary;
                 entity.CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant();
                 entity.PaymentFrequency = NormalizeFrequency(request.PaymentFrequency);
@@ -298,6 +318,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         {
             var entity = await FindEntityAsync(workforceProfileId, id, ct);
             if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
+
+            if (request.IsActive)
+            {
+                var rangeCheck = await _salaryRangeRuleService.ValidateSalaryAssignmentAsync(entity.SalaryStructureId, entity.SalaryGradeId, entity.BaseSalary, entity.CurrencyCode, ct);
+                if (!rangeCheck.IsValid) return BadRequest(ApiResponse<object>.Fail(400, rangeCheck.Message!));
+            }
+
             entity.IsActive = request.IsActive;
             if (!request.IsActive) entity.IsPrimary = false;
             entity.UpdateDateTime = DateTime.UtcNow;
@@ -314,6 +341,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             var entity = await FindEntityAsync(workforceProfileId, id, ct);
             if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
             if (request.IsPrimary && !entity.IsActive) return BadRequest(ApiResponse<object>.Fail(400, "Salary assignment tidak aktif tidak dapat dijadikan primary."));
+
+            if (request.IsPrimary)
+            {
+                var rangeCheck = await _salaryRangeRuleService.ValidateSalaryAssignmentAsync(entity.SalaryStructureId, entity.SalaryGradeId, entity.BaseSalary, entity.CurrencyCode, ct);
+                if (!rangeCheck.IsValid) return BadRequest(ApiResponse<object>.Fail(400, rangeCheck.Message!));
+            }
 
             var now = DateTime.UtcNow;
             var actor = GetCurrentUserId();
@@ -356,7 +389,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         }
 
         private IQueryable<WfpSalaryAssignment> BuildBaseQuery(Guid workforceProfileId) =>
-            _dbContext.Set<WfpSalaryAssignment>().AsNoTracking().Include(x => x.WorkforceProfile)
+            _dbContext.Set<WfpSalaryAssignment>().AsNoTracking()
+                .Include(x => x.WorkforceProfile)
+                .Include(x => x.SalaryStructure)
+                .Include(x => x.SalaryGrade)
+                .Include(x => x.EmployeeGrade)
+                .Include(x => x.PayrollPeriod)
                 .Where(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
         private static IOrderedQueryable<WfpSalaryAssignment> ApplySorting(IQueryable<WfpSalaryAssignment> query, string? sortBy, string? sortDirection)
@@ -383,10 +421,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             if (!PaymentFrequencies.Contains(NormalizeFrequency(request.PaymentFrequency), StringComparer.OrdinalIgnoreCase)) return (false, "Payment frequency tidak valid.");
             if (request.EffectiveStartDate == default) return (false, "Effective start date wajib diisi.");
             if (request.EffectiveEndDate.HasValue && request.EffectiveEndDate.Value.Date < request.EffectiveStartDate.Date) return (false, "Effective end date tidak boleh lebih kecil dari effective start date.");
-            if (!await ExistsActiveAsync<MstSalaryStructure>(request.SalaryStructureId, ct)) return (false, "Salary structure tidak ditemukan atau tidak aktif.");
-            if (!await ExistsActiveAsync<MstSalaryGrade>(request.SalaryGradeId, ct)) return (false, "Salary grade tidak ditemukan atau tidak aktif.");
             if (!await ExistsActiveIfProvidedAsync<MstEmployeeGrade>(request.EmployeeGradeId, ct)) return (false, "Employee grade tidak ditemukan atau tidak aktif.");
             if (!await ExistsActiveIfProvidedAsync<MstPayrollPeriod>(request.PayrollPeriodId, ct)) return (false, "Payroll period tidak ditemukan atau tidak aktif.");
+
+            var rangeCheck = await _salaryRangeRuleService.ValidateSalaryAssignmentAsync(request.SalaryStructureId, request.SalaryGradeId, request.BaseSalary, request.CurrencyCode, ct);
+            if (!rangeCheck.IsValid) return (false, rangeCheck.Message);
 
             var overlaps = await _dbContext.Set<WfpSalaryAssignment>().AsNoTracking().AnyAsync(x =>
                 x.WorkforceProfileId == workforceProfileId && x.Id != excludeId && !x.IsDelete &&
@@ -411,43 +450,94 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         private async Task<WfpSalaryAssignment?> FindEntityAsync(Guid workforceProfileId, Guid id, CancellationToken ct) =>
             await _dbContext.Set<WfpSalaryAssignment>().FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete, ct);
 
-        private static WfpSalaryAssignmentResponse MapResponse(WfpSalaryAssignment x, IReadOnlyDictionary<Guid, string?> actorNames) => new()
+        private static WfpSalaryAssignmentResponse MapResponse(WfpSalaryAssignment x, IReadOnlyDictionary<Guid, string?> actorNames, bool includeAmounts = true)
         {
-            Id = x.Id,
-            WorkforceProfileId = x.WorkforceProfileId,
-            WorkforceProfileCode = x.WorkforceProfile?.ProfileCode ?? string.Empty,
-            WorkforceDisplayName = x.WorkforceProfile?.DisplayName ?? string.Empty,
-            SalaryStructureId = x.SalaryStructureId,
-            SalaryGradeId = x.SalaryGradeId,
-            EmployeeGradeId = x.EmployeeGradeId,
-            PayrollPeriodId = x.PayrollPeriodId,
-            BaseSalary = x.BaseSalary,
-            CurrencyCode = x.CurrencyCode,
-            PaymentFrequency = x.PaymentFrequency,
-            EffectiveStartDate = x.EffectiveStartDate,
-            EffectiveEndDate = x.EffectiveEndDate,
-            IsPrimary = x.IsPrimary,
-            IsConfidential = x.IsConfidential,
-            IsActive = x.IsActive,
-            ApprovedByUserId = x.ApprovedByUserId,
-            ApprovedByUserName = x.ApprovedByUserId.HasValue ? GetActorName(actorNames, x.ApprovedByUserId.Value) : null,
-            ApprovedAt = x.ApprovedAt,
-            IsApproved = x.ApprovedAt.HasValue && x.ApprovedByUserId.HasValue,
-            Description = x.Description,
-            CreateDateTime = x.CreateDateTime,
-            CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
-            CreateByName = GetActorName(actorNames, x.CreateBy),
-            UpdateDateTime = x.UpdateDateTime,
-            UpdateBy = x.UpdateBy == Guid.Empty ? null : x.UpdateBy,
-            UpdateByName = GetActorName(actorNames, x.UpdateBy)
-        };
+            var today = DateTime.UtcNow.Date;
+            var gradeMin = x.SalaryGrade?.MinimumSalary ?? 0m;
+            var gradeMax = x.SalaryGrade?.MaximumSalary ?? 0m;
+            var structMin = x.SalaryStructure?.MinimumBaseSalary;
+            var structMax = x.SalaryStructure?.MaximumBaseSalary;
+
+            var range = PayrollSalaryRangeRuleService.CalculateEffectiveRange(gradeMin, gradeMax, structMin, structMax);
+
+            string statusText;
+            if (!x.IsActive)
+            {
+                statusText = "Nonaktif";
+            }
+            else if (x.EffectiveStartDate.Date > today)
+            {
+                statusText = "Terjadwal";
+            }
+            else if (x.EffectiveEndDate.HasValue && x.EffectiveEndDate.Value.Date < today)
+            {
+                statusText = "Berakhir";
+            }
+            else
+            {
+                statusText = "Berlaku";
+            }
+
+            if (x.IsPrimary)
+            {
+                statusText = $"{statusText} · Utama";
+            }
+
+            return new()
+            {
+                Id = x.Id,
+                WorkforceProfileId = x.WorkforceProfileId,
+                WorkforceProfileCode = x.WorkforceProfile?.ProfileCode ?? string.Empty,
+                WorkforceDisplayName = x.WorkforceProfile?.DisplayName ?? string.Empty,
+                SalaryStructureId = x.SalaryStructureId,
+                SalaryStructureCode = x.SalaryStructure?.SalaryStructureCode,
+                SalaryStructureName = x.SalaryStructure?.SalaryStructureName,
+                SalaryGradeId = x.SalaryGradeId,
+                SalaryGradeCode = x.SalaryGrade?.SalaryGradeCode,
+                SalaryGradeName = x.SalaryGrade?.SalaryGradeName,
+                EmployeeGradeId = x.EmployeeGradeId,
+                EmployeeGradeName = x.EmployeeGrade?.GradeName,
+                PayrollPeriodId = x.PayrollPeriodId,
+                PayrollPeriodCode = x.PayrollPeriod?.PayrollPeriodCode,
+                PayrollPeriodName = x.PayrollPeriod?.PayrollPeriodName,
+                BaseSalary = includeAmounts ? x.BaseSalary : 0m,
+                AmountsVisible = includeAmounts,
+                GradeMinimumSalary = includeAmounts ? range.GradeMinimumSalary : null,
+                GradeMaximumSalary = includeAmounts ? range.GradeMaximumSalary : null,
+                StructureMinimumSalary = includeAmounts ? range.StructureMinimumSalary : null,
+                StructureMaximumSalary = includeAmounts ? range.StructureMaximumSalary : null,
+                EffectiveMinimumSalary = includeAmounts ? range.EffectiveMinimumSalary : null,
+                EffectiveMaximumSalary = includeAmounts ? range.EffectiveMaximumSalary : null,
+                SalaryRangeText = includeAmounts ? range.SalaryRangeText : "Terselubung (Memerlukan Wewenang ViewAmount)",
+                OperationalStatus = statusText,
+                CurrencyCode = x.CurrencyCode,
+                PaymentFrequency = x.PaymentFrequency,
+                EffectiveStartDate = x.EffectiveStartDate,
+                EffectiveEndDate = x.EffectiveEndDate,
+                IsPrimary = x.IsPrimary,
+                IsConfidential = x.IsConfidential,
+                IsActive = x.IsActive,
+                ApprovedByUserId = x.ApprovedByUserId,
+                ApprovedByUserName = x.ApprovedByUserId.HasValue ? GetActorName(actorNames, x.ApprovedByUserId.Value) : null,
+                ApprovedAt = x.ApprovedAt,
+                IsApproved = x.IsActive || (x.ApprovedAt.HasValue && x.ApprovedByUserId.HasValue),
+                Description = x.Description,
+                CreateDateTime = x.CreateDateTime,
+                CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
+                CreateByName = GetActorName(actorNames, x.CreateBy),
+                UpdateDateTime = x.UpdateDateTime,
+                UpdateBy = x.UpdateBy == Guid.Empty ? null : x.UpdateBy,
+                UpdateByName = GetActorName(actorNames, x.UpdateBy)
+            };
+        }
 
         private async Task<Dictionary<Guid, string?>> GetActorNamesAsync(IEnumerable<Guid> ids, CancellationToken ct)
         {
             var actorIds = ids.Where(x => x != Guid.Empty).Distinct().ToList();
+            if (!actorIds.Any()) return new Dictionary<Guid, string?>();
             return await _dbContext.Users.AsNoTracking().Where(x => actorIds.Contains(x.Id))
                 .Select(x => new { x.Id, Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode })
-                .ToDictionaryAsync(x => x.Id, x => x.Name, ct);
+                .ToDictionaryAsync(x => x.Id, x => (string?)x.Name, ct);
         }
 
         private static string? GetActorName(IReadOnlyDictionary<Guid, string?> map, Guid id) => id == Guid.Empty ? null : map.TryGetValue(id, out var name) ? name : null;

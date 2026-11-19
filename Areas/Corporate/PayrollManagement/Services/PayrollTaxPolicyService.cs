@@ -19,6 +19,19 @@ public sealed record PayrollStatutoryPolicyCaller(bool CanUpdate, bool CanSubmit
         CanRetire = CanRetire && status == StatutoryPolicyStatuses.Approved,
         CanDelete = CanDelete && StatutoryPolicyStatuses.IsEditable(status)
     };
+
+    /// <summary>
+    /// Pada Kebijakan Tarif PPh: alur verifikasi manual (Submit/Approve/Reject) dihapus. Kebijakan berlaku otomatis.
+    /// </summary>
+    public PayrollStatutoryPolicyActionsResponse ToTaxResponse(string status) => new()
+    {
+        CanUpdate = CanUpdate && status != StatutoryPolicyStatuses.Retired,
+        CanSubmit = false,
+        CanApprove = false,
+        CanReject = false,
+        CanRetire = CanRetire && status == StatutoryPolicyStatuses.Approved,
+        CanDelete = CanDelete && status != StatutoryPolicyStatuses.Retired
+    };
 }
 
 /// <summary>
@@ -54,12 +67,46 @@ public sealed class PayrollTaxPolicyService
     {
         var pageNumber = Math.Max(1, query.PageNumber);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
+        var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
         var source = _dbContext.PrlTaxPolicies.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (!string.IsNullOrWhiteSpace(query.TaxArticle))
+        {
+            var article = query.TaxArticle.Trim().ToUpperInvariant();
+            if (article == TaxArticles.Pph23)
+            {
+                source = source.Where(x => x.Title.Contains("PPh 23") || x.Title.Contains("PPH23") || (x.Notes != null && x.Notes.Contains("PPH23")));
+            }
+            else if (article == TaxArticles.Pph21)
+            {
+                source = source.Where(x => !x.Title.Contains("PPh 23") && !x.Title.Contains("PPH23") && (x.Notes == null || !x.Notes.Contains("PPH23")));
+            }
+        }
 
         if (!string.IsNullOrWhiteSpace(query.Status))
         {
-            var status = query.Status.Trim().ToUpperInvariant();
-            source = source.Where(x => x.PolicyStatus == status);
+            var status = query.Status.Trim();
+            if (status.Equals(TaxPolicyEffectiveStatuses.Active, StringComparison.OrdinalIgnoreCase) || status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+            {
+                source = source.Where(x => x.IsActive && x.PolicyStatus == StatutoryPolicyStatuses.Approved && x.EffectiveStartDate <= today && (x.EffectiveEndDate == null || x.EffectiveEndDate >= today));
+            }
+            else if (status.Equals(TaxPolicyEffectiveStatuses.Scheduled, StringComparison.OrdinalIgnoreCase) || status.Equals("SCHEDULED", StringComparison.OrdinalIgnoreCase))
+            {
+                source = source.Where(x => x.IsActive && x.EffectiveStartDate > today);
+            }
+            else if (status.Equals(TaxPolicyEffectiveStatuses.Expired, StringComparison.OrdinalIgnoreCase) || status.Equals("EXPIRED", StringComparison.OrdinalIgnoreCase))
+            {
+                source = source.Where(x => x.IsActive && x.EffectiveEndDate != null && x.EffectiveEndDate < today);
+            }
+            else if (status.Equals(TaxPolicyEffectiveStatuses.Inactive, StringComparison.OrdinalIgnoreCase) || status.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase))
+            {
+                source = source.Where(x => !x.IsActive || x.PolicyStatus == StatutoryPolicyStatuses.Retired);
+            }
+            else
+            {
+                var upper = status.ToUpperInvariant();
+                source = source.Where(x => x.PolicyStatus == upper);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -76,7 +123,6 @@ public sealed class PayrollTaxPolicyService
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
         return new PayrollStatutoryPolicyPagedResponse<PayrollStatutoryPolicyListItemResponse>
         {
             Items = rows.Select(x => ToListItem(x, today)).ToList(),
@@ -104,9 +150,43 @@ public sealed class PayrollTaxPolicyService
         {
             var entity = new PrlTaxPolicy { Id = Guid.NewGuid(), CreateDateTime = DateTime.UtcNow, CreateBy = actorUserId };
             await ApplyAsync(entity, request, cancellationToken);
+
+            var isPph23 = DetermineTaxArticle(entity) == TaxArticles.Pph23;
+            if (!isPph23)
+            {
+                var view = PayrollTaxPolicy.FromEntity(entity);
+                var issues = PayrollTaxPolicyEngine.ValidateCompleteness(view);
+                if (issues.Count > 0)
+                    throw new PayrollRunValidationException("Kebijakan PPh 21 belum lengkap atau tidak valid: " + string.Join(" ", issues));
+            }
+
+            var start = entity.EffectiveStartDate;
+            var end = entity.EffectiveEndDate;
+            var sameScopePolicies = await _dbContext.PrlTaxPolicies.AsNoTracking()
+                .Where(x => !x.IsDelete && x.Id != entity.Id && x.PolicyStatus == StatutoryPolicyStatuses.Approved && x.IsActive
+                    && (x.EffectiveEndDate == null || x.EffectiveEndDate >= start))
+                .ToListAsync(cancellationToken);
+
+            var entityArticle = DetermineTaxArticle(entity);
+            var entityCategory = DetermineCalculationType(entity);
+
+            var overlapping = sameScopePolicies.FirstOrDefault(x =>
+                DetermineTaxArticle(x) == entityArticle &&
+                DetermineCalculationType(x) == entityCategory &&
+                (!end.HasValue || x.EffectiveStartDate <= end.Value));
+
+            if (overlapping is not null)
+                throw new PayrollRunConflictException(
+                    $"Masa berlaku beririsan dengan kebijakan {DetermineCategoryLabel(entityCategory)} yang aktif ({overlapping.PolicyVersion}). Pensiunkan kebijakan itu atau sesuaikan tanggal berlaku.");
+
+            entity.PolicyStatus = StatutoryPolicyStatuses.Approved;
+            entity.DecidedAt = DateTime.UtcNow;
+            entity.DecidedByUserId = actorUserId;
+            entity.StatusReason = null;
+
             _dbContext.PrlTaxPolicies.Add(entity);
             await _dbContext.SaveChangesAsync(cancellationToken);
-            await AuditAsync("TaxPolicy.Create", "Membuat draf kebijakan tarif PPh.", entity, actorUserId);
+            await AuditAsync("TaxPolicy.Create", "Menyimpan kebijakan tarif PPh (aktif otomatis).", entity, actorUserId);
             return ToDetail(entity, caller);
         }, cancellationToken);
 
@@ -115,95 +195,39 @@ public sealed class PayrollTaxPolicyService
         PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
         {
             var entity = await LoadAsync(id, cancellationToken);
-            if (!StatutoryPolicyStatuses.IsEditable(entity.PolicyStatus))
-                throw new PayrollInvalidTransitionException(
-                    "Hanya draf atau kebijakan yang ditolak yang dapat diubah. Untuk mengubah kebijakan yang sudah diajukan atau disahkan, buat revisi (versi baru).");
+            if (entity.PolicyStatus == StatutoryPolicyStatuses.Retired || !entity.IsActive)
+                throw new PayrollInvalidTransitionException("Kebijakan yang sudah dipensiunkan atau nonaktif tidak dapat diubah.");
 
+            // Validasi status editable bila berstatus draf: StatutoryPolicyStatuses.IsEditable(entity.PolicyStatus)
             await ApplyAsync(entity, request, cancellationToken);
-            entity.PolicyStatus = StatutoryPolicyStatuses.Draft;
-            entity.StatusReason = null;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = actorUserId;
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            await AuditAsync("TaxPolicy.Update", "Mengubah draf kebijakan tarif PPh.", entity, actorUserId);
-            return ToDetail(entity, caller);
-        }, cancellationToken);
 
-    /// <summary>Membuat draf versi baru dari kebijakan yang ada (mis. saat masa berlaku berganti). Tabel tarif diisi dari referensi resmi Backend.</summary>
-    public Task<PayrollTaxPolicyDetailResponse> ReviseAsync(
-        Guid id, PayrollStatutoryPolicyReviseRequest request, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
-        PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
-        {
-            var source = await LoadAsync(id, cancellationToken);
-            var copy = new SavePayrollTaxPolicyRequest
+            var isPph23 = DetermineTaxArticle(entity) == TaxArticles.Pph23;
+            if (!isPph23)
             {
-                PolicyVersion = request.PolicyVersion,
-                Title = source.Title,
-                CalculationType = TaxPolicyCalculationTypes.PermanentEmployeeTer,
-                LegalBasis = source.LegalBasis,
-                EffectiveStartDate = request.EffectiveStartDate,
-                EffectiveEndDate = request.EffectiveEndDate,
-                UseOfficialReference = true,
-                Notes = $"Revisi dari versi {source.PolicyVersion}."
-            };
-
-            var entity = new PrlTaxPolicy { Id = Guid.NewGuid(), CreateDateTime = DateTime.UtcNow, CreateBy = actorUserId };
-            await ApplyAsync(entity, copy, cancellationToken);
-            _dbContext.PrlTaxPolicies.Add(entity);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            await AuditAsync("TaxPolicy.Revise", "Membuat revisi draf kebijakan tarif PPh.", entity, actorUserId);
-            return ToDetail(entity, caller);
-        }, cancellationToken);
-
-    public Task<PayrollTaxPolicyDetailResponse> SubmitAsync(
-        Guid id, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
-        PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
-        {
-            var entity = await LoadAsync(id, cancellationToken);
-            if (!StatutoryPolicyStatuses.IsEditable(entity.PolicyStatus))
-                throw new PayrollInvalidTransitionException("Hanya draf atau kebijakan yang ditolak yang dapat diajukan.");
-
-            var issues = PayrollTaxPolicyEngine.ValidateCompleteness(PayrollTaxPolicy.FromEntity(entity));
-            if (issues.Count > 0)
-                throw new PayrollRunValidationException("Kebijakan belum lengkap dan tidak dapat diajukan: " + string.Join(" ", issues));
-
-            entity.PolicyStatus = StatutoryPolicyStatuses.PendingApproval;
-            entity.SubmittedAt = DateTime.UtcNow;
-            entity.SubmittedByUserId = actorUserId;
-            entity.DecidedAt = null;
-            entity.DecidedByUserId = null;
-            entity.StatusReason = null;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = actorUserId;
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            await AuditAsync("TaxPolicy.Submit", "Mengajukan kebijakan tarif PPh (diverifikasi HRD) untuk disahkan.", entity, actorUserId);
-            return ToDetail(entity, caller);
-        }, cancellationToken);
-
-    public Task<PayrollTaxPolicyDetailResponse> ApproveAsync(
-        Guid id, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
-        PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
-        {
-            var entity = await LoadAsync(id, cancellationToken);
-            if (entity.PolicyStatus != StatutoryPolicyStatuses.PendingApproval)
-                throw new PayrollInvalidTransitionException("Hanya kebijakan yang sudah diajukan yang dapat disahkan.");
-            if (entity.SubmittedByUserId.HasValue && entity.SubmittedByUserId.Value == actorUserId)
-                throw new PayrollForbiddenActionException("Pengaju tidak boleh mengesahkan kebijakan yang diajukannya sendiri; pengesahan oleh Finance.");
-
-            var issues = PayrollTaxPolicyEngine.ValidateCompleteness(PayrollTaxPolicy.FromEntity(entity));
-            if (issues.Count > 0)
-                throw new PayrollRunValidationException("Referensi tarif kebijakan PPh belum lengkap atau belum terverifikasi sehingga tidak dapat disahkan: " + string.Join(" ", issues));
+                var view = PayrollTaxPolicy.FromEntity(entity);
+                var issues = PayrollTaxPolicyEngine.ValidateCompleteness(view);
+                if (issues.Count > 0)
+                    throw new PayrollRunValidationException("Kebijakan PPh 21 belum lengkap atau tidak valid: " + string.Join(" ", issues));
+            }
 
             var start = entity.EffectiveStartDate;
             var end = entity.EffectiveEndDate;
-            var overlapQuery = _dbContext.PrlTaxPolicies.AsNoTracking()
-                .Where(x => !x.IsDelete && x.Id != entity.Id && x.PolicyStatus == StatutoryPolicyStatuses.Approved
-                    && (x.EffectiveEndDate == null || x.EffectiveEndDate >= start));
-            if (end.HasValue) overlapQuery = overlapQuery.Where(x => x.EffectiveStartDate <= end.Value);
-            var overlapping = await overlapQuery.Select(x => x.PolicyVersion).FirstOrDefaultAsync(cancellationToken);
+            var sameScopePolicies = await _dbContext.PrlTaxPolicies.AsNoTracking()
+                .Where(x => !x.IsDelete && x.Id != entity.Id && x.PolicyStatus == StatutoryPolicyStatuses.Approved && x.IsActive
+                    && (x.EffectiveEndDate == null || x.EffectiveEndDate >= start))
+                .ToListAsync(cancellationToken);
+
+            var entityArticle = DetermineTaxArticle(entity);
+            var entityCategory = DetermineCalculationType(entity);
+
+            var overlapping = sameScopePolicies.FirstOrDefault(x =>
+                DetermineTaxArticle(x) == entityArticle &&
+                DetermineCalculationType(x) == entityCategory &&
+                (!end.HasValue || x.EffectiveStartDate <= end.Value));
+
             if (overlapping is not null)
                 throw new PayrollRunConflictException(
-                    $"Masa berlaku beririsan dengan kebijakan yang sudah disahkan ({overlapping}). Pensiunkan kebijakan itu atau sesuaikan tanggal berlaku.");
+                    $"Masa berlaku beririsan dengan kebijakan {DetermineCategoryLabel(entityCategory)} yang aktif ({overlapping.PolicyVersion}). Pensiunkan kebijakan itu atau sesuaikan tanggal berlaku.");
 
             entity.PolicyStatus = StatutoryPolicyStatuses.Approved;
             entity.DecidedAt = DateTime.UtcNow;
@@ -212,7 +236,72 @@ public sealed class PayrollTaxPolicyService
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = actorUserId;
             await _dbContext.SaveChangesAsync(cancellationToken);
-            await AuditAsync("TaxPolicy.Approve", "Mengesahkan kebijakan tarif PPh.", entity, actorUserId);
+            await AuditAsync("TaxPolicy.Update", "Memperbarui kebijakan tarif PPh (aktif otomatis).", entity, actorUserId);
+            return ToDetail(entity, caller);
+        }, cancellationToken);
+
+    /// <summary>Membuat versi revisi dari kebijakan yang ada. Kebijakan revisi langsung aktif otomatis sesuai tanggal efektif.</summary>
+    public Task<PayrollTaxPolicyDetailResponse> ReviseAsync(
+        Guid id, PayrollStatutoryPolicyReviseRequest request, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
+        PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
+        {
+            var source = await LoadAsync(id, cancellationToken);
+            var article = DetermineTaxArticle(source);
+            var copy = new SavePayrollTaxPolicyRequest
+            {
+                PolicyVersion = request.PolicyVersion,
+                Title = source.Title,
+                TaxArticle = article,
+                CalculationType = DetermineCalculationType(source),
+                LegalBasis = source.LegalBasis,
+                EffectiveStartDate = request.EffectiveStartDate,
+                EffectiveEndDate = request.EffectiveEndDate,
+                UseOfficialReference = article == TaxArticles.Pph21,
+                Notes = $"Revisi dari versi {source.PolicyVersion}."
+            };
+
+            var entity = new PrlTaxPolicy { Id = Guid.NewGuid(), CreateDateTime = DateTime.UtcNow, CreateBy = actorUserId };
+            await ApplyAsync(entity, copy, cancellationToken);
+
+            entity.PolicyStatus = StatutoryPolicyStatuses.Approved;
+            entity.DecidedAt = DateTime.UtcNow;
+            entity.DecidedByUserId = actorUserId;
+            entity.StatusReason = null;
+
+            _dbContext.PrlTaxPolicies.Add(entity);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await AuditAsync("TaxPolicy.Revise", "Membuat revisi kebijakan tarif PPh.", entity, actorUserId);
+            return ToDetail(entity, caller);
+        }, cancellationToken);
+
+    public Task<PayrollTaxPolicyDetailResponse> SubmitAsync(
+        Guid id, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
+        PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
+        {
+            var entity = await LoadAsync(id, cancellationToken);
+            entity.PolicyStatus = StatutoryPolicyStatuses.Approved;
+            entity.DecidedAt = DateTime.UtcNow;
+            entity.DecidedByUserId = actorUserId;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = actorUserId;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return ToDetail(entity, caller);
+        }, cancellationToken);
+
+    public Task<PayrollTaxPolicyDetailResponse> ApproveAsync(
+        Guid id, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
+        PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
+        {
+            var entity = await LoadAsync(id, cancellationToken);
+            if (entity.SubmittedByUserId.HasValue && entity.SubmittedByUserId.Value == actorUserId)
+                throw new PayrollForbiddenActionException("Pengaju tidak boleh mengesahkan kebijakan yang diajukannya sendiri; pengesahan oleh Finance.");
+
+            entity.PolicyStatus = StatutoryPolicyStatuses.Approved;
+            entity.DecidedAt = DateTime.UtcNow;
+            entity.DecidedByUserId = actorUserId;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = actorUserId;
+            await _dbContext.SaveChangesAsync(cancellationToken);
             return ToDetail(entity, caller);
         }, cancellationToken);
 
@@ -221,54 +310,45 @@ public sealed class PayrollTaxPolicyService
         PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
         {
             var entity = await LoadAsync(id, cancellationToken);
-            if (entity.PolicyStatus != StatutoryPolicyStatuses.PendingApproval)
-                throw new PayrollInvalidTransitionException("Hanya kebijakan yang sudah diajukan yang dapat ditolak.");
-            if (string.IsNullOrWhiteSpace(reason)) throw new PayrollRunValidationException("Alasan penolakan wajib diisi.");
-
-            entity.PolicyStatus = StatutoryPolicyStatuses.Rejected;
-            entity.DecidedAt = DateTime.UtcNow;
-            entity.DecidedByUserId = actorUserId;
-            entity.StatusReason = reason.Trim().Length > 500 ? reason.Trim()[..500] : reason.Trim();
+            entity.PolicyStatus = StatutoryPolicyStatuses.Retired;
+            entity.IsActive = false;
+            entity.StatusReason = reason;
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = actorUserId;
             await _dbContext.SaveChangesAsync(cancellationToken);
-            await AuditAsync("TaxPolicy.Reject", "Menolak kebijakan tarif PPh.", entity, actorUserId);
             return ToDetail(entity, caller);
         }, cancellationToken);
 
-    /// <summary>Mempensiunkan kebijakan yang sudah disahkan. Run yang sudah menyimpan snapshot versinya tidak berubah.</summary>
+    /// <summary>Mempensiunkan/menonaktifkan kebijakan yang sudah ada. Run yang sudah menyimpan snapshot versinya tidak berubah.</summary>
     public Task<PayrollTaxPolicyDetailResponse> RetireAsync(
         Guid id, string? reason, Guid actorUserId, PayrollStatutoryPolicyCaller caller, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
         {
             var entity = await LoadAsync(id, cancellationToken);
-            if (entity.PolicyStatus != StatutoryPolicyStatuses.Approved)
-                throw new PayrollInvalidTransitionException("Hanya kebijakan yang sudah disahkan yang dapat dipensiunkan.");
-            if (string.IsNullOrWhiteSpace(reason)) throw new PayrollRunValidationException("Alasan pensiun kebijakan wajib diisi.");
+            if (string.IsNullOrWhiteSpace(reason)) throw new PayrollRunValidationException("Alasan penonaktifan kebijakan wajib diisi.");
 
             entity.PolicyStatus = StatutoryPolicyStatuses.Retired;
+            entity.IsActive = false;
             entity.RetiredAt = DateTime.UtcNow;
             entity.StatusReason = reason.Trim().Length > 500 ? reason.Trim()[..500] : reason.Trim();
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = actorUserId;
             await _dbContext.SaveChangesAsync(cancellationToken);
-            await AuditAsync("TaxPolicy.Retire", "Mempensiunkan kebijakan tarif PPh.", entity, actorUserId);
+            await AuditAsync("TaxPolicy.Retire", "Menonaktifkan / mempensiunkan kebijakan tarif PPh.", entity, actorUserId);
             return ToDetail(entity, caller);
         }, cancellationToken);
 
-    /// <summary>Menghapus (soft delete) draf atau kebijakan yang ditolak yang belum pernah disahkan.</summary>
+    /// <summary>Menghapus (soft delete) kebijakan tarif PPh.</summary>
     public Task<bool> DeleteAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, LockKey, async () =>
         {
             var entity = await LoadAsync(id, cancellationToken);
-            if (!StatutoryPolicyStatuses.IsEditable(entity.PolicyStatus))
-                throw new PayrollInvalidTransitionException("Hanya draf atau kebijakan yang ditolak yang dapat dihapus; kebijakan yang pernah disahkan dipensiunkan, bukan dihapus.");
-
             entity.IsDelete = true;
+            entity.IsActive = false;
             entity.DeleteDateTime = DateTime.UtcNow;
             entity.DeleteBy = actorUserId;
             await _dbContext.SaveChangesAsync(cancellationToken);
-            await AuditAsync("TaxPolicy.Delete", "Menghapus draf kebijakan tarif PPh.", entity, actorUserId);
+            await AuditAsync("TaxPolicy.Delete", "Menghapus kebijakan tarif PPh.", entity, actorUserId);
             return true;
         }, cancellationToken);
 
@@ -305,12 +385,15 @@ public sealed class PayrollTaxPolicyService
         var calculationType = string.IsNullOrWhiteSpace(request.CalculationType)
             ? TaxPolicyCalculationTypes.PermanentEmployeeTer
             : request.CalculationType.Trim().ToUpperInvariant();
-        if (calculationType != TaxPolicyCalculationTypes.PermanentEmployeeTer)
-            errors.Add("Jenis perhitungan yang didukung pada tahap ini hanya PPh 21 Pegawai Tetap (PERMANENT_EMPLOYEE_TER).");
+        if (!TaxPolicyCalculationTypes.All.Contains(calculationType))
+            errors.Add($"Jenis perhitungan '{calculationType}' tidak didukung.");
+
+        var isPph23 = calculationType.StartsWith("PPH23", StringComparison.OrdinalIgnoreCase) ||
+                      (request.TaxArticle != null && request.TaxArticle.Equals(TaxArticles.Pph23, StringComparison.OrdinalIgnoreCase));
 
         var official = PayrollTaxOfficialReferenceProvider.GetCurrent();
         var legalBasis = Clean(request.LegalBasis, 1000);
-        if (legalBasis is null && request.UseOfficialReference)
+        if (legalBasis is null && request.UseOfficialReference && !isPph23)
             legalBasis = official.Status.DefaultLegalBasis;
         if (legalBasis is null) errors.Add("Dasar peraturan wajib diisi.");
 
@@ -324,6 +407,33 @@ public sealed class PayrollTaxPolicyService
             var duplicate = await _dbContext.PrlTaxPolicies.AsNoTracking()
                 .AnyAsync(x => !x.IsDelete && x.Id != entity.Id && x.PolicyVersion == version, cancellationToken);
             if (duplicate) errors.Add($"Nomor versi {version} sudah dipakai kebijakan lain.");
+        }
+
+        if (isPph23)
+        {
+            if (errors.Count > 0) throw new PayrollRunValidationException(string.Join(" ", errors));
+
+            entity.PolicyVersion = version!;
+            entity.Title = title!;
+            entity.LegalBasis = legalBasis!;
+            entity.EffectiveStartDate = Utc(request.EffectiveStartDate);
+            entity.EffectiveEndDate = request.EffectiveEndDate.HasValue ? Utc(request.EffectiveEndDate.Value) : null;
+            entity.PositionCostRatePercent = 0m;
+            entity.PositionCostMonthlyCap = 0m;
+            entity.PositionCostAnnualCap = 0m;
+            entity.NoNpwpSurchargePercent = 100m;
+            entity.PkpRoundingUnit = 1m;
+            entity.RoundTaxToWholeRupiah = true;
+            entity.EmployerPremiumPrograms = null;
+            entity.PensionDeductionPrograms = null;
+            entity.NonEmployeeBasisPercent = null;
+            entity.NonEmployeeMethod = null;
+            entity.Pph26RatePercent = null;
+            entity.PtkpJson = "[]";
+            entity.TerRatesJson = "[]";
+            entity.BracketsJson = "[]";
+            entity.Notes = Clean(request.Notes, 1000);
+            return;
         }
 
         if (request.UseOfficialReference)
@@ -413,39 +523,119 @@ public sealed class PayrollTaxPolicyService
         entity.Notes = Clean(request.Notes, 1000);
     }
 
-    private static PayrollStatutoryPolicyListItemResponse ToListItem(PrlTaxPolicy x, DateTime today) => new()
+    private static string DetermineTaxArticle(PrlTaxPolicy x)
     {
-        Id = x.Id,
-        PolicyVersion = x.PolicyVersion,
-        Title = x.Title,
-        LegalBasis = x.LegalBasis,
-        EffectiveStartDate = x.EffectiveStartDate,
-        EffectiveEndDate = x.EffectiveEndDate,
-        PolicyStatus = x.PolicyStatus,
-        IsEffectiveToday = x.PolicyStatus == StatutoryPolicyStatuses.Approved && x.EffectiveStartDate <= today
-            && (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= today),
-        SubmittedAt = x.SubmittedAt,
-        DecidedAt = x.DecidedAt,
-        StatusReason = x.StatusReason
+        if (x.Title.Contains("PPh 23", StringComparison.OrdinalIgnoreCase) ||
+            x.Title.Contains("PPH23", StringComparison.OrdinalIgnoreCase) ||
+            (x.Notes != null && x.Notes.Contains("PPH23", StringComparison.OrdinalIgnoreCase)))
+        {
+            return TaxArticles.Pph23;
+        }
+        return TaxArticles.Pph21;
+    }
+
+    private static string DetermineCalculationType(PrlTaxPolicy x)
+    {
+        var article = DetermineTaxArticle(x);
+        if (article == TaxArticles.Pph23)
+        {
+            if (x.Title.Contains("Outsourcing", StringComparison.OrdinalIgnoreCase)) return TaxPolicyCalculationTypes.Pph23OutsourcingServices;
+            if (x.Title.Contains("Manajemen", StringComparison.OrdinalIgnoreCase) || x.Title.Contains("Konsultasi", StringComparison.OrdinalIgnoreCase)) return TaxPolicyCalculationTypes.Pph23ManagementConsulting;
+            if (x.Title.Contains("Teknik", StringComparison.OrdinalIgnoreCase)) return TaxPolicyCalculationTypes.Pph23TechnicalServices;
+            if (x.Title.Contains("Sewa", StringComparison.OrdinalIgnoreCase)) return TaxPolicyCalculationTypes.Pph23RentAsset;
+            if (x.Title.Contains("Royalti", StringComparison.OrdinalIgnoreCase) || x.Title.Contains("Bunga", StringComparison.OrdinalIgnoreCase)) return TaxPolicyCalculationTypes.Pph23RoyaltyInterest;
+            return TaxPolicyCalculationTypes.Pph23OtherServicesPmk141;
+        }
+
+        if (x.Title.Contains("Dokter", StringComparison.OrdinalIgnoreCase) || x.Title.Contains("Tenaga Ahli", StringComparison.OrdinalIgnoreCase)) return TaxPolicyCalculationTypes.NonEmployeeExpert;
+        if (x.Title.Contains("Honorarium", StringComparison.OrdinalIgnoreCase) || x.Title.Contains("Bukan Pegawai", StringComparison.OrdinalIgnoreCase)) return TaxPolicyCalculationTypes.NonEmployeeHonorarium;
+        if (x.Title.Contains("Kontrak", StringComparison.OrdinalIgnoreCase)) return TaxPolicyCalculationTypes.ContractEmployeeTer;
+        if (x.Title.Contains("Harian", StringComparison.OrdinalIgnoreCase)) return TaxPolicyCalculationTypes.NonPermanentDaily;
+        if (x.Title.Contains("Tidak Tetap", StringComparison.OrdinalIgnoreCase)) return TaxPolicyCalculationTypes.NonPermanentMonthly;
+        if (x.Title.Contains("Pasal 17", StringComparison.OrdinalIgnoreCase)) return TaxPolicyCalculationTypes.Pph21Pasal17;
+
+        return TaxPolicyCalculationTypes.PermanentEmployeeTer;
+    }
+
+    private static string DetermineCategoryLabel(string calculationType) => calculationType switch
+    {
+        TaxPolicyCalculationTypes.PermanentEmployeeTer => "Pegawai Tetap (TER & Pasal 17)",
+        TaxPolicyCalculationTypes.ContractEmployeeTer => "Pegawai Kontrak Kriteria Tetap",
+        TaxPolicyCalculationTypes.NonPermanentMonthly => "Pegawai Tidak Tetap Bulanan",
+        TaxPolicyCalculationTypes.NonPermanentDaily => "Pegawai Tidak Tetap Harian/Satuan",
+        TaxPolicyCalculationTypes.NonEmployeeHonorarium => "Bukan Pegawai (Honorarium/Jasa)",
+        TaxPolicyCalculationTypes.NonEmployeeExpert => "Tenaga Ahli (Dokter / Konsultan)",
+        TaxPolicyCalculationTypes.Pph21Pasal17 => "Tarif Progresif Umum Pasal 17",
+        TaxPolicyCalculationTypes.Pph23OutsourcingServices => "Jasa Outsourcing Badan Usaha (2%)",
+        TaxPolicyCalculationTypes.Pph23ManagementConsulting => "Jasa Manajemen & Konsultasi (2%)",
+        TaxPolicyCalculationTypes.Pph23TechnicalServices => "Jasa Teknik & Pemeliharaan (2%)",
+        TaxPolicyCalculationTypes.Pph23OtherServicesPmk141 => "Jasa Lainnya PMK 141/2015 (2%)",
+        TaxPolicyCalculationTypes.Pph23RentAsset => "Sewa Harta Selain Tanah/Bangunan (2%)",
+        TaxPolicyCalculationTypes.Pph23RoyaltyInterest => "Royalti & Bunga Pinjaman (15%)",
+        _ => "PPh 21 Pegawai Tetap"
     };
+
+    private static string DetermineEffectiveStatus(PrlTaxPolicy x, DateTime today)
+    {
+        if (!x.IsActive || x.PolicyStatus == StatutoryPolicyStatuses.Retired)
+            return TaxPolicyEffectiveStatuses.Inactive;
+        if (x.EffectiveStartDate > today)
+            return TaxPolicyEffectiveStatuses.Scheduled;
+        if (x.EffectiveEndDate.HasValue && x.EffectiveEndDate.Value < today)
+            return TaxPolicyEffectiveStatuses.Expired;
+        return TaxPolicyEffectiveStatuses.Active;
+    }
+
+    private static PayrollStatutoryPolicyListItemResponse ToListItem(PrlTaxPolicy x, DateTime today)
+    {
+        var taxArticle = DetermineTaxArticle(x);
+        var calcType = DetermineCalculationType(x);
+        var categoryLabel = DetermineCategoryLabel(calcType);
+        var effectiveStatus = DetermineEffectiveStatus(x, today);
+
+        return new PayrollStatutoryPolicyListItemResponse
+        {
+            Id = x.Id,
+            PolicyVersion = x.PolicyVersion,
+            Title = x.Title,
+            TaxArticle = taxArticle,
+            CalculationType = calcType,
+            CategoryLabel = categoryLabel,
+            EffectiveStatus = effectiveStatus,
+            LegalBasis = x.LegalBasis,
+            EffectiveStartDate = x.EffectiveStartDate,
+            EffectiveEndDate = x.EffectiveEndDate,
+            PolicyStatus = x.PolicyStatus,
+            IsEffectiveToday = x.PolicyStatus == StatutoryPolicyStatuses.Approved && x.EffectiveStartDate <= today
+                && (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= today) && x.IsActive,
+            SubmittedAt = x.SubmittedAt,
+            DecidedAt = x.DecidedAt,
+            StatusReason = x.StatusReason
+        };
+    }
 
     private static PayrollTaxPolicyDetailResponse ToDetail(PrlTaxPolicy x, PayrollStatutoryPolicyCaller caller)
     {
         var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+        var summary = ToListItem(x, today);
         var view = PayrollTaxPolicy.FromEntity(x);
         var official = PayrollTaxOfficialReferenceProvider.GetStatus();
-        var completenessIssues = PayrollTaxPolicyEngine.ValidateCompleteness(view);
+        var isPph23 = summary.TaxArticle == TaxArticles.Pph23;
+        var completenessIssues = isPph23 ? new List<string>() : PayrollTaxPolicyEngine.ValidateCompleteness(view);
+
         return new PayrollTaxPolicyDetailResponse
         {
-            Summary = ToListItem(x, today),
-            CalculationType = official.CalculationType,
-            CalculationTypeLabel = official.CalculationTypeLabel,
-            CalculationMethodLabel = official.CalculationMethodLabel,
-            ReferenceVersion = official.ReferenceVersion,
-            ReferenceReady = official.IsReady && completenessIssues.Count == 0,
-            ReferenceStatusLabel = completenessIssues.Count == 0 && official.IsReady
-                ? "Referensi Tarif Resmi Terverifikasi"
-                : "Referensi Tarif Belum Lengkap",
+            Summary = summary,
+            TaxArticle = summary.TaxArticle,
+            CalculationType = summary.CalculationType ?? string.Empty,
+            CalculationTypeLabel = summary.CategoryLabel ?? string.Empty,
+            CalculationMethodLabel = isPph23 ? "Pemotongan PPh 23 atas Tagihan Vendor Badan Usaha" : official.CalculationMethodLabel,
+            EffectiveStatus = summary.EffectiveStatus,
+            RatePercent = isPph23 ? (summary.CalculationType == TaxPolicyCalculationTypes.Pph23RoyaltyInterest ? 15m : 2m) : null,
+            DppBasis = isPph23 ? "Jumlah Bruto (tidak termasuk PPN)" : null,
+            ReferenceVersion = isPph23 ? "-" : official.ReferenceVersion,
+            ReferenceReady = isPph23 || (official.IsReady && completenessIssues.Count == 0),
+            ReferenceStatusLabel = isPph23 ? "Kebijakan PPh 23 Aktif" : (completenessIssues.Count == 0 && official.IsReady ? "Referensi Tarif Resmi Terverifikasi" : "Referensi Tarif Belum Lengkap"),
             PositionCostRatePercent = x.PositionCostRatePercent,
             PositionCostMonthlyCap = x.PositionCostMonthlyCap,
             PositionCostAnnualCap = x.PositionCostAnnualCap,
@@ -462,7 +652,7 @@ public sealed class PayrollTaxPolicyService
             Brackets = view.Brackets.ToList(),
             Notes = x.Notes,
             CompletenessIssues = completenessIssues,
-            Actions = caller.ToResponse(x.PolicyStatus)
+            Actions = caller.ToTaxResponse(x.PolicyStatus)
         };
     }
 

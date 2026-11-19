@@ -73,12 +73,54 @@ public static class WageBaseClassifications
     public const string Unclassified = "UNCLASSIFIED";
 }
 
-/// <summary>Jenis perhitungan pada formulir sederhana Kebijakan Tarif PPh.</summary>
+
+/// <summary>Status keberlakuan kebijakan tarif PPh yang ditentukan otomatis oleh sistem.</summary>
+public static class TaxPolicyEffectiveStatuses
+{
+    public const string Active = "Berlaku";
+    public const string Scheduled = "Terjadwal";
+    public const string Expired = "Berakhir";
+    public const string Inactive = "Nonaktif";
+
+    public static readonly IReadOnlyList<string> All = new[] { Active, Scheduled, Expired, Inactive };
+}
+
+/// <summary>Jenis perhitungan pada formulir Kebijakan Tarif PPh 21 dan PPh 23.</summary>
 public static class TaxPolicyCalculationTypes
 {
+    // Kategori PPh 21
     public const string PermanentEmployeeTer = "PERMANENT_EMPLOYEE_TER";
+    public const string ContractEmployeeTer = "CONTRACT_EMPLOYEE_TER";
+    public const string NonPermanentMonthly = "NON_PERMANENT_MONTHLY";
+    public const string NonPermanentDaily = "NON_PERMANENT_DAILY";
+    public const string NonEmployeeHonorarium = "NON_EMPLOYEE_HONORARIUM";
+    public const string NonEmployeeExpert = "NON_EMPLOYEE_EXPERT";
+    public const string Pph21Pasal17 = "PPH21_PASAL17";
 
-    public static readonly IReadOnlyList<string> All = new[] { PermanentEmployeeTer };
+    // Kategori dan Objek PPh 23
+    public const string Pph23OutsourcingServices = "PPH23_OUTSOURCING_SERVICES";
+    public const string Pph23ManagementConsulting = "PPH23_MANAGEMENT_CONSULTING";
+    public const string Pph23TechnicalServices = "PPH23_TECHNICAL_SERVICES";
+    public const string Pph23OtherServicesPmk141 = "PPH23_OTHER_SERVICES_PMK141";
+    public const string Pph23RentAsset = "PPH23_RENT_ASSET";
+    public const string Pph23RoyaltyInterest = "PPH23_ROYALTY_INTEREST";
+
+    public static readonly IReadOnlyList<string> All = new[]
+    {
+        PermanentEmployeeTer,
+        ContractEmployeeTer,
+        NonPermanentMonthly,
+        NonPermanentDaily,
+        NonEmployeeHonorarium,
+        NonEmployeeExpert,
+        Pph21Pasal17,
+        Pph23OutsourcingServices,
+        Pph23ManagementConsulting,
+        Pph23TechnicalServices,
+        Pph23OtherServicesPmk141,
+        Pph23RentAsset,
+        Pph23RoyaltyInterest
+    };
 }
 
 /// <summary>Label status kebijakan bagi layar (Pengaturan Penggajian dan kelengkapan).</summary>

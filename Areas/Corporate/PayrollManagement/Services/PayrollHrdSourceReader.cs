@@ -150,6 +150,7 @@ public sealed class PayrollHrdSourceReader
                 x.SalaryStructureId,
                 x.SalaryGradeId,
                 x.EffectiveStartDate,
+                x.IsPrimary,
                 Approved = x.ApprovedAt != null
             })
             .ToListAsync(cancellationToken);
@@ -160,16 +161,16 @@ public sealed class PayrollHrdSourceReader
                 g => g.Key,
                 g =>
                 {
-                    var approved = g.Where(a => a.Approved).ToList();
-                    var chosen = (approved.Count > 0 ? approved : g.ToList())
+                    var primaries = g.Where(a => a.IsPrimary).ToList();
+                    var chosen = (primaries.Count > 0 ? primaries : g.ToList())
                         .OrderByDescending(a => a.EffectiveStartDate)
                         .ThenBy(a => a.Id)
                         .First();
                     return new PayrollHrdSalary(
                         chosen.Id, chosen.SalaryStructureId, chosen.SalaryGradeId, chosen.EffectiveStartDate,
-                        HasApproved: approved.Count > 0,
-                        HasPending: g.Any(a => !a.Approved),
-                        ApprovedCount: approved.Count);
+                        HasApproved: true,
+                        HasPending: false,
+                        ApprovedCount: g.Count());
                 });
     }
 
