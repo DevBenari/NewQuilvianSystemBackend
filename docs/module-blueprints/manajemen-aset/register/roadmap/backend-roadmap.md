@@ -44,7 +44,7 @@ BE-AST-015 [NLI] 🟡 ─┬─> BE-AST-007 ✅ ─┬─> BE-AST-008 ✅
                                         │               │
                                         │               └──────┐
                                         │                      │
-                                        └─> BE-AST-010 ✅ ─────┴─> BE-AST-013
+                                        └─> BE-AST-010 ✅ ─────┴─> BE-AST-013 🟡
 ```
 
 `[NLI]` = task backend sub-modul `nilai` pada `../../nilai/roadmap/backend-roadmap.md`, cermin baca-saja.
@@ -68,7 +68,7 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
 | `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | ✅ `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` ✅ 2026-11-16; `BE-AST-005` ✅ 2026-11-16; `BE-AST-006` ✅ 2026-11-16 |
-| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` ✅ 2026-11-17; `BE-AST-009` ✅ 2026-11-17; `BE-AST-010` ✅ 2026-11-18; `BE-AST-011` 🟡 2026-11-18 (pekerja harian `Disetujui`→`Berjalan` 19 Nov dan `AT-REG-15` positif menyusul); `BE-AST-012` ✅ 2026-11-18; `BE-AST-013` belum dikerjakan |
+| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` ✅ 2026-11-17; `BE-AST-009` ✅ 2026-11-17; `BE-AST-010` ✅ 2026-11-18; `BE-AST-011` 🟡 2026-11-19 (pekerja harian `Disetujui`→`Berjalan` terbukti 19 Nov; `AT-REG-15` positif menyusul 20 Nov); `BE-AST-012` ✅ 2026-11-18; `BE-AST-013` 🟡 2026-11-19 (`AT-REG-12` positif menunggu akun uji berpenugasan unit) |
 
 ## Tabel task
 
@@ -176,7 +176,7 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 
 | Field | Isi |
 |---|---|
-| **Status** | 🟡 **SEBAGIAN 18 November 2026.** `AssetDocumentService` (dokumen kepemilikan, kelengkapan per kategori, dokumen habis/hampir habis menurut pengaturan), `AssetUtilizationService` (draft → ajukan dengan penyetuju dan batas rupiah dikunci → setujui/teruskan → keputusan Direktur; akhiri, batal), `AssetAttachmentAccessService`, `AssetDailyStatusWorker` (bawaan mati), `GET /assets/idle` + `isIdle`; 3 controller (23 endpoint). QBE Strict 20 berkas `PASS` 0 temuan; atribut akses 39/39; nol baris komentar; `dotnet build` Rizki berhasil (DLL 10:39:38). Runtime **60/60** + **13/15** (2 kegagalan = harapan skrip keliru, data membuktikan backend benar): `AT-REG-08` (persetujuan), `09`, `14`, `41`, `42` lulus, kriteria 1, 3, 4 terbukti. Pekerja harian sesudah restart backend 11:01: `Berjalan`→`Berakhir` 4/4 (`AST-PMF-000007`, kunci lepas, linimasa). **Belum terbukti:** kriteria 5 bagian `Disetujui`→`Berjalan` (`AST-PMF-000008` mulai 19 Nov) dan `AT-REG-15` kasus positif (butuh aset Tidak Digunakan lebih dari N hari; mulai 20 Nov lewat batas = 1). Delta kontrak dicatat di laporan. Belum di-commit. Laporan: [`BE-AST-011.md`](../task/report/backend/BE-AST-011.md) |
+| **Status** | 🟡 **SEBAGIAN 18 November 2026.** `AssetDocumentService` (dokumen kepemilikan, kelengkapan per kategori, dokumen habis/hampir habis menurut pengaturan), `AssetUtilizationService` (draft → ajukan dengan penyetuju dan batas rupiah dikunci → setujui/teruskan → keputusan Direktur; akhiri, batal), `AssetAttachmentAccessService`, `AssetDailyStatusWorker` (bawaan mati), `GET /assets/idle` + `isIdle`; 3 controller (23 endpoint). QBE Strict 20 berkas `PASS` 0 temuan; atribut akses 39/39; nol baris komentar; `dotnet build` Rizki berhasil (DLL 10:39:38). Runtime **60/60** + **13/15** (2 kegagalan = harapan skrip keliru, data membuktikan backend benar): `AT-REG-08` (persetujuan), `09`, `14`, `41`, `42` lulus, kriteria 1, 3, 4 terbukti. Pekerja harian sesudah restart backend 11:01: `Berjalan`→`Berakhir` 4/4 (`AST-PMF-000007`, kunci lepas, linimasa). Kriteria 5 bagian `Disetujui`→`Berjalan` terbukti 19 November 2026: pekerja harian mengubah `AST-PMF-000008` menjadi Berjalan pukul 02:33 UTC, kunci aset tetap, linimasa `AST-MBL-000005` "Dimanfaatkan" (`cek-pekerja-19nov.mjs` 3/3). **Belum terbukti:** `AT-REG-15` kasus positif (butuh aset Tidak Digunakan lebih dari N hari; mulai 20 Nov lewat batas = 1). Delta kontrak dicatat di laporan. Di-commit `ae054ee8`. Laporan: [`BE-AST-011.md`](../task/report/backend/BE-AST-011.md) |
 | Cakupan | `AssetDocumentService`, `AssetUtilizationService`, `AssetDailyStatusWorker` (bawaan mati), 3 controller (2.12–2.14) |
 | Acceptance criteria | 1. Kelengkapan dokumen per kategori dan dokumen hampir habis menurut pengaturan. 2. Aset menganggur sebagai keadaan turunan. 3. Penyetuju pemanfaatan dihitung dan dikunci saat diajukan (batas dari `nilai`). 4. Aset bukan milik RS ditolak. 5. Pekerja harian memindahkan `Disetujui`→`Berjalan`→`Berakhir` |
 
@@ -188,10 +188,10 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Cakupan | `AssetImportService` (ClosedXML), controller 2.15, templat Excel |
 | Acceptance criteria | 1. Satu baris salah → seluruh berkas `GagalValidasi`. 2. Dua persetujuan, bukan pengunggah. 3. Penerapan satu transaksi: aset `Terdaftar` + `Ditempatkan` + buku saldo awal (`AssetBookService.CreateOpeningBalance`), **tanpa** kotak keluar. 4. Batas 5.000 baris dari konfigurasi |
 
-### `BE-AST-013` — Dashboard, laporan register, History & Audit
+### 🟡 `BE-AST-013` — Dashboard, laporan register, History & Audit
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 **SEBAGIAN 19 November 2026.** `AssetDashboardQueryService` (5 kartu + 5 kondisi + aset rusak terbaru, tiap kartu membawa saringan daftarnya; per unit), `AssetReportQueryService` + `AssetReportWorkbook` (11.1, 11.3, 11.7, ekspor Excel tanpa rupiah, batas 10.000 baris), 2 controller (7 endpoint); saringan daftar aset dipisah ke `FilteredAssetsAsync` supaya kartu dan daftar memakai saringan yang sama. QBE Strict 9 berkas `PASS`; atribut akses 7/7; nol baris komentar; `dotnet build` Rizki berhasil (DLL 2026-11-19 08:36:06). Runtime **74/74**: `AT-REG-16` (10 kartu dan baris per unit = daftar), History = isi `AstAssetHistory` di DB total dan per sub-modul, 4 berkas ekspor dibaca tanpa kolom/sel rupiah, LOKET 403, akun tanpa `ReadAllUnits` terbatas dan unit lain 403. Uji akun PENERIMA 18/21: `AT-REG-46` lulus. Kriteria 1, 3, 4 terbukti. **Belum terbukti:** `AT-REG-12` positif (akun terbatas melihat aset unitnya sendiri), karena di DB dev tidak ada akun uji non-SuperAdmin berpenugasan unit di Instalasi Rawat Inap. Delta kontrak (metadata, DTO History, kartu ber-`filter`) dicatat di laporan. Laporan: [`BE-AST-013.md`](../task/report/backend/BE-AST-013.md) |
 | Cakupan | `AssetDashboardQueryService`, `AssetReportQueryService`, 2 controller, ekspor Excel |
 | Acceptance criteria | 1. Kartu = hitungan daftar bersaringan. 2. Batas unit berlaku. 3. History & Audit membaca `AstAssetHistory` lintas sub-modul. 4. Ekspor tanpa kolom rupiah |

@@ -107,6 +107,9 @@ public static class AssetRegisterErrorCodes
     public const string ImportRoute = "AST-IMP-ROUTE";
     public const string ImportOwner = "AST-IMP-OWNER";
     public const string ImportRevalidate = "AST-IMP-REVALIDATE";
+    public const string ReportField = "AST-RPT-FIELD";
+    public const string ReportNotFound = "AST-RPT-NOT-FOUND";
+    public const string ReportExportLimit = "AST-RPT-EXPORT-LIMIT";
 }
 
 public static class AssetRegisterMessages
@@ -223,4 +226,8 @@ public static class AssetRegisterMessages
     public const string ImportRejectAtAccounting = "Batch sudah disetujui Kepala Bagian Aset. Penolakan dilakukan lewat keputusan Akuntansi.";
     public const string ImportOwner = "Hanya pengunggah yang dapat membatalkan batch ini.";
     public const string ImportRevalidateFormat = "Batch tidak dapat diterapkan karena data master berubah. Baris {0}: {1}";
+    public const string ReportPeriod = "Tanggal awal periode tidak boleh sesudah tanggal akhir.";
+    public const string ReportSubModule = "Sub-modul tidak dikenal. Pilih register, pergerakan, inventarisasi, nilai, atau penghapusan.";
+    public const string ReportNotFound = "Laporan tidak dikenal. Pilih inventory-by-unit, condition, atau history.";
+    public const string ReportExportLimitFormat = "Hasil laporan berisi {0:N0} baris, lebih dari batas ekspor {1:N0} baris. Persempit saringan, misalnya per unit atau per periode.";
 }

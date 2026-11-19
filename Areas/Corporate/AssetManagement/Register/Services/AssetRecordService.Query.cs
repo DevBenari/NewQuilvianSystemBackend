@@ -114,6 +114,38 @@ public sealed partial class AssetRecordService
     public async Task<PagedResult<AssetListItemResponse>> GetAssetsAsync(AssetPagedQuery request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        var query = await FilteredAssetsAsync(request, cancellationToken);
+
+        var descending = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        IOrderedQueryable<AstAsset> ordered = (request.SortBy ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "name" => descending ? query.OrderByDescending(x => x.AssetName) : query.OrderBy(x => x.AssetName),
+            "inventorynumber" => descending ? query.OrderByDescending(x => x.InventoryNumber) : query.OrderBy(x => x.InventoryNumber),
+            "acquisitiondate" => descending ? query.OrderByDescending(x => x.AcquisitionDate) : query.OrderBy(x => x.AcquisitionDate),
+            "approvedat" => descending ? query.OrderByDescending(x => x.ApprovedAt) : query.OrderBy(x => x.ApprovedAt),
+            "recordstatus" => descending ? query.OrderByDescending(x => x.RecordStatus) : query.OrderBy(x => x.RecordStatus),
+            _ => descending ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime)
+        };
+
+        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+        var pageSize = request.PageSize < 1 ? 25 : Math.Min(request.PageSize, MaxPageSize);
+        var total = await query.CountAsync(cancellationToken);
+        var items = await ProjectList(ordered.ThenBy(x => x.Id).Skip((pageNumber - 1) * pageSize).Take(pageSize)).ToListAsync(cancellationToken);
+        items.ForEach(Describe);
+
+        return new PagedResult<AssetListItemResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            Items = items
+        };
+    }
+
+    internal async Task<IQueryable<AstAsset>> FilteredAssetsAsync(AssetPagedQuery request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
         var actor = await RequireActorAsync(cancellationToken);
         var query = await ScopedAssetsAsync(actor, cancellationToken);
 
@@ -186,33 +218,7 @@ public sealed partial class AssetRecordService
                     (x.ConditionChangedAt ?? x.ApprovedAt ?? x.CreateDateTime) < cutoff));
         }
 
-        query = Search(query, request.Search);
-
-        var descending = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-        IOrderedQueryable<AstAsset> ordered = (request.SortBy ?? string.Empty).Trim().ToLowerInvariant() switch
-        {
-            "name" => descending ? query.OrderByDescending(x => x.AssetName) : query.OrderBy(x => x.AssetName),
-            "inventorynumber" => descending ? query.OrderByDescending(x => x.InventoryNumber) : query.OrderBy(x => x.InventoryNumber),
-            "acquisitiondate" => descending ? query.OrderByDescending(x => x.AcquisitionDate) : query.OrderBy(x => x.AcquisitionDate),
-            "approvedat" => descending ? query.OrderByDescending(x => x.ApprovedAt) : query.OrderBy(x => x.ApprovedAt),
-            "recordstatus" => descending ? query.OrderByDescending(x => x.RecordStatus) : query.OrderBy(x => x.RecordStatus),
-            _ => descending ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime)
-        };
-
-        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
-        var pageSize = request.PageSize < 1 ? 25 : Math.Min(request.PageSize, MaxPageSize);
-        var total = await query.CountAsync(cancellationToken);
-        var items = await ProjectList(ordered.ThenBy(x => x.Id).Skip((pageNumber - 1) * pageSize).Take(pageSize)).ToListAsync(cancellationToken);
-        items.ForEach(Describe);
-
-        return new PagedResult<AssetListItemResponse>
-        {
-            PageNumber = pageNumber,
-            PageSize = pageSize,
-            TotalData = total,
-            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
-            Items = items
-        };
+        return Search(query, request.Search);
     }
 
     public async Task<PagedResult<AssetIdleItemResponse>> GetIdleAssetsAsync(AssetPagedQuery request, CancellationToken cancellationToken = default)
@@ -531,7 +537,7 @@ public sealed partial class AssetRecordService
         return items;
     }
 
-    private static IQueryable<AssetListItemResponse> ProjectList(IQueryable<AstAsset> query) =>
+    internal static IQueryable<AssetListItemResponse> ProjectList(IQueryable<AstAsset> query) =>
         query.Select(x => new AssetListItemResponse
         {
             Id = x.Id,
@@ -569,7 +575,7 @@ public sealed partial class AssetRecordService
             CreateDateTime = x.CreateDateTime
         });
 
-    private static void Describe(AssetListItemResponse item)
+    internal static void Describe(AssetListItemResponse item)
     {
         item.RecordStatusName = AssetRegisterLabels.RecordStatus(item.RecordStatus);
         item.ConditionName = AssetRegisterLabels.Condition(item.Condition);
@@ -584,7 +590,7 @@ public sealed partial class AssetRecordService
         _ => []
     };
 
-    private async Task<Dictionary<Guid, string>> UserNamesAsync(IEnumerable<Guid?> userIds, CancellationToken cancellationToken)
+    internal async Task<Dictionary<Guid, string>> UserNamesAsync(IEnumerable<Guid?> userIds, CancellationToken cancellationToken)
     {
         var ids = userIds.Where(x => x.HasValue && x.Value != Guid.Empty).Select(x => x!.Value).Distinct().ToList();
         if (ids.Count == 0)

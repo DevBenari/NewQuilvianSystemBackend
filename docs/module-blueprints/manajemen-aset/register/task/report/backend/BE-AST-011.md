@@ -268,11 +268,19 @@ tempo, 0 mulai berjalan, 1 berakhir." Pemeriksaan API (`cek-pekerja-harian.mjs` 
 
 Pelaku tercatat = penyetuju terakhir (Uji Penyetuju Aset) karena `SystemActorUserId` belum diatur (delta no. 10).
 
+**19 November 2026**, sesudah backend dinyalakan pagi itu: pemeriksaan API (`cek-pekerja-19nov.mjs` →
+`cek-pekerja-19nov.json`) **3/3**:
+
+| Skenario | Hasil |
+|---|---|
+| `AST-PMF-000008` (mulai 19 Nov) `Disetujui` → `Berjalan` | `PASS` |
+| Kunci `AST-MBL-000005` tetap (proses Pemanfaatan) | `PASS` |
+| Linimasa `AST-MBL-000005`: `Dimanfaatkan` bernomor `AST-PMF-000008`, "19-11-2026 s.d. 19-12-2026", 02:33:10Z | `PASS` |
+
 ### 5.6 Belum terbukti
 
 | Butir | Sebab | Cara menutup |
 |---|---|---|
-| AC5 / `AT-REG-08` bagian `Disetujui`→`Berjalan` oleh pekerja harian | Tanggal mulai `AST-PMF-000008` = 19 Nov | Pekerja harian jalan 00:10 WIB (atau saat backend dinyalakan) mulai 19 Nov → `AST-PMF-000008` harus `Berjalan` dan linimasa `AST-MBL-000005` `Dimanfaatkan` |
 | `AT-REG-15` kasus positif | Belum ada aset Tidak Digunakan lebih dari N hari; data tidak diubah langsung di database | Mulai 20 Nov: atur batas menganggur = 1 lewat Pengaturan Aset → `AST-MBL-000006` muncul di `/idle` (2 hari > 1), lalu pulihkan 90 |
 
 ---
@@ -285,13 +293,13 @@ Pelaku tercatat = penyetuju terakhir (Uji Penyetuju Aset) karena `SystemActorUse
 | 2. Aset menganggur sebagai keadaan turunan | `AssetRecordService.Query.Idle/GetIdleAssetsAsync`, `IdleThresholdDays`, `ConditionChangedAt` | Batas negatif lulus; positif menunggu waktu (5.6) | 🟡 |
 | 3. Penyetuju dihitung dan dikunci saat diajukan (batas dari `nilai`) | `AssetUtilizationService.SubmitAsync` (`GetRequiredParameterAtAsync`, `RequiredApprovalLevel`, `ThresholdUsed`) | `AT-REG-08/09/41`, nilai Rp 60 jt | ✅ |
 | 4. Aset bukan milik RS ditolak | `EnsureEligible` (`IsCapitalizable`) | `AT-REG-42` | ✅ |
-| 5. Pekerja harian `Disetujui`→`Berjalan`→`Berakhir` | `AssetDailyStatusWorker`, `RunDailyStatusAsync` | `Berjalan`→`Berakhir` 4/4 (5.5); `Disetujui`→`Berjalan` menunggu 19 Nov (5.6) | 🟡 |
+| 5. Pekerja harian `Disetujui`→`Berjalan`→`Berakhir` | `AssetDailyStatusWorker`, `RunDailyStatusAsync` | `Berjalan`→`Berakhir` 4/4 dan `Disetujui`→`Berjalan` 3/3 pada 19 Nov (5.5) | ✅ |
 
 | DoD | Status |
 |---|---|
-| `V-BE` QBE, build, Swagger/registrasi hak, runtime | Terpenuhi kecuali dua butir 5.6 |
+| `V-BE` QBE, build, Swagger/registrasi hak, runtime | Terpenuhi kecuali `AT-REG-15` positif (5.6) |
 | Laporan, roadmap, traceability | Ditulis |
-| Commit | Belum |
+| Commit | `ae054ee8` |
 
 ---
 

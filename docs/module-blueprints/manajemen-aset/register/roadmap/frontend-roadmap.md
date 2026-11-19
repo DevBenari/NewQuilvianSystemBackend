@@ -61,7 +61,7 @@ FE-AST-004 ✅┬─────────────────────
             │                     │                       │ │
             └─────────────────────┴─> FE-AST-008 🟡       │ │
                                                           │ │
-                                     BE-AST-013 [BE] ─────┴─┴─> FE-AST-010
+                                     BE-AST-013 [BE] 🟡 ──┴─┴─> FE-AST-010 ✅
 ```
 
 `[BE]` = task backend pada `backend-roadmap.md` sub-modul ini, cermin baca-saja.
@@ -158,9 +158,9 @@ Pasangan prasyarat→task: **18** (7 pada `REG-FE-S1`, 11 pada `REG-FE-S2`).
 | **Status** | ✅ **SELESAI 18 November 2026.** Impor Data Awal: daftar batch (kartu, tab "Menunggu Persetujuan Anda"), Unduh Templat, Unggah lewat modal, rincian dengan tabel Baris Berkas bernomor baris Excel dan saringan "Hanya baris salah", Setujui Data Aset / Setujui Angka dan Terapkan / Tolak / Batalkan sesuai hak, ringkasan rupiah untuk pemegang hak lihat nilai; 2 route, butir menu baru. ESLint 13 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 15:05:36). Uji layar Playwright **21/21** dengan pengunggah, penyetuju, LOKET; 0 galat halaman, 0 respons 5xx. Ketiga kriteria terbukti. Dua perbaikan tampilan dari tangkapan layar (label audit "Aset Dibuat" terbaca sebagai tanggal dibuat; pesan galat terpotong di badge) terbukti pada build ulang (`BUILD_ID` 15:30:16). Belum di-commit. Laporan: [`FE-AST-009.md`](../task/report/frontend/FE-AST-009.md) |
 | Acceptance criteria | 1. Unduh templat, unggah, tabel galat per nomor baris Excel. 2. Dua tombol persetujuan sesuai hak. 3. Ringkasan total untuk Kepala Akuntansi |
 
-### `FE-AST-010` — Dashboard dan laporan register
+### ✅ `FE-AST-010` — Dashboard dan laporan register
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 19 November 2026.** Dashboard Aset di `/corporate/asset-management` (kartu ringkasan dan kondisi yang membuka Daftar Inventaris dengan saringan sama, saring unit, Aset Per Unit, Aset Rusak Terbaru; dua bagian dimuat terpisah dengan Coba lagi), tiga laporan (Daftar Inventaris Per-unit, Kondisi Aset, History & Audit) dengan Ekspor Excel, Riwayat Perubahan Status dialihkan ke History (`eventType=KondisiBerubah`), Daftar Inventaris menerima saringan dari URL; butir menu Dashboard Aset + grup Laporan Manajemen Aset. ESLint 17 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-19 08:29:10). Uji layar Playwright **24/24** (superadmin, LOKET; kegagalan ringkasan dan per unit dipaksa lewat `page.route`); 0 galat halaman. Keempat kriteria terbukti. Dua perbaikan kecil sesudah uji pertama diuji ulang 24/24 di `next dev`, belum masuk `BUILD_ID`. Grafik per unit tidak dibuat (tabel; `DEV_DISCRETION`). Laporan: [`FE-AST-010.md`](../task/report/frontend/FE-AST-010.md) |
 | Acceptance criteria | 1. Skema §3.5; kartu 1.4 dan 1.5 disisipkan kemudian oleh `FE-AST-014` dan `FE-AST-018`. 2. Kartu yang gagal dimuat tidak menjatuhkan kartu lain. 3. Laporan 11.1, 11.3, 11.7 dengan ekspor. 4. Butir menu Dashboard Aset dan tiga butir laporan terdaftar |
