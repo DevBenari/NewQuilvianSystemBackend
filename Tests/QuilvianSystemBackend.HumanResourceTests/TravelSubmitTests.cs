@@ -131,14 +131,16 @@ public sealed class TravelSubmitTests : IDisposable
             Array.Empty<IUserValidator<ApplicationUser>>(), Array.Empty<IPasswordValidator<ApplicationUser>>(),
             new UpperInvariantLookupNormalizer(), new IdentityErrorDescriber(), null!,
             NullLogger<UserManager<ApplicationUser>>.Instance);
+        // Komposisi produksi: penangan SPPD (BE-HRD-376) terdaftar pada Workflow V2.
+        var handler = new BusinessTravelWorkflowLifecycleHandler(ctx, new TravelAttendanceAndRosterLockService(ctx), NullLogger<BusinessTravelWorkflowLifecycleHandler>.Instance);
         var lifecycle = new WorkflowReferenceLifecycleService(
             ctx, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!,
-            NullLogger<WorkflowReferenceLifecycleService>.Instance, Array.Empty<IWorkflowReferenceLifecycleHandler>());
+            NullLogger<WorkflowReferenceLifecycleService>.Instance, new IWorkflowReferenceLifecycleHandler[] { handler });
         return new WorkflowService(ctx, new HumanResourceContextService(ctx, http, userManager), userManager, http, lifecycle);
     }
 
     private static BusinessTravelRequestService Layanan(ApplicationDbContext ctx, Guid pelaku) =>
-        new(ctx, new TanpaKonflik(), new TarifNol(), Workflow(ctx, pelaku));
+        new(ctx, new TanpaKonflik(), new TarifNol(), Workflow(ctx, pelaku), new TravelAttendanceAndRosterLockService(ctx));
 
     private Guid Sppd(string pemohon, string status = BusinessTravelRequestStatuses.Draft, Guid? workflowInstanceId = null, DateTime? approvedAt = null)
     {
@@ -453,13 +455,8 @@ public sealed class TravelSubmitTests : IDisposable
             Assert.True(kembalikan.Success, kembalikan.Message);
         }
 
-        // Penangan status (BE-HRD-376) belum ada: status SPPD disetel sebagaimana yang akan dilakukannya.
-        using (var ctx = _db.CreateContext())
-        {
-            var s = ctx.TrxBusinessTravelRequests.Single(x => x.Id == id);
-            s.TravelStatus = BusinessTravelRequestStatuses.NeedRevision;
-            ctx.SaveChanges();
-        }
+        // BE-HRD-376: penangan SPPD menyalin "dikembalikan" ke status SPPD.
+        Assert.Equal(BusinessTravelRequestStatuses.NeedRevision, Baca(id).TravelStatus);
 
         await using (var ctx = Konteks())
         {

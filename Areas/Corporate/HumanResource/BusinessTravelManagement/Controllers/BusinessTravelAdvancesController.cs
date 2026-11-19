@@ -66,14 +66,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             return Ok(ApiResponse<List<TravelAdvanceResponseDto>>.Ok(items, $"Total {totalCount} permohonan uang muka ditemukan"));
         }
 
-        /// <summary>
-        /// Mengajukan uang muka perjalanan dinas (maksimal 80% dari pagu yang disetujui) (Kontrak v25)
-        /// </summary>
         [HttpPost]
         [AccessAction("Request", "Mengajukan Uang Muka Dinas", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("BusinessTravelAdvance", "Request")]
         [ProducesResponseType(typeof(ApiResponse<TravelAdvanceResponseDto>), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<TravelAdvanceResponseDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<TravelAdvanceResponseDto>), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> CreateAdvance([FromBody] CreateTravelAdvanceRequestDto dto)
         {
             try
@@ -81,6 +79,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var (userId, empId) = GetCurrentUserContext();
                 var result = await _advanceRequestService.CreateAdvanceRequestAsync(dto, userId, empId);
                 return StatusCode(StatusCodes.Status201Created, ApiResponse<TravelAdvanceResponseDto>.Ok(result, "Permohonan uang muka berhasil diajukan"));
+            }
+            catch (BusinessTravelRequestException ex)
+            {
+                return StatusCode(ex.StatusCode, ApiResponse<TravelAdvanceResponseDto>.Fail(ex.StatusCode, ex.Message));
             }
             catch (Exception ex)
             {

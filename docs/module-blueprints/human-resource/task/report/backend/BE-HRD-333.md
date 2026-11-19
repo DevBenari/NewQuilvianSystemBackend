@@ -134,3 +134,13 @@ Usulan task baru (keputusan desain lebih dulu): (a) persetujuan SPPD — lewat w
 | --- | --- |
 | Perubahan sampingan | `NONE`; tidak ada source dan data devYoga yang diubah |
 | Status Git | 1 berkas uji baru, laporan ini, roadmap/traceability/indeks uji. Tidak ada commit |
+
+## Penutupan 19 November 2026 — celah ditutup amandemen kontrak `v28`
+
+| Field | Nilai |
+| --- | --- |
+| Status | ✅ **Selesai** — kedua celah 18 November 2026 ditutup oleh `BE-HRD-374` s.d. `BE-HRD-380` (kontrak `v28`, `HRD-DEC-224` s.d. `HRD-DEC-228`) |
+| Celah 1 — SPPD tidak pernah disetujui | Ditutup: persetujuan lewat Workflow V2 (definisi `BUSINESS_TRAVEL_REQUEST`, endpoint Ajukan, penangan status, penyelarasan ulang); hak `Hrd.BusinessTravel.Request.Approve` diwujudkan sebagai penugasan approver workflow; uang muka/settlement hanya untuk SPPD disetujui. Dibuktikan di devYoga dengan akun asli (Dewi → dr. Bima) — [BE-HRD-375](BE-HRD-375.md), [BE-HRD-376](BE-HRD-376.md), [BE-HRD-377](BE-HRD-377.md), [BE-HRD-378](BE-HRD-378.md) |
+| Celah 2 — 5 dari 12 event audit belum ada | Ditutup: ke-12 event `HRD_TRV_*` bernama matriks — [BE-HRD-379](BE-HRD-379.md) |
+| Verifikasi akhir | `TravelContractV25Tests` 34/34 (25 endpoint v25 + v28), proyek uji HR 379/379, QBE Strict 17 berkas tanpa temuan, registri hak valid — [BE-HRD-380](BE-HRD-380.md) |
+| Migration | Tidak ada |

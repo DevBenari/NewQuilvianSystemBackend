@@ -151,14 +151,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             }
         }
 
-        /// <summary>
-        /// Mengajukan settlement biaya perjalanan dinas dan melampirkan kuitansi riil (Kontrak v25)
-        /// </summary>
         [HttpPost]
         [AccessAction("Submit", "Menyerahkan Pertanggungjawaban Dinas", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("BusinessTravelSettlement", "Submit")]
         [ProducesResponseType(typeof(ApiResponse<TravelSettlementResponseDto>), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<TravelSettlementResponseDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<TravelSettlementResponseDto>), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> SubmitSettlement([FromBody] SubmitTravelSettlementDto dto)
         {
             try
@@ -166,6 +164,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var userId = GetCurrentUserId();
                 var result = await _settlementService.SubmitSettlementAsync(dto, userId);
                 return StatusCode(StatusCodes.Status201Created, ApiResponse<TravelSettlementResponseDto>.Ok(result, "Pertanggungjawaban settlement berhasil diserahkan"));
+            }
+            catch (BusinessTravelRequestException ex)
+            {
+                return StatusCode(ex.StatusCode, ApiResponse<TravelSettlementResponseDto>.Fail(ex.StatusCode, ex.Message));
             }
             catch (Exception ex)
             {

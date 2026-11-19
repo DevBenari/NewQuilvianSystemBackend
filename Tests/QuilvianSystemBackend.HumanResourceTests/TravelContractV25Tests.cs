@@ -13,7 +13,7 @@ using QuilvianSystemBackend.Services.Security;
 
 namespace QuilvianSystemBackend.Tests.HumanResource;
 
-// BE-HRD-333 / AT-HRD-TRV-22 — kepatuhan 24 endpoint API Kontrak v25 (api-contract.md §31, 5 tag Swagger): setiap endpoint kontrak ada
+// BE-HRD-333 / AT-HRD-TRV-22 dan BE-HRD-380 / AT-HRD-TRV-38 — kepatuhan 25 endpoint API Kontrak v25 + v28 (§34.1 POST /requests/{id}/submit) (api-contract.md §31, 5 tag Swagger): setiap endpoint kontrak ada
 // dengan verb dan path yang sama, di controller bertag sesuai, membutuhkan login, dan dijaga [AccessPermission] yang identitasnya sama
 // dengan ControllerName + nama [AccessAction]; kelima controller lolos validator registri izin saat startup.
 public sealed class TravelContractV25Tests
@@ -34,13 +34,14 @@ public sealed class TravelContractV25Tests
     // Normalisasi `{id}` / `{id:guid}` agar path kontrak dan route source dibandingkan setara.
     private static string Normal(string path) => System.Text.RegularExpressions.Regex.Replace(path, @"\{(\w+)(:[^}]*)?\}", "{$1}");
 
-    // §31.1–§31.5: 24 endpoint kontrak beserta tag-nya.
+    // §31.1–§31.5 (24 endpoint v25) dan §34.1 (endpoint Ajukan v28) beserta tag-nya.
     [Theory]
     [InlineData("GET", "/api/v1/hrd/travel/requests", "Corporate - HRD Business Travel Requests")]
     [InlineData("GET", "/api/v1/hrd/travel/requests/{id}", "Corporate - HRD Business Travel Requests")]
     [InlineData("POST", "/api/v1/hrd/travel/requests", "Corporate - HRD Business Travel Requests")]
     [InlineData("PUT", "/api/v1/hrd/travel/requests/{id}", "Corporate - HRD Business Travel Requests")]
     [InlineData("PUT", "/api/v1/hrd/travel/requests/{id}/cancel", "Corporate - HRD Business Travel Requests")]
+    [InlineData("POST", "/api/v1/hrd/travel/requests/{id}/submit", "Corporate - HRD Business Travel Requests")]
     [InlineData("GET", "/api/v1/hrd/travel/requests/{id}/document-pdf", "Corporate - HRD Business Travel Requests")]
     [InlineData("GET", "/api/v1/hrd/travel/advances", "Corporate - HRD Business Travel Advances")]
     [InlineData("POST", "/api/v1/hrd/travel/advances", "Corporate - HRD Business Travel Advances")]
@@ -78,8 +79,35 @@ public sealed class TravelContractV25Tests
     public void Lima_tag_dan_setiap_endpoint_source_dijaga_izin()
     {
         Assert.Equal(5, Controllers.Select(c => c.GetCustomAttribute<TagsAttribute>()!.Tags.Single()).Distinct().Count());
-        Assert.True(Semua.Count >= 24, $"endpoint source {Semua.Count} < 24 kontrak");
+        Assert.True(Semua.Count >= 25, $"endpoint source {Semua.Count} < 25 kontrak (v25 + v28)");
         Assert.All(Semua, e => Assert.NotNull(e.Method.GetCustomAttribute<AccessPermissionAttribute>()));
+    }
+
+    // §34.1–§34.5 (v28): kode status yang ditambahkan amandemen terdokumentasi pada [ProducesResponseType].
+    [Theory]
+    [InlineData("POST", "/api/v1/hrd/travel/requests/{id}/submit", new[] { 200, 400, 403, 404, 409 })]
+    [InlineData("PUT", "/api/v1/hrd/travel/requests/{id}", new[] { 404, 409 })]
+    [InlineData("PUT", "/api/v1/hrd/travel/requests/{id}/cancel", new[] { 404, 409 })]
+    [InlineData("POST", "/api/v1/hrd/travel/requests", new[] { 201 })]
+    [InlineData("POST", "/api/v1/hrd/travel/advances", new[] { 409 })]
+    [InlineData("POST", "/api/v1/hrd/travel/settlements", new[] { 409 })]
+    public void Kode_status_v28_terdokumentasi(string verb, string path, int[] kode)
+    {
+        var e = Assert.Single(Semua, x => x.Verb == verb && Normal(x.Path) == Normal(path));
+        var ada = e.Method.GetCustomAttributes<ProducesResponseTypeAttribute>().Select(x => x.StatusCode).ToHashSet();
+        Assert.All(kode, k => Assert.Contains(k, ada));
+    }
+
+    // §34.1: Ajukan dijaga hak yang sama dengan membuat SPPD; hak Approve tidak menjadi endpoint modul (persetujuan lewat Workflow V2).
+    [Fact]
+    public void Ajukan_memakai_hak_Create_dan_tidak_ada_endpoint_setujui_modul()
+    {
+        var buat = Assert.Single(Semua, x => x.Verb == "POST" && Normal(x.Path) == "/api/v1/hrd/travel/requests");
+        var ajukan = Assert.Single(Semua, x => x.Verb == "POST" && Normal(x.Path) == "/api/v1/hrd/travel/requests/{id}/submit");
+        var a = buat.Method.GetCustomAttribute<AccessPermissionAttribute>()!.Arguments!;
+        var b = ajukan.Method.GetCustomAttribute<AccessPermissionAttribute>()!.Arguments!;
+        Assert.Equal((a[0], a[1]), (b[0], b[1]));
+        Assert.DoesNotContain(Semua, x => x.Controller == typeof(BusinessTravelRequestsController) && (x.Path.EndsWith("/approve") || x.Path.EndsWith("/reject")));
     }
 
     // Startup memvalidasi registri izin; kelima controller tidak boleh menyumbang temuan.

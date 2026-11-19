@@ -24,7 +24,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         Task<BusinessTravelDetailResponseDto> CreateRequestAsync(CreateBusinessTravelRequestDto dto, Guid currentUserId, Guid currentWorkforceProfileId);
         Task<BusinessTravelResponseDto> UpdateRequestAsync(Guid id, UpdateBusinessTravelRequestDto dto, Guid currentUserId);
         Task<BusinessTravelDetailResponseDto> SubmitRequestAsync(Guid id, Guid currentUserId, Guid currentWorkforceProfileId, CancellationToken cancellationToken = default);
-        Task<BusinessTravelResponseDto> CancelRequestAsync(Guid id, CancelTravelRequestDto dto, Guid currentUserId);
+        Task<BusinessTravelResponseDto> CancelRequestAsync(Guid id, CancelTravelRequestDto dto, Guid currentUserId, CancellationToken cancellationToken = default);
     }
 
     public class BusinessTravelRequestService : IBusinessTravelRequestService
@@ -33,17 +33,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         private readonly ITravelBudgetAndConflictValidationService _conflictValidationService;
         private readonly IMstTravelAllowanceRateService _rateService;
         private readonly WorkflowService _workflowService;
+        private readonly ITravelAttendanceAndRosterLockService _lockService;
 
         public BusinessTravelRequestService(
             ApplicationDbContext context,
             ITravelBudgetAndConflictValidationService conflictValidationService,
             IMstTravelAllowanceRateService rateService,
-            WorkflowService workflowService)
+            WorkflowService workflowService,
+            ITravelAttendanceAndRosterLockService lockService)
         {
             _context = context;
             _conflictValidationService = conflictValidationService;
             _rateService = rateService;
             _workflowService = workflowService;
+            _lockService = lockService;
         }
 
         // VR-TRV-26/27 (kontrak v28): Draft, NeedRevision, atau SPPD lama "Submitted" yang belum punya workflow (HRD-DEC-227).
@@ -451,14 +454,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             _ => workflowStatusCode
         };
 
-        public async Task<BusinessTravelResponseDto> CancelRequestAsync(Guid id, CancelTravelRequestDto dto, Guid currentUserId)
+        public async Task<BusinessTravelResponseDto> CancelRequestAsync(Guid id, CancelTravelRequestDto dto, Guid currentUserId, CancellationToken cancellationToken = default)
         {
-            var entity = await _context.TrxBusinessTravelRequests.FindAsync(id);
+            var entity = await _context.TrxBusinessTravelRequests.FindAsync(new object[] { id }, cancellationToken);
             if (entity == null) throw new KeyNotFoundException("Permohonan perjalanan dinas tidak ditemukan");
 
-            if (entity.TravelStatus == "Completed" || entity.TravelStatus == "Cancelled")
+            // State 32.2 (kontrak v28): SPPD yang ditolak bersifat final, sama dengan yang sudah selesai atau dibatalkan.
+            if (entity.TravelStatus == BusinessTravelRequestStatuses.Completed ||
+                entity.TravelStatus == BusinessTravelRequestStatuses.Cancelled ||
+                entity.TravelStatus == BusinessTravelRequestStatuses.Rejected)
             {
-                throw new InvalidOperationException("Perjalanan dinas yang sudah selesai atau sudah dibatalkan tidak dapat diubah");
+                throw new InvalidOperationException("Perjalanan dinas yang sudah selesai, ditolak, atau dibatalkan tidak dapat diubah");
             }
 
             if (string.IsNullOrWhiteSpace(dto.CancellationReason) || dto.CancellationReason.Trim().Length < 15)
@@ -466,15 +472,59 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 throw new InvalidOperationException("Alasan pembatalan dinas wajib diisi tertulis minimal 15 karakter (VR-TRV-20)");
             }
 
+            // VR-TRV-33: workflow persetujuan yang masih hidup ditutup lebih dulu (pemohon). Bila Workflow V2 menolak,
+            // SPPD tidak berubah. Sedang diproses → ditarik (Withdraw); belum dikirim atau dikembalikan → dibatalkan.
+            if (entity.WorkflowInstanceId.HasValue)
+            {
+                var workflowStatus = await _context.Set<TrxWorkflowInstance>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == entity.WorkflowInstanceId.Value && !x.IsDelete)
+                    .Select(x => x.WorkflowStatus)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                WorkflowServiceResult<WorkflowInstanceDetailResponse>? closed = null;
+                if (workflowStatus == WorkflowValueConstants.WorkflowStatus.InProgress)
+                {
+                    closed = await _workflowService.WithdrawAsync(entity.WorkflowInstanceId.Value,
+                        new WorkflowWithdrawRequest { Reason = dto.CancellationReason.Trim() }, cancellationToken);
+                }
+                else if (workflowStatus == WorkflowValueConstants.WorkflowStatus.Draft ||
+                         workflowStatus == WorkflowValueConstants.WorkflowStatus.Submitted ||
+                         workflowStatus == WorkflowValueConstants.WorkflowStatus.RevisionRequested ||
+                         workflowStatus == WorkflowValueConstants.WorkflowStatus.Returned)
+                {
+                    closed = await _workflowService.CancelAsync(entity.WorkflowInstanceId.Value,
+                        new WorkflowCancelRequest { Reason = dto.CancellationReason.Trim() }, cancellationToken);
+                }
+
+                if (closed != null && !closed.Success)
+                {
+                    _context.ChangeTracker.Clear();
+                    throw new BusinessTravelRequestException(StatusCodes.Status409Conflict, closed.Message);
+                }
+
+                // Penangan SPPD (BE-HRD-376) sudah dapat menyetel status lewat entitas yang sama; muat ulang nilai terbaru.
+                await _context.Entry(entity).ReloadAsync(cancellationToken);
+            }
+
+            var wasApproved = entity.ApprovedAt.HasValue;
             var now = DateTime.UtcNow;
-            entity.TravelStatus = "Cancelled";
+            entity.TravelStatus = BusinessTravelRequestStatuses.Cancelled;
             entity.CancellationReason = dto.CancellationReason;
-            entity.CancelledAt = now;
-            entity.CancelledByUserId = currentUserId;
+            entity.CancelledAt ??= now;
+            entity.CancelledByUserId ??= currentUserId;
             entity.UpdateBy = currentUserId;
             entity.UpdateDateTime = now;
 
-            await _context.SaveChangesAsync();
+            if (wasApproved)
+            {
+                // INT-HR-110: SPPD yang sudah disetujui melepas gembok roster dan presensi Dinas Luar; disimpan bersama pembatalan.
+                await _lockService.ReleaseRosterLockAsync(entity.Id, currentUserId);
+            }
+            else
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
 
             return new BusinessTravelResponseDto
             {

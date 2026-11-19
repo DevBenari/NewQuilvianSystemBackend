@@ -164,21 +164,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             }
         }
 
-        /// <summary>
-        /// Membatalkan perjalanan dinas yang belum berjalan dengan alasan minimal 15 karakter (Kontrak v25)
-        /// </summary>
         [HttpPut("{id}/cancel")]
         [AccessAction("Cancel", "Membatalkan Perjalanan Dinas", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("BusinessTravelRequest", "Cancel")]
         [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> CancelRequest([FromRoute] Guid id, [FromBody] CancelTravelRequestDto dto)
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> CancelRequest([FromRoute] Guid id, [FromBody] CancelTravelRequestDto dto, CancellationToken cancellationToken)
         {
             try
             {
                 var (userId, _) = GetCurrentUserContext();
-                var result = await _travelRequestService.CancelRequestAsync(id, dto, userId);
+                var result = await _travelRequestService.CancelRequestAsync(id, dto, userId, cancellationToken);
                 return Ok(ApiResponse<BusinessTravelResponseDto>.Ok(result, "Perjalanan dinas berhasil dibatalkan"));
+            }
+            catch (BusinessTravelRequestException ex)
+            {
+                return StatusCode(ex.StatusCode, ApiResponse<BusinessTravelResponseDto>.Fail(ex.StatusCode, ex.Message));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<BusinessTravelResponseDto>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
             catch (Exception ex)
             {

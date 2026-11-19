@@ -1700,6 +1700,13 @@ try
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelCurrencyRateSyncWorker>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelRosterLockExpiryWorker>();
 
+    // BE-HRD-376 (kontrak v28, INT-HR-109/110): penangan Workflow V2 untuk SPPD, penyelarasan ulang SPPD yang tertinggal,
+    // dan worker penyelarasan berkala (keputusan pengguna 19 November 2026, pilihan (a)).
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelWorkflowLifecycleHandler>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowReferenceLifecycleHandler>(sp => sp.GetRequiredService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelWorkflowLifecycleHandler>());
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IBusinessTravelWorkflowReconciliationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelWorkflowReconciliationService>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelWorkflowReconciliationWorker>();
+
 
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();

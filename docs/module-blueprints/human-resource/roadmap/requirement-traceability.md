@@ -1930,15 +1930,15 @@ Dasar: decision log revision `39` bagian 55 (SHA-256 `97de7755…`), kontrak `v2
 | Requirement | Keputusan | Kontrak `v28` | Task backend | Task frontend | Uji penerimaan | UAT | Status |
 | --- | --- | --- | --- | --- | --- | --- | :---: |
 | `FR-TRV-26` SPPD dibuat sebagai Draf | `HRD-DEC-224` | API 34.1; State 32.2 | `BE-HRD-375` | `FE-HRD-337`, `FE-HRD-338` | `AT-HRD-TRV-23` | `UAT-TRV-06` | ⬜ |
-| `FR-TRV-27` Ajukan memulai workflow | `HRD-DEC-224` | API 34.1; Validation `VR-TRV-26`, `VR-TRV-29`; Integration 25.1 | `BE-HRD-374` ✅ ([laporan](../task/report/backend/BE-HRD-374.md)), `BE-HRD-375` | `FE-HRD-338` | `AT-HRD-TRV-24`, `AT-HRD-TRV-25`, `AT-HRD-TRV-37` | `UAT-TRV-06` | 🟡 |
-| `FR-TRV-28` Persetujuan final, presensi, gembok | `HRD-DEC-225`, `HRD-DEC-226` | State 32.3; Integration 25.1–25.2; `VR-TRV-32` | `BE-HRD-376` | `FE-HRD-338`, `FE-HRD-339` | `AT-HRD-TRV-26`, `AT-HRD-TRV-32`, `AT-HRD-TRV-33` | `UAT-TRV-07` | ⬜ |
-| `FR-TRV-29` Kembalikan dan tolak | `HRD-DEC-225` | State 32.2–32.3; `VR-TRV-28` | `BE-HRD-376`, `BE-HRD-375` | `FE-HRD-338` | `AT-HRD-TRV-27`, `AT-HRD-TRV-28` | `UAT-TRV-08`, `UAT-TRV-09` | ⬜ |
-| `FR-TRV-30` Batal menarik workflow | `HRD-DEC-225` | API 34.1; `VR-TRV-33` | `BE-HRD-377` | `FE-HRD-338` | `AT-HRD-TRV-29` | `UAT-TRV-11` | ⬜ |
-| `FR-TRV-31` Gerbang uang muka dan settlement | `HRD-DEC-226` | API 34.2–34.3; `VR-TRV-30`, `VR-TRV-31` | `BE-HRD-378` | `FE-HRD-339` | `AT-HRD-TRV-30`, `AT-HRD-TRV-31` | `UAT-TRV-10` | ⬜ |
-| `FR-TRV-32` SPPD dan uang muka lama | `HRD-DEC-227` | API 34.4 (`canSubmit`); `VR-TRV-31` | `BE-HRD-375`, `BE-HRD-378` | — | `AT-HRD-TRV-34`, `AT-HRD-TRV-35` | — | ⬜ |
-| `FR-TRV-33` 12 event audit bernama matriks | `HRD-DEC-228` | Permission 32.2 | `BE-HRD-379` | — | `AT-HRD-TRV-36` | `UAT-TRV-12` | ⬜ |
+| `FR-TRV-27` Ajukan memulai workflow | `HRD-DEC-224` | API 34.1; Validation `VR-TRV-26`, `VR-TRV-29`; Integration 25.1 | `BE-HRD-374` ✅ ([laporan](../task/report/backend/BE-HRD-374.md)), `BE-HRD-375` ✅ ([laporan](../task/report/backend/BE-HRD-375.md)) | `FE-HRD-338` | `AT-HRD-TRV-24`, `AT-HRD-TRV-25`, `AT-HRD-TRV-37` | `UAT-TRV-06` | 🟡 |
+| `FR-TRV-28` Persetujuan final, presensi, gembok | `HRD-DEC-225`, `HRD-DEC-226` | State 32.3; Integration 25.1–25.2; `VR-TRV-32` | `BE-HRD-376` ✅ ([laporan](../task/report/backend/BE-HRD-376.md)) | `FE-HRD-338`, `FE-HRD-339` | `AT-HRD-TRV-26`, `AT-HRD-TRV-32`, `AT-HRD-TRV-33` | `UAT-TRV-07` | ⬜ |
+| `FR-TRV-29` Kembalikan dan tolak | `HRD-DEC-225` | State 32.2–32.3; `VR-TRV-28` | `BE-HRD-376` ✅, `BE-HRD-375` ✅ | `FE-HRD-338` | `AT-HRD-TRV-27`, `AT-HRD-TRV-28` | `UAT-TRV-08`, `UAT-TRV-09` | ⬜ |
+| `FR-TRV-30` Batal menarik workflow | `HRD-DEC-225` | API 34.1; `VR-TRV-33` | `BE-HRD-377` ✅ ([laporan](../task/report/backend/BE-HRD-377.md)) | `FE-HRD-338` | `AT-HRD-TRV-29` | `UAT-TRV-11` | ⬜ |
+| `FR-TRV-31` Gerbang uang muka dan settlement | `HRD-DEC-226` | API 34.2–34.3; `VR-TRV-30`, `VR-TRV-31` | `BE-HRD-378` ✅ ([laporan](../task/report/backend/BE-HRD-378.md)) | `FE-HRD-339` | `AT-HRD-TRV-30`, `AT-HRD-TRV-31` | `UAT-TRV-10` | ⬜ |
+| `FR-TRV-32` SPPD dan uang muka lama | `HRD-DEC-227` | API 34.4 (`canSubmit`); `VR-TRV-31` | `BE-HRD-375` ✅, `BE-HRD-378` ✅ | — | `AT-HRD-TRV-34`, `AT-HRD-TRV-35` | — | ⬜ |
+| `FR-TRV-33` 12 event audit bernama matriks | `HRD-DEC-228` | Permission 32.2 | `BE-HRD-379` ✅ ([laporan](../task/report/backend/BE-HRD-379.md)) | — | `AT-HRD-TRV-36` | `UAT-TRV-12` | ⬜ |
 | `FR-TRV-34` Ajukan dan status di layar | `HRD-DEC-224` s.d. `HRD-DEC-226` | API 34.4–34.5 | — | `FE-HRD-337` s.d. `FE-HRD-340` | `AT-HRD-TRV-39` | `UAT-TRV-06` s.d. `UAT-TRV-11` | ⬜ |
-| Kepatuhan kontrak `v28` | — | Seluruh bagian | `BE-HRD-380` | — | `AT-HRD-TRV-38` | — | ⬜ |
+| Kepatuhan kontrak `v28` | — | Seluruh bagian | `BE-HRD-380` ✅ ([laporan](../task/report/backend/BE-HRD-380.md)) | — | `AT-HRD-TRV-38` | — | ⬜ |
 
 **Celah cakupan (coverage gap):**
 
