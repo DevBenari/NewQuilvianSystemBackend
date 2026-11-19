@@ -272,5 +272,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
 
             return actorName;
         }
+
+        /// <summary>
+        /// Daftar sanksi seluruh pegawai. Filter: search, status, level, activeOnly, pageNumber, pageSize (MSL-14, DEC-FER-05 opsi A, 18 Nov 2026).
+        /// </summary>
+        [HttpGet("sanctions")]
+        [AccessAction("ViewSanctions", "Melihat Daftar Sanksi Seluruh Pegawai", AccessType = AccessTypes.Read, SortOrder = 20)]
+        [AccessPermission("EmployeeDisciplinary", "ViewSanctions")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<SanctionListItemDto>>), 200)]
+        public async Task<IActionResult> GetSanctionList(
+            [FromQuery] DisciplinaryListQuery query,
+            [FromServices] IDisciplinaryListQueryService listService,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await listService.GetSanctionsAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<SanctionListItemDto>>.Ok(result, "Daftar berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Daftar skorsing seluruh pegawai. Filter: search, status, activeOnly, pageNumber, pageSize (MSL-14, DEC-FER-05 opsi A, 18 Nov 2026).
+        /// </summary>
+        [HttpGet("suspensions")]
+        [AccessAction("ManageSuspension", "Melihat Daftar Skorsing Seluruh Pegawai", AccessType = AccessTypes.Read, SortOrder = 21)]
+        [AccessPermission("EmployeeDisciplinary", "ManageSuspension")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<SuspensionListItemDto>>), 200)]
+        public async Task<IActionResult> GetSuspensionList(
+            [FromQuery] DisciplinaryListQuery query,
+            [FromServices] IDisciplinaryListQueryService listService,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await listService.GetSuspensionsAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<SuspensionListItemDto>>.Ok(result, "Daftar berhasil diambil."));
+        }
     }
 }

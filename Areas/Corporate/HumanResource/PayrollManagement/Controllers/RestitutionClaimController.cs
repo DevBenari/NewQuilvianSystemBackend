@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
+using System.Linq;
+using Microsoft.AspNetCore.Http;
+using QuilvianSystemBackend.Responses;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
@@ -333,6 +336,78 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         {
             var result = await _claimService.InjectApprovedRestitutionsToPayrollAsync(payrollRunId, GetCurrentUserId(), cancellationToken);
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Unggah nota/kuitansi atau resume medis klaim restitusi (MSL-15, DEC-FER-02 opsi A, 18 Nov 2026). Multipart: <c>file</c>; query <c>category</c>
+        /// ("restitution-receipt", "restitution-medical-resume"). Jawaban berisi <c>key</c> yang disimpan di kolom lampiran fitur. PDF/JPG/PNG/WEBP/Word/Excel, maks 10 MB.
+        /// </summary>
+        [HttpPost("claims/attachments")]
+        [AccessAction("Submit", "Mengajukan Klaim Restitusi", AccessType = AccessTypes.Create, SortOrder = 30)]
+        [AccessPermission("RestitutionClaim", "Submit")]
+        [Tags("HR Deductions - Restitution Claims")]
+        [RequestSizeLimit(HrAttachmentStorage.DefaultMaximumFileSizeBytes + 1024 * 1024)]
+        [ProducesResponseType(typeof(ApiResponse<HrStoredAttachment>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UploadAttachment(
+            [FromForm] IFormFile file,
+            [FromQuery] string? category,
+            [FromServices] HrAttachmentStorage storage,
+            CancellationToken cancellationToken = default)
+        {
+            var resolvedCategory = string.IsNullOrWhiteSpace(category) ? "restitution-receipt" : category.Trim();
+            if (!new[] { "restitution-receipt", "restitution-medical-resume" }.Contains(resolvedCategory))
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Jenis lampiran tidak dikenal untuk fitur ini."));
+            }
+
+            try
+            {
+                var stored = await storage.SaveAsync(resolvedCategory, User.GetUserId(), file, cancellationToken);
+                return StatusCode(StatusCodes.Status201Created, ApiResponse<HrStoredAttachment>.Ok(stored, "Lampiran berhasil diunggah."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Unduh lampiran klaim restitusi (MSL-15). Boleh untuk pengunggah, atau pemegang hak Read, ApproveSupervisor, ReviewHr, ApproveFinal pada fitur ini.
+        /// Lampiran milik orang lain tanpa hak dijawab 404 agar keberadaannya tidak bocor.
+        /// </summary>
+        [HttpGet("claims/attachments/download")]
+        [AccessAction("ViewOwn", "Melihat Kuota Restitusi Sendiri", AccessType = AccessTypes.Read, SortOrder = 31)]
+        [AccessPermission("RestitutionClaim", "ViewOwn")]
+        [Tags("HR Deductions - Restitution Claims")]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DownloadAttachment(
+            [FromQuery] string key,
+            [FromServices] HrAttachmentStorage storage,
+            [FromServices] AccessPermissionService accessPermissionService)
+        {
+            var category = HrAttachmentStorage.CategoryOf(key);
+            if (category == null || !new[] { "restitution-receipt", "restitution-medical-resume" }.Contains(category))
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Lampiran tidak ditemukan."));
+            }
+
+            try
+            {
+                var attachment = storage.Open(key, category);
+                var allowed = attachment.OwnerUserId == User.GetUserId() || await accessPermissionService.HasAccessAsync(User, "RestitutionClaim", "Read") || await accessPermissionService.HasAccessAsync(User, "RestitutionClaim", "ApproveSupervisor") || await accessPermissionService.HasAccessAsync(User, "RestitutionClaim", "ReviewHr") || await accessPermissionService.HasAccessAsync(User, "RestitutionClaim", "ApproveFinal");
+                if (!allowed)
+                {
+                    return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Lampiran tidak ditemukan."));
+                }
+
+                return PhysicalFile(attachment.PhysicalPath, attachment.ContentType, attachment.DownloadName);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
         }
     }
 }

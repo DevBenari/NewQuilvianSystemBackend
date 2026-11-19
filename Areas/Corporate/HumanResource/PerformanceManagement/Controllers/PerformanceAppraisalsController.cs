@@ -1,4 +1,7 @@
 using System;
+using System.Linq;
+using Microsoft.AspNetCore.Http;
+using QuilvianSystemBackend.Services.Security;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -207,6 +210,78 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or KeyNotFoundException or UnauthorizedAccessException)
             {
                 return MapError(ex);
+            }
+        }
+
+        /// <summary>
+        /// Unggah bukti capaian evaluasi mandiri (VR-PRF-22) (MSL-15, DEC-FER-02 opsi A, 18 Nov 2026). Multipart: <c>file</c>; query <c>category</c>
+        /// ("performance-evidence"). Jawaban berisi <c>key</c> yang disimpan di kolom lampiran fitur. PDF/JPG/PNG/WEBP/Word/Excel, maks 10 MB.
+        /// </summary>
+        [HttpPost("evidence")]
+        [AccessAction("SelfAssess", "Mengisi Evaluasi Mandiri", AccessType = AccessTypes.Update, SortOrder = 30)]
+        [AccessPermission("PerformanceAppraisal", "SelfAssess")]
+        [Tags("Corporate - HRD Performance Appraisals & Multi-Level Review")]
+        [RequestSizeLimit(HrAttachmentStorage.DefaultMaximumFileSizeBytes + 1024 * 1024)]
+        [ProducesResponseType(typeof(ApiResponse<HrStoredAttachment>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UploadAttachment(
+            [FromForm] IFormFile file,
+            [FromQuery] string? category,
+            [FromServices] HrAttachmentStorage storage,
+            CancellationToken cancellationToken = default)
+        {
+            var resolvedCategory = string.IsNullOrWhiteSpace(category) ? "performance-evidence" : category.Trim();
+            if (!new[] { "performance-evidence" }.Contains(resolvedCategory))
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Jenis lampiran tidak dikenal untuk fitur ini."));
+            }
+
+            try
+            {
+                var stored = await storage.SaveAsync(resolvedCategory, User.GetUserId(), file, cancellationToken);
+                return StatusCode(StatusCodes.Status201Created, ApiResponse<HrStoredAttachment>.Ok(stored, "Lampiran berhasil diunggah."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Unduh bukti capaian evaluasi (MSL-15). Boleh untuk pengunggah, atau pemegang hak ManagerAssess, SecondLineReview, ViewSubordinates pada fitur ini.
+        /// Lampiran milik orang lain tanpa hak dijawab 404 agar keberadaannya tidak bocor.
+        /// </summary>
+        [HttpGet("evidence/download")]
+        [AccessAction("ViewOwn", "Melihat Penilaian Kinerja Sendiri", AccessType = AccessTypes.Read, SortOrder = 31)]
+        [AccessPermission("PerformanceAppraisal", "ViewOwn")]
+        [Tags("Corporate - HRD Performance Appraisals & Multi-Level Review")]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DownloadAttachment(
+            [FromQuery] string key,
+            [FromServices] HrAttachmentStorage storage,
+            [FromServices] AccessPermissionService accessPermissionService)
+        {
+            var category = HrAttachmentStorage.CategoryOf(key);
+            if (category == null || !new[] { "performance-evidence" }.Contains(category))
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Lampiran tidak ditemukan."));
+            }
+
+            try
+            {
+                var attachment = storage.Open(key, category);
+                var allowed = attachment.OwnerUserId == User.GetUserId() || await accessPermissionService.HasAccessAsync(User, "PerformanceAppraisal", "ManagerAssess") || await accessPermissionService.HasAccessAsync(User, "PerformanceAppraisal", "SecondLineReview") || await accessPermissionService.HasAccessAsync(User, "PerformanceAppraisal", "ViewSubordinates");
+                if (!allowed)
+                {
+                    return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Lampiran tidak ditemukan."));
+                }
+
+                return PhysicalFile(attachment.PhysicalPath, attachment.ContentType, attachment.DownloadName);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
         }
     }

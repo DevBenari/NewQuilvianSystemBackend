@@ -32,6 +32,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             ClaimsPrincipal user,
             CancellationToken cancellationToken = default);
 
+        Task<RecruitmentResult<ContractSalaryDetailResponse>> GetSalaryDetailAsync(
+            Guid id,
+            ClaimsPrincipal user,
+            CancellationToken cancellationToken = default);
+
         Task<RecruitmentResult<EmploymentContractResponse>> RecordSignedAsync(
             Guid id,
             RecordContractSignedRequest request,

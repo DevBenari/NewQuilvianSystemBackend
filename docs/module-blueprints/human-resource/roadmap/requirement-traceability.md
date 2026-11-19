@@ -1928,17 +1928,19 @@ Sumber: [register-masalah-hr.md](register-masalah-hr.md). Status lengkap dan ala
 |---|---|---|:---:|---|
 | `MSL-01` | `HRD-DEC-184`, `FR-WF-07` | `POST /api/v1/hrd/workflow/delegations` | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
 | `MSL-02` | `VR-PRF-04`, `PRF-B3` | `GET .../performance/appraisals/my-appraisal` dan aksi lembar | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md), [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
-| `MSL-03` | Build rilis | Uraian Tugas Pegawai | 🟡 | [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
+| `MSL-03` | Build rilis | Uraian Tugas Pegawai, konstanta Menu 08 | ✅ | [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
 | `MSL-04` | `HRD-DEC-127`, `VR-PAY-22` | `.../payroll/runs/self-service/*` | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
 | `MSL-05` | `FR-WF-07`, `HRD-DEC-184` | `GET`/`PUT revoke` delegasi | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
 | `MSL-06` | `HRD-DEC-154` (FPPE proctoring) | `PUT .../fppe/case-logs/{id}/verify` | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
 | `MSL-07` | `DED-B8`, `VR-DED-08`, `INT-HR-55` | `GET claims/mine`, `PUT settings/{id}`, sinkron piutang | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md), [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
 | `MSL-08` | ESS presensi (rancangan `IsSystemOnly`) | `AttendanceSelfServiceController` | ✅ | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
 | `MSL-09` | `FR-PAY-25`, `VR-PAY-24` (PRD), `HRD-DEC-127` | `GET .../download-pdf` | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md), [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
-| `MSL-10` | `HRD-DEC-116`–`121` | `OvertimeSettingService` | ⛔ izin migration | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
+| `MSL-10` | `HRD-DEC-116`–`121` | `OvertimeSettingService`, tabel `HrdOvertimeSetting` (migration `20261118100000` belum dijalankan) | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md), [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
 | `MSL-11` | Pesan galat Bahasa Indonesia | `GlobalExceptionMiddleware`, 32 controller SDM | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
 | `MSL-12` | Settlement SPPD (Kontrak v25) | `POST .../settlements/{id}/verify`, `close` | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
 | `MSL-13` | Runtime role `Web`/`Worker` | `Program.cs` | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) |
+| `MSL-14` | `DEC-FER-05` opsi A (disetujui 18 Nov 2026) | 8 endpoint daftar lintas pegawai K3RS, Hubungan Industrial, Kinerja + 8 layar | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md), [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
+| `MSL-15` | `DEC-FER-02` opsi A (disetujui 18 Nov 2026) | `BaseFileUpload`, `HrAttachmentStorage`, unggah/unduh restitusi, SPPD, penilaian diri, sanggahan (tahap 1) | 🟡 | [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md), [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
 | `MSL-28` | Visibilitas menu per hak (util `filter-menu-items-by-permission`) | `menu-items.jsx` | 🟡 | [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
 | `MSL-29` | `FE-HRD-029` | Pengaturan Perencanaan | 🟡 | [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
 | `MSL-30` | `DEC-FER-04` opsi A | Rute lembur ESS | 🟡 | [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |

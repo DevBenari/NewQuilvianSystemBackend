@@ -15,7 +15,7 @@
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit backend saat dikerjakan | `90e36dee` (branch `MHamzah`), perubahan belum di-commit |
 | Tanggal | Rabu, 18 November 2026 |
-| Status | 🟡 Source selesai untuk 10 masalah dan lolos build + QBE; 1 masalah ditutup sesuai rancangan (`MSL-08`); 1 masalah tertahan izin migration (`MSL-10`). Uji runtime di browser belum dijalankan (butuh izin menyalakan backend di DB dev bersama) |
+| Status | 🟡 Source selesai untuk 11 masalah (termasuk `MSL-10` di putaran 2, migration ditulis tetapi belum dijalankan) dan lolos build + QBE; 1 masalah ditutup sesuai rancangan (`MSL-08`); `MSL-14` dan tahap 1 `MSL-15` dikerjakan di putaran 2. Uji runtime di browser belum dijalankan (butuh izin menyalakan backend di DB dev bersama) |
 
 ---
 
@@ -241,3 +241,88 @@ Tidak ada migration dibuat atau dijalankan. Tidak ada DML/DDL. Penanda hak `Work
 | Asumsi | Sandi PDF DDMMYYYY; kategori potongan `KasbonPinjamanRS` untuk piutang manfaat; Plh wajib punya akun login |
 | Dependency | `MSL-10` menunggu izin migration; uji runtime menunggu izin menyalakan backend |
 | Task berikutnya | Uji live alur Plh, slip gaji, penilaian kinerja, restitusi; laporkan 7 worker non-SDM ke pemilik modulnya |
+
+---
+
+## 8. Putaran 2 — 18 November 2026 sore
+
+**Wewenang.** Pemilik menjawab "oke ikuti semua rekomendasi, lanjut kerjakan". Artinya: (1) boleh menyalakan backend untuk uji live, dengan uji baca plus satu penulisan yang dipulihkan; (2) migration `MSL-10` boleh dibuat tetapi tidak dijalankan; (3) `MSL-14`–`MSL-27` dikerjakan dengan opsi A di semua keputusan, mulai dari `DEC-FER-05` dan `DEC-FER-02`; (4) galat build Menu 08 diperbaiki.
+
+### 8.1 `MSL-10` — Pengaturan lembur di tabel
+
+| Berkas | Isi |
+|---|---|
+| `Areas/Corporate/HumanResource/OvertimeManagement/Models/HrdOvertimeSetting.cs` (baru) | Satu baris aktif per rumah sakit (`HospitalCode`, bawaan `RSMMC`) berisi 8 parameter lembur |
+| `Repositories/Configurations/Corporate/HumanResource/OvertimeManagement/HrdOvertimeSettingConfiguration.cs` (baru) | Konfigurasi tabel, nilai bawaan, indeks unik `HospitalCode` |
+| `Migrations/20261118100000_AddHrdOvertimeSetting.cs` (baru, **belum dijalankan**) | SQL idempoten `IF NOT EXISTS`, constraint tanggal tutup buku 1–28 dan batas positif, baris awal dengan nilai bawaan lama |
+| `OvertimeSettingService.cs` | Membaca/menyimpan tabel; setiap ubah dicatat `LoggerService.AuditAsync` dengan nilai sebelum dan sesudah. Bila tabel belum ada (SQLSTATE `42P01`), baca memakai nilai bawaan (`isPersisted: false`) dan simpan dijawab `409` dengan pesan meminta admin menjalankan pembaruan basis data |
+| `OvertimeSettingController.cs` | `PUT` menjawab `400` untuk isian di luar batas dan `409` bila tabel belum ada |
+| `Program.cs` | Lifetime `Singleton` → `Scoped` (kini memakai `ApplicationDbContext`) |
+
+Batas isian (sama di server dan layar): batas harian 1–24 jam; batas mingguan 1–168 jam dan tidak lebih kecil dari batas harian; pembulatan 1–60 menit; durasi minimum 1–240 menit; CTO 1–365 hari; tanggal tutup buku 1–28; toleransi presensi 1–240 menit; tenggat klaim cito 1–14 hari.
+
+### 8.2 `MSL-14` — Daftar lintas pegawai (`DEC-FER-05` opsi A)
+
+Tiga layanan kueri baca-saja dan satu helper bersama (`Shared/HumanResource/Helpers/HrCrossEmployeeLookup.cs`: paging 1–100, pencarian ILIKE yang aman). Kolom klinis/rahasia tidak ikut dikirim.
+
+#### Corporate - HRD Work Restriction & Injury BPJS JKK
+
+| Method | Path | Kegunaan | Hak akses |
+|---|---|---|---|
+| `GET` | `/api/v1/hrd/occupational-health/restrictions?search&status&activeOnly&pageNumber&pageSize` | Pembatasan kerja seluruh pegawai, tanpa dasar klinis | `WorkRestrictionAndInjury : Read` |
+| `GET` | `/api/v1/hrd/occupational-health/injuries?search&status&pageNumber&pageSize` | Kecelakaan kerja seluruh pegawai, tanpa catatan klinis; batas lapor BPJS = kejadian + 48 jam | `WorkRestrictionAndInjury : Read` |
+
+#### Corporate - HRD Occupational Health & Medical Privacy
+
+| Method | Path | Kegunaan | Hak akses |
+|---|---|---|---|
+| `GET` | `/api/v1/hrd/occupational-health/records?search&status&pageNumber&pageSize` | Ringkasan kelaikan kerja seluruh pegawai (tanpa `ClinicalBasisRestricted`) | `OccupationalHealthRecord : ViewSummary` |
+
+#### Corporate - HRD Staff Vaccination & Immunity Tracking
+
+| Method | Path | Kegunaan | Hak akses |
+|---|---|---|---|
+| `GET` | `/api/v1/hrd/occupational-health/vaccinations?search&status&pageNumber&pageSize` | Vaksinasi seluruh pegawai | `StaffVaccination : Read` |
+
+#### Corporate - HRD Disciplinary (Hubungan Industrial)
+
+| Method | Path | Kegunaan | Hak akses |
+|---|---|---|---|
+| `GET` | `/api/v1/hrd/disciplinary/sanctions?search&status&level&activeOnly&pageNumber&pageSize` | SP seluruh pegawai (tanpa uraian pelanggaran) | `EmployeeDisciplinary : ViewSanctions` |
+| `GET` | `/api/v1/hrd/disciplinary/suspensions?search&status&activeOnly&pageNumber&pageSize` | Skorsing seluruh pegawai | `EmployeeDisciplinary : ManageSuspension` |
+
+#### Corporate - HRD Performance Calibration & Dispute Resolution / PIP & Career
+
+| Method | Path | Kegunaan | Hak akses |
+|---|---|---|---|
+| `GET` | `/api/v1/corporate/hrd/performance/disputes?search&status&pageNumber&pageSize` | Sanggahan seluruh pegawai | `PerformanceCalibration : ManageDispute` |
+| `GET` | `/api/v1/corporate/hrd/performance/clinical-ladder/applications?search&status&pageNumber&pageSize` | Pengajuan jenjang klinis seluruh pegawai | `PerformancePipAndCareer : ManageClinicalCareer` |
+
+Contoh: Kepala K3RS membuka **Pembatasan Tugas Medis** dan langsung melihat 12 perawat yang masih dibatasi shift malam, tanpa memilih pegawai satu per satu.
+
+### 8.3 `MSL-15` — Unggah lampiran (`DEC-FER-02` opsi A), tahap 1
+
+- `Shared/HumanResource/Helpers/HrAttachmentStorage.cs` (baru). Berkas disimpan di `App_Data/human-resource-attachments` (di luar `wwwroot`, jadi tidak bisa dibuka langsung). Kunci berkasnya `{kategori}/{tahun}/{bulan}/{idAkunPengunggah}/{guid}{ekstensi}`. Format yang diterima PDF, JPG, PNG, WEBP, Word, Excel; maksimal 10 MB (bisa diatur lewat `HumanResource:Attachment:*`).
+- Endpoint unggah/unduh ditempatkan di controller pemilik fitur dan memakai hak yang sudah ada, supaya admin tidak perlu memberi hak baru ke semua pegawai. Unduhan diizinkan untuk pengunggah atau pemegang hak baca/putus fitur itu; selain itu dijawab `404`.
+
+| Fitur (`[Tags]`) | Unggah | Unduh |
+|---|---|---|
+| HR Deductions - Restitution Claims | `POST /api/hr-deductions/claims/attachments?category=restitution-receipt` atau `restitution-medical-resume` (`RestitutionClaim : Submit`) | `GET .../claims/attachments/download?key=` (`ViewOwn`; selain pengunggah butuh `Read`/`ApproveSupervisor`/`ReviewHr`/`ApproveFinal`) |
+| Corporate - HRD Business Travel Settlements | `POST /api/v1/hrd/travel/settlements/attachments` (`BusinessTravelSettlement : Submit`) | `GET .../attachments/download?key=` (`Read`; selain pengunggah butuh `Verify`/`Close`) |
+| Corporate - HRD Performance Appraisals & Multi-Level Review | `POST /api/v1/corporate/hrd/performance/appraisals/evidence` (`SelfAssess`) | `GET .../evidence/download?key=` (`ViewOwn`; selain pengunggah butuh `ManagerAssess`/`SecondLineReview`/`ViewSubordinates`) |
+| Corporate - HRD Performance Calibration & Dispute Resolution | `POST /api/v1/corporate/hrd/performance/disputes/evidence` (`SubmitDispute`) | `GET .../disputes/evidence/download?key=` (`SubmitDispute`; selain pengunggah butuh `ManageDispute`) |
+
+Belum dikerjakan di `MSL-15`: lampiran COB benefit, dokumen kandidat dan MCU rekrutmen, surat sakit (cuti sudah punya unggah sendiri), bukti koreksi presensi atas nama, logbook lembur, spreadsheet batch kontrak awal (butuh endpoint impor), dan nota override rekredensial (VR-OPP-19).
+
+Temuan keamanan, tidak diubah karena di luar SDM: `WorkflowFileStorageService` menyimpan lampiran workflow di `wwwroot/uploads/human-resource/workflow`. Bila static files aktif, berkas itu bisa dibuka tanpa login oleh siapa saja yang tahu namanya.
+
+### 8.4 Verifikasi putaran 2
+
+| Pemeriksaan | Hasil | Klasifikasi |
+|---|---|---|
+| `dotnet build` ke folder sementara | Kode putaran ini lolos kompilasi. Build berakhir gagal karena 1 galat `CS1061` di `LifecycleManagement/Services/HrdEmploymentContractService.cs:369` (Menu 08, sedang dikerjakan pengguna) | `EXISTING / ENVIRONMENT ISSUE` |
+| Build sebelumnya | Sekali `OutOfMemoryException` Roslyn saat memori mesin penuh; lulus setelah memori longgar | `ENVIRONMENT ISSUE` |
+| QBE Strict `-Path` 20 berkas | Semua `PASS` | `PASS` |
+| Migration `20261118100000` | Ditulis, **tidak dijalankan** | — |
+| Uji live | Bagian pegawai non-admin lulus (lihat laporan FE). Bagian akun Mira (Plh, slip gaji, restitusi) tertahan karena DB dev `160.22.250.77` tidak bisa dijangkau (koneksi timeout) | `NOT RUN` |
+| Automated test | `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)` | — |

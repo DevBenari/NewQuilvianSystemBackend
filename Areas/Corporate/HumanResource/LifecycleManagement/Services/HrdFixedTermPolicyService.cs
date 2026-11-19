@@ -159,10 +159,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
             var contractEndDate = DateOnly.FromDateTime(contract.EndDate.Value);
 
-            // Validasi kesinambungan tanggal: usulan mulai tidak boleh sebelum tanggal akhir kontrak asal atau lompat mundur
-            if (proposedStartDate < contractEndDate)
+            // Validasi kesinambungan tanggal: usulan mulai tidak boleh sebelum atau sama dengan tanggal akhir kontrak asal (AUD-08-05)
+            if (proposedStartDate <= contractEndDate)
             {
-                return (false, $"Tanggal mulai perpanjangan ({proposedStartDate:dd-MM-yyyy}) tidak boleh sebelum tanggal akhir kontrak berjalan ({contractEndDate:dd-MM-yyyy}).");
+                return (false, $"Tanggal mulai perpanjangan ({proposedStartDate:dd-MM-yyyy}) harus setelah tanggal akhir kontrak berjalan ({contractEndDate:dd-MM-yyyy}).");
             }
 
             if (!proposedEndDate.HasValue)
@@ -224,15 +224,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
         private static int CalculateMonthsBetween(DateOnly start, DateOnly end)
         {
-            var months = ((end.Year - start.Year) * 12) + end.Month - start.Month;
-            if (end.Day < start.Day)
+            if (end < start) return 0;
+
+            int months = 0;
+            // AUD-08-05: Setiap siklus 1 bulan dari start berakhir pada start.AddMonths(m).AddDays(-1).
+            // Misalnya: 2027-01-01 sampai 2027-01-31 adalah tepat 1 bulan.
+            // 2027-01-01 sampai 2027-02-01 adalah 1 bulan + 1 hari -> bergulir ke bulan ke-2 (melebihi batas 1 bulan).
+            // 2027-01-01 sampai 2029-01-02 -> 24 bulan + 2 hari -> terhitung 25 bulan (> 24 bulan).
+            while (start.AddMonths(months + 1).AddDays(-1) < end)
             {
-                // Bulan parsial belum penuh
-                months = Math.Max(0, months - 1);
+                months++;
             }
-            // Jika rentang dari tanggal 1 sampai akhir bulan atau hari yang sama, hitung penuh
-            if (months < 0) months = 0;
-            return months;
+
+            return months + 1;
         }
     }
 }

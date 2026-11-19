@@ -38,6 +38,12 @@ Hingga 18 November 2026 tercatat **34 masalah terbuka**, ditambah **9 keputusan 
 
 **Perkembangan 18 November 2026 (sore).** Atas permintaan pemilik ("perbaiki seluruh masalahnya"), 19 masalah sudah dikerjakan di source: 2 selesai (`MSL-08` ditutup sesuai rancangan, `MSL-33`), 16 berstatus 🟡 karena tinggal uji live, dan 1 terblokir izin migration (`MSL-10`). Ke-14 kontrak backend (`MSL-14`–`MSL-27`), 9 keputusan pemilik, `MSL-34`, dan 3 isu lama belum dikerjakan karena butuh keputusan atau izin pemilik. Rinciannya ada di [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) dan [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md).
 
+**Putaran 2 (18 November 2026 sore).** Pemilik menyetujui semua rekomendasi.
+- `MSL-03` kini ✅: build frontend lulus 839 halaman.
+- `MSL-10` dikerjakan: migration ditulis tetapi belum dijalankan.
+- `MSL-14` (8 daftar lintas pegawai) dan tahap 1 `MSL-15` (unggah berkas di 4 fitur, base component `BaseFileUpload`) selesai di source.
+- Uji live akun berhak tertahan karena DB dev `160.22.250.77` tidak bisa dijangkau.
+
 ---
 
 ## 2. Cara membaca dan memperbarui
@@ -104,7 +110,7 @@ Hingga 18 November 2026 tercatat **34 masalah terbuka**, ditambah **9 keputusan 
 | Field | Isi |
 |---|---|
 | Pemilik | FE (pekerjaan Menu 07, commit `f7a1f0917`) |
-| Status | 🟡 18 Nov 2026 — impor diganti `todayInputValue`; galat ini tidak muncul lagi di `npm run build`, tetapi build penuh masih tertahan dua layar `lifecycle` baru dari pekerjaan paralel — [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) |
+| Status | ✅ 18 Nov 2026 (putaran 2) — `getTodayDate` diekspor dari util workforce-core (impor lama dikembalikan commit `89c070547`), plus `DECISION_STATUS_FILTER_OPTIONS` untuk layar Menu 08; `npm run build` lulus 839 halaman — [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) bagian 5.1 |
 | Bukti | `src/components/view/hr/workforce-core/employee-job-descriptions-view.jsx:19` |
 
 **Penyebab.** Berkas itu mengimpor `getTodayDate` dari `@/utils/hr/workforce-core/workforce-core-display-utils`, padahal fungsi tersebut tidak diekspor di sana. Turbopack menghentikan build dengan "Export getTodayDate doesn't exist in target module" dan tidak melaporkan galat lain.
@@ -199,7 +205,7 @@ VR-PAY-24 mewajibkan PDF slip berproteksi sandi. Layar lama menjanjikan "Passwor
 | Field | Isi |
 |---|---|
 | Pemilik | BE |
-| Status | ⛔ 18 Nov 2026 — butuh tabel baru `HrdOvertimeSetting`; pembuatan migration menunggu izin terpisah pemilik (`CLAUDE.md`) — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) bagian 3.9 |
+| Status | 🟡 18 Nov 2026 (putaran 2) — tabel `HrdOvertimeSetting`, migration `20261118100000_AddHrdOvertimeSetting` **ditulis tetapi belum dijalankan**, layanan menyimpan ke tabel + log audit, layar bisa diubah; tinggal menjalankan migration dan uji live — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) bagian 8.1, [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) bagian 5.2 |
 | Sumber | Laporan [FE-HRD-R35](../task/report/frontend/FE-HRD-R35.md); `backend-unfinished-work.md` Kelompok C |
 
 `OvertimeSettingService` menyimpan parameter di memori statis (`_cachedSettings`). Akibatnya pengaturan hilang saat server dimulai ulang, berbeda antar-instans, dan tidak teraudit. Karena itu layar **Pengaturan Lembur** dibuat baca-saja. `[Tags("HR Overtime - Settings")]`, `/api/v1/corporate/human-resource/overtime-settings`. **Rekomendasi:** simpan di tabel DB beserta jejak audit.
@@ -257,6 +263,14 @@ Layar-layar berikut sudah dibangun jujur: tidak ada data karangan, dan kekuranga
 | `MSL-26` | Pelatihan | Persentase kepatuhan per pelatihan, jumlah *shift buddy safeguard* | Dasbor diklat tidak bisa menunjukkan berapa persen pegawai wajib yang sudah lulus pelatihan BHD atau PPI | `R05` | — |
 | `MSL-27` | Lembur | Filter antrean anomali, verifikasi batch, estimasi beban finansial saat handoff ke payroll | Verifikasi lembur biometrik harus satu per satu | `R35` | — |
 
+**Status kontrak 18 November 2026 (putaran 2):**
+
+| No. | Status |
+|---|---|
+| `MSL-14` | 🟡 8 daftar lintas pegawai tersedia dan 8 layar tersambung: pembatasan kerja, kelaikan kerja, kecelakaan kerja, vaksinasi, SP, skorsing, sanggahan, jenjang klinis. Belum: exit clearance lintas pegawai di service lama `EmployeeRelationService.getExitClearances` (layar Menu 12 sudah memakai daftar sendiri) dan putusan banding SP. Build, QBE, lint, CSS lulus; uji live menunggu DB dev pulih — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) bagian 8.2, [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) bagian 5.3 |
+| `MSL-15` | 🟡 Tahap 1: base component `BaseFileUpload`, penyimpanan `HrAttachmentStorage` (di luar `wwwroot`), unggah/unduh untuk nota & resume restitusi, struk SPPD, bukti penilaian diri, bukti sanggahan. Belum: COB benefit, dokumen kandidat/MCU, bukti koreksi presensi atas nama, logbook lembur, impor batch kontrak awal, nota override rekredensial — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) bagian 8.3, [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) bagian 5.4 |
+| `MSL-16`–`MSL-27` | Belum dikerjakan |
+
 ---
 
 ## 6. Masalah frontend (P2/P3)
@@ -310,15 +324,15 @@ Layar-layar berikut sudah dibangun jujur: tidak ada data karangan, dan kekuranga
 
 ## 8. Keputusan pemilik yang masih ditunggu
 
-Rincian pilihan dan konsekuensinya ada di [frontend-unfinished-work.md bagian 9](frontend-unfinished-work.md#9-keputusan-yang-dibutuhkan-pemilik).
+Rincian pilihan dan konsekuensinya ada di [frontend-unfinished-work.md bagian 9](frontend-unfinished-work.md#9-keputusan-yang-dibutuhkan-pemilik). Pada 18 Nov 2026 pemilik menyetujui **seluruh rekomendasi (opsi A)**. Keputusan yang belum dieksekusi tetap tercatat di tabel ini sampai pekerjaannya selesai.
 
 | Kode | Pertanyaan | Rekomendasi | Task tertahan |
 |---|---|---|---|
 | `DEC-FER-01` | Perlukah base component Drawer (dipakai 22 kali)? | A — buat `BaseDrawer` | `R48`, `R50` |
-| `DEC-FER-02` | Perlukah base component unggah berkas (dipakai 10 kali)? | A — buat `BaseFileUpload` | `R49`, `R50`, juga `MSL-15` |
+| `DEC-FER-02` | Perlukah base component unggah berkas (dipakai 10 kali)? | A — buat `BaseFileUpload`. **Disetujui 18 Nov 2026 ("ikuti semua rekomendasi"); `BaseFileUpload` sudah dibuat** | `R49`, `R50`, juga `MSL-15` |
 | `DEC-FER-03` | Ke mana layar anomali variansi dan pengaturan payroll lama? | A — bangun di modul `/payroll`, hapus 7 view lama | `R51` |
 | `DEC-FER-04` | Alamat mana yang menjadi rute utama (`/hr/*`, `/hrd/*`, `/corporate/hrd/*`)? | A — alamat di menu menjadi utama, sisanya dialihkan | `R52`, juga `MSL-30` |
-| `DEC-FER-05` | Tambah endpoint daftar lintas pegawai di backend? | A — tambah, dengan hak akses khusus data sensitif | `R53`, juga `MSL-14` |
+| `DEC-FER-05` | Tambah endpoint daftar lintas pegawai di backend? | A — tambah, dengan hak akses khusus data sensitif. **Disetujui 18 Nov 2026; 8 endpoint sudah dibuat (`MSL-14`)** | `R53`, juga `MSL-14` |
 | `DEC-FER-06` | Di mana modal hard-stop dan co-signature SIMRS dipasang? | A — di layar order modul klinis | `R54` |
 | `DEC-FER-07` | Nasib `FE-HRD-014` dan `FE-HRD-019`? | A — tandai digantikan `S-C1` dan `S-C6` | `R55` |
 | `K-02` | Daftar lintas pegawai untuk disiplin, pelatihan, kinerja | Lihat [plan-repair-001](../docs/plan-repair/plan-repair-001-layar-hr-kosong-salah-alamat-api.md) | `R56` |

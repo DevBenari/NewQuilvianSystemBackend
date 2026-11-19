@@ -100,10 +100,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [HttpGet("{id:guid}/salary-detail")]
         [AccessAction("ViewAmount", "Melihat Nominal Gaji Kontrak", AccessType = AccessTypes.Read, SortOrder = 7)]
         [AccessPermission("WorkforceEmploymentContract", "ViewAmount")]
-        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
-        public IActionResult CheckViewAmountPermission(Guid id)
+        [ProducesResponseType(typeof(ApiResponse<ContractSalaryDetailResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetSalaryDetail(Guid id, CancellationToken cancellationToken)
         {
-            return Ok(ApiResponse<bool>.Ok(true, "Izin melihat nominal gaji terverifikasi."));
+            var result = await _contractService.GetSalaryDetailAsync(id, User, cancellationToken);
+            return ToActionResult(result);
         }
 
         [HttpGet("{id:guid}/print-data")]

@@ -120,10 +120,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public Guid Id { get; set; }
         public string DecisionNumber { get; set; } = string.Empty;
         public Guid ContractHistoryId { get; set; }
+        public Guid EmploymentContractId { get => ContractHistoryId; set => ContractHistoryId = value; }
         public string ContractNumber { get; set; } = string.Empty;
         public Guid WorkforceProfileId { get; set; }
         public string WorkforceCode { get; set; } = string.Empty;
+        public string EmployeeWorkforceCode { get => WorkforceCode; set => WorkforceCode = value; }
         public string FullName { get; set; } = string.Empty;
+        public string EmployeeFullName { get => FullName; set => FullName = value; }
+        public int RenewalSequence { get; set; }
         public ContractDecisionType DecisionType { get; set; }
         public string DecisionTypeName => DecisionType.ToString();
         public int? ExtensionMonths { get; set; }
@@ -143,11 +147,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public DateOnly? EmployeeNotifiedOn { get; set; }
         public Guid? EmployeeSeparationId { get; set; }
 
-        // Evidensi & Kepatuhan Pemberitahuan Tertulis (FIN-HRD-08-BE-004)
+        // Evidensi & Kepatuhan Pemberitahuan Tertulis (FIN-HRD-08-BE-004 / AUD-08-16)
         public string? NotificationChannel { get; set; }
         public string? NotificationEvidenceNotes { get; set; }
         public string NotificationComplianceStatus { get; set; } = "NOT_APPLICABLE"; // ON_TIME, LATE, MISSING, NOT_APPLICABLE
+        public string NoticeCompliance { get => NotificationComplianceStatus; set => NotificationComplianceStatus = value; }
         public DateOnly? RequiredNoticeDate { get; set; }
+    }
+
+    public sealed class ContractSalaryDetailResponse
+    {
+        public Guid ContractId { get; set; }
+        public decimal? BasicSalary { get; set; }
+        public string Currency { get; set; } = "IDR";
+        public string? SalaryGradeName { get; set; }
+        public string? SalaryStructureName { get; set; }
+        public bool IsMasked { get; set; }
     }
 
     public sealed class RecordEmployeeNotifiedRequest
@@ -162,11 +177,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public string? EvidenceNotes { get; set; }
     }
 
-    // --- Ringkasan Dashboard Menu 08 Submenu 1, 2, 4 ---
+    // --- Ringkasan Dashboard Menu 08 Submenu 1, 2, 4 (AUD-08-12..14) ---
 
     public sealed class EmploymentContractSummaryResponse
     {
         public int ActiveContractsCount { get; set; }
+        public int ActiveCount { get => ActiveContractsCount; set => ActiveContractsCount = value; }
         public int PendingSignedCount { get; set; }
         public int ExpiringSoonCount { get; set; }
         public int NeedsReviewCount { get; set; }
@@ -175,9 +191,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
     public sealed class ContractRenewalSummaryResponse
     {
         public int ReminderH60Count { get; set; }
+        public int Due60DaysCount { get => ReminderH60Count; set => ReminderH60Count = value; }
+
         public int EscalationH14Count { get; set; }
+        public int Due14DaysCount { get => EscalationH14Count; set => EscalationH14Count = value; }
+
         public int NoticeDueH7Count { get; set; }
+        public int Due7DaysNoticeCount { get => NoticeDueH7Count; set => NoticeDueH7Count = value; }
+
         public int PendingDecisionCount { get; set; }
+        public int OverdueCount { get; set; }
     }
 
     public sealed class EmploymentStatusChangeSummaryResponse
@@ -185,6 +208,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public int SubmittedCount { get; set; }
         public int PendingSignedCount { get; set; }
         public int ScheduledOrEffectiveCount { get; set; }
+        public int RejectedCount { get; set; }
     }
 
     // --- BE-HRD-081: Koreksi Kontrak T17 ---

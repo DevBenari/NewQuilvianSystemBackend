@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services
@@ -15,15 +16,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IHrdOnboardingCaseService _caseService;
+        private readonly IEmployeeEmploymentRecordService _employeeEmploymentRecordService;
         private readonly ILogger<HrdEmploymentLifecycleSchedulerService> _logger;
 
         public HrdEmploymentLifecycleSchedulerService(
             ApplicationDbContext dbContext,
             IHrdOnboardingCaseService caseService,
+            IEmployeeEmploymentRecordService employeeEmploymentRecordService,
             ILogger<HrdEmploymentLifecycleSchedulerService> logger)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _caseService = caseService ?? throw new ArgumentNullException(nameof(caseService));
+            _employeeEmploymentRecordService = employeeEmploymentRecordService ?? throw new ArgumentNullException(nameof(employeeEmploymentRecordService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -31,13 +35,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             DateOnly? testDate = null,
             CancellationToken cancellationToken = default)
         {
-            var today = testDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+            DateOnly today;
+            if (testDate.HasValue)
+            {
+                today = testDate.Value;
+            }
+            else
+            {
+                var wibZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                var wibNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, wibZone);
+                today = DateOnly.FromDateTime(wibNow);
+            }
             var todayDateTime = today.ToDateTime(TimeOnly.MinValue);
             var processedCount = 0;
 
             _logger.LogInformation("Menjalankan langkah harian siklus hidup kepegawaian untuk tanggal {Today}", today);
 
-            // 1. Pengaktifan Kontrak Lanjutan Berjalan pada Tanggal Mulai
+            // 1. Pengaktifan Kontrak Lanjutan Berjalan pada Tanggal Mulai (AUD-08-01)
             var contractsToActivate = await _dbContext.WfpContractHistories
                 .Where(c => !c.IsDelete &&
                             c.ContractStatus == EmploymentLifecycleValueConstants.ContractStatusSigned &&
@@ -47,20 +61,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
             foreach (var contract in contractsToActivate)
             {
+                contract.ContractStatus = "Active";
                 contract.IsCurrent = true;
                 contract.UpdateDateTime = DateTime.UtcNow;
 
-                if (contract.PreviousContractHistoryId.HasValue)
-                {
-                    var previous = await _dbContext.WfpContractHistories
-                        .FirstOrDefaultAsync(p => p.Id == contract.PreviousContractHistoryId.Value, cancellationToken);
+                // Nonaktifkan seluruh kontrak berjalan sebelumnya untuk profil yang sama
+                var previousCurrentContracts = await _dbContext.WfpContractHistories
+                    .Where(c => c.WorkforceProfileId == contract.WorkforceProfileId && c.Id != contract.Id && c.IsCurrent && !c.IsDelete)
+                    .ToListAsync(cancellationToken);
 
-                    if (previous != null)
+                foreach (var prev in previousCurrentContracts)
+                {
+                    prev.IsCurrent = false;
+                    if (prev.ContractStatus == "Active" || prev.ContractStatus == EmploymentLifecycleValueConstants.ContractStatusSigned)
                     {
-                        previous.IsCurrent = false;
-                        previous.ContractStatus = "Completed";
-                        previous.UpdateDateTime = DateTime.UtcNow;
+                        prev.ContractStatus = "Completed";
                     }
+                    prev.UpdateDateTime = DateTime.UtcNow;
                 }
 
                 // FIN-HRD-08-BE-008 / REG-HRD-08-005: Sinkronisasi mirror MstWorkforceProfile saat tanggal penempatan efektif tiba
@@ -83,13 +100,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     }
                 }
 
+                // AUD-08-01: Sinkronisasi catatan riwayat kepegawaian
+                await _employeeEmploymentRecordService.SyncFromContractAsync(contract, Guid.Empty, cancellationToken);
+
                 processedCount++;
             }
 
-            // 2. Pengakhiran Kontrak yang Lewat Tanggal Berakhir (Sehari Sesudah EndDate)
+            // 2. Pengakhiran Kontrak yang Lewat Tanggal Berakhir (Sehari Sesudah EndDate) (AUD-08-01)
             var expiredContracts = await _dbContext.WfpContractHistories
                 .Where(c => !c.IsDelete &&
-                            c.ContractStatus == EmploymentLifecycleValueConstants.ContractStatusSigned &&
+                            (c.ContractStatus == "Active" || c.ContractStatus == EmploymentLifecycleValueConstants.ContractStatusSigned) &&
                             c.EndDate.HasValue &&
                             c.EndDate.Value < todayDateTime)
                 .ToListAsync(cancellationToken);
@@ -124,6 +144,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     }
 
                     processedCount++;
+                }
+                else
+                {
+                    if (contract.IsCurrent)
+                    {
+                        contract.IsCurrent = false;
+                        contract.ContractStatus = "Completed";
+                        contract.UpdateDateTime = DateTime.UtcNow;
+                        processedCount++;
+                    }
                 }
             }
 

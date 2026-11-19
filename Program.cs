@@ -1486,7 +1486,8 @@ try
     builder.Services.AddScoped<OvertimeSelfServiceService>();
 
     // Slice S-B3 (Overtime Management) - MVP-27, MVP-28 & MVP-29
-    builder.Services.AddSingleton<IOvertimeSettingService, OvertimeSettingService>();
+    // MSL-10 (18 Nov 2026): Scoped karena kini membaca/menyimpan tabel HrdOvertimeSetting lewat ApplicationDbContext.
+    builder.Services.AddScoped<IOvertimeSettingService, OvertimeSettingService>();
     builder.Services.AddScoped<IOvertimeQuotaEnforcementGuard, OvertimeQuotaEnforcementGuard>();
     builder.Services.AddScoped<IOvertimePlanService, OvertimePlanService>();
     builder.Services.AddScoped<IMedicalDirectorOvertimeEscalationService, MedicalDirectorOvertimeEscalationService>();
@@ -1641,6 +1642,12 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.INeedleStickEmergencyService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.NeedleStickEmergencyService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IOccupationalExposureService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.OccupationalExposureService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IStaffVaccinationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.StaffVaccinationService>();
+    // MSL-15 (DEC-FER-02 opsi A, 18 Nov 2026): penyimpanan lampiran SDM di luar wwwroot.
+    builder.Services.AddScoped<QuilvianSystemBackend.Shared.HumanResource.Helpers.HrAttachmentStorage>();
+    // MSL-14 (DEC-FER-05 opsi A, 18 Nov 2026): kueri daftar lintas pegawai K3RS, Hubungan Industrial, dan Kinerja.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IOccupationalHealthListQueryService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.OccupationalHealthListQueryService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IDisciplinaryListQueryService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.DisciplinaryListQueryService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceListQueryService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceListQueryService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IHazardSurveillanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.HazardSurveillanceService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IMedicalExaminationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.MedicalExaminationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IOccupationalInjuryService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.OccupationalInjuryService>();

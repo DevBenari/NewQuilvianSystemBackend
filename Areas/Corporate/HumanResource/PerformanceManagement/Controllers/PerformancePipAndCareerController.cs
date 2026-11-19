@@ -199,5 +199,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             }
         }
         #endregion
+
+        /// <summary>
+        /// Daftar pengajuan jenjang karier klinis seluruh pegawai. Filter: search, status, pageNumber, pageSize (MSL-14, DEC-FER-05 opsi A, 18 Nov 2026).
+        /// </summary>
+        [HttpGet("clinical-ladder/applications")]
+        [AccessAction("ManageClinicalCareer", "Melihat Daftar Pengajuan Jenjang Klinis", AccessType = AccessTypes.Read, SortOrder = 20)]
+        [AccessPermission("PerformancePipAndCareer", "ManageClinicalCareer")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<CareerLadderApplicationListItemDto>>), 200)]
+        public async Task<IActionResult> GetCareerLadderApplicationList(
+            [FromQuery] PerformanceListQuery query,
+            [FromServices] IPerformanceListQueryService listService,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await listService.GetCareerLadderApplicationsAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<CareerLadderApplicationListItemDto>>.Ok(result, "Daftar berhasil diambil."));
+        }
     }
 }

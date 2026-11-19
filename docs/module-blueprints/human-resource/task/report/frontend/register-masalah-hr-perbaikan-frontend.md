@@ -136,3 +136,66 @@ Screenshot: belum ada (lihat 3.3).
 | Risiko | Butir menu bergerbang hanya tampil bila daftar hak termuat (`selectPermissionDecision` ketat). Selama daftar hak belum termuat, butir itu tersembunyi — perilaku yang sama dengan butir bergerbang lain |
 | Dependency | Screenshot dan uji per peran menunggu izin menyalakan backend serta akun/data uji (`MSL-34`). `npm run build` penuh menunggu pekerjaan `lifecycle` pengguna tersambung |
 | Task berikutnya | Uji live: menu sebagai pegawai biasa vs petugas, tambah shift di roster terbit (W1–W7), formulir cuti `?jenisCuti=CTO`, riwayat klaim restitusi ESS |
+
+---
+
+## 5. Putaran 2 — 18 November 2026 sore
+
+**Wewenang.** "Oke ikuti semua rekomendasi, lanjut kerjakan": opsi A untuk `DEC-FER-02` (base component unggah berkas) dan `DEC-FER-05` (daftar lintas pegawai), serta perbaikan galat build Menu 08.
+
+### 5.1 Build kembali lulus
+
+| Masalah | Perbaikan |
+|---|---|
+| Commit pengguna `89c070547` mengembalikan impor `getTodayDate` di Uraian Tugas Pegawai (`MSL-03` terulang) | `getTodayDate` kini diekspor dari `utils/hr/workforce-core/workforce-core-display-utils.js` (opsi kedua di rekomendasi `MSL-03`), sehingga impor itu sah |
+| Dua layar Menu 08 (`contract-renewals-list-view`, `employment-status-changes-view`) mengimpor `DECISION_STATUS_FILTER_OPTIONS` yang belum ada | Ditambahkan di `lib/constants/hr/lifecycle/lifecycle-constants.js` |
+
+`npm run build`: **lulus**, 839 halaman (dijalankan dua kali: sesudah perbaikan di atas, dan sesudah seluruh perubahan putaran 2).
+
+### 5.2 `MSL-10` — Layar Pengaturan Lembur dapat diubah
+
+`overtime-settings-view.jsx` kini punya tombol **Ubah Parameter** untuk hak `OvertimeSetting : Manage` (`OVERTIME_R35_PERMISSIONS.manageSettings` baru).
+- Modal berisi 8 isian angka, dengan validasi yang sama dengan server. Isian tidak memakai `min`/`max` HTML, karena `BaseInputField` akan memotong nilai diam-diam dan pesan galat tidak pernah muncul.
+- Bila server menjawab `isPersisted: false`, layar menampilkan peringatan bahwa tabel belum dibuat.
+
+### 5.3 `MSL-14` — 8 layar memakai daftar seluruh pegawai
+
+| Layar | Sebelumnya | Sekarang |
+|---|---|---|
+| Pembatasan Tugas Medis | Tabel hanya berisi pembatasan yang diterbitkan pada sesi ini | Daftar server dengan pencarian, filter status (bawaan: Aktif), paginasi; asesmen kembali bekerja per baris |
+| Rekam Kesehatan & Kelaikan Kerja | Wajib memilih pegawai satu per satu | Daftar kelaikan kerja seluruh pegawai + filter kelaikan; **Lihat** membuka ringkasan pegawai itu |
+| Kecelakaan Kerja KAK/PAK | Tabel sesi | Daftar server + pencarian; status lapor BPJS 2×24 jam per baris |
+| Radar Imunisasi | Hanya radar booster dan buku per pegawai | Ditambah panel daftar vaksinasi seluruh pegawai |
+| Surat Peringatan | Wajib memilih pegawai | Daftar SP seluruh pegawai + filter tingkat; **Riwayat** membuka riwayat pegawai itu |
+| Skorsing | Tabel sesi | Daftar server + pencarian; **Pulihkan** memuat ulang daftar |
+| Sanggahan Nilai | Tabel sesi | Majelis (`ManageDispute`) melihat daftar seluruh pegawai; pegawai biasa tetap melihat sanggahannya sendiri |
+| Jenjang Karier Klinis | Tabel sesi | Komite (`ManageClinicalCareer`) melihat daftar seluruh pegawai; pegawai tetap melihat pengajuannya sendiri |
+
+Stub service "belum tersedia" (`getWorkRestrictions`, `getHealthRecords`, `getOccupationalInjuries`, `getVaccinations`, `getSanctions`, `getSuspensions`, `getDisputes`, `getClinicalLadderApplications`) kini memanggil endpoint nyata.
+
+### 5.4 `MSL-15` — Unggah berkas (`DEC-FER-02` opsi A), tahap 1
+
+| Elemen | Keputusan | Sumber gaya |
+|---|---|---|
+| `BaseFileUpload` (`components/features/base-features/base-file-upload.jsx`) | `NEW`, disetujui pemilik lewat `DEC-FER-02` opsi A | `style/components/features/base-features/base-file-upload.module.css` (semua nilai `var(--…)`) |
+| `HrFileField` | `WRAP` → kini memakai `BaseFileUpload`. Lima layar Lifecycle dan formulir cuti ikut berganti tampilan tanpa perubahan pemanggil | — |
+| `HrAttachmentField` (`components/features/hr/shared/hr-attachment-field.jsx`) | `COMPOSE` `BaseFileUpload` + `BaseButton`: unggah saat berkas dipilih, simpan kunci, tombol **Lihat** mengunduh lewat endpoint ber-hak akses | Bawaan |
+
+Formulir yang memakainya:
+- **Klaim restitusi ESS:** nota wajib, resume medis opsional. Pratinjau berkas menampilkan lampiran dari server lewat object URL.
+- **Settlement SPPD:** foto struk per butir pengeluaran, dikirim sebagai `receiptFilePath`.
+- **Penilaian diri:** bukti capaian per indikator, wajib untuk nilai 5 (VR-PRF-22).
+- **Sanggahan nilai:** bukti pendukung.
+
+`UI GATE: PASS — 1 NEW (disetujui DEC-FER-02), 1 WRAP, 1 COMPOSE`
+
+### 5.5 Validasi putaran 2
+
+| Perintah | Hasil |
+|---|---|
+| `npx eslint` seluruh berkas putaran 2 | 0 error, 0 warning |
+| `check-css-usage.mjs` 19 berkas (8 layar MSL-14, overtime settings, 9 berkas MSL-15, base component) | `0 temuan` |
+| `npm run build` | Lulus, 839 halaman |
+| Uji live pegawai non-admin (`msl-1118-nonadmin.mjs`, akun Dewi) | `MSL-28`: 7 grup SDM terlarang tidak tampil. `MSL-29`: "Akses Ditolak" tampil. `MSL-30`: dialihkan ke `/hr/self-service/overtime`. `MSL-31`: Cuti Pengganti Lembur terpilih otomatis (opsi saldo dipenuhi lewat `page.route`, karena DB dev hanya punya jenis cuti `LEG_DEFAULT`). Screenshot: `test-with-agy/screenshots/hrw4-1118/msl-1118-nonadmin/` |
+| Uji live akun Mira (`msl-1118-mira.mjs`: Plh, penilaian, slip gaji, restitusi, modal Tambah Shift dengan respons tiruan) | `MANUAL TEST: NOT FEASIBLE` — DB dev `160.22.250.77` tidak bisa dijangkau (koneksi timeout), login menggantung "Memproses...". Skrip siap dijalankan ulang |
+| Layar `MSL-14`, `MSL-15`, dan Pengaturan Lembur | `VISUAL CHECK: NOT FEASIBLE` dengan alasan yang sama; endpoint baru juga butuh build backend terbaru, yang tertahan galat Menu 08 di `HrdEmploymentContractService.cs:369` |
