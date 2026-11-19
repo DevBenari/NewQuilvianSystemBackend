@@ -53,7 +53,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             if (contract == null) throw new ArgumentNullException(nameof(contract));
 
             contract.Id = contract.Id == Guid.Empty ? Guid.NewGuid() : contract.Id;
-            contract.HistoryType = "Renewal";
+            if (string.IsNullOrWhiteSpace(contract.HistoryType))
+            {
+                contract.HistoryType = "Renewal";
+            }
             contract.RowVersion = Guid.NewGuid();
             contract.CreateDateTime = DateTime.UtcNow;
             contract.CreateBy = userId;
@@ -156,25 +159,43 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 throw new InvalidOperationException($"Kontrak dengan ID {contractHistoryId} tidak ditemukan.");
             }
 
-            // Nonaktifkan IsCurrent pada kontrak sebelumnya bila ada
-            var previousCurrentContracts = await _dbContext.WfpContractHistories
-                .Where(c => c.WorkforceProfileId == contract.WorkforceProfileId && c.Id != contract.Id && c.IsCurrent && !c.IsDelete)
-                .ToListAsync(cancellationToken);
-
-            foreach (var prev in previousCurrentContracts)
+            if (contract.ContractStatus != "Draft")
             {
-                prev.IsCurrent = false;
-                if (prev.ContractStatus == "Active")
-                {
-                    prev.ContractStatus = "Ended";
-                }
-                prev.UpdateDateTime = DateTime.UtcNow;
-                prev.UpdateBy = userId;
-                prev.RowVersion = Guid.NewGuid();
+                throw new InvalidOperationException($"Hanya kontrak berstatus Draft yang dapat ditandatangani. Status saat ini: {contract.ContractStatus}.");
             }
 
-            contract.ContractStatus = "Active";
-            contract.IsCurrent = true;
+            var today = DateTime.UtcNow.Date;
+            var isFuture = contract.StartDate.Date > today;
+
+            if (!isFuture)
+            {
+                // Kontrak aktif hari ini atau masa lalu: nonaktifkan IsCurrent pada kontrak sebelumnya bila ada
+                var previousCurrentContracts = await _dbContext.WfpContractHistories
+                    .Where(c => c.WorkforceProfileId == contract.WorkforceProfileId && c.Id != contract.Id && c.IsCurrent && !c.IsDelete)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var prev in previousCurrentContracts)
+                {
+                    prev.IsCurrent = false;
+                    if (prev.ContractStatus == "Active")
+                    {
+                        prev.ContractStatus = "Ended";
+                    }
+                    prev.UpdateDateTime = DateTime.UtcNow;
+                    prev.UpdateBy = userId;
+                    prev.RowVersion = Guid.NewGuid();
+                }
+
+                contract.ContractStatus = "Active";
+                contract.IsCurrent = true;
+            }
+            else
+            {
+                // Future-dated contract: status menjadi Signed, IsCurrent tetap false sampai tanggal mulai tiba
+                contract.ContractStatus = "Signed";
+                contract.IsCurrent = false;
+            }
+
             contract.SignedDate = signedDate;
             contract.SignedRecordedAt = DateTime.UtcNow;
             contract.SignedRecordedByUserId = userId;
@@ -186,7 +207,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             contract.UpdateBy = userId;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
-            await _employeeEmploymentRecordService.SyncFromContractAsync(contract, userId, cancellationToken);
+
+            if (!isFuture)
+            {
+                await _employeeEmploymentRecordService.SyncFromContractAsync(contract, userId, cancellationToken);
+            }
 
             return contract;
         }

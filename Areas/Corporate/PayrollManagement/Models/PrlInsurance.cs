@@ -41,6 +41,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models
         public DateTime? EffectiveStartDate { get; set; }
         public DateTime? EffectiveEndDate { get; set; }
 
+        // ---- Kepesertaan iuran yang ditetapkan HRD (DEC-PRL-TAX-002/005). Semua flag false BUKAN bukti tidak wajib mengikuti: status
+        // harus eksplisit. Kolom nullable: kosong berarti BELUM dikonfigurasi. Tarif dan batas BPJS memakai Pengaturan Penggajian run,
+        // bukan tarif per pegawai di atas (kolom tarif di atas dipertahankan untuk kompatibilitas dan tidak dipakai mesin hitung). ----
+
+        /// <summary>ACTIVE, NOT_PARTICIPATING, atau NOT_APPLICABLE (InsuranceParticipationStatuses).</summary>
+        [MaxLength(30)]
+        public string? ParticipationStatus { get; set; }
+
+        /// <summary>Dasar tidak mengikuti program atau tidak berlaku untuk jenis penerima; wajib selain ACTIVE.</summary>
+        [MaxLength(500)]
+        public string? ParticipationBasis { get; set; }
+
+        /// <summary>Program BPJS Ketenagakerjaan yang diikuti, dipisah koma (JHT, JP, JKK, JKM). Kosong berarti semua program.</summary>
+        [MaxLength(50)]
+        public string? BpjsEmploymentPrograms { get; set; }
+
         [MaxLength(1000)]
         public string? Description { get; set; }
 

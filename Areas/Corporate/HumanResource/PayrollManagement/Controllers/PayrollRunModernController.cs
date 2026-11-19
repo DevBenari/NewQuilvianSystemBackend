@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Controllers
@@ -15,6 +17,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
     [Route("api/v1/corporate/human-resource/payroll/runs")]
     [Route("api/payroll/runs")]
     [Tags("HR Payroll - Runs & Batches")]
+    // Satu jalur kalkulasi: jalur lama tidak boleh menghitung PPh/BPJS, tidak boleh mengubah run yang sudah dihitung mesin Payroll Run
+    // resmi, dan seluruh aksi tulisnya dapat dimatikan lewat Payroll:Policy:LegacyModernMutationsEnabled.
+    [TypeFilter(typeof(LegacyModernPayrollGateFilter))]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_PAYROLL",
         moduleName: "Human Resource Payroll",
@@ -669,7 +674,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             [FromQuery] int? year,
             CancellationToken cancellationToken = default)
         {
-            var employeeId = GetCurrentUserId();
+            var employeeId = GetPayslipOwnerKey();
+            if (employeeId == Guid.Empty) return PayslipProfileNotLinked();
             var list = await _payslipService.GetMyPayslipsAsync(employeeId, year, cancellationToken);
             return Ok(ApiResponse<List<SelfServicePayslipSummaryDto>>.Ok(list, "Daftar slip gaji mandiri berhasil dimuat."));
         }
@@ -684,7 +690,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             [FromBody] VerifyPayslipPinRequest request,
             CancellationToken cancellationToken = default)
         {
-            var employeeId = GetCurrentUserId();
+            var employeeId = GetPayslipOwnerKey();
+            if (employeeId == Guid.Empty) return PayslipProfileNotLinked();
             var result = await _payslipService.VerifyPinAsync(employeeId, request.Pin, cancellationToken);
             if (!result.IsSuccess && result.LockoutMinutesRemaining > 0)
             {
@@ -709,7 +716,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             [FromHeader(Name = "X-Payroll-PIN")] string pinToken,
             CancellationToken cancellationToken = default)
         {
-            var employeeId = GetCurrentUserId();
+            var employeeId = GetPayslipOwnerKey();
+            if (employeeId == Guid.Empty) return PayslipProfileNotLinked();
             try
             {
                 var detail = await _payslipService.GetPayslipDetailAsync(payslipId, employeeId, pinToken, cancellationToken);
@@ -728,6 +736,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         [HttpGet("self-service/payslips/{payslipId:guid}/download-pdf")]
         [Tags("HR Payroll - Self-Service Payslips")]
         [AccessAction("DownloadPayslipPdf", "Portal ESS: Unduh Dokumen PDF Slip Gaji", Description = "Mengunduh berkas PDF slip gaji ber-watermark resmi RS berproteksi kata sandi (VR-PAY-24)", AccessType = AccessTypes.Read, SortOrder = 32)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessPermission("PayrollRunModern", "DownloadPayslipPdf")]
         [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -737,11 +746,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             [FromHeader(Name = "X-Payroll-PIN")] string pinToken,
             CancellationToken cancellationToken = default)
         {
-            var employeeId = GetCurrentUserId();
+            var employeeId = GetPayslipOwnerKey();
+            if (employeeId == Guid.Empty) return PayslipProfileNotLinked();
             try
             {
                 var (fileBytes, fileName, contentType) = await _payslipService.DownloadPayslipPdfAsync(payslipId, employeeId, pinToken, cancellationToken);
                 return File(fileBytes, contentType, fileName);
+            }
+            catch (InvalidOperationException ex) when (HrSafeError.IsDomain(ex))
+            {
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, ex.Message));
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -752,6 +766,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
         }
+
+        /// <summary>
+        /// MSL-04 (18 Nov 2026): slip gaji dicocokkan dengan kunci pegawai dari token (workforce_profile_id, lalu employee_id),
+        /// tidak pernah dengan ID akun login. Guid.Empty berarti akun belum terhubung ke data pegawai.
+        /// </summary>
+        private Guid GetPayslipOwnerKey() => User.GetWorkforceProfileId() ?? User.GetEmployeeId() ?? Guid.Empty;
+
+        private IActionResult PayslipProfileNotLinked() =>
+            StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(StatusCodes.Status403Forbidden,
+                "Akun Anda belum terhubung dengan data pegawai, sehingga slip gaji belum dapat ditampilkan. Hubungi bagian SDM."));
 
         private Guid GetCurrentUserId()
         {

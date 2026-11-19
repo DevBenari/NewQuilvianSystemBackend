@@ -74,7 +74,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             {
                 return NotFound(ApiResponse<WorkflowCommentV2ResponseDto>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<WorkflowCommentV2ResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -118,7 +118,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             {
                 return NotFound(ApiResponse<WorkflowAttachmentV2ResponseDto>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<WorkflowAttachmentV2ResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }

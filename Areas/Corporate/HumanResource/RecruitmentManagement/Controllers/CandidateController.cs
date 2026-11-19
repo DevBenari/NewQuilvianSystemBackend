@@ -1,4 +1,6 @@
 using System;
+using QuilvianSystemBackend.Services.Security;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -148,6 +150,64 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             return result.Success
                 ? StatusCode(result.StatusCode, ApiResponse<T>.Ok(result.Data!, result.Message))
                 : StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+        }
+
+        /// <summary>
+        /// Unggah dokumen kandidat (CV, ijazah, STR, KTP) (MSL-15 tahap 2, DEC-FER-02 opsi A, 19 Nov 2026). Multipart <c>file</c>; jawaban berisi <c>key</c>
+        /// yang dikirim ke kolom path berkas fitur ini. PDF/JPG/PNG/WEBP/Word/Excel, maksimal 10 MB.
+        /// </summary>
+        [HttpPost("documents/attachments")]
+        [AccessAction("UploadDocument", "Mengunggah Dokumen Kandidat", AccessType = AccessTypes.Update, SortOrder = 40)]
+        [AccessPermission("Candidate", "UploadDocument")]
+        [Tags("Corporate / Human Resource / Recruitment Management / Candidate")]
+        [RequestSizeLimit(HrAttachmentStorage.DefaultMaximumFileSizeBytes + 1024 * 1024)]
+        [ProducesResponseType(typeof(ApiResponse<HrStoredAttachment>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UploadHrAttachment(
+            [FromForm] IFormFile file,
+            [FromServices] HrAttachmentStorage storage,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var stored = await storage.SaveAsync("recruitment-candidate-document", User.GetUserId(), file, cancellationToken);
+                return StatusCode(StatusCodes.Status201Created, ApiResponse<HrStoredAttachment>.Ok(stored, "Lampiran berhasil diunggah."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Unduh dokumen kandidat (CV, ijazah, STR, KTP) (MSL-15 tahap 2). Boleh untuk pengunggah atau pemegang hak Read; selain itu 404.
+        /// </summary>
+        [HttpGet("documents/attachments/download")]
+        [AccessAction("Read", "Melihat Kandidat", AccessType = AccessTypes.Read, SortOrder = 41)]
+        [AccessPermission("Candidate", "Read")]
+        [Tags("Corporate / Human Resource / Recruitment Management / Candidate")]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DownloadHrAttachment(
+            [FromQuery] string key,
+            [FromServices] HrAttachmentStorage storage,
+            [FromServices] AccessPermissionService accessPermissionService)
+        {
+            try
+            {
+                var attachment = storage.Open(key, "recruitment-candidate-document");
+                var allowed = attachment.OwnerUserId == User.GetUserId() || await accessPermissionService.HasAccessAsync(User, "Candidate", "Read");
+                if (!allowed)
+                {
+                    return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Lampiran tidak ditemukan."));
+                }
+
+                return PhysicalFile(attachment.PhysicalPath, attachment.ContentType, attachment.DownloadName);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
         }
     }
 }

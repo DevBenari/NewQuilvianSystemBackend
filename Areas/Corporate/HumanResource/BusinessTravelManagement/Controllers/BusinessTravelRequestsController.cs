@@ -103,7 +103,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _travelRequestService.CreateRequestAsync(dto, userId, empId);
                 return StatusCode(StatusCodes.Status201Created, ApiResponse<BusinessTravelDetailResponseDto>.Ok(result, "SPPD disimpan sebagai Draf. Tekan Ajukan untuk mengirim ke atasan."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<BusinessTravelDetailResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -132,7 +132,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             {
                 return NotFound(ApiResponse<BusinessTravelResponseDto>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<BusinessTravelResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -187,7 +187,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             {
                 return NotFound(ApiResponse<BusinessTravelResponseDto>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<BusinessTravelResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }

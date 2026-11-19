@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManage
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Controllers
 {
@@ -43,7 +44,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 }
                 return Ok(ApiResponse<ExitClearanceProcessDetailDto>.Ok(result, "Matriks status exit clearance 5 departemen berhasil dimuat."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<ExitClearanceProcessDetailDto>.Fail(500, ex.Message));
             }
@@ -64,7 +65,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return NotFound(ApiResponse<ExitClearanceChecklistDto>.Fail(404, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<ExitClearanceChecklistDto>.Fail(500, ex.Message));
             }
@@ -80,7 +81,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 var result = await _clearanceService.GetPayrollLockStatusAsync(employeeId, cancellationToken);
                 return Ok(ApiResponse<PayrollLockStatusResponseDto>.Ok(result, result.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<PayrollLockStatusResponseDto>.Fail(500, ex.Message));
             }
@@ -105,7 +106,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return NotFound(ApiResponse<ExitClearanceProcessDetailDto>.Fail(404, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<ExitClearanceProcessDetailDto>.Fail(500, ex.Message));
             }

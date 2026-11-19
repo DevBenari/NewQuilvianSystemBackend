@@ -81,9 +81,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                     spk.SpkNumber, spk.WorkforceProfileId, spk.ValidUntil);
             }
 
-            // Tangguhkan kewenangan klinis aktif nakes di WfpClinicalPrivilege
+            // FIN-HRD-09-BE-012 / M09-P0-11: Jangan menangguhkan wewenang nakes yang sudah memiliki SPK baru yang aktif dan valid
+            var profilesWithNewerActiveSpk = await context.TrxSpkRkkIssuances
+                .Where(s => affectedProfileIds.Contains(s.WorkforceProfileId)
+                    && s.IsActive 
+                    && !s.IsRevoked 
+                    && !s.IsSuspended
+                    && s.IssuanceStatus == "Active" 
+                    && s.ValidUntil >= now)
+                .Select(s => s.WorkforceProfileId)
+                .Distinct()
+                .ToListAsync(stoppingToken);
+
+            var genuinelyExpiredProfileIds = affectedProfileIds
+                .Except(profilesWithNewerActiveSpk)
+                .ToList();
+
+            // Tangguhkan kewenangan klinis aktif nakes di WfpClinicalPrivilege HANYA untuk nakes yang tidak punya SPK aktif baru
             var activePrivileges = await context.WfpClinicalPrivileges
-                .Where(cp => affectedProfileIds.Contains(cp.WorkforceProfileId) && cp.PrivilegeStatus == ClinicalPrivilegeStatus.Active)
+                .Where(cp => genuinelyExpiredProfileIds.Contains(cp.WorkforceProfileId) && cp.PrivilegeStatus == ClinicalPrivilegeStatus.Active && cp.EffectiveEndDate <= now)
                 .ToListAsync(stoppingToken);
 
             foreach (var cp in activePrivileges)
@@ -101,6 +117,52 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             _logger.LogInformation(
                 "Siklus Pemantau SPK Selesai: {SpkCount} SPK kedaluwarsa diproses. {PrivCount} kewenangan klinis aktif ditangguhkan (Auto-Suspend).",
                 expiredSpkList.Count, activePrivileges.Count);
+
+            // FIN-HRD-09-BE-012: Inisiasi draf rekredensialing H-60 secara idempoten
+            await PerformH60RecredentialingCheckAsync(context, now, stoppingToken);
+        }
+
+        private async Task PerformH60RecredentialingCheckAsync(ApplicationDbContext context, DateTime now, CancellationToken stoppingToken)
+        {
+            var h60Horizon = now.AddDays(60);
+            var approachingSpkList = await context.TrxSpkRkkIssuances
+                .Where(s => s.IsActive && !s.IsRevoked && s.IssuanceStatus == "Active" && s.ValidUntil >= now && s.ValidUntil <= h60Horizon)
+                .ToListAsync(stoppingToken);
+
+            foreach (var spk in approachingSpkList)
+            {
+                // Idempotensi: periksa apakah sudah ada draf TrxRecredentialingApplication untuk profil ini
+                var hasDraft = await context.TrxRecredentialingApplications
+                    .AnyAsync(r => r.WorkforceProfileId == spk.WorkforceProfileId && r.IsActive && (r.RecredentialingStatus == "Draft" || r.RecredentialingStatus == "Submitted"), stoppingToken);
+
+                if (!hasDraft)
+                {
+                    var year = now.Year;
+                    var count = await context.TrxRecredentialingApplications
+                        .CountAsync(r => r.RecredentialingNumber.Contains($"/{year}/"), stoppingToken);
+                    var seq = (count + 1).ToString("D4");
+
+                    var recredApp = new TrxRecredentialingApplication
+                    {
+                        Id = Guid.NewGuid(),
+                        WorkforceProfileId = spk.WorkforceProfileId,
+                        PreviousCredentialingApplicationId = spk.CredentialingApplicationId,
+                        RecredentialingNumber = $"RECRED/{year}/{seq}",
+                        RecredentialingStatus = "Draft",
+                        CycleNumber = 1,
+                        DueDate = spk.ValidUntil,
+                        Notes = $"Draf otomatis H-60 peringatan rekredensialing siklus 3 tahun dari SPK #{spk.SpkNumber}.",
+                        IsActive = true,
+                        CreateDateTime = now,
+                        CreateBy = Guid.Empty
+                    };
+
+                    context.TrxRecredentialingApplications.Add(recredApp);
+                    _logger.LogInformation("Draf rekredensialing H-60 #{Number} berhasil dibuat otomatis untuk nakes {ProfileId}.", recredApp.RecredentialingNumber, spk.WorkforceProfileId);
+                }
+            }
+
+            await context.SaveChangesAsync(stoppingToken);
         }
     }
 }

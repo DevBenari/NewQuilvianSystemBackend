@@ -15,6 +15,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             decimal basicSalary,
             DateTime startDate,
             Guid userId,
+            Guid? offerApproverUserId = null,
             CancellationToken cancellationToken = default);
     }
 }

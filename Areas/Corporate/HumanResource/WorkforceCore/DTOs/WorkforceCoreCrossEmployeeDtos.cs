@@ -55,4 +55,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public DateTime EffectiveStartDate { get; set; }
         public DateTime? EffectiveEndDate { get; set; }
     }
+
+    /// <summary>
+    /// Response uraian tugas efektif per pegawai berdasarkan tanggal acuan.
+    /// Mengacu pada WfpPositionAssignment efektif pada tanggal as-of (HRD-DEC-047).
+    /// </summary>
+    public class EmployeeEffectiveJobDescriptionResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+        public string EmployeeName { get; set; } = string.Empty;
+        public string ProfileCode { get; set; } = string.Empty;
+        public Guid? PositionId { get; set; }
+        public string? PositionName { get; set; }
+        public Guid? DepartmentId { get; set; }
+        public string? DepartmentName { get; set; }
+        public Guid? OrganizationUnitId { get; set; }
+        public string? OrganizationUnitName { get; set; }
+        public DateTime AsOfDate { get; set; }
+        public QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs.JobDescriptionDetailResponse? JobDescription { get; set; }
+        public List<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs.JobDescriptionHistoryResponse> VersionHistory { get; set; } = new();
+        public bool HasEffectiveJobDescription => JobDescription != null;
+    }
 }

@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Shared.HumanResource.Helpers;
+using QuilvianSystemBackend.Services.Security;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Controllers
 {
@@ -28,10 +29,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
     public class WorkflowDelegationsController : ControllerBase
     {
         private readonly IApprovalDelegationV2Service _delegationService;
+        private readonly AccessPermissionService _accessPermissionService;
 
-        public WorkflowDelegationsController(IApprovalDelegationV2Service delegationService)
+        public WorkflowDelegationsController(IApprovalDelegationV2Service delegationService, AccessPermissionService accessPermissionService)
         {
             _delegationService = delegationService;
+            _accessPermissionService = accessPermissionService;
         }
 
         private Guid GetCurrentEmployeeId()
@@ -59,7 +62,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
         {
-            var result = await _delegationService.GetDelegationsAsync(isActive, pageNumber, pageSize);
+            // MSL-05: tanpa hak ViewAllDelegations, daftar dibatasi pada surat kuasa milik pegawai login.
+            var canViewAll = await _accessPermissionService.HasAccessAsync(User, "WorkflowDelegation", WorkflowDelegationPermissions.ViewAllDelegations);
+            var result = await _delegationService.GetDelegationsAsync(isActive, pageNumber, pageSize, GetCurrentEmployeeId(), canViewAll);
             return Ok(ApiResponse<PagedResult<ApprovalDelegationV2ResponseDto>>.Ok(result));
         }
 
@@ -76,16 +81,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             try
             {
                 var empId = GetCurrentEmployeeId();
-                var result = await _delegationService.CreateDelegationAsync(empId, request);
+                var result = await _delegationService.CreateDelegationAsync(empId, GetCurrentUserId(), request);
                 return StatusCode(StatusCodes.Status201Created, ApiResponse<ApprovalDelegationV2ResponseDto>.Ok(result, "Surat kuasa penunjukan Plh berhasil didaftarkan"));
             }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ApiResponse<ApprovalDelegationV2ResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<ApprovalDelegationV2ResponseDto>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
         }
 
@@ -102,16 +103,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             try
             {
                 var userId = GetCurrentUserId();
-                var result = await _delegationService.RevokeDelegationAsync(id, request, userId);
+                var canManageAll = await _accessPermissionService.HasAccessAsync(User, "WorkflowDelegation", WorkflowDelegationPermissions.ViewAllDelegations);
+                var result = await _delegationService.RevokeDelegationAsync(id, request, userId, GetCurrentEmployeeId(), canManageAll);
                 return Ok(ApiResponse<ApprovalDelegationV2ResponseDto>.Ok(result, "Wewenang Plh berhasil dicabut"));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<ApprovalDelegationV2ResponseDto>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<ApprovalDelegationV2ResponseDto>.Fail(StatusCodes.Status403Forbidden, ex.Message));
             }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ApiResponse<ApprovalDelegationV2ResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<ApprovalDelegationV2ResponseDto>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
         }
 

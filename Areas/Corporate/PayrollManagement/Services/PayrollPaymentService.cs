@@ -59,6 +59,10 @@ public sealed class PayrollPaymentService
             var run = await _dbContext.PrlPayrollRuns.SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
 
+            if (PayrollTaxInsuranceRules.IsTestingModeWithoutBpjs(run.PolicySnapshotJson))
+                throw new PayrollInvalidTransitionException(
+                    "Payroll run ini dihitung pada mode pengujian tanpa BPJS sehingga tidak dapat dikirim ke Finance Handoff produksi.");
+
             var inPaymentStage = PayrollRunStatuses.IsPaymentStage(run.RunStatus);
             var isClosed = string.Equals(run.RunStatus, PayrollRunStatuses.Closed, StringComparison.OrdinalIgnoreCase);
             if (!inPaymentStage && !isClosed)
@@ -288,6 +292,10 @@ public sealed class PayrollPaymentService
 
             var run = await _dbContext.PrlPayrollRuns.SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
+
+            if (PayrollTaxInsuranceRules.IsTestingModeWithoutBpjs(run.PolicySnapshotJson))
+                throw new PayrollInvalidTransitionException(
+                    "Payroll run ini dihitung pada mode pengujian tanpa BPJS sehingga tidak dapat dikirim ke Finance Handoff produksi.");
             if (!PayrollRunStatuses.IsPaymentStage(run.RunStatus))
                 throw new PayrollInvalidTransitionException(
                     $"Hasil pembayaran hanya diterima untuk run yang instruksinya sudah dikirim ke Finance (saat ini {run.RunStatus}).");
@@ -413,6 +421,10 @@ public sealed class PayrollPaymentService
         {
             var run = await _dbContext.PrlPayrollRuns.SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
+
+            if (PayrollTaxInsuranceRules.IsTestingModeWithoutBpjs(run.PolicySnapshotJson))
+                throw new PayrollInvalidTransitionException(
+                    "Payroll run ini dihitung pada mode pengujian tanpa BPJS sehingga tidak dapat dikirim ke Finance Handoff produksi.");
             if (!PayrollRunStatuses.IsPaymentStage(run.RunStatus))
                 throw new PayrollInvalidTransitionException("Instruksi hanya dapat dikirim ulang pada run yang sudah berada di tahap pembayaran.");
 

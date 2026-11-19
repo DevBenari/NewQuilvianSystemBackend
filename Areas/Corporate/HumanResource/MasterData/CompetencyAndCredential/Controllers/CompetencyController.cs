@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Enums.HumanResource;
@@ -667,6 +669,166 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Compete
                 result,
                 "Data competency requirement position berhasil diambil."
             ));
+        }
+
+        /// <summary>
+        /// FIN-HRD-09-BE-004: Evaluasi pemenuhan persyaratan jabatan nakes terhadap evidence yang sah
+        /// </summary>
+        [HttpGet("positions/{positionId:guid}/compliance")]
+        [ProducesResponseType(typeof(ApiResponse<PositionCompetencyComplianceSummaryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Position Competency Compliance", Description = "Melihat matriks kepatuhan kompetensi jabatan", AccessType = AccessTypes.Read, SortOrder = 11)]
+        [AccessPermission("Competency", "Read")]
+        public async Task<IActionResult> GetPositionCompliance(
+            [FromRoute] Guid positionId,
+            [FromQuery] Guid? workforceProfileId = null,
+            [FromQuery] DateTime? asOfDate = null,
+            CancellationToken cancellationToken = default)
+        {
+            var position = await _dbContext.MstPositions
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == positionId && !p.IsDelete, cancellationToken);
+
+            if (position == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Jabatan tidak ditemukan."));
+            }
+
+            var requirements = await _dbContext.MstPositionCompetencyRequirements
+                .Include(r => r.Competency)
+                .AsNoTracking()
+                .Where(r => r.PositionId == positionId && r.IsActive && !r.IsDelete)
+                .OrderBy(r => r.Competency != null ? r.Competency.CompetencyName : string.Empty)
+                .ToListAsync(cancellationToken);
+
+            MstWorkforceProfile? profile = null;
+            if (workforceProfileId.HasValue)
+            {
+                profile = await _dbContext.MstWorkforceProfiles
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == workforceProfileId.Value && !p.IsDelete, cancellationToken);
+            }
+
+            var now = asOfDate ?? DateTime.UtcNow;
+            var summary = new PositionCompetencyComplianceSummaryResponse
+            {
+                PositionId = position.Id,
+                PositionCode = position.PositionCode,
+                PositionName = position.PositionName,
+                WorkforceProfileId = profile?.Id,
+                EmployeeName = profile?.DisplayName,
+                EmployeeCode = profile?.ProfileCode,
+                EvaluationDate = now,
+                TotalRequirements = requirements.Count
+            };
+
+            List<WfpCertification> employeeCerts = new();
+            List<WfpCredentialLicense> employeeLicenses = new();
+            if (profile != null)
+            {
+                employeeCerts = await _dbContext.Set<WfpCertification>()
+                    .AsNoTracking()
+                    .Where(c => c.WorkforceProfileId == profile.Id && !c.IsDelete && c.IsActive)
+                    .ToListAsync(cancellationToken);
+
+                employeeLicenses = await _dbContext.WfpCredentialLicenses
+                    .AsNoTracking()
+                    .Where(l => l.WorkforceProfileId == profile.Id && !l.IsDelete && l.IsActive && !l.IsRevoked)
+                    .ToListAsync(cancellationToken);
+            }
+
+            foreach (var req in requirements)
+            {
+                var item = new PositionCompetencyComplianceItemResponse
+                {
+                    RequirementId = req.Id,
+                    CompetencyId = req.CompetencyId,
+                    CompetencyCode = req.Competency?.CompetencyCode ?? "-",
+                    CompetencyName = req.Competency?.CompetencyName ?? "Kompetensi",
+                    IsRequired = req.IsRequired,
+                    MinimumLevel = req.MinimumLevel.ToString(),
+                    IsCertificationRequired = req.IsCertificationRequired,
+                    IsTrainingRequired = req.IsTrainingRequired
+                };
+
+                if (profile == null)
+                {
+                    item.Status = "Belum Dinilai";
+                    item.Reason = "Pilih profil nakes untuk mengevaluasi kepatuhan individual.";
+                }
+                else
+                {
+                    // Cari bukti sertifikat yang relevan (berdasarkan kode atau nama kompetensi)
+                    var compCode = req.Competency?.CompetencyCode;
+                    var compName = req.Competency?.CompetencyName;
+                    var matchedCert = employeeCerts.FirstOrDefault(c =>
+                        (!string.IsNullOrEmpty(compCode) && !string.IsNullOrEmpty(c.RequirementCode) && c.RequirementCode.Equals(compCode, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrEmpty(compName) && c.CertificationName.Contains(compName, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrEmpty(compName) && c.CertificationType.Contains(compName, StringComparison.OrdinalIgnoreCase)));
+
+                    var matchedLicense = employeeLicenses.FirstOrDefault(l =>
+                        l.LicenseType == "STR" || l.LicenseType == "SIP");
+
+                    if (matchedCert != null)
+                    {
+                        item.EvidenceSource = "Sertifikat: " + matchedCert.CertificationName;
+                        item.EvidenceNumber = matchedCert.CertificateNumber;
+                        item.EvidenceValidUntil = matchedCert.ExpiredDate;
+
+                        if (!matchedCert.IsVerified || matchedCert.VerificationStatus == "Pending")
+                        {
+                            item.Status = "Perlu Verifikasi";
+                            item.Reason = "Sertifikat pendukung telah diunggah namun masih menunggu verifikasi SDM.";
+                            item.ActionRecommendation = "Verifikasi dokumen di Submenu Sertifikasi Kompetensi.";
+                        }
+                        else if (!matchedCert.IsLifetime && matchedCert.ExpiredDate.HasValue && matchedCert.ExpiredDate.Value.Date < now.Date)
+                        {
+                            item.Status = "Belum Memenuhi";
+                            item.Reason = "Sertifikat kompetensi telah kedaluwarsa pada " + matchedCert.ExpiredDate.Value.ToString("yyyy-MM-dd") + ".";
+                            item.ActionRecommendation = "Unggah pembaruan sertifikat pelatihan.";
+                        }
+                        else
+                        {
+                            item.Status = "Memenuhi";
+                            item.ActualLevel = req.MinimumLevel.ToString();
+                            item.Reason = "Sertifikat terverifikasi valid dan masih berlaku.";
+                        }
+                    }
+                    else if (!req.IsCertificationRequired && matchedLicense != null && matchedLicense.IsPsvVerified)
+                    {
+                        item.EvidenceSource = "Lisensi Legal: " + matchedLicense.LicenseType + " #" + matchedLicense.LicenseNumber;
+                        item.EvidenceNumber = matchedLicense.LicenseNumber;
+                        item.EvidenceValidUntil = matchedLicense.ExpiredDate;
+                        item.Status = "Memenuhi";
+                        item.ActualLevel = req.MinimumLevel.ToString();
+                        item.Reason = "Lisensi profesi terverifikasi PSV.";
+                    }
+                    else
+                    {
+                        item.Status = "Belum Memenuhi";
+                        item.Reason = req.IsRequired
+                            ? "Dokumen kompetensi/sertifikasi wajib belum diunggah."
+                            : "Kompetensi opsional belum ada bukti pendukung.";
+                        item.ActionRecommendation = req.IsTrainingRequired
+                            ? "Daftarkan nakes pada program pelatihan/diklat terkait."
+                            : "Unggah dokumen sertifikasi kompetensi nakes.";
+                    }
+                }
+
+                if (item.Status == "Memenuhi") summary.MetCount++;
+                else if (item.Status == "Perlu Verifikasi") summary.PendingVerificationCount++;
+                else summary.GapCount++;
+
+                summary.Items.Add(item);
+            }
+
+            summary.CompliancePercentage = summary.TotalRequirements > 0
+                ? Math.Round((decimal)summary.MetCount / summary.TotalRequirements * 100m, 1)
+                : 0m;
+
+            return Ok(ApiResponse<PositionCompetencyComplianceSummaryResponse>.Ok(
+                summary,
+                "Matriks evaluasi kepatuhan persyaratan jabatan berhasil dihitung."));
         }
 
         [HttpPost("positions/{positionId:guid}/requirements")]

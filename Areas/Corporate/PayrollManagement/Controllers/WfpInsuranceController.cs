@@ -1,12 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Features;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 
@@ -33,13 +36,38 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly IBpjsFeatureGate _bpjsGate;
 
         public WfpInsuranceController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            IBpjsFeatureGate bpjsGate)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _bpjsGate = bpjsGate;
+        }
+
+        /// <summary>
+        /// Fitur BPJS nonaktif: isian BPJS (kepesertaan, nomor, tarif per pegawai, program) tidak lagi ditampilkan atau dikirim Frontend,
+        /// jadi request membawa nilai bawaan DTO (false/0/null). Menulisnya akan mereset data BPJS yang sudah tersimpan dan, pada profil
+        /// baru, membuat kepesertaan BPJS tampak ditetapkan. Karena itu nilai BPJS request diganti nilai tersimpan (profil lama) atau
+        /// dikosongkan (profil baru); isian asuransi swasta dan isian umum tidak tersentuh. Perubahan BPJS lewat API langsung tidak
+        /// berlaku saat nonaktif. Nilai tersimpan dipakai kembali bila BPJS diaktifkan lagi.
+        /// </summary>
+        private void PreserveBpjsFieldsWhenDisabled(CreateWfpInsuranceRequest request, PrlInsurance? existing)
+        {
+            if (_bpjsGate.IsEnabled) return;
+
+            request.IsBpjsKesehatanEnabled = existing?.IsBpjsKesehatanEnabled ?? false;
+            request.BpjsKesehatanNumber = existing?.BpjsKesehatanNumber;
+            request.IsBpjsKetenagakerjaanEnabled = existing?.IsBpjsKetenagakerjaanEnabled ?? false;
+            request.BpjsKetenagakerjaanNumber = existing?.BpjsKetenagakerjaanNumber;
+            request.BpjsHealthEmployeeRate = existing?.BpjsHealthEmployeeRate ?? 0m;
+            request.BpjsHealthEmployerRate = existing?.BpjsHealthEmployerRate ?? 0m;
+            request.BpjsEmploymentEmployeeRate = existing?.BpjsEmploymentEmployeeRate ?? 0m;
+            request.BpjsEmploymentEmployerRate = existing?.BpjsEmploymentEmployerRate ?? 0m;
+            request.BpjsEmploymentPrograms = existing?.BpjsEmploymentPrograms;
         }
 
         [HttpGet("filters/metadata")]
@@ -51,6 +79,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             var result = new WfpInsuranceFilterMetadataResponse
             {
                 DefaultFilter = new WfpInsuranceDefaultFilterResponse(),
+                ParticipationStatusOptions = new List<WfpInsuranceOptionResponse>
+                {
+                    new() { Value = InsuranceParticipationStatuses.Active, Label = "Peserta Aktif", Note = "Pilih program yang diikuti. Tarif dan batas mengikuti Pengaturan Penggajian yang berlaku." },
+                    new() { Value = InsuranceParticipationStatuses.NotParticipating, Label = "Tidak Mengikuti Program", Note = "Wajib dasar yang sah. Semua program harus nonaktif." },
+                    new() { Value = InsuranceParticipationStatuses.NotApplicable, Label = "Tidak Berlaku untuk Jenis Penerima", Note = "Wajib dasar yang sah. Semua program harus nonaktif." }
+                },
+                // Program BPJS Ketenagakerjaan tidak ditawarkan saat fitur BPJS nonaktif (daftar kosong, bukan daftar karangan).
+                EmploymentProgramOptions = !_bpjsGate.IsEnabled
+                    ? new List<WfpInsuranceOptionResponse>()
+                    : new List<WfpInsuranceOptionResponse>
+                    {
+                        new() { Value = InsurancePrograms.Jht, Label = "JHT (Jaminan Hari Tua)" },
+                        new() { Value = InsurancePrograms.Jp, Label = "JP (Jaminan Pensiun)" },
+                        new() { Value = InsurancePrograms.Jkk, Label = "JKK (Jaminan Kecelakaan Kerja)", Note = "Ditanggung pemberi kerja." },
+                        new() { Value = InsurancePrograms.Jkm, Label = "JKM (Jaminan Kematian)", Note = "Ditanggung pemberi kerja." }
+                    },
                 SortOptions = new List<WfpInsuranceSortOptionResponse>
                 {
                     new() { Value = "bpjsKesehatan", Label = "BPJS Kesehatan" },
@@ -97,6 +141,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 BpjsKetenagakerjaanEnabledProfile = await query.CountAsync(x => x.IsBpjsKetenagakerjaanEnabled, cancellationToken),
                 PrivateInsuranceEnabledProfile = await query.CountAsync(x => x.IsPrivateInsuranceEnabled, cancellationToken)
             };
+
+            // Kelengkapan dinilai pada tanggal hari ini oleh aturan yang sama dengan mesin hitung (bukan dari flag atau nominal).
+            var today = DateTime.UtcNow.Date;
+            var rows = await query.ToListAsync(cancellationToken);
+            result.ConfiguredProfile = rows.Count(x => PayrollTaxInsuranceRules
+                .AssessInsurance(PayrollInsuranceConfigFacts.From(x), 0m, null, 0m, today, today, calculate: false, enableBpjs: _bpjsGate.IsEnabled).IsConfigured);
+            result.NotConfiguredProfile = rows.Count - result.ConfiguredProfile;
 
             return Ok(ApiResponse<WfpInsuranceSummaryResponse>.Ok(
                 result,
@@ -208,6 +259,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     "Profil asuransi untuk workforce ini sudah tersedia."));
             }
 
+            PreserveBpjsFieldsWhenDisabled(request, null);
             var validation = await ValidateRequestAsync(request, null, cancellationToken);
             if (!validation.IsValid)
             {
@@ -231,11 +283,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             _dbContext.Set<PrlInsurance>().Add(entity);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            await _loggerService.InfoAsync(
+            await _loggerService.AuditAsync(
                 LogCategory,
                 "WorkforceInsuranceProfile.Create",
                 "Membuat profil asuransi workforce.",
-                new { entity.Id, entity.WorkforceProfileId });
+                AuditSnapshot(entity, null));
 
             return await GetInsuranceProfileById(workforceProfileId, entity.Id, cancellationToken);
         }
@@ -264,6 +316,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     "Profil asuransi workforce tidak ditemukan."));
             }
 
+            PreserveBpjsFieldsWhenDisabled(request, entity);
             var validation = await ValidateRequestAsync(request, id, cancellationToken);
             if (!validation.IsValid)
             {
@@ -272,11 +325,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     validation.ErrorMessage ?? "Data profil asuransi tidak valid."));
             }
 
+            var before = AuditSnapshot(entity, null);
             ApplyRequest(entity, request);
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "WorkforceInsuranceProfile.Update",
+                "Mengubah profil asuransi workforce.",
+                AuditSnapshot(entity, before));
 
             return await GetInsuranceProfileById(workforceProfileId, entity.Id, cancellationToken);
         }
@@ -314,6 +374,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     "EffectiveEndDate tidak boleh lebih kecil dari EffectiveStartDate."));
             }
 
+            var before = AuditSnapshot(entity, null);
             entity.IsActive = request.IsActive;
             entity.EffectiveEndDate = request.EffectiveEndDate?.Date;
             entity.Description = NormalizeNullableText(request.Description) ?? entity.Description;
@@ -321,6 +382,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             entity.UpdateBy = GetCurrentUserId();
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "WorkforceInsuranceProfile.UpdateStatus",
+                "Mengubah status profil asuransi workforce.",
+                AuditSnapshot(entity, before));
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -361,6 +428,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "WorkforceInsuranceProfile.Delete",
+                "Menghapus profil asuransi workforce.",
+                AuditSnapshot(entity, null));
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -445,10 +518,38 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             };
         }
 
+        /// <summary>Ringkasan aman untuk audit: konfigurasi kepesertaan dan aktor, tanpa nomor peserta atau nominal.</summary>
+        private object AuditSnapshot(PrlInsurance entity, object? before) => new
+        {
+            entity.Id,
+            entity.WorkforceProfileId,
+            entity.ParticipationStatus,
+            HasParticipationBasis = !string.IsNullOrWhiteSpace(entity.ParticipationBasis),
+            entity.IsBpjsKesehatanEnabled,
+            entity.IsBpjsKetenagakerjaanEnabled,
+            entity.BpjsEmploymentPrograms,
+            entity.IsPrivateInsuranceEnabled,
+            entity.IsActive,
+            entity.EffectiveStartDate,
+            entity.EffectiveEndDate,
+            Before = before,
+            ActorUserId = GetCurrentUserId()
+        };
+
         private WfpInsuranceResponse MapResponse(PrlInsurance entity)
         {
+            var today = DateTime.UtcNow.Date;
+            var facts = PayrollInsuranceConfigFacts.From(entity);
+            var assessment = PayrollTaxInsuranceRules.AssessInsurance(facts, 0m, null, 0m, today, today, calculate: false, enableBpjs: _bpjsGate.IsEnabled);
+
             return new WfpInsuranceResponse
             {
+                ParticipationStatus = entity.ParticipationStatus,
+                ParticipationBasis = entity.ParticipationBasis,
+                BpjsEmploymentPrograms = entity.BpjsEmploymentPrograms,
+                ConfigurationStatus = assessment.ConfigurationStatus,
+                ConfigurationIssues = assessment.Issues.ToList(),
+                HasIgnoredPerEmployeeRates = facts.HasPerEmployeeRates,
                 Id = entity.Id,
                 WorkforceProfileId = entity.WorkforceProfileId,
                 WorkforceProfileCode = entity.WorkforceProfile?.ProfileCode ?? string.Empty,
@@ -482,6 +583,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
 
             return new WfpInsuranceDetailResponse
             {
+                ParticipationStatus = response.ParticipationStatus,
+                ParticipationBasis = response.ParticipationBasis,
+                BpjsEmploymentPrograms = response.BpjsEmploymentPrograms,
+                ConfigurationStatus = response.ConfigurationStatus,
+                ConfigurationIssues = response.ConfigurationIssues,
+                HasIgnoredPerEmployeeRates = response.HasIgnoredPerEmployeeRates,
                 Id = response.Id,
                 WorkforceProfileId = response.WorkforceProfileId,
                 WorkforceProfileCode = response.WorkforceProfileCode,
@@ -559,6 +666,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 return (false, "EffectiveEndDate tidak boleh lebih kecil dari EffectiveStartDate.");
             }
 
+            // Kepesertaan eksplisit: semua flag false bukan bukti tidak wajib mengikuti program. Aturan sama dengan mesin hitung.
+            // Saat BPJS nonaktif, isian BPJS yang tersimpan tidak boleh menghalangi perubahan status kepesertaan ke "tidak mengikuti"
+            // atau "tidak berlaku" (Frontend tidak menampilkannya, jadi pengguna tidak dapat mengosongkannya); nilai tersimpan tetap
+            // dipertahankan dan tidak diubah oleh penyimpanan ini.
+            var participationStatus = PayrollTaxInsuranceRules.NormalizeCode(request.ParticipationStatus);
+            var ignoreStoredBpjsFlags = !_bpjsGate.IsEnabled && participationStatus is not null && participationStatus != InsuranceParticipationStatuses.Active;
+            var configurationErrors = PayrollTaxInsuranceRules.ValidateInsuranceConfiguration(
+                participationStatus,
+                NormalizeNullableText(request.ParticipationBasis),
+                !ignoreStoredBpjsFlags && request.IsBpjsKesehatanEnabled,
+                !ignoreStoredBpjsFlags && request.IsBpjsKetenagakerjaanEnabled,
+                ignoreStoredBpjsFlags ? null : NormalizeNullableText(request.BpjsEmploymentPrograms),
+                request.IsPrivateInsuranceEnabled,
+                request.PrivateInsuranceEmployeeContribution,
+                request.PrivateInsuranceEmployerContribution);
+            if (configurationErrors.Count > 0)
+                return (false, string.Join(" ", configurationErrors));
+
             var healthNumber = NormalizeNullableText(request.BpjsKesehatanNumber);
             if (healthNumber != null &&
                 await _dbContext.Set<PrlInsurance>().AnyAsync(
@@ -603,8 +728,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             entity.PrivateInsuranceEmployerContribution = request.PrivateInsuranceEmployerContribution;
             entity.EffectiveStartDate = request.EffectiveStartDate?.Date;
             entity.EffectiveEndDate = request.EffectiveEndDate?.Date;
+            entity.ParticipationStatus = PayrollTaxInsuranceRules.NormalizeCode(request.ParticipationStatus);
+            entity.ParticipationBasis = entity.ParticipationStatus is null or InsuranceParticipationStatuses.Active
+                ? null
+                : NormalizeNullableText(request.ParticipationBasis);
+            entity.BpjsEmploymentPrograms = request.IsBpjsKetenagakerjaanEnabled
+                ? NormalizePrograms(request.BpjsEmploymentPrograms)
+                : null;
             entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
+        }
+
+        /// <summary>Daftar program kanonik (JHT,JP,JKK,JKM) berurutan tetap; kosong tetap kosong (semua program).</summary>
+        private static string? NormalizePrograms(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            var chosen = PayrollTaxInsuranceRules.ParsePrograms(value);
+            return InsurancePrograms.All.Where(chosen.Contains).Any()
+                ? string.Join(",", InsurancePrograms.All.Where(chosen.Contains))
+                : null;
         }
 
         private async Task<bool> WorkforceProfileExistsAsync(
