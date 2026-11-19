@@ -169,3 +169,236 @@ Satu peran saja: pasien memakai akun perangkat Kiosk. Seluruh tombol pada skema 
 | Tanpa browser storage | Tidak ada `localStorage`/`sessionStorage` untuk data pasien |
 | Tanpa console | `console.log` data pasien dihapus di service Kiosk |
 | Pembersihan | `SESSION_CLEARED` membuang pasien, hasil pindai, draf, dan handoff |
+
+
+---
+
+# Amendment PO — Frontend Pendaftaran Pasien Online dan Check-in Kiosk
+
+| Field | Nilai |
+| --- | --- |
+| Revisi blueprint | `2` — `approved` — Sukma Giri Pratama, 19 Nov 2026 (`KSK-DEC-054`) |
+| Kontrak | `KSK-CONTRACT-v2` (`approved`) |
+| SHA acuan | FE `5f18e9f04` |
+| Wewenang UI | `KSK-PO-FE-001` s.d. `005` (§13.8 decision log) |
+
+## PO-FE.1 Kebutuhan layar
+
+| ID | Layar | Status | Route | Requirement |
+| --- | --- | --- | --- | --- |
+| `FE-KSK-PO-01` | Pendaftaran Pasien Online (publik, tanpa login) | **Baru** | `/online-registration` (`DEV_DISCRETION`, `KSK-PO-FE-004`) | AC 1, 2, 4, 5, 6, 14, 15, 16 |
+| `FE-KSK-PO-02` | Check-in Pasien Online (kiosk) beserta Lupa Kode | **Baru** | `/kiosk/registration/online-check-in` (`DEV_DISCRETION` di bawah `/kiosk/registration/**`) | AC 7, 8, 9, 10, 13, 17 |
+| `FE-KSK-PO-03` | Daftar Pendaftaran Online (petugas) | **Baru** | `/health-services/registration-management/online-registrations` | AC 18 |
+| `FE-KSK-PO-04` | Detail Pendaftaran Online (petugas) beserta Ubah Jadwal, Ubah Kontak, Batal | **Baru** | `/health-services/registration-management/online-registrations/[id]` | AC 18, 19, 20 |
+| `FE-KSK-01` | Beranda Kiosk | Diperbarui — kartu "Check-in Pasien Online" diberi route | `/kiosk` | `KSK-DEC-036` |
+
+## PO-FE.2 Peta butir menu
+
+```text
+Sidebar petugas
+└── Registration Management (grup yang sudah ada)
+    ├── Pendaftaran Pasien                -> .../outpatient-registration      (sudah ada)
+    ├── Reservasi Prioritas               -> .../priority-reservations        (sudah ada)
+    └── Pendaftaran Online                -> .../online-registrations         FE-KSK-PO-03 (Baru)
+            └── (layar anak) Detail       -> .../online-registrations/[id]    FE-KSK-PO-04
+
+Beranda Kiosk (/kiosk)                                                         FE-KSK-01
+└── Check-in Pasien Online (kartu)        -> /kiosk/registration/online-check-in   FE-KSK-PO-02 (notice diganti route)
+
+Tanpa menu (publik)
+└── /online-registration                                                       FE-KSK-PO-01
+```
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+| --- | :---: | --- | --- | --- | --- | --- |
+| Pendaftaran Online | 2 | Grup Registration Management yang memuat "Reservasi Prioritas" | `/health-services/registration-management/online-registrations` | `FE-KSK-PO-03` | `OnlineRegistration : Read` (`requiredPermission`) | Baru |
+| Check-in Pasien Online (kartu kiosk) | 1 | Beranda Kiosk | `/kiosk/registration/online-check-in` | `FE-KSK-PO-02` | Login perangkat kiosk + `kioskCanAppointment` (kartu `enabledType: "appointment"`) + `KioskRead` di backend | Diperbarui |
+
+Layar tanpa butir menu:
+
+| Layar | Jenis | Jalan masuk |
+| --- | --- | --- |
+| `FE-KSK-PO-04` | Layar anak | Tombol baris di `FE-KSK-PO-03` |
+| `FE-KSK-PO-01` | Halaman publik | Tautan atau kode QR yang dibagikan rumah sakit (situs web, media sosial, poster). Route didaftarkan sebagai jalur publik di `src/proxy.js` (`PUBLIC_PATH_PREFIXES`), `src/components/providers/root-layout-shell.jsx`, dan `src/components/ui/auth-wrapper.jsx` (`CAP-PO-21`) |
+
+Nama butir, ikon, dan urutan di dalam grup tetap `DEV_DISCRETION`. Letak butir di grup yang sama dengan "Reservasi Prioritas" sudah dikunci (`KSK-PO-FE-005`, `KSK-DEC-054`).
+
+## PO-FE.3 Skema fitur per layar
+
+### `FE-KSK-PO-01` Pendaftaran Pasien Online (publik)
+
+Langkah sama dengan menu Pendaftaran Pasien RJ (`KSK-DEC-029`). Bentuk penunjuk langkah (stepper) `DEV_DISCRETION`.
+
+```text
++- Pendaftaran Pasien Online ------------------------------- FE-KSK-PO-01 -+
+| Logo RS                                               [langkah 1..7]    |
++-------------------------------------------------------------------------+
+| 1 Data Pasien   ( ) Pasien lama  ( ) Pasien baru                        |
+|   lama: [NIK / No. RM v] [nomor] [tgl lahir]      -> "Si** Ra****"      |
+|   baru: [NIK] [nama lengkap] [tgl lahir] [jenis kelamin]                |
+|   [No. WhatsApp atau email]                                             |
+| 2 Jenis Pasien  ( ) Pribadi ( ) Asuransi ( ) Rujukan                    |
+| 3 Data Kunjungan [tanggal H+1..H+30] [poli v] [kartu jadwal + sisa kuota]|
+| 4 Data Rujukan (Rujukan) [faskes] [tgl surat] [no.] [dokter] [berkas x3] |
+| 5 Penjamin      [kartu milik pasien, tersamar] / [kartu baru] / Tunai   |
+| 6 General Consent (pasien baru) [klausul] [penanda tangan] [tanda tangan]|
+| 7 Verifikasi    ringkasan + [captcha] [Kirim]                           |
++-------------------------------------------------------------------------+
+| Selesai: No. PO-261125-0007   KODE  K7QM-4TRZ                           |
+|   Rabu 25 Nov 2026, Poli Anak, dr. Sari, 08.00–12.00                    |
+|   "Kode sudah dikirim ke email Anda" / "Email gagal terkirim"           |
+|   [Kirim kode ke WhatsApp saya]  [Salin kode]                           |
++-------------------------------------------------------------------------+
+```
+
+Urutan langkah 3–5 mengikuti jenis pasien persis seperti menu RJ (`F-PO-2`): Asuransi → Penjamin → Data Kunjungan; Pribadi → Data Kunjungan; Rujukan → Data Kunjungan → Data Rujukan → Penjamin.
+
+| Wilayah | Isi | Sumber data | Hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Data Pasien (lama) | Hasil cocok: nama tersamar | `POST /public/patient-match` | Tanpa login + captcha | Tidak cocok → "Data tidak ditemukan. Periksa kembali isian Anda atau daftar di loket pendaftaran." `429` → "Terlalu banyak percobaan. Silakan coba lagi nanti." |
+| Data Kunjungan — poli | Daftar poli | `GET /public/options/clinics` | Tanpa login | Kosong → "Belum ada jadwal online pada tanggal ini. Pilih tanggal lain." Gagal → "Data gagal dimuat." [Coba lagi] |
+| Data Kunjungan — jadwal | Kartu jadwal: dokter, jam, sesi, sisa kuota, penanda penuh | `GET /public/options/doctor-schedules` | Tanpa login | Kosong → "Tidak ada jadwal dokter pada poli dan tanggal ini." Jadwal penuh tampil tetapi tidak dapat dipilih |
+| Data Rujukan | Pencarian faskes, isian surat, unggah berkas | `GET /public/options/referral-institutions` | Tanpa login | Pencarian kosong → "Faskes tidak ditemukan." |
+| Penjamin | Kartu milik pasien (dari hasil cocok), kartu baru, Tunai | `patient-match` (`payers[]`), `GET /public/options/insurance-providers` | Tanpa login | Tanpa kartu → hanya kartu baru dan Tunai |
+| General Consent | Klausul dan tanda tangan | Komponen consent RJ (statis) | — | — |
+| Verifikasi + Kirim | Ringkasan, widget captcha, tombol Kirim | `POST /public` | Tanpa login + captcha | Widget gagal dimuat → tombol Kirim nonaktif + "Verifikasi keamanan belum siap, muat ulang halaman." Penolakan → pesan dari validation matrix, data isian tetap |
+| Selesai | Nomor, kode, ringkasan, status email, tombol WhatsApp | Respons `POST /public` | — | — |
+
+### `FE-KSK-PO-02` Check-in Pasien Online (kiosk)
+
+```text
++- Check-in Pasien Online ---------------------------------- FE-KSK-PO-02 -+
+| [Saya punya kode]                     [Lupa Kode]                        |
+|  kode [K7QM-4TRZ] + tgl lahir          [NIK / No. RM v][nomor] + tgl lahir|
+|                     [Periksa]                                            |
++--------------------------------------------------------------------------+
+| Ringkasan: Si** Ra****, Rabu 25 Nov, Poli Anak, dr. Sari, 08.00–12.00    |
+|            Penjamin: Tunai / Asuransi •••• 1234    Rujukan: Puskesmas X  |
+| (pasien baru) Pindai KTP/KIA -> NIK terkunci -> cocok / tidak cocok      |
+|                     [Check-in Sekarang]                                  |
++--------------------------------------------------------------------------+
+| Tiket: A-07 — Poli Anak — dr. Sari   [Cetak ulang]   kembali ke beranda  |
++--------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Pilihan cara | Kode atau Lupa Kode | — | Akun kiosk | — |
+| Verifikasi | Isian + tombol Periksa | `POST /online-registrations/kiosk/check-in/verify` | `KioskRead` | `404` → "Data tidak sesuai atau pendaftaran sudah tidak berlaku. Periksa kembali atau hubungi petugas." `409` → "Check-in hanya dapat dilakukan pada {tanggal}." |
+| Ringkasan | Data paket check-in | Respons verifikasi | `KioskRead` | — |
+| Pindai kartu (pasien baru) | Langkah pindai kiosk Pasien Baru dengan NIK terkunci, pilihan kartu hanya KTP dan KIA | Agen Plustek lokal; `findExistingKioskPatientByIdentity`; `POST patients/kiosk` dan dokumen identitas bila belum ada | `KioskRead` | NIK tidak terbaca → "NIK tidak terbaca. Pindai ulang kartu, atau ke loket pendaftaran." Beda → "Data kartu identitas tidak sesuai dengan pendaftaran online. Silakan ke loket pendaftaran." |
+| Check-in | Tombol Check-in Sekarang | `POST patient-encounters/kiosk` dengan `onlineRegistrationId` + token; kartu asuransi baru lebih dulu lewat `POST patient-insurances/kiosk` | `KioskRead` | `409` jadwal → "Jadwal dokter berubah, silakan ke loket pendaftaran." Token habis → "Waktu check-in habis. Silakan ulangi dari awal." |
+| Tiket | Nomor antrean, poli, dokter | Respons kunjungan; cetak lewat `thermal-ticket-print.utils.js` (`CAP-PO-25`) | — | Printer gagal → tiket tampil di layar + "Ambil tiket di menu Cetak Antrean" |
+
+Batas waktu tanpa sentuhan memakai `use-kiosk-inactivity-timeout` yang ada. Sesi dibersihkan setelah tiket atau setelah batas waktu.
+
+### `FE-KSK-PO-03` Daftar Pendaftaran Online (petugas)
+
+Pola layar sama dengan Daftar Reservasi Prioritas (`CAP-PO-35`).
+
+```text
++- Pendaftaran Online --------------------------------------- FE-KSK-PO-03 -+
+| [Menunggu 40] [Kunjungan 12] [Jalur Lain 3] [Tidak Datang 5] [Batal 6]  |
+| [cari kode / nomor / nama / No. RM / NIK] [tgl dari–sampai] [Status v]   |
++--------------------------------------------------------------------------+
+| No. | Tgl kunjungan | Pasien | No. RM/"Pasien baru" | Poli | Dokter |     |
+| Jenis | Kontak | Status chip | [Detail]                                  |
++--------------------------------------------------------------------------+
+| memuat -> kerangka baris                                                 |
+| kosong -> "Belum ada pendaftaran online pada saringan ini." [Atur ulang] |
+| gagal  -> "Data gagal dimuat." [Coba lagi]                               |
++- Halaman 1 dari n --------------------------- [< Sebelumnya] [Berikutnya >]+
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Ringkasan | Jumlah per status | `GET /online-registrations/summary` | `OnlineRegistration : Read` | Gagal → angka "—" dan tombol coba lagi |
+| Filter | Rentang tanggal kunjungan (bawaan hari ini s.d. 30 hari), status, pencarian | — | — | Pencarian < 3 karakter → "Kata kunci pencarian minimal 3 karakter." |
+| Tabel | Kolom `OnlineRegistrationListItemResponse` | `GET /online-registrations` | `OnlineRegistration : Read` | Kosong/gagal seperti gambar |
+| Akses | Seluruh layar | — | `OnlineRegistration : Read` | Tanpa hak → `AccessDeniedGate` |
+
+### `FE-KSK-PO-04` Detail Pendaftaran Online (petugas)
+
+```text
++- PO-261125-0007 — Pasien baru: Contoh Pasien ------------- FE-KSK-PO-04 -+
+| Menunggu Check-in   Rabu 25 Nov 2026   Poli Anak   dr. Sari 08.00–12.00  |
+| [Ubah Jadwal] [Ubah Kontak] [Batalkan]                                   |
++---------------+----------------------------------------------------------+
+| Pasien        | NIK, nama, tgl lahir, jenis kelamin / No. RM             |
+| Kunjungan     | jenis pasien, penjamin, kartu                            |
+| Rujukan       | faskes, nomor, tanggal, dokter, berkas [Buka]            |
+| Kontak        | No. WA / email, status email                             |
+| Riwayat       | linimasa kejadian, nilai lama -> baru, petugas, waktu    |
++---------------+----------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Kepala dan bagian isi | Detail | `GET /online-registrations/{id}` | `OnlineRegistration : Read` | Gagal → seluruh layar diganti pesan + [Coba lagi]; `404` → "Pendaftaran tidak ditemukan." |
+| Tombol Ubah Jadwal | Pilih tanggal dan jadwal di poli yang sama, dengan sisa kuota | `GET /patient-encounters/doctor-schedule-quotas` (endpoint petugas yang ada) lalu `PUT /{id}/schedule` | `OnlineRegistration : Update` | Disembunyikan bila tanpa hak atau `canChangeSchedule = false`. `409` → pesan validation matrix, data dimuat ulang |
+| Tombol Ubah Kontak | Isian No. WA/email | `PUT /{id}/contact` | `OnlineRegistration : Update` | Disembunyikan bila tanpa hak atau status akhir |
+| Tombol Batalkan | Konfirmasi + alasan wajib | `POST /{id}/cancel` | `OnlineRegistration : Cancel` | Disembunyikan bila tanpa hak atau status akhir |
+| Berkas rujukan | Buka berkas | `GET /{id}/referral-documents/{documentId}` | `OnlineRegistration : Read` | Gagal → "Berkas tidak dapat dibuka." |
+| Riwayat | Linimasa | Bagian `histories[]` detail | `OnlineRegistration : Read` | Tidak pernah kosong (minimal `SUBMITTED`) |
+
+Bentuk Ubah Jadwal, Ubah Kontak, dan Batalkan (modal, drawer, atau halaman) `DEV_DISCRETION`. Konfirmasi batal memakai `ConfirmModal` yang ada.
+
+## PO-FE.4 Rencana file
+
+| File | Status | Isi |
+| --- | --- | --- |
+| `src/app/online-registration/page.jsx`, `layout.jsx` | Baru | Halaman publik, tanpa navbar/sidebar (pola `src/app/priority-arrival/`) |
+| `src/components/view/online-registration/**` | Baru | View publik dan langkah yang tidak ada padanannya (Data Pasien publik, Selesai publik) |
+| `src/lib/hooks/online-registration/use-online-registration.js` | Baru | State langkah, validasi, kirim |
+| `src/lib/services/online-registration/online-registration-public.service.js` | Baru | Panggilan endpoint publik (`InstanceAxios` tanpa token) |
+| `src/lib/constants/online-registration/online-registration.constants.js` | Baru | Urutan langkah (diturunkan dari `outpatient-registration.constants.js`), pesan |
+| Komponen langkah RJ murni (`outpatient-visit-type-step`, `outpatient-payer-step`, `outpatient-general-consent-step`, `outpatient-schedule-card`, `outpatient-practice-schedule-modal`) | Dipakai ulang | Data diberikan lewat props dari hook publik. `outpatient-visit-step`, `outpatient-referral-step`, `outpatient-verification-step` mendapat varian props sumber data, bukan salinan (`CAP-PO-22`) |
+| `src/app/kiosk/registration/online-check-in/page.jsx` | Baru | Route kiosk |
+| `src/components/view/kiosk/registration/online-check-in/**` | Baru | Pilihan cara, verifikasi, ringkasan, pindai, tiket |
+| `src/lib/hooks/kiosk/registration/use-kiosk-online-check-in.js` | Baru | Alur check-in, pembersihan sesi |
+| `src/lib/services/kiosk/registration/kiosk-online-check-in.service.js` | Baru | Verifikasi dan pembuatan kunjungan |
+| `kiosk-new-patient-step-scan-identity.jsx` | Diperbarui | Prop opsional `lockedFieldNames` (bawaan kosong) dan `allowedIdentityTypes` (bawaan semua); kiosk Pasien Baru tidak berubah (`CAP-PO-37`) |
+| `src/components/view/kiosk/kiosk-home-view.jsx` | Diperbarui | `onlineCheckIn` mendapat route |
+| `src/app/health-services/registration-management/online-registrations/page.jsx`, `[id]/page.jsx` | Baru | Layar petugas |
+| `src/components/view/health-services/registration-management/online-registrations/**` | Baru | Daftar, kolom tabel, detail, modal aksi |
+| `src/lib/state/slice/health-services/registration-management/online-registration-slice.js` | Baru | Pola `priority-reservation-slice` |
+| `src/lib/services/health-services/registration-management/online-registration.service.js` | Baru | Endpoint petugas |
+| `src/lib/hooks/health-services/registration-management/online-registrations/*` | Baru | Daftar dan detail, `usePermission("OnlineRegistration", …)` |
+| `src/lib/constants/health-services/registration-management/online-registration-constants.js` | Baru | Resource, aksi, status, route |
+| `src/utils/menu-sidebar/menu-items.jsx` | Diperbarui | Butir "Pendaftaran Online" |
+| `src/proxy.js`, `src/components/providers/root-layout-shell.jsx`, `src/components/ui/auth-wrapper.jsx` | Diperbarui | `/online-registration` sebagai jalur publik |
+| `next.config.js` | Diperbarui | `https://challenges.cloudflare.com` pada `script-src` dan `frame-src` |
+| `.env` contoh | Diperbarui | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (site key bukan rahasia) |
+
+Penentuan `REUSE`/`EXTEND`/`COMPOSE`/`WRAP`/`NEW` per elemen dijalankan saat build lewat gerbang keputusan base component (`build-module-frontend` langkah 3).
+
+## PO-FE.5 Penanganan keadaan
+
+| Keadaan | Halaman publik | Kiosk | Layar petugas |
+| --- | --- | --- | --- |
+| Memuat | Kerangka pada daftar poli/jadwal; tombol terkunci saat kirim | Tombol "Memeriksa..." / "Memproses..." | Kerangka baris |
+| Kosong | Pesan per wilayah (PO-FE.3) | — | "Belum ada pendaftaran online pada saringan ini." |
+| Gagal | Pesan + [Coba lagi]; isian tidak hilang | Pesan + kembali ke langkah sebelumnya | Pesan + [Coba lagi] |
+| Data basi | Kuota dibaca ulang saat Kirim; `409` kuota → kembali ke Data Kunjungan dengan pesan | Token 15 menit; habis → ulangi dari awal | `409` `RowVersion` → muat ulang detail |
+| Kirim ganda | Tombol terkunci + kunci pasien di server | Tombol terkunci + kunci pasien di server | Tombol terkunci |
+
+## PO-FE.6 Kewenangan UI
+
+| Area | Mengikat | `DEV_DISCRETION` |
+| --- | --- | --- |
+| Urutan langkah halaman online | Sama dengan menu RJ (`KSK-PO-FE-001`) | Bentuk stepper |
+| Data yang tampil di halaman publik | Nama dan nomor kartu tersamar saja (`KSK-PO-FE-002`) | — |
+| Isi email dan WhatsApp | Kode, tanggal, poli, dokter; tanpa NIK/No. RM/penjamin (`KSK-PO-FE-003`) | Kalimat |
+| Route publik, tata letak halaman online, layar check-in | Mengikuti konvensi frontend dan gaya kiosk (`KSK-PO-FE-004`) | Route, tata letak |
+| Layar petugas | Isi dan aksi `KSK-DEC-050` s.d. `052` (`KSK-PO-FE-005`) | Tata letak, bentuk modal; letak menu dikunci saat approval |
+| Warna, ikon, jarak, tipografi | Token CSS; tidak ada warna literal (memori `warna-css-wajib-token`) | Pilihan token |
+
+## PO-FE.7 Privasi di frontend
+
+| Aturan | Penerapan |
+| --- | --- |
+| Tanpa data pasien di URL | Seluruh identitas lewat body `POST` |
+| Tanpa browser storage untuk data pasien | Draf halaman online hanya di memori; muat ulang halaman = mulai ulang |
+| Kode hanya ditampilkan sekali | Tidak disimpan di storage; tombol Salin dan WhatsApp memakai nilai di memori |
+| Tanpa console | Tidak ada `console.log` isian pasien |
+| Kiosk | Sesi dibersihkan setelah tiket, Batal, atau batas waktu |

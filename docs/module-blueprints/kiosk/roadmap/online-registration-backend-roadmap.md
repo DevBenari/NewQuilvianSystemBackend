@@ -1,0 +1,259 @@
+# Backend Roadmap — Pendaftaran Pasien Online dan Check-in Kiosk (Amendment PO)
+
+| Field | Nilai |
+| --- | --- |
+| Roadmap ID | `KSK-PO-RM-BE-001` |
+| Revision | `1` |
+| Status | `draft` — menunggu approval Sukma Giri Pratama. Wewenang implementasi **belum** diberikan |
+| Blueprint | `KSK-BP-001` revisi `2`, `approved` (Sukma Giri Pratama, 2026-11-19, `KSK-DEC-054`), bentuk `SINGLE` |
+| Cakupan | `EPIC KSK-PO-01` s.d. `KSK-PO-04` (sisi backend), rilis `MVP-0` s.d. `MVP-3` (`04-prd-to-mvp.md` PO-20). `POST-MVP` tidak direncanakan |
+| SHA baseline | BE `5e777833` (`sukmagp`), FE `5f18e9f04` (`sukmagpV2`) |
+| Kontrak masukan | `KSK-CONTRACT-v2` `approved`, bagian *Amendment PO*. Hash berkas sesudah approval: `api-contract.md` `1aca969a678d`, `state-transition-matrix.md` `2df4865bd7a1`, `validation-matrix.md` `f37f0f6b4746`, `integration-contract.md` `d8cab335cd07`, `permission-audit-matrix.md` `b031ae6f062d` |
+| Masukan desain | `02-backend-architecture.md` PO.1–PO.15 (`0b8b3e654f26`), `data/data-dictionary.md` PO-D (`e5034ab703ae`), `04-prd-to-mvp.md` PO-10, PO-20 (`edccb4141345`), `testing/acceptance-test-matrix.md` PO-T (`d97bb3d86834`) |
+| Owner | Sukma Giri Pratama |
+| Nama berkas | `online-registration-backend-roadmap.md`, karena `roadmap/backend-roadmap.md` sudah dimiliki revisi 1 (`KSK-RM-BE-001`). Pola sama dengan `rawat-jalan/roadmap/priority-reservation-backend-roadmap.md` |
+
+> **Batas dokumen.**
+> 1. Roadmap ini **bukan** izin menulis kode. Setiap task baru boleh dikerjakan lewat `build-module-backend` setelah roadmap disetujui dan task diminta secara eksplisit.
+> 2. **QBE preflight** dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend dan dokumen engineering canonical, bukan dari roadmap ini.
+> 3. Migration `AddRegOnlineRegistration` di `BE-KSK-PO-001`: **pembuatan** dan **penerapan** ke `QuilvianNewDevSukma` masing-masing butuh konfirmasi terpisah dari pemilik (`CLAUDE.md`). `KSK-DEC-054` tidak mencakup izin itu.
+> 4. Verifikasi memakai pola Bank Darah: build, `has-pending-model-changes`, QBE Strict, verifier otorisasi, runtime HTTP ke `QuilvianNewDevSukma` dengan data samaran yang dibuat lewat API (bukan eksekusi DB langsung). Tanpa folder `Tests/`. `dotnet test` ditulis `NOT RUN — tidak ada project test`.
+> 5. Lingkungan dev memakai kunci uji resmi Cloudflare Turnstile dan SMTP uji lokal atau `Email:Smtp:Enabled = false`. Nilai rahasia tidak pernah ditulis ke berkas yang di-commit.
+> 6. Commit, push, dan deployment tetap wewenang pemilik.
+
+## Legenda tanda status
+
+| Tanda | Arti |
+| :---: | --- |
+| ✅ | Acceptance criteria dan DoD terbukti |
+| 🟡 | Source ada, kriteria belum terbukti penuh |
+| ⛔ | Prasyarat berupa keputusan atau gerbang belum terpenuhi |
+| tanpa tanda | Belum disentuh |
+
+## Grafik Urutan Dependency
+
+```text
+BE-KSK-PO-001 ─> BE-KSK-PO-002 ─┬─> BE-KSK-PO-004 ─> BE-KSK-PO-005 ─┬─> BE-KSK-PO-006
+                                │                                   │
+BE-KSK-PO-003 ──────────────────┘                                   ├─> BE-KSK-PO-008
+                                                                    │
+                                                                    └─> BE-KSK-PO-009
+
+BE-KSK-PO-006 ─> BE-KSK-PO-007
+
+BE-KSK-PO-009 ─> BE-KSK-PO-010
+```
+
+Blok kedua dan ketiga menyambung rantai dari `BE-KSK-PO-006` dan `BE-KSK-PO-009` pada blok pertama, karena satu baris tidak muat 100 karakter.
+
+Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→005`, `005→006`, `005→008`, `005→009`, `006→007`, `009→010`), sama dengan isi kolom `Dependency`.
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | `BE-KSK-PO-001`, `BE-KSK-PO-003` — boleh paralel |
+| 2 | `BE-KSK-PO-001` | `BE-KSK-PO-002` |
+| 3 | `BE-KSK-PO-002`, `BE-KSK-PO-003` | `BE-KSK-PO-004` |
+| 4 | `BE-KSK-PO-004` | `BE-KSK-PO-005` |
+| 5 | `BE-KSK-PO-005` | `BE-KSK-PO-006`, `BE-KSK-PO-008`, `BE-KSK-PO-009` — boleh paralel |
+| 6 | `BE-KSK-PO-006` / `BE-KSK-PO-009` | `BE-KSK-PO-007`, `BE-KSK-PO-010` |
+
+**Gelombang rilis produk** (`04-prd-to-mvp.md` PO-20) berbeda dari gelombang teknis:
+
+| Rilis | Task | Catatan |
+| --- | --- | --- |
+| `MVP-0` | `BE-KSK-PO-001`, `002`, `008` | `008` secara teknis menunggu `005`, karena data uji penutupan hanya boleh dibuat lewat API pendaftaran. Rilisnya bersama `MVP-1` |
+| `MVP-1` | `BE-KSK-PO-003`, `004`, `005` | Development boleh jalan. Go-live menunggu `KSK-PO-OQ-010`, `015`, `016` |
+| `MVP-2` | `BE-KSK-PO-006`, `007` | — |
+| `MVP-3` | `BE-KSK-PO-009`, `010` | Boleh dikerjakan paralel dengan `MVP-2` sesudah `005` |
+
+`BE-KSK-PO-002`, `007`, dan `008` sama-sama mengubah `PatientEncounterController.CreateEncounterCoreAsync`. Kerjakan berurutan atau pada branch yang sama agar tidak terjadi konflik di blok transaksi yang sama.
+
+## Tabel task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `BE-KSK-PO-001` | Skema pendaftaran online dan migration | `FR-KSK-PO-001`; `KSK-DSN-PO-001`, `002`, `003`, `014` | PO-D.2–D.4, D.6 | `IdentityModel`, pola `RegPriorityReservation` | Model, enum, configuration, `DbSet`, opsi, `appsettings.json`, migration | — | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
+| `BE-KSK-PO-002` | Kuota menghitung pendaftaran online dan dikunci per jadwal | `FR-KSK-PO-002`; `INV-PO-02`; `KSK-DSN-PO-009` | PO.4.3 | `DoctorScheduleQuotaService`, pola `pg_advisory_xact_lock` | `DoctorScheduleQuotaService`, `PatientEncounterController` | `BE-KSK-PO-001` | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
+| `BE-KSK-PO-003` | Pemeriksa captcha dan pengirim email | `FR-KSK-PO-013`; `KSK-DSN-PO-006`, `007` | `INT-PO-01`, `INT-PO-03` | `IHttpClientFactory`, `System.Net.Mail` | `Services/Security`, `Services/Notification`, `Program.cs`, `appsettings.json` | — | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
+| `BE-KSK-PO-004` | Opsi publik dan pencocokan pasien lama | `FR-KSK-PO-010`, `011`, `014`; `KSK-DEC-031`, `KSK-DSN-PO-005`, `013` | Grup *Online Registration Public* (`GET options/*`, `POST patient-match`) | `PriorityReservationArrivalController`, `KioskPatientLookupService`, `MaskPatientName` | Controller publik, `OnlineRegistrationPublicService`, `PatientNameMasker`, dua policy rate limit | `BE-KSK-PO-002`, `BE-KSK-PO-003` | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
+| `BE-KSK-PO-005` | Kirim pendaftaran online | `FR-KSK-PO-012`; `KSK-DEC-030`, `034`, `035`, `038`, `042`, `043`, `047` | Grup publik `POST` | `NumberSeriesAllocator`, helper hash RP, `ReferralDocumentStorageService` (root dan validasi berkas) | `OnlineRegistrationPublicService`, controller publik, policy submit | `BE-KSK-PO-004` | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
+| `BE-KSK-PO-006` | Verifikasi check-in kiosk | `FR-KSK-PO-020`; `KSK-DEC-033`, `040` | Grup *Online Registration Check-In* | Pola `KioskPatientLookupController` | `OnlineRegistrationCheckInController`, `OnlineRegistrationCheckInService`, policy check-in | `BE-KSK-PO-005` | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
+| `BE-KSK-PO-007` | Check-in menjadi kunjungan | `FR-KSK-PO-021`; `KSK-DEC-036`, `039`, `046`, `048`; `KSK-DSN-PO-008`, `010` | `POST patient-encounters/kiosk` (diperluas) | Hook RP `PrepareCompletionAsync`/`CompleteInTransactionAsync` | `PatientEncounterController`, `PatientEncounterCreateRequest`, `OnlineRegistrationCheckInService` | `BE-KSK-PO-006` | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
+| `BE-KSK-PO-008` | Penutupan Jalur Lain dan Tidak Datang | `FR-KSK-PO-003`, `004`; `KSK-DEC-037`, `045`; `KSK-DSN-PO-015` | PO-S.1 | `CloseForEncounterAsync` RP, `OutpatientPriorityReservationClosureHostedService` | `OnlineRegistrationService`, hosted service, `PatientEncounterController`, `Program.cs` | `BE-KSK-PO-005` | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
+| `BE-KSK-PO-009` | Daftar, ringkasan, detail, berkas untuk petugas | `FR-KSK-PO-030`, `032` (Resource); `KSK-DEC-050`; `KSK-DSN-PO-017` | Grup *Online Registration* (`GET`) | `OutpatientPriorityReservationController#GetAll`, `summary`, detail | `OnlineRegistrationController`, `OnlineRegistrationService` | `BE-KSK-PO-005` | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
+| `BE-KSK-PO-010` | Ubah jadwal, ubah kontak, batal | `FR-KSK-PO-031`, `032`; `KSK-DEC-051`, `052`; `KSK-DSN-PO-016` | Grup *Online Registration* (`PUT`, `POST cancel`) | `CancelAsync` RP, `RowVersion` | `OnlineRegistrationController`, `OnlineRegistrationService` | `BE-KSK-PO-009` | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
+
+## Kartu task
+
+### `BE-KSK-PO-001` — Skema pendaftaran online dan migration
+
+| Field | Isi |
+| --- | --- |
+| Status | Belum dikerjakan |
+| Outcome | `RegOnlineRegistration`, `RegOnlineRegistrationReferralDocument`, `RegOnlineRegistrationHistory`; lima enum baru; `EncounterRegistrationSource.OnlineRegistration = 7`, `ReferralCaptureSource.OnlineRegistration = 3`; tiga configuration; tiga `DbSet`; `OnlineRegistrationOptions` beserta kunci `Registration:OnlineRegistration`, `Turnstile`, dan `Email:Smtp` tanpa nilai rahasia; migration `AddRegOnlineRegistration` |
+| Requirement/decision | `FR-KSK-PO-001`; `INV-PO-03`, `05`, `07`, `08`; `KSK-DSN-PO-001`, `002`, `003`, `014` |
+| Kontrak | `data/data-dictionary.md` PO-D.2–D.4 dan DDL PO-D.6; `02-backend-architecture.md` PO.6, PO.9–PO.11 |
+| Reuse | `IdentityModel`; pola configuration dan `RowVersion` dari `RegPriorityReservation` |
+| Cakupan | `Areas/HealthServices/RegistrationManagement/Models/`, `Enums/`, `Repositories/Configurations/HealthServices/RegistrationManagement/`, `Repositories/ApplicationDbContext.cs`, `Services/OnlineRegistrationClosureOptions.cs` atau berkas opsi setara, `appsettings.json`, satu migration |
+| Dependency | — |
+| Acceptance criteria | (1) Kolom, tipe, panjang, bawaan, index (termasuk unique bersyarat `CodeHash` saat `Status = 1` dan `EncounterId` bukan null), check constraint kontak, dan FK `Restrict` persis kamus data. (2) `Down` menghapus ketiga tabel. (3) `has-pending-model-changes` bersih sesudah migration. (4) Build lulus. (5) `appsettings.json` tidak memuat `SecretKey` maupun `Password` berisi |
+| Verifikasi | `dotnet ef migrations script` untuk migration ini dibandingkan dengan DDL PO-D.6; `migrations list` menunjukkan satu migration baru `(Pending)`; QBE Strict |
+| Gerbang | Konfirmasi pemilik **sebelum** membuat migration dan **sebelum** menerapkannya |
+| Risiko/pemilik | Migration modul lain dengan timestamp lebih awal (memori *pending migration tidak berurutan*). Pemilik: implementer + Sukma Giri Pratama |
+| DoD | Kriteria 1–5 terbukti; penerapan ke DB hanya dengan izin |
+
+### `BE-KSK-PO-002` — Kuota menghitung pendaftaran online dan dikunci per jadwal
+
+| Field | Isi |
+| --- | --- |
+| Status | Belum dikerjakan |
+| Outcome | `GetUsageAsync` menambah pendaftaran Menunggu Check-in ke `Appointment` dan `Total`; `AcquireQuotaLockAsync(scheduleId, date)`; `CreateEncounterCoreAsync` mengambil kunci kuota sesudah kunci pasien bila ada `DoctorScheduleId` |
+| Requirement/decision | `FR-KSK-PO-002`; `INV-PO-02`; `KSK-DEC-030`; `KSK-DSN-PO-009`; `GATE-PO-17` |
+| Kontrak | `02-backend-architecture.md` PO.4.3; `contracts/api-contract.md` *Patient Encounter (diperluas)* (`doctor-schedule-quotas` perilaku diperbarui) |
+| Reuse | `DoctorScheduleQuotaService`; pola kunci `REG_ENCOUNTER_ACTIVE_*` |
+| Cakupan | `Services/DoctorScheduleQuotaService.cs`, `Controllers/PatientEncounterController.cs` (bagian transaksi) |
+| Dependency | `BE-KSK-PO-001` |
+| Acceptance criteria | (1) Tanpa pendaftaran online, angka kuota sama persis dengan sebelum perubahan (regresi jalur petugas, kiosk, IGD). (2) Satu pendaftaran Menunggu Check-in mengurangi sisa appointment dan total sebesar 1; status lain tidak. (3) Urutan kunci pasien → kuota sama di semua jalur. (4) Dua permintaan kunjungan bersamaan pada slot terakhir: tepat satu berhasil |
+| Verifikasi | Runtime HTTP: `doctor-schedule-quotas` sebelum/sesudah; dua `POST patient-encounters` paralel pada jadwal berkuota 1 |
+| Risiko/pemilik | Jalur bersama RJ; regresi kuota. Catat titik sentuh ke blueprint `rawat-jalan` (`GATE-PO-06`). Pemilik: implementer + Sukma Giri Pratama |
+| DoD | Kriteria 1–4 terbukti; build, QBE Strict PASS |
+
+### `BE-KSK-PO-003` — Pemeriksa captcha dan pengirim email
+
+| Field | Isi |
+| --- | --- |
+| Status | Belum dikerjakan |
+| Outcome | `TurnstileVerificationService` (klien bernama `Turnstile`, 5 detik, tanpa retry, fail-closed, `Enabled = false` selalu lolos dengan peringatan saat start); `SmtpEmailSender` (`System.Net.Mail`, 10 detik, satu percobaan); binding opsi dan DI |
+| Requirement/decision | `FR-KSK-PO-013`; `KSK-DEC-042`, `044`; `KSK-DSN-PO-006`, `007` |
+| Kontrak | `contracts/integration-contract.md` `INT-PO-01`, `INT-PO-03` |
+| Reuse | `IHttpClientFactory` (bawaan ASP.NET Core); tanpa paket NuGet baru |
+| Cakupan | `Services/Security/TurnstileVerificationService.cs`, `Services/Notification/SmtpEmailSender.cs`, `Program.cs`, `appsettings.json` |
+| Dependency | — |
+| Acceptance criteria | (1) Kunci uji Cloudflare "selalu lolos" → lolos; "selalu gagal" → gagal. (2) Host Turnstile tidak terjangkau → `Unavailable` dalam ≤ 5 detik. (3) Email terkirim ke SMTP uji; SMTP mati → hasil gagal dalam ≤ 10 detik tanpa exception yang lolos. (4) Log tidak memuat secret, token, sandi, maupun alamat email |
+| Verifikasi | Build; uji runtime lewat endpoint `BE-KSK-PO-004` setelah tersedia, atau harness sementara di scratchpad yang tidak di-commit |
+| Risiko/pemilik | HTTP keluar pertama di backend; firewall server. Pemilik: implementer; akun nyata IT (`KSK-PO-OQ-015`, `016`) |
+| DoD | Kriteria 1–4 terbukti |
+
+### `BE-KSK-PO-004` — Opsi publik dan pencocokan pasien lama
+
+| Field | Isi |
+| --- | --- |
+| Status | Belum dikerjakan |
+| Outcome | `OnlineRegistrationPublicController` (`[AllowAnonymous]`, tanpa `[AccessController]`, `no-store`, path tersamar di log) dengan `GET options/clinics`, `options/doctor-schedules`, `options/insurance-providers`, `options/referral-institutions`, dan `POST patient-match`; `PatientNameMasker` di `Helpers/` dipakai juga oleh `QueueDisplayRuntimeController`; policy `OnlineRegistrationPublicOptions` dan `OnlineRegistrationPublicMatch` |
+| Requirement/decision | `FR-KSK-PO-010`, `011`, `014`; `KSK-DEC-031`, `038`; `KSK-PO-FE-002`; `KSK-DSN-PO-005`, `013` |
+| Kontrak | `api-contract.md` grup *Online Registration Public* (empat `GET` dan `patient-match`); `KSK-VAL-PO-001` s.d. `004`, `010` s.d. `012` |
+| Reuse | `PriorityReservationArrivalController`, `KioskPatientLookupService` (normalisasi, pasien gabungan, non-aktif), `QueueDisplayRuntimeController#MaskPatientName` |
+| Cakupan | Controller publik, `OnlineRegistrationPublicService` (bagian opsi dan pencocokan), `Helpers/PatientNameMasker.cs`, `QueueDisplayRuntimeController.cs`, `Program.cs`, DTO |
+| Dependency | `BE-KSK-PO-002`, `BE-KSK-PO-003` |
+| Acceptance criteria | (1) Endpoint dapat dipanggil tanpa token. (2) Jadwal hanya yang `IsAllowAppointment` dan `IsAllowKioskRegistration`, dengan sisa kuota dari `BE-KSK-PO-002`. (3) Respons hanya field minimum kontrak. (4) Pencocokan benar → nama dan nomor kartu tersamar; salah/non-aktif/gabung → `404` dengan isi identik. (5) Captcha gagal `400`; Cloudflare mati `503`. (6) Batas 20/jam → `429`. (7) Display antrean tetap menyamarkan nama persis seperti sebelumnya |
+| Verifikasi | Runtime HTTP tanpa token; perbandingan byte respons `404`; uji `429`; verifier otorisasi (cara pendaftaran sama dengan `PriorityReservationArrivalController`) |
+| Risiko/pemilik | Membuka master ke internet. Pemilik: implementer + Sukma Giri Pratama |
+| DoD | Kriteria 1–7 terbukti; QBE Strict, verifier PASS |
+
+### `BE-KSK-PO-005` — Kirim pendaftaran online
+
+| Field | Isi |
+| --- | --- |
+| Status | Belum dikerjakan |
+| Outcome | `POST online-registrations/public` (`multipart/form-data`): validasi seluruh langkah, pencocokan ulang pasien lama, captcha, kunci pasien lalu kunci kuota, kode 8 karakter + hash, nomor `PO-yyMMdd-nnnn`, berkas rujukan ke `online-registration-referrals/{id}/` (kompensasi hapus bila transaksi gagal), consent pasien baru, riwayat `SUBMITTED`, email sesudah transaksi; policy `OnlineRegistrationPublicSubmit` |
+| Requirement/decision | `FR-KSK-PO-012`; `KSK-DEC-030`, `032`, `034`, `035`, `038`, `042`, `043`, `047`; `INV-PO-01` s.d. `06`; `KSK-DSN-PO-002`, `004`, `011`, `012` |
+| Kontrak | `api-contract.md` grup publik `POST`; `KSK-VAL-PO-005` s.d. `034`; PO-S.1 baris pertama |
+| Reuse | `NumberSeriesAllocator`, helper hash SHA-256 RP, validasi isi berkas dan root privat `ReferralDocumentStorageService`, aturan No. HP kiosk (`KSK-DEC-022`) |
+| Cakupan | `OnlineRegistrationPublicService`, controller publik, DTO, `Program.cs` |
+| Dependency | `BE-KSK-PO-004` |
+| Acceptance criteria | AC 3, 4, 5 (email), 6, 14, 15, 16 sesuai `testing/acceptance-test-matrix.md` PO-T.1. Tambahan: (1) kode hanya muncul di respons ini dan tidak tersimpan asli; (2) email tidak memuat NIK/No. RM/penjamin; (3) SMTP mati → `200` dengan `emailStatus = 2`; (4) kirim ganda bersamaan → satu `200`, satu `409` |
+| Verifikasi | Runtime HTTP dengan kunci uji Turnstile; cek data lewat endpoint detail `BE-KSK-PO-009` bila sudah ada; bila belum, kueri baca-saja ke DB hanya dengan izin pemilik; berkas ada di root privat |
+| Risiko/pemilik | Unggah berkas tanpa login. Pemilik: implementer + Sukma Giri Pratama |
+| DoD | Seluruh kriteria terbukti; log tanpa data sensitif |
+
+### `BE-KSK-PO-006` — Verifikasi check-in kiosk
+
+| Field | Isi |
+| --- | --- |
+| Status | Belum dikerjakan |
+| Outcome | `POST online-registrations/kiosk/check-in/verify` (`KioskRead`, tanpa `[AccessAction]`): mode kode atau identitas + tanggal lahir; status dan tanggal hari ini (WIB); token 256 bit, hash disimpan, berlaku `CheckInTokenMinutes`; paket check-in; policy `OnlineRegistrationCheckIn` per akun kiosk |
+| Requirement/decision | `FR-KSK-PO-020`; `KSK-DEC-033`, `040`; `KSK-DSN-PO-008` |
+| Kontrak | Grup *Online Registration Check-In*; `KSK-VAL-PO-040` s.d. `045` |
+| Reuse | Pola `KioskPatientLookupController` (policy, rate limit per akun) |
+| Cakupan | `OnlineRegistrationCheckInController`, `OnlineRegistrationCheckInService#VerifyAsync`, DTO, `Program.cs` |
+| Dependency | `BE-KSK-PO-005` |
+| Acceptance criteria | AC 8, 10. Tambahan: (1) kode yang sudah status akhir → `404` identik dengan kode salah; (2) belum hari H → `409` menyebut tanggal; (3) paket tidak memuat kode; `identityNumberForScan` hanya untuk pasien baru |
+| Verifikasi | Runtime HTTP dengan akun kiosk; data dibuat lewat `BE-KSK-PO-005` |
+| Risiko/pemilik | Tebak kode di kiosk; ditopang tanggal lahir, hari H, dan rate limit. Pemilik: implementer |
+| DoD | Kriteria terbukti; verifier otorisasi PASS (aturan `KSK-DSN-006`) |
+
+### `BE-KSK-PO-007` — Check-in menjadi kunjungan
+
+| Field | Isi |
+| --- | --- |
+| Status | Belum dikerjakan |
+| Outcome | `PatientEncounterCreateRequest` + `OnlineRegistrationId`, `OnlineRegistrationCheckInToken`; tolak dari kanal petugas; `PrepareCheckInAsync` sebelum transaksi (token, status, hari H, poli/jadwal/dokter, `IsAppointment`, pasien lama `PatientId`, pasien baru NIK master, pembayaran, kartu, faskes); di dalam transaksi `CompleteCheckInInTransactionAsync` (status Menjadi Kunjungan sebelum validasi kuota kunjungan, `EncounterId`, `RegPatientGeneralConsent` dari consent tampungan dengan `SignedAt` asli, `RegEncounterReferralDocument` menunjuk `StoragePath` yang sama, hapus hash token, riwayat `CHECKED_IN`); `RegistrationSource = 7`, `CaptureSource = 3` |
+| Requirement/decision | `FR-KSK-PO-021`; `KSK-DEC-034`, `036`, `039`, `046`, `048`; `INV-PO-02`, `06`; `KSK-DSN-PO-008`, `010`, `014` |
+| Kontrak | `api-contract.md` *Patient Encounter (diperluas)*; `KSK-VAL-PO-046` s.d. `055`; PO-S.1 baris ketiga |
+| Reuse | Hook RP `PrepareCompletionAsync`/`CompleteInTransactionAsync` di `PatientEncounterController.cs:966-990`, `:1181-1200`; validasi jadwal/kuota jalur kunjungan |
+| Cakupan | `PatientEncounterController`, `PatientEncounterDtos.cs`, `OnlineRegistrationCheckInService` |
+| Dependency | `BE-KSK-PO-006` |
+| Acceptance criteria | AC 7, 9, 13, 14, 17 (sisi backend) dan baris PO-T.2 terkait. Tambahan: (1) check-in saat kuota appointment tepat penuh oleh pendaftaran itu sendiri berhasil; (2) kegagalan apa pun di transaksi membatalkan kunjungan dan status tetap 1; (3) kunjungan petugas/kiosk biasa tanpa field baru berperilaku sama seperti sebelumnya |
+| Verifikasi | Runtime HTTP: pasien lama, pasien baru (master baru dan NIK lama), rujukan dengan berkas, consent; uji negatif per `KSK-VAL-PO-046` s.d. `055` |
+| Risiko/pemilik | Jalur bersama kunjungan. Pemilik: implementer + Sukma Giri Pratama |
+| DoD | Kriteria terbukti; regresi kunjungan RJ/kiosk/IGD dibuktikan dengan satu kunjungan per kanal |
+
+### `BE-KSK-PO-008` — Penutupan Jalur Lain dan Tidak Datang
+
+| Field | Isi |
+| --- | --- |
+| Status | Belum dikerjakan |
+| Outcome | `OnlineRegistrationService.CloseForEncounterAsync` dipanggil di samping penutupan Reservasi Prioritas untuk kunjungan RJ berpoli tanpa `OnlineRegistrationId` (pasien lama lewat `PatientId`, pasien baru lewat NIK master); `CloseExpiredAsync` + `OnlineRegistrationClosureHostedService` (00:05 WIB, mengejar hari tertinggal, idempoten) |
+| Requirement/decision | `FR-KSK-PO-003`, `004`; `KSK-DEC-037`, `045`; `GATE-PO-04`; `KSK-DSN-PO-015` |
+| Kontrak | PO-S.1 baris keempat dan kelima; PO-I.3 |
+| Reuse | `OutpatientPriorityReservationService#CloseForEncounterAsync`, `#CloseExpiredAsync`, `OutpatientPriorityReservationClosureHostedService` |
+| Cakupan | `OnlineRegistrationService`, `OnlineRegistrationClosureHostedService`, `PatientEncounterController`, `Program.cs` |
+| Dependency | `BE-KSK-PO-005` |
+| Acceptance criteria | AC 11, 12 dan baris PO-T.3 terkait |
+| Verifikasi | Runtime HTTP: pendaftaran lewat API, lalu kunjungan lewat kiosk/petugas; penutupan harian dipicu dengan jam lokal uji atau opsi `RunAtLocalTime` dev |
+| Risiko/pemilik | Menutup pendaftaran pasien lain bila pencocokan NIK salah. Pemilik: implementer |
+| DoD | Kriteria terbukti; menjalankan ulang tidak menambah riwayat |
+
+### `BE-KSK-PO-009` — Daftar, ringkasan, detail, dan berkas untuk petugas
+
+| Field | Isi |
+| --- | --- |
+| Status | Belum dikerjakan |
+| Outcome | `OnlineRegistrationController` (`[AccessController(... "Online Registration", ControllerName = "OnlineRegistration")]`) dengan `GET`, `GET summary`, `GET {id}`, `GET {id}/referral-documents/{documentId}`; pencarian kode lewat hash persis, lainnya sebagian; detail beserta riwayat |
+| Requirement/decision | `FR-KSK-PO-030`, `032` (Resource); `KSK-DEC-050`; `KSK-PO-AS-002`; `KSK-DSN-PO-017` |
+| Kontrak | Grup *Online Registration* `GET`; `KSK-VAL-PO-068`, `069` |
+| Reuse | `OutpatientPriorityReservationService#GetPagedAsync`, ringkasan, pengisian nama audit; `ReferralDocumentStorageService#OpenAsync` (pembukaan berkas) |
+| Cakupan | Controller petugas, `OnlineRegistrationService` (kueri), DTO |
+| Dependency | `BE-KSK-PO-005` |
+| Acceptance criteria | AC 18. Tambahan: (1) Resource `OnlineRegistration` dengan aksi `Read`, `Update`, `Cancel` muncul di layar Akses Role setelah seeder berjalan; (2) kode tidak pernah dikembalikan; (3) tanpa hak `403` |
+| Verifikasi | Runtime HTTP dengan akun ber-hak dan tanpa hak; verifier otorisasi |
+| Risiko/pemilik | Data pribadi lengkap di layar petugas. Pemilik: implementer |
+| DoD | Kriteria terbukti; QBE Strict, verifier PASS |
+
+### `BE-KSK-PO-010` — Ubah jadwal, ubah kontak, batal
+
+| Field | Isi |
+| --- | --- |
+| Status | Belum dikerjakan |
+| Outcome | `PUT {id}/schedule` (poli sama, H+1 s.d. H+30, kuota baru dengan kunci kuota jadwal baru, aturan satu per tanggal, kode tetap), `PUT {id}/contact`, `POST {id}/cancel` (alasan wajib, status Dibatalkan); semuanya dengan `expectedRowVersion` dan riwayat nilai lama/baru |
+| Requirement/decision | `FR-KSK-PO-031`, `032`; `KSK-DEC-051`, `052`; `KSK-PO-AS-003`; `KSK-DSN-PO-016`; `GATE-PO-16` |
+| Kontrak | Grup *Online Registration* `PUT`/`POST`; `KSK-VAL-PO-060` s.d. `072`; PO-S.1 baris enam s.d. delapan, PO-S.2 |
+| Reuse | `OutpatientPriorityReservationService#CancelAsync`, pola `RowVersion` |
+| Cakupan | Controller petugas, `OnlineRegistrationService` (perintah), DTO |
+| Dependency | `BE-KSK-PO-009` |
+| Acceptance criteria | AC 19, 20 dan baris PO-T.4 terkait |
+| Verifikasi | Runtime HTTP; kuota sebelum/sesudah lewat `doctor-schedule-quotas`; kode lama dicoba di verifikasi kiosk sesudah pindah tanggal |
+| Risiko/pemilik | Pertukaran kuota. Pemilik: implementer |
+| DoD | Kriteria terbukti; log tanpa kontak |
+
+## Tindak lanjut di luar task
+
+| Tindak lanjut | Pemilik | Kapan |
+| --- | --- | --- |
+| Catat titik sentuh kuota dan penutupan di decision log `rawat-jalan` (`GATE-PO-06`) | Sukma Giri Pratama | Sebelum `BE-KSK-PO-002` dirilis |
+| Centang `OnlineRegistration : Read/Update/Cancel` di Akses Role | Admin | Go-live `MVP-3` |
+| `KSK-PO-OQ-010`, `015`, `016` | IT/infrastruktur | Go-live `MVP-1` |
+
+## Coverage gap
+
+Tidak ada acceptance criteria Amendment PO yang tanpa task backend. AC 1 (urutan langkah halaman) dan bagian tampilan AC 2, 5, 17, 18 dibuktikan task frontend (`online-registration-frontend-roadmap.md`).

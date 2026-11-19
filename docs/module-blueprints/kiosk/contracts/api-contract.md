@@ -144,3 +144,120 @@ Perubahan pada `PatientEncounterCreateRequest` untuk route kiosk: **tidak ada fi
 | Method | Path | Alasan |
 | --- | --- | --- |
 | `PATCH` | `patient-insurances/kiosk/{id}/primary`, `patient-company-guarantors/kiosk/{id}/primary` | Mengubah penjamin utama level pasien; bertentangan dengan `KSK-DEC-008`. Endpoint **tidak dihapus** (`KSK-GAP-011`). |
+
+
+---
+
+## Amendment PO — Pendaftaran Pasien Online dan Check-in Kiosk
+
+| Field | Nilai |
+| --- | --- |
+| Set kontrak | `KSK-CONTRACT-v2` |
+| `last_changed_in` | `v2` (bagian ini saja; bagian di atas tetap `v1`) |
+| Status | `approved` |
+| Owner | Sukma Giri Pratama |
+| `approved_by` / `approved_at` | Sukma Giri Pratama / 2026-11-19 (`KSK-DEC-054`) |
+| `input_revision` | `00-interview-decisions.md` §13 (`KSK-DEC-026` s.d. `053`); `02-backend-architecture.md` *Amendment PO*; impact scan `CAP-PO-01` s.d. `37` |
+| Dampak kompatibilitas | **Aditif**: tiga grup endpoint baru dan dua field opsional baru pada `POST patient-encounters/kiosk`. **Perubahan perilaku tanpa perubahan bentuk**: hitungan kuota (`doctor-schedule-quotas`, opsi jadwal kiosk, validasi kunjungan) kini ikut menghitung pendaftaran online Menunggu Check-in; kunjungan Rawat Jalan menutup pendaftaran online pasien pada tanggal yang sama |
+| Traceability | AC 1–20 §13.9; `KSK-DEC-029` s.d. `053`; `KSK-DSN-PO-001` s.d. `017` |
+
+Konvensi respons: `ApiResponse<T>`. Enum dikirim sebagai angka. Tanggal tanpa jam memakai `yyyy-MM-dd` dan dibaca sebagai kalender WIB.
+
+### Health Services / Registration Management / Online Registration Public
+
+Base URL: `api/v1/health-services/registration-management/online-registrations/public`
+Contract version: `v2` — status `approved`. Tanpa login. Seluruh respons `Cache-Control: no-store`.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/options/clinics` | Poli yang punya jadwal online pada tanggal itu | Tanpa login, `OnlineRegistrationPublicOptions` | Query `visitDate` | `ApiResponse<List<OnlineRegistrationClinicOption>>` (`id`, `name`) | **Rencana (belum tersedia)** |
+| `GET` | `/options/doctor-schedules` | Jadwal dokter beserta sisa kuota appointment | Tanpa login, `OnlineRegistrationPublicOptions` | Query `clinicId`, `visitDate` | `ApiResponse<List<OnlineRegistrationScheduleOption>>` (`id`, `doctorName`, `startTime`, `endTime`, `sessionName`, `remainingAppointmentQuota`, `isFull`) | **Rencana (belum tersedia)** |
+| `GET` | `/options/insurance-providers` | Penyedia asuransi untuk kartu baru | Tanpa login, `OnlineRegistrationPublicOptions` | — | `ApiResponse<List<OnlineRegistrationInsuranceProviderOption>>` (`id`, `name`) | **Rencana (belum tersedia)** |
+| `GET` | `/options/referral-institutions` | Cari faskes perujuk | Tanpa login, `OnlineRegistrationPublicOptions` | Query `search` (min. 3 karakter) | `ApiResponse<List<OnlineRegistrationReferralInstitutionOption>>` (`id`, `code`, `name`), maks. 20 baris | **Rencana (belum tersedia)** |
+| `POST` | `/patient-match` | Mencocokkan pasien lama | Tanpa login, `OnlineRegistrationPublicMatch`, captcha | `OnlineRegistrationPatientMatchRequest` | `ApiResponse<OnlineRegistrationPatientMatchResponse>` (`maskedName`, `payers[]`: `id`, `payerKind`, `providerName`, `maskedNumber`) | **Rencana (belum tersedia)** |
+| `POST` | `` | Mengirim pendaftaran online | Tanpa login, `OnlineRegistrationPublicSubmit`, captcha | `multipart/form-data`: `payload` (JSON `OnlineRegistrationSubmitRequest`), `referralDocuments` (0–3 berkas) | `ApiResponse<OnlineRegistrationSubmitResponse>` (`registrationNumber`, `code`, `visitDate`, `clinicName`, `doctorName`, `startTime`, `endTime`, `emailStatus`, `whatsAppNumber`) | **Rencana (belum tersedia)** |
+
+Contoh `OnlineRegistrationSubmitRequest` (data contoh, bukan data asli):
+
+```json
+{
+  "patientMode": 2,
+  "newPatient": { "identityNumber": "3174000000000001", "fullName": "Contoh Pasien", "birthDate": "1990-09-12", "gender": 2 },
+  "contact": "contoh@contoh.id",
+  "patientType": 3,
+  "paymentType": 1,
+  "visitDate": "2026-11-25",
+  "clinicId": "…",
+  "doctorScheduleId": "…",
+  "referral": { "referralInstitutionId": "…", "referralDate": "2026-11-20", "referralNumber": "R-001", "referralDoctorName": "dr. Contoh", "diagnosisNote": null, "reason": null },
+  "consent": { "signerType": 1, "signerName": "Contoh Pasien", "agreedClauses": [1, 2, 3], "signatureImageBase64": "data:image/png;base64,…" },
+  "turnstileToken": "…"
+}
+```
+
+Pasien lama mengirim `"patientMode": 1` dan `"existingPatient": { "identityType": 1, "identityValue": "00123456", "birthDate": "1990-09-12" }` (1 = NIK, 2 = No. RM) sebagai ganti `newPatient`.
+
+Arti kode status bagi pasien:
+
+| Kode | Artinya |
+| --- | --- |
+| `200` | Berhasil |
+| `400` | Isian tidak sah, captcha gagal, tanggal di luar H+1 s.d. H+30, berkas terlalu besar |
+| `404` | Data pasien tidak cocok (pesan seragam, tidak menyebut bagian yang salah) |
+| `409` | Kuota habis, sudah ada pendaftaran atau kunjungan pada tanggal itu, jadwal tidak lagi tersedia |
+| `429` | Terlalu banyak percobaan dari jaringan ini, coba lagi nanti |
+| `503` | Layanan captcha tidak dapat dihubungi; coba lagi atau daftar di loket |
+
+### Health Services / Registration Management / Online Registration Check-In
+
+Base URL: `api/v1/health-services/registration-management/online-registrations/kiosk`
+Contract version: `v2` — status `approved`.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/check-in/verify` | Memeriksa kode atau identitas + tanggal lahir, lalu menerbitkan token check-in 15 menit | `KioskRead`, `OnlineRegistrationCheckIn` per akun kiosk | `OnlineRegistrationCheckInVerifyRequest` (`mode` 1 = kode, 2 = identitas; `code`; `identityType`; `identityValue`; `birthDate`) | `ApiResponse<OnlineRegistrationCheckInPackage>` | **Rencana (belum tersedia)** |
+
+Arti kode status bagi pasien di kiosk:
+
+| Kode | Artinya |
+| --- | --- |
+| `200` | Pendaftaran ditemukan, lanjutkan check-in |
+| `400` | Isian tidak lengkap |
+| `404` | Kode atau tanggal lahir tidak sesuai, atau pendaftaran sudah tidak berlaku (pesan seragam) |
+| `409` | Belum tanggal kunjungan. Pesan menyebut tanggal kunjungan, karena pemohon sudah membuktikan kode dan tanggal lahir |
+| `429` | Terlalu banyak percobaan di kiosk ini |
+
+### Health Services / Registration Management / Patient Encounter (diperluas)
+
+Base URL: `api/v1/health-services/registration-management/patient-encounters`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/kiosk` | Membuat kunjungan. Bila `onlineRegistrationId` dan `onlineRegistrationCheckInToken` diisi, kunjungan menjadi check-in pendaftaran online | `KioskRead` | `PatientEncounterCreateRequest` + `onlineRegistrationId` (`Guid?`) + `onlineRegistrationCheckInToken` (`string?`, maks. 64) | `ApiResponse<PatientEncounterCreateResponse>` (tidak berubah) | **Diperbarui (rencana)** |
+| `POST` | `` (petugas) | Sama seperti sebelumnya. `onlineRegistrationId` ditolak `400` | `PatientEncounter : Create` | Tidak berubah | Tidak berubah | **Diperbarui (rencana)** |
+| `GET` | `/doctor-schedule-quotas` | Sisa kuota kini mengurangi pendaftaran online Menunggu Check-in | `PatientEncounter : Read` | Tidak berubah | Tidak berubah | **Perilaku diperbarui (rencana)** |
+
+Kode status tambahan untuk `POST /kiosk` dengan pendaftaran online: `400` token atau isian tidak sesuai pendaftaran; `404` pendaftaran tidak berlaku; `409` jadwal sudah tidak berlaku, kuota habis, atau data diubah bersamaan.
+
+### Health Services / Registration Management / Online Registration
+
+Base URL: `api/v1/health-services/registration-management/online-registrations`
+Contract version: `v2` — status `approved`.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `` | Daftar pendaftaran online | `OnlineRegistration : Read` | `OnlineRegistrationListQuery` (`visitDateFrom`, `visitDateTo`, `status`, `search` min. 3, `pageNumber`, `pageSize` = 25) | `ApiResponse<PagedResult<OnlineRegistrationListItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/summary` | Jumlah per status pada rentang tanggal | `OnlineRegistration : Read` | Query `visitDateFrom`, `visitDateTo` | `ApiResponse<OnlineRegistrationSummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail beserta riwayat | `OnlineRegistration : Read` | — | `ApiResponse<OnlineRegistrationDetailResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/referral-documents/{documentId}` | Membuka berkas surat rujukan | `OnlineRegistration : Read` | — | Berkas (`application/pdf`, `image/jpeg`, `image/png`) | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/schedule` | Mengubah tanggal dan/atau jadwal dokter di poli yang sama | `OnlineRegistration : Update` | `OnlineRegistrationScheduleChangeRequest` (`visitDate`, `doctorScheduleId`, `expectedRowVersion`) | `ApiResponse<OnlineRegistrationDetailResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/contact` | Mengubah No. WA atau email | `OnlineRegistration : Update` | `OnlineRegistrationContactChangeRequest` (`contact`, `expectedRowVersion`) | `ApiResponse<OnlineRegistrationDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Membatalkan dengan alasan | `OnlineRegistration : Cancel` | `OnlineRegistrationCancelRequest` (`reason` 5–500, `expectedRowVersion`) | `ApiResponse<OnlineRegistrationDetailResponse>` | **Rencana (belum tersedia)** |
+
+`OnlineRegistrationListItemResponse`: `id`, `registrationNumber`, `status`, `statusName`, `visitDate`, `clinicName`, `doctorName`, `startTime`, `patientMode`, `patientName`, `medicalRecordNumber` (kosong untuk pasien baru sebelum check-in), `identityNumber`, `patientTypeName`, `paymentTypeName`, `contact`, `emailStatus`, `submittedAt`, `encounterNumber`, `canChangeSchedule`, `canChangeContact`, `canCancel`, `rowVersion`.
+
+`OnlineRegistrationDetailResponse`: seluruh field item daftar ditambah `birthDate`, `gender`, penjamin (`payerName`, `maskedCardNumber`, `newInsurance`), rujukan (`referralInstitutionName`, `referralNumber`, `referralDate`, `referralDoctorName`, `diagnosisNote`, `reason`, `documents[]`: `id`, `originalFileName`, `contentType`, `sizeBytes`), `hasConsent`, `consentSignedAt`, `checkedInAt`, `closedAt`, `cancelReason`, `histories[]` (`eventCode`, `eventName`, `fromStatus`, `toStatus`, `sourceName`, `actorName`, `reason`, `fromVisitDate`, `toVisitDate`, `fromScheduleLabel`, `toScheduleLabel`, `fromContact`, `toContact`, `occurredAt`). Kode **tidak pernah** dikembalikan.
+
+`OnlineRegistrationSummaryResponse`: `awaitingCheckIn`, `checkedIn`, `registeredElsewhere`, `noShow`, `cancelled`, `total`.
+
+Arti kode status bagi petugas: `400` isian tidak sah; `403` tidak punya hak akses; `404` pendaftaran tidak ditemukan; `409` status sudah bukan Menunggu Check-in, kuota jadwal baru habis, pasien sudah punya pendaftaran pada tanggal baru, atau data diubah pihak lain (muat ulang).

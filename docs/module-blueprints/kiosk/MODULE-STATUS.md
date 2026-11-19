@@ -57,3 +57,5 @@ Amandemen 1 Okt 2026 (`KSK-DEC-020/021`): `FE-KSK-009` 🟡, `FE-KSK-010` 🟡 (
 Amandemen 8 Okt 2026 (`KSK-DEC-022..024`, PDF "Pendaftaran pasien manual"): `FE-KSK-012` ✅ (uji browser akun Kiosk 11/11), `FE-KSK-013` dibatalkan (`KSK-DEC-025`). Sisi petugas: `RJ-DOC-REV-FE-017` ✅ (blueprint Rawat Jalan).
 
 Amandemen 8 Okt 2026 (B) — Rujukan Kiosk: `FE-KSK-014` ✅ (step Data Rujukan, uji browser 14/14), `FE-KSK-015` ✅ (popup jadwal praktik, 5/5), `FE-KSK-016` ✅ (pencocokan scan kartu asuransi, 7/7), semua `2026-10-09`. Backend dari blueprint Rawat Jalan bagian 19.
+
+Amandemen 19 Nov 2026 — Amendment PO (Pendaftaran Pasien Online dan Check-in Kiosk, `KSK-DEC-026` s.d. `053`): desain revisi 2 `approved` (Sukma, 19 Nov 2026, `KSK-DEC-054`; `KSK-CONTRACT-v2`). Roadmap r1 `draft`: 10 task backend (`BE-KSK-PO-001` s.d. `010`) dan 8 task frontend (`FE-KSK-PO-001` s.d. `008`), menunggu approval. Go-live menunggu `KSK-PO-OQ-010`, `015`, `016` (IT). Lihat [blueprint-manifest.md](blueprint-manifest.md) bagian Revisi 2.

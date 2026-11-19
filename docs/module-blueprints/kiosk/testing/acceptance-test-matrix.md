@@ -82,3 +82,85 @@ Repository backend **tidak** memakai project test otomatis, dan folder `Tests/` 
 | AC-SCH-001, UAT 25 | Buka dropdown Poliklinik di atas grid berisi card | E2E (layar Kiosk 1080×1920 dan 1920×1080) | Seluruh menu terlihat di atas card, dapat di-scroll dan dipilih |
 | AC-SCH-002, UAT 26 | Buka dropdown Spesialis sambil kursor/sentuhan di atas card | E2E | Menu tidak tertutup, termasuk saat card dalam keadaan hover |
 | Regresi komponen dasar | Buka satu layar non-kiosk yang memakai `FilterSelect` | E2E | Tidak berubah (komponen dasar tidak disentuh) |
+
+
+---
+
+## Amendment PO — Pendaftaran Pasien Online dan Check-in Kiosk
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint ID | `KSK-BP-001` r2 (`approved` — Sukma Giri Pratama, 19 Nov 2026 (`KSK-DEC-054`)) |
+| `input_revision` | `00-interview-decisions.md` §13.9 (AC 1–20); `KSK-CONTRACT-v2` |
+| Cara membuktikan | Sama dengan bagian atas: tanpa folder `Tests/`; build, `dotnet ef`, QBE, verifier otorisasi, HTTP runtime ke `QuilvianNewDevSukma` dengan data samaran (`R-PO-nn`), dan uji browser/Playwright untuk frontend |
+
+Turnstile memakai kunci uji resmi Cloudflare di lingkungan dev (selalu lolos atau selalu gagal), sehingga jalur captcha dapat dibuktikan tanpa kunci produksi. Email diuji dengan server SMTP uji lokal atau `Email:Smtp:Enabled = false` (status `Failed`/`NotRequested` tercatat).
+
+### PO-T.1 Halaman publik
+
+| Requirement | Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| AC 1 | Halaman dibuka di browser tanpa login; urutan langkah Pribadi, Asuransi, Rujukan dibandingkan dengan menu RJ | E2E | Tidak diarahkan ke login; tiga urutan langkah sama dengan `outpatient-registration.constants.js` |
+| AC 2 | Pasien lama: No. RM + tanggal lahir benar | Integ + E2E | `200`, hanya `maskedName` dan `payers[]` tersamar; tidak ada NIK/No. RM/alamat di respons |
+| AC 2 | Tanggal lahir salah; No. RM tidak ada; pasien non-aktif | Integ | Ketiganya `404` dengan pesan identik byte demi byte |
+| AC 3, `INV-PO-01` | Kirim pendaftaran pasien lama untuk besok | Integ | `200`; baris `Status = 1`; `doctor-schedule-quotas` appointment berkurang 1; Daftar Pasien RJ, antrean, dan billing tidak berubah |
+| AC 4 | Kirim pendaftaran pasien baru | Integ | Tidak ada baris `MstPatient` baru; `PatientId` kosong |
+| AC 5 | Email diisi | Integ (SMTP uji) | Email berisi kode, nomor, tanggal, poli, dokter; tanpa NIK/No. RM; `EmailDeliveryStatus = 1` |
+| AC 5 | No. WA diisi | E2E | Tombol membuka `https://wa.me/62…?text=` berisi kode |
+| `KSK-DEC-042` | SMTP mati | Integ | Respons `200`, kode tampil, `EmailDeliveryStatus = 2` |
+| AC 6 | Kontak kosong | Integ + E2E | `400` `KSK-VAL-PO-007` |
+| AC 6 | Captcha kunci uji "selalu gagal" | Integ | `400` `KSK-VAL-PO-010`, tidak ada baris tersimpan |
+| AC 6 | Pendaftaran kedua pasien dan tanggal yang sama | Integ | `409` `KSK-VAL-PO-023` |
+| AC 6, AC 16 | Tanggal hari ini; tanggal H+31 | Integ + E2E | `400` `KSK-VAL-PO-020` |
+| AC 6 | Kirim ke-11 dalam satu jam dari IP yang sama | Integ | `429` |
+| AC 14 | Pasien baru menandatangani consent | Integ | Kolom `Consent*` terisi; belum ada `RegPatientGeneralConsent` |
+| AC 15 | Berkas 8 MB; berkas `.exe` berganti nama `.pdf` | Integ | `400` `KSK-VAL-PO-029` / `030` |
+| `KSK-DSN-PO-013` | Jadwal `IsAllowKioskRegistration = false` | Integ | Tidak muncul di opsi; dikirim langsung → `409` |
+| `KSK-DEC-035` | Kartu milik pasien lain dikirim | Integ | `400` `KSK-VAL-PO-025` |
+
+### PO-T.2 Check-in kiosk
+
+| Requirement | Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| AC 7 | Kode + tanggal lahir benar pada hari kunjungan, lalu buat kunjungan | Integ + E2E (kiosk) | Verifikasi `200` dengan token; kunjungan `IsAppointment = true`, `RegistrationSource = 7`; status 2; tiket tercetak |
+| AC 7 | Kode yang sama dipakai lagi | Integ | `404` `KSK-VAL-PO-041` |
+| AC 8 | Check-in sehari sebelum tanggal kunjungan | Integ | `409` menyebut tanggal kunjungan |
+| AC 8 | Tanggal lahir salah | Integ | `404` pesan umum |
+| AC 9, AC 17 | Pasien baru, KTP dengan NIK sama, NIK belum ada di master | Integ + E2E | Master pasien dari hasil pindai; No. RM terbit; kunjungan terbit |
+| AC 9 | Pasien baru, NIK sudah ada di master | Integ | Kunjungan memakai `PatientId` lama; data master tidak berubah |
+| AC 17 | KTP dengan NIK berbeda | E2E + Integ (kirim `PatientId` pasien lain langsung) | Layar menolak; backend `400` `KSK-VAL-PO-052`; status tetap 1 |
+| AC 17 | Kartu SIM dipilih | E2E | Pilihan SIM tidak tersedia; pesan `KSK-VAL-PO-050` |
+| `CAP-PO-37` | NIK hasil OCR dicoba diubah di layar check-in | E2E | Kolom NIK tidak dapat diubah |
+| AC 10 | Lupa Kode dengan NIK + tanggal lahir | Integ + E2E | Pendaftaran hari ini ditemukan |
+| AC 13 | Jadwal dokter dinonaktifkan sebelum check-in | Integ | `409` `KSK-VAL-PO-053`; status tetap 1; kode masih berlaku |
+| AC 14 | Check-in pasien baru dengan consent | Integ | `RegPatientGeneralConsent` dengan `PatientId` baru, `PatientEncounterId`, `SignedAt` = waktu tanda tangan online |
+| `KSK-DSN-PO-010` | Check-in pasien rujukan berkas 2 halaman | Integ | Dua `RegEncounterReferralDocument` dengan `StoragePath` sama; berkas terbuka lewat endpoint rujukan kunjungan |
+| `KSK-VAL-PO-046` | Token lewat 15 menit | Integ | `400` |
+| `KSK-VAL-PO-047` | `onlineRegistrationId` dikirim ke `POST patient-encounters` petugas | Integ | `400` |
+| `KSK-VAL-PO-048` | Kiosk mengganti jadwal atau kartu pada permintaan kunjungan | Integ | `400`; status tetap 1 |
+
+### PO-T.3 Penutupan otomatis dan kuota
+
+| Requirement | Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| AC 11 | Pendaftaran kemarin belum check-in; penutupan dijalankan | Integ | Status 4, riwayat `NO_SHOW`; kuota kembali |
+| AC 11 | Penutupan dijalankan dua kali | Integ | Jumlah riwayat tidak bertambah |
+| AC 11 | Server mati dua hari | Integ | Saat menyala, kedua hari diproses |
+| AC 12 | Pasien lama punya pendaftaran hari ini lalu mendaftar lewat kiosk Pasien Lama | Integ | Status 3, `EncounterId` terisi; kode ditolak di kiosk |
+| AC 12 | Pasien baru online lalu didaftarkan petugas di loket dengan NIK yang sama | Integ | Status 3 |
+| `INV-PO-02`, `R-PO-17` | Dua permintaan bersamaan memperebutkan satu sisa kuota (halaman publik vs petugas) | Integ (paralel) | Tepat satu berhasil; yang lain `409` |
+| `INV-PO-02` | Check-in saat kuota appointment tepat penuh oleh pendaftaran itu sendiri | Integ | Berhasil; kuota tidak terhitung dua kali |
+
+### PO-T.4 Layar petugas
+
+| Requirement | Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| AC 18 | Petugas dengan `OnlineRegistration : Read` membuka daftar; filter tanggal dan status; cari dengan kode, nomor, nama, No. RM, NIK | Integ + E2E | Hasil sesuai; kode tidak pernah tampil |
+| AC 18 | Petugas tanpa hak | Integ + E2E | `403`; menu tidak tampil; `AccessDeniedGate` |
+| AC 19 | Ubah dari Rabu ke Kamis dengan dokter lain di poli yang sama | Integ + E2E | Status tetap 1; kuota Rabu +1, Kamis −1; riwayat nilai lama/baru; kode lama tetap berlaku |
+| AC 19 | Jadwal baru penuh | Integ | `409`; pendaftaran tidak berubah |
+| `KSK-DSN-PO-016` | Jadwal baru di poli lain | Integ | `400` `KSK-VAL-PO-062` |
+| AC 19 | Ubah kontak | Integ | Riwayat `CONTACT_CHANGED` dengan nilai lama/baru; email tidak dikirim ulang |
+| AC 20 | Batal dengan alasan | Integ + E2E | Status 5; kode ditolak di kiosk; kuota kembali |
+| AC 20 | Batal tanpa alasan; batal pendaftaran berstatus akhir | Integ | `400` / `409` |
+| `GATE-PO-16` | Batal dengan `expectedRowVersion` lama | Integ | `409` `KSK-VAL-PO-072` |
