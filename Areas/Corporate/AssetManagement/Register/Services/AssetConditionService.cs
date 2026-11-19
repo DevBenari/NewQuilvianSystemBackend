@@ -142,9 +142,9 @@ public sealed partial class AssetConditionService
     public async Task<AstConditionReport> OpenReportAsync(AssetConditionOpenRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (request.Source is not (ConditionReportSource.PengembalianPinjaman or ConditionReportSource.TindakLanjutOpname))
+        if (request.Source is not (ConditionReportSource.PengembalianPinjaman or ConditionReportSource.TindakLanjutOpname or ConditionReportSource.PenerimaanMutasi))
         {
-            throw new ArgumentException("Laporan sistem hanya bersumber pengembalian pinjaman atau tindak lanjut opname.", nameof(request));
+            throw new ArgumentException("Laporan sistem hanya bersumber pengembalian pinjaman, tindak lanjut opname, atau penerimaan mutasi.", nameof(request));
         }
 
         if (!Enum.IsDefined(request.ReportedCondition) || request.ActorUserId == Guid.Empty)

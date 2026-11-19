@@ -61,7 +61,7 @@ FE-AST-004 ✅┬─────────────────────
             │                     │                       │ │
             └─────────────────────┴─> FE-AST-008 🟡       │ │
                                                           │ │
-                                     BE-AST-013 [BE] 🟡 ──┴─┴─> FE-AST-010 ✅
+                                     BE-AST-013 [BE] ✅ ──┴─┴─> FE-AST-010 ✅
 ```
 
 `[BE]` = task backend pada `backend-roadmap.md` sub-modul ini, cermin baca-saja.

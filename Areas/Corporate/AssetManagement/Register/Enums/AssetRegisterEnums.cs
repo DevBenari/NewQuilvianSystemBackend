@@ -81,7 +81,8 @@ public enum ConditionReportSource
     LaporanUnit = 1,
     PemeriksaanBagianAset = 2,
     PengembalianPinjaman = 3,
-    TindakLanjutOpname = 4
+    TindakLanjutOpname = 4,
+    PenerimaanMutasi = 5
 }
 
 /// <summary>Jenis pemanfaatan aset oleh pihak lain (AST-DEC-021).</summary>

@@ -44,7 +44,7 @@ BE-AST-015 [NLI] 🟡 ─┬─> BE-AST-007 ✅ ─┬─> BE-AST-008 ✅
                                         │               │
                                         │               └──────┐
                                         │                      │
-                                        └─> BE-AST-010 ✅ ─────┴─> BE-AST-013 🟡
+                                        └─> BE-AST-010 ✅ ─────┴─> BE-AST-013 ✅
 ```
 
 `[NLI]` = task backend sub-modul `nilai` pada `../../nilai/roadmap/backend-roadmap.md`, cermin baca-saja.
@@ -68,7 +68,7 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
 | `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | ✅ `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` ✅ 2026-11-16; `BE-AST-005` ✅ 2026-11-16; `BE-AST-006` ✅ 2026-11-16 |
-| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` ✅ 2026-11-17; `BE-AST-009` ✅ 2026-11-17; `BE-AST-010` ✅ 2026-11-18; `BE-AST-011` 🟡 2026-11-19 (pekerja harian `Disetujui`→`Berjalan` terbukti 19 Nov; `AT-REG-15` positif menyusul 20 Nov); `BE-AST-012` ✅ 2026-11-18; `BE-AST-013` 🟡 2026-11-19 (`AT-REG-12` positif menunggu akun uji berpenugasan unit) |
+| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` ✅ 2026-11-17; `BE-AST-009` ✅ 2026-11-17; `BE-AST-010` ✅ 2026-11-18; `BE-AST-011` 🟡 2026-11-19 (pekerja harian `Disetujui`→`Berjalan` terbukti 19 Nov; `AT-REG-15` positif menyusul 20 Nov); `BE-AST-012` ✅ 2026-11-18; `BE-AST-013` ✅ 2026-11-19 |
 
 ## Tabel task
 
@@ -188,10 +188,10 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Cakupan | `AssetImportService` (ClosedXML), controller 2.15, templat Excel |
 | Acceptance criteria | 1. Satu baris salah → seluruh berkas `GagalValidasi`. 2. Dua persetujuan, bukan pengunggah. 3. Penerapan satu transaksi: aset `Terdaftar` + `Ditempatkan` + buku saldo awal (`AssetBookService.CreateOpeningBalance`), **tanpa** kotak keluar. 4. Batas 5.000 baris dari konfigurasi |
 
-### 🟡 `BE-AST-013` — Dashboard, laporan register, History & Audit
+### ✅ `BE-AST-013` — Dashboard, laporan register, History & Audit
 
 | Field | Isi |
 |---|---|
-| **Status** | 🟡 **SEBAGIAN 19 November 2026.** `AssetDashboardQueryService` (5 kartu + 5 kondisi + aset rusak terbaru, tiap kartu membawa saringan daftarnya; per unit), `AssetReportQueryService` + `AssetReportWorkbook` (11.1, 11.3, 11.7, ekspor Excel tanpa rupiah, batas 10.000 baris), 2 controller (7 endpoint); saringan daftar aset dipisah ke `FilteredAssetsAsync` supaya kartu dan daftar memakai saringan yang sama. QBE Strict 9 berkas `PASS`; atribut akses 7/7; nol baris komentar; `dotnet build` Rizki berhasil (DLL 2026-11-19 08:36:06). Runtime **74/74**: `AT-REG-16` (10 kartu dan baris per unit = daftar), History = isi `AstAssetHistory` di DB total dan per sub-modul, 4 berkas ekspor dibaca tanpa kolom/sel rupiah, LOKET 403, akun tanpa `ReadAllUnits` terbatas dan unit lain 403. Uji akun PENERIMA 18/21: `AT-REG-46` lulus. Kriteria 1, 3, 4 terbukti. **Belum terbukti:** `AT-REG-12` positif (akun terbatas melihat aset unitnya sendiri), karena di DB dev tidak ada akun uji non-SuperAdmin berpenugasan unit di Instalasi Rawat Inap. Delta kontrak (metadata, DTO History, kartu ber-`filter`) dicatat di laporan. Laporan: [`BE-AST-013.md`](../task/report/backend/BE-AST-013.md) |
+| **Status** | ✅ **SELESAI 19 November 2026.** `AssetDashboardQueryService` (5 kartu + 5 kondisi + aset rusak terbaru, tiap kartu membawa saringan daftarnya; per unit), `AssetReportQueryService` + `AssetReportWorkbook` (11.1, 11.3, 11.7, ekspor Excel tanpa rupiah, batas 10.000 baris), 2 controller (7 endpoint); saringan daftar aset dipisah ke `FilteredAssetsAsync` supaya kartu dan daftar memakai saringan yang sama. QBE Strict 9 berkas `PASS`; atribut akses 7/7; nol baris komentar; `dotnet build` Rizki berhasil (DLL 2026-11-19 08:36:06). Runtime **74/74**: `AT-REG-16` (10 kartu dan baris per unit = daftar), History = isi `AstAssetHistory` di DB total dan per sub-modul, 4 berkas ekspor dibaca tanpa kolom/sel rupiah, LOKET 403, akun tanpa `ReadAllUnits` terbatas dan unit lain 403. Uji akun terbatas 21/21 sesudah Siti (PENERIMA) diberi penugasan Kepala Unit Instalasi Rawat Inap: `AT-REG-12` positif (45 aset unitnya) dan `AT-REG-46` lulus. Keempat kriteria terbukti. Delta kontrak (metadata, DTO History, kartu ber-`filter`) dicatat di laporan. Laporan: [`BE-AST-013.md`](../task/report/backend/BE-AST-013.md) |
 | Cakupan | `AssetDashboardQueryService`, `AssetReportQueryService`, 2 controller, ekspor Excel |
 | Acceptance criteria | 1. Kartu = hitungan daftar bersaringan. 2. Batas unit berlaku. 3. History & Audit membaca `AstAssetHistory` lintas sub-modul. 4. Ekspor tanpa kolom rupiah |

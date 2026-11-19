@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit backend saat dikerjakan | `b73ebef5` (branch `rizkiG`) |
 | Tanggal | 18–19 November 2026 |
-| Status | 🟡 SEBAGIAN 19 November 2026 — keempat kriteria terpetakan ke source; QBE Strict `PASS`; build Rizki berhasil; runtime **74/74** + uji unit sendiri 18/21. Kriteria 1, 3, 4 terbukti penuh. Kriteria 2 terbukti untuk akun tanpa unit (semua angka 0, unit lain 403, `AT-REG-46` lulus), tetapi **`AT-REG-12` positif** (akun terbatas melihat aset unitnya sendiri) belum dapat diuji: di DB dev tidak ada akun non-SuperAdmin yang punya penugasan unit di Instalasi Rawat Inap, satu-satunya unit beraset |
+| Status | ✅ SELESAI 19 November 2026 — keempat kriteria terpetakan ke source dan teruji: QBE Strict `PASS`; build Rizki berhasil; runtime **74/74**; uji unit sendiri **21/21** sesudah Siti (PENERIMA, non-SuperAdmin) diberi penugasan Kepala Unit Instalasi Rawat Inap — `AT-REG-12` positif dan `AT-REG-46` lulus (pagi itu 18/21 karena akun belum berpenugasan) |
 
 **Backend Governance Preflight**
 
@@ -173,11 +173,17 @@ Uji tambahan `ast013-unit-sendiri.mjs` (akun PENERIMA, non-SuperAdmin, diberi `A
 identik (22 hak). Tiga langkah positif gagal karena akun itu tidak punya penugasan unit aktif (dicek baca-saja di
 `WfpOrganizationAssignment`), sehingga angka unit sendiri 0, bukan karena cacat kode.
 
+**Ulang 19 Nov siang (`ast013-unit-sendiri.json`; hasil pagi disimpan sebagai `ast013-unit-sendiri-20261119-pagi.json`):**
+sesudah penugasan Kepala Unit Instalasi Rawat Inap untuk Siti dibuat lewat API HR (untuk uji `BE-AST-017`), uji yang
+sama **21/21**: kartu unit sendiri 45 dari 79 (sama dengan daftar akun itu, 10/10 kartu), per unit hanya "Instalasi
+Rawat Inap = 45", daftar dan laporan 11.1 hanya aset unitnya (45), History 61 dari 103 kejadian dan seluruh asetnya di
+unitnya, detail aset di luar unit 403 `016`, kebijakan pulih identik.
+
 ### 5.3 Temuan
 
 | Temuan | Tindak |
 |---|---|
-| `AT-REG-12` positif tidak dapat diuji: di DB dev tidak ada akun non-SuperAdmin dengan penugasan unit di Instalasi Rawat Inap (Dimas = SuperAdmin; penyetuju uji dan PENERIMA tanpa penugasan) | Butuh penugasan unit HR untuk salah satu akun uji, atau penempatan aset ke unit akun yang sudah punya penugasan. Bukan perubahan kode |
+| `AT-REG-12` positif semula tidak dapat diuji: di DB dev tidak ada akun non-SuperAdmin dengan penugasan unit di Instalasi Rawat Inap | Ditutup 19 Nov siang: penugasan Kepala Unit untuk Siti dibuat lewat API HR (izin Rizki, permanen); uji ulang 21/21 |
 | Header `Content-Disposition` tidak diekspos CORS, jadi nama berkas tidak terbaca di browser | FE memakai nama cadangan `laporan-aset-<kode>-<yyyyMMdd>.xlsx`; `Program.cs` (konfigurasi CORS bersama) tidak diubah karena di luar lingkup modul |
 | Sisa uji `BE-AST-011`: pekerja harian mengubah `AST-PMF-000008` Disetujui → **Berjalan** pada 19 Nov 02:33 UTC, kunci aset tetap, linimasa `AST-MBL-000005` "Dimanfaatkan" | Diperiksa `be-ast-011-20261118/cek-pekerja-19nov.mjs` 3/3; dicatat di `BE-AST-011.md` |
 
@@ -194,7 +200,7 @@ Tanpa data baru. Kebijakan Akses Role jabatan penyetuju uji (`d95ca274…/01c0c1
 | Kriteria | Source | Bukti | Status |
 |---|---|---|---|
 | 1. Kartu = hitungan daftar bersaringan | `FilteredAssetsAsync` dipakai daftar dan dashboard; `filter` per kartu | `AT-REG-16` 17/17 + 10/10 akun terbatas | ✅ |
-| 2. Batas unit berlaku | `ScopedAssetsAsync` lewat `FilteredAssetsAsync` di semua endpoint; `EnsureCanAccessUnit` pada unit dashboard | Akun tanpa unit: semua 0, unit lain 403; `AT-REG-46` lulus. `AT-REG-12` positif belum | 🟡 |
+| 2. Batas unit berlaku | `ScopedAssetsAsync` lewat `FilteredAssetsAsync` di semua endpoint; `EnsureCanAccessUnit` pada unit dashboard | Akun tanpa unit: semua 0, unit lain 403; `AT-REG-46` lulus; `AT-REG-12` positif lulus (Siti, 45 aset unitnya) | ✅ |
 | 3. History & Audit membaca `AstAssetHistory` lintas sub-modul | `HistoryBaseAsync` tanpa batas sub-modul; saring `subModule` | API = DB total dan per sub-modul | ✅ |
 | 4. Ekspor tanpa kolom rupiah | `InventorySheet`, `ConditionSheet`, `HistorySheet` | 4 berkas dibaca: 0 kolom/sel rupiah | ✅ |
 
@@ -202,7 +208,7 @@ Tanpa data baru. Kebijakan Akses Role jabatan penyetuju uji (`d95ca274…/01c0c1
 |---|---|
 | `V-BE` QBE, build, registrasi hak, runtime | Terpenuhi |
 | `AT-REG-16` | Lulus |
-| `AT-REG-12` | Sebagian — pembatasan dan penolakan terbukti; kasus positif menunggu akun uji berpenugasan unit |
+| `AT-REG-12` | Lulus (positif dan negatif) |
 | Laporan, roadmap, traceability | Ditulis |
 | Commit | Dilakukan bersama `FE-AST-010` atas perintah Rizki |
 
@@ -210,8 +216,6 @@ Tanpa data baru. Kebijakan Akses Role jabatan penyetuju uji (`d95ca274…/01c0c1
 
 ## 7. Catatan penutup
 
-- **Untuk menutup 🟡:** beri salah satu akun uji non-SuperAdmin penugasan unit Instalasi Rawat Inap (atau tempatkan
-  aset ke unit akun yang sudah berpenugasan), lalu jalankan ulang `ast013-unit-sendiri.mjs`.
 - **Task berikutnya:** `FE-AST-010` (dikerjakan bersama). Sesudah itu register tinggal `BE-AST-011`/`FE-AST-008`
   (`AT-REG-15` positif mulai 20 Nov) dan `AT-REG-12` di atas.
 - `Storage/uploads/asset-management/` dan dua berkas `docs/module-blueprints/igd/...` yang belum terlacak bukan milik

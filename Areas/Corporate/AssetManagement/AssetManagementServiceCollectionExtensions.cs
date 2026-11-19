@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Services;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Services;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Valuation.Services;
 
@@ -45,6 +46,8 @@ public static class AssetManagementServiceCollectionExtensions
         services.AddScoped<AssetImportService>();
         services.AddScoped<AssetDashboardQueryService>();
         services.AddScoped<AssetReportQueryService>();
+        services.AddScoped<AssetMovementDocumentService>();
+        services.AddScoped<AssetTransferService>();
         services.Configure<AssetDailyStatusWorkerOptions>(configuration.GetSection(AssetDailyStatusWorkerOptions.SectionName));
         services.AddHostedService<AssetDailyStatusWorker>();
 

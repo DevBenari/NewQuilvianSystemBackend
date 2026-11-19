@@ -20,7 +20,7 @@ bukan task di sini.
 ```text
                    BE-AST-009 [REG] ─┐
                                      │
-BE-AST-004 [REG] ─> BE-AST-016 ✅ ─┬────┴─> BE-AST-017 ─────────────────┐
+BE-AST-004 [REG] ─> BE-AST-016 ✅ ─┬────┴─> BE-AST-017 ✅ ─────────────────┐
                                 │                                    │
                                 │  BE-AST-010 [REG] ─┐               │
                                 │                    │               │
@@ -55,11 +55,11 @@ Pasangan prasyarat→task: **7** (sama dengan kolom `Dependency`).
 | **Status** | ✅ **SELESAI 19 November 2026.** 4 enum, 5 model, 5 configuration, 5 DbSet (`9514ed6b`); QBE Strict 12 berkas `PASS`, nol baris komentar. Migration `20261119042534_AddAssetMovement` dibuat dan diterapkan Rizki sesudah merge integration; DB baca-saja: 5 tabel Ast, 3 check constraint, 12 FK Restrict, index unik parsial perpanjangan terbuka, tanpa perubahan tabel lama. Kriteria 3 dengan pengecualian disetujui Rizki: migration ikut membuat `MstJobDescription`/`MstJobDescriptionItem` (model HR tanpa migration), Hamzah dikabari. Laporan: [`BE-AST-016.md`](../task/report/backend/BE-AST-016.md) |
 | Acceptance criteria | 1. Lima tabel sesuai data dict, check constraint unit berbeda dan tanggal kembali ≥ mulai. 2. `RowVersion` pada mutasi dan pinjaman. 3. Migration hanya menambah lima tabel; `Down()` menghapusnya |
 
-### `BE-AST-017` — Mutasi antar unit
+### ✅ `BE-AST-017` — Mutasi antar unit
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 19 November 2026.** `AssetTransferService` (+`.Query`, `CreateFromStockTakeAsync`), `AssetMovementDocumentService` (BA serah terima mutasi), `AssetTransfersController` (10 endpoint, resource `AssetTransfer` 6 aksi); register: sumber laporan kondisi `PenerimaanMutasi`, deret `AST-MUT`. QBE Strict 11 berkas `PASS`; atribut akses 10/10; nol baris komentar; build DLL 11:27:30. Runtime **65/65** dengan Kepala Unit dari penugasan HR (Siti = Instalasi Rawat Inap, Dimas = IGD, dibuat permanen atas izin Rizki): `AT-MOV-01`, `02`, `03`, `20..23`, `25..31` lulus (`21` lewat kunci pemanfaatan, `31` lewat versi basi; `24` opname menyusul `BE-AST-021`); validasi `001..005`, `007`, `008`, `010..016`; kondisi berbeda → `AST-KND-000012`; PDF diperiksa visual. `006` memakai gerbang opname yang terisi `BE-AST-021`. Delta (body keputusan, `rowVersion` wajib, linimasa hanya saat diterima) dicatat di laporan. Laporan: [`BE-AST-017.md`](../task/report/backend/BE-AST-017.md) |
 | Acceptance criteria | 1. Matriks state §1 lengkap, termasuk tahap 1 otomatis bila pengaju Kepala Unit asal. 2. Penempatan berpindah hanya saat diterima Kepala Unit tujuan (`ApplyPlacement`). 3. Kondisi diterima berbeda membuka laporan kondisi. 4. Kunci proses dipasang/dilepas. 5. `AST-VAL-MOV-001..016`. 6. `CreateFromStockTake` tersedia untuk `inventarisasi`. 7. `AvailableActions` dihitung backend |
 
 ### `BE-AST-018` — Peminjaman dan pengembalian

@@ -185,6 +185,7 @@ public static class AssetRegisterLabels
         Enums.ConditionReportSource.PemeriksaanBagianAset => "Pemeriksaan Bagian Aset",
         Enums.ConditionReportSource.PengembalianPinjaman => "Pengembalian Pinjaman",
         Enums.ConditionReportSource.TindakLanjutOpname => "Tindak Lanjut Opname",
+        Enums.ConditionReportSource.PenerimaanMutasi => "Penerimaan Mutasi",
         _ => value.ToString()
     };
 
