@@ -12,7 +12,7 @@
 | Dependency | `PAY-BE-24` (pembaca sumber HRD, penyiapan profil otomatis, integrasi Payroll Run) yang sudah ada di working tree dan **belum di-commit** |
 | Klasifikasi | `MEDIUM` — satu service ditulis ulang, satu evaluator baru, tiga berkas disentuh, satu endpoint `GET` baru; tanpa entity baru dan tanpa migration |
 | Task mode | `BACKEND` |
-| Target tulis | `PayrollCompensationService.cs`, `PayrollCompensationDtos.cs`, `PayrollCompensationsController.cs`, `PayrollReadinessEvaluator.cs` (baru), `PayrollHrdSourceReader.cs`, `PayrollDataReadinessService.cs`; laporan ini |
+| Target tulis | `PayrollCompensationService.cs`, `PayrollCompensationDtos.cs`, `PayrollCompensationsController.cs`, `PayrollReadinessEvaluator.cs` (baru), `PayrollHrdSourceReader.cs`, `PayrollDataReadinessService.cs`; addendum 10: `PayrollDateNormalizer.cs` (baru), `PayrollRunService.cs`, `PayrollProfileProvisioningService.cs`, `PayrollCalculationService.cs`, `PayrollSimulationService.cs`, `PayrollRestitutionService.cs`, `PayrollRunInitializationService.cs`; laporan ini |
 | Model | Claude Sonnet 5.5 |
 | Tanggal | 2026-11-17 |
 | Status | 🟡 **Source selesai ditulis dan ditinjau lewat pembacaan; `dotnet build` NOT RUN** (dilarang pada task ini; kode belum pernah dikompilasi). Uji API dan runtime NOT RUN. Checker QBE resmi NOT RUN |
@@ -226,3 +226,86 @@ Cara membaca: baris (1) berisi `MstEmployee` atau `MstDoctor` dengan `IsDelete =
 1. `dotnet build` backend, lalu jalankan ulang backend; **tanpa itu screenshot yang sama akan muncul lagi** karena yang berjalan masih kode lama.
 2. Uji API: detail untuk penerima dengan profil, tanpa profil, profil nonaktif, ID tidak ada (harus 404 bertuliskan teks produk), tanpa izin `ReadDetail` (403), tanpa `ViewAmount` (nominal `null`).
 3. Perilaku baru pada Kelengkapan Data: profil yang belum/tidak lagi berlaku tampil "Perlu perhatian" (sebelumnya "Siap" bila status Active). Itu perubahan perilaku yang disengaja agar sama dengan Profil Penggajian.
+
+---
+
+## 10. Addendum 2026-11-17 (3) — `POST payroll-runs` menjawab 400 "Cannot write DateTime with Kind=Unspecified to PostgreSQL type 'timestamp with time zone'"
+
+### 10.1 Gejala
+
+`POST /api/v1/corporate/payroll-management/payroll-runs` (tombol buka Payroll Run di `/payroll/payroll-runs`) menjawab `400` dengan `message`: *Cannot write DateTime with Kind=Unspecified to PostgreSQL type 'timestamp with time zone', only UTC is supported. … (Parameter 'value')*. Badan permintaan hanya `PayrollPeriodId` dan `Notes`, jadi nilai DateTime itu dibuat di service, bukan dikirim layar.
+
+Pemetaan 400: Npgsql melempar `ArgumentException`; `PayrollControllerSupport.Failure` memetakan `ArgumentException` ke 400 dan meneruskan pesan mentahnya. Transaksi `InTransactionAsync` di-rollback saat galat (pola `RollbackAsync` pada blok catch), sehingga kegagalan ini tidak meninggalkan run atau profil payroll setengah jadi. Kesimpulan rollback berasal dari pembacaan source; isi database tidak diperiksa.
+
+### 10.2 Akar masalah
+
+| Fakta | Bukti source |
+| --- | --- |
+| Lima tanggal periode berkolom `date` | `MstPayrollPeriodConfiguration`: `StartDate`, `EndDate`, `AttendanceCutoffDate`, `VariableInputCutoffDate`, `PaymentDate` → `HasColumnType("date")` |
+| Npgsql membaca kolom `date` sebagai `DateTime` ber-`Kind=Unspecified` | perilaku Npgsql; model `MstPayrollPeriod` bertipe `DateTime` |
+| Lima kolom snapshot run berjenis `timestamp with time zone` | `PrlPayrollRunConfiguration`: `PeriodStartDateSnapshot`, `PeriodEndDateSnapshot`, `AttendanceCutoffDateSnapshot`, `VariableInputCutoffDateSnapshot`, `PaymentDateSnapshot` |
+| Kolom berlaku profil dan tunjangan transportasi juga `timestamptz` | `PrlPayrollConfiguration`, `PrlTransportAllowanceConfiguration`: `EffectiveStartDate`, `EffectiveEndDate` |
+| Saklar `Npgsql.EnableLegacyTimestampBehavior` tidak diaktifkan di kode | pencarian pada seluruh `*.cs` backend: nol hasil (`csproj`, `appsettings`, dan `runtimeconfig` tidak diperiksa); pesan galat sendiri menunjukkan perilaku ketat sedang berlaku |
+
+`PayrollRunService.CreateAsync` menyalin `period.StartDate` dst. langsung ke snapshot (tulis ke `timestamptz`), dan `SeedEmployeesAsync` membandingkan `PrlPayroll.EffectiveStartDate/EndDate` (`timestamptz`) dengan `period.EndDate/StartDate` mentah. Keduanya membawa `Kind=Unspecified` ke Npgsql. Dari pesan galat saja tidak dapat dibedakan titik mana yang melempar lebih dulu (kueri seed berjalan sebelum `SaveChanges` snapshot); kedua titik diperbaiki.
+
+Cacat yang sama ada di jalur berikutnya yang akan dialami pengguna sesudah run terbuka, atau pada jalur lain:
+
+| Titik | Cacat | Dampak sebelum perbaikan |
+| --- | --- | --- |
+| `PayrollRunService.CreateAsync` | 5 snapshot ditulis mentah | `POST payroll-runs` 400 (laporan ini) |
+| `PayrollRunService.SeedEmployeesAsync` | pembanding `PrlPayroll` mentah | sama; juga dipakai saat Hitung |
+| `PayrollCalculationService.CalculateRunAsync` | pembanding `PrlTransportAllowance` mentah | `POST …/{id}/calculate` akan gagal setelah Create diperbaiki |
+| `PayrollSimulationService` | pembanding `PrlPayroll` mentah + 5 snapshot pada run simulasi | `POST …/simulations` gagal |
+| `PayrollRestitutionService` | 5 snapshot pada run penampung restitusi | pembuatan run penampung restitusi gagal |
+| `PayrollRunInitializationService` (layanan lama, rute `…/human-resource/payroll/runs`) | 5 snapshot | pembuatan run lewat rute lama gagal |
+
+Bukan penyebab: badan permintaan, frontend, `PayrollProfileProvisioningService` (tanggal berlaku profil sudah dicap UTC lewat `DateTime.SpecifyKind`), sinkron angsuran Finance (hanya `DateTime.UtcNow`, `DateTimeOffset.UtcNow`, `DateOnly`).
+
+### 10.3 Perbaikan
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Services/PayrollDateNormalizer.cs` (baru) | `ToUtcDate(DateTime)` dan `ToUtcDate(DateTime?)` = `DateTime.SpecifyKind(value.Date, DateTimeKind.Utc)` |
+| `Services/PayrollRunService.cs` | `CreateAsync`: `periodStart`/`periodEnd` dinormalkan, dipakai untuk penyiapan profil dan dua snapshot; tiga snapshot lain lewat `ToUtcDate`. `SeedEmployeesAsync`: pembanding memakai `periodStart`/`periodEnd` UTC |
+| `Services/PayrollProfileProvisioningService.cs` | `EnsureProfilesAsync` menormalkan `periodStart`/`periodEnd` sebelum dipakai (jalur Create dan Calculate) |
+| `Services/PayrollCalculationService.cs` | `periodStart`/`periodEnd` UTC; kueri `WfpSalaryAssignment` dan `PrlTransportAllowance` memakainya |
+| `Services/PayrollSimulationService.cs` | pembanding `PrlPayroll` dan lima snapshot run simulasi |
+| `Services/PayrollRestitutionService.cs` | lima snapshot run penampung |
+| `Services/PayrollRunInitializationService.cs` | lima snapshot; memakai alias `using` karena namespace-nya `…HumanResource.PayrollManagement.Services` |
+
+**Konvensi yang dipilih: tanggal kalender dicap UTC tengah malam** (`2026-11-01` → `2026-11-01T00:00:00Z`), **bukan** `AppDateTimeHelper.ToUtc`. Alasannya: pembaca hilir membaca snapshot sebagai tanggal kalender (`PayrollFinanceHandoffService` memakai `.Month`/`.Year`; `PayrollHrdImportService` memakai `DateOnly.FromDateTime`; `PayrollPayslipDistributionService` memakai `.Year`/`.Month`). Konversi dari WIB akan menghasilkan `2026-10-31T17:00:00Z`, lalu bulan periode dan slip gaji bergeser satu bulan. Konvensi yang sama sudah dipakai kode Payroll lain (`FinanceDeductionSyncService`, `PayrollProfileProvisioningService`).
+
+### 10.4 Yang sengaja tidak diubah
+
+- **Tidak ada perubahan tipe kolom, migration, atau `ValueConverter` EF** pada `MstPayrollPeriod`. Migration dilarang pada task ini, dan converter berefek global ke seluruh modul master data periode serta tidak dapat diverifikasi terjemahan kueri-nya tanpa build.
+- `PayrollRestitutionService` (pembandingan `x.StartDate > period.StartDate`) dan `PayrollRunInitializationService` (pembandingan `WfpSalaryAssignment`) membandingkan kolom `date` dengan nilai `date`: aman, tidak disentuh.
+- **Temuan di luar alur ini, belum diperbaiki:** `PayrollDisbursementReconciliationService` menetapkan `run.PaymentDateSnapshot = command.ActualDisbursedAt` dari badan permintaan. Bila klien mengirim waktu tanpa zona, cacat yang sama muncul di sana. Perlu keputusan pemilik apakah mau dinormalkan di tepi masukan.
+- **Temuan di luar alur ini:** pesan mentah exception Npgsql diteruskan ke klien sebagai `message` (lewat pemetaan `ArgumentException` → 400). Tidak diubah karena menyentuh perilaku seluruh controller Payroll.
+
+### 10.5 Verifikasi
+
+| Pemeriksaan | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `dotnet build` | Tidak dijalankan | `NOT RUN` — dilarang pada task ini; kode belum dikompilasi. Risiko rendah: hanya pemanggilan metode statis dan variabel lokal; satu alias `using` pada berkas ber-namespace berbeda |
+| Keseimbangan `{ } ( ) [ ]` pada 7 berkas C# | Seimbang | `PASS` (teks, bukan kompilasi) |
+| Akhir baris CRLF 7 berkas | Utuh (jumlah CR = jumlah baris) | `PASS` |
+| Uji kontrak frontend `payroll-run-utc-dates.test.mjs` (membaca source backend) | 11 dari 11 lulus | `PASS` — mengunci: helper memakai `SpecifyKind(...Utc)` dan bukan konversi zona; tidak ada snapshot `period.*` mentah pada empat layanan; kelima snapshot `CreateAsync` dinormalkan; tidak ada pembandingan `Effective*Date` mentah pada tiga layanan; `EnsureProfilesAsync` menormalkan sebelum membaca HRD; alias `using` pada layanan lama |
+| Uji ini dapat gagal | Dibuktikan dengan mencocokkan pola ke potongan kode sebelum perbaikan: 5 snapshot mentah dan 1 pembandingan mentah terdeteksi; sesudah perbaikan 0 | `PASS` |
+| Seluruh uji Payroll frontend | 294 dari 294 lulus (sebelumnya 283), 0 dilewati | `PASS` |
+| Pembuatan run, hitung, simulasi pada database nyata | Tidak dijalankan | `NOT RUN` — **belum ada bukti runtime bahwa 400 ini hilang** |
+| Pembacaan atau perubahan database | Tidak ada | — |
+
+### 10.6 Langkah berikutnya (pemilik)
+
+1. `dotnet build` backend, jalankan ulang backend, lalu buka run untuk periode yang tadi gagal. Selama yang berjalan masih kode lama, 400 yang sama akan muncul lagi.
+2. Setelah run terbuka, periksa penyimpanan snapshot (hanya `SELECT`):
+
+```sql
+SELECT "RunNumber", "PeriodStartDateSnapshot", "PeriodEndDateSnapshot", "PaymentDateSnapshot"
+FROM public."PrlPayrollRun" ORDER BY "CreateDateTime" DESC LIMIT 3;
+```
+
+   Nilai yang benar berjam `00:00:00+00` (UTC tengah malam) dan tanggalnya sama dengan tanggal periode.
+3. Uji berurutan di layar: buka run → Impor HRD → Hitung → Simulasi satu periode. Hitung dan Simulasi memakai titik yang sama dan sebelumnya akan gagal setelah Create diperbaiki.
+4. Putuskan penanganan `PayrollDisbursementReconciliationService` (10.4) dan pesan galat mentah.

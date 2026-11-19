@@ -83,6 +83,51 @@ public sealed class PayrollRunInstallmentLineResponse
 
     /// <summary>Nominal terpotong saat ini menurut Finance (setelah konfirmasi dan pembalikan). Kosong bila belum dikonfirmasi.</summary>
     public decimal? FinanceDeductedAmount { get; set; }
+
+    // ---- Rincian perjanjian dan angsuran (additive; hanya terisi pada detail penerima, dibaca lewat satu join, bukan N+1) ----
+
+    public Guid? PlanId { get; set; }
+
+    /// <summary>Nomor perjanjian angsuran. Nomor piutang dan isi dokumen perjanjian TIDAK dikirim ke endpoint detail umum.</summary>
+    public string? PlanNumber { get; set; }
+    public int? InstallmentNumber { get; set; }
+
+    /// <summary>MENUNGGU | DISETUJUI | DITOLAK | SELESAI | DIBATALKAN (status perjanjian pada Finance).</summary>
+    public string? AgreementStatus { get; set; }
+    public DateTimeOffset? AgreementApprovedAt { get; set; }
+
+    /// <summary>Ada jalur berkas perjanjian yang tercatat. Jalur itu sendiri tidak dikirim.</summary>
+    public bool HasAgreementDocument { get; set; }
+
+    /// <summary>
+    /// DocumentRecorded (jalur berkas tercatat; isi dan tanda tangannya BELUM diverifikasi sistem) | DocumentMissing (tidak ada jalur berkas).
+    /// Sistem tidak punya penanda bukti otorisasi pemotongan yang terverifikasi, jadi nilai ini bukan bukti tanda tangan.
+    /// </summary>
+    public string? AuthorizationEvidenceStatus { get; set; }
+
+    public decimal? ScheduledAmount { get; set; }
+    public decimal? CarriedOverAmount { get; set; }
+
+    /// <summary>Status angsuran pada Finance: DIJADWALKAN | TERBAYAR_SEBAGIAN | TERBAYAR | TERTUNGGAK | DIBATALKAN.</summary>
+    public string? InstallmentStatus { get; set; }
+
+    /// <summary>Sisa belum terpotong: jatuh tempo dikurangi rencana potongan sebelum konfirmasi, atau sisa menurut Finance sesudahnya.</summary>
+    public decimal? RemainingUnpaidAmount { get; set; }
+
+    /// <summary>Batas potongan yang masih tersedia untuk angsuran ini setelah angsuran sebelumnya pada urutan alokasi (batas kumulatif per penerima).</summary>
+    public decimal? CapAvailableForInstallment { get; set; }
+
+    /// <summary>MasterDeductionType (persen dari master jenis potongan) | PolicyDefault (nilai bawaan kebijakan yang belum disahkan).</summary>
+    public string? MaxAllowedSource { get; set; }
+
+    /// <summary>Urutan alokasi batas potongan di antara angsuran penerima ini (1 = pertama). Urutan sementara, bukan kebijakan yang disahkan.</summary>
+    public int? AllocationOrder { get; set; }
+
+    /// <summary>Angsuran sudah ditarik dari Finance ke run sebagai input; baris ini tidak pernah dibuat dari saldo piutang.</summary>
+    public string SyncStatus { get; set; } = "Synced";
+
+    /// <summary>Catatan kepatuhan atau konfigurasi pada angsuran ini.</summary>
+    public List<string> Notes { get; set; } = new();
 }
 
 public class PayrollRunEmployeeResponse
@@ -126,6 +171,125 @@ public sealed class PayrollRunComponentLineResponse
     public bool IsManual { get; set; }
     public string? Formula { get; set; }
     public int SortOrder { get; set; }
+
+    // Additive: penelusuran sumber dan metode hitung komponen.
+    public Guid? SourceId { get; set; }
+    public string? CalculationMethod { get; set; }
+}
+
+/// <summary>
+/// Hasil PPh satu penerima dari snapshot hitung. ResultStatus: NOT_CONFIGURED | CALCULATED | VALID_ZERO | EXEMPT | NOT_APPLICABLE |
+/// ERROR. VALID_ZERO, EXEMPT, dan NOT_APPLICABLE adalah nol yang sah; NOT_CONFIGURED dan ERROR bukan hasil. Tanpa NPWP.
+/// </summary>
+public sealed class PayrollRunTaxResultResponse
+{
+    /// <summary>HRD_PROFILE | LEGACY_PROFILE_AMOUNT | NONE.</summary>
+    public string Source { get; set; } = string.Empty;
+
+    /// <summary>NOT_CONFIGURED | CONFIGURED | NOT_EFFECTIVE | ERROR.</summary>
+    public string ConfigurationStatus { get; set; } = string.Empty;
+    public string ResultStatus { get; set; } = string.Empty;
+
+    /// <summary>PPH21 | PPH26.</summary>
+    public string? Article { get; set; }
+    public string? RecipientCategory { get; set; }
+    public string? CalculationMode { get; set; }
+
+    /// <summary>Gross | GrossUp | Net.</summary>
+    public string? TaxMethod { get; set; }
+
+    /// <summary>Status PTKP; hanya terisi bila relevan (PPh 21 penerima berstatus pegawai).</summary>
+    public string? PtkpStatus { get; set; }
+    public string? PolicyVersion { get; set; }
+
+    /// <summary>EmployeeDeduction (dipotong dari pegawai) | EmployerBorne (ditanggung pemberi kerja) | None.</summary>
+    public string Treatment { get; set; } = string.Empty;
+    public decimal EmployeeAmount { get; set; }
+    public decimal EmployerBorneAmount { get; set; }
+    public DateTime? EffectiveStartDate { get; set; }
+    public DateTime? EffectiveEndDate { get; set; }
+    public string? DecisionBasis { get; set; }
+    public string? ExemptionReason { get; set; }
+    public List<string> Issues { get; set; } = new();
+    public List<string> Warnings { get; set; } = new();
+
+    // ---- Penelusuran perhitungan otomatis dan persetujuan nominal manual (aditif; null pada run lama). ----
+
+    /// <summary>Kebijakan tarif PPh yang dipakai (id dan dasar peraturan); nomor versinya ada pada PolicyVersion.</summary>
+    public Guid? PolicyId { get; set; }
+    public string? PolicyLegalBasis { get; set; }
+
+    /// <summary>PENDING | APPROVED | REJECTED; hanya untuk skema nominal manual.</summary>
+    public string? ManualAmountApprovalStatus { get; set; }
+
+    public int? TaxYear { get; set; }
+    public int? TaxMonth { get; set; }
+    public bool IsLastTaxPeriod { get; set; }
+
+    /// <summary>Bruto kena pajak, premi pemberi kerja yang termasuk bruto, dan iuran pensiun pengurang yang menjadi dasar hitung.</summary>
+    public decimal? TaxableGross { get; set; }
+    public decimal EmployerPremium { get; set; }
+    public decimal EmployeePension { get; set; }
+
+    /// <summary>Langkah hitung (kategori TER, tarif, PKP, dst.) sebagai bukti penelusuran; null untuk nominal manual dan pengecualian.</summary>
+    public Dictionary<string, object?>? Detail { get; set; }
+}
+
+public sealed class PayrollRunWageBaseItemResponse
+{
+    public string Source { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+
+    /// <summary>INCLUDED | EXCLUDED | UNCLASSIFIED.</summary>
+    public string Classification { get; set; } = string.Empty;
+    public string? Reason { get; set; }
+}
+
+public sealed class PayrollRunInsuranceLineResponse
+{
+    public string Code { get; set; } = string.Empty;
+
+    /// <summary>KES | JHT | JP | JKK | JKM | PRIVATE | LEGACY.</summary>
+    public string Program { get; set; } = string.Empty;
+
+    /// <summary>Employee | Employer.</summary>
+    public string PaidBy { get; set; } = string.Empty;
+    public decimal BaseAmount { get; set; }
+    public decimal Rate { get; set; }
+    public decimal Amount { get; set; }
+}
+
+/// <summary>
+/// Hasil iuran satu penerima dari snapshot hitung. <see cref="EmployeeTotal"/> mengurangi gaji bersih; <see cref="EmployerTotal"/> adalah
+/// kontribusi pemberi kerja dan TIDAK mengurangi gaji bersih.
+/// </summary>
+public sealed class PayrollRunInsuranceResultResponse
+{
+    public string Source { get; set; } = string.Empty;
+    public string ConfigurationStatus { get; set; } = string.Empty;
+    public string ResultStatus { get; set; } = string.Empty;
+
+    /// <summary>ACTIVE | NOT_PARTICIPATING | NOT_APPLICABLE.</summary>
+    public string? ParticipationStatus { get; set; }
+    public List<string> Programs { get; set; } = new();
+
+    /// <summary>Nomor versi kebijakan iuran BPJS yang disahkan dan dipakai (PrlBpjsPolicy).</summary>
+    public string? PolicyVersion { get; set; }
+    public Guid? PolicyId { get; set; }
+    public string? PolicyLegalBasis { get; set; }
+
+    /// <summary>Kelompok risiko JKK (1 sampai 5) pada kebijakan yang dipakai.</summary>
+    public int? JkkRiskClass { get; set; }
+    public decimal WageBase { get; set; }
+
+    /// <summary>Komponen penghasilan beserta klasifikasinya terhadap dasar upah (masuk, tidak masuk, atau belum diklasifikasikan).</summary>
+    public List<PayrollRunWageBaseItemResponse> WageBaseItems { get; set; } = new();
+    public decimal EmployeeTotal { get; set; }
+    public decimal EmployerTotal { get; set; }
+    public List<PayrollRunInsuranceLineResponse> Lines { get; set; } = new();
+    public List<string> Issues { get; set; } = new();
+    public List<string> Warnings { get; set; } = new();
 }
 
 /// <summary>Rincian satu penerima pada run: komponen, agregat kehadiran/lembur, dan identitas pembayaran yang disamarkan.</summary>
@@ -145,6 +309,91 @@ public sealed class PayrollRunEmployeeDetailResponse : PayrollRunEmployeeRespons
     public string? TaxStatus { get; set; }
     public bool IsSnapshotFrozen { get; set; }
     public List<PayrollRunComponentLineResponse> Components { get; set; } = new();
+
+    // ---- Additive (rincian penghasilan): identitas dan periode ----
+    public Guid RunId { get; set; }
+    public string RunNumber { get; set; } = string.Empty;
+    public string RunStatus { get; set; } = string.Empty;
+    public bool IsRunLocked { get; set; }
+    public string? DepartmentName { get; set; }
+    public string? PositionName { get; set; }
+    public string PayrollPeriodCode { get; set; } = string.Empty;
+    public string PayrollPeriodName { get; set; } = string.Empty;
+    public DateTime? PeriodStartDate { get; set; }
+    public DateTime? PeriodEndDate { get; set; }
+
+    // ---- Status proses: membedakan belum dihitung, hasil sah (termasuk nol sah), hasil bermasalah, dan snapshot final ----
+
+    /// <summary>
+    /// NotCalculated (run atau penerima belum dihitung; angka gross-to-net BUKAN hasil) | Calculated | DataIncomplete (terhitung, tetapi
+    /// konfigurasi pajak/iuran belum lengkap) | Error (perhitungan gagal; angka tidak sah) | SnapshotFrozen (run disahkan, angka final).
+    /// </summary>
+    public string CalculationState { get; set; } = "NotCalculated";
+
+    /// <summary>True hanya bila penerima ini sudah dihitung dengan berhasil (atau snapshot-nya beku). Nol pada penerima yang IsCalculated adalah hasil sah.</summary>
+    public bool IsCalculated { get; set; }
+
+    /// <summary>Perhitungan sudah dicoba untuk penerima ini tetapi gagal; alasannya ada di <see cref="ValidationIssues"/>.</summary>
+    public bool CalculationFailed { get; set; }
+    public DateTime? CalculatedAt { get; set; }
+    public DateTime? SnapshotFrozenAt { get; set; }
+
+    /// <summary>Alasan perhitungan gagal atau penahan penerima ini (dari hasil hitung dan penahan run yang menyebut penerima ini).</summary>
+    public List<string> ValidationIssues { get; set; } = new();
+
+    /// <summary>Peringatan yang tidak menahan hasil (mis. rekening belum terverifikasi, tetapan pajak nol).</summary>
+    public List<string> CalculationWarnings { get; set; } = new();
+
+    /// <summary>Selisih agregat terhadap komponen penyusunnya (bruto, total potongan, bersih). Kosong bila konsisten.</summary>
+    public List<string> ConsistencyIssues { get; set; } = new();
+
+    // ---- Ringkasan penghasilan dan potongan dari komponen hasil hitung ----
+    public decimal TotalFixedAllowance { get; set; }
+    public decimal TotalTransportAllowance { get; set; }
+    public decimal TotalAttendanceDeduction { get; set; }
+    public decimal TotalUnpaidLeaveDeduction { get; set; }
+
+    /// <summary>Jumlah rencana potongan cicilan seluruh angsuran penerima ini.</summary>
+    public decimal TotalInstallmentDeduction { get; set; }
+
+    /// <summary>Potongan bertipe Deduction di luar kehadiran, cuti tanpa gaji, dan cicilan (variabel/manual/lainnya).</summary>
+    public decimal TotalOtherDeduction { get; set; }
+
+    /// <summary>Kontribusi pemberi kerja: informasi saja, TIDAK mengurangi gaji bersih penerima.</summary>
+    public decimal TotalEmployerInsuranceContribution { get; set; }
+
+    // ---- Pajak dan iuran ----
+
+    /// <summary>Asal nominal PPh: konfigurasi HRD (Profil Pajak), tetapan lama profil payroll (cadangan bertanda), atau belum ada sumber yang sah.</summary>
+    public string TaxCalculationSource { get; set; } = string.Empty;
+
+    /// <summary>
+    /// NotCalculated | Configured (konfigurasi PPh dan iuran HRD lengkap) | NotConfigured (ada kekurangan konfigurasi; lihat
+    /// <see cref="TaxConfigurationIssues"/>). Tidak diturunkan dari nominal nol. Dipertahankan untuk kompatibilitas; status rinci ada
+    /// pada <see cref="Tax"/> dan <see cref="Insurance"/>.
+    /// </summary>
+    public string TaxCalculationStatus { get; set; } = "NotCalculated";
+    public List<string> TaxConfigurationIssues { get; set; } = new();
+
+    /// <summary>Hasil dan konfigurasi PPh pada saat hitung terakhir (snapshot). Null bila penerima belum dihitung atau dihitung sebelum snapshot ada.</summary>
+    public PayrollRunTaxResultResponse? Tax { get; set; }
+
+    /// <summary>Hasil dan konfigurasi iuran pada saat hitung terakhir (snapshot). Sisi pegawai dan pemberi kerja dipisahkan.</summary>
+    public PayrollRunInsuranceResultResponse? Insurance { get; set; }
+
+    /// <summary>True bila BPJS aktif pada konfigurasi sistem saat ini; false bila mode pengujian tanpa BPJS aktif.</summary>
+    public bool EnableBpjsInPayroll { get; set; } = true;
+
+    /// <summary>True bila run ini dihitung (atau akan dihitung) pada mode pengujian tanpa BPJS.</summary>
+    public bool IsTestingModeWithoutBpjs { get; set; }
+
+    // ---- Cicilan piutang ----
+
+    /// <summary>
+    /// Seluruh angsuran sah penerima pada periode ini (satu penerima dapat punya beberapa). <see cref="PayrollRunEmployeeResponse.Installment"/>
+    /// tetap berisi angsuran pertama untuk kompatibilitas.
+    /// </summary>
+    public List<PayrollRunInstallmentLineResponse> Installments { get; set; } = new();
 }
 
 /// <summary>Ringkasan pembayaran run (instruksi ke Finance dan hasil bank). Hanya terisi setelah handoff.</summary>
@@ -193,6 +442,12 @@ public sealed class PayrollRunDetailResponse : PayrollRunListItemResponse
 
     /// <summary>Versi kebijakan yang dipakai hitung terakhir (kosong bila belum dihitung).</summary>
     public string? PolicyVersion { get; set; }
+
+    /// <summary>True bila BPJS aktif pada konfigurasi sistem saat ini; false bila mode pengujian tanpa BPJS aktif.</summary>
+    public bool EnableBpjsInPayroll { get; set; } = true;
+
+    /// <summary>True bila run ini dihitung (atau akan dihitung) pada mode pengujian tanpa BPJS.</summary>
+    public bool IsTestingModeWithoutBpjs { get; set; }
 
     /// <summary>
     /// Aksi yang sedang boleh dijalankan menurut status run (bantuan tampilan, BUKAN pengaman: setiap aksi memeriksa ulang di backend).

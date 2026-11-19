@@ -460,6 +460,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PrlTransportAllowancePolicy> PrlTransportAllowancePolicies { get; set; }
         public DbSet<PrlTransportAllowance> PrlTransportAllowances { get; set; }
         public DbSet<PrlTransportAllowanceTransaction> PrlTransportAllowanceTransactions { get; set; }
+        public DbSet<PrlWorkforceAllowance> PrlWorkforceAllowances { get; set; }
+        public DbSet<PrlTaxPolicy> PrlTaxPolicies { get; set; }
+        public DbSet<PrlBpjsPolicy> PrlBpjsPolicies { get; set; }
         public DbSet<PrlPayrollRun> PrlPayrollRuns { get; set; }
         public DbSet<PrlPayrollRunEmployee> PrlPayrollRunEmployees { get; set; }
         public DbSet<HrdPayrollSetting> HrdPayrollSettings { get; set; }

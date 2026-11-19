@@ -447,8 +447,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         public bool IsLostTimeInjury { get; set; }
         public int LostWorkDays { get; set; }
         public string? BpjsStage1ClaimNumber { get; set; }
-        public DateTime BpjsStage1ReportDeadline { get; set; } // H+48 jam
-        public bool BpjsReportedWithin48Hours { get; set; }
+        // Null saat fitur BPJS nonaktif (tidak ada tenggat atau status pelaporan BPJS yang dibangkitkan).
+        public DateTime? BpjsStage1ReportDeadline { get; set; } // H+48 jam
+        public bool? BpjsReportedWithin48Hours { get; set; }
     }
 
     public class BpjsJkkClaimFormDto

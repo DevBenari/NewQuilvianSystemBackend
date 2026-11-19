@@ -14,6 +14,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
+using System.Text.Json;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -323,23 +325,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                     });
                 }
 
-                if (slip.TotalDeduction > 0)
+                // Potongan iuran hanya dari nilai hasil hitung penerima; tidak ada perkiraan dari total potongan. Tanpa baris penerima,
+                // yang tersedia hanya total potongan dan ditampilkan apa adanya.
+                if (emp != null && emp.TotalEmployeeInsuranceContribution > 0)
                 {
                     deductions.Add(new PayslipItemLineDto
                     {
                         ComponentCode = "BPJS_CONTRIBUTION",
-                        ComponentName = "Iuran BPJS Kesehatan & TK",
+                        ComponentName = "Iuran Karyawan (BPJS/asuransi)",
                         ComponentCategory = "Deduction",
-                        Amount = emp?.TotalEmployeeInsuranceContribution ?? (slip.TotalDeduction * 0.6m)
+                        Amount = emp.TotalEmployeeInsuranceContribution
+                    });
+                }
+                else if (emp == null && slip.TotalDeduction > 0)
+                {
+                    deductions.Add(new PayslipItemLineDto
+                    {
+                        ComponentCode = "DEDUCTION_TOTAL",
+                        ComponentName = "Total Potongan (rincian tidak tersedia)",
+                        ComponentCategory = "Deduction",
+                        Amount = slip.TotalDeduction
                     });
                 }
 
+                // Label pajak diturunkan dari jenis, skema, cara hitung, dan versi kebijakan yang dipakai pada hasil hitung.
                 if (slip.TotalTax > 0)
                 {
                     deductions.Add(new PayslipItemLineDto
                     {
-                        ComponentCode = "PPH21_TER",
-                        ComponentName = "Pajak PPh 21 TER PMK 168/2023",
+                        ComponentCode = "INCOME_TAX",
+                        ComponentName = PayrollTaxLabels.BuildFromSnapshot(ReadTaxSnapshot(emp)),
                         ComponentCategory = "Tax",
                         Amount = slip.TotalTax
                     });
@@ -449,6 +464,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             }
         }
 
+        private static readonly JsonSerializerOptions SnapshotJsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+        /// <summary>Snapshot pajak penerima pada run; null bila tidak ada atau tidak terbaca.</summary>
+        private static PayrollTaxSnapshot? ReadTaxSnapshot(PrlPayrollRunEmployee? emp)
+        {
+            if (emp == null || string.IsNullOrWhiteSpace(emp.TaxSnapshotJson)) return null;
+            try { return JsonSerializer.Deserialize<PayrollTaxSnapshot>(emp.TaxSnapshotJson, SnapshotJsonOptions); }
+            catch (JsonException) { return null; }
+        }
+
         private static string HashToken(string token)
         {
             return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
@@ -469,6 +494,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             var watermark = $"RAHASIA - {employeeName} - {employeeNumber}";
             var allowances = slip.GrossPay - slip.BaseSalary;
             var insurance = emp?.TotalEmployeeInsuranceContribution;
+            var taxLabel = PayrollTaxLabels.BuildFromSnapshot(ReadTaxSnapshot(emp));
 
             var rows = new List<(string Label, string Value, bool Strong)>
             {
@@ -476,7 +502,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 ("Tunjangan dan lembur", Rupiah(allowances), false),
                 ("Total penghasilan bruto", Rupiah(slip.GrossPay), true),
                 ("Potongan iuran BPJS pegawai", Rupiah(insurance), false),
-                ("PPh 21", Rupiah(slip.TotalTax), false),
+                (taxLabel, Rupiah(slip.TotalTax), false),
                 ("Total potongan", Rupiah(slip.TotalDeduction), true),
                 ("Gaji bersih (take home pay)", Rupiah(slip.NetPay), true)
             };

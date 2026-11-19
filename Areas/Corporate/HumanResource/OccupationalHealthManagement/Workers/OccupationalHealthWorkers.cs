@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Services.Features;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers
 {
@@ -340,17 +341,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<BPJSOccupationalInjuryFollowUpWorker> _logger;
+        private readonly IBpjsFeatureGate _bpjsGate;
 
         public BPJSOccupationalInjuryFollowUpWorker(
             IServiceProvider serviceProvider,
-            ILogger<BPJSOccupationalInjuryFollowUpWorker> logger)
+            ILogger<BPJSOccupationalInjuryFollowUpWorker> logger,
+            IBpjsFeatureGate bpjsGate)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
+            _bpjsGate = bpjsGate;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            // Worker khusus BPJS: saat fitur BPJS nonaktif tidak ada polling dan tidak ada notifikasi tenggat pelaporan yang dikirim.
+            // Worker tetap terdaftar sehingga mengaktifkan kembali cukup dengan mengubah satu nilai konfigurasi lalu memulai ulang
+            // aplikasi; pencatatan KAK/PAK dan worker K3 lain tidak terpengaruh.
+            if (!_bpjsGate.IsEnabled)
+            {
+                _logger.LogInformation("BPJSOccupationalInjuryFollowUpWorker (OHS-W6) tidak dijalankan: fitur BPJS dinonaktifkan sementara.");
+                return;
+            }
+
             _logger.LogInformation("BPJSOccupationalInjuryFollowUpWorker (OHS-W6) diinisiasi.");
 
             while (!stoppingToken.IsCancellationRequested)

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Features;
 using QuilvianSystemBackend.Services.Logging;
 using System.Net;
 using System.Text.Json;
@@ -33,6 +34,12 @@ namespace QuilvianSystemBackend.Middlewares
                     context.Response.StatusCode = 499; // Client Closed Request
                 }
             }
+            catch (BpjsFeatureDisabledException ex)
+            {
+                // Operasi BPJS baru ditolak karena fitur BPJS nonaktif: penolakan aturan yang diharapkan (409), bukan galat sistem.
+                // Jalur yang menangkapnya sendiri (controller) tetap berlaku; ini jaring pengaman agar tidak pernah menjadi 500.
+                await WriteConflictAsync(context, ex.Message);
+            }
             catch (Exception ex)
             {
                 await loggerService.ErrorAsync(
@@ -49,6 +56,24 @@ namespace QuilvianSystemBackend.Middlewares
 
                 await HandleExceptionAsync(context, ex);
             }
+        }
+
+        private static async Task WriteConflictAsync(HttpContext context, string message)
+        {
+            if (context.Response.HasStarted)
+            {
+                return;
+            }
+
+            context.Response.Clear();
+            context.Response.StatusCode = StatusCodes.Status409Conflict;
+            context.Response.ContentType = "application/json";
+
+            var json = JsonSerializer.Serialize(
+                ApiResponse<object>.Fail(StatusCodes.Status409Conflict, message),
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+            await context.Response.WriteAsync(json);
         }
 
         /// <summary>

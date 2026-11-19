@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 using QuilvianSystemBackend.Repositories;
+using System.Text.Json;
 
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 
@@ -23,10 +26,12 @@ public sealed class PayrollReportService
     private const string PersonDoctor = "Dokter";
 
     private readonly ApplicationDbContext _dbContext;
+    private readonly PayrollPolicyOptions _policy;
 
-    public PayrollReportService(ApplicationDbContext dbContext)
+    public PayrollReportService(ApplicationDbContext dbContext, IOptions<PayrollPolicyOptions> policyOptions)
     {
         _dbContext = dbContext;
+        _policy = policyOptions.Value;
     }
 
     // ------------------------------------------------------------------------------------
@@ -268,6 +273,7 @@ public sealed class PayrollReportService
         var result = new PayrollTaxContributionPagedResult { PageNumber = pageNumber, PageSize = pageSize, PeriodCode = periodCode };
 
         // RPT-01
+        result.EnableBpjsInPayroll = _policy.EnableBpjsInPayroll;
         if (runs.Count == 0)
         {
             result.Note = NoApprovedRunNote;
@@ -285,9 +291,17 @@ public sealed class PayrollReportService
                 || (e.EmployeeNumberSnapshot != null && e.EmployeeNumberSnapshot.ToLower().Contains(term)));
         }
 
-        var taxCodes = new[] { PayrollEngineComponentCodes.Tax, PayrollEngineComponentCodes.InsuranceEmployee };
+        var insuranceEmployeeCodes = new[]
+        {
+            PayrollEngineComponentCodes.InsuranceEmployee,
+            PayrollInsuranceComponentCodes.BpjsHealthEmployee,
+            PayrollInsuranceComponentCodes.BpjsJhtEmployee,
+            PayrollInsuranceComponentCodes.BpjsJpEmployee,
+            PayrollInsuranceComponentCodes.PrivateEmployee
+        };
+        var taxAndInsuranceCodes = insuranceEmployeeCodes.Append(PayrollEngineComponentCodes.Tax).ToArray();
         var componentQuery = _dbContext.PrlPayrollEmployeeComponents.AsNoTracking()
-            .Where(c => !c.IsDelete && taxCodes.Contains(c.ComponentCodeSnapshot)
+            .Where(c => !c.IsDelete && taxAndInsuranceCodes.Contains(c.ComponentCodeSnapshot)
                 && employeeQuery.Select(e => e.Id).Contains(c.PayrollRunEmployeeId));
 
         result.TotalData = await employeeQuery.CountAsync(cancellationToken);
@@ -297,12 +311,20 @@ public sealed class PayrollReportService
             .Select(g => new { Code = g.Key, Amount = g.Sum(x => x.Amount) })
             .ToListAsync(cancellationToken);
         result.TotalTaxAmount = totals.Where(t => t.Code == PayrollEngineComponentCodes.Tax).Sum(t => t.Amount);
-        result.TotalInsuranceEmployeeAmount = totals.Where(t => t.Code == PayrollEngineComponentCodes.InsuranceEmployee).Sum(t => t.Amount);
+        result.TotalInsuranceEmployeeAmount = totals.Where(t => insuranceEmployeeCodes.Contains(t.Code)).Sum(t => t.Amount);
 
         var page = await employeeQuery
             .OrderBy(e => e.EmployeeNameSnapshot).ThenBy(e => e.EmployeeNumberSnapshot).ThenBy(e => e.Id)
             .Skip((pageNumber - 1) * pageSize).Take(pageSize)
-            .Select(e => new { e.Id, e.PayrollRunId, e.EmployeeNumberSnapshot, e.EmployeeNameSnapshot, e.CostCenterNameSnapshot })
+            .Select(e => new
+            {
+                e.Id,
+                e.PayrollRunId,
+                e.EmployeeNumberSnapshot,
+                e.EmployeeNameSnapshot,
+                e.CostCenterNameSnapshot,
+                e.TaxSnapshotJson
+            })
             .ToListAsync(cancellationToken);
         var pageIds = page.Select(e => e.Id).ToList();
         var pageAmounts = await componentQuery
@@ -313,23 +335,66 @@ public sealed class PayrollReportService
 
         var runById = runs.ToDictionary(r => r.Id);
         var policyVersionByRun = runs.ToDictionary(r => r.Id, r => ReadPolicyVersion(r.PolicySnapshotJson));
-        decimal AmountOf(Guid employeeId, string code) =>
-            pageAmounts.Where(a => a.PayrollRunEmployeeId == employeeId && a.ComponentCodeSnapshot == code).Sum(a => a.Amount);
+        var testingModeByRun = runs.ToDictionary(r => r.Id, r => PayrollTaxInsuranceRules.IsTestingModeWithoutBpjs(r.PolicySnapshotJson));
+        result.HasTestingModeRuns = testingModeByRun.Values.Any(v => v);
 
-        result.Items = page.Select(e => new PayrollTaxContributionRowResponse
+        decimal TaxAmountOf(Guid employeeId) =>
+            pageAmounts.Where(a => a.PayrollRunEmployeeId == employeeId && a.ComponentCodeSnapshot == PayrollEngineComponentCodes.Tax).Sum(a => a.Amount);
+        decimal InsuranceAmountOf(Guid employeeId) =>
+            pageAmounts.Where(a => a.PayrollRunEmployeeId == employeeId && insuranceEmployeeCodes.Contains(a.ComponentCodeSnapshot)).Sum(a => a.Amount);
+
+        result.Items = page.Select(e =>
         {
-            RunNumber = runById[e.PayrollRunId].RunNumber,
-            EmployeeNumber = e.EmployeeNumberSnapshot ?? string.Empty,
-            EmployeeName = e.EmployeeNameSnapshot,
-            CostCenterName = string.IsNullOrWhiteSpace(e.CostCenterNameSnapshot) ? "Tanpa Cost Center" : e.CostCenterNameSnapshot!,
-            TaxAmount = AmountOf(e.Id, PayrollEngineComponentCodes.Tax),
-            InsuranceEmployeeAmount = AmountOf(e.Id, PayrollEngineComponentCodes.InsuranceEmployee),
-            Source = PayrollTaxContributionSources.ProfileFixed,
-            PolicyVersion = policyVersionByRun[e.PayrollRunId]
+            var taxSnap = ReadTaxSnapshotSummary(e.TaxSnapshotJson);
+            var source = taxSnap.Source switch
+            {
+                TaxCalculationModes.AutoRegulatory => PayrollTaxContributionSources.AutoRegulatory,
+                TaxCalculationModes.ApprovedManualAmount => PayrollTaxContributionSources.ApprovedManualAmount,
+                TaxCalculationModes.ExemptOrNotApplicable => PayrollTaxContributionSources.Exempt,
+                _ => PayrollTaxContributionSources.ProfileFixed
+            };
+            var taxPolicyVersion = string.IsNullOrWhiteSpace(taxSnap.PolicyVersion) ? null : taxSnap.PolicyVersion;
+            return new PayrollTaxContributionRowResponse
+            {
+                RunNumber = runById[e.PayrollRunId].RunNumber,
+                EmployeeNumber = e.EmployeeNumberSnapshot ?? string.Empty,
+                EmployeeName = e.EmployeeNameSnapshot,
+                CostCenterName = string.IsNullOrWhiteSpace(e.CostCenterNameSnapshot) ? "Tanpa Cost Center" : e.CostCenterNameSnapshot!,
+                TaxAmount = TaxAmountOf(e.Id),
+                InsuranceEmployeeAmount = InsuranceAmountOf(e.Id),
+                Source = source,
+                PolicyVersion = taxPolicyVersion ?? policyVersionByRun[e.PayrollRunId],
+                TaxPolicyVersion = taxPolicyVersion,
+                IsTestingModeWithoutBpjs = testingModeByRun[e.PayrollRunId]
+            };
         }).ToList();
 
-        result.Note = "PPh 21 dan iuran BPJS pegawai memakai nilai tetapan profil payroll, karena rumus resmi belum disahkan.";
+        result.Note = !_policy.EnableBpjsInPayroll || result.HasTestingModeRuns
+            ? "Mode pengujian aktif: kalkulasi BPJS Kesehatan dan BPJS Ketenagakerjaan dinonaktifkan sementara (belum dihitung). Nilai PPh 21 bersumber dari snapshot kebijakan tarif PPh yang disahkan pada masing-masing payroll run."
+            : "Nilai PPh 21 dan iuran pegawai bersumber dari snapshot kebijakan yang disahkan pada masing-masing payroll run.";
         return result;
+    }
+
+    private static (string? Source, string? PolicyVersion) ReadTaxSnapshotSummary(string? taxSnapshotJson)
+    {
+        if (string.IsNullOrWhiteSpace(taxSnapshotJson)) return (null, null);
+        try
+        {
+            using var doc = JsonDocument.Parse(taxSnapshotJson);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object) return (null, null);
+            string? ReadStr(string prop) =>
+                doc.RootElement.TryGetProperty(prop, out var val) && val.ValueKind == JsonValueKind.String ? val.GetString() : null;
+            var source = ReadStr("Source") ?? ReadStr("source");
+            var calcMode = ReadStr("CalculationMode") ?? ReadStr("calculationMode");
+            var policyVersion = ReadStr("PolicyVersion") ?? ReadStr("policyVersion");
+            if (string.Equals(source, PayrollTaxInsuranceSources.LegacyProfileAmount, StringComparison.OrdinalIgnoreCase))
+                return (PayrollTaxContributionSources.ProfileFixed, policyVersion);
+            return (calcMode, policyVersion);
+        }
+        catch (JsonException)
+        {
+            return (null, null);
+        }
     }
 
     /// <summary>Periode dan run yang sudah disahkan untuk filter laporan. Salah satu filter wajib (400 bila keduanya kosong).</summary>

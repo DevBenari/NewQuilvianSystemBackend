@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
@@ -26,11 +27,14 @@ public sealed class PayrollDataReadinessService
 
     private readonly ApplicationDbContext _dbContext;
     private readonly PayrollHrdSourceReader _hrdSource;
+    private readonly PayrollStatutoryPolicyResolver _policyResolver;
 
-    public PayrollDataReadinessService(ApplicationDbContext dbContext, PayrollHrdSourceReader hrdSource)
+    public PayrollDataReadinessService(
+        ApplicationDbContext dbContext, PayrollHrdSourceReader hrdSource, PayrollStatutoryPolicyResolver policyResolver)
     {
         _dbContext = dbContext;
         _hrdSource = hrdSource;
+        _policyResolver = policyResolver;
     }
 
     public async Task<PagedResult<PayrollDataReadinessItemResponse>> ListAsync(
@@ -79,8 +83,18 @@ public sealed class PayrollDataReadinessService
     public async Task<PayrollDataReadinessSummaryResponse> SummaryAsync(CancellationToken cancellationToken)
     {
         var all = await LoadReadinessAsync(cancellationToken);
+        var availability = await _policyResolver.GetAvailabilityAsync(DateTime.UtcNow.Date, cancellationToken);
         return new PayrollDataReadinessSummaryResponse
         {
+            TaxPolicyApproved = availability.TaxApproved,
+            TaxPolicyVersion = availability.TaxVersion,
+            TaxPolicyStatusLabel = availability.TaxApproved ? "Kebijakan tarif PPh disahkan" : StatutoryPolicyLabels.AwaitingVerification,
+            EnableBpjsInPayroll = availability.EnableBpjsInPayroll,
+            BpjsPolicyApproved = availability.BpjsApproved,
+            BpjsPolicyVersion = availability.BpjsVersion,
+            BpjsPolicyStatusLabel = !availability.EnableBpjsInPayroll
+                ? StatutoryPolicyLabels.BpjsTestingModeDisabled
+                : (availability.BpjsApproved ? "Kebijakan iuran BPJS disahkan" : StatutoryPolicyLabels.AwaitingVerification),
             TotalPeople = all.Count,
             WithPayrollProfile = all.Count(x => x.HasPayrollProfile),
             WithApprovedSalaryAssignment = all.Count(x => x.HasApprovedSalaryAssignment),
@@ -102,6 +116,7 @@ public sealed class PayrollDataReadinessService
     private async Task<List<PayrollDataReadinessItemResponse>> LoadReadinessAsync(CancellationToken cancellationToken)
     {
         var today = DateTime.UtcNow.Date;
+        var availability = await _policyResolver.GetAvailabilityAsync(today, cancellationToken);
 
         var people = await _hrdSource.LoadPopulationAsync(cancellationToken);
         var salaries = await _hrdSource.LoadSalariesAsync(today, today, cancellationToken);
@@ -137,11 +152,25 @@ public sealed class PayrollDataReadinessService
                     return (Facts: chosen, Conflict: conflict);
                 });
 
+        // Konfigurasi PPh dan iuran milik HRD (satu baris per orang menurut indeks unik). Bila tetap ada beberapa, yang aktif dan terbaru dipilih.
+        var taxConfigs = (await _dbContext.PrlTaxes.AsNoTracking().Where(x => !x.IsDelete).ToListAsync(cancellationToken))
+            .GroupBy(x => x.WorkforceProfileId)
+            .ToDictionary(
+                g => g.Key,
+                g => PayrollTaxConfigFacts.From(g.OrderByDescending(t => t.IsActive).ThenByDescending(t => t.EffectiveStartDate).First()));
+        var insuranceConfigs = (await _dbContext.PrlInsurances.AsNoTracking().Where(x => !x.IsDelete).ToListAsync(cancellationToken))
+            .GroupBy(x => x.WorkforceProfileId)
+            .ToDictionary(
+                g => g.Key,
+                g => PayrollInsuranceConfigFacts.From(g.OrderByDescending(t => t.IsActive).ThenByDescending(t => t.EffectiveStartDate).First()));
+
         var items = new List<PayrollDataReadinessItemResponse>(people.Count);
         foreach (var person in people)
         {
             salaries.TryGetValue(person.WorkforceProfileId, out var salary);
             banks.TryGetValue(person.WorkforceProfileId, out var bank);
+            taxConfigs.TryGetValue(person.WorkforceProfileId, out var taxConfig);
+            insuranceConfigs.TryGetValue(person.WorkforceProfileId, out var insuranceConfig);
 
             // (1) Sumber HRD dan (2) profil operasional internal Payroll dinilai oleh evaluator yang SAMA dengan layar Profil
             // Penggajian. Profil tidak pernah dibuat di sini.
@@ -154,8 +183,11 @@ public sealed class PayrollDataReadinessService
                 profileConflict = found.Conflict;
             }
 
+            // Kelengkapan PPh dan iuran dinilai dari konfigurasi eksplisit HRD; tetapan lama pada profil payroll hanya cadangan bertanda.
+            var taxInsurance = PayrollTaxInsuranceRules.AssessReadiness(
+                taxConfig, insuranceConfig, profile?.TaxAmount ?? 0m, profile?.InsuranceAmount ?? 0m, today, availability);
             var profileAssessment = PayrollReadinessEvaluator.AssessProfile(
-                profile, PayrollProfileRules.CanAutoPrepare(salary is not null, bank is not null), today, profileConflict);
+                profile, PayrollProfileRules.CanAutoPrepare(salary is not null, bank is not null), taxInsurance, today, profileConflict);
 
             var issues = new List<string>(hrd.Issues);
             issues.AddRange(profileAssessment.Issues);
@@ -173,6 +205,10 @@ public sealed class PayrollDataReadinessService
                 HrdComplete = hrd.HrdComplete,
                 PayrollProfileStatus = profileAssessment.ProfileStatus,
                 TaxInsuranceStatus = profileAssessment.TaxInsuranceStatus,
+                TaxConfigurationStatus = profileAssessment.TaxConfigurationStatus,
+                InsuranceConfigurationStatus = profileAssessment.InsuranceConfigurationStatus,
+                TaxConfigurationIssues = profileAssessment.TaxIssues ?? new List<string>(),
+                InsuranceConfigurationIssues = profileAssessment.InsuranceIssues ?? new List<string>(),
                 // (3) Siap mengikuti proses Payroll: tidak ada penghalang. Tetapan PPh dan iuran dilaporkan terpisah.
                 IsComplete = issues.Count == 0,
                 Issues = issues,

@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthMana
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Services.Features;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Controllers
 {
@@ -32,12 +33,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         private readonly IWorkRestrictionService _restrictionService;
         private readonly IReturnToWorkService _rtwService;
         private readonly IOccupationalInjuryService _injuryService;
+        private readonly IBpjsFeatureGate _bpjsGate;
 
         public WorkRestrictionsAndInjuryController(
             IWorkRestrictionService restrictionService,
             IReturnToWorkService rtwService,
-            IOccupationalInjuryService injuryService)
+            IOccupationalInjuryService injuryService,
+            IBpjsFeatureGate bpjsGate)
         {
+            _bpjsGate = bpjsGate ?? throw new ArgumentNullException(nameof(bpjsGate));
             _restrictionService = restrictionService ?? throw new ArgumentNullException(nameof(restrictionService));
             _rtwService = rtwService ?? throw new ArgumentNullException(nameof(rtwService));
             _injuryService = injuryService ?? throw new ArgumentNullException(nameof(injuryService));
@@ -117,13 +121,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         {
             var userId = GetCurrentUserId();
             var result = await _injuryService.ReportInjuryAsync(request, userId, cancellationToken);
-            return StatusCode(201, ApiResponse<EmployeeInjuryResponseDto>.Ok(result, "Laporan kecelakaan kerja (KAK/PAK) berhasil dicatat. Tiket klaim BPJS JKK Tahap I terdaftar."));
+            var message = _bpjsGate.IsEnabled
+                ? "Laporan kecelakaan kerja (KAK/PAK) berhasil dicatat. Tiket klaim BPJS JKK Tahap I terdaftar."
+                : "Laporan kecelakaan kerja (KAK/PAK) berhasil dicatat.";
+            return StatusCode(201, ApiResponse<EmployeeInjuryResponseDto>.Ok(result, message));
         }
 
         /// <summary>
         /// Generator berkas resmi pelaporan klaim JKK BPJS Ketenagakerjaan Tahap I/II
         /// </summary>
         [HttpGet("injuries/{injuryId:guid}/bpjs-jkk-form")]
+        [BpjsFeatureRequired] // Formulir klaim BPJS JKK tidak dibuat saat fitur BPJS nonaktif (409); pencatatan KAK/PAK tidak terpengaruh.
         [AccessAction("PrepareBpjsClaimStage1", "Menyiapkan Formulir BPJS JKK Tahap I", AccessType = AccessTypes.Read, SortOrder = 5)]
         [AccessPermission("WorkRestrictionAndInjury", "PrepareBpjsClaimStage1")]
         [Authorize]

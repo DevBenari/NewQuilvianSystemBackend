@@ -32,6 +32,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         public decimal MaxLoanDeductionPercentage { get; set; }
         public bool IsActive { get; set; }
         public DateTime? LastUpdatedAt { get; set; }
+
+        // ---- Status verifikasi nilai BPJS (hanya pada hasil GET; tidak dibaca dari snapshot run). Nilai bawaan pada pengaturan ini BUKAN
+        // kebijakan resmi: tarif dan plafon yang dipakai payroll hanya dari kebijakan berversi yang diverifikasi HRD dan disahkan Finance. ----
+
+        /// <summary>PENDING_VERIFICATION (belum ada kebijakan iuran BPJS yang disahkan dan berlaku) | REPLACED_BY_APPROVED_POLICY.</summary>
+        public string BpjsValuesStatus { get; set; } = "PENDING_VERIFICATION";
+        public string BpjsValuesStatusLabel { get; set; } = "Menunggu Verifikasi Kebijakan";
+        public bool BpjsPolicyApproved { get; set; }
+        public Guid? BpjsPolicyId { get; set; }
+        public string? BpjsPolicyVersion { get; set; }
+        public bool TaxPolicyApproved { get; set; }
+        public string? TaxPolicyVersion { get; set; }
     }
 
     public class UpdateHrdPayrollSettingCommand

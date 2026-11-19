@@ -82,8 +82,23 @@ public class PayrollCompensationListItemResponse
     /// <summary>Lengkap | Belum lengkap | Tidak aktif di HRD (hanya pada detail orang yang sudah tidak aktif).</summary>
     public string HrdDataStatus { get; set; } = string.Empty;
 
-    /// <summary>Sudah ditetapkan | Belum ditetapkan (PPh dan iuran pada profil sama-sama nol) | Menunggu profil.</summary>
+    /// <summary>
+    /// Sudah ditetapkan (konfigurasi PPh DAN iuran HRD sah dan berlaku) | Belum ditetapkan. Diturunkan dari status konfigurasi
+    /// eksplisit di bawah, bukan dari perbandingan nominal nol.
+    /// </summary>
     public string TaxInsuranceStatus { get; set; } = string.Empty;
+
+    /// <summary>NOT_CONFIGURED | CONFIGURED | NOT_EFFECTIVE | ERROR untuk konfigurasi PPh (Profil Pajak HRD).</summary>
+    public string TaxConfigurationStatus { get; set; } = string.Empty;
+
+    /// <summary>NOT_CONFIGURED | CONFIGURED | NOT_EFFECTIVE | ERROR untuk konfigurasi iuran (Profil Iuran HRD).</summary>
+    public string InsuranceConfigurationStatus { get; set; } = string.Empty;
+
+    /// <summary>Kekurangan konfigurasi PPh yang sebenarnya; kosong bila lengkap.</summary>
+    public List<string> TaxConfigurationIssues { get; set; } = new();
+
+    /// <summary>Kekurangan konfigurasi iuran yang sebenarnya; kosong bila lengkap.</summary>
+    public List<string> InsuranceConfigurationIssues { get; set; } = new();
 
     public Guid? SalaryAssignmentId { get; set; }
     public DateTime? SalaryEffectiveStartDate { get; set; }
