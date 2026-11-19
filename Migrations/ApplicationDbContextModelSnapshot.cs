@@ -71317,6 +71317,134 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("PrcDocumentHistory", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models.MstProcurementCategoryDocumentRequirement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ActivatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ActivatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DocumentTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ItemCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentTypeId");
+
+                    b.HasIndex("ItemCategoryId", "DocumentTypeId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("MstProcurementCategoryDocumentRequirement", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models.MstProcurementEvaluationCriterion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CriterionName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ItemCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("WeightPercent")
+                        .HasColumnType("numeric(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemCategoryId", "CriterionName")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("MstProcurementEvaluationCriterion", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_MstProcurementEvaluationCriterion_WeightPercent", "\"WeightPercent\" > 0 AND \"WeightPercent\" <= 100");
+                        });
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models.MstProcurementFundSource", b =>
                 {
                     b.Property<Guid>("Id")
@@ -71587,6 +71715,71 @@ namespace QuilvianSystemBackend.Migrations
                         .HasFilter("\"IsDelete\" = false");
 
                     b.ToTable("MstProcurementType", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models.MstProcurementVendorDocumentType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("DocumentTypeCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("DocumentTypeName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("RequiresExpiryDate")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentTypeCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("MstProcurementVendorDocumentType", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.Models.PrcBudget", b =>
@@ -72403,6 +72596,502 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("PrcPurchaseRequestLine", "public", t =>
                         {
                             t.HasCheckConstraint("CK_PrcPurchaseRequestLine_Quantity", "\"RequestedQuantity\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ItemCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VendorProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemCategoryId");
+
+                    b.HasIndex("VendorProfileId", "ItemCategoryId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("PrcVendorCategory", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DocumentNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("DocumentTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("ExpiryDate")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateOnly?>("IssuedDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VendorProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VerificationStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("VerifiedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentTypeId");
+
+                    b.HasIndex("ExpiryDate");
+
+                    b.HasIndex("VendorProfileId", "DocumentTypeId", "VerificationStatus");
+
+                    b.ToTable("PrcVendorDocument", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_PrcVendorDocument_ExpiryDate", "\"ExpiryDate\" IS NULL OR \"IssuedDate\" IS NULL OR \"ExpiryDate\" >= \"IssuedDate\"");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorEvaluation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("FinalScore")
+                        .HasColumnType("numeric(4,2)");
+
+                    b.Property<DateTimeOffset?>("FinalizedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FinalizedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ItemCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("PeriodNo")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PeriodType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<int>("PeriodYear")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("PreviousEvaluationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Recommendation")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("RevisionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VendorProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemCategoryId");
+
+                    b.HasIndex("PreviousEvaluationId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("VendorProfileId", "ItemCategoryId", "PeriodYear", "PeriodType", "PeriodNo")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PrcVendorEvaluation_OriginalPerPeriod")
+                        .HasFilter("\"Status\" IN ('DRAFT', 'FINAL') AND \"PreviousEvaluationId\" IS NULL AND \"IsDelete\" = false");
+
+                    b.ToTable("PrcVendorEvaluation", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_PrcVendorEvaluation_FinalScore", "\"FinalScore\" IS NULL OR (\"FinalScore\" >= 1 AND \"FinalScore\" <= 5)");
+
+                            t.HasCheckConstraint("CK_PrcVendorEvaluation_PeriodNo", "\"PeriodNo\" >= 1 AND \"PeriodNo\" <= 4");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorEvaluationScore", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CriterionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CriterionName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EvaluationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("Score")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("WeightPercent")
+                        .HasColumnType("numeric(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CriterionId");
+
+                    b.HasIndex("EvaluationId", "CriterionId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("PrcVendorEvaluationScore", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_PrcVendorEvaluationScore_Score", "\"Score\" IS NULL OR (\"Score\" >= 1 AND \"Score\" <= 5)");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRestricted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("RestrictedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RestrictedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("RestrictedUntil")
+                        .HasColumnType("date");
+
+                    b.Property<string>("RestrictionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsRestricted");
+
+                    b.HasIndex("SupplierId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("PrcVendorProfile", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_PrcVendorProfile_RestrictionReason", "\"IsRestricted\" = false OR (\"RestrictionReason\" IS NOT NULL AND length(btrim(\"RestrictionReason\")) > 0)");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorStatusRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EvidenceEvaluationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("RequestNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("RequestType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("SubmissionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VendorProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WorkflowInstanceId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EvidenceEvaluationId");
+
+                    b.HasIndex("RequestNumber")
+                        .IsUnique()
+                        .HasFilter("\"RequestNumber\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("VendorProfileId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PrcVendorStatusRequest_OpenPerVendor")
+                        .HasFilter("\"Status\" IN ('DRAFT', 'PENDING_APPROVAL', 'RETURNED') AND \"IsDelete\" = false");
+
+                    b.HasIndex("WorkflowInstanceId");
+
+                    b.ToTable("PrcVendorStatusRequest", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_PrcVendorStatusRequest_Reason", "length(btrim(\"Reason\")) > 0");
+
+                            t.HasCheckConstraint("CK_PrcVendorStatusRequest_RequestType", "\"RequestType\" IN ('BLOCK', 'UNBLOCK')");
                         });
                 });
 
@@ -142673,6 +143362,36 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models.MstProcurementCategoryDocumentRequirement", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models.MstProcurementVendorDocumentType", "DocumentType")
+                        .WithMany()
+                        .HasForeignKey("DocumentTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models.MstProcurementItemCategory", "ItemCategory")
+                        .WithMany()
+                        .HasForeignKey("ItemCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DocumentType");
+
+                    b.Navigation("ItemCategory");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models.MstProcurementEvaluationCriterion", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models.MstProcurementItemCategory", "ItemCategory")
+                        .WithMany()
+                        .HasForeignKey("ItemCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ItemCategory");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models.MstProcurementItem", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrug", "Drug")
@@ -142859,6 +143578,118 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Item");
 
                     b.Navigation("PurchaseRequest");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorCategory", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models.MstProcurementItemCategory", "ItemCategory")
+                        .WithMany()
+                        .HasForeignKey("ItemCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorProfile", "VendorProfile")
+                        .WithMany("Categories")
+                        .HasForeignKey("VendorProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ItemCategory");
+
+                    b.Navigation("VendorProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorDocument", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models.MstProcurementVendorDocumentType", "DocumentType")
+                        .WithMany()
+                        .HasForeignKey("DocumentTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorProfile", "VendorProfile")
+                        .WithMany()
+                        .HasForeignKey("VendorProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DocumentType");
+
+                    b.Navigation("VendorProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorEvaluation", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models.MstProcurementItemCategory", "ItemCategory")
+                        .WithMany()
+                        .HasForeignKey("ItemCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorEvaluation", "PreviousEvaluation")
+                        .WithMany()
+                        .HasForeignKey("PreviousEvaluationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorProfile", "VendorProfile")
+                        .WithMany()
+                        .HasForeignKey("VendorProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ItemCategory");
+
+                    b.Navigation("PreviousEvaluation");
+
+                    b.Navigation("VendorProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorEvaluationScore", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models.MstProcurementEvaluationCriterion", "Criterion")
+                        .WithMany()
+                        .HasForeignKey("CriterionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorEvaluation", "Evaluation")
+                        .WithMany("Scores")
+                        .HasForeignKey("EvaluationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Criterion");
+
+                    b.Navigation("Evaluation");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorProfile", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Administrator.MasterData.Models.MstSupplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorStatusRequest", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorEvaluation", "EvidenceEvaluation")
+                        .WithMany()
+                        .HasForeignKey("EvidenceEvaluationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorProfile", "VendorProfile")
+                        .WithMany()
+                        .HasForeignKey("VendorProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("EvidenceEvaluation");
+
+                    b.Navigation("VendorProfile");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilAdjustment", b =>
@@ -154912,6 +155743,16 @@ namespace QuilvianSystemBackend.Migrations
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Models.PrcPurchaseRequest", b =>
                 {
                     b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorEvaluation", b =>
+                {
+                    b.Navigation("Scores");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models.PrcVendorProfile", b =>
+                {
+                    b.Navigation("Categories");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilDepositAccount", b =>

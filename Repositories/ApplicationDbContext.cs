@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Models;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.Models;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
@@ -1432,6 +1433,19 @@ namespace QuilvianSystemBackend.Repositories
         // BE-PBJ-011: rencana paket hasil konsolidasi.
         public DbSet<PrcPackagePlan> PrcPackagePlans { get; set; }
         public DbSet<PrcPackagePlanLine> PrcPackagePlanLines { get; set; }
+
+        // BE-PBJ-VD-001: manajemen vendor — master konfigurasi vendor.
+        public DbSet<MstProcurementVendorDocumentType> MstProcurementVendorDocumentTypes { get; set; }
+        public DbSet<MstProcurementCategoryDocumentRequirement> MstProcurementCategoryDocumentRequirements { get; set; }
+        public DbSet<MstProcurementEvaluationCriterion> MstProcurementEvaluationCriteria { get; set; }
+
+        // BE-PBJ-VD-001: manajemen vendor — profil, kategori, dokumen, usulan status, penilaian.
+        public DbSet<PrcVendorProfile> PrcVendorProfiles { get; set; }
+        public DbSet<PrcVendorCategory> PrcVendorCategories { get; set; }
+        public DbSet<PrcVendorDocument> PrcVendorDocuments { get; set; }
+        public DbSet<PrcVendorStatusRequest> PrcVendorStatusRequests { get; set; }
+        public DbSet<PrcVendorEvaluation> PrcVendorEvaluations { get; set; }
+        public DbSet<PrcVendorEvaluationScore> PrcVendorEvaluationScores { get; set; }
         #endregion REHABILITATION MANAGEMENT
 
         #region MEDICAL CHECKUP MANAGEMENT

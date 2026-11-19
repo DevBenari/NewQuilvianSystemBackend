@@ -3,7 +3,7 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint | `PBJ-BP-001` revisi 1, `decision_revision 3` (`PBJ-DEC-001`..`026`) |
-| Revisi penilaian | `3` — revisi 3 (17 November 2026) menambah sub-modul `manajemen-vendor`, bagian 8; revisi 2 = blocker revisi 1 ditutup `PBJ-DEC-027`..`030` |
+| Revisi penilaian | `4` — revisi 4 (17 November 2026) menutup blocker `manajemen-vendor`, bagian 9; revisi 3 menambah sub-modul `manajemen-vendor`, bagian 8; revisi 2 = blocker revisi 1 ditutup `PBJ-DEC-027`..`030` |
 | Tanggal | 12 November 2026 |
 | Scope | Sub-modul `perencanaan-permintaan` (K-01..K-04) dan fondasi tingkat modul yang dibutuhkannya |
 | Bukti yang dipakai | (1) Jawaban pemilik pada `00-interview-decisions.md`, wewenang tertinggi; (2) BRD & PRD v1.0 DRAFT, berstatus **PROPOSAL** karena belum disahkan; (3) `01-existing-capability-map.md` revisi 1 @`100c011d`/`763d665b` untuk kemampuan yang sudah ada. SOP rumah sakit **belum diterima** (`PBJ-OQ-019`). Baseline `indonesia-hospital-domain-reference` tidak dipakai |
@@ -266,3 +266,30 @@ seluruh sub-modul dirancang sekaligus, supaya kontrak kelayakan vendor tidak dir
 | Butir tetap `PROPOSED` | `G-V01`, `G-V02`, `G-V04`, `G-V05`, `G-V07`, `G-V10` |
 | Nilai dapat dikonfigurasi | `G-V03` (jenis dan dokumen wajib per kategori), `PBJ-OQ-034` (kriteria dan bobot), `PBJ-OQ-019` (penyetuju blokir) |
 | Standar layar | `PBJ-FE-004` berlaku untuk semua daftar sub-modul ini |
+
+---
+
+## 9. Revisi 4 — blocker `manajemen-vendor` ditutup (17 November 2026)
+
+| Decision ID | Ditutup oleh | Gap |
+| --- | --- | --- |
+| `PBJ-OQ-035` | `PBJ-DEC-059` | `G-V06` → `CONFIRMED` (penilaian per vendor × kategori × periode) |
+| `PBJ-OQ-036` | `PBJ-DEC-060` | `G-V08` → `CONFIRMED` (kolom blokir Master Data dikunci) |
+| — | `PBJ-DEC-061` | `G-V03` → `CONFIRMED` (dokumen wajib dimulai kosong, diaktifkan bertahap) |
+
+| Slice | Kesiapan revisi 4 |
+| --- | --- |
+| `S-V1`, `S-V2`, `S-V4` | `READY_FOR_DOMAIN_DESIGN` (tidak berubah) |
+| `S-V3` Status Dibatasi/Diblokir | `READY_FOR_DOMAIN_DESIGN` — termasuk perubahan kecil modul Administrator (`PBJ-DEC-060`) |
+| `S-V5` Riwayat vendor | `READY_FOR_DOMAIN_DESIGN` |
+| `S-V6` Penilaian berkala | `READY_FOR_DOMAIN_DESIGN` |
+| `S-V7` Evaluasi per kontrak | `LATER SLICE` (tidak berubah, `PBJ-DEC-044`) |
+
+**Verdict sub-modul `manajemen-vendor`: `READY_FOR_DOMAIN_DESIGN`** untuk `S-V1`..`S-V6`.
+
+Butir yang tetap `PROPOSED` dan wajib tampil sebagai usulan di desain: `G-V01`, `G-V02`, `G-V04`, `G-V05`, `G-V07`, `G-V10`.
+Nilai yang dapat dikonfigurasi: jenis dan dokumen wajib per kategori (`PBJ-DEC-061`), kriteria dan bobot (`PBJ-OQ-034`),
+penyetuju blokir (`PBJ-OQ-019`). Pertanyaan terbuka yang hanya memengaruhi layar: `PBJ-OQ-033` (nama submenu menu 10).
+
+**Handoff:** `design-business-module` untuk sub-modul `manajemen-vendor`, dengan `requirement_readiness:
+READY_FOR_DOMAIN_DESIGN` dan `domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN` (alasan di bagian 8.6).

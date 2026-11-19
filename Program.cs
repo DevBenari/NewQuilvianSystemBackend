@@ -969,6 +969,10 @@ try
     // bukan oleh QueueDisplayDeviceController (QBE-CODE-002/006).
     builder.Services.AddScoped<QueueDisplayDeviceCodeService>();
 
+    // PBJ-BP-001, BE-PBJ-VD-007 (PBJ-DEC-060): satu-satunya penulis status blokir supplier, dipanggil penerapan
+    // keputusan usulan blokir/buka blokir Pengadaan dalam transaksinya.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Administrator.MasterData.Services.SupplierProcurementStatusService>();
+
     // Master keperluan akses rekam medis. Selama tabelnya kosong, pembukaan berkas pasien di
     // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara
     // mengisinya tanpa meminta perubahan kode.
@@ -2876,8 +2880,14 @@ try
         // dan sumber dana OPERASIONAL/INVESTASI. Idempoten; data yang diubah atau dihapus admin tidak diisi ulang.
         await RunStartupSeederAsync("ProcurementMasterDataSeeder", () => QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Seeders.ProcurementMasterDataSeeder.SeedAsync(app.Services));
 
-        // PBJ-BP-001, BE-PBJ-005. Kerangka lima definisi approval Pengadaan pada mesin workflow bersama,
-        // dibuat TIDAK AKTIF sampai admin mengisi jabatan penyetuju sesuai SOP (PBJ-OQ-019). Idempoten.
+        // PBJ-BP-001, BE-PBJ-VD-001. Data awal master vendor: lima jenis dokumen legalitas dan tiga kriteria
+        // penilaian kategori UMUM (nilai awal, final dari SOP). Dokumen wajib per kategori sengaja kosong
+        // (PBJ-DEC-061). Dijalankan sesudah master Pengadaan karena kriteria menunjuk kategori UMUM. Idempoten.
+        await RunStartupSeederAsync("ProcurementVendorMasterSeeder", () => QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Seeders.ProcurementVendorMasterSeeder.SeedAsync(app.Services));
+
+        // PBJ-BP-001, BE-PBJ-005, BE-PBJ-VD-001. Kerangka tujuh definisi approval Pengadaan pada mesin workflow
+        // bersama (termasuk PBJ-VND-BLOKIR/BUKA), dibuat TIDAK AKTIF sampai admin mengisi jabatan penyetuju sesuai
+        // SOP (PBJ-OQ-019). Idempoten.
         await RunStartupSeederAsync("ProcurementWorkflowDefinitionSeeder", () => QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Seeders.ProcurementWorkflowDefinitionSeeder.SeedAsync(app.Services));
 
         // MCU-BP-001, BE-MCU-004. Kategori kelayakan dan jenis Pemeriksaan MCU USULAN — bertanda

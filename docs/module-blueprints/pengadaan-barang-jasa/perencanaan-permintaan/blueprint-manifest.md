@@ -31,15 +31,15 @@ contract_versions:
   acceptance-test-matrix: PBJ-PP-TEST 1.2 (approved, PBJ-DEC-041, PBJ-DEC-042, PBJ-DEC-055, PBJ-FE-004)
   prd-to-mvp: PBJ-PP-MVP 1.1 (approved; 1.1 = teks PBJ-OQ-019 diselaraskan PBJ-DEC-038)
 input_revisions:
-  00-interview-decisions.md: decision_revision 14 (PBJ-DEC-001..058, PBJ-FE-004)
+  00-interview-decisions.md: decision_revision 17 (PBJ-DEC-001..065, PBJ-FE-004; 064/065 hanya menyangkut manajemen-vendor)
   01-existing-capability-map.md: rev 1
-  02-requirement-completeness-assessment.md: rev 3
+  02-requirement-completeness-assessment.md: rev 4
   02-module-map.md: rev 2
 input_hashes:            # SHA256 dipotong 16 karakter, dihitung ulang 17 November 2026
-  00-interview-decisions.md: 948d13b69fa883b6
+  00-interview-decisions.md: 516be260f1b5a189
   01-existing-capability-map.md: c6072a7c98459c3f
-  02-requirement-completeness-assessment.md: bdd8dcead878aa46
-  02-module-map.md: be513bb46c0fef07
+  02-requirement-completeness-assessment.md: f1868946ad6f6db2
+  02-module-map.md: 14ba073a9cbec854
 artifact_hashes:         # dihitung ulang 2026-11-17 (pemeliharaan sesudah audit kesiapan)
   02-backend-architecture.md: 48b84054d56b6f58
   03-frontend-architecture.md: b9737cf85984fad7

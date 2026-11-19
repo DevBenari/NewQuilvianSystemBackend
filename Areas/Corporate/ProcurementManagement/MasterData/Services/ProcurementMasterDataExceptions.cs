@@ -3,8 +3,14 @@ using Npgsql;
 
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Services;
 
-/// <summary>Isian tidak memenuhi aturan (HTTP 422).</summary>
-public sealed class ProcurementMasterValidationException(string message) : Exception(message);
+/// <summary>
+/// Isian tidak memenuhi aturan (HTTP 422). <see cref="Code"/> diisi bila aturannya punya kode di matriks validasi,
+/// misalnya <c>PBJ-VAL-113</c> untuk bobot kriteria di luar 0–100 (BE-PBJ-VD-002); klien membacanya dari <c>errors.code</c>.
+/// </summary>
+public sealed class ProcurementMasterValidationException(string message, string? code = null) : Exception(message)
+{
+    public string? Code { get; } = code;
+}
 
 /// <summary>Bentrok dengan data lain, misalnya kode sudah dipakai (HTTP 409).</summary>
 public sealed class ProcurementMasterConflictException(string message) : Exception(message);
