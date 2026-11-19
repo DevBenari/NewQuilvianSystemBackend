@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services;
 using QuilvianSystemBackend.Responses;
@@ -204,6 +206,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         {
             var logs = await _simrsDispatcher.GetSyncAuditLogsAsync(cancellationToken);
             return Ok(ApiResponse<List<SimrsPrivilegeSyncAuditLogDto>>.Ok(logs, "Log riwayat transmisi sinkronisasi wewenang SIMRS berhasil diambil."));
+        }
+        #endregion
+
+        #region RADAR SIKLUS REKREDENSIAL (MSL-16)
+        /// <summary>
+        /// Radar siklus rekredensial (register masalah SDM MSL-16, 19 Nov 2026): SPK-RKK aktif yang habis dalam
+        /// <c>dueWithinDays</c> hari (bawaan 180, maksimal 1095), status berkas rekredensial terakhir, dan nilai OPPE final
+        /// terakhir. Skor komposit 3 tahun per orang tetap lewat <c>GET scorecards/{staffId}</c>.
+        /// </summary>
+        [HttpGet("cycles")]
+        [AccessAction("Read", "Melihat Scorecard Rekredensialing", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RecredentialingQuality", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<RecredentialingCycleListItemDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetRecredentialingCycles(
+            [FromQuery] RecredentialingCycleQuery query,
+            [FromServices] ICredentialingWorklistQueryService worklist,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await worklist.GetRecredentialingCyclesAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<RecredentialingCycleListItemDto>>.Ok(result, "Radar siklus rekredensial berhasil dimuat."));
         }
         #endregion
     }

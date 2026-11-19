@@ -4,7 +4,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Task ID | `MSL-03`, `MSL-28`, `MSL-29`, `MSL-30`, `MSL-31`, `MSL-32`, `MSL-33`, ditambah penyesuaian layar untuk `MSL-02`, `MSL-07`, `MSL-09` |
+| Task ID | `MSL-03`, `MSL-28`, `MSL-29`, `MSL-30`, `MSL-31`, `MSL-32`, `MSL-33`, ditambah penyesuaian layar untuk `MSL-02`, `MSL-07`, `MSL-09`; putaran 2: `MSL-10`, `MSL-14`, `MSL-15` tahap 1; putaran 3: `MSL-15` tahap 2, `MSL-16` |
 | Judul | Perbaikan masalah frontend dari register masalah modul SDM |
 | Roadmap | [register-masalah-hr.md](../../../roadmap/register-masalah-hr.md) bagian 3 dan 6 |
 | Wewenang | Permintaan eksplisit pemilik, 18 November 2026: "sekarang perbaiki seluruh masalah nya"; `DEC-FER-04` opsi A (rekomendasi) dipakai untuk `MSL-30` |
@@ -12,8 +12,8 @@
 | Target tulis | `QuilvianSystemFrontendDev` (source); laporan dan baris status roadmap di repository backend |
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit frontend saat dikerjakan | `f7a1f0917` (branch `HamzahV2`), perubahan belum di-commit |
-| Tanggal | Rabu, 18 November 2026 |
-| Status | 🟡 Source, lint, test unit, dan CSS gate selesai. `npm run build` tertahan galat di pekerjaan paralel pengguna (layar `lifecycle` baru). Screenshot browser belum diambil |
+| Tanggal | Rabu, 18 November 2026 (putaran 1–2); Kamis, 19 November 2026 (putaran 3) |
+| Status | 🟡 Putaran 1: source, lint, test unit, dan CSS gate selesai; `npm run build` sempat tertahan galat di pekerjaan paralel pengguna (lulus di putaran 2). Putaran 3: 6 layar kredensial `MSL-16` lulus uji visual dan uji live baca, `npm run build` lulus 839 halaman; layar unggah `MSL-15` tahap 2 belum dibuka di peramban (bagian 6) |
 
 ---
 
@@ -199,3 +199,85 @@ Formulir yang memakainya:
 | Uji live pegawai non-admin (`msl-1118-nonadmin.mjs`, akun Dewi) | `MSL-28`: 7 grup SDM terlarang tidak tampil. `MSL-29`: "Akses Ditolak" tampil. `MSL-30`: dialihkan ke `/hr/self-service/overtime`. `MSL-31`: Cuti Pengganti Lembur terpilih otomatis (opsi saldo dipenuhi lewat `page.route`, karena DB dev hanya punya jenis cuti `LEG_DEFAULT`). Screenshot: `test-with-agy/screenshots/hrw4-1118/msl-1118-nonadmin/` |
 | Uji live akun Mira (`msl-1118-mira.mjs`: Plh, penilaian, slip gaji, restitusi, modal Tambah Shift dengan respons tiruan) | `MANUAL TEST: NOT FEASIBLE` — DB dev `160.22.250.77` tidak bisa dijangkau (koneksi timeout), login menggantung "Memproses...". Skrip siap dijalankan ulang |
 | Layar `MSL-14`, `MSL-15`, dan Pengaturan Lembur | `VISUAL CHECK: NOT FEASIBLE` dengan alasan yang sama; endpoint baru juga butuh build backend terbaru, yang tertahan galat Menu 08 di `HrdEmploymentContractService.cs:369` |
+
+## 6. Putaran 3 — 19 November 2026
+
+**Wewenang.** "Oke lanjut" atas rencana "teruskan sisa `MSL-15`, lalu `MSL-16`". Opsi A di semua keputusan tetap berlaku.
+
+### 6.1 `MSL-15` tahap 2 — Unggah berkas di 6 layar lagi
+
+Semua memakai `HrAttachmentField` (tahap 1). Berkas diunggah saat dipilih, lalu kunci berkasnya dikirim bersama formulir.
+
+| Layar | Sebelumnya | Sekarang |
+|---|---|---|
+| Klaim COB ESS (`ess-cob-submission-view.jsx`) | Pegawai menyerahkan SEP BPJS dan kuitansi secara fisik | Unggah SEP BPJS dan kuitansi asli. Sesudah klaim tersimpan, keduanya didaftarkan sebagai dokumen klaim (`BPJS_SEP`, `Receipt_Original`); bila pendaftaran dokumen gagal, muncul peringatan agar pegawai melengkapinya dari detail klaim |
+| Detail kandidat (`candidate-detail-screening-view.jsx`) | Panel dokumen hanya baca, dengan catatan "server belum menyediakan unggah" | Tombol **+ Unggah Dokumen** (hak `Candidate : UploadDocument`): jenis dokumen (9 pilihan sesuai enum server), nomor, judul, berkas. Kolom **Berkas** berisi tombol **Unduh** untuk dokumen yang diunggah lewat sistem |
+| MCU pra-kerja (`mcu-clearance-view.jsx`) | Isian path sertifikat diketik | Unggah sertifikat MCU |
+| Monitoring presensi — koreksi atas nama (`attendance-monitoring-view.jsx`) | Isian path bukti diketik | Unggah bukti koreksi |
+| Dinas luar Workforce Core (`workforce-core/official-duties-view.jsx`) | Isian URL lampiran | Unggah surat tugas |
+| Dinas luar Presensi (`attendance/official-duties-view.jsx`) | Tautan lampiran dibuka sebagai URL | Lampiran lama (URL `http…`) tetap dibuka di tab baru; lampiran baru diunduh lewat endpoint ber-hak akses |
+
+Belum dikerjakan: logbook lembur dan nota override rekredensial (butuh kolom berkas baru, artinya migration), serta impor spreadsheet batch kontrak awal (butuh endpoint impor).
+
+### 6.2 `MSL-16` — 6 layar kredensial tidak lagi placeholder
+
+Sebelumnya keenam layar hanya menampilkan peringatan "belum dapat dioperasikan tanpa data semu".
+
+| Layar (rute) | Hak menu | Isi sekarang |
+|---|---|---|
+| Meja Kerja Mitra Bestari (`/corporate/hrd/credentialing/peer-review`) | `SpkRkkIssuance : AssessPeer` | Worklist permohonan yang menunjuk akun login, kolom "Penilaian Masuk" dan "Penilaian Saya". Tombol **Nilai** membuka lembar penilaian: satu pilihan tingkat kewenangan dan catatan per butir yang diajukan, plus rekomendasi keseluruhan. Tombol kirim aktif hanya bila semua butir sudah dipilih. Akun tanpa profil tenaga kerja mendapat penjelasan, bukan tabel kosong yang membingungkan |
+| Sidang Pleno Komite (`/corporate/hrd/credentialing/committee-plenary`) | `SpkRkkIssuance : ApproveCommittee` | Worklist dengan status "Siap dipleno" / "Menunggu penilaian". **Buka Matriks** menampilkan nama Mitra Bestari 1 dan 2, lalu per butir: rekomendasi tiap reviewer (lencana Mandiri / Supervisi / Proctoring / Tidak diizinkan) dan pilihan kewenangan akhir (bawaan = rekomendasi paling ketat). Formulir BAP: nomor, tanggal, keputusan, catatan Ketua. Ada peringatan bila belum semua reviewer menilai |
+| Pengesahan SPK-RKK Direktur (`/corporate/hrd/credentialing/director-approval`) | `SignDirector` **atau** `ParafDirector` (menu kini any-of) | Panel **Menunggu Tanda Tangan** (tombol **Tandatangani** dengan konfirmasi) dan panel **Antrean Draf** (tombol **Terbitkan Draf**: tanggal mulai, jenis SPK, catatan; masa berlaku 3 tahun dihitung server). Tiap panel hanya tampil untuk pemegang haknya |
+| Registri Kewenangan Klinis (`/corporate/hrd/credentialing/privilege-registry`) | `WorkforceClinicalPrivilege : Read` | Daftar kewenangan seluruh tenaga kesehatan dengan pencarian, filter status, dan paginasi server |
+| Radar Siklus Rekredensialing (`/corporate/hrd/credentialing/recredentialing-cycle`) | `RecredentialingQuality : Read` | SPK-RKK yang habis dalam 60/90/180/365 hari, lencana sisa waktu (merah ≤ 30 hari atau lewat, kuning ≤ 60 hari), status berkas rekredensial, nilai OPPE final terakhir |
+| Verifikasi publik (`/verify/clinical-privilege/[hash]`) | Tanpa login | Status SAH / KEDALUWARSA / DIBEKUKAN / DICABUT / BELUM DISAHKAN beserta data yang tercetak di SPK |
+
+**Perbaikan rute publik.** `/verify/...` belum terdaftar sebagai jalur publik. Akibatnya pemindai QR tanpa akun dilempar ke halaman login, dan bila sempat tampil, halaman itu terbungkus sidebar aplikasi internal. Hal ini juga berlaku untuk verifikasi naskah dinas SDM yang sudah ada (`/verify/document/[hash]`). `/verify` kini ditambahkan ke empat daftar jalur terbuka, mengikuti pola `/priority-arrival`: `src/proxy.js`, `components/ui/auth-wrapper.jsx`, `components/providers/root-layout-shell.jsx` (tanpa sidebar/navbar), dan `components/providers/session-activity-manager.jsx` (tanpa penyegaran sesi). Kedua halaman verifikasi diberi jarak tepi `p-3 p-md-4` (utilitas Bootstrap yang ada).
+
+**Berkas.** `lib/services/hr/credentialing-service.js` (10 fungsi baru), `lib/constants/hr/credentialing/credentialing-constants.js` (hak akses, tingkat supervisi + label pendek, keputusan pleno, jenis SPK, status verifikasi publik, status/jenis kewenangan, jendela radar), 6 view di `components/view/hr/credentialing/`, `components/view/hr/services/public-document-verify-view.jsx` (jarak tepi), `utils/menu-sidebar/menu-items.jsx`, `src/proxy.js`, `components/ui/auth-wrapper.jsx`, `components/providers/root-layout-shell.jsx`, `components/providers/session-activity-manager.jsx`.
+
+### 6.3 Gerbang UI putaran 3
+
+| Elemen | Keputusan | Sumber gaya |
+|---|---|---|
+| Hero, DataFilter, FilterSelect, DataTable + RegionPagination, StatusBadge/HrStatusBadge, BaseButton, ConfirmModal, BaseInputField/BaseDateField/BaseSelectField/BaseTextAreaField, HrPanel, HrInfoGrid, InformationAlert, ToastStack | `REUSE` | Bawaan base component |
+| Tata letak formulir di modal | `REUSE` `hr-shared.module.css` (`formGrid`, `formFull`, `formNote`) | CSS Module yang sudah ada |
+| Lebar modal penilaian, matriks pleno, dan draf SPK | `REUSE` kelas global `region-confirm-modal-wide` (550 px) lewat `modalClassName`. `size="xl"` tidak dipakai karena gaya bawaan `ConfirmModal` mengunci lebar 430 px | `modal-confirm.css` yang sudah ada |
+| Matriks pleno (butir × reviewer) | `REUSE` `HrInfoGrid` per butir. `DataTable` ditolak karena lebar minimumnya 840 px (`min-width: max(840px, 100%)`) sehingga selalu harus digeser di modal; ini terlihat saat uji live | Bawaan |
+| Jarak tepi halaman publik | `REUSE` utilitas Bootstrap `p-3 p-md-4` (ada di `style/bootstrap.min.css`) | Global |
+
+`UI GATE: PASS — semua elemen REUSE, tanpa komponen atau CSS baru`
+
+### 6.4 Validasi putaran 3
+
+| Perintah | Hasil |
+|---|---|
+| `npx eslint` berkas `MSL-15` tahap 2 | 0 error; 1 warning lama di `workforce-core/official-duties-view.jsx` (sudah ada sebelum putaran ini) |
+| `npx eslint` 14 berkas `MSL-16` (6 view, service, konstanta, menu, `proxy.js`, `auth-wrapper.jsx`, `root-layout-shell.jsx`, `session-activity-manager.jsx`, `public-document-verify-view.jsx`) | 0 error; 1 warning lama `react-hooks/set-state-in-effect` di `root-layout-shell.jsx` (identik di HEAD) |
+| `check-css-usage.mjs` 6 berkas `MSL-15` tahap 2 | `OK — 6 berkas diperiksa, 0 temuan.` |
+| `check-css-usage.mjs` 6 view `MSL-16` + `public-document-verify-view.jsx` | `OK — 6 berkas diperiksa, 0 temuan.` dan `OK — 2 berkas diperiksa, 0 temuan.` (diulang sesudah setiap perubahan tata letak) |
+| `npm run build` | Lulus, 839 halaman (dijalankan ulang sesudah setiap perbaikan hasil uji live; terakhir lulus) |
+| Uji live | Lihat bagian 6.5 |
+| `AUTOMATED TEST` | `SKIPPED (opsional) — test-policy: menulis test baru bukan gerbang selesai` |
+
+### 6.5 Uji live putaran 3 (19 November 2026)
+
+DB dev `160.22.250.77` kembali bisa dijangkau. Backend scratch dijalankan dengan `Runtime__Role=Web` dan frontend standalone di `localhost:3000`. Chrome dibuka headed lewat CDP port 9337. Data kredensial di DB dev kosong (0 permohonan, 0 SPK-RKK, 0 kewenangan klinis, 0 rekredensial), dan penulisan data uji belum diizinkan. Karena itu ada dua jenis uji: **baca ke server sungguhan** dan **interaksi dengan respons tiruan** (`page.route`; POST dicegat dan diperiksa, tidak ada yang sampai ke server).
+
+| No. | Skenario | Prioritas | Hasil |
+|---|---|---|---|
+| 1 | Lima layar kredensial memuat daftar dari server (superadmin) | P0 | Lulus: 6 request `200`, tanpa galat halaman. Keadaan kosong menampilkan judul dan petunjuk yang jelas |
+| 2 | Antrean draf SPK-RKK | P0 | **Gagal lalu diperbaiki:** `500` karena kolom `jsonb` dibandingkan dengan ILIKE (lihat laporan BE bagian 9.3). Sesudah perbaikan: `200` |
+| 3 | Worklist Mitra Bestari untuk akun yang punya profil tenaga kerja (Mira) | P0 | Lulus `200`: kueri `jsonb @>` benar-benar berjalan (tidak ada pesan "akun belum terhubung") |
+| 4 | Filter status registri kewenangan: pilih "Aktif" | P2 | Lulus: request membawa `status=Active` |
+| 5 | Verifikasi publik tanpa login, hash tak dikenal dan bentuk salah | P0/P1 | Lulus: tetap di halaman verifikasi (tidak dilempar ke login), tanpa sidebar, pesan "Dokumen tidak dikenal…" |
+| 6 | Lembar penilaian: tombol kirim nonaktif sampai semua butir dipilih | P2 | Lulus (nonaktif → aktif) |
+| 7 | Body POST penilaian | P1 | Lulus: `reviewerWorkforceProfileId` dari lembar server, `recommendedSupervisionLevel` angka (1 dan 3), rekomendasi keseluruhan ikut |
+| 8 | Pleno: tombol sahkan nonaktif tanpa nomor BAP; kewenangan akhir bawaan = paling ketat | P1/P2 | Lulus: nonaktif → aktif; body berisi level 1 dan 3 (reviewer memberi 1/1 dan 2/3) |
+| 9 | Direktur: terbitkan draf dan tandatangani | P1 | Lulus: body `{ applicationId, validFrom, clinicalPrivilegeType, notes }` dan `{ spkRkkIssuanceId }` |
+| 10 | Halaman publik keadaan SAH | P4 | Lulus: lencana SAH, nomor SPK/RKK, masa berlaku, pengesah |
+| 11 | Tata letak modal matriks pleno | P4 | **Diperbaiki:** semula modal 430 px dan tabel 840 px sehingga kolom reviewer terpotong. Kini modal 550 px dan matriks per butir tanpa geser |
+
+Skrip: `test-with-agy/scripts/msl-1119-credentialing.mjs` (baca), `msl-1119-credentialing-mock.mjs` (interaksi tiruan), `msl-1119-shot.mjs` (screenshot). Screenshot: `test-with-agy/screenshots/hrw4-1118/msl-1119-credentialing/` (01–08 baca, 11–41 interaksi) dan `msl-1119-credentialing-mira/`.
+
+`VISUAL CHECK: PASS` untuk 6 layar `MSL-16`. Layar `MSL-15` tahap 2 (unggah COB, kandidat, MCU, koreksi presensi, dinas luar) belum dibuka di peramban pada putaran ini: `VISUAL CHECK: NOT RUN — fokus uji putaran ini MSL-16; skrip unggah perlu berkas uji dan menulis ke server`.

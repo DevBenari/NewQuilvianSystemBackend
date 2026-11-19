@@ -39,6 +39,12 @@ namespace QuilvianSystemBackend.Shared.HumanResource.Helpers
             ["travel-receipt"] = "Bukti pengeluaran perjalanan dinas",
             ["performance-evidence"] = "Bukti capaian penilaian kinerja",
             ["performance-dispute-evidence"] = "Bukti pendukung sanggahan nilai",
+            // MSL-15 tahap 2 (19 Nov 2026)
+            ["benefit-claim-document"] = "Dokumen klaim COB benefit",
+            ["recruitment-candidate-document"] = "Dokumen kandidat rekrutmen",
+            ["recruitment-mcu-certificate"] = "Sertifikat MCU pra-kerja",
+            ["attendance-correction-evidence"] = "Bukti koreksi presensi atas nama",
+            ["attendance-official-duty"] = "Lampiran dinas luar",
         };
 
         private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)

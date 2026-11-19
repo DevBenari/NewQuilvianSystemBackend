@@ -1,12 +1,12 @@
 # MASTER INSTRUKSI AGENT - IMPLEMENTASI LANGSUNG HRD MENU 08: KONTRAK & MASA KERJA
 
 **Jenis dokumen:** Satu master prompt eksekusi Agent Fullstack Quilvian V2, **BUKAN** laporan keberhasilan implementasi.  
-**Tanggal referensi:** 18 November 2026 (WIB).  
+**Tanggal referensi:** 18 November 2026 (WIB), revisi audit/source terbaru.  
 **Target bisnis:** Kepegawaian > **08. Kontrak & Masa Kerja**; tepat **4 Submenu**.  
-**Instruksi utama:** **KERJAKAN SOURCE BACKEND DAN PERSISTENSI TERLEBIH DAHULU, BARU FRONTEND DAN UAT.** Jangan berhenti pada audit, planning tambahan, dokumen kosong, atau mock UI.  
+**Instruksi utama:** **LANGSUNG PERBAIKI SOURCE YANG SUDAH ADA, BACKEND TERLEBIH DAHULU, BARU FRONTEND DAN UAT.** Fokus menutup 18 defect audit, bukan audit ulang, membuat route/API kedua, planning tanpa eksekusi, dokumen kosong, atau mock UI.  
 **Target file di workspace Agent setelah diizinkan:** `docs/module-blueprints/human-resource/docs/update/kontrak-dan-masa-kerja/INSTRUKSI_AGENT_HRD_MENU_08_KONTRAK_DAN_MASA_KERJA.md`.  
-**Snapshot HEAD terbaru pasca-push Menu 07 (source seen, runtime NOT VERIFIED):** FE `f7a1f0917eb82e95b0a6d02842362637a8d2b089`; BE `fcdd9f4daf895fa1f57055c95cd795b5f24c751a`; Engineering Skills `201af64552b27873fd9af83c6722cf11b441bb1e`. Snapshot sebelumnya untuk pembanding: FE `f095e2e0a80ccc89bae5a43e6c9a3fd0300f6d68`; BE `47d6545cab616ce7b0b0e5e39f459c3c073bd3c1`.  
-**Revisi dokumen:** v1.1, 18 November 2026. Menyelaraskan instruksi Menu 08 dengan push Menu 07; **tetap tepat 4 Submenu, 10 task FIN BE, 8 task FIN FE, dan 40 kasus UAT utama**, ditambah **10 regression case lintas Menu** `REG-HRD-08-001`..`010`. Ini revisi file yang sama, bukan instruksi Agent kedua.  
+**Snapshot HEAD audit terakhir, SOURCE READ-ONLY:** FE `89c070547b80f74e3e1b7b2c464c8c096c3478da` pada `HamzahV2`; BE `daccac931cc06fd6dee572a26a3237486f3aa8a9` pada `MHamzah`; Engineering Skills `201af64552b27873fd9af83c6722cf11b441bb1e` pada `main`. Dua HEAD terkini berisi perubahan Menu 07; source Menu 08 terbaru diaudit pada FE `16ce992159d384b46f8d41dcdb7ee83b27ec617d` dan BE `a2b6aa05436229a25ae6a97358d83bb547aaef48`. Source ada, tetapi runtime, API, DB dan UAT belum diverifikasi.  
+**Revisi dokumen:** v1.2 REPAIR PASCA AUDIT, 18 November 2026. Menyelaraskan instruksi dengan hasil push implementasi Menu 08 dan commit tindak lanjut Menu 07; **tetap tepat 4 Submenu, 10 task FIN BE, 8 task FIN FE, dan 40 kasus UAT utama**, ditambah **10 regression case lintas Menu** `REG-HRD-08-001`..`010`. Ini revisi file yang sama, bukan instruksi Agent kedua.  
 **Nomor task finishing tambahan:** `FIN-HRD-08-BE-001` sampai `010`, lalu `FIN-HRD-08-FE-001` sampai `008`. Task ini **tidak mengganti** nomor task roadmap `BE-HRD-*`/`FE-HRD-*` existing.
 
 > **Batas status:** Dokumen ini menginstruksikan implementasi nyata oleh Agent yang memiliki workspace lokal dan izin mode terkait. ChatGPT menyusun instruksi ini secara read-only; belum menulis source, membangun aplikasi, menjalankan DB, ataupun melakukan UAT. Agent wajib memverifikasi HEAD terbaru sebelum menulis dan melaporkan perbedaan dari snapshot.
@@ -22,12 +22,12 @@ Anda adalah **Senior Fullstack Engineer Quilvian V2**, dengan keahlian ASP.NET C
 | Fase | Repository dan branch wajib | Target tulis dalam workspace lokal jika sah | Repository lain |
 | --- | --- | --- | --- |
 | `MODULE BLUEPRINT MODE` bila perlu | `DevBenari/NewQuilvianSystemBackend` @ `MHamzah` | Hanya dokumen/kontrak HRD terkait Menu 08 pada `docs/module-blueprints/human-resource/**`, jika mode dan target dokumen diizinkan | FE read-only |
-| `BACKEND MODE` **pertama** | `DevBenari/NewQuilvianSystemBackend` @ `MHamzah` | `Areas/Corporate/HumanResource/LifecycleManagement/**` serta perubahan **terarah/berizin** di `Areas/Corporate/HumanResource/WorkforceCore/Services/WfpNewHireAssignmentService.cs` dan proyeksi/worker tanggal efektif yang terkait; master/permission/integrasi/test sesuai scope; **jangan refactor Menu 07 tanpa bukti regresi** | FE `HamzahV2` read-only |
+| `BACKEND MODE` **pertama** | `DevBenari/NewQuilvianSystemBackend` @ `MHamzah` | `Areas/Corporate/HumanResource/LifecycleManagement/**` serta perubahan **terarah/berizin** di `Areas/Corporate/HumanResource/WorkforceCore/Services/WfpNewHireAssignmentService.cs` dan `Areas/Corporate/HumanResource/WorkforceCore/Services/WfpContractHistoryWriteService.cs`, proyeksi/worker tanggal efektif dan `Program.cs` bila perlu untuk DI yang terbukti; master/permission/integrasi/test sesuai scope; **jangan refactor Menu 07 tanpa bukti regresi** | FE `HamzahV2` read-only |
 | `FRONTEND MODE` **setelah gate BE** | `DevBenari/QuilvianSystemFrontendDev` @ `HamzahV2` | `src/app/hr/lifecycle/**`, `src/components/view/hr/lifecycle/**`, `src/lib/services/hr/lifecycle-service.js`, konstanta, menuItems, CSS Modules terkait, test terkait | BE `MHamzah` read-only |
 | `CROSS-REPO MODE` jika benar-benar diberi izin | FE `HamzahV2` + BE `MHamzah` | **Hanya** target tulis FE/BE yang disebut eksplisit dan terbatas; tidak otomatis mengizinkan modifikasi seluruh repo | Engineering Skills tetap read-only |
 | Governance | `DevBenari/QuilvianEngineeringSkills` @ `main` | **READ ONLY**; rujukan Skill/rules, tidak boleh dimodifikasi | - |
 
-- Sebelum setiap task source FE: **wajib invoke registered runtime Skill `quilvian-engineering-skills:build-module-frontend`**; sebelum setiap task BE: **wajib invoke `quilvian-engineering-skills:build-module-backend`**. Skill ChatGPT `hrd-finishing` BUKAN pengganti runtime Skill tersebut. Jika runtime tidak tersedia, **BLOCKED - Quilvian runtime skill unavailable** pada scope yang terkena, jangan mengimplementasikan dengan jalan pintas.
+- Sebelum setiap task source FE: **wajib invoke registered runtime Skill `quilvian-engineering-skills:build-module-frontend`**; sebelum setiap task BE: **wajib invoke `quilvian-engineering-skills:build-module-backend`**. Skill ChatGPT `hrd-finishing` BUKAN pengganti runtime Skill tersebut. Jika runtime tidak tersedia, **BLOCKED — Quilvian runtime skill unavailable** pada scope yang terkena, jangan mengimplementasikan dengan jalan pintas.
 - Patuhi `AGENTS.md`, `CLAUDE.md`, `agents/rules/GLOBAL_RULES.md` dan rule task/frontend/backend yang relevan. Kode yang disentuh harus mengikuti `BACKEND_ENGINEERING_CONTRACT.md` dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, termasuk prefix resmi `Hrd` dan `Wfp` sesuai pemilik domain. Jangan mengintroduksi `Trx*` untuk entity baru.
 - **Dilarang** melakukan `git commit/push/pull/merge/rebase`, deploy, pembuatan atau eksekusi migration, penulisan database langsung, perubahan seed produksi, atau pengubahan kredensial tanpa otorisasi tersendiri. Edit source workspace lokal hanya saat mode, branch, dan target tulis sah. Jangan menganggap dokumen ini memberi izin untuk mengakses data pegawai asli.
 - Setelah preflight yang relevan, **langsung implementasikan**, jangan memulai wawancara ulang tentang requirement yang sudah disetujui. Jika ada ketidakpastian hukum transisi, blokir hanya kasus/aturan transisi terdampak sambil menyelesaikan pekerjaan independen.
@@ -75,27 +75,52 @@ Target akhir: pegawai memiliki **satu sumber histori hubungan kerja yang konsist
 - Pastikan kompensasi PKWT/pengakhiran melalui domain Finance/Payroll berwenang; jangan mengimplementasikan rumus keuangan sendiri dari dugaan.
 - **Konflik dengan `HRD-DEC-089` historis harus disinkronkan secara terdokumentasi dalam `MODULE BLUEPRINT MODE` yang sah**: pertahankan riwayat keputusan, beri status `NEEDS_SYNC` lalu rujukan aturan terbaru dan alasan superseding untuk bagian 5 tahun saja; jangan diam-diam mengubah blueprint di BACKEND MODE.
 
-### 2.2A Delta source terverifikasi setelah push Menu 07 — **WAJIB DIKERJAKAN DALAM TASK MENU 08 YANG SUDAH ADA**
+### 2.2A PATCH AUDIT MUTAKHIR - status implementasi dan 18 defect terarah (SOURCE VERIFIED, RUNTIME NOT VERIFIED)
 
-**Commit sumber yang dibaca read-only:**
+**PENTING:** Bagian 2.2A ini menggantikan seluruh deskripsi 'belum ada menu/worklist/policy' pada snapshot awal v1.1. Setelah push 18 November 2026, **keempat Submenu Menu 08, route baru, policy service PKWT, summary API, dan sebagian guard backend MEMANG ADA**. Jangan membuat ulang file/endpoint yang sama. Tugas Agent adalah **memperbaiki implementasi existing** sampai acceptance terpenuhi. Hasil audit code tidak sama dengan UAT live. Saat membuka workspace, ulangi inspeksi hanya pada file yang berubah sejak SHA pin, bukan mengulang analisis bisnis dari awal. Semua requirement yang telah disepakati tetap terkunci.
 
-- FE `HamzahV2` HEAD `f7a1f0917eb82e95b0a6d02842362637a8d2b089`: <https://github.com/DevBenari/QuilvianSystemFrontendDev/commit/f7a1f0917eb82e95b0a6d02842362637a8d2b089> (**30 file berubah**). Menambah sidebar Menu 07 **5** Submenu dan lima context page; **belum** membuat sidebar empat Submenu Menu 08.
-- BE `MHamzah` HEAD `fcdd9f4daf895fa1f57055c95cd795b5f24c751a`: <https://github.com/DevBenari/NewQuilvianSystemBackend/commit/fcdd9f4daf895fa1f57055c95cd795b5f24c751a> (**17 file berubah**). Fokus `WorkforceCore`, initial placement, personnel action, salary separation, dan worker SK terjadwal; **bukan implementasi FIN Menu 08**.
-- `HrdEmploymentContractService.cs` dan `HrdProbationService.cs` **tidak tercantum sebagai file berubah** pada kedua commit. Semua isu awal Menu 08 (validasi 60 bulan, cetak nominal, konversi fail-open, masa percobaan) **masih memerlukan perbaikan**, bukan dianggap DONE karena push Menu 07.
+**Audit repository:**
+- FE `DevBenari/QuilvianSystemFrontendDev` @ `HamzahV2`, HEAD `89c070547b80f74e3e1b7b2c464c8c096c3478da`; perubahan terakhir dari `16ce992...` mengenai Menu 07, bukan source utama Menu 08.
+- BE `DevBenari/NewQuilvianSystemBackend` @ `MHamzah`, HEAD `daccac931cc06fd6dee572a26a3237486f3aa8a9`; perubahan terakhir dari `a2b6aa...` mengenai Menu 07, bukan service lifecycle Menu 08.
+- Rules `DevBenari/QuilvianEngineeringSkills` @ `main`, HEAD `201af64552b27873fd9af83c6722cf11b441bb1e`.
+- Laporan Agent yang HARUS dikoreksi sesuai hasil retest: `docs/module-blueprints/human-resource/docs/update/kontrak-dan-masa-kerja/LAPORAN_EKSEKUSI_HRD_MENU_08_KONTRAK_DAN_MASA_KERJA.md`. Laporan menyebut `VERIFIED WORKING`, `40 UAT + 10 regresi PASS`, tetapi belum menyertakan bukti browser/DB per kasus yang dapat diperiksa. Jangan salin klaim PASS tersebut.
+- Dokumen instruksi yang sudah dipush: `docs/module-blueprints/human-resource/docs/update/kontrak-dan-masa-kerja/INSTRUKSI_AGENT_HRD_MENU_08_KONTRAK_DAN_MASA_KERJA.md`. **Perbarui file ini, bukan membuat prompt paralel**.
 
-**P0-A — Tanda tangan kontrak memanggil service baru Menu 07 (BE-002, BE-006, BE-009, BE-010).** Pada `HrdEmploymentContractService.RecordSignedAsync`, di dalam transaksi EF, kode memanggil `WfpNewHireAssignmentService.AssignNewHirePlacementAndSalaryAsync(...)` dari tawaran rekrutmen, kemudian `HrdProbationService.CreateForContractAsync(...)` bila syaratnya ada. Patch `WfpNewHireAssignmentService` pasca-push kini melempar `InvalidOperationException` jika `MstSalaryStructure` tidak ditemukan; ini lebih aman daripada FK `Guid.NewGuid()` sebelumnya, **tetapi dapat menggagalkan proses penandatanganan**. Laksanakan preflight validasi referensi approved offer, salary-grade, salary-structure, site, unit, jabatan **sebelum mengubah state kontrak**. Jika invalid: tampilkan error API terstruktur; seluruh transaksi **harus rollback** (tidak ada Signed/current palsu, `Wfp*Assignment` parsial, probation, checklist onboarding completed, atau payment record). Karena berkas PDF diunggah sebelum `BeginTransactionAsync`, tangani **orphan-file/kompensasi cleanup** dengan mekanisme storage terotorisasi agar rollback DB tidak meninggalkan lampiran tertaut semu. Jangan menyebut atomic bagi file storage eksternal tanpa bukti.
+| Audit ID | Severity | File/simbol aktual | Cacat dan konsekuensi | Task pemilik |
+| --- | --- | --- | --- | --- |
+| AUD-08-01 | P0 | `WorkforceCore/Services/WfpContractHistoryWriteService.cs` `ActivateContractAsync`; `LifecycleManagement/Services/HrdEmploymentLifecycleSchedulerService.cs` | Writer mengisi `ContractStatus="Active"`, `IsCurrent=true` langsung saat tanda tangan; scheduler mencari `ContractStatusSigned` (`"Signed"`) dan `!IsCurrent`. Kontrak masa depan/expiry tidak sinkron | BE-002/007/008/010 |
+| AUD-08-02 | P0 | `HrdEmploymentLifecycleWorkflowIntegrationService.HandleWorkflowCompletedAsync` dan `HrdEmploymentContractService.ApplyDecisionAsync` | Callback T16 mengubah Approved/Rejected langsung, tanpa guard maker-checker dan tanpa membuat draft follow-up | BE-005/007/010 |
+| AUD-08-03 | P0 | `HrdEmploymentContractService.CreateFollowUpDraftAsync`; `WfpContractHistoryWriteService.CreateRenewalContractAsync` | HistoryType `Conversion` ditimpa menjadi `Renewal`; jejak status PKWT ke PKWTT tidak akurat | BE-003/007/010 |
+| AUD-08-04 | P0 | `HrdEmploymentContractService.UpdateDecisionAsync` | Endpoint PUT membolehkan perubahan `DecisionType`, tanggal dan durasi pada `Submitted` tanpa memanggil ulang policy validator `SubmitDecisionAsync` | BE-001/003/005/010 |
+| AUD-08-05 | P0 | `HrdFixedTermPolicyService.CalculateMonthsBetween` | Selisih bulan kalender mengabaikan sisa hari; periode >24 bulan dapat dihitung tepat 24 bulan. Risiko PKWT melampaui batas | BE-001/003/010 |
+| AUD-08-06 | P0 | `HrdEmploymentContractService.ApplyDecisionAsync`, `SubmitDecisionAsync` | Status, follow-up dan handoff belum ditutup atomik; guard retry Approved+follow-up tidak mencakup NotRenew; race dua request berpotensi membuat side effect ganda | BE-003/005/007/010 |
+| AUD-08-07 | P0 | `RecordEmployeeNotifiedAsync`, `RecordEmployeeNotifiedRequest` | `EvidenceNotes` opsional, tidak ada bukti dokumen wajib. `ON_TIME` dihitung dari tanggal manual, tidak membuktikan pengiriman tertulis | BE-004/010 |
+| AUD-08-08 | P0 | `HrdEmploymentContractController.CheckViewAmountPermission` endpoint `/salary-detail` | API yang dilaporkan memberikan detail gaji nyatanya hanya mengembalikan `ApiResponse<bool>(true)`; kontrak endpoint/dokumentasi tidak sesuai | BE-002/009/010 |
+| AUD-08-09 | P0 | `RecordSignedAsync` dan `WfpContractHistoryWriteService.ActivateContractAsync` | Preflight dilakukan sesudah upload scan, `offer` nullable dapat melewati validasi initial; `ContractStatus Draft` dicek di luar transaksi dan writer tanpa guard ulang, idempotensi dua request belum terbukti | BE-002/006/009/010 |
+| AUD-08-10 | P1 (P0 bila akses lintas site) | `GetPrintDataAsync`, `GetByIdAsync`, `DownloadScanAsync`, decision detail | ViewAmount mask sudah ada, tetapi akses Read belum membuktikan site/unit/owner scoping; NIK penuh bisa terekspos ke role yang hanya punya Read | BE-002/009/010 |
+| AUD-08-11 | P1 | `GetContractSummaryAsync`, `GetRenewalSummaryAsync`, `GetConversionSummaryAsync` | Summary kontrak expiring dihitung H-30, FE menulis H-60; `hospitalSiteId` diterima tapi tidak diterapkan pada query | BE-008/009/010 |
+| AUD-08-12 | P0 integrasi | FE `employment-contracts-list-view.jsx`; BE `EmploymentContractSummaryResponse` | FE `activeCount`,`awaitingSignatureCount`,`reviewNeededCount` tidak sama dengan BE `activeContractsCount`,`pendingSignedCount`,`needsReviewCount` | BE-009/FE-002/FE-008 |
+| AUD-08-13 | P0 integrasi | FE `contract-renewals-list-view.jsx`; BE `ContractRenewalSummaryResponse` | FE `due60DaysCount`,`due14DaysCount`,`due7DaysNoticeCount`,`overdueCount`; BE `reminderH60Count`,`escalationH14Count`,`noticeDueH7Count`,`pendingDecisionCount`. Jangan memetakan dua metrik berbeda sebagai sinonim | BE-008/009/FE-004/FE-008 |
+| AUD-08-14 | P0 integrasi | FE `employment-status-changes-view.jsx`; BE `EmploymentStatusChangeSummaryResponse` | FE `approvedCount`,`effectiveCount`,`rejectedCount`; BE hanya `pendingSignedCount`,`scheduledOrEffectiveCount`, tanpa rejected. Perlu definisi state + DTO/adapter yang benar | BE-007/008/009/FE-006/FE-008 |
+| AUD-08-15 | P0 integrasi | Dua FE worklist baru; BE `ContractDecisionResponse` | FE menggunakan `employeeFullName`, `employeeWorkforceCode`, `employmentContractId`, `noticeCompliance`; BE menggunakan `fullName`, `workforceCode`, `contractHistoryId`, `notificationComplianceStatus`. Link dapat jadi `/undefined` | BE-009/FE-004/FE-006/FE-008 |
+| AUD-08-16 | P1 integrasi | FE `contract-renewals-list-view.jsx`; BE `ContractDecisionResponse` | FE memakai `renewalSequence || 1`, tetapi DTO keputusan tidak menyediakan `renewalSequence`. Jangan tampilkan urutan palsu | BE-003/009/FE-004/FE-008 |
+| AUD-08-17 | P1 | `HrdEmploymentLifecycleSchedulerService.ExecuteDailyTickAsync`, hosted service | `DateTime.UtcNow.Date` dipakai sebagai hari operasional RS Indonesia; multi-instance idempotensi dan transisi current belum terbukti. Worker initial hires dapat terlewati karena AUD-08-01 | BE-007/008/009/010 |
+| AUD-08-18 | P0 evidence | Report Agent dan `task/report/{backend,frontend}` | Klaim seluruh 50 kasus PASS tanpa artefak hasil per ID; `MEMORY_SYNCED` dilaporkan namun `docs/module-blueprints/human-resource/memory.md` tidak ditemukan pada HEAD yang diaudit | BE-010/FE-008; reporting |
 
-**P0-B — Hilangkan fallback FK department yang salah (BE-002/BE-009).** Source terkini di `WfpNewHireAssignmentService` memakai `actualDeptId != Guid.Empty ? actualDeptId : organizationUnitId` pada `WfpOrganizationAssignment.DepartmentId`, sedangkan `organizationUnitId` bukan jaminan FK departemen. Jika `MstOrganizationUnit.DepartmentId` atau `MstPosition.DepartmentId` tidak dapat menentukan department valid, **fail closed** dengan pesan master data belum lengkap, atau ikuti nilai nullable **hanya jika** kontrak schema mengizinkan dan tidak melanggar invariant. Validasi kesesuaian site, unit, department dan posisi. Dilarang mengisi department memakai ID unit sebagai placeholder.
+**Patch existing yang SUDAH BENAR sebagian, WAJIB DIPERTAHANKAN:** 4 submenu dan 2 route baru, `HrdFixedTermPolicyService`, `HrdProbationService` guard `RequiresEndDate`, validasi grade/struktur gaji, penghapusan fallback `DepartmentId=organizationUnitId`, masking BasicSalary di print API, cleanup attachment saat gagal, maker-checker pada salah satu service, dan guard future-dated mirror pada `WfpNewHireAssignmentService`. Jangan revert manfaat tersebut. Perbaiki jalur bypass/celahnya saja.
 
-**P0-C — Penetapan struktur gaji harus cocok grade (BE-002/BE-009).** Source terkini mencari `MstSalaryStructure` untuk `SalaryGradeId` lalu fallback ke sembarang struktur `IsActive`; ini berpotensi memasangkan grade dan struktur yang tidak cocok, dan query primer bahkan belum membatasi `IsActive`. Pastikan master salary grade+structure aktif, bertaut dan valid pada site/tanggal kontrak, nominal awal sama dengan approved offer. Bila konfigurasi belum lengkap, **tolak dengan error jelas**, bukan memilih struktur lain secara acak. Jangan mengubah gaji hanya karena ada SK mutasi atau batch initial placement. Jangan menulis ulang salary assignment yang sudah sah.
+### 2.2B Invariant bisnis yang harus dipenuhi sebelum Agent menandai DONE
 
-**P0-D — Mirror penempatan future-dated tidak boleh terlalu dini (BE-008/BE-009).** Source baru `WfpNewHireAssignmentService` mengisi `MstWorkforceProfile.PrimaryPositionId` dan `PrimaryDepartmentId` **langsung**, tanpa memeriksa `startDate <= tanggal efektif site`. Untuk kontrak ditandatangani sebelum tanggal mulai, tetapkan riwayat assignment dengan `EffectiveStartDate` yang benar tetapi **jangan ubah mirror sampai efektif** menurut `HRD-DEC-047`. Reuse mekanisme as-of/worker yang benar atau tambah rekonsiliasi terarah; **`PersonnelActionOrderScheduledApplyWorker` yang baru dari push Menu 07 hanya memproses SK Scheduled**, bukan bukti bahwa ia mengaktifkan penempatan karyawan baru. Bedakan status `Signed`, `Scheduled`, `IsCurrent`, serta identitas pegawai current dari effective dated source; periksa epoch UTC vs `Asia/Jakarta` dan boundary tengah malam.
+1. **Status hubungan kerja tanggal efektif, bukan tombol.** `Draft` = belum bertanda tangan; `Signed` = dokumen telah ditandatangani tetapi belum efektif; `Active` = masa kerja mulai dan kontrak current; `Completed`/`Ended`/`LapsedWithoutDecision` mengikuti keputusan HRD/Legal serta histori. Pada tanggal mulai mendatang, signed contract tidak mematikan current contract sebelumnya. Jika canonical mensyaratkan state berbeda, pertahankan label yang disetujui dengan perilaku ekuivalen dan dokumentasikan migrasi status lama secara non-destruktif; jangan ubah DB langsung.
+2. **Satu active/current yang sah untuk setiap pegawai sesuai domain.** Permintaan tanda tangan, workflow callback, scheduler dan retry tidak boleh menghasilkan dua current kontrak, dua follow-up, dua probation awal atau dua salary assignment yang bertentangan. Mekanisme wajib database-robust, bukan `if(status != Draft)` sebelum transaksi atau lock memori saja.
+3. **Approval workflow nyata.** Pembuat keputusan tidak menyetujui sendiri, callback tidak melewati service orkestrasi, setiap perubahan status memiliki aktor, timestamp, bukti dan konsekuensi follow-up. Jika instance T16 ternyata hanya GUID placeholder, benahi integrasi menggunakan workflow engine canonical atau blok acceptance hingga integrasi riil terverifikasi. Hindari dependency injection circular; gunakan orkestrasi yang kompatibel.
+4. **Masa kerja/konversi tidak mengubah Payroll/Position/Department lebih awal.** Penempatan awal dari approved offer boleh membentuk assignment bertanggal masa depan, tetapi mirror saat efektif. Konversi PKWT ke PKWTT bukan mutasi unit atau kenaikan gaji otomatis. `HistoryType=Conversion` harus persist apa adanya.
+5. **Tidak ada kepatuhan palsu.** Pemberitahuan H-7 memerlukan evidence tertulis yang dapat diperiksa, bukan hanya tanggal/catatan manual. Kalkulator PKWT menghitung durasi berdasarkan boundary tanggal yang tepat dan versi kebijakan hukum; transisi historis perlu pemeriksaan legal bila data/aturan tidak pasti.
+6. **FE-BE sama kontraknya.** Setiap field summary, worklist, url, status dan permission harus berasal dari DTO aktual atau adapter eksplisit dengan semantik identik. Tidak boleh `undefined`, metrik nol palsu, fallback status `Ke-1`, atau toast sukses bila API error.
+7. **Privasi RS dijaga dari API.** ViewAmount, scope legalEntity/site/unit/employee, NIK dan file scan ditentukan di server. Menyembunyikan tampilan frontend saja bukan authorization.
+8. **Bukti verifikasi harus nyata.** `dotnet build`/ESLint adalah gate kompilasi dan lint, BUKAN UAT, integrasi HTTP, DB persistence atau browser test. Semua kasus tanpa eksekusi diberi `NOT RUN/BLOCKED`.
 
-**P0-E — Jangan duplikasi approval gaji dan penempatan (BE-002/BE-009).** Pada kontrak **pertama**, gaji berasal dari approved offer (`HRD-DEC-084`/`088`); telusuri actor/approval referensi aslinya, bukan menulis `ApprovedByUserId = petugas pencatat tanda tangan` seolah ia menyetujui nominal. Pada perpanjangan, konversi, mutasi dan batch, **tidak boleh** ada perubahan nominal otomatis; perubahan terpisah via Payroll/penetapan gaji. Pastikan `RecordSignedAsync` tidak menerapkan initial assignment dan salary untuk renewal/conversion; tidak membuat duplikasi saat retry/re-sign.
-
-**P1-F — Sidebar Menu 07 telah ada; Menu 08 belum (FE-001/FE-007).** Pada `src/utils/menu-sidebar/menu-items.jsx`, grup `Penempatan, Mutasi & Promosi` kini mempunyai lima child (`initial-placements`, `unit-transfers`, `rotation-promotions`, `employee-job-descriptions`, `employee-managers`) sebelum `Perencanaan Tenaga Kerja`. Tugas FE-001 harus **menambahkan** grup Menu 08 dengan tepat empat child baru tanpa menimpa Menu 07, merusak `Onboarding & Kontrak`, menggandakan pathname atau mengganti izin Menu 07. Reuse route lama `employment-contracts`/`probations` sebagai route canonical, pertahankan deep link historis. Uji role-based sidebar dan active-route longest match dari implementation nyata.
-
-**Bukti keluaran wajib:** source path dan line yang ditulis Agent, test gagal->diperbaiki->retest, respons HTTP, row dari DB UAT anonim, kontrol rowVersion/transaction, screenshot headed jika ada, serta register `REG-HRD-08-001`..`010` pada bagian UAT. **Tidak ada nomor FIN baru**, tidak ada klaim `VERIFIED WORKING` hanya dari commit message atau screenshot.
+**Sumber hukum resmi yang boleh dirujuk dalam penilaian:** JDIH Kementerian Ketenagakerjaan, <https://jdih.kemnaker.go.id/peraturan/detail/3126/undang-undang-nomor-27-tahun-2026> (UU No. 27/2026, 28 Oktober 2026). Verifikasi pasal, ketentuan peralihan, kategori pekerjaan dan aturan turunan pada dokumen resmi + keputusan Legal RS sebelum mengubah data historis; bukan mengarang tafsir legal baru. Baca keputusan HRD-DEC-089 bersama legal policy hasil push. Uji aturan 24 bulan + 1 hari secara kalender, bukan sekadar label Pasal.
 
 ### 2.3 Detail implementasi per Submenu
 
@@ -295,6 +320,37 @@ Target akhir: pegawai memiliki **satu sumber histori hubungan kerja yang konsist
 - Bekukan DTO/API version setelah source/test lolos gate BE agar FE tidak menebak payload. Laporan jalur `/task/report/backend/FIN-HRD-08-BE-010.md` atau tempat sesuai rule; status `PASS/FAIL/NOT RUN` dengan command yang benar-benar dieksekusi.
 - **Gate ke FE:** API non-mock dapat menerima/mengembalikan data dari DB test yang diotorisasi, seluruh P0 tidak mempunyai defect open, dan daftar endpoint/enum/permission dipastikan; jika DB test tidak diotorisasi, kerjakan FE yang aman namun beri integration/UAT `BLOCKED`, bukan menyatakan lulus.
 
+### 2.4A Patch wajib per task FIN-HRD-08-BE, tindak lanjut audit 18 November 2026
+
+**Urutan implementasi praktis:** selesaikan state/workflow/transaction sebelum menetapkan DTO final; selesaikan policy & notification kemudian integrasi FE; kerjakan bukan hanya memberi rekomendasi. Task numbering tetap BE-001..010, penambahan di bawah ini adalah acceptance delta task yang sama, bukan task baru.
+
+| Task lama | File yang harus diperiksa dan DIUBAH bila perlu | Patch wajib dan acceptance yang dapat dites |
+| --- | --- | --- |
+| `FIN-HRD-08-BE-001` | `HrdFixedTermPolicyService.cs`, `IHrdFixedTermPolicyService.cs`, `EmploymentContractDtos.cs` | Gunakan kalkulasi tanggal inclusive/exclusive yang presisi; uji start `2027-01-01`, end maksimum legal dan `+1 hari`; samakan GET eligibility, POST dan PUT; versi aturan dan legal transition dikembalikan jelas; jangan auto-rewrite legacy |
+| `FIN-HRD-08-BE-002` | `WfpContractHistoryWriteService.ActivateContractAsync`, `HrdEmploymentContractService.RecordSignedAsync/GetPrintDataAsync`, `HrdEmploymentContractController`, attachment service | Pusatkan state Signed->Active berdasar effective date, satu current, preflight approval offer, auth scoped dan salary detail yang benar; retry aman, tidak menampilkan `ex.Message` internal ke klien; scan orphan cleanup; `GetPrintDataAsync` mask amount dan NIK sesuai izin |
+| `FIN-HRD-08-BE-003` | `SubmitDecisionAsync`, `UpdateDecisionAsync`, `CreateFollowUpDraftAsync`, `HrdFixedTermPolicyService` | Gunakan validator bersama pada POST+PUT; guard jenis keputusan/kontrak, legal period, status, actor; cegah open decision ganda dengan concurrency DB yang sah; hitung renewalSequence authoritative, collision-safe number; jangan membuat convert sebagai renewal |
+| `FIN-HRD-08-BE-004` | `RecordEmployeeNotifiedAsync`, `RecordEmployeeNotifiedRequest`, attachment/notification persistence | Evidence artefak tertulis wajib untuk label `ON_TIME`; penerima, kanal, waktu pengiriman, waktu penerimaan/tercatat, actor, immutable metadata serta access control; tolak future/backdated yang tidak berlandasan proof; jika schema perlu diubah, berhenti hanya pada migration gate, siapkan kode kompatibel/plan dan laporkan blokir |
+| `FIN-HRD-08-BE-005` | `HrdEmploymentLifecycleWorkflowIntegrationService.HandleWorkflowCompletedAsync`, `HrdEmploymentContractService.ApplyDecisionAsync`, workflow adapter | Satu jalur domain untuk callback dan approval, maker-checker, state guard, transaksi status+follow-up/handoff, idempotency juga untuk `NotRenew` dan reject, audit; jangan mengubah hanya `DecisionStatus` dengan `SaveChangesAsync`; tes callback dua kali/dua worker dan rollback |
+| `FIN-HRD-08-BE-006` | `HrdProbationService`, `HrdEmploymentContractService.RecordSignedAsync`, scheduler | Pertahankan PKWT prohibition, fail evidence, maker-checker; perbaiki awal probation hanya dari initial PKWTT sah dan clause; test rollback bersama PDF+contract+placement; callback T15 harus melewati guard yang sama, tidak auto-pass setelah approved fail; uji tanggal akhir |
+| `FIN-HRD-08-BE-007` | `CreateFollowUpDraftAsync`, `WfpContractHistoryWriteService.CreateRenewalContractAsync`, `ActivateContractAsync`, scheduler | Buat persist method yang tidak menimpa `HistoryType=Conversion`; sumber type PKWTT aktif wajib, `EndDate=null`, `ProbationEndDate=null`, link prev/next, tipe status berubah saat efektif setelah scan; current lama tetap sampai successor aktif; tidak ubah salary |
+| `FIN-HRD-08-BE-008` | `HrdEmploymentLifecycleSchedulerService`, hosted service, summary service | Jadwal kalender operasional RS berzonasi site/WIB, bukan UTC date mentah; cek both Signed/Active sesuai state machine authoritative; lakukan activation/expires/lapsed sesuai keputusan dan legal hold; sync mirror bila penempatan efektif; idempotency multi-instance; angka H-60/H-14/H-7 dari real DB (hitung overdue & pending beda metrik) |
+| `FIN-HRD-08-BE-009` | `HrdEmploymentContractController`, query read/summary, `EmploymentContractDtos`, `WfpNewHireAssignmentService`, `WfpContractHistoryWriteService` | Tambahkan scope resource/site/unit/employee pada Read/print/download/decisions, ViewAmount; jangan bocorkan NIK; `salary-detail` harus sesuai contract jika endpoint dipertahankan; `hospitalSiteId` benar-benar menyaring. Hasil JSON cocok dengan FE, tidak memanipulasi gaji/perubahan unit tanpa approval |
+| `FIN-HRD-08-BE-010` | Test project/repository patterns; `task/report/backend`, report master | Jalankan scoped unit+integration tests, build; uji P0 raw HTTP/SQL UAT berizin, dual request/callback, rollback file, prepared data; catat exact command/log exit code/role/DB sebelum-sesudah; UAT `NOT RUN` bila browser atau DB UAT tidak tersedia |
+
+**Panduan implementasi khusus P0 (tidak boleh dipotong):**
+
+1. **Kontrak bertanggal efektif masa depan:** `RecordSignedAsync` harus menyimpan scan dan menandai `Signed` tanpa `IsCurrent=true`/tanpa mengganti current lama bila `StartDate` lebih dari hari operasional. Saat mulai berlaku, worker dapat mengubah ke `Active` dan mematikan previous current secara transactional. Untuk start yang sudah efektif, kontrak boleh langsung `Active` setelah validasi/tanda tangan, tetapi worker expired harus juga memproses Active. Jangan meninggalkan `Active` future yang tak diproses. Perbaiki `SyncFromContractAsync` agar employment record tidak diubah prematur. Jika data lama sudah Active future, siapkan backward-compatible predicate/repair plan, jangan rewrite DB diam-diam.
+2. **Callback T16/T15:** `StartContractDecisionWorkflowAsync` sekarang hanya menyimpan GUID dan Submitted. Periksa apakah adapter `WorkflowManagement` benar-benar memiliki instance persetujuan. Gunakan satu layanan domain untuk memvalidasi maker-checker serta menjalankan side effects; jangan memperbaiki T16 dengan memanggil service yang membuat constructor dependency circular. Pilih integrasi resmi, pertahankan idempotency key `WorkflowInstanceId/DecisionId`, serta baca final state sebelum perubahan. Untuk T15 juga jangan mem-bypass guard probation yang baru.
+3. **Konversi bukan Renewal:** jangan memanggil `CreateRenewalContractAsync` untuk konversi jika method tersebut menulis `HistoryType="Renewal"`. Pilih writer domain yang mempertahankan `Conversion`, audit `PreviousContractHistoryId`, pastikan numbering tidak bentrok, simpan `SourceDocumentType` dan referensi keputusan bila skema tersedia.
+4. **Keputusan update:** endpoint PUT tidak boleh mengubah decision yang sedang/ sudah diputus kecuali state resmi memungkinkan. Semua input tanggal/durasi/kategori disanitasi dan revalidate dengan policy yang sama seperti POST. Tambahkan negative test PATCH/PUT yang mengubah 12 menjadi 25 bulan, atau `Extend` menjadi `ConvertToPermanent` tanpa legal eligibility.
+5. **Kepatuhan H-7:** satu catatan `EvidenceNotes` tanpa bukti tidak boleh menjadi status `ON_TIME` yang dipercaya; sediakan evidence file / immutable reference + metadata as-of dan waktu server, with access scoped. Jika tanggal pengiriman tidak dapat dibuktikan, status `MISSING/UNVERIFIED` sesuai kontrak legal; jangan menerbitkan kepatuhan palsu. Tidak menolak otomatis hak pekerja berdasarkan sekadar keterlambatan administratif tanpa keputusan Legal.
+6. **Isolasi data:** `Read` tidak otomatis berarti semua pegawai di seluruh RS; implementasikan scoping yang sudah ada, bukan invent permission baru tanpa registry. NIK masked pada list/print untuk role yang tidak sah; nominal gaji tidak boleh pernah keluar dari API `GetById`/worklist/print ke aktor tanpa ViewAmount.
+7. **Efek persetujuan atomik:** status Approved, draft follow-up, no duplicate, separation handoff harus konsisten. Simpan DB dalam transaksi jika hanya database; untuk storage/workflow/external side effects gunakan pola outbox atau idempotent compensation, bukan klaim semuanya atomik hanya karena ada satu `SaveChangesAsync`.
+8. **Non-renewal dan masa percobaan gagal:** `HandoffLifecycleSeparationAsync` ke Menu 12 tidak boleh membuat dua separation record ketika callback diulang. Error downstream tidak boleh menghasilkan status Approved tanpa handoff yang sah; status `PENDING_RETRY/FAILED` hanya jika contract existing mendukung, jangan menciptakan enum diam-diam.
+9. **Numerik/performance:** `ContractDecisionQuery.PageSize` dibatasi secara server; summary dibatasi site, paging stabil, string/date format enum sesuai serializer (C# biasanya nilai angka). Cek indeks/unicity dan migration gate sebelum menambahkan constraint.
+
+**Gate keluar BACKEND MODE:** inventaris seluruh endpoint dan JSON nyata (camelCase), key summary dan paged response, role/permission, state transition, full test matrix. Kirim kontrak tersebut ke fase FE. Jangan hanya tulis "BE done, 0 compiler errors".
+
 ### 2.5 Urutan task FRONTEND SETELAH BACKEND - 8 task FIN
 
 **Wajib pakai registered Skill `quilvian-engineering-skills:build-module-frontend` per task, semua Base Component dan CSS Modules sesuai rule. Tidak membuat UI sukses palsu, endpoint dummy, data statis yang tampak riil, atau ID UUID mentah.**
@@ -353,9 +409,87 @@ Target akhir: pegawai memiliki **satu sumber histori hubungan kerja yang konsist
 - Jalankan UAT `AT-HRD-08-001`..`040` dan regression overlay `REG-HRD-08-001`..`010`, termasuk role HRD/atasan, refresh+login ulang, eksekusi worker, kontrak signed future-date serta perbandingan sidebar Menu 07 vs 08. Jangan mengklaim regression P0 PASS dari lint/build FE saja.
 - Rekonsiliasi status per Submenu dan task report di lokasi resmi sesuai wewenang.
 
+### 2.5A Patch frontend yang WAJIB diterapkan terhadap hasil audit (task FIN sama)
+
+**Semua halaman di bawah SUDAH ADA. Jangan membuat page baru pengganti, jangan mengubah URL, jangan membuat data dummy.** Utamakan kontrak respons server terbaru hasil task BE-009; contoh pemetaan berikut berdasarkan DTO yang dibaca saat audit dan mungkin diperbaiki BE; setelah BE selesai gunakan bentuk final yang terbukti dari HTTP.
+
+| Field/fungsi | Frontend saat audit (BUG) | BE DTO aktual saat audit (SOURCE) | Tindakan FE |
+| --- | --- | --- | --- |
+| Summary Perjanjian Kerja | `activeCount` | `activeContractsCount` | Ubah mapper langsung/adapter teruji; jangan angka `0` karena `undefined` |
+| Summary Perjanjian Kerja | `awaitingSignatureCount` | `pendingSignedCount` | Selaraskan dan test data >0 |
+| Summary Perjanjian Kerja | `reviewNeededCount` | `needsReviewCount` | Selaraskan |
+| Summary kontrak expiring | judul H-60 | BE query `AddDays(30)` | BE ubah ke 60 sesuai keputusan/label, lalu FE recheck |
+| Summary Perpanjangan | `due60DaysCount` | `reminderH60Count` | Selaraskan |
+| Summary Perpanjangan | `due14DaysCount` | `escalationH14Count` | Selaraskan |
+| Summary Perpanjangan | `due7DaysNoticeCount` | `noticeDueH7Count` | Selaraskan |
+| Summary Perpanjangan | `overdueCount` | TIDAK ADA; ada `pendingDecisionCount` | Jangan menganggap pending=overdue. Minta BE menambah `overdueCount` riil atau ganti kartu menjadi "Menunggu Keputusan" dengan field pending |
+| Summary Konversi | `approvedCount`, `effectiveCount`, `rejectedCount` | `pendingSignedCount`, `scheduledOrEffectiveCount`; tidak ada rejected | Perbaiki perincian state BE agar `ApprovedMenungguTTD`, `SignedMenungguEfektif`, `Efektif`, `Ditolak` berbeda, atau sesuaikan UI sesuai metrik asli tanpa mengarang hasil |
+| Worklist pegawai | `employeeFullName` | `fullName` | Gunakan `fullName` |
+| Worklist kode pegawai | `employeeWorkforceCode` | `workforceCode` | Gunakan `workforceCode` |
+| Deep link rincian | `employmentContractId` | `contractHistoryId` | Gunakan ID ini dan guard falsy sebelum navigasi |
+| Badge H-7 | `noticeCompliance` | `notificationComplianceStatus` | Gunakan nilai server yang benar; `MISSING` tidak boleh jadi `ON_TIME` |
+| Urutan perpanjangan | `renewalSequence || 1` | `ContractDecisionResponse` belum punya field | Tambah DTO/mapper BE berdasarkan histori; jika tidak dapat, render "Belum tersedia" jujur, jangan angka satu palsu |
+| Print kontrak | `isSalaryMasked` | `isSalaryMasked` disediakan | Pertahankan; response API tidak boleh mengandung `basicSalary` bila izin tidak ada |
+
+**Tugas per ID:**
+
+- **`FIN-HRD-08-FE-001`**: verifikasi grup sidebar `Kontrak & Masa Kerja` sudah berisi **tepat 4 submenu**, Menu 07 tetap 5 child. Jangan menambahkan grup kedua. Cek permission filter yang sekarang mendukung multiple `requiredPermission` dan state route aktif. Reuse `src/utils/menu-sidebar/menu-items.jsx` dan `src/lib/constants/hr/lifecycle/lifecycle-constants.js`.
+- **`FIN-HRD-08-FE-002`**: perbaiki `employment-contracts-list-view.jsx` sesuai summary contract DTO dan H-60 asli, list filter/reload/error, no silent default. Dengan database test count >= 1, SummaryGrid wajib menampilkan nilai yang sama dengan GET `/summary`.
+- **`FIN-HRD-08-FE-003`**: `employment-contract-detail-view.jsx`: label legal policy dinamis (tanpa fallback legal basis yang menipu), batas durasi term yang sama dengan BE, tombol sign disabled saat status tidak sah, error preview/file persisten, `isSalaryMasked` dan identitas sensitif aman; GET salary-detail sesuaikan kontrak final (jangan memakai `true` sebagai nominal).
+- **`FIN-HRD-08-FE-004`**: perbaiki `contract-renewals-list-view.jsx` dan service adapter: summary DTO, person fields, notice badge, row link, renewal sequence, filter/search/pagination. Implementasikan form bukti tertulis jika backend menerima file; jangan tombol "Sudah diberitahukan" yang hanya mengirim tanggal tanpa evidence. Tidak mengganti `decisionType=1`.
+- **`FIN-HRD-08-FE-005`**: `probations-list-view.jsx`/`probation-detail-view.jsx`: pertahankan summary yang cocok DTO, status `PassedAutomatically`, wajib evidence file Fail, keadaan pending/returned/closed, output API error 400/403/409, role UI sejalan server. Pastikan kalender expiry dan maker-checker tidak tampak bisa dibypass.
+- **`FIN-HRD-08-FE-006`**: perbaiki `employment-status-changes-view.jsx` yang memakai field/summary salah; tampilkan `Diajukan`, `Disetujui menunggu TTD`, `Ditandatangani menunggu efektif`, `Berlaku efektif`, `Ditolak/Ditarik` hanya bila state dapat diperoleh sah dari BE; jangan gabungkan `Signed future` dengan efektif. Semua link kontrak memakai `contractHistoryId` valid dan histori `Conversion` terbukti.
+- **`FIN-HRD-08-FE-007`**: pakai Base Components existing (Hero, SummaryGrid, DataFilter, DataTable, FilterSelect, BaseButton, StatusBadge, InformationAlert, ToastStack, ConfirmModal, dsb. sesuai pattern), CSS Modules/design tokens, responsive desktop+tablet, focus/accessibility, error/empty/loading, no mock data. Jangan mengganti seluruh desain tanpa kebutuhan perbaikan.
+- **`FIN-HRD-08-FE-008`**: jalankan targeted test untuk semua mapper; periksa DOM, click table detail, permission menu, API 401/403/409/500, tab form, print mask, viewport 1366px/1024px/768px, screenshots tanpa NIK/nominal. UAT browser headed hanya jika kredensial dan environment sah.
+
+**Skema UI setelah perbaikan (wajib pertahankan layout existing, ini target fungsi data):**
+
+```text
+MENU 08 > 1. PERJANJIAN KERJA
+[Hero: Perjanjian Kerja]                 [Aksi berizin: Tambah/Refresh]
+[Kontrak Aktif (API)] [Menunggu TTD (API)] [Akan Berakhir H-60 (API)] [Perlu Pemeriksaan (API)]
+[Filter No/Nama] [Status] [Jenis] [Unit/Site] [Reset]
+| Nomor | Pegawai | PKWT/PKWTT | Tanggal Mulai/Akhir | Status | Rincian |
+DETAIL: identitas terproteksi | dokumen scan | status signed/active | jejak tindakan |
+CETAK: tanpa ViewAmount => nominal masked; NIK masked sesuai policy
+```
+
+```text
+MENU 08 > 2. PERPANJANGAN KONTRAK
+[Hero: Perpanjangan Kontrak]
+[H-60] [H-14] [H-7] [Menunggu Keputusan atau Overdue REAL dari API]
+[Filter status usulan] [Filter pegawai/no dokumen] [Periode]
+| Nomor Usulan | Pegawai | Kontrak Asal | Perpanjangan Ke | H-7 | Status | Rincian |
+DETAIL/FORM: eligibility ruleVersion -> before/after tanggal -> alasan ->
+             attachment bukti tertulis -> submit -> approval status server
+NO DATA = empty state, API ERROR = error state, bukan baris contoh
+```
+
+```text
+MENU 08 > 3. MASA PERCOBAAN
+[Hero: Masa Percobaan]
+[Berjalan (API)] [Jatuh Tempo H-14 (API)] [Menunggu Penilaian (API)] [Selesai (API)]
+[Filter pegawai] [Unit] [Status] [Jatuh tempo]
+| Pegawai | Kontrak PKWTT awal | Mulai | Akhir | Status | Penilaian | Rincian |
+DETAIL: ajukan lulus/tidak lulus; Fail wajib upload; reviewer != pengaju;
+        PassedAutomatically locked + audit; tidak boleh untuk PKWT/konversi
+```
+
+```text
+MENU 08 > 4. PERUBAHAN STATUS KERJA
+[Hero: Perubahan Status Kerja]
+[Diajukan (API)] [Approved menunggu TTD (API)] [Signed future (API)] [Aktif (API)]
+[Filter pegawai] [Tanggal efektif] [Status approval]
+| Nomor | Pegawai | PKWT -> PKWTT | Tgl Efektif | TTD | Status | Rincian |
+DETAIL: link kontrak asal / follow-up; timeline Submitted -> Approved ->
+        Draft PKWTT -> Signed -> Active; tidak ada perubahan gaji otomatis
+```
+
+**Frontend acceptance wajib:** nonzero API counts tampil persis, tidak ada `undefined` pada nama/ID, semua tombol rinci menuju GUID benar, badge notifikasi sesuai server, state conversion tidak lebih cepat dari tanggal efektif, tidak ada console error, hasil refresh tetap konsisten.
+
 ### 2.6 MenuItems target dan route matrix
 
-**Existing yang sudah dibaca di FE `src/utils/menu-sidebar/menu-items.jsx`:** grup `Onboarding & Kontrak` mengandung `Kontrak Kerja` di `/hr/lifecycle/employment-contracts`, `Masa Percobaan` di `/hr/lifecycle/probations`, serta supporting route worklist, onboarding, template, pendampingan klinis, batch data awal kontrak, akses IT, dan pengaturan. **Setelah push `f7a1f091`, sidebar juga sudah mengandung grup Menu 07 `Penempatan, Mutasi & Promosi` dengan tepat lima child.** Grup Menu 08 baru tidak boleh menghapus supporting capabilities atau mengubah grup Menu 07. Pastikan tidak ada pathname/keys duplikat dan halaman existing tetap accessible lewat deep link.
+**Kondisi setelah push terbaru:** FE `menu-items.jsx` **SUDAH memiliki** grup `Kontrak & Masa Kerja` (4 child) dan grup `Penempatan, Mutasi & Promosi` (5 child). Route `/hr/lifecycle/employment-contracts`, `/hr/lifecycle/contract-renewals`, `/hr/lifecycle/probations`, dan `/hr/lifecycle/employment-status-changes` **SUDAH ADA**. **REPAIR** permission, field mapping, deep link dan konsistensi route - jangan membuat menu baru kedua. Grup pendukung `Onboarding & Kontrak` tetap sesuai owner domain; pertahankan deep link historis dan jangan duplikasi pathname.
 
 **Target navigasi:**
 
@@ -506,7 +640,7 @@ Sumber Daya Manusia
 | GET | `/lifecycle-management/probations/{id}` atau `/probations/{id}` | `WorkforceProbation.Read` | Detail probation |
 | POST | `/lifecycle-management/probations/{id}/assessments` atau `/probations/{id}/assessments` | `WorkforceProbation.Submit` | Ajukan penilaian |
 
-**PROPOSED / bukan existing sampai diverifikasi Agent:** GET decision worklist filtered, GET contract summary per site/role, GET history timeline/summary, API evidence notification berkas tertulis, optional `eligibleActions` dan legal policy descriptor; penamaan dan DTO final mengikuti API rules, jangan mengklaim endpoint sudah ada. Reuse controller/service existing sebelum membuat controller baru.
+**STATUS AUDIT 18 NOV 2026:** GET decision worklist (`/employment-contracts/decisions`), GET `summary`, `renewal-summary`, `conversion-summary` dan GET `probations/summary` **SUDAH ADA** di BE, tetapi harus diperbaiki per-field dan scope. API evidence notifikasi tertulis immutable beserta berkas, salary detail sesungguhnya, dan `eligibleActions`/history timeline hanya ditambah bila tidak ada layanan existing yang mencukupi dan kontrak final menyetujuinya. Sesuaikan tabel endpoint source aktual; jangan menggandakan endpoint. Reuse controller/service existing sebelum membuat controller baru.
 
 **State machine ringkas (server authoritative):**
 
@@ -532,67 +666,45 @@ Nama state di atas adalah konsep UI; gunakan enum/status backend aktual (mis. `C
 
 ### 3.1 Snapshot repository dan sumber bukti yang terbaca
 
-| Sumber | Ref commit HEAD pasca-push terverifikasi | Pembanding snapshot sebelum push | Catatan |
+| Repository | Branch | HEAD yang dibaca pada 18 Nov 2026 | Commit relevan implementasi Menu 08 | Hasil |
+| --- | --- | --- | --- | --- |
+| FE `DevBenari/QuilvianSystemFrontendDev` | `HamzahV2` | `89c070547b80f74e3e1b7b2c464c8c096c3478da` | `16ce992159d384b46f8d41dcdb7ee83b27ec617d` | 4 submenu + 2 context view BARU benar-benar ada, DTO mismatch dan UAT tidak terbukti |
+| BE `DevBenari/NewQuilvianSystemBackend` | `MHamzah` | `daccac931cc06fd6dee572a26a3237486f3aa8a9` | `a2b6aa05436229a25ae6a97358d83bb547aaef48` | Lifecycle Service/Policy/Summary telah dibuat/diubah, defect P0 masih ada |
+| Rules `DevBenari/QuilvianEngineeringSkills` | `main` | `201af64552b27873fd9af83c6722cf11b441bb1e` | sama | Sumber governance dan runtime Skills, ChatGPT hanya read-only |
+
+Dua commit HEAD yang lebih baru setelah implementasi Menu 08 berkaitan dengan perbaikan Menu 07. Audit Menu 08 berlaku untuk source Menu 08 yang tidak berubah setelah SHA implementasi di atas. **Agent wajib cek SHA workspace dan perubahan worktree sebelum edit tanpa git pull/fetch/checkout otomatis.** Bila source ternyata berubah, gunakan file aktual sebagai sumber, re-evaluate hanya dampak delta, lalu eksekusi repair yang masih relevan. Jangan overwrite perubahan agent lain.
+
+**Governance wajib sebelum menulis code:** FE dan BE `AGENTS.md`, `CLAUDE.md`; rules `QuilvianEngineeringSkills/agents/rules/GLOBAL_RULES.md`, `backend/TASK_RULES.md`, `TASK_CLASSIFICATION.md`, `API_RULES.md`, `DATABASE_RULES.md`, `CROSS_REPO_RULES.md`, `REVIEW_RULES.md`, `TEST_POLICY.md`; `frontend/frontend-architecture.md`, `base-component-catalog.md`, `base-component-decision-gate.md`, `page-composition-patterns.md`, `design-tokens.md`, `ui-consistency-checklist.md`, `test-policy.md`; `testing/`, `rule-output/`. BE wajib `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`. Registered runtime skills WAJIB dipanggil sebelum mengubah source, bukan dibaca manual sebagai pengganti.
+
+**Sumber canonical:** `docs/module-blueprints/human-resource/00-interview-decisions.md` (`HRD-DEC-031`, `036`, `047`, `048`, `054`, `081`..`090`), `roadmap/requirement-traceability.md`, frontend/backend roadmap, lifecycle contracts/flowcharts; report Menu 08 yang sudah dipush tidak dapat diperlakukan sebagai hasil test tanpa evidence. Jika canonical policy historis stale, tandai `NEEDS_SYNC` dan lakukan perubahan dokumen hanya dalam mode/izin yang sah.
+
+**Source utama BE (path repo):**
+- `Areas/Corporate/HumanResource/LifecycleManagement/Controllers/HrdEmploymentContractController.cs`, `HrdProbationController.cs`;
+- `Areas/Corporate/HumanResource/LifecycleManagement/Services/HrdEmploymentContractService.cs`, `HrdFixedTermPolicyService.cs`, `HrdEmploymentLifecycleSchedulerService.cs`, `HrdEmploymentLifecycleSchedulerHostedService.cs`, `HrdEmploymentLifecycleWorkflowIntegrationService.cs`, `HrdProbationService.cs`, `HrdLifecycleAttachmentService.cs`, `HrdNumberSeriesService.cs`;
+- `Areas/Corporate/HumanResource/LifecycleManagement/DTOs/EmploymentContractDtos.cs`, `HrdProbationDtos.cs`;
+- `Areas/Corporate/HumanResource/WorkforceCore/Services/WfpContractHistoryWriteService.cs`, `WfpNewHireAssignmentService.cs`, `WorkforceCoreCrossEmployeeQueryService.cs` bila dependency terbukti;
+- `Areas/Corporate/HumanResource/LifecycleManagement/Constants/EmploymentLifecycleValueConstants.cs`, domain models Wfp/Hrd dan `Program.cs` registrasi DI/worker.
+
+**Source utama FE (path repo):**
+- `src/utils/menu-sidebar/menu-items.jsx`, `src/lib/constants/hr/lifecycle/lifecycle-constants.js`, `src/lib/services/hr/lifecycle-service.js`;
+- `src/components/view/hr/lifecycle/employment-contracts-list-view.jsx`, `employment-contract-detail-view.jsx`, `probations-list-view.jsx`, `probation-detail-view.jsx`, `contract-renewals-list-view.jsx`, `employment-status-changes-view.jsx`;
+- `src/app/hr/lifecycle/contract-renewals/page.jsx`, `src/app/hr/lifecycle/employment-status-changes/page.jsx`, route detail/list existing;
+- `src/components/features/base-features/`, `src/lib/hooks/hr/use-hr-remote-data` untuk reuse.
+
+### 3.2 Matriks source vs gap (hasil audit terakhir, BUKAN hasil UAT)
+
+| Submenu | Yang sudah ada dan harus REUSE | Masalah belum tertutup | Status |
 | --- | --- | --- | --- |
-| `DevBenari/QuilvianSystemFrontendDev` @ `HamzahV2` | `f7a1f0917eb82e95b0a6d02842362637a8d2b089` | `f095e2e0a80ccc89bae5a43e6c9a3fd0300f6d68` | Menu 07 sudah ditambahkan; Menu 08 belum. SOURCE SEEN, belum browser/UAT |
-| `DevBenari/NewQuilvianSystemBackend` @ `MHamzah` | `fcdd9f4daf895fa1f57055c95cd795b5f24c751a` | `47d6545cab616ce7b0b0e5e39f459c3c073bd3c1` | Menu 07 dan `WfpNewHireAssignmentService` berubah; lifecycle contract service tidak. SOURCE SEEN, belum DB/UAT |
-| `DevBenari/QuilvianEngineeringSkills` @ `main` | `201af64552b27873fd9af83c6722cf11b441bb1e` | sama | Rules runtime yang harus diinvokasi oleh Agent IDE |
+| Perjanjian Kerja | Sidebar; list/detail FE; BE `GetPrintDataAsync`, `RecordSignedAsync`, `HrdFixedTermPolicyService`, grade/department preflight | Writer `Active/IsCurrent` sebelum efektif, signed race, salary detail API boolean, summary field mismatch, data scope/identitas | `REPAIR - SOURCE SEEN, UAT NOT VERIFIED` |
+| Perpanjangan Kontrak | FE route/worklist; BE decision GET, summary, policy checker | PUT tanpa validasi ulang, callback workflow bypass, date math, evidence H-7 opsional, FE summary/row mismatch | `REPAIR - SOURCE SEEN, UAT NOT VERIFIED` |
+| Masa Percobaan | FE route/list/detail; BE PKWT guard, Fail evidence, summary/assessment | T15 callback bypass service assessment, edge auto-pass vs callback, integrasi rollback dan live UAT belum terbukti | `PARTIAL/REPAIR - SOURCE SEEN, UAT NOT VERIFIED` |
+| Perubahan Status Kerja | FE route/worklist; BE ConvertToPermanent, fail-closed master PKWTT, scheduler | Writer menimpa `Conversion` jadi `Renewal`, status efektif tidak konsisten, callback Approved tanpa draft, FE summary/row mismatch | `REPAIR - SOURCE SEEN, UAT NOT VERIFIED` |
 
-**Governance wajib:** FE/BE `AGENTS.md` + `CLAUDE.md`; Skills `agents/rules/GLOBAL_RULES.md`, `rules/frontend/base-component-catalog.md`, `base-component-decision-gate.md`, `page-composition-patterns.md`, `design-tokens.md`, `frontend-architecture.md`, `ui-consistency-checklist.md`, `test-policy.md`, `rules/backend/TASK_RULES.md`, `TASK_CLASSIFICATION.md`, `API_RULES.md`, `DATABASE_RULES.md`, `CROSS_REPO_RULES.md`, `REVIEW_RULES.md`, `TEST_POLICY.md`, `rules/testing/` dan `rules/rule-output/`. Backend `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` lebih otoritatif daripada pola entity lama untuk NEW CODE.
+**Defect yang SUDAH DITUTUP oleh implementasi sebelumnya dan harus dijaga:** fallback FK department salah telah dihapus; grade salary structure dicocokkan; guard probation PKWT dan mask BasicSalary tersedia; grup Menu 08 dan dua halaman konteks sudah ada. Jangan mengklaim masalah tersebut masih belum dikerjakan tanpa cek source. Tindakan baru adalah penyempurnaan jalur yang masih cacat.
 
-**Blueprint canonical:** BE `docs/module-blueprints/human-resource/00-interview-decisions.md` khusus `HRD-DEC-031`, `036`, `047`, `048`, `054`, `081`-`090`; `roadmap/00-slice-roadmap.md` `S-C4-ONB`, `roadmap/requirement-traceability.md` (`FR-ONB-010` s.d. `062`, `BE-HRD-072`, `079`-`084`, `FE-HRD-063`-`074`), serta flowcharts/contracts terkait. Status tanda centang roadmap bukan bukti runtime.
-
-**Path sumber utama FE:**
-
-- `src/utils/menu-sidebar/menu-items.jsx` - existing `Onboarding & Kontrak`; **pada HEAD baru sudah ada `Penempatan, Mutasi & Promosi`** dengan lima child serta belum ada kelompok target Menu 08. Commit FE sumber: <https://github.com/DevBenari/QuilvianSystemFrontendDev/commit/f7a1f0917eb82e95b0a6d02842362637a8d2b089>.
-- `src/app/hr/lifecycle/employment-contracts/page.jsx`, `src/app/hr/lifecycle/employment-contracts/[id]/page.jsx`.
-- `src/app/hr/lifecycle/probations/page.jsx`, `src/app/hr/lifecycle/probations/[id]/page.jsx`.
-- `src/components/view/hr/lifecycle/employment-contracts-list-view.jsx`, `employment-contract-detail-view.jsx`, `probations-list-view.jsx`, `probation-detail-view.jsx`.
-- `src/lib/services/hr/lifecycle-service.js`, `src/lib/constants/hr/lifecycle/lifecycle-constants.js`.
-- `src/components/features/base-features/` untuk komponen dasar; `src/components/features/hr/shared/` untuk form/panel yang terbukti dipakai.
-
-**Path sumber utama BE:**
-
-- `Areas/Corporate/HumanResource/LifecycleManagement/Controllers/HrdEmploymentContractController.cs` dan `HrdProbationController.cs`.
-- `Areas/Corporate/HumanResource/LifecycleManagement/Services/HrdEmploymentContractService.cs`, `HrdProbationService.cs`, `HrdEmploymentLifecycleSchedulerService.cs`, `HrdEmploymentLifecycleSchedulerHostedService.cs`, `HrdEmploymentLifecycleWorkflowIntegrationService.cs`, `HrdLifecycleAttachmentService.cs`, `HrdNumberSeriesService.cs`.
-- `Areas/Corporate/HumanResource/LifecycleManagement/DTOs/EmploymentContractDtos.cs`, `HrdProbationDtos.cs`.
-- `Areas/Corporate/HumanResource/LifecycleManagement/Models/HrdContractDecision.cs`, `HrdProbation.cs`.
-- `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpContractHistory.cs`; `Areas/Corporate/HumanResource/MasterData/Workforce/Models/MstContractType.cs`.
-- **Pasca-push:** `Areas/Corporate/HumanResource/WorkforceCore/Services/WfpNewHireAssignmentService.cs` (`AssignNewHirePlacementAndSalaryAsync`), `Areas/Corporate/HumanResource/WorkforceCore/Workers/PersonnelActionOrderScheduledApplyWorker.cs`, `Program.cs` registrasi worker. Commit BE sumber: <https://github.com/DevBenari/NewQuilvianSystemBackend/commit/fcdd9f4daf895fa1f57055c95cd795b5f24c751a>.
-- `Areas/Corporate/HumanResource/LifecycleManagement/Models/HrdEmploymentLifecycleSetting.cs`, enum `ContractDecisionType.cs` (`Extend=1`, `ConvertToPermanent=2`, `NotRenew=3`).
-
-### 3.2 Matriks source vs gap
-
-| Submenu | Source tersedia | Gap/risiko yang terlihat | Status sebelum Agent |
-| --- | --- | --- | --- |
-| Perjanjian Kerja | FE list/detail + BE controller/service/history/attachment | Print-data salary tidak masked; fallback identitas institusi salah; period/cross-role perlu test | `REPAIR / RUNTIME NOT VERIFIED` |
-| Perpanjangan Kontrak | `FixedTermCheckAsync`, `SubmitDecisionAsync`, workflow T16, `Extend` | Rule 60 bulan stale vs UU baru; bukti notifikasi tak cukup; belum ada context page worklist | `REPAIR + ADD / RUNTIME NOT VERIFIED` |
-| Masa Percobaan | FE list/detail; `CreateForContractAsync`, assessment, scheduler | Guard PKWT bisa tergantung salah konfigurasi master; auto-pass/notification dan klausul PKWTT perlu tes | `REPAIR / RUNTIME NOT VERIFIED` |
-| Perubahan Status Kerja | `ConvertToPermanent`, `CreateFollowUpDraftAsync`, scheduler/history | Fallback PKWT jika master PKWTT hilang, state efektif, halaman konteks belum tersedia | `REPAIR + ADD / RUNTIME NOT VERIFIED` |
-
-**Tambahan dampak Menu 07 dari SHA baru:**
-
-| Source/fitur | Dampak pada Menu 08 | Perbaikan dan task |
-| --- | --- | --- |
-| `WfpNewHireAssignmentService.AssignNewHirePlacementAndSalaryAsync` | Dipanggil langsung oleh `RecordSignedAsync`; master salary structure tidak ditemukan -> error, risiko rollback/missing signed/probation | BE-002/006/009/010; REG-001/006 |
-| `WfpNewHireAssignmentService`: fallback `DepartmentId = organizationUnitId` | Bisa membuat FK/penempatan departemen salah | BE-002/009/010; REG-003 |
-| `WfpNewHireAssignmentService`: salary structure fallback ke `IsActive` saja | Grade–structure bisa berbeda | BE-002/009/010; REG-002/010 |
-| `WfpNewHireAssignmentService`: write mirror `PrimaryDepartmentId`/`PrimaryPositionId` langsung | Mirror bisa berlaku sebelum start-date kontrak | BE-008/009/010; REG-004/005 |
-| `PersonnelActionOrderScheduledApplyWorker` (baru di `Program.cs`) | Memproses SK future-dated; **bukan** bukti initial hire mirror diaktifkan tepat tanggal efektif | BE-008/009/010; REG-004/008 |
-| `src/utils/menu-sidebar/menu-items.jsx` | Menu 07 5 child sudah ada, Menu 08 4 child belum | FE-001/007/008; REG-009 |
-
-**Temuan source yang harus dijadikan patch nyata:**
-
-1. `FixedTermCheckAsync`: `const int maxMonths = 60; // 5 tahun` dan DTO `MaxExtensionMonths` tetap membatasi dengan aturan lama.
-2. `SubmitDecisionAsync` juga menggunakan `totalMonths > 60`; ada dua titik yang bisa berbeda jika hanya satu diubah.
-3. `RecordEmployeeNotifiedAsync` saat ini hanya mencatat `EmployeeNotifiedOn` dan `NotificationRecordedByUserId`; bukti tertulis belum diverifikasi dalam jalur ini.
-4. `CreateFollowUpDraftAsync` dapat mempertahankan `parent.ContractTypeId` ketika master PKWTT tidak ditemukan dan menamai kontrak `Conversion`.
-5. `GetPrintDataAsync` mengembalikan `BasicSalary` dengan `IsSalaryMasked = false` pada permission read biasa; fallback nama rumah sakit dan employee ID perlu diperbaiki.
-6. `HrdProbationService.CreateForContractAsync` bergantung pada `IsProbationApplicable` dan `HistoryType="Initial"`; server guard eksplisit PKWT perlu dipastikan.
-7. `HrdEmploymentLifecycleSchedulerService` mengaktifkan kontrak signed pada `StartDate`, menutup lapsed dan auto-pass probation; uji idempotensi, temporal boundary serta status pekerjaan di site Indonesia.
-8. `employment-contract-detail-view.jsx` menampilkan label `PP 35/2021` dan fallback `ft?.maxExtensionMonths || 60`; frontend ikut menampilkan aturan 60 bulan.
-
-Klaim `SOURCE SEEN` di atas didasarkan pada berkas, **bukan** hasil test. Jangan menulis `VERIFIED WORKING` sebelum pengujian sungguhan.
+**Referensi bukti code yang diperiksa** (cocokkan lagi di branch):
+- BE `.../WorkforceCore/Services/WfpContractHistoryWriteService.cs:142-190` (`Active`/`IsCurrent`), BE `.../LifecycleManagement/Services/HrdEmploymentLifecycleSchedulerService.cs:43-80` (`Signed`/current), BE `.../LifecycleManagement/Services/HrdEmploymentLifecycleWorkflowIntegrationService.cs:202-212` (callback T16), BE `.../LifecycleManagement/Services/HrdEmploymentContractService.cs:620-645` (PUT update tanpa policy), `:747-824` (ApplyDecision), `:824-885` (Conversion overwritten via writer), `:1320-1390` (Summary), serta BE `.../LifecycleManagement/DTOs/EmploymentContractDtos.cs` (DTO).
+- FE `.../lifecycle/employment-contracts-list-view.jsx`, `contract-renewals-list-view.jsx`, `employment-status-changes-view.jsx` untuk field mismatch yang dijabarkan pada 2.5A.
 
 ### 3.3 Aturan sumber hukum dan konflik keputusan
 
@@ -700,6 +812,35 @@ Jika mendapat `MODULE BLUEPRINT MODE` yang secara eksplisit mengizinkan path dok
 
 **Evidence gate:** tuliskan SQL query **read-only** dan redacted result yang diizinkan, API request/response anonim, audit event, screenshot headed untuk REG-009 bila lingkungan tersedia. Jika tidak ada DB UAT atau browser, tandai `NOT RUN/BLOCKED`; jangan menganggap source inspection lulus. Uji ulang existing `AT-HRD-08-001`, `003`, `004`, `021`, `022`, `027`, `037`, `038`, `039` sesudah patch karena berbagi jalur signing/onboarding/worker/sidebar.
 
+### 4.5B AUDIT REPAIR TEST - wajib ulang setelah perubahan P0, dan perbarui bukti 40+10 asli
+
+**Jangan menghapus `AT-HRD-08-001..040` atau `REG-HRD-08-001..010`.** Peta uji tambahan berikut adalah bukti khusus defect audit; bisa dihubungkan ke UAT/regresi resmi. Tidak membuat nomor FIN baru. Setiap kasus harus berisi mode tes, actor, data anonim, input, expected status HTTP, perubahan row persisten sebelum/sesudah, dan log yang memang dihasilkan.
+
+| Audit ID | Tes wajib dan syarat PASS faktual |
+| --- | --- |
+| AUD-08-01 | Tanda tangan kontrak future-dated -> status Signed, IsCurrent=false; current lama tak berubah; jalankan tick tanggal efektif -> tepat satu Active/current, profile/record ikut efektif. Jalankan ulang tick -> tidak ada duplikasi |
+| AUD-08-02 | Callback T16 maker==checker -> ditolak; checker sah approve -> Approved + satu follow-up, bukan hanya boolean; callback dua kali tidak menambah kontrak |
+| AUD-08-03 | Konversi PKWT->PKWTT -> `HistoryType=Conversion` persisten setelah reload, previous link benar, `EndDate=null`, `ProbationEndDate=null` |
+| AUD-08-04 | POST dan PUT masa PKWT yang melampaui batas/kategori salah -> 400/409, DB tidak berubah. Uji update keputusan yang Submitted dan state final secara terpisah |
+| AUD-08-05 | 24 bulan maksimum + 1 hari, tanggal 31, leap year, rentang 12 bulan + 1 hari -> ditolak jika melampaui batas yang sah; boundary legal tepat diterima |
+| AUD-08-06 | Dua request submit concurrent dan 2 callback approve concurrent -> satu open decision, satu follow-up, satu nominal/assignment, tidak ada duplicate number |
+| AUD-08-07 | Notifikasi tanpa lampiran/sumber bukti => tidak `ON_TIME`; dengan bukti sah status berdasar waktu yang tervalidasi; backdate fraud ditolak/ditandai review |
+| AUD-08-08 | GET `salary-detail` dengan ViewAmount+scope -> response detail terotorisasi atau kontrak resmi dinyatakan berbeda; tanpa permission -> 403; tidak pernah hanya `true` saat mengklaim nominal |
+| AUD-08-09 | Dua `record-signed` simultan + salary configuration missing -> satu hasil sah maksimal; failed path rollback contract/placement/probation/onboarding dan orphan file cleanup; tidak ada informasi internal `ex.Message` di response |
+| AUD-08-10 | Cross-site/employee IDOR GET list, detail, scan, print, decision, amount: role tanpa scope -> 403/404 (menurut API contract); NIK/nominal tidak bocor dalam JSON/Network |
+| AUD-08-11 | Summary `hospitalSiteId` A vs B membatasi hasil; H-60 menghitung rentang benar termasuk border; H-30 tidak diberi label H-60 tanpa data |
+| AUD-08-12 | GET summary nonzero -> angka SummaryGrid Perjanjian Kerja identik, reload sama, tidak menghasilkan `undefined` |
+| AUD-08-13 | GET renewal summary nonzero -> angka H-60/H-14/H-7 sesuai JSON, overdue tidak dihitung dari pending; status filter terjaga |
+| AUD-08-14 | Conversion Submitted/Approved Draft/Signed future/Active/Rejected -> setiap kartu sesuai data dan label; tidak ada angka statis/rekaan |
+| AUD-08-15 | Worklist renewal/conversion pegawai nama+kode benar, badge notifikasi benar, klik Rincian navigasi ke `/employment-contracts/{contractHistoryId}` valid (tidak `undefined`) |
+| AUD-08-16 | Baris perpanjangan ke-2 tampil `Ke-2` dari riwayat/DTO sah, tidak `Ke-1` hasil fallback; jika belum ada field nyatakan unknown, jangan palsu |
+| AUD-08-17 | Pergantian hari 00:00 WIB, dua instance worker paralel, restart worker dan jadwal future: tidak memutasi sebelum waktu, tidak menggandakan record, status konsisten |
+| AUD-08-18 | Report `VERIFIED WORKING` hanya setelah test runner/API/DB/browser headed benar dijalankan; screenshot terautentikasi redacted dan report per test; jika tidak ada environment wajib `NOT RUN` |
+
+**Negative & UI retest tambahan:** refresh browser setelah write; login HRD maker/checker berbeda; akses dengan role tanpa ViewAmount; failure jaringan 500, file terlalu besar/tidak valid, duplicate submit, tooltip error dan focus keyboard; tablet portrait 768px, tablet landscape 1024px, desktop 1366px. Jika tidak ada akun UAT atau DB UAT, lakukan semua tes unit yang dapat dijalankan, tandai sisanya `BLOCKED/NOT RUN`, jangan mengubah DB produksi.
+
+**Bukti per case harus ada:** test ID, SHA, timestamp WIB, environment, command+exit, actor role anonim, request dan response status (redacted), SQL read-only sebelum/sesudah jika izin, dan screenshot/headed log untuk UI. Jangan gunakan screenshot palsu, payload dummy produksi, atau kalimat "manual test PASS" tanpa bukti. Validasi `dotnet build`, `npm run lint:errors`, targeted unit, Next build sesuai policy secara nyata. Pastikan laporan menjelaskan warning yang masih ada dan mengapa tidak berdampak/masih pending.
+
 ### 4.6 Definition of Done dan laporan evidence
 
 **DoD mutlak:**
@@ -736,6 +877,7 @@ Setelah implementasi, Agent wajib menghasilkan **laporan hasil eksekusi** (berbe
 5. **Testing**: command + timestamp + output ringkas `PASS/FAIL/NOT RUN`, **40 UAT utama + 10 regression `REG-HRD-08-001`..`010`** dengan evidence link/screenshot atau alasan blocker, bukti retest setelah fix. Wajib sertakan rollback signing, FK departemen, grade–structure, future-date mirror dan coexist Menu 07/08.
 6. **Governance**: Skill runtime yang dipanggil per task, QBE/frontend base gate, targeted docs/reports yang benar-benar ditulis, git diff/status, HEAD FE/BE/Skills saat akhir, tanpa klaim commit/push tanpa izin.
 7. **Isu tersisa**: legal transitional decisions, mismatch law/backend, migration authorization, test DB/runtime blockers, next action <=3 item, memory sync `MEMORY_SYNCED/MEMORY_PENDING_SYNC` sesuai fakta.
+8. **Revisi laporan resmi pasca audit:** PERBARUI `docs/module-blueprints/human-resource/docs/update/kontrak-dan-masa-kerja/LAPORAN_EKSEKUSI_HRD_MENU_08_KONTRAK_DAN_MASA_KERJA.md` pada workspace berizin, bukan hanya append kata DONE. Untuk setiap `AUD-08-01..18`, jelaskan source path, jalur perbaikan, respons aktual, bukti retest dan status `PASS/FAIL/BLOCKED/NOT RUN`. Turunkan status laporan dari `VERIFIED WORKING` bila masih ada P0 atau bukti browser/DB kurang. Sinkronkan ringkasan `task/report/backend/FIN-HRD-08-BE-KONTRAK-DAN-MASA-KERJA.md` serta frontend analog atau per-task report sesuai aturan output. Teks `MEMORY_SYNCED` hanya boleh dipakai setelah file memory persisten ditemukan dan diverifikasi. Jangan mengganti SHA laporan dengan SHA baru sebelum melihat status Git aktual.
 
 **Template ringkas yang wajib diisi Agent saat menyelesaikan pekerjaan:**
 
@@ -756,4 +898,4 @@ Git status: [read-only evidence]
 Memory sync: [status benar]
 ```
 
-**PERINTAH FINAL KEPADA AGENT:** Mulai dari preflight sah, kemudian **IMPLEMENTASIKAN SEKARANG** seluruh pekerjaan `FIN-HRD-08-BE-001` sampai `FIN-HRD-08-BE-010` di backend pada branch dan mode yang diizinkan. Setelah kontrak API/backend siap, **IMPLEMENTASIKAN** `FIN-HRD-08-FE-001` sampai `FIN-HRD-08-FE-008` pada frontend, lalu lakukan test, UAT, retest, dan laporan evidence. Jangan berakhir hanya dengan membaca kode atau menulis dokumen. Jangan bertanya kembali mengenai planning yang sudah disetujui.
+**PERINTAH FINAL KEPADA AGENT:** Pekerjaan Menu 08 sudah memiliki source; JANGAN membuat ulang Menu/halaman atau berhenti di review. Mulai dari preflight sah, kemudian **IMPLEMENTASIKAN SEKARANG PERBAIKAN 18 DEFECT AUDIT** di dalam seluruh pekerjaan `FIN-HRD-08-BE-001` sampai `FIN-HRD-08-BE-010` di backend pada branch dan mode yang diizinkan. Setelah kontrak API/backend siap, **IMPLEMENTASIKAN** `FIN-HRD-08-FE-001` sampai `FIN-HRD-08-FE-008` pada frontend, lalu lakukan test, UAT, retest, dan laporan evidence. Jangan berakhir hanya dengan membaca kode atau menulis dokumen. Jangan bertanya kembali mengenai planning yang sudah disetujui.

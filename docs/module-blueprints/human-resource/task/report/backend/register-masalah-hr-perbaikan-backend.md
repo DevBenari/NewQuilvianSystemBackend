@@ -4,7 +4,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Task ID | `MSL-01`, `MSL-02`, `MSL-04`, `MSL-05`, `MSL-06`, `MSL-07`, `MSL-08`, `MSL-09`, `MSL-10`, `MSL-11`, `MSL-12`, `MSL-13` |
+| Task ID | `MSL-01`, `MSL-02`, `MSL-04`, `MSL-05`, `MSL-06`, `MSL-07`, `MSL-08`, `MSL-09`, `MSL-10`, `MSL-11`, `MSL-12`, `MSL-13`; putaran 2: `MSL-14`, `MSL-15` tahap 1; putaran 3: `MSL-15` tahap 2, `MSL-16` |
 | Judul | Perbaikan masalah backend P0/P1 dari register masalah modul SDM |
 | Roadmap | [register-masalah-hr.md](../../../roadmap/register-masalah-hr.md) bagian 3 dan 4 |
 | Trace | `HRD-DEC-127`, `HRD-DEC-184`, `FR-PAY-25`, `VR-PAY-22`, `VR-PAY-24`, `DED-B8`, `VR-PRF-04`, laporan `FE-HRD-R32`, `R33`, `R34`, `R35`, `R40`, `R43`, `R45`, `R46` |
@@ -14,8 +14,8 @@
 | Target tulis | `NewQuilvianSystemBackend` (source) dan laporan ini |
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit backend saat dikerjakan | `90e36dee` (branch `MHamzah`), perubahan belum di-commit |
-| Tanggal | Rabu, 18 November 2026 |
-| Status | 🟡 Source selesai untuk 11 masalah (termasuk `MSL-10` di putaran 2, migration ditulis tetapi belum dijalankan) dan lolos build + QBE; 1 masalah ditutup sesuai rancangan (`MSL-08`); `MSL-14` dan tahap 1 `MSL-15` dikerjakan di putaran 2. Uji runtime di browser belum dijalankan (butuh izin menyalakan backend di DB dev bersama) |
+| Tanggal | Rabu, 18 November 2026 (putaran 1–2); Kamis, 19 November 2026 (putaran 3) |
+| Status | 🟡 Source selesai untuk 11 masalah (termasuk `MSL-10` di putaran 2, migration ditulis tetapi belum dijalankan) dan lolos build + QBE; 1 masalah ditutup sesuai rancangan (`MSL-08`); `MSL-14` dan tahap 1 `MSL-15` dikerjakan di putaran 2. Uji runtime di browser belum dijalankan (butuh izin menyalakan backend di DB dev bersama). Putaran 3 (19 Nov 2026): tahap 2 `MSL-15` dan `MSL-16` selesai di source, build + QBE lulus, uji live baca `MSL-16` lulus sesudah satu galat `500` diperbaiki (bagian 9) |
 
 ---
 
@@ -326,3 +326,137 @@ Temuan keamanan, tidak diubah karena di luar SDM: `WorkflowFileStorageService` m
 | Migration `20261118100000` | Ditulis, **tidak dijalankan** | — |
 | Uji live | Bagian pegawai non-admin lulus (lihat laporan FE). Bagian akun Mira (Plh, slip gaji, restitusi) tertahan karena DB dev `160.22.250.77` tidak bisa dijangkau (koneksi timeout) | `NOT RUN` |
 | Automated test | `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)` | — |
+
+## 9. Putaran 3 — 19 November 2026
+
+**Wewenang.** Pemilik menjawab "oke lanjut" atas rencana "teruskan dari sisa `MSL-15` lalu `MSL-16`". Wewenang putaran 2 tetap berlaku (opsi A di semua keputusan; migration hanya ditulis, tidak dijalankan; tanpa DML).
+
+### 9.1 `MSL-15` tahap 2 — Unggah lampiran di 5 fitur lagi
+
+Pola sama dengan tahap 1: berkas disimpan `HrAttachmentStorage` di luar `wwwroot`, endpoint ada di controller pemilik fitur dan memakai hak yang sudah ada. Unduhan diizinkan untuk pengunggah atau pemegang hak yang disebut di kolom "Boleh mengunduh"; selain itu dijawab `404` agar keberadaan berkas tidak bocor. Lima kategori baru ditambahkan di `HrAttachmentStorage.Categories`.
+
+| Fitur (`[Tags]`) | Unggah (`POST`, multipart `file`) | Unduh (`GET ?key=`) | Boleh mengunduh selain pengunggah |
+|---|---|---|---|
+| HR Benefits - COB Claims & Settlement | `/api/v1/corporate/hrd/benefits/claims/documents/attachments` (alias `/api/hr-benefits/claims/...`, dipakai layar) (`BenefitClaim : SubmitClaim`) | `.../documents/attachments/download` (`ViewOwn`) | `Read`, `Verify`, `Settle` |
+| Corporate / Human Resource / Recruitment Management / Candidate | `/api/v1/corporate/human-resource/recruitment/candidates/documents/attachments` (`Candidate : UploadDocument`) | `.../documents/attachments/download` (`Read`) | `Read` |
+| Corporate / Human Resource / Recruitment Management / MCU Clearance | `/api/v1/corporate/human-resource/recruitment/mcu-clearance/certificates/attachments` (`OccupationalHealthClearance : Evaluate`) | `.../certificates/attachments/download` (`Read`) | `Read` |
+| Corporate / Human Resource / Attendance Management / Attendance Correction Administration | `/api/v1/corporate/human-resource/attendance/correction-requests/on-behalf/attachments` (`AttendanceCorrection : CreateOnBehalf`) | `.../on-behalf/attachments/download` (`Read`) | `Read` |
+| HR Attendance - Official Duty | `/api/v1/corporate/human-resource/attendance-management/official-duties/attachments` (alias `/api/corporate/human-resource/attendance/official-duties/...`) (`OfficialDutyRequest : Create`) | `.../attachments/download` (`Read`) | `Read`, `Approve` |
+
+Jawaban unggah `201` berisi `{ key, fileName, contentType, sizeBytes, checksum }`. `key` itulah yang dikirim ke kolom path berkas fitur, misalnya `filePath` dokumen klaim COB atau `certificateFilePath` MCU. Galat isian (ekstensi, ukuran > 10 MB) dijawab `400`.
+
+Contoh: pegawai mengajukan klaim COB kacamata. Ia mengunggah SEP BPJS dan kuitansi asli di formulir ESS. Verifikator benefit lalu mengunduh kedua berkas itu dari layar klaim tanpa meminta salinan fisik.
+
+Sisa `MSL-15` yang belum dikerjakan, beserta alasannya:
+- **Logbook lembur** dan **nota pertimbangan override rekredensial (VR-OPP-19)**: model datanya belum punya kolom berkas, sehingga butuh migration baru. Belum diminta izinnya.
+- **Spreadsheet batch kontrak awal**: butuh endpoint impor (baca Excel, validasi per baris, laporan galat), bukan sekadar unggah. Lebih tepat dijadikan task tersendiri.
+
+### 9.2 `MSL-16` — Worklist kredensial dan verifikasi publik SPK-RKK
+
+**Masalah.** Endpoint kredensial hanya menerima satu ID. Akibatnya Mitra Bestari tidak tahu permohonan mana yang harus dinilai, Komite tidak punya daftar sidang pleno, Direktur Utama tidak punya daftar SPK-RKK yang menunggu tanda tangannya, dan QR pada SPK tidak bisa diperiksa pihak luar.
+
+**Alur setelah perbaikan (contoh dr. Rina, Sp.PD):**
+1. Sekretaris Subkomite Kredensial menunjuk dr. Budi dan dr. Sari sebagai Mitra Bestari. Status permohonan menjadi `InReview`.
+2. dr. Budi membuka **Meja Kerja Mitra Bestari** dan melihat permohonan dr. Rina, lalu membuka lembar penilaian berisi butir kewenangan yang diajukan. Ia memilih tingkat kewenangan per butir (mandiri, supervisi, proctoring, tidak diizinkan) dan mengirimnya.
+3. Ketua Komite membuka **Sidang Pleno**. Kolom "Penilaian Masuk" menunjukkan "2 dari 2". Ia membuka matriks yang menjajarkan rekomendasi kedua reviewer per butir, menetapkan kewenangan akhir, lalu mengesahkan Berita Acara pleno.
+4. Pemaraf membuka **Pengesahan SPK-RKK Direktur**. Permohonan dr. Rina ada di antrean draf. Ia menerbitkan draf; masa berlaku dihitung server 3 tahun.
+5. Direktur Utama melihat SPK dr. Rina di panel "Menunggu Tanda Tangan", lalu menandatanganinya. Server membuat hash verifikasi dan mengarsipkan SPK ke e-Dossier.
+6. Perawat rumah sakit mitra memindai QR di SPK, lalu membuka `/verify/clinical-privilege/{hash}` tanpa login dan melihat status **SAH** beserta masa berlakunya.
+
+**Berkas.**
+
+| Berkas | Isi |
+|---|---|
+| `CredentialingManagement/DTOs/CredentialingWorklistDtos.cs` (baru) | Query daftar dan DTO baris worklist, lembar penilaian, matriks pleno, SPK menunggu tanda tangan, verifikasi publik, radar rekredensial, dan registri kewenangan |
+| `CredentialingManagement/Services/CredentialingWorklistQueryService.cs` (baru) | Kueri baca-saja. Penugasan reviewer tersimpan di kolom `jsonb` `ComplianceResultJson`, jadi worklist reviewer memakai operator `@>` (`EF.Functions.JsonContains`) dengan potongan `{"ReviewerProfiles":[{"Id":"<id profil>"}]}`; antrean draf menyaring `{"Decision":"Rejected"}` dengan cara yang sama |
+| `CredentialingManagement/Controllers/SpkRkkPublicVerificationController.cs` (baru) | Endpoint publik verifikasi QR |
+| `SpkRkkIssuanceController.cs` | 7 endpoint worklist; pengiriman penilaian memakai ID profil dari token |
+| `WfpClinicalPrivilegeController.cs` | Endpoint registri lintas tenaga kesehatan (rute absolut, karena controller ini berprefiks satu profil) |
+| `PerformanceManagement/Controllers/RecredentialingQualityController.cs` | Endpoint radar siklus rekredensial (hak `RecredentialingQuality : Read`, sama dengan menu) |
+| `CredentialingWorkflowService.cs`, `ICredentialingWorkflowService.cs`, `SpkRkkIssuanceService.cs` | Penjagaan alur (lihat di bawah) |
+| `Program.cs` | Registrasi `ICredentialingWorklistQueryService` (Scoped) dan kebijakan batas laju `hr-spk-rkk-public-verify` (30/menit per IP) |
+
+**Penjagaan alur baru (perbaikan celah).**
+
+| Aturan | Sebelumnya | Sekarang |
+|---|---|---|
+| VR-CRD-15 anti-self-review | ID reviewer diambil dari body, sehingga pemohon bisa mengirim penilaian atas nama reviewer lain dan lolos pemeriksaan | ID profil dari token wajib sama dengan ID reviewer di body; pemohon tidak bisa menilai permohonannya sendiri; reviewer harus anggota panel yang ditugaskan |
+| Penilaian ganda | Satu akun bisa mengirim penilaian berkali-kali | Ditolak: "Anda sudah mengirim penilaian untuk permohonan ini." |
+| Penilaian di luar tahap telaah | Diterima di status apa pun | Hanya saat `InReview` |
+| Pleno kedua | BAP pleno bisa ditimpa | Hanya untuk permohonan `InReview` |
+| Draf SPK ganda / ditolak pleno | Draf bisa terbit berkali-kali, juga untuk permohonan yang ditolak pleno | Ditolak dengan pesan yang menjelaskan alasannya |
+
+Semua penolakan di atas dijawab `400` dengan pesan berbahasa Indonesia (pola `InvalidOperationException` yang sudah ada di controller).
+
+**Endpoint.**
+
+#### HR Credentialing - Committees, Peer Review & SPK-RKK Issuance (`/api/v1/corporate/hrd/credentialing`)
+
+| Method | Path | Kegunaan | Hak akses | Jawaban |
+|---|---|---|---|---|
+| `GET` | `/applications?search&status&pageNumber&pageSize` | Daftar permohonan seluruh tenaga kesehatan | `SpkRkkIssuance : Read` | `200 ApiResponse<PagedResult<CredentialingApplicationListItemDto>>` |
+| `GET` | `/applications/peer-review-worklist?search&pageNumber&pageSize` | Permohonan `InReview` yang menunjuk akun login sebagai Mitra Bestari. Akun tanpa profil tenaga kerja mendapat daftar kosong dan pesan penjelas | `SpkRkkIssuance : AssessPeer` | `200` |
+| `GET` | `/applications/{id}/peer-review-sheet` | Lembar penilaian: butir kewenangan yang diajukan, ID profil reviewer, dan apakah sudah dinilai | `SpkRkkIssuance : AssessPeer` | `200`, atau `404` bila bukan anggota panel |
+| `GET` | `/applications/plenary-worklist?search&pageNumber&pageSize` | Permohonan `InReview` + jumlah reviewer dan penilaian masuk | `SpkRkkIssuance : ApproveCommittee` | `200` |
+| `GET` | `/applications/{id}/plenary-matrix` | Butir yang diajukan + penilaian tiap reviewer | `SpkRkkIssuance : ApproveCommittee` | `200` / `404` |
+| `GET` | `/spk-rkk/draft-queue?search&pageNumber&pageSize` | Permohonan selesai pleno, tidak ditolak, belum punya SPK-RKK | `SpkRkkIssuance : ParafDirector` | `200` |
+| `GET` | `/spk-rkk/pending-signature?search&pageNumber&pageSize` | SPK-RKK berstatus `Draft` yang belum ditandatangani, urut dari yang paling lama | `SpkRkkIssuance : SignDirector` | `200` |
+
+Contoh baris `peer-review-worklist`:
+
+```json
+{
+  "id": "…",
+  "applicationNumber": "APP-CRED-202611-0007",
+  "applicantName": "dr. Rina Hapsari, Sp.PD",
+  "applicationStatus": "InReview",
+  "requestedPrivilegeCount": 6,
+  "assignedReviewerCount": 2,
+  "peerAssessmentCount": 1,
+  "assessedByMe": false
+}
+```
+
+#### Corporate / Human Resource / Credentialing Management / Clinical Privilege
+
+| Method | Path | Kegunaan | Hak akses |
+|---|---|---|---|
+| `GET` | `/api/v1/corporate/human-resource/clinical-privileges/registry?search&status&pageNumber&pageSize` | Registri kewenangan klinis seluruh tenaga kesehatan. `status` memakai nama `ClinicalPrivilegeStatus` (`Pending`, `Active`, `Suspended`, `Revoked`, `Expired`); nilai lain dijawab `400` | `WorkforceClinicalPrivilege : Read` |
+
+#### Corporate - HRD Recredentialing Quality & Composite Scorecard
+
+| Method | Path | Kegunaan | Hak akses |
+|---|---|---|---|
+| `GET` | `/api/v1/corporate/hrd/credentialing/recredentialing/cycles?search&dueWithinDays&includeExpired&pageNumber&pageSize` | SPK-RKK aktif yang habis dalam `dueWithinDays` hari (bawaan 180, maksimal 1095), sisa hari, status berkas rekredensial terakhir, nilai OPPE final terakhir (status `FINALIZED`/`ACKNOWLEDGED`) | `RecredentialingQuality : Read` |
+
+Radar ini berbasis SPK-RKK, bukan tabel `TrxRecredentialingApplication`. Alasannya, belum ada layanan yang mengisi tabel itu, sehingga daftar berbasis tabel akan selalu kosong. Skor komposit 3 tahun dan tier kelayakan (FR-OPP-23) per orang tetap lewat `GET scorecards/{staffId}` yang sudah ada.
+
+#### HR Credentialing - Public SPK-RKK Verification
+
+| Method | Path | Auth | Kegunaan | Jawaban |
+|---|---|---|---|---|
+| `GET` | `/api/v1/public/clinical-privileges/verify/{hash}` | **Tanpa login** (`[AllowAnonymous]`) | Memeriksa keabsahan SPK-RKK dari kode QR | `200` berisi `status` (`Valid`, `Expired`, `Suspended`, `Revoked`, `NotSigned`, `NotYetValid`), nama, nomor SPK/RKK, jenis, masa berlaku, waktu dan nama pengesah; `404` bila hash tidak dikenal; `429` bila lebih dari 30 permintaan per menit dari satu IP |
+
+**Alasan endpoint publik tanpa `[AccessPermission]`.** Pemindai QR adalah pihak luar tanpa akun Quilvian. Pengamannya:
+1. Hash SHA-256 64 karakter tidak bisa ditebak. Bentuk selain 64 karakter heksadesimal langsung dijawab `404` tanpa kueri.
+2. Batas laju 30 permintaan per menit per IP.
+3. Jawaban hanya berisi data yang tercetak di dokumen, tanpa rincian kewenangan, NIK, atau kontak.
+4. Path yang memuat hash tidak dicatat di log batas laju.
+
+Pola ini sama dengan verifikasi publik naskah dinas SDM yang sudah ada (`HrPublicDocumentVerificationController`).
+
+### 9.3 Verifikasi putaran 3
+
+| Pemeriksaan | Hasil | Klasifikasi |
+|---|---|---|
+| `dotnet build` sesudah `MSL-15` tahap 2 | Lulus, 0 error (galat Menu 08 sudah diperbaiki pengguna) | `PASS` |
+| QBE Strict 6 berkas `MSL-15` tahap 2 | Semua `PASS`, 0 pelanggaran | `PASS` |
+| `dotnet build` sesudah `MSL-16` | Lulus, 0 error (build ulang sesudah endpoint radar dan registri dipindah ke controller pemilik hak menu, dan sekali lagi sesudah perbaikan `jsonb` di bawah) | `PASS` |
+| QBE Strict berkas `MSL-16` | 9 berkas (`CredentialingWorklistDtos`, `CredentialingWorklistQueryService`, `SpkRkkPublicVerificationController`, `SpkRkkIssuanceController`, `WfpClinicalPrivilegeController`, `RecredentialingQualityController`, `CredentialingWorkflowService`, `ICredentialingWorkflowService`, `SpkRkkIssuanceService`) semua `PASS`, 0 pelanggaran | `PASS` |
+| Migration | Tidak ada migration baru di putaran ini | — |
+| Uji live baca (`msl-1119-credentialing.mjs`, backend scratch `Runtime__Role=Web`, akun superadmin dan Mira) | 7 endpoint worklist + registri + radar menjawab `200` (data kredensial di DB dev memang kosong: 0 permohonan, 0 SPK-RKK, 0 kewenangan); filter registri mengirim `status=Active`; tanpa token kelima daftar menjawab `401`; verifikasi publik tanpa login menjawab `404` berbahasa Indonesia untuk hash tak dikenal maupun bentuk salah; log backend 0 baris `ERR` | `PASS` |
+| Temuan uji live, sudah diperbaiki | `GET spk-rkk/draft-queue` menjawab `500` (SQLSTATE `42883: operator does not exist: jsonb !~~* unknown`): `ComplianceResultJson` bertipe `jsonb`, sehingga ILIKE tidak bisa dipakai. Worklist Mitra Bestari memakai pola yang sama (lolos pada superadmin hanya karena akun itu tidak punya profil tenaga kerja). Keduanya diganti `EF.Functions.JsonContains` (`@>`), build ulang, lalu diuji lagi: `draft-queue` `200` dan worklist Mira `200` | `FIXED` |
+| Alur tulis (penilaian, pleno, draf, tanda tangan) | Tidak dijalankan ke server: tabel kosong dan penulisan data uji belum diizinkan. Body POST dari layar diperiksa dengan respons tiruan (lihat laporan FE bagian 6.4) dan cocok dengan DTO server | `NOT RUN` (server) |
+| Automated test | `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)` | — |
+
+**Catatan pekerjaan paralel.** Selama putaran ini, berkas kredensial yang sama juga diubah oleh pekerjaan Menu 09 Kompetensi & Kredensial (`FIN-HRD-09-BE-006`/`007`): `SpkRkkIssuanceService.cs`, `CredentialingWorkflowService.cs`, dan `SpkRkkIssuanceController.cs` (endpoint `spk-rkk/{id}/files`, nomor SPK anti-tabrakan, BAP pleno mempertahankan `ReviewerProfiles`). Kedua perubahan berdampingan tanpa rute ganda. Build dan uji live di atas dijalankan pada working tree yang memuat keduanya. Pembacaan `ReviewerProfiles` dan `Decision` di `CredentialingWorklistQueryService` tetap cocok dengan bentuk JSON pleno yang baru.

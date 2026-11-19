@@ -1,4 +1,5 @@
 using System;
+using QuilvianSystemBackend.Services.Security;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading;
@@ -272,6 +273,64 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             var result = await _claimService.CheckExitClearanceMedicalReceivableAsync(
                 workforceProfileId, cancellationToken);
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Unggah dokumen klaim COB (SEP BPJS, kuitansi, invoice, ringkasan medis) (MSL-15 tahap 2, DEC-FER-02 opsi A, 19 Nov 2026). Multipart <c>file</c>; jawaban berisi <c>key</c>
+        /// yang dikirim ke kolom path berkas fitur ini. PDF/JPG/PNG/WEBP/Word/Excel, maksimal 10 MB.
+        /// </summary>
+        [HttpPost("documents/attachments")]
+        [AccessAction("SubmitClaim", "Mengajukan Klaim Benefit", AccessType = AccessTypes.Create, SortOrder = 40)]
+        [AccessPermission("BenefitClaim", "SubmitClaim")]
+        [Tags("HR Benefits - COB Claims & Settlement")]
+        [RequestSizeLimit(HrAttachmentStorage.DefaultMaximumFileSizeBytes + 1024 * 1024)]
+        [ProducesResponseType(typeof(ApiResponse<HrStoredAttachment>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UploadHrAttachment(
+            [FromForm] IFormFile file,
+            [FromServices] HrAttachmentStorage storage,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var stored = await storage.SaveAsync("benefit-claim-document", User.GetUserId(), file, cancellationToken);
+                return StatusCode(StatusCodes.Status201Created, ApiResponse<HrStoredAttachment>.Ok(stored, "Lampiran berhasil diunggah."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Unduh dokumen klaim COB (SEP BPJS, kuitansi, invoice, ringkasan medis) (MSL-15 tahap 2). Boleh untuk pengunggah atau pemegang hak Read, Verify, Settle; selain itu 404.
+        /// </summary>
+        [HttpGet("documents/attachments/download")]
+        [AccessAction("ViewOwn", "Melihat Klaim Benefit Sendiri", AccessType = AccessTypes.Read, SortOrder = 41)]
+        [AccessPermission("BenefitClaim", "ViewOwn")]
+        [Tags("HR Benefits - COB Claims & Settlement")]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DownloadHrAttachment(
+            [FromQuery] string key,
+            [FromServices] HrAttachmentStorage storage,
+            [FromServices] AccessPermissionService accessPermissionService)
+        {
+            try
+            {
+                var attachment = storage.Open(key, "benefit-claim-document");
+                var allowed = attachment.OwnerUserId == User.GetUserId() || await accessPermissionService.HasAccessAsync(User, "BenefitClaim", "Read") || await accessPermissionService.HasAccessAsync(User, "BenefitClaim", "Verify") || await accessPermissionService.HasAccessAsync(User, "BenefitClaim", "Settle");
+                if (!allowed)
+                {
+                    return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Lampiran tidak ditemukan."));
+                }
+
+                return PhysicalFile(attachment.PhysicalPath, attachment.ContentType, attachment.DownloadName);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
         }
     }
 }

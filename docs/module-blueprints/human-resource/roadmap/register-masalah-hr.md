@@ -44,6 +44,13 @@ Hingga 18 November 2026 tercatat **34 masalah terbuka**, ditambah **9 keputusan 
 - `MSL-14` (8 daftar lintas pegawai) dan tahap 1 `MSL-15` (unggah berkas di 4 fitur, base component `BaseFileUpload`) selesai di source.
 - Uji live akun berhak tertahan karena DB dev `160.22.250.77` tidak bisa dijangkau.
 
+**Putaran 3 (19 November 2026).** Pemilik: "oke lanjut".
+- Tahap 2 `MSL-15`: unggah berkas di 5 fitur lagi (COB benefit, dokumen kandidat, sertifikat MCU, bukti koreksi presensi atas nama, lampiran dinas luar) dan 6 layar tersambung.
+- `MSL-16`: 7 worklist kredensial, registri kewenangan, radar rekredensial, dan verifikasi publik SPK-RKK. Keenam layar kredensial yang sebelumnya placeholder kini berfungsi.
+- Celah VR-CRD-15 (penilaian Mitra Bestari bisa dikirim atas nama orang lain) ikut ditutup.
+- Halaman `/verify/...` kini benar-benar bisa dibuka pihak luar tanpa login.
+- Uji live baca berjalan: DB dev sudah pulih. Satu galat `500` ditemukan dan diperbaiki (kolom `jsonb` dibandingkan dengan ILIKE). Rinciannya ada di [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) bagian 9 dan [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) bagian 6.
+
 ---
 
 ## 2. Cara membaca dan memperbarui
@@ -263,13 +270,14 @@ Layar-layar berikut sudah dibangun jujur: tidak ada data karangan, dan kekuranga
 | `MSL-26` | Pelatihan | Persentase kepatuhan per pelatihan, jumlah *shift buddy safeguard* | Dasbor diklat tidak bisa menunjukkan berapa persen pegawai wajib yang sudah lulus pelatihan BHD atau PPI | `R05` | — |
 | `MSL-27` | Lembur | Filter antrean anomali, verifikasi batch, estimasi beban finansial saat handoff ke payroll | Verifikasi lembur biometrik harus satu per satu | `R35` | — |
 
-**Status kontrak 18 November 2026 (putaran 2):**
+**Status kontrak (putaran 3, 19 November 2026):**
 
 | No. | Status |
 |---|---|
 | `MSL-14` | 🟡 8 daftar lintas pegawai tersedia dan 8 layar tersambung: pembatasan kerja, kelaikan kerja, kecelakaan kerja, vaksinasi, SP, skorsing, sanggahan, jenjang klinis. Belum: exit clearance lintas pegawai di service lama `EmployeeRelationService.getExitClearances` (layar Menu 12 sudah memakai daftar sendiri) dan putusan banding SP. Build, QBE, lint, CSS lulus; uji live menunggu DB dev pulih — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) bagian 8.2, [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) bagian 5.3 |
-| `MSL-15` | 🟡 Tahap 1: base component `BaseFileUpload`, penyimpanan `HrAttachmentStorage` (di luar `wwwroot`), unggah/unduh untuk nota & resume restitusi, struk SPPD, bukti penilaian diri, bukti sanggahan. Belum: COB benefit, dokumen kandidat/MCU, bukti koreksi presensi atas nama, logbook lembur, impor batch kontrak awal, nota override rekredensial — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) bagian 8.3, [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) bagian 5.4 |
-| `MSL-16`–`MSL-27` | Belum dikerjakan |
+| `MSL-15` | 🟡 Tahap 1 (18 Nov 2026): base component `BaseFileUpload`, penyimpanan `HrAttachmentStorage` (di luar `wwwroot`), unggah/unduh nota & resume restitusi, struk SPPD, bukti penilaian diri, bukti sanggahan. Tahap 2 (19 Nov 2026): lampiran COB (SEP BPJS, kuitansi), dokumen kandidat, sertifikat MCU, bukti koreksi presensi atas nama, lampiran dinas luar. Build, QBE (6 berkas), lint, CSS (0 temuan), `npm run build` lulus. Belum: logbook lembur dan nota override rekredensial (butuh kolom berkas baru = migration), impor batch kontrak awal (butuh endpoint impor), serta uji live unggah — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) bagian 8.3 dan 9.1, [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) bagian 5.4 dan 6.1 |
+| `MSL-16` | 🟡 19 Nov 2026: worklist Mitra Bestari + lembar penilaian, worklist pleno + matriks, antrean draf dan daftar menunggu tanda tangan SPK-RKK, registri kewenangan lintas tenaga kesehatan, radar siklus rekredensial + OPPE terakhir, verifikasi publik anonim (batas 30/menit per IP); 6 layar tersambung; penjagaan VR-CRD-15, penilaian ganda, pleno ganda, dan draf ganda/ditolak. Build, QBE (9 berkas `PASS`), lint (0 error), CSS (0 temuan), `npm run build` (839 halaman) lulus. Uji live baca lulus (data kredensial DB dev kosong); alur tulis baru diuji dengan respons tiruan karena penulisan data uji belum diizinkan. Belum: tier kelayakan rekredensial per baris radar (tetap lewat scorecard per orang, `MSL-17`) — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) bagian 9.2–9.3, [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) bagian 6.2–6.5 |
+| `MSL-17`–`MSL-27` | Belum dikerjakan |
 
 ---
 

@@ -1563,6 +1563,7 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ICredentialingCommitteeService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.CredentialingCommitteeService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ICredentialingWorkflowService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.CredentialingWorkflowService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ISpkRkkIssuanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.SpkRkkIssuanceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ICredentialingWorklistQueryService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.CredentialingWorklistQueryService>(); // MSL-16 (19 Nov 2026)
 
     // Slice S-C1 (Credentialing, License & Clinical Privilege) - MVP-44 (Gate SIMRS INT-HR-69, Co-Signature, Life-Saving Override & SPK 3-Year Expiry Monitor)
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.IClinicalPrivilegeGateService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ClinicalPrivilegeGateService>();
@@ -2068,6 +2069,19 @@ try
             });
         });
 
+        // SDM MSL-16 (19 Nov 2026): verifikasi publik SPK-RKK lewat QR dibatasi 30 per menit per IP. Lapisan kedua;
+        // pengamanan utamanya hash SHA-256 (64 karakter heksadesimal) yang tidak bisa ditebak.
+        options.AddPolicy(QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Controllers.SpkRkkPublicVerificationController.RateLimitPolicy, httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 30,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
         // rawat-jalan BE-RJP-012 (VAL-RP-09, NFR-RP-007): link publik konfirmasi kedatangan dibatasi
         // per IP. Lapisan kedua; pengamanan utamanya kode acak 256 bit.
         options.AddPolicy(PriorityReservationArrivalController.RateLimitPolicy, httpContext =>
@@ -2094,6 +2108,18 @@ try
 
             var rateLimitPolicyName = context.HttpContext.GetEndpoint()?.Metadata
                 .GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
+
+            if (rateLimitPolicyName == QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Controllers.SpkRkkPublicVerificationController.RateLimitPolicy)
+            {
+                // Path memuat hash verifikasi, jadi tidak ikut dicatat.
+                Log.Warning("Verifikasi publik SPK-RKK ditolak batas laju.");
+                await response.WriteAsJsonAsync(
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status429TooManyRequests,
+                        "Terlalu banyak permintaan verifikasi. Silakan coba lagi dalam satu menit."),
+                    cancellationToken);
+                return;
+            }
 
             if (rateLimitPolicyName == PriorityReservationArrivalController.RateLimitPolicy)
             {

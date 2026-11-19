@@ -366,7 +366,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 var structure = await _dbContext.Set<MstSalaryStructure>()
                     .AsNoTracking()
                     .FirstOrDefaultAsync(s => s.SalaryGradeId == salaryGradeId.Value && s.IsActive && !s.IsDelete, cancellationToken);
-                salaryStructureName = structure?.StructureName;
+                salaryStructureName = structure?.SalaryStructureName;
             }
 
             var response = new ContractSalaryDetailResponse
