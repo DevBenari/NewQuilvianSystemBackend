@@ -1727,6 +1727,13 @@ try
     if (runBackgroundJobs) builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelCurrencyRateSyncWorker>();
     if (runBackgroundJobs) builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelRosterLockExpiryWorker>();
 
+    // BE-HRD-376 (kontrak v28, INT-HR-109/110): penangan Workflow V2 untuk SPPD, penyelarasan ulang SPPD yang tertinggal,
+    // dan worker penyelarasan berkala (keputusan pengguna 19 November 2026, pilihan (a)).
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelWorkflowLifecycleHandler>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowReferenceLifecycleHandler>(sp => sp.GetRequiredService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelWorkflowLifecycleHandler>());
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IBusinessTravelWorkflowReconciliationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelWorkflowReconciliationService>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelWorkflowReconciliationWorker>();
+
 
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();
@@ -2968,6 +2975,11 @@ try
         // PBJ-BP-001, BE-PBJ-005. Kerangka lima definisi approval Pengadaan pada mesin workflow bersama,
         // dibuat TIDAK AKTIF sampai admin mengisi jabatan penyetuju sesuai SOP (PBJ-OQ-019). Idempoten.
         await RunStartupSeederAsync("ProcurementWorkflowDefinitionSeeder", () => QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Seeders.ProcurementWorkflowDefinitionSeeder.SeedAsync(app.Services));
+
+        // HRD-BP-001, BE-HRD-374 (kontrak v28, HRD-DEC-224). Definisi workflow "Persetujuan Perjalanan Dinas"
+        // dengan satu tahap atasan langsung pemohon, dibuat AKTIF karena tahap itu tidak butuh isian admin
+        // (HRD-Q-222). Idempoten; definisi atau tahap yang diubah/dihapus admin tidak ditimpa.
+        await RunStartupSeederAsync("BusinessTravelWorkflowDefinitionSeeder", () => QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Seeders.BusinessTravelWorkflowDefinitionSeeder.SeedAsync(app.Services));
 
         // MCU-BP-001, BE-MCU-004. Kategori kelayakan dan jenis Pemeriksaan MCU USULAN — bertanda
         // belum diratifikasi pada keterangannya (MCU-OQ-002/003). Idempoten; isian yang sudah

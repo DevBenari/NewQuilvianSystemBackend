@@ -9953,3 +9953,163 @@ yang perlu disimpan.
 | String hak akses kontrak `v10` (`HrdScheduling`, `HrdOnCall`) berbeda dari kode (`RosterPeriod`, `ShiftReplacement`, `OnCallAssignment`) | Kode mengikuti aturan "resource = `ControllerName`" hasil remediasi 11 November 2026 | Kontrak `v26` memakai string kode. Selisih `v10` dicatat untuk owner; tidak memblokir |
 | `roadmap/frontend-unfinished-work.md` menulis layar kehadiran `S-B1` belum dikerjakan | `FE@6a5658269` sudah punya monitoring harian, drawer log mesin, tutup/buka periode, setelan | Dicatat; disegarkan saat `/plan-module-delivery` |
 | Layar persetujuan lembur memakai data contoh tertanam | `overtime-approvals-view.jsx:13-38` | Di luar amandemen ini; milik `S-B3` |
+
+---
+
+## 36. Amandemen `S-D5` — Persetujuan SPPD lewat Workflow Persetujuan Umum (revision `64`, kontrak `v28`, 18 November 2026; approved 19 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | Decision log revision `39` bagian 55 (`HRD-DEC-224` s.d. `HRD-DEC-228`); fakta `HRD-TF-072` s.d. `HRD-TF-079` |
+| Source acuan | Backend `d7d4eb3b` (branch `yoga`); frontend `e01411158` (branch `YogaV2`) |
+| Kontrak | api-contract 34; state-transition 32; validation 33; integration 25; permission-audit 32; acceptance 36; kamus data 29 |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — tidak ada konsep klinis atau billing baru; persetujuan memakai Workflow V2 yang sudah ada |
+| Migration | **Tidak ada** |
+| Status | `approved` — pengguna, 19 November 2026 ("setujui kontrak v28, lanjut plan") |
+
+Inti perubahan: SPPD tidak lagi "langsung diajukan" saat dibuat. Pemohon menyimpan Draft, menekan Ajukan, lalu Workflow V2 membawa SPPD ke atasan. Setiap kali workflow berubah, penangan milik modul perjalanan dinas menyalin hasilnya ke SPPD, dan saat disetujui memasang presensi Dinas Luar dan gembok roster. Uang muka dan settlement baru dibuka sesudah disetujui.
+
+### 36.1 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai di sini | Dibuat ulang? |
+| --- | --- | --- | --- |
+| SPPD (`TrxBusinessTravelRequest`) | `BusinessTravelManagement` (`S-D5`) | Ya — status dan kolom persetujuan mulai diisi | Tidak |
+| Definisi, instance, tugas, riwayat workflow (`MstWorkflowDefinition`, `MstWorkflowStep`, `TrxWorkflowInstance`, …) | `WorkflowManagement` (`S-A7-V2`) | Ya — lewat `WorkflowService` dan `IWorkflowReferenceLifecycleHandler` | Tidak; hanya satu definisi baru ditanam seeder |
+| Tautan presensi Dinas Luar (`TrxTravelAttendanceLink`), penanda gembok roster | `BusinessTravelManagement` | Ya — lewat `TravelAttendanceAndRosterLockService` yang sudah ada | Tidak |
+| Atasan langsung pemohon | `WorkforceCore` / Workflow V2 (`RequesterManager`) | Ya — dibaca engine workflow | Tidak |
+| Uang muka, settlement | `BusinessTravelManagement` | Ya — gerbang baru | Tidak |
+| Jadwal potongan payroll (`TrxPayrollDeductionSchedule`) | Payroll | Dibaca untuk event audit | Tidak |
+| Persetujuan per tahap SPPD (`TrxBusinessTravelApproval`) | `BusinessTravelManagement` | **Tidak** — digantikan riwayat Workflow V2 | Tidak |
+
+### 36.2 Class diagram
+
+```mermaid
+classDiagram
+    direction LR
+    class BusinessTravelRequestsController {
+        +Create() Draft
+        +Update() hanya Draft/NeedRevision
+        +Submit() BARU
+        +Cancel() tarik workflow
+    }
+    class IBusinessTravelRequestService {
+        +CreateRequestAsync()
+        +UpdateRequestAsync()
+        +SubmitRequestAsync() BARU
+        +CancelRequestAsync()
+    }
+    class BusinessTravelWorkflowLifecycleHandler {
+        <<BARU>>
+        +CanHandle(referenceType) bool
+        +SynchronizeAsync(workflow, actor, allowAutoApply, ct)
+    }
+    class IWorkflowReferenceLifecycleHandler {
+        <<interface Workflow V2>>
+    }
+    class WorkflowService {
+        <<Workflow V2>>
+        +CreateAsync()
+        +SubmitAsync()
+        +WithdrawAsync()
+    }
+    class ITravelAttendanceAndRosterLockService {
+        +SyncAttendanceAndLockRosterAsync(id, actor)
+        +ReleaseRosterLockAsync(id, actor)
+    }
+    class TravelAdvanceRequestService {
+        +CreateAdvanceRequestAsync() gerbang Disetujui
+    }
+    class TravelSettlementService {
+        +SubmitSettlementAsync() gerbang Disetujui
+    }
+    class TravelAuditTrailService {
+        +GetAuditTrailAsync() 12 event matriks
+    }
+    class BusinessTravelWorkflowDefinitionSeeder {
+        <<BARU>>
+        +SeedAsync(services)
+    }
+    BusinessTravelRequestsController --> IBusinessTravelRequestService
+    IBusinessTravelRequestService --> WorkflowService : ajukan / tarik
+    IBusinessTravelRequestService --> ITravelAttendanceAndRosterLockService : lepas gembok saat batal
+    BusinessTravelWorkflowLifecycleHandler ..|> IWorkflowReferenceLifecycleHandler
+    WorkflowService --> IWorkflowReferenceLifecycleHandler : penyelarasan
+    BusinessTravelWorkflowLifecycleHandler --> ITravelAttendanceAndRosterLockService : saat Approved
+    BusinessTravelWorkflowDefinitionSeeder ..> WorkflowService : definisi BUSINESS_TRAVEL_REQUEST
+```
+
+### 36.3 Penjelasan class
+
+| Class | Status | Lokasi file | Fungsi | Dipanggil oleh | Transaksi |
+| --- | --- | --- | --- | --- | --- |
+| `BusinessTravelRequestsController` | Diperbarui | `Areas/Corporate/HumanResource/BusinessTravelManagement/Controllers/BusinessTravelRequestsController.cs` | Tambah action `Submit`: `[HttpPost("{id}/submit")]`, `[AccessAction("Create", "Mengajukan Perjalanan Dinas", AccessType = AccessTypes.Create, SortOrder = 2)]` (sama persis dengan `POST /`), `[AccessPermission("BusinessTravelRequest", "Create")]` (hak yang sama dengan membuat SPPD; validator registri mengizinkan satu hak menjaga beberapa action dalam satu controller, preseden `AttendanceProcessing : Create`), `[ProducesResponseType]` 200/400/403/404/409, tanpa `<summary>` XML | HTTP | Tidak |
+| `IBusinessTravelRequestService` / `BusinessTravelRequestService` | Diperbarui | `…/BusinessTravelManagement/Services/BusinessTravelRequestService.cs` | `CreateRequestAsync` → `Draft`, `ApprovedBudgetAmount = 0`; `UpdateRequestAsync` hanya `Draft`/`NeedRevision`/`Submitted` tanpa workflow; **baru** `SubmitRequestAsync` (buat instance `BUSINESS_TRAVEL_REQUEST` bila belum ada, lalu `SubmitAsync`; isi `SubmittedAt`, `WorkflowDefinitionId`, `WorkflowInstanceId`); `CancelRequestAsync` menarik workflow bila `Submitted`, melepas gembok bila sudah `Approved` | Controller | Ya — satu transaksi per aksi; Workflow V2 ikut transaksi yang sama |
+| `BusinessTravelWorkflowLifecycleHandler` | Baru | `…/BusinessTravelManagement/Services/BusinessTravelWorkflowLifecycleHandler.cs` | Memetakan status workflow ke status SPPD (state-transition 32.3), mengisi kolom persetujuan, memanggil sinkron presensi/gembok saat `Approved` | `WorkflowReferenceLifecycleService` (Workflow V2) | Tidak — memakai transaksi pemanggil |
+| `BusinessTravelWorkflowCodes` | Baru | `…/BusinessTravelManagement/Constants/BusinessTravelWorkflowCodes.cs` | Konstanta `ReferenceType = "HRD_TRV_REQUEST"`, `DefinitionCode = "BUSINESS_TRAVEL_REQUEST"`, `StepCode = "HRD-TRV-01"` | Service, handler, seeder | — |
+| `BusinessTravelWorkflowDefinitionSeeder` | Baru | `…/BusinessTravelManagement/Seeders/BusinessTravelWorkflowDefinitionSeeder.cs` | Menanam definisi "Persetujuan Perjalanan Dinas" versi 1 dengan satu tahap `RequesterManager`, `AllowSelfApproval = false`, `AllowRequesterWithdraw = true`; idempoten (tidak menimpa konfigurasi admin) | `Program.cs` `RunStartupSeederAsync` | Ya — sendiri saat startup |
+| `ITravelAttendanceAndRosterLockService` / `TravelAttendanceAndRosterLockService` | Diperbarui | `…/BusinessTravelManagement/Services/TravelAttendanceAndRosterLockService.cs` | Tambah parameter `Guid actorUserId` pada kedua method (sebelumnya `Guid.Empty`); perilaku lain tetap | Handler, service SPPD | Tidak — ikut pemanggil |
+| `TravelAdvanceRequestService` | Diperbarui | `…/Services/TravelAdvanceRequestService.cs` | Gerbang `VR-TRV-30` sebelum perhitungan plafon; plafon dari `ApprovedBudgetAmount` | Controller uang muka | Tidak berubah |
+| `TravelSettlementService` | Diperbarui | `…/Services/TravelSettlementService.cs` | Gerbang `VR-TRV-31` (pengecualian uang muka `Paid`) | Controller settlement | Tidak berubah |
+| `TravelAuditTrailService` | Diperbarui | `…/Services/TravelAuditTrailService.cs` | 12 event bernama matriks + `REQUEST_CREATED`, `REQUEST_REJECTED`, dan tiga event uang muka yang ada (matriks izin 32.2) | Endpoint audit | Tidak — baca saja |
+| `BusinessTravelDetailResponseDto` | Diperbarui | `…/BusinessTravelManagement/DTOs/BusinessTravelDtos.cs` | Field baru kontrak API 34.4 | Service | — |
+| `Program.cs` | Diperbarui | `Program.cs` | `AddScoped<IWorkflowReferenceLifecycleHandler, BusinessTravelWorkflowLifecycleHandler>()` dan `RunStartupSeederAsync("BusinessTravelWorkflowDefinitionSeeder", …)` | — | — |
+
+### 36.4 Arsitektur folder
+
+```text
+Areas/Corporate/HumanResource/BusinessTravelManagement/
+├── Constants/
+│   ├── BusinessTravelNumberSeries.cs                 Sudah ada
+│   └── BusinessTravelWorkflowCodes.cs                Baru
+├── Controllers/
+│   └── BusinessTravelRequestsController.cs           Diperbarui (Submit)
+├── DTOs/
+│   └── BusinessTravelDtos.cs                         Diperbarui (field persetujuan)
+├── Seeders/                                          Baru (folder)
+│   └── BusinessTravelWorkflowDefinitionSeeder.cs     Baru
+└── Services/
+    ├── BusinessTravelRequestService.cs               Diperbarui
+    ├── BusinessTravelWorkflowLifecycleHandler.cs     Baru
+    ├── TravelAdvanceRequestService.cs                Diperbarui (gerbang)
+    ├── TravelSettlementService.cs                    Diperbarui (gerbang)
+    ├── TravelAttendanceAndRosterLockService.cs       Diperbarui (pelaku)
+    └── TravelAuditTrailService.cs                    Diperbarui (12 event)
+Program.cs                                            Diperbarui (DI + seeder)
+Tests/QuilvianSystemBackend.HumanResourceTests/
+    ├── TravelContractV25Tests.cs                     Diperbarui (endpoint submit)
+    └── TravelWorkflowApprovalTests.cs                Baru (AT-HRD-TRV-23..37)
+```
+
+Penyimpangan yang dibiarkan (utang teknis, jangan ditiru): status SPPD masih string bebas tanpa konstanta terpusat; `TravelAttendanceAndRosterLockService` memanggil `SaveChangesAsync` sendiri.
+
+### 36.5 Status model dan dampak migration
+
+| Model | Status | Kolom berubah | Migration |
+| --- | --- | --- | --- |
+| `TrxBusinessTravelRequest` | Sudah ada | Tidak ada kolom berubah; nilai `TravelStatus` baru `NeedRevision`; makna `ApprovedBudgetAmount` berubah (kamus data 29.1) | Tidak |
+| `TrxBusinessTravelApproval` | Sudah ada | — (tetap tidak ditulis) | Tidak |
+| `MstWorkflowDefinition`, `MstWorkflowStep` | Sudah ada (milik `S-A7-V2`) | — ; satu baris data baru lewat seeder | Tidak |
+
+### 36.6 Rencana migration
+
+Tidak ada migration. Rollback = kembalikan rilis; definisi workflow yang sudah tertanam dapat dinonaktifkan admin di Master Workflow (SPPD yang sedang menunggu tetap dapat dibatalkan pemohon).
+
+### 36.7 Rencana data master awal
+
+| Data | Isi minimum | Penanam |
+| --- | --- | --- |
+| Definisi workflow `BUSINESS_TRAVEL_REQUEST` v1 | Nama "Persetujuan Perjalanan Dinas", `RequestType = HRD_TRV_REQUEST`, satu tahap `HRD-TRV-01` "Atasan langsung pemohon" (`RequesterManager`, `ApprovalMode = Any`, `RequiredApprovalCount = 1`, SLA 48 jam sesuai `HRD-TF-075`), `IsDefault = true`, **aktif** | `BusinessTravelWorkflowDefinitionSeeder` |
+
+Berbeda dari seeder pengadaan (ditanam nonaktif karena tahap jabatannya harus diisi admin), definisi SPPD ditanam **aktif** karena tahap `RequesterManager` tidak memerlukan konfigurasi. Ini usulan desain (pertanyaan terbuka `HRD-Q-222`); bila pemilik memilih ditanam nonaktif, Ajukan ditolak `VR-TRV-29` sampai admin mengaktifkannya.
+
+### 36.8 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+| --- | --- |
+| Endpoint `POST /requests/{id}/approve` dan `/reject` di modul | `HRD-DEC-224`: persetujuan lewat kotak masuk Workflow V2; endpoint modul akan menggandakan jalur persetujuan |
+| Penulis `TrxBusinessTravelApproval` | Riwayat per tahap sudah dicatat Workflow V2; menulis dua tempat berisiko berbeda |
+| Isian anggaran disetujui oleh penyetuju | `HRD-DEC-226`: anggaran disetujui = estimasi; pemangkasan lewat "kembalikan untuk revisi" |
+| Migration data SPPD lama `Submitted` → `Draft` | `HRD-DEC-227`: tanpa perubahan data otomatis |
+| Sinkron surut presensi/gembok untuk SPPD lama | `HRD-DEC-227` |
+| Menghapus kolom `ManagerApprovedAt` dan seterusnya | Butuh migration; manfaat kecil — dibiarkan sebagai utang teknis |
+| Tabel audit perjalanan dinas baru | Jejak audit tetap diturunkan dari cap waktu (`HRD-TF-076`); semua sumber data 12 event sudah ada |

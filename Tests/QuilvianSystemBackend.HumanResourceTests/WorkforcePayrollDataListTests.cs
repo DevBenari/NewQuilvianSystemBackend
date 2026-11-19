@@ -222,7 +222,8 @@ public sealed class WorkforcePayrollDataListTests : IDisposable
 
         // Pembanding: Kelengkapan Data Payroll membaca tabel HRD yang sama. Andi punya dua penetapan utama aktif (kasus tepi yang
         // dinilai berbeda: Payroll memakai "ada yang disetujui"), jadi dibandingkan hanya orang dengan satu penetapan utama.
-        var payroll = (await new PayrollDataReadinessService(_db.CreateContext(), null!)
+        var ctxPayroll = _db.CreateContext();
+        var payroll = (await new PayrollDataReadinessService(ctxPayroll, new PayrollHrdSourceReader(ctxPayroll))
                 .ListAsync(new PayrollDataReadinessQuery { PageSize = 100 }, CancellationToken.None)).Items
             .ToDictionary(x => x.WorkforceProfileId);
         foreach (var wf in new[] { dewi, sari, tono })

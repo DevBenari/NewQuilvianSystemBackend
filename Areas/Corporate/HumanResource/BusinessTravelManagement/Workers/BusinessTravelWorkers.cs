@@ -441,7 +441,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
 
                     foreach (var travelId in completedTravels)
                     {
-                        await lockService.ReleaseRosterLockAsync(travelId);
+                        await lockService.ReleaseRosterLockAsync(travelId, BusinessTravelNumberSeries.SystemFallbackUserId);
                         _logger.LogInformation("[RosterLock Release] Gembok roster SPPD {Id} dilepas pasca berakhirnya dinas luar.", travelId);
                     }
                 }
@@ -452,6 +452,53 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
 
                 // Berjalan setiap 1 jam
                 await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Penyelarasan ulang SPPD ↔ workflow persetujuan setiap 15 menit (BE-HRD-376; keputusan pengguna 19 November 2026,
+    /// pilihan (a)). Menangkap SPPD yang tertinggal bila penangan Workflow V2 gagal sesudah aksi persetujuan tersimpan.
+    /// </summary>
+    public class TravelWorkflowReconciliationWorker : BackgroundService
+    {
+        private static readonly TimeSpan Interval = TimeSpan.FromMinutes(15);
+
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger<TravelWorkflowReconciliationWorker> _logger;
+
+        public TravelWorkflowReconciliationWorker(IServiceProvider serviceProvider, ILogger<TravelWorkflowReconciliationWorker> logger)
+        {
+            _serviceProvider = serviceProvider;
+            _logger = logger;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            _logger.LogInformation("TravelWorkflowReconciliationWorker dimulai.");
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    using var scope = _serviceProvider.CreateScope();
+                    var reconciliation = scope.ServiceProvider.GetRequiredService<IBusinessTravelWorkflowReconciliationService>();
+                    var changed = await reconciliation.ReconcileAsync(BusinessTravelNumberSeries.SystemFallbackUserId, stoppingToken);
+                    if (changed > 0)
+                    {
+                        _logger.LogInformation("[TRV-WF] Penyelarasan ulang memindahkan {Count} SPPD sesuai workflow persetujuannya.", changed);
+                    }
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Kesalahan pada TravelWorkflowReconciliationWorker.");
+                }
+
+                await Task.Delay(Interval, stoppingToken);
             }
         }
     }

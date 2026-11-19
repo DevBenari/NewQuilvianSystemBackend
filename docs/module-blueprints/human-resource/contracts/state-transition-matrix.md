@@ -2650,3 +2650,60 @@ stateDiagram-v2
 | Selain itu | `Belum lengkap`, dengan alasan pada `issues` |
 
 Transisi yang **tidak ada** pada slice ini: hapus, batal, dan aktif/nonaktif penetapan gaji atau rekening. Ketiganya tetap lewat endpoint HRD yang sudah ada (`WfpSalaryAssignment`, `WorkforceBankAccount`).
+
+---
+
+## 32. Matriks Transisi Status Amandemen Slice `S-D5`: Persetujuan SPPD lewat Workflow (Kontrak `v28`, approved 19 November 2026)
+
+Bagian ini menggantikan bagian awal siklus 29.1 (`Draft` sampai `Approved`/`Rejected`/`Cancelled`). Status lanjutan sesudah `Approved` tetap mengikuti bagian 29 dan source yang ada. Dasar: `HRD-DEC-224` s.d. `HRD-DEC-227`.
+
+### 32.1 Siklus Persetujuan SPPD (`TravelStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Buat SPPD
+    Draft --> Submitted : Ajukan (workflow dimulai)
+    Submitted --> Approved : Workflow disetujui final
+    Submitted --> NeedRevision : Workflow dikembalikan untuk revisi
+    NeedRevision --> Submitted : Ajukan ulang
+    Submitted --> Rejected : Workflow ditolak
+    Draft --> Cancelled : Dibatalkan pemohon
+    NeedRevision --> Cancelled : Dibatalkan pemohon
+    Submitted --> Cancelled : Dibatalkan pemohon (workflow ditarik)
+    Approved --> AdvancePaid : Uang muka dicairkan (bagian 29)
+    Rejected --> [*]
+    Cancelled --> [*]
+```
+
+### 32.2 Tabel transisi
+
+| Dari | Aksi | Ke | Pelaku / hak | Syarat | Efek samping |
+| --- | --- | --- | --- | --- | --- |
+| — | Buat SPPD | `Draft` | Pemohon, `BusinessTravelRequest : Create` | Validation matrix bagian 30 | `ApprovedBudgetAmount = 0` sampai disetujui |
+| `Draft`, `NeedRevision`, `Submitted` lama tanpa workflow | Ajukan | `Submitted` | Pemohon, `BusinessTravelRequest : Create` | `VR-TRV-26`, `VR-TRV-29` | Instance workflow `BUSINESS_TRAVEL_REQUEST` dibuat (atau dipakai ulang untuk `NeedRevision`) lalu dikirim; `SubmittedAt`/`SubmittedByUserId` diisi; event `HRD_TRV_REQUEST_SUBMITTED` |
+| `Submitted` | Workflow disetujui final | `Approved` | Approver workflow (Master Workflow, bawaan Atasan Langsung) | Status workflow `Approved`/`Completed` | `ApprovedAt`, `ApprovedByUserId` (approver tahap terakhir), `ApprovedBudgetAmount = EstimatedTotalAmount`; presensi "Hadir Dinas Luar" dan gembok roster (`INT-HR-110`); event `HRD_TRV_REQUEST_APPROVED`, `HRD_TRV_ATTENDANCE_SYNCED`, `HRD_TRV_ROSTER_LOCK_APPLIED` |
+| `Submitted` | Workflow dikembalikan | `NeedRevision` | Approver workflow | Status workflow `RevisionRequested`/`Returned` | SPPD kembali dapat diubah dan diajukan ulang |
+| `Submitted` | Workflow ditolak | `Rejected` | Approver workflow | Status workflow `Rejected` | `RejectedAt`/`RejectedByUserId`; final (`VR-TRV-28`) |
+| `Draft`, `NeedRevision` | Batal | `Cancelled` | Pemohon, `BusinessTravelRequest : Cancel` | Alasan minimal 15 karakter (aturan yang ada) | `CancelledAt`/`CancelledByUserId` |
+| `Submitted` | Batal | `Cancelled` | Pemohon, `BusinessTravelRequest : Cancel` | Penarikan workflow berhasil | Workflow ditarik (`Withdraw`); bila penarikan gagal, SPPD tidak berubah (`409`, `VR-TRV-33`) |
+| `Approved` dan status lanjutan selain `Completed` | Batal | `Cancelled` | Pemohon, `BusinessTravelRequest : Cancel` | Aturan batal yang ada (tidak berubah) | **Tambahan v28**: gembok roster dan presensi "Hadir Dinas Luar" dilepas lewat `ReleaseRosterLockAsync` (`INT-HR-110`) |
+
+### 32.3 Pemetaan status workflow ke status SPPD (`INT-HR-109`)
+
+| Status workflow | Status SPPD | Catatan |
+| --- | --- | --- |
+| `Draft`, `Submitted`, `InProgress` | `Submitted` | Tidak berubah selama menunggu |
+| `RevisionRequested`, `Returned` | `NeedRevision` | — |
+| `Approved`, `Completed` | `Approved` | Hanya bila SPPD masih `Submitted`; status lanjutan (`AdvancePaid` dan seterusnya) tidak pernah diturunkan kembali |
+| `Rejected` | `Rejected` | — |
+| `Cancelled`, `Withdrawn` | `Cancelled` | — |
+
+Sinkronisasi bersifat idempoten: pemanggilan berulang atas status workflow yang sama tidak mengubah apa pun dan tidak menggandakan presensi, gembok, atau event.
+
+### 32.4 Transisi terlarang
+
+| Percobaan | Hasil |
+| --- | --- |
+| Ubah SPPD `Submitted` (yang punya workflow), `Approved`, `Rejected`, atau status lanjutan | `409` (`VR-TRV-27`) |
+| Ajukan SPPD `Rejected`, `Cancelled`, `Approved`, atau `Submitted` yang sudah punya workflow | `409` (`VR-TRV-26`, `VR-TRV-28`) |
+| Uang muka atau settlement untuk SPPD tanpa `ApprovedAt` | `409` (`VR-TRV-30`, `VR-TRV-31`) |

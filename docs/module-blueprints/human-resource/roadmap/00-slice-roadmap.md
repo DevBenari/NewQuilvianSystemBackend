@@ -768,9 +768,9 @@ dicatat pada [`01-prerequisite-readiness.md`](../01-prerequisite-readiness.md).
 | Slice | Cakupan | Task Backend | Task Frontend | Dampak database | Gerbang terbuka | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | `S-C5-SEP` | Menu 12 Pemberhentian & Pensiun | `BE-HRD-364` s.d. `BE-HRD-373` | `FE-HRD-328` s.d. `FE-HRD-336` | Tidak ada | — | 🟡 — task sudah ada sejak 16 November 2026 dan belum tercatat di dokumen ini; audit ulang menurunkan 8 task ke 🟡 |
-| `S-FIN-ADM` | Administrasi Kepegawaian (Surat Keputusan, Surat Tugas, Surat Keterangan, Dokumen Administrasi, Perubahan Data) | `BE-HRD-374` s.d. `BE-HRD-379` | `FE-HRD-337` s.d. `FE-HRD-341` | Tabel peserta Surat Tugas (migration) | `{ADM-Q-03}` | ⛔ Surat Tugas; 🟡 sisanya |
-| `S-FIN-M04` | Menu 04 Data Induk Pegawai | `BE-HRD-380` s.d. `BE-HRD-395` | `FE-HRD-342` s.d. `FE-HRD-356` | Tidak ada (`HistoryType = ExternalPrior`) | — | 🟡 |
-| `S-FIN-M05` | Menu 05 Struktur Organisasi & Jabatan | `BE-HRD-396` s.d. `BE-HRD-399` | `FE-HRD-357` s.d. `FE-HRD-362` | Tabel `MstJobDescriptions`, `MstJobDescriptionItems` (migration belum ada) | `{MIG-M05-JD}` | ⛔ Uraian Tugas; 🟡 sisanya |
-| `S-FIN-M07` | Menu 07 Penempatan, Mutasi & Promosi | `BE-HRD-400` s.d. `BE-HRD-408` | `FE-HRD-363` s.d. `FE-HRD-369` | Tidak ada | `{MIG-M05-JD}` untuk Uraian Tugas | 🟡 |
-| `S-FIN-M08` | Menu 08 Kontrak & Masa Kerja | `BE-HRD-409` s.d. `BE-HRD-418` | `FE-HRD-370` s.d. `FE-HRD-377` | Tidak ada | Sinkronisasi `HRD-DEC-089` | 🟡 (5 task backend ✅) |
-| `S-FIN-M09` | Menu 09 Kompetensi & Kredensial | `BE-HRD-419` s.d. `BE-HRD-432` | `FE-HRD-378` s.d. `FE-HRD-388` | Tidak ada | Kontrak co-sign dengan pemilik EMR | 🟡 (5 task backend ✅) |
+| `S-FIN-ADM` | Administrasi Kepegawaian (Surat Keputusan, Surat Tugas, Surat Keterangan, Dokumen Administrasi, Perubahan Data) | `BE-HRD-381` s.d. `BE-HRD-386` | `FE-HRD-341` s.d. `FE-HRD-345` | Tabel peserta Surat Tugas (migration) | `{ADM-Q-03}` | ⛔ Surat Tugas; 🟡 sisanya |
+| `S-FIN-M04` | Menu 04 Data Induk Pegawai | `BE-HRD-387` s.d. `BE-HRD-402` | `FE-HRD-346` s.d. `FE-HRD-360` | Tidak ada (`HistoryType = ExternalPrior`) | — | 🟡 |
+| `S-FIN-M05` | Menu 05 Struktur Organisasi & Jabatan | `BE-HRD-403` s.d. `BE-HRD-406` | `FE-HRD-361` s.d. `FE-HRD-366` | Tabel `MstJobDescriptions`, `MstJobDescriptionItems` (migration belum ada) | `{MIG-M05-JD}` | ⛔ Uraian Tugas; 🟡 sisanya |
+| `S-FIN-M07` | Menu 07 Penempatan, Mutasi & Promosi | `BE-HRD-407` s.d. `BE-HRD-415` | `FE-HRD-367` s.d. `FE-HRD-373` | Tidak ada | `{MIG-M05-JD}` untuk Uraian Tugas | 🟡 |
+| `S-FIN-M08` | Menu 08 Kontrak & Masa Kerja | `BE-HRD-416` s.d. `BE-HRD-425` | `FE-HRD-374` s.d. `FE-HRD-381` | Tidak ada | Sinkronisasi `HRD-DEC-089` | 🟡 (5 task backend ✅) |
+| `S-FIN-M09` | Menu 09 Kompetensi & Kredensial | `BE-HRD-426` s.d. `BE-HRD-439` | `FE-HRD-382` s.d. `FE-HRD-392` | Tidak ada | Kontrak co-sign dengan pemilik EMR | 🟡 (5 task backend ✅) |
