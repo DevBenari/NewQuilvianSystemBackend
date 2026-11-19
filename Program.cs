@@ -70,6 +70,7 @@ using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Services;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services.Sources;
@@ -436,7 +437,14 @@ try
     builder.Services.Configure<PayrollPolicyOptions>(builder.Configuration.GetSection(PayrollPolicyOptions.SectionName));
     // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run (kini milik modul Payroll).
     builder.Services.AddScoped<PayrollInstallmentDeductionService>();
+    // Kebijakan regulasi penggajian berversi (tarif PPh dan iuran BPJS): pembaca kebijakan yang disahkan, dipakai mesin hitung dan kelengkapan data.
+    builder.Services.AddScoped<PayrollStatutoryPolicyResolver>();
+    builder.Services.AddScoped<PayrollTaxPolicyService>();
+    builder.Services.AddScoped<PayrollBpjsPolicyService>();
     builder.Services.AddScoped<PayrollCalculationService>();
+    // Penyiapan profil payroll otomatis dari data HRD tanpa impor CSV (PAY-BE-24): dipanggil di dalam transaksi buka dan hitung payroll run.
+    builder.Services.AddScoped<PayrollHrdSourceReader>();
+    builder.Services.AddScoped<PayrollProfileProvisioningService>();
     builder.Services.AddScoped<PayrollRunService>();
     // BE-FIN-111: Layanan restitusi salah potong cicilan piutang RS ke slip gaji periode berikutnya.
     builder.Services.AddScoped<PayrollRestitutionService>();
@@ -452,11 +460,15 @@ try
     builder.Services.AddScoped<PayrollSalaryRangeRuleService>();
     // PAY-BE-16: tunjangan tetap per struktur gaji (SA-01..SA-07).
     builder.Services.AddScoped<PayrollSalaryStructureAllowanceService>();
+    // Tunjangan Pegawai pada Detail Profil Penggajian: penetapan tunjangan tetap khusus satu pegawai berbasis Master Tunjangan (PrlWorkforceAllowance).
+    builder.Services.AddScoped<PayrollWorkforceAllowanceService>();
+    // Alokasi kode kebijakan tunjangan (SAP/OAP/HAP-RSMMC) lewat NumberSeriesAllocator (QBE-CODE-002/006).
+    builder.Services.AddScoped<AllowancePolicyCodeService>();
     // PAY-BE-19: penghasilan variabel manual per run (VI-01..VI-09, VI-12); nomor PVI dari NumberSeriesAllocator.
     builder.Services.AddScoped<PayrollVariableInputService>();
     // PAY-BE-21: simulasi payroll di transaksi yang selalu dibatalkan (SIM-01..SIM-03); tanpa impor HR, Finance, number series.
     builder.Services.AddScoped<PayrollSimulationService>();
-    // Kelengkapan data payroll per pegawai dan dokter beserta impor data awal (profil, penetapan gaji, rekening); semua atau tidak sama sekali.
+    // Kelengkapan data payroll per pegawai dan dokter (profil, penetapan gaji, rekening dari HRD); murni baca, tanpa impor.
     builder.Services.AddScoped<PayrollDataReadinessService>();
     // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
     builder.Services.AddScoped<FinanceReceivableClearanceService>();
@@ -481,6 +493,9 @@ try
     builder.Services.AddScoped<CompanyGuarantorCoverageRuleService>();
     builder.Services.AddScoped<WfpCertificationFileStorageService>();
     builder.Services.AddScoped<ApplicationVersionService>();
+    // Gerbang tunggal fitur BPJS (Payroll:Policy:EnableBpjsInPayroll): dipakai Payroll, HRD, K3, dan GET api/v1/system/features sehingga
+    // BE dan FE tidak pernah berbeda perilaku. Singleton: nilainya dari IOptions (tetap selama proses berjalan).
+    builder.Services.AddSingleton<QuilvianSystemBackend.Services.Features.IBpjsFeatureGate, QuilvianSystemBackend.Services.Features.BpjsFeatureGate>();
     builder.Services.AddScoped<AccessPermissionService>();
     builder.Services.AddScoped<PermissionRegistryValidator>();
     builder.Services.AddScoped<OrganizationAuthorizationProjectionService>();
@@ -920,6 +935,7 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.PatientProfileQueryService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.NewbornPatientRegistrationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.HospitalSiteProfileQueryService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.IJobDescriptionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.JobDescriptionService>();
     builder.Services.AddScoped<PatientAllergyQueryService>();
 
     // BE-RWI-193 s.d. BE-RWI-202 — Workspace PPRI. InpAdmissionSourceReader satu-satunya pintu
@@ -1252,6 +1268,8 @@ try
     // BE-HRD-065: Sinkronisasi 5 Isian Kepegawaian & Penulisan Kontrak Satu Pintu
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.IEmployeeEmploymentRecordService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.EmployeeEmploymentRecordService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.EmployeeEmploymentRecordService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.IWorkforceIdentityResolverService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.WorkforceIdentityResolverService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.WorkforceIdentityResolverService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.IWfpContractHistoryWriteService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpContractHistoryWriteService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpContractHistoryWriteService>();
 
@@ -1333,12 +1351,15 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ShiftRevisionRecorder>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.TemporaryPlacementRosterImpactService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallAssignmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallCallService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallCompensationHandoffService>();
 
     builder.Services.AddScoped<ResignationRequestService>();
     builder.Services.AddScoped<ResignationWorkflowLifecycleService>();
     builder.Services.AddScoped<ResignationWorkflowIntegrationService>();
     builder.Services.AddScoped<ResignationLifecycleHandoffService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.RetirementService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.OffboardingHandoverService>();
     // BE-FIN-112: Administrasi Exit Clearance HR & penegakan gerbang bebas tanggungan Finance.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.ExitClearanceService>();
 
@@ -1359,6 +1380,14 @@ try
     // Persetujuan penutupan benefit RS internal oleh HRD.
 
     builder.Services.AddScoped<AttendanceRawLogService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Services.AttendanceDeviceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Services.HolidayService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services.MyScheduleSelfService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceReportService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceDashboardService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceDispensationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.StudyAssignmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceDeviceIncidentService>();
     builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();
     builder.Services.AddScoped<AttendanceScheduleResolverService>();
     builder.Services.AddScoped<AttendanceProcessingService>();

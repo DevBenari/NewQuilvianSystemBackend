@@ -35,6 +35,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models
         public bool IsAttendanceBased { get; set; } = false;
         public bool IsProrated { get; set; } = true;
         public bool IsTaxable { get; set; } = true;
+
+        /// <summary>
+        /// Klasifikasi tunjangan tetap (perjanjian kerja/kebijakan HRD), terpisah dari <see cref="IsTaxable"/>. Transportasi berbasis
+        /// kehadiran/per hari tidak pernah tunjangan tetap. Null = belum diklasifikasikan (menahan dasar upah iuran BPJS untuk metode FixedMonthly).
+        /// </summary>
+        public bool? IsFixedAllowance { get; set; }
+
+        /// <summary>Masuk dasar upah iuran BPJS; hanya boleh true bila <see cref="IsFixedAllowance"/> true. Null = belum diklasifikasikan.</summary>
+        public bool? IncludeInBpjsWageBase { get; set; }
+
         public bool IsIncludedInPayroll { get; set; } = true;
         public bool IncludeBusinessTravelDay { get; set; } = false;
         public bool IncludePaidLeaveDay { get; set; } = false;

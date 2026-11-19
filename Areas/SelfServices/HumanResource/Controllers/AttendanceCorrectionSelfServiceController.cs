@@ -26,14 +26,34 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
     {
         private const string LogCategory = "SelfServices.HumanResource.AttendanceCorrection";
         private readonly AttendanceCorrectionService _service;
+        private readonly AttendanceDeviceIncidentService _deviceIncidentService;
         private readonly LoggerService _loggerService;
 
         public AttendanceCorrectionSelfServiceController(
             AttendanceCorrectionService service,
+            AttendanceDeviceIncidentService deviceIncidentService,
             LoggerService loggerService)
         {
             _service = service;
+            _deviceIncidentService = deviceIncidentService;
             _loggerService = loggerService;
+        }
+
+        // HRD-DEC-202: kejadian gangguan mesin Active pada tanggal kerja itu, untuk dipilih sebagai rujukan koreksi.
+        [HttpGet("device-incident-options")]
+        [ProducesResponseType(typeof(ApiResponse<List<DeviceIncidentOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read My Attendance Correction", Description = "Melihat pilihan kejadian gangguan mesin untuk koreksi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("MyAttendanceCorrection", "Read")]
+        public async Task<IActionResult> GetDeviceIncidentOptions([FromQuery] DateOnly attendanceDate, CancellationToken cancellationToken)
+        {
+            if (attendanceDate == default)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Tanggal kerja wajib diisi."));
+            }
+
+            return Ok(ApiResponse<List<DeviceIncidentOptionResponse>>.Ok(
+                await _deviceIncidentService.GetOptionsAsync(attendanceDate, cancellationToken),
+                "Pilihan kejadian gangguan mesin berhasil diambil."));
         }
 
         [HttpGet("filters/metadata")]

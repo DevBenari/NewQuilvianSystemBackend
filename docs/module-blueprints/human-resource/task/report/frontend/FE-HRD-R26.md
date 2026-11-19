@@ -40,7 +40,8 @@
 | --- | --- |
 | ESLint berkas R26 dan menu | Lulus, 0 error/warning |
 | CSS usage checker pada 4 view | `OK — 4 berkas diperiksa, 0 temuan` |
-| `npm run build` | Lulus; 808 halaman dihasilkan |
+| `npm run build` | Lulus pada verifikasi akhir; 813 halaman dihasilkan dan standalone runtime siap |
+| `npm run test:unit` | Gagal karena issue existing lintas modul dan test yang merujuk file lama/hilang; tidak menunjuk view R25–R29 |
 | Uji browser akun berhak/tidak berhak | `VISUAL CHECK: NOT FEASIBLE` — tidak ada alat browser pada sesi ini |
 
 ## Acceptance criteria
@@ -48,3 +49,7 @@
 Kriteria source `FE-HRD-032` s.d. `035` terimplementasi. Status belum dinaikkan menjadi penuh karena tambah/ubah/submit memerlukan data dan akun peran nyata, sementara tampilan `null` dan pembatasan Kepala Unit perlu bukti browser/API terautentikasi.
 
 Perubahan belum di-commit atau di-push.
+
+## Pemutakhiran 16 November 2026
+
+Source empat layar dan menu diperiksa ulang tanpa temuan kontrak baru. Validasi bersama Gelombang 2 terbaru: lint **0 error**, build **814 halaman**. Chromium headed tersedia tetapi sesi test gagal di `/api/v1/auth/me` dengan `401`; bukti hak akses Kepala Unit dan perlakuan nilai `null` belum dapat direkam. Status tetap 🟡.

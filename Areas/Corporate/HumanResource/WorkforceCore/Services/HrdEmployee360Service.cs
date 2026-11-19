@@ -41,8 +41,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
             // Check if caller has HR permission
             var isHr = await _permissionService.HasAccessAsync(userPrincipal, "HrdEmployee360", "ReadFull")
-                       || userPrincipal.IsInRole("SuperAdmin")
-                       || userPrincipal.IsInRole("Admin")
                        || await _permissionService.HasAccessAsync(userPrincipal, "HrdPersonnelActionOrder", "Read");
 
             // Check if caller is active direct manager of target employee
@@ -252,8 +250,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 DisplayName = profile.DisplayName,
                 UserType = profile.UserType.ToString(),
                 Email = profile.Email,
-                PhoneNumber = profile.PhoneNumber,
-                WhatsAppNumber = profile.WhatsAppNumber,
+                PhoneNumber = isHr ? profile.PhoneNumber : null,
+                WhatsAppNumber = isHr ? profile.WhatsAppNumber : null,
                 IsActive = profile.IsActive,
                 ViewMode = isHr ? "HR" : "DirectManager",
                 CurrentEmployment = new CurrentEmploymentInfoDto

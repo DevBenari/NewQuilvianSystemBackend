@@ -341,6 +341,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             if (!validation.IsValid)
                 return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage!));
 
+            // Guard FIN-HRD-04-BE-006 / HRD-DEC-052: Guard data keluarga yang memengaruhi pajak/benefit
+            var oldRelationship = entity.Relationship?.Trim() ?? string.Empty;
+            var newRelationship = request.Relationship?.Trim() ?? string.Empty;
+            var oldIdentity = entity.IdentityNumber?.Trim() ?? string.Empty;
+            var newIdentity = Normalize(request.IdentityNumber) ?? string.Empty;
+            var oldMarital = entity.MaritalStatusText?.Trim() ?? string.Empty;
+            var newMarital = Normalize(request.MaritalStatusText) ?? string.Empty;
+
+            var isRelationshipChanged = !string.IsNullOrEmpty(oldRelationship) && !string.Equals(oldRelationship, newRelationship, StringComparison.OrdinalIgnoreCase);
+            var isIdentityChanged = !string.IsNullOrEmpty(oldIdentity) && !string.Equals(oldIdentity, newIdentity, StringComparison.OrdinalIgnoreCase);
+            var isMaritalChanged = !string.IsNullOrEmpty(oldMarital) && !string.Equals(oldMarital, newMarital, StringComparison.OrdinalIgnoreCase);
+
+            if (isRelationshipChanged || isIdentityChanged || isMaritalChanged)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan relasi keluarga, nomor identitas, atau status perkawinan merupakan data sensitif yang memengaruhi pajak dan benefit (HRD-DEC-052). Perubahan data ini wajib diajukan melalui Menu 06 Pengajuan Perubahan Data.",
+                    "SENSITIVE_FAMILY_MEMBER_LOCKED"
+                ));
+            }
+
             entity.Relationship = request.Relationship.Trim();
             entity.FullName = request.FullName.Trim();
             entity.Gender = request.Gender;

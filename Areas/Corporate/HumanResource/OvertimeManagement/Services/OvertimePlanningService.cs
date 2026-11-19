@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Models;
@@ -929,7 +930,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                         EffectiveDate = dateTime,
                         MinutePosition = 0,
                         EligibleMinutes = rounded,
-                        OccurrenceTime = TimeOnly.FromDateTime(startAt)
+                        // BE-HRD-FIX-004: rentang jam tarif (mis. tarif malam) diisi dalam jam WIB.
+                        OccurrenceTime = TimeOnly.FromDateTime(AppDateTimeHelper.UtcToLocal(startAt))
                     }, cancellationToken);
                     if (!rate.IsResolved || rate.SelectedRate == null)
                         response.Issues.Add(Issue("RATE_NOT_RESOLVED", "Error", rate.Message, true));

@@ -41,5 +41,11 @@ public sealed class PayrollRunInstallmentDeductionSummaryResponse
 
     /// <summary>Pegawai yang potongannya tidak dapat dihitung karena data belum lengkap (mis. gaji bruto belum terhitung). Memblokir pengajuan run.</summary>
     public List<string> Blockers { get; set; } = new();
+
+    /// <summary>
+    /// Catatan yang tidak menahan run tetapi harus terlihat: batas potongan memakai nilai bawaan kebijakan yang belum disahkan, dan
+    /// urutan alokasi batas kumulatif sementara bila satu penerima punya beberapa angsuran.
+    /// </summary>
+    public List<string> Warnings { get; set; } = new();
 }
 

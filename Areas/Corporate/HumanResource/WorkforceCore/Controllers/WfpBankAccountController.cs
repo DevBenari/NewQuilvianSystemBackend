@@ -448,6 +448,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                     validation.ErrorMessage ?? "Data rekening bank workforce tidak valid."));
             }
 
+            // Guard FIN-HRD-04-BE-005 / HRD-DEC-052: Guard rekening bank dari mutasi langsung
+            var oldBankId = entity.BankId;
+            var oldAccountNumber = entity.AccountNumber?.Trim() ?? string.Empty;
+            var oldAccountHolder = entity.AccountHolderName?.Trim() ?? string.Empty;
+
+            var newBankId = NormalizeNullableGuid(request.BankId);
+            var newAccountNumber = NormalizeAccountNumber(request.AccountNumber) ?? string.Empty;
+            var newAccountHolder = request.AccountHolderName?.Trim() ?? string.Empty;
+
+            var isBankChanged = oldBankId.HasValue && newBankId.HasValue && oldBankId.Value != newBankId.Value;
+            var isAccountNumChanged = !string.IsNullOrEmpty(oldAccountNumber) && !string.Equals(oldAccountNumber, newAccountNumber, StringComparison.OrdinalIgnoreCase);
+            var isHolderChanged = !string.IsNullOrEmpty(oldAccountHolder) && !string.Equals(oldAccountHolder, newAccountHolder, StringComparison.OrdinalIgnoreCase);
+
+            if (isBankChanged || isAccountNumChanged || isHolderChanged)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan nomor rekening, bank, atau nama pemilik rekening merupakan data finansial sensitif (HRD-DEC-052). Penggantian data rekening existing tidak dapat dilakukan langsung dan wajib diajukan melalui Pengajuan Perubahan Data Menu 06.",
+                    "SENSITIVE_BANK_ACCOUNT_LOCKED"
+                ));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -665,6 +687,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+
+            if (request.IsVerified && entity.CreateBy == actorUserId)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Petugas verifikasi rekening bank harus berbeda dari pembuat data (segregasi tugas / dual-actor verification / FIN-HRD-04-BE-005).",
+                    "SELF_VERIFICATION_PROHIBITED"
+                ));
+            }
 
             entity.IsVerified = request.IsVerified;
             entity.VerifiedAt = request.IsVerified ? now : null;

@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Constants;
@@ -675,10 +676,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
 
                 for (var index = 0; index < intervalMinutes; index++)
                 {
+                    // BE-HRD-FIX-004: rentang jam tarif (mis. tarif malam) diisi dalam jam WIB; cursor adalah UTC.
                     var selectedRate = ResolveRate(
                         rates,
                         minutePosition,
-                        TimeOnly.FromDateTime(cursor));
+                        TimeOnly.FromDateTime(AppDateTimeHelper.UtcToLocal(cursor)));
 
                     if (selectedRate == null)
                     {

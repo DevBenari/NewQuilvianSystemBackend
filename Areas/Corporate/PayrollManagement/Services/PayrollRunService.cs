@@ -47,6 +47,7 @@ public sealed class PayrollRunService
     private readonly FinanceReceivablePayrollSyncService _syncService;
     private readonly PayrollInstallmentDeductionService _deductionService;
     private readonly PayrollCalculationService _calculationService;
+    private readonly PayrollProfileProvisioningService _provisioningService;
     private readonly PayrollPolicyOptions _policy;
 
     public PayrollRunService(
@@ -55,6 +56,7 @@ public sealed class PayrollRunService
         FinanceReceivablePayrollSyncService syncService,
         PayrollInstallmentDeductionService deductionService,
         PayrollCalculationService calculationService,
+        PayrollProfileProvisioningService provisioningService,
         IOptions<PayrollPolicyOptions> policyOptions)
     {
         _dbContext = dbContext;
@@ -62,6 +64,7 @@ public sealed class PayrollRunService
         _syncService = syncService;
         _deductionService = deductionService;
         _calculationService = calculationService;
+        _provisioningService = provisioningService;
         _policy = policyOptions.Value;
     }
 
@@ -125,6 +128,10 @@ public sealed class PayrollRunService
         detail.PeriodEndDate = run.PeriodEndDateSnapshot;
         detail.PaymentDate = run.PaymentDateSnapshot;
         detail.PolicyVersion = ReadPolicyVersion(run.PolicySnapshotJson);
+        detail.EnableBpjsInPayroll = _policy.EnableBpjsInPayroll;
+        detail.IsTestingModeWithoutBpjs = run.CalculatedAt.HasValue
+            ? PayrollTaxInsuranceRules.IsTestingModeWithoutBpjs(run.PolicySnapshotJson)
+            : !_policy.EnableBpjsInPayroll;
 
         var validation = ReadValidation(run.ValidationSummaryJson);
         detail.Blockers = validation.Blockers;
@@ -249,7 +256,7 @@ public sealed class PayrollRunService
         }
         if (!run.IsLocked && !PayrollRunStatuses.IsFinalized(status)
             && !string.Equals(status, PayrollRunStatuses.Cancelled, StringComparison.OrdinalIgnoreCase)) actions.Add("Cancel");
-        if (PayrollRunStatuses.AllowsFinanceHandoff(status)) actions.Add("FinanceHandoff");
+        if (PayrollRunStatuses.AllowsFinanceHandoff(status) && !detail.IsTestingModeWithoutBpjs) actions.Add("FinanceHandoff");
         if (PayrollRunStatuses.AllowsDeductionReversal(status)) actions.Add("RequestReversal");
         if (PayrollRunStatuses.AllowsPayslipGeneration(status)) actions.Add("GeneratePayslips");
         if (string.Equals(status, PayrollRunStatuses.Paid, StringComparison.OrdinalIgnoreCase)) actions.Add("Close");
@@ -475,6 +482,13 @@ public sealed class PayrollRunService
                 && x.RunStatus != PayrollRunStatuses.Cancelled && x.RunStatus != PayrollRunStatuses.Reversed, cancellationToken);
             if (exists) throw new PayrollRunConflictException("Sudah ada payroll run Regular yang aktif untuk periode ini.");
 
+            // Profil payroll pegawai dan dokter HRD yang layak disiapkan otomatis (tanpa impor CSV) sebelum populasi run dibentuk dari
+            // profil payroll aktif. Dilakukan sebelum run ditambahkan ke konteks supaya penyimpanan di dalamnya hanya memuat profil baru.
+            // Tanggal periode berkolom `date` dan terbaca Kind=Unspecified; kolom snapshot run berjenis timestamptz hanya menerima UTC.
+            var periodStart = PayrollDateNormalizer.ToUtcDate(period.StartDate);
+            var periodEnd = PayrollDateNormalizer.ToUtcDate(period.EndDate);
+            var provision = await _provisioningService.EnsureProfilesAsync(periodStart, periodEnd, actorUserId, "PayrollRun.Create", cancellationToken);
+
             var run = new PrlPayrollRun
             {
                 PayrollPeriodId = period.Id,
@@ -484,11 +498,11 @@ public sealed class PayrollRunService
                 RunType = RegularRunType,
                 RunStatus = PayrollRunStatuses.Draft,
                 CurrencyCode = "IDR",
-                PeriodStartDateSnapshot = period.StartDate,
-                PeriodEndDateSnapshot = period.EndDate,
-                AttendanceCutoffDateSnapshot = period.AttendanceCutoffDate,
-                VariableInputCutoffDateSnapshot = period.VariableInputCutoffDate,
-                PaymentDateSnapshot = period.PaymentDate,
+                PeriodStartDateSnapshot = periodStart,
+                PeriodEndDateSnapshot = periodEnd,
+                AttendanceCutoffDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.AttendanceCutoffDate),
+                VariableInputCutoffDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.VariableInputCutoffDate),
+                PaymentDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.PaymentDate),
                 Notes = request.Notes,
                 CreateDateTime = DateTime.UtcNow,
                 CreateBy = actorUserId
@@ -505,6 +519,7 @@ public sealed class PayrollRunService
             var notes = sync.SkipReasons.Distinct().ToList();
             if (seed.SkippedNoIdentity > 0)
                 notes.Add($"{seed.SkippedNoIdentity} profil payroll aktif dilewati karena identitas pegawai/dokter tidak ditemukan.");
+            AddProvisioningNotes(notes, provision);
             run.ValidationSummaryJson = JsonSerializer.Serialize(new ValidationSummary(new List<string>(), notes));
 
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -519,6 +534,15 @@ public sealed class PayrollRunService
 
     private sealed record PayrollSeedResult(int Added, int SkippedNoIdentity, int Repaired);
 
+    /// <summary>Catatan hasil penyiapan profil otomatis untuk ringkasan validasi run. Tanpa nama atau nominal.</summary>
+    private static void AddProvisioningNotes(List<string> target, PayrollProvisioningResult provision)
+    {
+        if (provision.Created > 0)
+            target.Add($"{provision.Created} profil payroll disiapkan otomatis dari data HRD. Tetapan PPh dan iuran pada profil itu masih nol (belum ditetapkan).");
+        if (provision.SkippedIncompleteHrd > 0)
+            target.Add($"{provision.SkippedIncompleteHrd} pegawai/dokter aktif belum masuk run karena penetapan gaji utama atau rekening payroll belum ada di HRD (lihat Kelengkapan Data Payroll).");
+    }
+
     /// <summary>
     /// Melengkapi baris pegawai dari profil payroll aktif dan eligible yang berlaku pada periode. Idempoten: pegawai yang sudah ada
     /// pada run ini TIDAK digandakan (indeks unik run+pegawai juga menjaganya), dan baris yang dibuat jalur lain tanpa profil
@@ -527,10 +551,13 @@ public sealed class PayrollRunService
     /// </summary>
     private async Task<PayrollSeedResult> SeedEmployeesAsync(PrlPayrollRun run, MstPayrollPeriod period, Guid actorUserId, CancellationToken cancellationToken)
     {
+        // EffectiveStartDate/EndDate profil berkolom timestamptz: pembandingnya wajib UTC (tanggal periode terbaca Unspecified dari kolom date).
+        var periodStart = PayrollDateNormalizer.ToUtcDate(period.StartDate);
+        var periodEnd = PayrollDateNormalizer.ToUtcDate(period.EndDate);
         var profiles = await _dbContext.PrlPayrolls.AsNoTracking()
             .Where(x => !x.IsDelete && x.IsActive && x.IsPayrollEligible && x.PayrollStatus == "Active"
-                && (x.EffectiveStartDate == null || x.EffectiveStartDate <= period.EndDate)
-                && (x.EffectiveEndDate == null || x.EffectiveEndDate >= period.StartDate))
+                && (x.EffectiveStartDate == null || x.EffectiveStartDate <= periodEnd)
+                && (x.EffectiveEndDate == null || x.EffectiveEndDate >= periodStart))
             .OrderByDescending(x => x.EffectiveStartDate)
             .ToListAsync(cancellationToken);
 
@@ -623,6 +650,11 @@ public sealed class PayrollRunService
 
             run.CalculationStartedAt = DateTime.UtcNow;
 
+            // Pegawai/dokter HRD yang baru memenuhi syarat dibuatkan profil payroll otomatis (hanya membuat yang belum ada; profil yang
+            // sudah ada tidak disentuh). Hanya terjangkau oleh run yang masih menerima input (status diperiksa di atas), sehingga run
+            // yang sudah disahkan dan snapshot-nya tidak berubah.
+            var provision = await _provisioningService.EnsureProfilesAsync(run.PayrollPeriod.StartDate, run.PayrollPeriod.EndDate, actorUserId, "PayrollRun.Calculate", cancellationToken);
+
             // Populasi dilengkapi lebih dulu (pegawai baru yang eligible, baris penampung dari restitusi) supaya angsuran dan input
             // tertaut ke baris pegawai yang sah dan run tidak disahkan dengan populasi yang tidak lengkap.
             var seed = await SeedEmployeesAsync(run, run.PayrollPeriod, actorUserId, cancellationToken);
@@ -640,10 +672,13 @@ public sealed class PayrollRunService
             var warnings = new List<string>(calculation.Warnings);
             if (seed.SkippedNoIdentity > 0)
                 warnings.Add($"{seed.SkippedNoIdentity} profil payroll aktif dilewati karena identitas pegawai/dokter tidak ditemukan.");
+            AddProvisioningNotes(warnings, provision);
 
             // Potongan cicilan dihitung setelah gaji bruto dan potongan wajib ada. Belum menyentuh Finance.
             var deductions = await _deductionService.CalculateRunAsync(run, actorUserId, cancellationToken);
             blockers.AddRange(deductions.Blockers);
+            // Batas potongan bawaan yang belum disahkan dan urutan alokasi antar angsuran terlihat sebagai peringatan, tidak diam-diam.
+            warnings.AddRange(deductions.Warnings);
 
             var employees = await _dbContext.PrlPayrollRunEmployees
                 .Where(x => x.PayrollRunId == run.Id && !x.IsDelete)
@@ -1098,16 +1133,116 @@ public sealed class PayrollRunService
         };
     }
 
-    /// <summary>Rincian satu penerima: komponen gross-to-net dan agregat kehadiran. Rekening disamarkan; NPWP tidak dikirim.</summary>
+    /// <summary>
+    /// Rincian satu penerima (popup "Rincian Penghasilan"): status hitung, gross-to-net, pajak dan iuran, kehadiran, SELURUH cicilan, dan
+    /// komponen. MURNI BACA: tidak menghitung, tidak menyimpan, dan tidak menyentuh Finance. Rekening disamarkan; NPWP, nomor piutang,
+    /// serta jalur dan isi berkas perjanjian tidak dikirim.
+    ///
+    /// Empat keadaan dibedakan lewat <c>CalculationState</c>: belum dihitung (angka BUKAN hasil, termasuk nol), hasil hitung sah (nol
+    /// yang muncul adalah hasil sah), hasil gagal (angka tidak sah; alasan di <c>ValidationIssues</c>), dan snapshot beku (run disahkan).
+    /// </summary>
     public async Task<PayrollRunEmployeeDetailResponse> GetEmployeeDetailAsync(Guid runId, Guid runEmployeeId, CancellationToken cancellationToken)
     {
         var employee = await _dbContext.PrlPayrollRunEmployees.AsNoTracking()
             .Include(x => x.Components)
             .Include(x => x.VariableInputs)
+            .Include(x => x.PayrollRun).ThenInclude(r => r!.PayrollPeriod)
             .SingleOrDefaultAsync(x => x.Id == runEmployeeId && x.PayrollRunId == runId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Pegawai tidak ditemukan pada payroll run ini.");
+        var run = employee.PayrollRun ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
 
-        var line = PayrollInstallmentDeductionService.ReadLine(employee);
+        var components = employee.Components.Where(c => !c.IsDelete).OrderBy(c => c.SortOrder).ThenBy(c => c.ComponentCodeSnapshot).ToList();
+
+        // Seluruh angsuran penerima dibaca dengan satu join (bukan N+1); `Installment` lama tetap berisi angsuran pertama.
+        var installmentIds = employee.VariableInputs
+            .Where(x => x.SourceType == InstallmentSourceType && !x.IsDelete && x.SourceId.HasValue)
+            .Select(x => x.SourceId!.Value)
+            .Distinct()
+            .ToList();
+        var facts = await _deductionService.LoadInstallmentFactsAsync(installmentIds, cancellationToken);
+        var installments = PayrollInstallmentDeductionService.ReadLines(employee, facts);
+
+        // ---- Status hitung ----
+        var attempted = run.CalculatedAt.HasValue;
+        var finalized = employee.IsSnapshotFrozen || string.Equals(employee.EmployeePayrollStatus, EmployeeFinalized, StringComparison.OrdinalIgnoreCase);
+        var failed = attempted && !finalized && string.Equals(employee.EmployeePayrollStatus, EmployeeError, StringComparison.OrdinalIgnoreCase);
+        var succeeded = finalized || (attempted && string.Equals(employee.EmployeePayrollStatus, EmployeeCalculated, StringComparison.OrdinalIgnoreCase));
+
+        var result = ReadEmployeeResult(employee.CalculationResultJson);
+        var validation = ReadValidation(run.ValidationSummaryJson);
+        var prefix = $"{employee.EmployeeNameSnapshot}: ";
+        List<string> ForEmployee(IEnumerable<string>? source) =>
+            (source ?? Enumerable.Empty<string>())
+                .Where(x => x.StartsWith(prefix, StringComparison.Ordinal))
+                .Select(x => x[prefix.Length..])
+                .ToList();
+
+        var issues = new List<string>(result.Errors);
+        if (issues.Count == 0 && failed && !string.IsNullOrWhiteSpace(employee.ValidationResultJson)) issues.Add(employee.ValidationResultJson.Trim());
+        issues.AddRange(ForEmployee(validation.Blockers));
+        var warnings = new List<string>(result.Warnings);
+        warnings.AddRange(ForEmployee(validation.Warnings));
+
+        // ---- PPh dan iuran: dibaca dari snapshot hasil hitung (TaxSnapshotJson dan InsuranceSnapshotJson), bukan dari perbandingan nominal
+        // nol. Status konfigurasi, status hasil, dan alasannya ditetapkan saat hitung oleh PayrollTaxInsuranceRules; GET hanya membaca. ----
+        var taxSnapshot = ReadSnapshot<PayrollTaxSnapshot>(employee.TaxSnapshotJson);
+        var insuranceSnapshot = ReadSnapshot<PayrollInsuranceSnapshot>(employee.InsuranceSnapshotJson);
+        var taxIssues = new List<string>();
+        if (succeeded)
+        {
+            if (taxSnapshot is null || insuranceSnapshot is null)
+            {
+                // Run lama (dihitung sebelum snapshot ada): statusnya tidak dapat disimpulkan dari nominal. Run yang sudah dibekukan
+                // tidak dituduh; hitung ulang hanya relevan selama run masih menerima input.
+                if (!finalized)
+                    taxIssues.Add("Run dihitung sebelum snapshot konfigurasi PPh dan iuran tersedia; hitung ulang untuk mendapatkan status konfigurasinya.");
+            }
+            else
+            {
+                if (taxSnapshot.ConfigurationStatus != PayrollConfigurationStatuses.Configured)
+                    taxIssues.AddRange(taxSnapshot.Issues.Count > 0 ? taxSnapshot.Issues : new List<string> { "Konfigurasi PPh belum lengkap." });
+                if (insuranceSnapshot.ConfigurationStatus != PayrollConfigurationStatuses.Configured
+                    && insuranceSnapshot.ConfigurationStatus != PayrollConfigurationStatuses.TestingModeDisabled)
+                    taxIssues.AddRange(insuranceSnapshot.Issues.Count > 0 ? insuranceSnapshot.Issues : new List<string> { "Konfigurasi iuran belum lengkap." });
+            }
+        }
+
+        var state = finalized ? "SnapshotFrozen"
+            : failed ? "Error"
+            : !succeeded ? "NotCalculated"
+            : taxIssues.Count > 0 ? "DataIncomplete"
+            : "Calculated";
+
+        // ---- Ringkasan dari komponen hasil hitung (sumber rincian yang dapat ditelusuri) ----
+        decimal SumOf(params string[] codes) => components.Where(c => codes.Contains(c.ComponentCodeSnapshot)).Sum(c => c.Amount);
+        var installmentCodes = new[] { InstallmentComponentCode, "LOAN_HOSPITAL_AR" };
+        var attendanceDeduction = SumOf(PayrollEngineComponentCodes.AttendanceDeduction);
+        var unpaidLeave = SumOf(PayrollEngineComponentCodes.UnpaidLeave);
+        var installmentDeduction = SumOf(installmentCodes);
+        var otherDeduction = components
+            .Where(c => string.Equals(c.ComponentTypeSnapshot, "Deduction", StringComparison.OrdinalIgnoreCase)
+                && c.ComponentCodeSnapshot != PayrollEngineComponentCodes.AttendanceDeduction
+                && c.ComponentCodeSnapshot != PayrollEngineComponentCodes.UnpaidLeave
+                && !installmentCodes.Contains(c.ComponentCodeSnapshot))
+            .Sum(c => c.Amount);
+
+        // ---- Konsistensi agregat terhadap komponen penyusunnya (hanya untuk hasil yang sah) ----
+        var consistency = new List<string>();
+        if (succeeded)
+        {
+            var earningSum = components.Where(c => string.Equals(c.ComponentTypeSnapshot, "Earning", StringComparison.OrdinalIgnoreCase)).Sum(c => c.Amount);
+            var deductionSum = components
+                .Where(c => c.ComponentTypeSnapshot is "Deduction" or "Tax" or "Insurance")
+                .Sum(c => c.Amount);
+            if (Math.Abs(employee.GrossPay - earningSum) > 0.01m)
+                consistency.Add($"Gaji bruto (Rp {employee.GrossPay:N2}) tidak sama dengan jumlah komponen penghasilan (Rp {earningSum:N2}).");
+            if (Math.Abs(employee.TotalDeduction - deductionSum) > 0.01m)
+                consistency.Add($"Total potongan (Rp {employee.TotalDeduction:N2}) tidak sama dengan jumlah komponen potongan (Rp {deductionSum:N2}).");
+            if (Math.Abs(employee.NetPay - (employee.GrossPay - employee.TotalDeduction)) > 0.01m)
+                consistency.Add($"Gaji bersih (Rp {employee.NetPay:N2}) tidak sama dengan gaji bruto dikurangi total potongan (Rp {employee.GrossPay - employee.TotalDeduction:N2}).");
+        }
+
+        var period = run.PayrollPeriod;
         var account = employee.BankAccountNumberSnapshot;
         return new PayrollRunEmployeeDetailResponse
         {
@@ -1127,7 +1262,7 @@ public sealed class PayrollRunService
             TotalDeduction = employee.TotalDeduction,
             NetPay = employee.NetPay,
             ValidationMessage = employee.ValidationResultJson,
-            Installment = line,
+            Installment = installments.FirstOrDefault(),
             ScheduledWorkMinutes = employee.ScheduledWorkMinutes,
             ActualWorkMinutes = employee.ActualWorkMinutes,
             LateMinutes = employee.LateMinutes,
@@ -1139,9 +1274,7 @@ public sealed class PayrollRunService
             BankAccountMasked = MaskAccount(account),
             TaxStatus = employee.TaxStatusSnapshot,
             IsSnapshotFrozen = employee.IsSnapshotFrozen,
-            Components = employee.Components
-                .Where(c => !c.IsDelete)
-                .OrderBy(c => c.SortOrder).ThenBy(c => c.ComponentCodeSnapshot)
+            Components = components
                 .Select(c => new PayrollRunComponentLineResponse
                 {
                     Id = c.Id,
@@ -1154,9 +1287,175 @@ public sealed class PayrollRunService
                     IsProrated = c.IsProrated,
                     IsManual = c.IsManual,
                     Formula = c.FormulaSnapshot,
-                    SortOrder = c.SortOrder
-                }).ToList()
+                    SortOrder = c.SortOrder,
+                    SourceId = c.SourceId,
+                    CalculationMethod = c.CalculationMethodSnapshot
+                }).ToList(),
+
+            RunId = run.Id,
+            RunNumber = run.RunNumber,
+            RunStatus = run.RunStatus,
+            IsRunLocked = run.IsLocked,
+            DepartmentName = employee.DepartmentNameSnapshot,
+            PositionName = employee.PositionNameSnapshot,
+            PayrollPeriodCode = period?.PayrollPeriodCode ?? string.Empty,
+            PayrollPeriodName = period?.PayrollPeriodName ?? string.Empty,
+            PeriodStartDate = period?.StartDate,
+            PeriodEndDate = period?.EndDate,
+
+            CalculationState = state,
+            IsCalculated = succeeded,
+            CalculationFailed = failed,
+            CalculatedAt = attempted ? run.CalculatedAt : null,
+            SnapshotFrozenAt = employee.SnapshotFrozenAt,
+            ValidationIssues = issues.Distinct().ToList(),
+            CalculationWarnings = warnings.Distinct().ToList(),
+            ConsistencyIssues = consistency,
+
+            TotalFixedAllowance = SumOf(PayrollEngineComponentCodes.StructureAllowance, PayrollEngineComponentCodes.FixedAllowance, PayrollEngineComponentCodes.WorkforceAllowance),
+            TotalTransportAllowance = SumOf(PayrollEngineComponentCodes.TransportAllowance),
+            TotalAttendanceDeduction = attendanceDeduction,
+            TotalUnpaidLeaveDeduction = unpaidLeave,
+            TotalInstallmentDeduction = installmentDeduction,
+            TotalOtherDeduction = otherDeduction,
+            TotalEmployerInsuranceContribution = employee.TotalEmployerInsuranceContribution,
+
+            TaxCalculationSource = taxSnapshot is null ? TaxCalculationSourceText : DescribeTaxSource(taxSnapshot.Source),
+            // Kompatibel dengan klien lama: Configured hanya bila konfigurasi PPh dan iuran HRD lengkap; selain itu NotConfigured.
+            TaxCalculationStatus = !succeeded ? "NotCalculated" : taxIssues.Count > 0 ? "NotConfigured" : "Configured",
+            TaxConfigurationIssues = taxIssues,
+            Tax = taxSnapshot is null ? null : new PayrollRunTaxResultResponse
+            {
+                Source = taxSnapshot.Source,
+                ConfigurationStatus = taxSnapshot.ConfigurationStatus,
+                ResultStatus = taxSnapshot.ResultStatus,
+                Article = taxSnapshot.Article,
+                RecipientCategory = taxSnapshot.RecipientCategory,
+                CalculationMode = taxSnapshot.CalculationMode,
+                TaxMethod = taxSnapshot.TaxMethod,
+                PtkpStatus = taxSnapshot.PtkpStatus,
+                PolicyVersion = taxSnapshot.PolicyVersion,
+                Treatment = taxSnapshot.Treatment,
+                EmployeeAmount = taxSnapshot.EmployeeAmount,
+                EmployerBorneAmount = taxSnapshot.EmployerBorneAmount,
+                EffectiveStartDate = taxSnapshot.EffectiveStartDate,
+                EffectiveEndDate = taxSnapshot.EffectiveEndDate,
+                DecisionBasis = taxSnapshot.DecisionBasis,
+                ExemptionReason = taxSnapshot.ExemptionReason,
+                Issues = taxSnapshot.Issues,
+                Warnings = taxSnapshot.Warnings,
+                PolicyId = taxSnapshot.PolicyId,
+                PolicyLegalBasis = taxSnapshot.PolicyLegalBasis,
+                ManualAmountApprovalStatus = taxSnapshot.ManualAmountApprovalStatus,
+                TaxYear = taxSnapshot.TaxYear,
+                TaxMonth = taxSnapshot.TaxMonth,
+                IsLastTaxPeriod = taxSnapshot.IsLastTaxPeriod,
+                TaxableGross = taxSnapshot.TaxableGross,
+                EmployerPremium = taxSnapshot.EmployerPremium,
+                EmployeePension = taxSnapshot.EmployeePension,
+                Detail = taxSnapshot.Detail
+            },
+            Insurance = insuranceSnapshot is null ? null : new PayrollRunInsuranceResultResponse
+            {
+                Source = insuranceSnapshot.Source,
+                ConfigurationStatus = insuranceSnapshot.ConfigurationStatus,
+                ResultStatus = insuranceSnapshot.ResultStatus,
+                ParticipationStatus = insuranceSnapshot.ParticipationStatus,
+                Programs = insuranceSnapshot.Programs,
+                PolicyVersion = insuranceSnapshot.PolicyVersion,
+                PolicyId = insuranceSnapshot.PolicyId,
+                PolicyLegalBasis = insuranceSnapshot.PolicyLegalBasis,
+                JkkRiskClass = insuranceSnapshot.JkkRiskClass,
+                WageBase = insuranceSnapshot.WageBase,
+                WageBaseItems = (insuranceSnapshot.WageBaseItems ?? new List<PayrollWageBaseItem>())
+                    .Select(i => new PayrollRunWageBaseItemResponse
+                    {
+                        Source = i.Source,
+                        Name = i.Name,
+                        Amount = i.Amount,
+                        Classification = i.Classification,
+                        Reason = i.Reason
+                    })
+                    .ToList(),
+                EmployeeTotal = insuranceSnapshot.EmployeeTotal,
+                EmployerTotal = insuranceSnapshot.EmployerTotal,
+                Lines = insuranceSnapshot.Lines
+                    .Select(l => new PayrollRunInsuranceLineResponse
+                    {
+                        Code = l.Code,
+                        Program = l.Program,
+                        PaidBy = l.PaidBy,
+                        BaseAmount = l.BaseAmount,
+                        Rate = l.Rate,
+                        Amount = l.Amount
+                    })
+                    .ToList(),
+                Issues = insuranceSnapshot.Issues,
+                Warnings = insuranceSnapshot.Warnings
+            },
+            EnableBpjsInPayroll = _policy.EnableBpjsInPayroll,
+            IsTestingModeWithoutBpjs = run.CalculatedAt.HasValue
+                ? PayrollTaxInsuranceRules.IsTestingModeWithoutBpjs(run.PolicySnapshotJson)
+                : !_policy.EnableBpjsInPayroll,
+
+            Installments = installments
         };
+    }
+
+    private const string InstallmentSourceType = "FinanceReceivableInstallment";
+
+    /// <summary>
+    /// Sumber PPh dan iuran bila run belum punya snapshot konfigurasi. Sumber resminya adalah konfigurasi HRD (Profil Pajak dan Profil
+    /// Iuran); skema otomatis PPh belum tersedia karena belum ada kebijakan tarif berversi. Kontribusi pemberi kerja tidak mengurangi
+    /// gaji bersih.
+    /// </summary>
+    private const string TaxCalculationSourceText = "Konfigurasi HRD (Profil Pajak dan Profil Iuran); belum ada hasil hitung dengan snapshot konfigurasi";
+
+    private static readonly JsonSerializerOptions SnapshotJsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    private static T? ReadSnapshot<T>(string? json) where T : class
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try { return JsonSerializer.Deserialize<T>(json, SnapshotJsonOptions); }
+        catch (JsonException) { return null; }
+    }
+
+    private static string DescribeTaxSource(string source) => source switch
+    {
+        PayrollTaxInsuranceSources.HrdProfile => "Konfigurasi HRD (Profil Pajak) dan kebijakan tarif PPh berversi",
+        PayrollTaxInsuranceSources.LegacyProfileAmount => "Tetapan lama profil payroll (cadangan; konfigurasi HRD belum lengkap)",
+        _ => "Belum ada sumber PPh yang sah"
+    };
+
+    /// <summary>Galat dan peringatan per penerima dari hasil hitung terakhir (CalculationResultJson). JSON lama tanpa daftar terbaca kosong.</summary>
+    private static (List<string> Errors, List<string> Warnings) ReadEmployeeResult(string? json)
+    {
+        var errors = new List<string>();
+        var warnings = new List<string>();
+        if (string.IsNullOrWhiteSpace(json)) return (errors, warnings);
+
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            if (document.RootElement.ValueKind != JsonValueKind.Object) return (errors, warnings);
+            AddStrings(document.RootElement, "errors", errors);
+            AddStrings(document.RootElement, "warnings", warnings);
+        }
+        catch (JsonException)
+        {
+            // JSON rusak tidak menggagalkan pembacaan rincian; daftarnya dibiarkan kosong.
+        }
+
+        return (errors, warnings);
+
+        static void AddStrings(JsonElement root, string name, List<string> target)
+        {
+            if (!root.TryGetProperty(name, out var array) || array.ValueKind != JsonValueKind.Array) return;
+            foreach (var item in array.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(item.GetString())) target.Add(item.GetString()!);
+            }
+        }
     }
 
     /// <summary>

@@ -32,6 +32,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
         public bool IsAttendanceBased { get; set; }
         public bool IsProrated { get; set; }
         public bool IsTaxable { get; set; }
+
+        /// <summary>Klasifikasi tunjangan tetap; terpisah dari IsTaxable. Transportasi berbasis kehadiran/per hari tidak pernah tunjangan tetap. Null = belum diklasifikasikan.</summary>
+        public bool? IsFixedAllowance { get; set; }
+
+        /// <summary>Masuk dasar upah iuran BPJS; hanya boleh true bila IsFixedAllowance true.</summary>
+        public bool? IncludeInBpjsWageBase { get; set; }
         public bool IsIncludedInPayroll { get; set; }
         public bool IncludeBusinessTravelDay { get; set; }
         public bool IncludePaidLeaveDay { get; set; }
@@ -143,6 +149,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
         public bool IsAttendanceBased { get; set; }
         public bool IsProrated { get; set; } = true;
         public bool IsTaxable { get; set; } = true;
+
+        /// <summary>Klasifikasi tunjangan tetap; terpisah dari IsTaxable. Kosong = belum diklasifikasikan.</summary>
+        public bool? IsFixedAllowance { get; set; }
+
+        /// <summary>Masuk dasar upah iuran BPJS; hanya boleh true bila IsFixedAllowance true.</summary>
+        public bool? IncludeInBpjsWageBase { get; set; }
         public bool IsIncludedInPayroll { get; set; } = true;
         public bool IncludeBusinessTravelDay { get; set; }
         public bool IncludePaidLeaveDay { get; set; }

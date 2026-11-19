@@ -32,6 +32,18 @@ public sealed class PayrollPolicyOptions
     public bool RequireDifferentApprover { get; set; } = false;
 
     /// <summary>
+    /// Saklar jalur perhitungan lama (modul "Modern": <c>PayrollRunModernController</c>). Payroll Run resmi adalah satu-satunya pemilik hasil
+    /// gaji. Konsumen jalur lama di Frontend (layar HR payroll lama: siklus, wizard, persetujuan, handoff, variansi, pengaturan) tidak lagi
+    /// memiliki route maupun menu yang dapat dijangkau (diperiksa statis pada kode Frontend), sehingga bawaannya false: seluruh aksi tulis
+    /// jalur lama ditolak (HTTP 422), sedangkan pembacaan riwayat tetap berjalan dan tidak ada data historis yang dihapus. Setel true
+    /// HANYA bila ada run lama yang masih berjalan di alur persetujuan lama dan perlu diselesaikan; riwayat database wajib diperiksa
+    /// pemilik sebelum saklar dibiarkan mati. Terlepas dari saklar ini: kalkulasi PPh dan BPJS jalur lama SELALU ditolak (tarifnya tertanam
+    /// atau berasal dari nilai bawaan yang belum diverifikasi), dan run yang sudah dihitung mesin resmi tidak pernah dapat diubah jalur
+    /// lama (mencegah komponen ganda).
+    /// </summary>
+    public bool LegacyModernMutationsEnabled { get; set; } = false;
+
+    /// <summary>
     /// NEEDS CONFIRMATION. Persentase maksimum potongan cicilan terhadap gaji bersih yang tersedia, dipakai HANYA bila master jenis
     /// potongan tidak menentukan persentase. Nilai bawaan 50 sama dengan perilaku sebelumnya; ubah setelah kebijakan disahkan.
     /// </summary>
@@ -66,6 +78,18 @@ public sealed class PayrollPolicyOptions
 
     /// <summary>Batas jumlah pegawai per permintaan simulasi penggajian (PRL-DEC-32, validasi SIM-02).</summary>
     public int SimulationMaxEmployees { get; set; } = 50;
+
+    /// <summary>
+    /// Saklar tunggal fitur BPJS Kesehatan dan BPJS Ketenagakerjaan (BE-06), dibaca lewat <c>IBpjsFeatureGate</c>: Payroll (iuran,
+    /// kebijakan, kepesertaan), HRD (klaim COB/SEP, nomor kepesertaan benefit), dan K3 (klaim dan worker JKK) mengikuti nilai yang sama,
+    /// begitu pula Frontend lewat <c>GET api/v1/system/features</c>.
+    ///
+    /// Bawaan <c>false</c> (BPJS dinonaktifkan sementara, keputusan pemilik 2026-11-18): BPJS tidak dihitung, tidak ada kebijakan,
+    /// kepesertaan, nomor klaim, atau formulir BPJS baru, dan konfigurasinya tidak tampil. Data dan riwayat tidak dihapus. Setel
+    /// <c>true</c> secara eksplisit untuk mengaktifkan kembali. Run yang dihitung saat <c>false</c> ditandai mode pengujian dan
+    /// ditahan dari Finance Handoff produksi sampai ada keputusan bisnis yang sah (pengaman tidak dilemahkan).
+    /// </summary>
+    public bool EnableBpjsInPayroll { get; set; } = false;
 }
 
 public static class PayrollPayslipPublishTriggers

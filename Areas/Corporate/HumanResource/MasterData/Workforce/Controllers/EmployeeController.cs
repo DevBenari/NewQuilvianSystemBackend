@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyA
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
@@ -53,19 +54,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
         private readonly OrganizationAuthorizationProjectionService _authorizationProjection;
+        private readonly IWorkforceIdentityResolverService _identityResolver;
 
         public EmployeeController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration,
-            OrganizationAuthorizationProjectionService authorizationProjection)
+            OrganizationAuthorizationProjectionService authorizationProjection,
+            IWorkforceIdentityResolverService identityResolver)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _userManager = userManager;
             _configuration = configuration;
             _authorizationProjection = authorizationProjection;
+            _identityResolver = identityResolver;
         }
 
         private static List<EmployeeDetailTabMetadataResponse> BuildEmployeeDetailTabs()
@@ -1056,6 +1060,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 ));
             }
 
+            if (!_identityResolver.IsValidIdentity(request.IdentityType, request.IdentityNumber, out var identityErr))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    identityErr ?? "Nomor identitas tidak valid."
+                ));
+            }
+
             var now = DateTime.UtcNow;
             var userId = GetCurrentUserId();
 
@@ -1063,26 +1075,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
 
             try
             {
-                var workforceProfile = new MstWorkforceProfile
+                ResolvedWorkforceProfileResult profileResult;
+                try
                 {
-                    Id = Guid.NewGuid(),
-                    ProfileCode = await GenerateWorkforceProfileCodeAsync(),
-                    UserType = UserType.Employee,
-                    DisplayName = request.FullName.Trim(),
-                    Email = request.Email.Trim().ToLowerInvariant(),
-                    PhoneNumber = NormalizeDigitsOnly(request.PhoneNumber),
-                    WhatsAppNumber = NormalizeDigitsOnly(request.WhatsAppNumber),
-                    PrimaryDepartmentId = request.PrimaryDepartmentId,
-                    PrimaryPositionId = request.PrimaryPositionId,
-                    IsActive = true,
-                    CreateDateTime = now,
-                    CreateBy = userId,
-                    IsDelete = false,
-                    IsCancel = false
-                };
+                    profileResult = await _identityResolver.ResolveOrCreateProfileAsync(
+                        request.IdentityType,
+                        request.IdentityNumber,
+                        request.FullName,
+                        request.Email,
+                        request.PhoneNumber,
+                        request.WhatsAppNumber,
+                        request.PrimaryDepartmentId,
+                        request.PrimaryPositionId,
+                        UserType.Employee,
+                        userId
+                    );
+                }
+                catch (InvalidOperationException ex) when (ex.Message.StartsWith("DUPLICATE_ROLE"))
+                {
+                    await transaction.RollbackAsync();
+                    return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Pegawai dengan nomor identitas ini sudah terdaftar.",
+                        "DUPLICATE_IDENTITY_NUMBER"
+                    ));
+                }
 
-                _dbContext.Set<MstWorkforceProfile>().Add(workforceProfile);
-                await _dbContext.SaveChangesAsync();
+                var workforceProfile = profileResult.Profile;
 
                 var entity = new MstEmployee
                 {
@@ -1306,6 +1325,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                         "EMPLOYMENT_FIELDS_MANAGED_BY_CONTRACT"
                     ));
                 }
+            }
+
+            // Guard FIN-HRD-04-BE-003 / HRD-DEC-052: Data identitas resmi dan status pernikahan sensitif dikunci dari edit langsung
+            var oldIdentity = NormalizeDigitsOnly(entity.IdentityNumber) ?? string.Empty;
+            var newIdentity = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty;
+            if (!string.Equals(oldIdentity, newIdentity, StringComparison.OrdinalIgnoreCase))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan Nomor Identitas (NIK/Paspor) adalah data sensitif dan tidak dapat diubah langsung melalui Master Data Pegawai. Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data (HRD-DEC-052).",
+                    "SENSITIVE_IDENTITY_FIELD_LOCKED"
+                ));
+            }
+
+            if (entity.MaritalStatus != request.MaritalStatus && entity.MaritalStatus != MaritalStatus.Unknown)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan Status Pernikahan adalah data sensitif yang memengaruhi pajak dan benefit, tidak dapat diubah langsung melalui Master Data Pegawai. Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data (HRD-DEC-052).",
+                    "SENSITIVE_MARITAL_STATUS_LOCKED"
+                ));
             }
 
             var requiredValidation = ValidateRequiredEmployeeRequest(request);

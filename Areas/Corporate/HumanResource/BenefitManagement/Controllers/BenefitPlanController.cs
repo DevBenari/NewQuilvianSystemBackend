@@ -5,6 +5,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Serv
 using System.Security.Claims;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Features;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Controllers
 {
@@ -88,8 +90,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            var result = await _benefitPlanService.CreateBenefitPlanAsync(request, GetCurrentUserId(), cancellationToken);
-            return CreatedAtAction(nameof(GetBenefitPlanById), new { id = result.Id }, result);
+            try
+            {
+                var result = await _benefitPlanService.CreateBenefitPlanAsync(request, GetCurrentUserId(), cancellationToken);
+                return CreatedAtAction(nameof(GetBenefitPlanById), new { id = result.Id }, result);
+            }
+            catch (BpjsFeatureDisabledException ex)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(StatusCodes.Status409Conflict, ex.Message));
+            }
         }
 
         /// <summary>
@@ -105,8 +114,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            var result = await _benefitPlanService.UpdateBenefitPlanAsync(id, request, GetCurrentUserId(), cancellationToken);
-            return Ok(result);
+            try
+            {
+                var result = await _benefitPlanService.UpdateBenefitPlanAsync(id, request, GetCurrentUserId(), cancellationToken);
+                return Ok(result);
+            }
+            catch (BpjsFeatureDisabledException ex)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(StatusCodes.Status409Conflict, ex.Message));
+            }
         }
 
         /// <summary>

@@ -87,7 +87,12 @@ public sealed class PaymentHistoryTenderResponse
     public Guid Id { get; set; }
     public Guid SettlementId { get; set; }
     public string KwitansiNumber { get; set; } = string.Empty;
+
+    // Pembayaran NETO yang melunasi tagihan. Uang fisik dan kembalian (khusus tunai) dibawa terpisah;
+    // null untuk non-tunai dan tender tunai lama sebelum kolomnya ada.
     public decimal Amount { get; set; }
+    public decimal? CashTenderedAmount { get; set; }
+    public decimal? CashChangeAmount { get; set; }
     public DateTimeOffset AttemptedAt { get; set; }
 
     // Klasifikasi transaksi pembayaran: "PELUNASAN", "CICILAN"

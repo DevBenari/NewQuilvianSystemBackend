@@ -61,13 +61,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             [FromQuery] string? status,
             [FromQuery] string? separationReason,
             [FromQuery] Guid? departmentId,
+            [FromQuery] int? pageNumber,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
             CancellationToken cancellationToken = default)
         {
             try
             {
-                var result = await _separationService.GetSeparationsAsync(status, separationReason, departmentId, page, pageSize, cancellationToken);
+                var targetPage = pageNumber ?? page;
+                var result = await _separationService.GetSeparationsAsync(status, separationReason, departmentId, targetPage, pageSize, cancellationToken);
                 return Ok(ApiResponse<PagedResult<SeparationResponseDto>>.Ok(result, "Daftar proses terminasi kerja berhasil diambil."));
             }
             catch (Exception ex)

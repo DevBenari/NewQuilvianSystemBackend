@@ -106,9 +106,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             return ToActionResult(await _workflowService.GetWorkflowAsync(id, cancellationToken));
         }
 
+        [HttpPost]
+        [AccessAction("Create", "Create Resignation Request", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("ResignationRequest", "Create")]
+        public async Task<IActionResult> Create(
+            [FromBody] CreateResignationAdminRequest request,
+            CancellationToken cancellationToken)
+        {
+            if (!TryGetUserId(out var actorUserId)) return UnauthorizedResponse();
+            return ToActionResult(await _service.CreateAdminDraftAsync(request, actorUserId, cancellationToken));
+        }
+
         [HttpPost("{id:guid}/workflow/synchronize")]
-        [AccessAction("Synchronize", "Synchronize Resignation Workflow", AccessType = AccessTypes.Update, SortOrder = 2)]
-        [AccessPermission("ResignationRequest", "Update")]
+        [AccessAction("Synchronize", "Synchronize Resignation Workflow", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("ResignationRequest", "Synchronize")]
         public async Task<IActionResult> Synchronize(Guid id, CancellationToken cancellationToken)
         {
             if (!TryGetUserId(out var actorUserId)) return UnauthorizedResponse();
@@ -118,9 +129,41 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 cancellationToken));
         }
 
+        [HttpPost("{id:guid}/approve")]
+        [AccessAction("Approve", "Approve Resignation Request", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("ResignationRequest", "Approve")]
+        public async Task<IActionResult> Approve(
+            Guid id,
+            [FromBody] ResignationApproveRequest? request,
+            CancellationToken cancellationToken)
+        {
+            if (!TryGetUserId(out var actorUserId)) return UnauthorizedResponse();
+            return ToActionResult(await _service.ApproveAsync(
+                id,
+                actorUserId,
+                request?.Comment,
+                cancellationToken));
+        }
+
+        [HttpPost("{id:guid}/reject")]
+        [AccessAction("Reject", "Reject Resignation Request", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("ResignationRequest", "Reject")]
+        public async Task<IActionResult> Reject(
+            Guid id,
+            [FromBody] ResignationRejectRequest request,
+            CancellationToken cancellationToken)
+        {
+            if (!TryGetUserId(out var actorUserId)) return UnauthorizedResponse();
+            return ToActionResult(await _service.RejectAsync(
+                id,
+                actorUserId,
+                request.RejectionReason,
+                cancellationToken));
+        }
+
         [HttpPost("{id:guid}/handoff")]
-        [AccessAction("Handoff", "Handoff Resignation To Offboarding", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("ResignationRequest", "Update")]
+        [AccessAction("Handoff", "Handoff Resignation To Offboarding", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("ResignationRequest", "Handoff")]
         public async Task<IActionResult> Handoff(
             Guid id,
             [FromBody] ResignationHandoffRequest request,

@@ -143,14 +143,16 @@ public class StockRequestController : ControllerBase
     /// <remarks>
     /// <para>
     /// Ini satu-satunya perintah milik gudang. Gudang tidak menyetujui dan tidak menolak
-    /// permintaan; ia melihat apa yang diminta, lalu mencatat berapa yang benar-benar
-    /// diserahkan ketika depo mengambil. Hak aksesnya dipisah dari hak akses peminta,
-    /// supaya penyusun permintaan tidak dengan sendirinya boleh menutup permintaannya.
+    /// permintaan; keputusan milik atasan unit atau petugas CITO berwenang. Sejak
+    /// <c>LGS-DEC-002</c> gudang hanya dapat menyerahkan permintaan berstatus Disetujui;
+    /// permintaan yang masih menunggu persetujuan ditolak (`409`, kode <c>PHM016</c>). Hak
+    /// aksesnya dipisah dari hak akses peminta, supaya penyusun permintaan tidak dengan
+    /// sendirinya boleh menutup permintaannya.
     /// </para>
     /// <para>
     /// Perintah ini mengurangi saldo gudang asal dan menulis kartu stok. Batch yang paling
     /// dekat kedaluwarsa diambil lebih dahulu. Bila stoknya tidak mencukupi, seluruh
-    /// penyerahan dibatalkan dan permintaan tetap berstatus Terkirim — tidak ada permintaan
+    /// penyerahan dibatalkan dan permintaan tetap berstatus Disetujui — tidak ada permintaan
     /// yang tertutup padahal barangnya tidak pernah keluar.
     /// </para>
     /// <para>
@@ -194,6 +196,140 @@ public class StockRequestController : ControllerBase
             var data = await _service.CancelAsync(id, request, cancellationToken);
             return Ok(ApiResponse<StockRequestDetailResponse>.Ok(data,
                 "Permintaan stok berhasil dibatalkan."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+        }
+        catch (StockRequestForbiddenException ex) { return this.StockRequestForbidden(ex); }
+        catch (StockRequestConflictException ex) { return this.StockRequestConflict(ex); }
+        catch (StockRequestUnprocessableException ex) { return this.StockRequestUnprocessable(ex); }
+    }
+
+    /// <summary>
+    /// Persetujuan atasan unit atas permintaan yang menunggu persetujuan (<c>LGS-DEC-002</c>).
+    /// </summary>
+    /// <remarks>
+    /// Izin <c>StockRequest:Approve</c> diperiksa filter di bawah (kebijakan platform) dan
+    /// diperiksa ulang oleh service secara eksplisit terhadap penempatan jabatan, sehingga peran
+    /// SuperAdmin maupun saklar pengembangan tidak melewatinya. Pemutus juga wajib atasan unit
+    /// dari unit peminta: penempatan manajerial aktif pada unit organisasi yang ditautkan ke unit
+    /// layanan itu (`403` bila tidak, termasuk bila unit layanan belum ditautkan). Pemohon tidak boleh
+    /// menyetujui permintaannya sendiri (`403`). Keputusan hanya sah sekali (`409`, kode
+    /// <c>PHM018</c>). Tidak ada mutasi stok pada langkah ini.
+    /// </remarks>
+    [HttpPost("{id:guid}/approve")]
+    [ProducesResponseType(typeof(ApiResponse<StockRequestDetailResponse>), StatusCodes.Status200OK)]
+    [AccessAction("Approve", "Approve Stock Request",
+        Description = "Menyetujui atau menolak permintaan stok sebagai atasan unit",
+        AccessType = AccessTypes.Update, SortOrder = 10)]
+    [AccessPermission("StockRequest", "Approve")]
+    public async Task<IActionResult> Approve(Guid id, [FromBody] ApproveStockRequestRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.ApproveAsync(id, request, cancellationToken);
+            return Ok(ApiResponse<StockRequestDetailResponse>.Ok(data,
+                "Permintaan stok disetujui dan siap diproses gudang."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+        }
+        catch (StockRequestForbiddenException ex) { return this.StockRequestForbidden(ex); }
+        catch (StockRequestConflictException ex) { return this.StockRequestConflict(ex); }
+        catch (StockRequestUnprocessableException ex) { return this.StockRequestUnprocessable(ex); }
+    }
+
+    /// <summary>
+    /// Penolakan atasan unit; alasannya wajib (`422`, kode <c>PHM015</c>). Kewenangannya sama
+    /// dengan persetujuan: izin dan atasan unit dari unit peminta.
+    /// </summary>
+    [HttpPost("{id:guid}/reject")]
+    [ProducesResponseType(typeof(ApiResponse<StockRequestDetailResponse>), StatusCodes.Status200OK)]
+    [AccessAction("Approve", "Approve Stock Request",
+        Description = "Menyetujui atau menolak permintaan stok sebagai atasan unit",
+        AccessType = AccessTypes.Update, SortOrder = 11)]
+    [AccessPermission("StockRequest", "Approve")]
+    public async Task<IActionResult> Reject(Guid id, [FromBody] RejectStockRequestRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.RejectAsync(id, request, cancellationToken);
+            return Ok(ApiResponse<StockRequestDetailResponse>.Ok(data,
+                "Permintaan stok ditolak."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+        }
+        catch (StockRequestForbiddenException ex) { return this.StockRequestForbidden(ex); }
+        catch (StockRequestConflictException ex) { return this.StockRequestConflict(ex); }
+        catch (StockRequestUnprocessableException ex) { return this.StockRequestUnprocessable(ex); }
+    }
+
+    /// <summary>
+    /// Otorisasi jalur CITO oleh petugas berwenang atas permintaan darurat yang menunggu.
+    /// </summary>
+    /// <remarks>
+    /// Izin <c>StockRequest:AuthorizeEmergency</c> terpisah dari persetujuan biasa dan tidak
+    /// dimiliki siapa pun sampai diberikan secara eksplisit. Filter di atas mengikuti kebijakan
+    /// platform yang meloloskan SuperAdmin; service memeriksa ulang bahwa izin itu benar-benar
+    /// diberikan kepada penempatan jabatan petugas, sehingga peran SuperAdmin saja ditolak
+    /// (`403`). Alasan wajib; permintaan non-darurat ditolak (`422`, kode <c>PHM017</c>).
+    /// </remarks>
+    [HttpPost("{id:guid}/authorize-emergency")]
+    [ProducesResponseType(typeof(ApiResponse<StockRequestDetailResponse>), StatusCodes.Status200OK)]
+    [AccessAction("AuthorizeEmergency", "Authorize Emergency Stock Request",
+        Description = "Mengotorisasi permintaan stok CITO lewat jalur darurat",
+        AccessType = AccessTypes.Update, SortOrder = 12)]
+    [AccessPermission("StockRequest", "AuthorizeEmergency")]
+    public async Task<IActionResult> AuthorizeEmergency(Guid id,
+        [FromBody] AuthorizeEmergencyStockRequestRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.AuthorizeEmergencyAsync(id, request, cancellationToken);
+            return Ok(ApiResponse<StockRequestDetailResponse>.Ok(data,
+                "Permintaan stok CITO diotorisasi dan diprioritaskan ke gudang."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+        }
+        catch (StockRequestForbiddenException ex) { return this.StockRequestForbidden(ex); }
+        catch (StockRequestConflictException ex) { return this.StockRequestConflict(ex); }
+        catch (StockRequestUnprocessableException ex) { return this.StockRequestUnprocessable(ex); }
+    }
+
+    /// <summary>
+    /// Verifikasi administratif susulan atas permintaan CITO yang diotorisasi lewat jalur
+    /// darurat (<c>LGS-DEC-005</c>).
+    /// </summary>
+    /// <remarks>
+    /// Memakai izin persetujuan yang sama (<c>StockRequest:Approve</c>), karena verifikatornya
+    /// atasan unit peminta. Service memeriksa ulang izin itu secara eksplisit, kewenangan atas
+    /// unit, serta melarang pemohon dan petugas pengotorisasi CITO memverifikasi (`403`). Hasil
+    /// <c>Deviation</c> wajib disertai catatan (`422`, <c>PHM008</c>). Verifikasi hanya sah sekali
+    /// (`409`, <c>PHM019</c>); permintaan yang tidak lewat jalur CITO ditolak (`409`,
+    /// <c>PHM010</c>). Tidak ada perubahan status maupun mutasi stok.
+    /// </remarks>
+    [HttpPost("{id:guid}/verify-emergency")]
+    [ProducesResponseType(typeof(ApiResponse<StockRequestDetailResponse>), StatusCodes.Status200OK)]
+    [AccessAction("Approve", "Approve Stock Request",
+        Description = "Menyetujui atau menolak permintaan stok sebagai atasan unit",
+        AccessType = AccessTypes.Update, SortOrder = 13)]
+    [AccessPermission("StockRequest", "Approve")]
+    public async Task<IActionResult> VerifyEmergency(Guid id,
+        [FromBody] VerifyEmergencyStockRequestRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.VerifyEmergencyAsync(id, request, cancellationToken);
+            return Ok(ApiResponse<StockRequestDetailResponse>.Ok(data,
+                "Verifikasi susulan CITO tercatat."));
         }
         catch (KeyNotFoundException ex)
         {

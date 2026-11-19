@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Services.Features;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services
 {
@@ -13,13 +14,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<BenefitPlanService> _logger;
+        private readonly IBpjsFeatureGate _bpjsGate;
+
+        private const string BpjsMandatoryCategory = "BPJS_Mandatory";
 
         public BenefitPlanService(
             ApplicationDbContext dbContext,
-            ILogger<BenefitPlanService> logger)
+            ILogger<BenefitPlanService> logger,
+            IBpjsFeatureGate bpjsGate)
         {
             _dbContext = dbContext;
             _logger = logger;
+            _bpjsGate = bpjsGate;
+        }
+
+        /// <summary>
+        /// Saat fitur BPJS nonaktif, paket kategori BPJS_Mandatory tidak boleh dibuat, diubah, atau diberi aturan kelayakan baru.
+        /// Paket dan riwayatnya tetap tersimpan dan dapat dibaca; paket non-BPJS tidak terdampak.
+        /// </summary>
+        private void EnsureBpjsPlanChangeAllowed(string? category)
+        {
+            if (!_bpjsGate.IsEnabled && string.Equals(category, BpjsMandatoryCategory, StringComparison.Ordinal))
+            {
+                throw new BpjsFeatureDisabledException(_bpjsGate.DisabledMessage);
+            }
         }
 
         public async Task<List<BenefitPlanResponseDto>> GetBenefitPlansAsync(
@@ -71,6 +89,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             Guid userId,
             CancellationToken cancellationToken = default)
         {
+            EnsureBpjsPlanChangeAllowed(request.BenefitCategory);
+
             bool exists = await _dbContext.MstBenefitPlans
                 .AnyAsync(p => p.BenefitPlanCode == request.BenefitPlanCode && !p.IsDelete, cancellationToken);
 
@@ -130,13 +150,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 throw new KeyNotFoundException($"Paket manfaat dengan ID {id} tidak ditemukan.");
             }
 
+            // Paket BPJS tidak dapat diubah, dan paket lain tidak dapat dialihkan menjadi BPJS, selama fitur BPJS nonaktif.
+            EnsureBpjsPlanChangeAllowed(plan.BenefitCategory);
+            EnsureBpjsPlanChangeAllowed(request.BenefitCategory);
+
             plan.BenefitPlanName = request.BenefitPlanName.Trim();
             plan.BenefitCategory = request.BenefitCategory;
             plan.CoverageTier = request.CoverageTier;
             plan.ProviderName = request.ProviderName;
             plan.CoverageLimitAmount = request.CoverageLimitAmount;
             plan.HospitalDiscountPercentage = request.HospitalDiscountPercentage;
-            plan.RequiresBPJSPrimaryCOB = request.RequiresBPJSPrimaryCOB;
+            // Syarat COB BPJS hanya disimpan saat fitur BPJS aktif. Saat nonaktif Frontend tidak mengirim kolom ini sehingga nilai bawaan
+            // DTO (true) tidak boleh menimpa nilai tersimpan.
+            if (_bpjsGate.IsEnabled)
+            {
+                plan.RequiresBPJSPrimaryCOB = request.RequiresBPJSPrimaryCOB;
+            }
             plan.MinimumServiceMonths = request.MinimumServiceMonths;
             plan.Description = request.Description;
             plan.IsActive = request.IsActive;
@@ -183,6 +212,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             {
                 throw new KeyNotFoundException($"Paket manfaat dengan ID {request.BenefitPlanId} tidak ditemukan.");
             }
+
+            EnsureBpjsPlanChangeAllowed(plan.BenefitCategory);
 
             bool exists = await _dbContext.HrdBenefitGradeEligibilities
                 .AnyAsync(ge => ge.BenefitPlanId == request.BenefitPlanId &&
@@ -233,6 +264,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 throw new KeyNotFoundException($"Aturan kelayakan grade dengan ID {id} tidak ditemukan.");
             }
 
+            EnsureBpjsPlanChangeAllowed(eligibility.BenefitPlan?.BenefitCategory);
+
             eligibility.SpecificAnnualLimit = request.SpecificAnnualLimit;
             eligibility.InpatientRoomClass = request.InpatientRoomClass.Trim();
             eligibility.IsActive = request.IsActive;
@@ -251,12 +284,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             CancellationToken cancellationToken = default)
         {
             var eligibility = await _dbContext.HrdBenefitGradeEligibilities
+                .Include(ge => ge.BenefitPlan)
                 .FirstOrDefaultAsync(ge => ge.Id == id && !ge.IsDelete, cancellationToken);
 
             if (eligibility == null)
             {
                 throw new KeyNotFoundException($"Aturan kelayakan grade dengan ID {id} tidak ditemukan.");
             }
+
+            EnsureBpjsPlanChangeAllowed(eligibility.BenefitPlan?.BenefitCategory);
 
             eligibility.IsDelete = true;
             eligibility.DeleteDateTime = DateTime.UtcNow;
@@ -293,10 +329,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             int addedCount = 0;
 
             // 1. BEN-BPJS-STD: Wajib Pemerintah
+            // Saat fitur BPJS nonaktif paket BPJS tidak disemai dan paket BPJS yang sudah ada tidak disentuh (termasuk matriks kelayakannya).
             var planBpjs = await _dbContext.MstBenefitPlans
                 .FirstOrDefaultAsync(p => p.BenefitPlanCode == "BEN-BPJS-STD" && !p.IsDelete, cancellationToken);
 
-            if (planBpjs == null)
+            if (!_bpjsGate.IsEnabled)
+            {
+                planBpjs = null;
+            }
+            else if (planBpjs == null)
             {
                 planBpjs = new MstBenefitPlan
                 {
@@ -426,7 +467,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         }
 
         private async Task SeedGradeEligibilitiesIfMissing(
-            MstBenefitPlan bpjs,
+            MstBenefitPlan? bpjs,
             MstBenefitPlan exec,
             MstBenefitPlan staff,
             MstBenefitPlan inhouse,
@@ -456,8 +497,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 }
             }
 
-            // BPJS Wajib: Berlaku untuk semua grade
-            EnsureGe(bpjs.Id, "GRADE-ALL", "All", null, "Kelas 1");
+            // BPJS Wajib: Berlaku untuk semua grade (hanya saat fitur BPJS aktif)
+            if (bpjs != null)
+            {
+                EnsureGe(bpjs.Id, "GRADE-ALL", "All", null, "Kelas 1");
+            }
 
             // Executive: Khusus Grade-I (Dokter Spesialis / Direksi)
             EnsureGe(exec.Id, "GRADE-I", "Permanent", 50000000m, "VVIP");
@@ -510,6 +554,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
             foreach (var plan in allPlans)
             {
+                // Paket BPJS tidak dievaluasi saat fitur BPJS nonaktif: tidak ditawarkan sebagai hak baru dan tidak dianggap tidak layak.
+                if (!_bpjsGate.IsEnabled && plan.BenefitCategory == BpjsMandatoryCategory)
+                {
+                    continue;
+                }
+
                 // Aturan BEN-B1: BPJS Mandatory aktif H+0 Onboarding
                 if (plan.BenefitCategory == "BPJS_Mandatory")
                 {
@@ -590,7 +640,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 EligiblePlans = eligible,
                 IneligiblePlans = ineligible,
                 Message = isProbation
-                    ? $"Pegawai berada dalam masa percobaan ({serviceMonths} bulan). Hanya jaminan dasar BPJS Ketenagakerjaan/Kesehatan yang aktif. Paket asuransi swasta & subsidi RS berstatus ditahan (PendingActivation)."
+                    ? (_bpjsGate.IsEnabled
+                        ? $"Pegawai berada dalam masa percobaan ({serviceMonths} bulan). Hanya jaminan dasar BPJS Ketenagakerjaan/Kesehatan yang aktif. Paket asuransi swasta & subsidi RS berstatus ditahan (PendingActivation)."
+                        : $"Pegawai berada dalam masa percobaan ({serviceMonths} bulan). Paket asuransi swasta & subsidi RS berstatus ditahan (PendingActivation).")
                     : $"Evaluasi sukses: Pegawai berhak atas {eligible.Count} paket manfaat aktif sesuai grade {empGrade}."
             };
         }

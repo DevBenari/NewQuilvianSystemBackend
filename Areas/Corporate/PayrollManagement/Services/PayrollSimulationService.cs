@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
@@ -22,8 +23,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 ///   meninggalkan jejak;
 /// - sinkronisasi Finance dan potongan cicilan piutang (kriteria 4);
 /// - NumberSeriesAllocator (kriteria 4).
-/// Akibatnya simulasi menghitung gaji pokok, tunjangan struktur atau cadangan profil, transport bulanan, serta pajak dan iuran
-/// tetapan profil; komponen dari impor HR, input variabel, dan cicilan tidak ada. Hal ini dinyatakan di Notes respons.
+/// Akibatnya simulasi menghitung gaji pokok, tunjangan struktur atau cadangan profil, transport bulanan, serta PPh dan iuran dari
+/// konfigurasi HRD (penahan konfigurasi tampil sebagai peringatan); komponen dari impor HR, input variabel, dan cicilan tidak ada.
+/// Hal ini dinyatakan di Notes respons.
 /// </summary>
 public sealed class PayrollSimulationService
 {
@@ -35,17 +37,20 @@ public sealed class PayrollSimulationService
     private readonly PayrollCalculationService _calculationService;
     private readonly LoggerService _loggerService;
     private readonly PayrollPolicyOptions _policy;
+    private readonly IPayrollSettingService _settingService;
 
     public PayrollSimulationService(
         ApplicationDbContext dbContext,
         PayrollCalculationService calculationService,
         LoggerService loggerService,
-        IOptions<PayrollPolicyOptions> policyOptions)
+        IOptions<PayrollPolicyOptions> policyOptions,
+        IPayrollSettingService settingService)
     {
         _dbContext = dbContext;
         _calculationService = calculationService;
         _loggerService = loggerService;
         _policy = policyOptions.Value;
+        _settingService = settingService;
     }
 
     private sealed record Candidate(PrlPayroll Profile, Guid? EmployeeId, string Number, string Name);
@@ -70,6 +75,10 @@ public sealed class PayrollSimulationService
             "Simulasi tidak memuat penghasilan variabel dan potongan cicilan piutang; potongan yang tampil adalah potongan sebelum cicilan.",
             "Hasil simulasi tidak disimpan."
         };
+        if (!_policy.EnableBpjsInPayroll)
+        {
+            notes.Add("Mode pengujian aktif: kalkulasi BPJS Kesehatan dan BPJS Ketenagakerjaan dinonaktifkan sementara (belum dihitung).");
+        }
 
         var candidates = await LoadCandidatesAsync(period, requestedIds, notes, maxEmployees, cancellationToken);
 
@@ -97,6 +106,7 @@ public sealed class PayrollSimulationService
 
         response.PeriodCode = period.PayrollPeriodCode;
         response.PolicyVersion = _policy.PolicyVersion;
+        response.EnableBpjsInPayroll = _policy.EnableBpjsInPayroll;
         response.Notes.AddRange(notes);
 
         await _loggerService.AuditAsync(LogCategory, "PayrollRun.Simulate",
@@ -118,10 +128,13 @@ public sealed class PayrollSimulationService
     private async Task<List<Candidate>> LoadCandidatesAsync(
         MstPayrollPeriod period, List<Guid> requestedIds, List<string> notes, int maxEmployees, CancellationToken cancellationToken)
     {
+        // Pembanding kolom timestamptz wajib UTC; tanggal periode terbaca Unspecified dari kolom date (PayrollDateNormalizer).
+        var periodStart = PayrollDateNormalizer.ToUtcDate(period.StartDate);
+        var periodEnd = PayrollDateNormalizer.ToUtcDate(period.EndDate);
         var profilesQuery = _dbContext.PrlPayrolls.AsNoTracking()
             .Where(x => !x.IsDelete && x.IsActive && x.IsPayrollEligible && x.PayrollStatus == "Active"
-                && (x.EffectiveStartDate == null || x.EffectiveStartDate <= period.EndDate)
-                && (x.EffectiveEndDate == null || x.EffectiveEndDate >= period.StartDate));
+                && (x.EffectiveStartDate == null || x.EffectiveStartDate <= periodEnd)
+                && (x.EffectiveEndDate == null || x.EffectiveEndDate >= periodStart));
         if (requestedIds.Count > 0)
             profilesQuery = profilesQuery.Where(x => requestedIds.Contains(x.WorkforceProfileId));
 
@@ -181,12 +194,16 @@ public sealed class PayrollSimulationService
             RunType = SimulationRunType,
             RunStatus = PayrollRunStatuses.Draft,
             CurrencyCode = "IDR",
-            PeriodStartDateSnapshot = period.StartDate,
-            PeriodEndDateSnapshot = period.EndDate,
-            AttendanceCutoffDateSnapshot = period.AttendanceCutoffDate,
-            VariableInputCutoffDateSnapshot = period.VariableInputCutoffDate,
-            PaymentDateSnapshot = period.PaymentDate,
+            PeriodStartDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.StartDate),
+            PeriodEndDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.EndDate),
+            AttendanceCutoffDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.AttendanceCutoffDate),
+            VariableInputCutoffDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.VariableInputCutoffDate),
+            PaymentDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.PaymentDate),
             Notes = "Simulasi — transaksi selalu dibatalkan.",
+            // Snapshot Pengaturan Penggajian untuk parameter operasional (variansi, batas potongan). Tarif PPh dan iuran BPJS TIDAK dari sini:
+            // mesin yang sama dengan run resmi membaca kebijakan berversi yang disahkan, sehingga simulasi menahan perhitungan yang sama
+            // (Menunggu Verifikasi Kebijakan) alih-alih menghitung nol. Seluruhnya di dalam transaksi simulasi yang selalu dibatalkan.
+            ConfigurationSnapshotJson = await _settingService.GetSettingSnapshotJsonAsync(cancellationToken),
             CreateDateTime = now,
             CreateBy = actorUserId
         };
@@ -254,6 +271,9 @@ public sealed class PayrollSimulationService
         {
             calculation.EmployeeWarnings.TryGetValue(row.Id, out var warnings);
             calculation.EmployeeErrors.TryGetValue(row.Id, out var errors);
+            // Penahan konfigurasi PPh/iuran menahan pengajuan run resmi; simulasi menampilkannya sebagai peringatan bertanda.
+            if (calculation.EmployeeBlockers.TryGetValue(row.Id, out var configurationBlockers))
+                warnings = (warnings ?? new List<string>()).Concat(configurationBlockers.Select(b => $"Penahan konfigurasi: {b}")).ToList();
             response.Employees.Add(new PayrollSimulationEmployeeResponse
             {
                 WorkforceProfileId = row.WorkforceProfileId,
