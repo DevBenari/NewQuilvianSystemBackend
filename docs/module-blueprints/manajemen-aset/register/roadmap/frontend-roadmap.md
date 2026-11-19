@@ -35,9 +35,9 @@ REG-FE-S1 ─> REG-FE-S2
                                                         │
 BE-AST-006 [BE] ✅ ─> FE-AST-001 🟡 ─> FE-AST-002 ✅ ─┬─┴─> FE-AST-003 ✅ ─> FE-AST-004 ✅
                                                       │
-                                                      │  BE-AST-012 [BE] ─┐
+                                                      │  BE-AST-012 [BE] ✅ ─┐
                                                       │                   │
-                                                      └───────────────────┴─> FE-AST-009
+                                                      └───────────────────┴─> FE-AST-009 ✅
 ```
 
 ### Slice `REG-FE-S2` — Fitur register
@@ -49,19 +49,19 @@ BE-AST-006 [BE] ✅ ─> FE-AST-001 🟡 ─> FE-AST-002 ✅ ─┬─┴─> FE
                                   │
 FE-AST-004 ✅┬─────────────────────┴─> FE-AST-005 ✅
             │
-            │    BE-AST-009 [BE] ─┐
+            │  BE-AST-009 [BE] ✅ ─┐
             │                     │
-            ├─────────────────────┴─> FE-AST-006 ───────────┐
+            ├─────────────────────┴─> FE-AST-006 ✅ ────────┐
             │                                               │
-            │    BE-AST-010 [BE] ─┐                         │
+            │  BE-AST-010 [BE] ✅ ─┐                        │
             │                     │                         │
-            ├─────────────────────┴─> FE-AST-007 ─────────┐ │
+            ├─────────────────────┴─> FE-AST-007 ✅ ──────┐ │
             │                                             │ │
-            │    BE-AST-011 [BE] ─┐                       │ │
+            │  BE-AST-011 [BE] 🟡 ─┐                       │ │
             │                     │                       │ │
-            └─────────────────────┴─> FE-AST-008          │ │
+            └─────────────────────┴─> FE-AST-008 🟡       │ │
                                                           │ │
-                                     BE-AST-013 [BE] ─────┴─┴─> FE-AST-010
+                                     BE-AST-013 [BE] ✅ ──┴─┴─> FE-AST-010 ✅
 ```
 
 `[BE]` = task backend pada `backend-roadmap.md` sub-modul ini, cermin baca-saja.
@@ -130,37 +130,37 @@ Pasangan prasyarat→task: **18** (7 pada `REG-FE-S1`, 11 pada `REG-FE-S2`).
 | **Status** | ✅ **SELESAI 17 November 2026.** Layar Label Aset (`register/labels`: saringan unit, kelompok, tanggal disetujui dari/sampai; centang per baris/halaman, pilihan lintas halaman maks 200; **Cetak Label (n)** → PDF backend di tab baru, cadangan unduh bila diblokir), tombol Cetak Label di Detail Aset, layar pindai nomor beralih ke `GET /by-number` (403 unit lain tampil sebagai Akses Ditolak), butir menu "Label Aset". Kedua kriteria terpetakan ke source. `npx eslint --max-warnings=0` 12 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-17 11:04:19, route `register/labels`). Uji layar Playwright **22/22 langkah** dengan superadmin, penyetuju tanpa `ReadAllUnits`, dan LOKET; 0 galat halaman, 0 respons 5xx; cetak 26 aset lintas halaman → PDF 114.850 byte di tab `blob:`. Butuh tambalan daftar `BE-AST-007` (`approvedFrom`/`approvedTo`, `ApprovedAt`), build Rizki berhasil. Belum di-commit. Laporan: [`FE-AST-005.md`](../task/report/frontend/FE-AST-005.md) |
 | Acceptance criteria | 1. Pilih aset → PDF backend terbuka di tab baru. 2. Butir menu "Label Aset" terdaftar |
 
-### `FE-AST-006` — Penempatan dan berita acara penyerahan
+### ✅ `FE-AST-006` — Penempatan dan berita acara penyerahan
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 November 2026.** Layar Berita Acara Penyerahan (kartu ringkasan, tab status + "Menunggu Konfirmasi Anda (n)", saringan tujuan/unit/tanggal, aksi baris sesuai `availableActions`), Serahkan Aset (tujuan, unit → ruangan milik unit → pegawai PJ; pemilih aset lintas halaman maks 200, aset terkunci/hilang tidak dapat dipilih), rincian (Konfirmasi Terima, Tolak Terima, Batalkan beralasan, Cetak Berita Acara), dan tiga layar penempatan (per unit/ruangan, penanggung jawab, riwayat); grup menu "Penempatan & Tanggung Jawab Aset" 4 butir. Keempat kriteria terpetakan ke source; tanpa perubahan backend. `npx eslint --max-warnings=0` 27 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-17 15:31:36, 6 route `placement`). Uji layar Playwright **29/29 langkah** dengan penyerah (superadmin), penerima (Dimas), penyetuju tanpa hak, dan LOKET; 0 galat halaman, 0 respons 5xx. Dua perbaikan tampilan sesudah uji (footer tabel butir, lebar kolom Riwayat/daftar) lulus lint, rupanya dilihat sesudah build berikutnya. Penanda untuk Kepala Unit tujuan memakai jalur data yang sama, tetapi DB dev belum punya penugasan manajerial aktif. Belum di-commit. Laporan: [`FE-AST-006.md`](../task/report/frontend/FE-AST-006.md) |
 | Acceptance criteria | 1. `SCR-AST-REG-18..21`. 2. Kepala Unit melihat penanda "menunggu konfirmasi Anda". 3. Konfirmasi/tolak hanya bagi penerima yang dituju. 4. Cetak berita acara |
 
-### `FE-AST-007` — Kondisi dan status
+### ✅ `FE-AST-007` — Kondisi dan status
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 18 November 2026.** Pemeriksaan Kondisi (kartu, tab "Menunggu Penetapan"/"Menunggu Persetujuan Kehilangan", Tetapkan/Tolak/Setujui Hilang/Ditemukan Kembali, berita acara kehilangan), formulir Laporkan Kondisi (foto lewat `UploadPhotoField.jsx` dengan kamera, aset terisi dari daftar), Aset Aktif/Rusak Ringan-Berat/Tidak Digunakan/Hilang memakai satu view Daftar Inventaris bervarian, Riwayat Perubahan Status; grup menu "Kondisi & Status Aset" 6 butir. Ketiga kriteria terpetakan ke source; tanpa perubahan backend. `SCR-AST-REG-27` memakai laporan kondisi yang ditetapkan atas keputusan Rizki (delta dari `/reports/history` milik `BE-AST-013`). `npx eslint --max-warnings=0` 35 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-18 09:29:34). Uji layar Playwright **27/27 langkah** dengan pelapor (Dimas), superadmin, penyetuju tanpa hak, dan LOKET; 0 galat halaman, 0 respons 5xx. Ikut dikerjakan atas permintaan Rizki: formulir tambah master Aset diseragamkan dengan master Akuntansi; label pilihan aset kini memuat nomor inventaris (diperiksa di layar, belum masuk `BUILD_ID`). Belum di-commit. Laporan: [`FE-AST-007.md`](../task/report/frontend/FE-AST-007.md) |
 | Acceptance criteria | 1. `SCR-AST-REG-22..27`; empat daftar kondisi memakai satu komponen bersaringan tetap. 2. Foto memakai `UploadPhotoField.jsx`. 3. Setujui Hilang mewajibkan lampiran berita acara |
 
-### `FE-AST-008` — Dokumen, pengamanan, pemanfaatan, menganggur
+### 🟡 `FE-AST-008` — Dokumen, pengamanan, pemanfaatan, menganggur
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 **SEBAGIAN 18 November 2026.** Dokumen Kepemilikan (daftar bermasa berlaku, tambah/ubah dengan berkas, hapus), Kelengkapan Dokumen Kepemilikan, Pengamanan Administrasi, Pemantauan Aset Menganggur, Pengajuan Pemanfaatan (formulir + pemilih aset, rincian beraksi), Pemanfaatan Sesuai Kewenangan (kolom Penyetuju Wajib); 11 route, grup menu baru 5 butir. ESLint 41 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 10:35:51). Uji layar Playwright **29/32 + 3 cek ulang** lulus (3 kegagalan = skrip mencocokkan huruf kecil pada judul berhuruf besar) dengan superadmin, penyetuju, LOKET; 0 galat halaman, 0 respons 5xx. Kriteria 1 dan 2 terbukti. **Belum terbukti:** kriteria 3 untuk aset menganggur (baris belum ada; ikut `AT-REG-15` `BE-AST-011`). Belum di-commit. Laporan: [`FE-AST-008.md`](../task/report/frontend/FE-AST-008.md) |
 | Acceptance criteria | 1. `SCR-AST-REG-14`, `28..32`. 2. Antrean persetujuan pemanfaatan menampilkan penyetuju yang diwajibkan. 3. Dokumen hampir habis dan aset menganggur memakai angka backend |
 
-### `FE-AST-009` — Impor data awal
+### ✅ `FE-AST-009` — Impor data awal
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 18 November 2026.** Impor Data Awal: daftar batch (kartu, tab "Menunggu Persetujuan Anda"), Unduh Templat, Unggah lewat modal, rincian dengan tabel Baris Berkas bernomor baris Excel dan saringan "Hanya baris salah", Setujui Data Aset / Setujui Angka dan Terapkan / Tolak / Batalkan sesuai hak, ringkasan rupiah untuk pemegang hak lihat nilai; 2 route, butir menu baru. ESLint 13 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 15:05:36). Uji layar Playwright **21/21** dengan pengunggah, penyetuju, LOKET; 0 galat halaman, 0 respons 5xx. Ketiga kriteria terbukti. Dua perbaikan tampilan dari tangkapan layar (label audit "Aset Dibuat" terbaca sebagai tanggal dibuat; pesan galat terpotong di badge) terbukti pada build ulang (`BUILD_ID` 15:30:16). Belum di-commit. Laporan: [`FE-AST-009.md`](../task/report/frontend/FE-AST-009.md) |
 | Acceptance criteria | 1. Unduh templat, unggah, tabel galat per nomor baris Excel. 2. Dua tombol persetujuan sesuai hak. 3. Ringkasan total untuk Kepala Akuntansi |
 
-### `FE-AST-010` — Dashboard dan laporan register
+### ✅ `FE-AST-010` — Dashboard dan laporan register
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 19 November 2026.** Dashboard Aset di `/corporate/asset-management` (kartu ringkasan dan kondisi yang membuka Daftar Inventaris dengan saringan sama, saring unit, Aset Per Unit, Aset Rusak Terbaru; dua bagian dimuat terpisah dengan Coba lagi), tiga laporan (Daftar Inventaris Per-unit, Kondisi Aset, History & Audit) dengan Ekspor Excel, Riwayat Perubahan Status dialihkan ke History (`eventType=KondisiBerubah`), Daftar Inventaris menerima saringan dari URL; butir menu Dashboard Aset + grup Laporan Manajemen Aset. ESLint 17 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-19 08:29:10). Uji layar Playwright **24/24** (superadmin, LOKET; kegagalan ringkasan dan per unit dipaksa lewat `page.route`); 0 galat halaman. Keempat kriteria terbukti. Dua perbaikan kecil sesudah uji pertama diuji ulang 24/24 di `next dev` dan masuk `BUILD_ID` 2026-11-19 12:37:20. Grafik per unit tidak dibuat (tabel; `DEV_DISCRETION`). Laporan: [`FE-AST-010.md`](../task/report/frontend/FE-AST-010.md) |
 | Acceptance criteria | 1. Skema §3.5; kartu 1.4 dan 1.5 disisipkan kemudian oleh `FE-AST-014` dan `FE-AST-018`. 2. Kartu yang gagal dimuat tidak menjatuhkan kartu lain. 3. Laporan 11.1, 11.3, 11.7 dengan ekspor. 4. Butir menu Dashboard Aset dan tiga butir laporan terdaftar |

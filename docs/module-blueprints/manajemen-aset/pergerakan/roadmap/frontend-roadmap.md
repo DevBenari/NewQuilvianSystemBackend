@@ -16,13 +16,13 @@
 ## Grafik Urutan Dependency
 
 ```text
-                      BE-AST-017 [BE] ─┐
+                      BE-AST-017 [BE] ✅ ─┐
                                        │
-FE-AST-004 [FE-REG] ─┬─────────────────┴─> FE-AST-012 ───────────────────┐
+FE-AST-004 [FE-REG] ✅ ─┬─────────────────┴─> FE-AST-012 ✅ ───────────────────┐
                      │                                                   │
                      │                                BE-AST-019 [BE] ─┐ │
                      │                                                 │ │
-                     │                BE-AST-018 [BE] ─┐               │ │
+                     │                BE-AST-018 [BE] ✅ ─┐               │ │
                      │                                 │               │ │
                      └─────────────────────────────────┴─> FE-AST-013 ─┴─┴─┬─> FE-AST-014
                                                                            │
@@ -49,11 +49,11 @@ Pasangan prasyarat→task: **8** (sama dengan kolom `Dependency`).
 
 ## Kartu task
 
-### `FE-AST-012` — Mutasi
+### ✅ `FE-AST-012` — Mutasi
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 19 November 2026.** Pengajuan Pemindahan (kartu, tab, + Ajukan Mutasi), formulir dengan pemilih aset unit asal, Persetujuan Mutasi (tab Tahap Unit Asal / Bagian Aset), Serah Terima Antar Unit, rincian dengan tombol dari `availableActions`, modal Terima (ruangan, penanggung jawab, kondisi per aset), cetak berita acara; 5 route, grup menu 3 butir. ESLint 20 berkas `0 errors, 0 warnings`. Uji layar Playwright **25/25** (pengaju, Kepala Unit asal, Bagian Aset, Kepala Unit tujuan, LOKET) di `next dev`; 0 galat halaman, 0 respons 5xx. Kelima kriteria terbukti. `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-19 12:37:20). Laporan: [`FE-AST-012.md`](../task/report/frontend/FE-AST-012.md) |
 | Acceptance criteria | 1. Skema `03-frontend-architecture.md` §3.2–3.3. 2. Tombol mengikuti `AvailableActions`. 3. Terima mewajibkan ruangan dan penanggung jawab tujuan. 4. 409 data basi memuat ulang detail. 5. Tiga butir menu terdaftar |
 
 ### `FE-AST-013` — Peminjaman

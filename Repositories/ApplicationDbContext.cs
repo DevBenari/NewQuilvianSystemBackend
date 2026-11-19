@@ -48,6 +48,7 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Post
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Models;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Models;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Valuation.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -725,6 +726,14 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<AstAssetValueEntry> AstAssetValueEntries { get; set; }
         public DbSet<AstAccountingOutbox> AstAccountingOutboxes { get; set; }
         #endregion CORPORATE - ASSET MANAGEMENT - VALUATION
+
+        #region CORPORATE - ASSET MANAGEMENT - MOVEMENT
+        public DbSet<AstTransfer> AstTransfers { get; set; }
+        public DbSet<AstTransferItem> AstTransferItems { get; set; }
+        public DbSet<AstLoan> AstLoans { get; set; }
+        public DbSet<AstLoanItem> AstLoanItems { get; set; }
+        public DbSet<AstLoanExtension> AstLoanExtensions { get; set; }
+        #endregion CORPORATE - ASSET MANAGEMENT - MOVEMENT
 
         #endregion CORPORATE
 
