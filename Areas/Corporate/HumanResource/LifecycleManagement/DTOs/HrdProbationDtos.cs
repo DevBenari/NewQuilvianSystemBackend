@@ -95,4 +95,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [MaxLength(500, ErrorMessage = "Catatan penarikan maksimal 500 karakter.")]
         public string? Reason { get; set; }
     }
+
+    public sealed class HrdProbationSummaryResponse
+    {
+        public int RunningCount { get; set; }
+        public int DueSoonCount { get; set; }
+        public int AwaitingDecisionCount { get; set; }
+        public int CompletedCount { get; set; }
+    }
 }

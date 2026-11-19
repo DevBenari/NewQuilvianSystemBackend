@@ -44,9 +44,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             var now = DateTime.UtcNow;
 
             // 1. Cek masa berlaku SIP faskes & status Fail-Closed Radar (INT-HR-71, CRD-B2)
+            // FIN-HRD-09-BE-008 / M09-P0-01: Filter strictly by LicenseType == "SIP", PSV Verified, non-expired server time
             var activeSip = await _context.WfpCredentialLicenses
                 .AsNoTracking()
-                .Where(l => l.WorkforceProfileId == request.WorkforceProfileId && l.IsActive && !l.IsRevoked)
+                .Where(l => l.WorkforceProfileId == request.WorkforceProfileId 
+                    && l.LicenseType == "SIP" 
+                    && l.IsActive 
+                    && !l.IsRevoked)
                 .OrderByDescending(l => l.ExpiredDate)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -64,8 +68,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 };
             }
 
-            var daysRemaining = activeSip.IsLifetimeStr ? 99999 : (activeSip.ExpiredDate.Date - now.Date).Days;
-            if (!activeSip.IsLifetimeStr && (daysRemaining <= 0 || activeSip.ExpiryRadarStatus == "ExpiredH0"))
+            if (!activeSip.IsPsvVerified)
+            {
+                return new ClinicalPrivilegeGateValidationResultDto
+                {
+                    IsAllowed = false,
+                    GateDecision = "ExpiredLicenseBlocked",
+                    SupervisionLevel = "Level4_NotPermitted",
+                    RequiresCoSignature = false,
+                    Message = "Akses ditolak (Fail-Closed). Surat Izin Praktik (SIP) dokter belum terverifikasi keabsahannya (PSV).",
+                    LicenseRadarStatus = activeSip.ExpiryRadarStatus,
+                    IsLifeSavingOverrideAvailable = true
+                };
+            }
+
+            var daysRemaining = (activeSip.ExpiredDate.Date - now.Date).Days;
+            if (daysRemaining < 0 || activeSip.ExpiredDate.Date < now.Date || activeSip.ExpiryRadarStatus == "ExpiredH0")
             {
                 return new ClinicalPrivilegeGateValidationResultDto
                 {
@@ -102,6 +120,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 };
             }
 
+            // Jika kewenangan klinis di luar rentang masa berlaku efektif
+            if (now < privilege.EffectiveStartDate)
+            {
+                return new ClinicalPrivilegeGateValidationResultDto
+                {
+                    IsAllowed = false,
+                    GateDecision = "HardStopBlocked",
+                    SupervisionLevel = "Level4_NotPermitted",
+                    RequiresCoSignature = false,
+                    Message = $"Kewenangan klinis '{request.PrivilegeCode}' belum mulai berlaku (Mulai: {privilege.EffectiveStartDate:dd MMM yyyy}).",
+                    LicenseRadarStatus = activeSip.ExpiryRadarStatus,
+                    IsLifeSavingOverrideAvailable = true
+                };
+            }
+
+            if (now > privilege.EffectiveEndDate)
+            {
+                return new ClinicalPrivilegeGateValidationResultDto
+                {
+                    IsAllowed = false,
+                    GateDecision = "HardStopBlocked",
+                    SupervisionLevel = "Level4_NotPermitted",
+                    RequiresCoSignature = false,
+                    Message = $"Masa berlaku kewenangan klinis '{request.PrivilegeCode}' telah habis pada {privilege.EffectiveEndDate:dd MMM yyyy}.",
+                    LicenseRadarStatus = activeSip.ExpiryRadarStatus,
+                    IsLifeSavingOverrideAvailable = true
+                };
+            }
+
             // Jika kewenangan klinis berstatus ditangguhkan / kedaluwarsa
             if (privilege.PrivilegeStatus != ClinicalPrivilegeStatus.Active || privilege.IsClinicalServiceBlocked)
             {
@@ -124,7 +171,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 {
                     IsAllowed = true,
                     GateDecision = "SupervisionRequired",
-                    SupervisionLevel = "Level2_UnderSupervision",
+                    SupervisionLevel = SupervisionLevelHelper.CodeSupervised,
                     RequiresCoSignature = true,
                     AssignedSupervisorUserId = privilege.SupervisorUserId,
                     AssignedSupervisorName = privilege.SupervisorUser?.DisplayName ?? privilege.SupervisorUser?.UserName ?? "Dokter Supervisor",
@@ -139,7 +186,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             {
                 IsAllowed = true,
                 GateDecision = "Allowed",
-                SupervisionLevel = "Level1_Independent",
+                SupervisionLevel = SupervisionLevelHelper.CodeIndependent,
                 RequiresCoSignature = false,
                 AssignedSupervisorUserId = null,
                 AssignedSupervisorName = null,
@@ -162,6 +209,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 throw new KeyNotFoundException($"Kewenangan klinis dengan ID {request.ClinicalPrivilegeId} tidak ditemukan.");
             }
 
+            // FIN-HRD-09-BE-009: Anti-Self-Co-Signature: Supervisor tidak boleh sama dengan dokter praktisi
+            var practitionerUser = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.WorkforceProfileId == privilege.WorkforceProfileId, cancellationToken);
+            if (practitionerUser != null && practitionerUser.Id == supervisorUserId)
+            {
+                throw new InvalidOperationException("Dokter tidak dapat memberikan persetujuan Co-Signature atas tindakannya sendiri (Anti-Self-CoSignature).");
+            }
+
             var supervisorUser = await _context.Users
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == supervisorUserId, cancellationToken);
@@ -170,8 +226,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
 
             var now = DateTime.UtcNow;
 
+            var orderRef = request.OrderId.HasValue ? $" [Order: {request.OrderId}]" : string.Empty;
+            var encRef = request.EncounterId.HasValue ? $" [Encounter: {request.EncounterId}]" : string.Empty;
+
             privilege.SupervisorUserId = supervisorUserId;
-            privilege.ApprovalNotes = $"{privilege.ApprovalNotes} | Co-Signature ({request.Decision}): {request.SupervisorNotes} pada {now:g}".Trim();
+            privilege.ApprovalNotes = $"{privilege.ApprovalNotes} | Co-Signature ({request.Decision}){orderRef}{encRef}: {request.SupervisorNotes} pada {now:g}".Trim();
             privilege.UpdateBy = supervisorUserId;
             privilege.UpdateDateTime = now;
 
@@ -319,8 +378,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 .ToListAsync(cancellationToken);
 
             var now = DateTime.UtcNow;
-            var endDate = now.AddDays(request.ValidityDays);
             var isEmergency = request.PrivilegeNature.Equals("Emergency", StringComparison.OrdinalIgnoreCase);
+
+            // FIN-HRD-09-BE-013: Validasi batas waktu sesuai regulasi (Emergency maks 3 hari / 72 jam, Temporary maks 90 hari / 3 bulan)
+            if (request.ValidityDays <= 0)
+            {
+                throw new InvalidOperationException("Durasi masa berlaku kewenangan klinis harus lebih besar dari 0 hari.");
+            }
+
+            if (isEmergency && request.ValidityDays > 3)
+            {
+                throw new InvalidOperationException("Kewenangan klinis darurat (Emergency) maksimal diberikan untuk durasi 3 hari (72 jam).");
+            }
+
+            if (!isEmergency && request.ValidityDays > 90)
+            {
+                throw new InvalidOperationException("Kewenangan klinis sementara (Temporary) maksimal diberikan untuk durasi 90 hari (3 bulan).");
+            }
+
+            var endDate = now.AddDays(request.ValidityDays);
 
             foreach (var catalog in catalogs)
             {

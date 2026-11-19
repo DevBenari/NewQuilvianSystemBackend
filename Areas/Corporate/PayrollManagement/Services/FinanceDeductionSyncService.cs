@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
@@ -44,31 +45,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             var itemsToProcess = mockPayload ?? new List<FinanceReceivableSyncItemDto>();
 
-            // Jika payload kosong, tarik otomatis dari pinjaman aktif karyawan jika ada di DB
+            // MSL-07 (18 Nov 2026): bila payload kosong, sumbernya adalah perjanjian angsuran piutang karyawan yang sudah
+            // DISETUJUI di modul Keuangan (FinReceivableInstallmentPlan atas piutang EMPLOYEE_BENEFIT yang masih terutang).
+            // Sebelumnya cabang ini mengarang 10 pinjaman Rp6.000.000 untuk 10 pegawai pertama, sehingga tombol sinkron
+            // di layar akan menciptakan potongan gaji palsu.
             if (itemsToProcess.Count == 0)
             {
-                var activeEmployees = await _dbContext.MstEmployees
+                var approvedPlans = await _dbContext.FinReceivableInstallmentPlans
                     .AsNoTracking()
-                    .Where(e => !e.IsDelete)
-                    .Take(10)
+                    .Include(p => p.Receivable)
+                    .Where(p => !p.IsDelete &&
+                                p.Status == FinReceivableInstallmentPlanStatuses.Disetujui &&
+                                p.Receivable != null &&
+                                p.Receivable.DebtorType == FinReceivableDebtorTypes.EmployeeBenefit &&
+                                p.Receivable.BenefitOwnerId != null &&
+                                p.Receivable.OutstandingAmount > 0)
                     .ToListAsync(cancellationToken);
 
-                int counter = 1;
-                foreach (var emp in activeEmployees)
+                foreach (var plan in approvedPlans)
                 {
+                    var startDate = TryParsePeriod(plan.FirstDeductionPeriod)
+                        ?? new DateTime(periodYear, periodMonth, 1, 0, 0, 0, DateTimeKind.Utc);
                     itemsToProcess.Add(new FinanceReceivableSyncItemDto
                     {
-                        EmployeeId = emp.Id,
+                        EmployeeId = plan.Receivable!.BenefitOwnerId!.Value,
                         DeductionCategory = "KasbonPinjamanRS",
                         PriorityLevel = 2,
-                        ExternalReferenceId = $"FIN-AR-{periodYear}{periodMonth:D2}-{counter:D3}",
-                        TotalLoanPrincipal = 6000000m,
-                        MonthlyInstallmentAmount = 1000000m,
-                        RemainingPrincipal = 5000000m,
-                        TotalInstallmentMonths = 6,
-                        StartDate = new DateTime(periodYear, periodMonth, 1, 0, 0, 0, DateTimeKind.Utc)
+                        ExternalReferenceId = plan.PlanNumber,
+                        TotalLoanPrincipal = plan.TotalAgreedAmount,
+                        MonthlyInstallmentAmount = plan.InstallmentAmount,
+                        RemainingPrincipal = plan.Receivable.OutstandingAmount,
+                        TotalInstallmentMonths = plan.InstallmentCount,
+                        StartDate = startDate,
+                        EndDate = startDate.AddMonths(Math.Max(plan.InstallmentCount, 1)).AddDays(-1)
                     });
-                    counter++;
                 }
             }
 
@@ -283,6 +293,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 ScheduleStatus = s.ScheduleStatus,
                 AutoCarryOverOnCapExceeded = s.AutoCarryOverOnCapExceeded
             };
+        }
+
+        /// <summary>Periode potong pertama Keuangan berbentuk "yyyy-MM".</summary>
+        private static DateTime? TryParsePeriod(string? period)
+        {
+            if (string.IsNullOrWhiteSpace(period) || period.Length != 7 || period[4] != '-')
+            {
+                return null;
+            }
+
+            return int.TryParse(period[..4], out var year) && int.TryParse(period[5..], out var month) && month is >= 1 and <= 12
+                ? new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc)
+                : null;
         }
     }
 }

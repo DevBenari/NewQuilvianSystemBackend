@@ -218,4 +218,43 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Compete
     {
         public bool IsActive { get; set; }
     }
+
+    /// <summary>
+    /// FIN-HRD-09-BE-004: Hasil evaluasi kepatuhan persyaratan jabatan nakes.
+    /// </summary>
+    public class PositionCompetencyComplianceSummaryResponse
+    {
+        public Guid PositionId { get; set; }
+        public string PositionCode { get; set; } = string.Empty;
+        public string PositionName { get; set; } = string.Empty;
+        public Guid? WorkforceProfileId { get; set; }
+        public string? EmployeeName { get; set; }
+        public string? EmployeeCode { get; set; }
+        public DateTime EvaluationDate { get; set; } = DateTime.UtcNow;
+        public int TotalRequirements { get; set; }
+        public int MetCount { get; set; }
+        public int PendingVerificationCount { get; set; }
+        public int GapCount { get; set; }
+        public decimal CompliancePercentage { get; set; }
+        public List<PositionCompetencyComplianceItemResponse> Items { get; set; } = new();
+    }
+
+    public class PositionCompetencyComplianceItemResponse
+    {
+        public Guid RequirementId { get; set; }
+        public Guid CompetencyId { get; set; }
+        public string CompetencyCode { get; set; } = string.Empty;
+        public string CompetencyName { get; set; } = string.Empty;
+        public bool IsRequired { get; set; }
+        public string MinimumLevel { get; set; } = string.Empty;
+        public string? ActualLevel { get; set; }
+        public bool IsCertificationRequired { get; set; }
+        public bool IsTrainingRequired { get; set; }
+        public string Status { get; set; } = "Belum Memenuhi"; // Memenuhi, Belum Memenuhi, Perlu Verifikasi, Tidak Berlaku
+        public string? EvidenceSource { get; set; }
+        public string? EvidenceNumber { get; set; }
+        public DateTime? EvidenceValidUntil { get; set; }
+        public string? Reason { get; set; }
+        public string? ActionRecommendation { get; set; }
+    }
 }

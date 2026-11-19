@@ -42,6 +42,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         [Required]
         public Guid ClinicalPrivilegeId { get; set; }
 
+        public Guid? OrderId { get; set; }
+        public Guid? EncounterId { get; set; }
+        public Guid? PatientId { get; set; }
+
         [Required]
         [RegularExpression(@"^(Approved|Rejected)$", ErrorMessage = "Keputusan Co-Signature wajib Approved atau Rejected.")]
         public string Decision { get; set; } = "Approved";

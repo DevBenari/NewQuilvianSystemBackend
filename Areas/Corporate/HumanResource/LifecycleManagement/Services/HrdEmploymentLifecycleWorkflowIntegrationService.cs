@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
@@ -13,15 +14,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly ResignationLifecycleHandoffService _resignationHandoffService;
+        private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<HrdEmploymentLifecycleWorkflowIntegrationService> _logger;
 
         public HrdEmploymentLifecycleWorkflowIntegrationService(
             ApplicationDbContext dbContext,
             ResignationLifecycleHandoffService resignationHandoffService,
+            IServiceProvider serviceProvider,
             ILogger<HrdEmploymentLifecycleWorkflowIntegrationService> logger)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _resignationHandoffService = resignationHandoffService ?? throw new ArgumentNullException(nameof(resignationHandoffService));
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -122,6 +126,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 .FirstOrDefaultAsync(a => a.WorkflowInstanceId == workflowInstanceId && !a.IsDelete, cancellationToken);
             if (assessment != null)
             {
+                // AUD-08-02: Maker-Checker guard di tingkat callback workflow
+                if (assessment.SubmittedByUserId == deciderUserId)
+                {
+                    _logger.LogWarning("Maker-Checker violation: Pembuat penilaian {SubmitterId} tidak dapat memutuskan penilaian sendiri.", deciderUserId);
+                    return false;
+                }
+
                 var probation = assessment.Probation;
                 if (isApproved)
                 {
@@ -199,17 +210,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 return true;
             }
 
-            // 2. T16 - ContractDecision
+            // 2. T16 - ContractDecision (AUD-08-02: Delegasikan ke ApplyDecisionAsync)
             var decision = await _dbContext.HrdContractDecisions
                 .FirstOrDefaultAsync(d => d.WorkflowInstanceId == workflowInstanceId && !d.IsDelete, cancellationToken);
             if (decision != null)
             {
-                decision.DecisionStatus = isApproved ? ContractDecisionStatus.Approved : ContractDecisionStatus.Rejected;
-                decision.DecidedByUserId = deciderUserId;
-                decision.DecidedAt = DateTime.UtcNow;
-                decision.DecisionNote = decisionNote;
-                await _dbContext.SaveChangesAsync(cancellationToken);
-                return true;
+                var contractService = _serviceProvider.GetRequiredService<IHrdEmploymentContractService>();
+                var applyResult = await contractService.ApplyDecisionAsync(decision.Id, deciderUserId, isApproved, decisionNote, cancellationToken);
+                return applyResult.Success;
             }
 
             // 3. T17 - ContractCorrection

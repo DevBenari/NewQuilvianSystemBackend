@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models;
+using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services
 {
@@ -14,37 +15,61 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// </summary>
     public class PerformanceAppraisalService : IPerformanceAppraisalService
     {
-        private readonly IPerformanceUnitOfWork _uow;
+        // Siklus yang dipakai bila klien tidak menyebut siklus: yang sedang dinilai lebih dulu, lalu kalibrasi, lalu penetapan sasaran.
+        private static readonly string[] OpenCycleStatusPriority = { "ACTIVE_ASSESSMENT", "CALIBRATION", "GOAL_SETTING" };
 
-        public PerformanceAppraisalService(IPerformanceUnitOfWork uow)
+        private readonly IPerformanceUnitOfWork _uow;
+        private readonly ApplicationDbContext _context;
+
+        public PerformanceAppraisalService(IPerformanceUnitOfWork uow, ApplicationDbContext context)
         {
             _uow = uow ?? throw new ArgumentNullException(nameof(uow));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<PerformanceAppraisalDto> GetMyAppraisalAsync(Guid workforceProfileId, Guid cycleId, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// MSL-02 (18 Nov 2026): profil pegawai ditentukan dari akun login oleh controller, siklus ditentukan server,
+        /// dan GET tidak lagi membuat baris. Bila lembar belum ada, yang dikembalikan adalah draf belum tersimpan
+        /// (Id kosong) berisi butir KPI aktif; lembar baru tersimpan saat pegawai mengirim evaluasi mandiri (POST self-submit).
+        /// </summary>
+        public async Task<PerformanceAppraisalDto> GetMyAppraisalAsync(Guid workforceProfileId, Guid? cycleId, CancellationToken cancellationToken = default)
         {
-            var appraisal = await _uow.PerformanceAppraisals
-                .FirstOrDefaultAsync(x => x.WorkforceProfileId == workforceProfileId && x.PerformanceCycleId == cycleId, cancellationToken);
+            var cycle = await ResolveCycleAsync(cycleId, cancellationToken)
+                ?? throw new KeyNotFoundException("Belum ada siklus penilaian kinerja yang sedang berjalan. Penilaian dapat diisi setelah bagian SDM membuka siklus penilaian.");
 
-            if (appraisal == null)
+            var appraisal = await _uow.PerformanceAppraisals
+                .FirstOrDefaultAsync(x => x.WorkforceProfileId == workforceProfileId && x.PerformanceCycleId == cycle.Id, cancellationToken);
+
+            if (appraisal != null)
             {
-                // Create draft if not exists
-                appraisal = new HrdPerformanceAppraisal
-                {
-                    Id = Guid.NewGuid(),
-                    PerformanceCycleId = cycleId,
-                    WorkforceProfileId = workforceProfileId,
-                    Status = "DRAFT",
-                    CreateBy = workforceProfileId,
-                    CreateDateTime = DateTime.UtcNow,
-                    UpdateBy = workforceProfileId,
-                    UpdateDateTime = DateTime.UtcNow
-                };
-                await _uow.AddAsync(appraisal, cancellationToken);
-                await _uow.SaveChangesAsync(cancellationToken);
+                return await MapToDtoAsync(appraisal, cancellationToken);
             }
 
-            return await MapToDtoAsync(appraisal, cancellationToken);
+            var catalogs = await _uow.KpiMetricCatalogs
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.MetricCode)
+                .ToListAsync(cancellationToken);
+            var profileName = await GetProfileNameAsync(workforceProfileId, cancellationToken);
+
+            return new PerformanceAppraisalDto
+            {
+                Id = Guid.Empty,
+                PerformanceCycleId = cycle.Id,
+                CycleName = cycle.CycleName,
+                WorkforceProfileId = workforceProfileId,
+                StaffName = profileName,
+                Status = "DRAFT",
+                Details = catalogs.Select(c => new PerformanceAppraisalDetailDto
+                {
+                    Id = Guid.Empty,
+                    MetricCatalogId = c.Id,
+                    MetricCode = c.MetricCode,
+                    MetricName = c.MetricName,
+                    ComponentType = c.ComponentType,
+                    WeightPercentage = DefaultItemWeight,
+                    TargetValue = c.DefaultTargetValue ?? 100m
+                }).ToList()
+            };
         }
 
         public async Task<PerformanceAppraisalDto> SubmitSelfAppraisalAsync(Guid workforceProfileId, SubmitSelfAppraisalRequestDto dto, CancellationToken cancellationToken = default)
@@ -54,11 +79,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
             if (appraisal == null)
             {
+                var cycle = await _uow.PerformanceCycles.FirstOrDefaultAsync(x => x.Id == dto.PerformanceCycleId, cancellationToken)
+                    ?? throw new KeyNotFoundException("Siklus penilaian kinerja tidak ditemukan.");
+                if (!OpenCycleStatusPriority.Contains(cycle.Status))
+                {
+                    throw new InvalidOperationException("Siklus penilaian ini sudah ditutup atau belum dibuka, sehingga evaluasi mandiri tidak dapat dikirim.");
+                }
+
+                // Lembar dibuat di aksi POST yang eksplisit, lengkap dengan atasan langsung dan atasan kedua dari penugasan atasan aktif.
+                var firstLineManagerId = await ResolveActiveManagerAsync(workforceProfileId, cancellationToken)
+                    ?? throw new InvalidOperationException("Atasan langsung Anda belum tercatat di data kepegawaian, sehingga penilaian belum bisa dikirim. Hubungi bagian SDM.");
+                var secondLineManagerId = await ResolveActiveManagerAsync(firstLineManagerId, cancellationToken);
+
                 appraisal = new HrdPerformanceAppraisal
                 {
                     Id = Guid.NewGuid(),
                     PerformanceCycleId = dto.PerformanceCycleId,
                     WorkforceProfileId = workforceProfileId,
+                    FirstLineManagerId = firstLineManagerId,
+                    SecondLineManagerId = secondLineManagerId,
                     Status = "DRAFT",
                     CreateBy = workforceProfileId,
                     CreateDateTime = DateTime.UtcNow
@@ -88,7 +127,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             foreach (var item in dto.Details)
             {
                 var catalog = await _uow.KpiMetricCatalogs.FirstOrDefaultAsync(x => x.Id == item.MetricCatalogId, cancellationToken);
-                var weight = 10m; // Default weight per item
+                var weight = DefaultItemWeight;
 
                 // VR-PRF-22: Wajib bukti dukung untuk nilai ekstrem (Rating 5 atau Capaian > 120%)
                 if (item.RatingScore >= 5.0m && string.IsNullOrWhiteSpace(item.EvidenceUrl))
@@ -144,10 +183,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             return await MapToDtoAsync(appraisal, cancellationToken);
         }
 
-        public async Task<List<PerformanceAppraisalDto>> GetSubordinateAppraisalsAsync(Guid managerId, Guid cycleId, CancellationToken cancellationToken = default)
+        public async Task<List<PerformanceAppraisalDto>> GetSubordinateAppraisalsAsync(Guid managerId, Guid? cycleId, CancellationToken cancellationToken = default)
         {
+            var cycle = await ResolveCycleAsync(cycleId, cancellationToken);
+            if (cycle == null)
+            {
+                return new List<PerformanceAppraisalDto>();
+            }
+
+            // MSL-02: hanya lembar bawahan langsung atau bawahan lini kedua milik atasan login.
             var appraisals = await _uow.PerformanceAppraisals
-                .Where(x => x.PerformanceCycleId == cycleId)
+                .Where(x => x.PerformanceCycleId == cycle.Id && (x.FirstLineManagerId == managerId || x.SecondLineManagerId == managerId))
                 .ToListAsync(cancellationToken);
 
             var result = new List<PerformanceAppraisalDto>();
@@ -162,7 +208,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         {
             var appraisal = await _uow.PerformanceAppraisals.FirstOrDefaultAsync(x => x.Id == appraisalId, cancellationToken);
             if (appraisal == null)
-                throw new KeyNotFoundException($"Lembar evaluasi kinerja ID {appraisalId} tidak ditemukan.");
+                throw new KeyNotFoundException("Lembar evaluasi kinerja tidak ditemukan.");
+
+            if (appraisal.FirstLineManagerId != managerId)
+            {
+                throw new UnauthorizedAccessException("Lembar ini hanya dapat dinilai oleh atasan langsung pegawai yang bersangkutan.");
+            }
 
             // PRF-B3 & VR-PRF-04: Pegawai harus menuntaskan evaluasi mandiri terlebih dahulu
             if (appraisal.Status != "SELF_SUBMITTED" && appraisal.Status != "MANAGER_REVIEWED")
@@ -230,7 +281,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         {
             var appraisal = await _uow.PerformanceAppraisals.FirstOrDefaultAsync(x => x.Id == appraisalId, cancellationToken);
             if (appraisal == null)
-                throw new KeyNotFoundException($"Lembar evaluasi kinerja ID {appraisalId} tidak ditemukan.");
+                throw new KeyNotFoundException("Lembar evaluasi kinerja tidak ditemukan.");
+
+            var expectedSecondLine = appraisal.SecondLineManagerId ?? await ResolveActiveManagerAsync(appraisal.FirstLineManagerId, cancellationToken);
+            if (expectedSecondLine != secondLineId)
+            {
+                throw new UnauthorizedAccessException("Lembar ini hanya dapat ditelaah oleh atasan kedua (atasan dari atasan langsung) pegawai yang bersangkutan.");
+            }
 
             if (appraisal.Status != "MANAGER_REVIEWED")
             {
@@ -262,7 +319,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         {
             var appraisal = await _uow.PerformanceAppraisals.FirstOrDefaultAsync(x => x.Id == appraisalId, cancellationToken);
             if (appraisal == null)
-                throw new KeyNotFoundException($"Lembar evaluasi kinerja ID {appraisalId} tidak ditemukan.");
+                throw new KeyNotFoundException("Lembar evaluasi kinerja tidak ditemukan.");
+
+            if (appraisal.WorkforceProfileId != staffId)
+            {
+                throw new UnauthorizedAccessException("Hasil penilaian hanya dapat dikonfirmasi oleh pegawai pemilik lembar.");
+            }
 
             if (appraisal.Status != "RELEASED")
             {
@@ -309,8 +371,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 PerformanceCycleId = app.PerformanceCycleId,
                 CycleName = cycle?.CycleName ?? string.Empty,
                 WorkforceProfileId = app.WorkforceProfileId,
-                StaffName = $"Pegawai ({app.WorkforceProfileId.ToString()[..8]})",
-                UnitName = "Instalasi Rawat Inap",
+                StaffName = await GetProfileNameAsync(app.WorkforceProfileId, cancellationToken),
+                UnitName = string.Empty,
                 Status = app.Status,
                 SelfScoreQuantitative = app.SelfScoreQuantitative,
                 SelfScoreBehavioral = app.SelfScoreBehavioral,
@@ -342,6 +404,51 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                     Comments = d.Comments
                 }).ToList()
             };
+        }
+
+        private const decimal DefaultItemWeight = 10m;
+
+        private async Task<HrdPerformanceCycle?> ResolveCycleAsync(Guid? cycleId, CancellationToken cancellationToken)
+        {
+            if (cycleId.HasValue && cycleId.Value != Guid.Empty)
+            {
+                return await _uow.PerformanceCycles.FirstOrDefaultAsync(x => x.Id == cycleId.Value, cancellationToken);
+            }
+
+            var openCycles = await _uow.PerformanceCycles
+                .Where(x => x.IsActive && OpenCycleStatusPriority.Contains(x.Status))
+                .ToListAsync(cancellationToken);
+            return openCycles
+                .OrderBy(x => Array.IndexOf(OpenCycleStatusPriority, x.Status))
+                .ThenByDescending(x => x.StartDate)
+                .FirstOrDefault();
+        }
+
+        /// <summary>Atasan langsung aktif (MstWorkforceProfile.Id) dari penugasan atasan, atau null bila belum tercatat.</summary>
+        private async Task<Guid?> ResolveActiveManagerAsync(Guid workforceProfileId, CancellationToken cancellationToken)
+        {
+            var today = DateTime.UtcNow.Date;
+            return await _context.WfpManagerAssignments
+                .AsNoTracking()
+                .Where(x => x.WorkforceProfileId == workforceProfileId &&
+                            x.IsActive &&
+                            !x.IsDelete &&
+                            x.EffectiveStartDate <= today &&
+                            (x.EffectiveEndDate == null || x.EffectiveEndDate >= today))
+                .OrderByDescending(x => x.IsPrimaryManager)
+                .ThenByDescending(x => x.EffectiveStartDate)
+                .Select(x => (Guid?)x.ManagerWorkforceProfileId)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        private async Task<string> GetProfileNameAsync(Guid workforceProfileId, CancellationToken cancellationToken)
+        {
+            var name = await _context.MstWorkforceProfiles
+                .AsNoTracking()
+                .Where(x => x.Id == workforceProfileId)
+                .Select(x => x.DisplayName)
+                .FirstOrDefaultAsync(cancellationToken);
+            return string.IsNullOrWhiteSpace(name) ? "Pegawai" : name;
         }
     }
 }
