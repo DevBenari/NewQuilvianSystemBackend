@@ -18,7 +18,7 @@
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit frontend saat dikerjakan | `f58875e43` (branch `RizkiV2`) |
 | Tanggal | 19 November 2026 |
-| Status | 🟡 SEBAGIAN 19 November 2026 — kelima kriteria terpetakan ke source dan teruji di layar **25/25** pada server dev (`next dev`); tinggal `npm run build` (belum dijalankan untuk task ini) |
+| Status | ✅ SELESAI 19 November 2026 — kelima kriteria terpetakan ke source dan teruji di layar **25/25**; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-19 12:37:20, sesudah commit `5d9af2ae1`) |
 
 ---
 
@@ -81,7 +81,7 @@ rincian (butuh daftar aset untuk kondisi per aset); dari daftar, aksi baris "Ter
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
 | `npx eslint --max-warnings=0` (20 berkas termasuk menu dan label status) | `0 errors, 0 warnings`; ulang menu sesudah ganti ikon 0/0 | `PASS` | Keluaran perintah |
-| `npm run build` | Belum dijalankan untuk task ini; uji pada `next dev` (memuat source langsung) | `NOT RUN` | — |
+| `npm run build` | Dijalankan Rizki dan berhasil; `BUILD_ID` 2026-11-19 12:37:20; manifest memuat 5 route `movement/*` | `PASS` | `.next/BUILD_ID`, `app-path-routes-manifest.json` |
 | Uji layar Playwright (`test-with-agy/asset-management/fe-ast-012-20261119/uji-fe-012.mjs`) | **25/25**; 0 galat halaman, 0 respons 5xx (superadmin, Siti, penyetuju, Dimas, LOKET) | `PASS` | `hasil-uji.jsonl`, 7 tangkapan layar |
 
 Langkah yang lulus: tiga butir menu; daftar dan tombol Ajukan; formulir menunggu unit asal (tombol nonaktif); pemilih
@@ -111,7 +111,6 @@ grup menu yang sudah terbuka justru menutupnya, `StatusBadge` mengapitalkan tiap
 
 | DoD | Status |
 |---|---|
-| ESLint, uji layar, laporan, roadmap, traceability | Terpenuhi |
-| `npm run build` | Belum — satu-satunya sisa untuk ✅ |
+| ESLint, build, uji layar, laporan, roadmap, traceability | Terpenuhi |
 | `UAT-MOV-01..03` | Milik tim UAT |
 | Commit | Bersama `BE-AST-017` |

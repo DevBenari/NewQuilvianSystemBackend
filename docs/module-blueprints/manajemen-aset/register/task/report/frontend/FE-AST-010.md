@@ -18,7 +18,7 @@
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit frontend saat dikerjakan | `0d9b0140d` (branch `RizkiV2`) |
 | Tanggal | 18–19 November 2026 |
-| Status | ✅ SELESAI 19 November 2026 — keempat kriteria terpetakan ke source dan teruji di layar **24/24**; dua perbaikan kecil sesudah uji pertama diuji ulang 24/24 di server dev (`next dev`), belum masuk `BUILD_ID` |
+| Status | ✅ SELESAI 19 November 2026 — keempat kriteria terpetakan ke source dan teruji di layar **24/24**; dua perbaikan kecil sesudah uji pertama diuji ulang 24/24 di `next dev` dan masuk build Rizki `BUILD_ID` 2026-11-19 12:37:20 |
 
 ---
 
@@ -106,7 +106,7 @@ ekspor 1 baris dengan keterangan saringan; History & Audit 101 → Kondisi Berub
 klik dua kali → detail aset; Riwayat Perubahan Status membaca `/reports/history?eventType=KondisiBerubah` tanpa
 saringan kejadian; LOKET → Akses Ditolak dan tanpa menu laporan.
 
-**Perbaikan sesudah uji pertama** (diuji ulang 24/24 di `next dev`, belum masuk `BUILD_ID`):
+**Perbaikan sesudah uji pertama** (diuji ulang 24/24 di `next dev`; masuk build Rizki `BUILD_ID` 2026-11-19 12:37:20):
 
 1. Kartu cadangan saat ringkasan gagal belum membawa `data-testid`. Ditemukan oleh skrip uji; tampilan pengguna tidak
    terpengaruh.
@@ -129,6 +129,6 @@ tabel salah; dan pemilih kondisi ikut mengetik ke kotak cari daftar. Ketiganya d
 
 | DoD | Status |
 |---|---|
-| ESLint, build, uji layar, laporan, roadmap, traceability | Terpenuhi; dua perbaikan kecil sesudah uji belum masuk build produksi |
+| ESLint, build, uji layar, laporan, roadmap, traceability | Terpenuhi; dua perbaikan kecil masuk `BUILD_ID` 12:37:20 |
 | `UAT-REG-11` | Milik tim UAT terpisah |
 | Commit | Dilakukan bersama `BE-AST-013` atas perintah Rizki |
