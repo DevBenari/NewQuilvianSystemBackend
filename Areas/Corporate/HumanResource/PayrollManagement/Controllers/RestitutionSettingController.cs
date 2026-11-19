@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Serv
 using System.Security.Claims;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Services.Logging;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Controllers
 {
@@ -24,13 +25,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
     {
         private readonly IRestitutionSettingService _settingService;
         private readonly ILogger<RestitutionSettingController> _logger;
+        private readonly LoggerService _auditLogger;
 
         public RestitutionSettingController(
             IRestitutionSettingService settingService,
-            ILogger<RestitutionSettingController> logger)
+            ILogger<RestitutionSettingController> logger,
+            LoggerService auditLogger)
         {
             _settingService = settingService;
             _logger = logger;
+            _auditLogger = auditLogger;
         }
 
         private Guid GetCurrentUserId()
@@ -94,7 +98,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             var result = await _settingService.CreateOrUpdateSettingAsync(dto, GetCurrentUserId(), cancellationToken);
+            await _auditLogger.AuditAsync("RestitutionSetting", "Upsert",
+                $"Kebijakan restitusi {dto.GradeLevelCode}/{dto.BenefitCategory} disimpan.", new { After = result });
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Mengubah satu kebijakan plafon/pemotongan berdasarkan ID (MSL-07, 18 Nov 2026). Nilai sebelum dan sesudah
+        /// dicatat ke log audit platform (<c>LoggerService.AuditAsync</c>, level AUD) beserta pelakunya.
+        /// </summary>
+        [HttpPut("{id:guid}")]
+        [AccessAction("Manage", "Mengelola Pengaturan Restitusi", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("RestitutionSetting", "Manage")]
+        public async Task<IActionResult> UpdateSetting(Guid id, [FromBody] UpdateRestitutionSettingRequestDto dto, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var before = await _settingService.GetSettingByIdAsync(id, cancellationToken);
+            if (before == null) return NotFound(new { message = "Konfigurasi kebijakan tidak ditemukan." });
+
+            var after = await _settingService.UpdateSettingAsync(id, dto, GetCurrentUserId(), cancellationToken);
+            await _auditLogger.AuditAsync("RestitutionSetting", "Update",
+                $"Kebijakan restitusi {before.GradeLevelCode}/{before.BenefitCategory} diubah.", new { Before = before, After = after });
+            return Ok(after);
         }
 
         /// <summary>

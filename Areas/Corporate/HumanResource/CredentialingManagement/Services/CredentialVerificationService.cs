@@ -38,6 +38,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             var isStr = request.LicenseType.Equals("STR", StringComparison.OrdinalIgnoreCase);
             var isSip = request.LicenseType.Equals("SIP", StringComparison.OrdinalIgnoreCase);
 
+            if (isSip && request.IsLifetimeStr)
+            {
+                throw new InvalidOperationException("Surat Izin Praktik (SIP) tidak dapat berlaku seumur hidup. Masa berlaku SIP maksimal 5 tahun sesuai regulasi faskes.");
+            }
+
+            // Validasi duplikasi lisensi aktif
+            var duplicate = await _context.WfpCredentialLicenses
+                .AnyAsync(l => l.WorkforceProfileId == request.WorkforceProfileId
+                            && l.LicenseType == request.LicenseType.ToUpperInvariant()
+                            && l.LicenseNumber == request.LicenseNumber.Trim()
+                            && l.IsActive && !l.IsRevoked, cancellationToken);
+            if (duplicate)
+            {
+                throw new InvalidOperationException($"Lisensi {request.LicenseType.ToUpperInvariant()} dengan nomor {request.LicenseNumber.Trim()} sudah terdaftar aktif untuk nakes ini.");
+            }
+
             // Tentukan tanggal kedaluwarsa untuk STR Seumur Hidup
             DateTime expiredDate;
             if (isStr && request.IsLifetimeStr)
@@ -118,6 +134,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             if (license == null)
             {
                 throw new KeyNotFoundException($"Lisensi dengan ID {request.LicenseId} tidak ditemukan.");
+            }
+
+            // Anti-Self-Verification (VR-CRD-15): Auditor dilarang memverifikasi dokumen lisensi milik sendiri
+            var isOwner = await _context.Users
+                .AsNoTracking()
+                .AnyAsync(u => u.Id == auditorUserId && u.WorkforceProfileId == license.WorkforceProfileId, cancellationToken);
+            if (isOwner)
+            {
+                throw new InvalidOperationException("Pelanggaran tata kelola audit: Verifikator dilarang memverifikasi dokumen lisensi milik sendiri (anti-self-verification).");
+            }
+
+            if (!request.IsValidOnSource && string.IsNullOrWhiteSpace(request.AuditorNotes))
+            {
+                throw new InvalidOperationException("Catatan auditor wajib diisi jika hasil verifikasi sumber primer ditolak.");
             }
 
             var auditorUser = await _context.Users

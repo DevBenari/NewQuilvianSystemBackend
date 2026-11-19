@@ -15,5 +15,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         Task<(bool Exists, Stream? Stream, string? ContentType, string? FileName)> GetAttachmentStreamAsync(
             string storagePath,
             CancellationToken cancellationToken = default);
+
+        Task DeleteAttachmentAsync(
+            string? storagePath,
+            CancellationToken cancellationToken = default);
     }
 }

@@ -73,5 +73,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             string? counterOrderNumber,
             Guid userId,
             CancellationToken ct = default);
+
+        Task<PersonnelActionOrderDetailResponse> RequestCancelOrderAsync(
+            Guid id,
+            string reason,
+            Guid userId,
+            CancellationToken ct = default);
+
+        Task<int> ProcessScheduledOrdersAsync(CancellationToken ct = default);
     }
 }

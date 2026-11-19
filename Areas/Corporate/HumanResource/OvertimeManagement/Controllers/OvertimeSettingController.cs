@@ -49,8 +49,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
             CancellationToken cancellationToken = default)
         {
             var actorId = GetCurrentUserId();
-            var settings = await _settingService.UpdateSettingsAsync(command, actorId, cancellationToken);
-            return Ok(ApiResponse<OvertimeSettingDto>.Ok(settings, "Pengaturan operasional lembur berhasil diperbarui."));
+            try
+            {
+                var settings = await _settingService.UpdateSettingsAsync(command, actorId, cancellationToken);
+                return Ok(ApiResponse<OvertimeSettingDto>.Ok(settings, "Pengaturan operasional lembur berhasil diperbarui."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<OvertimeSettingDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(ApiResponse<OvertimeSettingDto>.Fail(StatusCodes.Status409Conflict, ex.Message));
+            }
         }
 
         private Guid? GetCurrentUserId()

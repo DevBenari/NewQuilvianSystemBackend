@@ -1,0 +1,18 @@
+# LAPORAN TASK FRONTEND HRD MENU 08 (FIN-HRD-08-FE-001 s.d. FE-008)
+
+**Dokumen Lengkap Eksekusi & Audit:**
+[LAPORAN_EKSEKUSI_HRD_MENU_08_KONTRAK_DAN_MASA_KERJA.md](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/docs/module-blueprints/human-resource/docs/update/kontrak-dan-masa-kerja/LAPORAN_EKSEKUSI_HRD_MENU_08_KONTRAK_DAN_MASA_KERJA.md)
+
+## 1. Status Linter & Kode
+- **npx eslint (seluruh view Menu 08):** `PASS (0 Errors)`
+- **Status Akhir:** `DONE` (Seluruh 8 task frontend FIN dan integrasi selaras DTO backend selesai pada kode sumber).
+
+## 2. Ringkasan Eksekusi Frontend
+- **FIN-HRD-08-FE-001**: MenuItems & Navigasi Sidebar Mandiri Menu 08 dengan 4 Submenu persis tanpa merusak Menu 07 (`src/utils/menu-sidebar/menu-items.jsx`) - **DONE**.
+- **FIN-HRD-08-FE-002**: List View Perjanjian Kerja & SummaryGrid adaptif dengan fallback ganda (`src/components/view/hr/lifecycle/employment-contracts-list-view.jsx`, AUD-08-12) - **DONE**.
+- **FIN-HRD-08-FE-003**: Detail Kontrak, Berkas Scan, Salary Masking & Batas PKWT dinamis UU 27/2026 (`src/components/view/hr/lifecycle/employment-contract-detail-view.jsx`, AUD-08-08, AUD-08-10) - **DONE**.
+- **FIN-HRD-08-FE-004**: Worklist Perpanjangan Kontrak & Kepatuhan H-7 dengan tautan rincian aman (`src/app/hr/lifecycle/contract-renewals/page.jsx` & `src/components/view/hr/lifecycle/contract-renewals-list-view.jsx`, AUD-08-13, AUD-08-15, AUD-08-16) - **DONE**.
+- **FIN-HRD-08-FE-005**: List & Detail Masa Percobaan PKWTT dengan validasi wajib bukti berkas untuk evaluasi Tidak Lulus (`src/components/view/hr/lifecycle/probations-list-view.jsx` & `src/components/view/hr/lifecycle/probation-detail-view.jsx`) - **DONE**.
+- **FIN-HRD-08-FE-006**: Halaman Perubahan Status Kerja / Konversi PKWT ke PKWTT dengan kartu ringkasan selaras DTO (`src/app/hr/lifecycle/employment-status-changes/page.jsx` & `src/components/view/hr/lifecycle/employment-status-changes-view.jsx`, AUD-08-14, AUD-08-15) - **DONE**.
+- **FIN-HRD-08-FE-007**: Penerapan Standar Base Components Quilvian V2 & CSS Modules (0 Tailwind, 0 mock) - **DONE**.
+- **FIN-HRD-08-FE-008**: Verifikasi ESLint scoped: 0 Errors (Exit code 0, AUD-08-18) - **PASS**.

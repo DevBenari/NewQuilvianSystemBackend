@@ -1,10 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
+using System.Linq;
+using Microsoft.AspNetCore.Http;
+using QuilvianSystemBackend.Responses;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
 using System.Security.Claims;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Services.Security;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Controllers
 {
@@ -23,13 +28,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
     {
         private readonly IRestitutionClaimService _claimService;
         private readonly ILogger<RestitutionClaimController> _logger;
+        private readonly AccessPermissionService _accessPermissionService;
 
         public RestitutionClaimController(
             IRestitutionClaimService claimService,
-            ILogger<RestitutionClaimController> logger)
+            ILogger<RestitutionClaimController> logger,
+            AccessPermissionService accessPermissionService)
         {
             _claimService = claimService;
             _logger = logger;
+            _accessPermissionService = accessPermissionService;
         }
 
         private Guid GetCurrentUserId()
@@ -45,19 +53,55 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
         }
 
+        /// <summary>MstEmployee.Id milik pengguna login dari klaim employee_id, atau null bila akun belum terhubung.</summary>
+        private Guid? CurrentEmployeeId() => User.GetEmployeeId();
+
+        private IActionResult EmployeeNotLinked() => StatusCode(StatusCodes.Status403Forbidden,
+            new { message = "Akun Anda belum terhubung dengan data pegawai, sehingga klaim restitusi belum dapat diproses. Hubungi bagian SDM." });
+
+        /// <summary>
+        /// MSL-07 (18 Nov 2026): anti-persetujuan-diri ditegakkan server. Pegawai tidak boleh memutuskan klaim miliknya sendiri,
+        /// dibandingkan lewat MstEmployee.Id (sebelumnya dibandingkan dengan ID akun sehingga tidak pernah cocok).
+        /// </summary>
+        private async Task<IActionResult?> RejectOwnClaimDecisionAsync(Guid claimId, CancellationToken cancellationToken)
+        {
+            var claim = await _claimService.GetClaimByIdAsync(claimId, cancellationToken);
+            if (claim == null) return NotFound(new { message = "Berkas klaim restitusi tidak ditemukan." });
+
+            var me = CurrentEmployeeId();
+            if (me != null && claim.EmployeeId == me.Value)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { message = "Anda tidak dapat memutuskan klaim restitusi milik Anda sendiri (DED-B8). Klaim ini harus diputuskan pejabat lain." });
+            }
+
+            return null;
+        }
+
         /// <summary>
         /// Mengambil sisa kuota plafon tahunan pegawai untuk kategori tertentu (VR-DED-10, DED-W2).
+        /// Tanpa <c>employeeId</c>, yang dihitung adalah kuota pegawai login. Kuota pegawai lain hanya untuk pemegang
+        /// hak <c>RestitutionClaim : Read</c> (MSL-07).
         /// </summary>
         [HttpGet("claims/quota")]
         [AccessAction("ViewOwn", "Melihat Kuota Restitusi Sendiri", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("RestitutionClaim", "ViewOwn")]
         [Tags("HR Deductions - Restitution Claims")]
         public async Task<IActionResult> GetRemainingQuota(
-            [FromQuery] Guid employeeId,
+            [FromQuery] Guid? employeeId,
             [FromQuery] string benefitCategory,
             CancellationToken cancellationToken)
         {
-            var result = await _claimService.GetEmployeeRemainingQuotaAsync(employeeId, benefitCategory, cancellationToken);
+            var me = CurrentEmployeeId();
+            var target = employeeId is { } requested && requested != Guid.Empty ? requested : me;
+            if (target == null) return EmployeeNotLinked();
+
+            if (target != me && !await _accessPermissionService.HasAccessAsync(User, "RestitutionClaim", "Read"))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = "Anda hanya dapat melihat kuota restitusi milik Anda sendiri." });
+            }
+
+            var result = await _claimService.GetEmployeeRemainingQuotaAsync(target.Value, benefitCategory, cancellationToken);
             return Ok(result);
         }
 
@@ -73,8 +117,54 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            // MSL-07: klaim mandiri selalu atas nama pegawai login; isian employeeId lain ditolak.
+            var me = CurrentEmployeeId();
+            if (me == null) return EmployeeNotLinked();
+            if (request.EmployeeId != Guid.Empty && request.EmployeeId != me.Value)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = "Klaim restitusi hanya dapat diajukan atas nama Anda sendiri." });
+            }
+
+            request.EmployeeId = me.Value;
             var result = await _claimService.SubmitClaimAsync(request, GetCurrentUserId(), cancellationToken);
-            return CreatedAtAction(nameof(GetClaimById), new { id = result.Id }, result);
+            return CreatedAtAction(nameof(GetMyClaimById), new { id = result.Id }, result);
+        }
+
+        /// <summary>
+        /// Riwayat klaim restitusi milik pegawai login (portal ESS). Cukup hak <c>RestitutionClaim : ViewOwn</c> (MSL-07).
+        /// </summary>
+        [HttpGet("claims/mine")]
+        [AccessAction("ViewOwn", "Melihat Kuota Restitusi Sendiri", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RestitutionClaim", "ViewOwn")]
+        [Tags("HR Deductions - Restitution Claims")]
+        public async Task<IActionResult> GetMyClaims(
+            [FromQuery] RestitutionClaimFilterDto filter,
+            CancellationToken cancellationToken)
+        {
+            var me = CurrentEmployeeId();
+            if (me == null) return EmployeeNotLinked();
+
+            filter.EmployeeId = me.Value;
+            var result = await _claimService.GetClaimsAsync(filter, cancellationToken);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Detail satu klaim milik pegawai login. Klaim pegawai lain dijawab "tidak ditemukan" (MSL-07).
+        /// </summary>
+        [HttpGet("claims/mine/{id:guid}")]
+        [AccessAction("ViewOwn", "Melihat Kuota Restitusi Sendiri", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RestitutionClaim", "ViewOwn")]
+        [Tags("HR Deductions - Restitution Claims")]
+        public async Task<IActionResult> GetMyClaimById(Guid id, CancellationToken cancellationToken)
+        {
+            var me = CurrentEmployeeId();
+            if (me == null) return EmployeeNotLinked();
+
+            var result = await _claimService.GetClaimByIdAsync(id, cancellationToken);
+            if (result == null || result.EmployeeId != me.Value) return NotFound(new { message = "Berkas klaim restitusi tidak ditemukan." });
+            return Ok(result);
         }
 
         /// <summary>
@@ -118,6 +208,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             [FromBody] SupervisorApprovalRequestDto request,
             CancellationToken cancellationToken)
         {
+            var ownClaimBlock = await RejectOwnClaimDecisionAsync(id, cancellationToken);
+            if (ownClaimBlock != null) return ownClaimBlock;
+
             var result = await _claimService.ApproveBySupervisorAsync(id, request, GetCurrentUserId(), cancellationToken);
             return Ok(result);
         }
@@ -134,6 +227,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             [FromBody] HrReviewRequestDto request,
             CancellationToken cancellationToken)
         {
+            var ownClaimBlock = await RejectOwnClaimDecisionAsync(id, cancellationToken);
+            if (ownClaimBlock != null) return ownClaimBlock;
+
             var result = await _claimService.ReviewByHrAsync(id, request, GetCurrentUserId(), cancellationToken);
             return Ok(result);
         }
@@ -151,6 +247,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+            var ownClaimBlock = await RejectOwnClaimDecisionAsync(id, cancellationToken);
+            if (ownClaimBlock != null) return ownClaimBlock;
+
             var result = await _claimService.FinalApproveAsync(id, request, GetCurrentUserId(), cancellationToken);
             return Ok(result);
         }
@@ -168,6 +267,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+            var ownClaimBlock = await RejectOwnClaimDecisionAsync(id, cancellationToken);
+            if (ownClaimBlock != null) return ownClaimBlock;
+
             var result = await _claimService.RejectClaimAsync(id, request, GetCurrentUserId(), cancellationToken);
             return Ok(result);
         }
@@ -234,6 +336,78 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         {
             var result = await _claimService.InjectApprovedRestitutionsToPayrollAsync(payrollRunId, GetCurrentUserId(), cancellationToken);
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Unggah nota/kuitansi atau resume medis klaim restitusi (MSL-15, DEC-FER-02 opsi A, 18 Nov 2026). Multipart: <c>file</c>; query <c>category</c>
+        /// ("restitution-receipt", "restitution-medical-resume"). Jawaban berisi <c>key</c> yang disimpan di kolom lampiran fitur. PDF/JPG/PNG/WEBP/Word/Excel, maks 10 MB.
+        /// </summary>
+        [HttpPost("claims/attachments")]
+        [AccessAction("Submit", "Mengajukan Klaim Restitusi", AccessType = AccessTypes.Create, SortOrder = 30)]
+        [AccessPermission("RestitutionClaim", "Submit")]
+        [Tags("HR Deductions - Restitution Claims")]
+        [RequestSizeLimit(HrAttachmentStorage.DefaultMaximumFileSizeBytes + 1024 * 1024)]
+        [ProducesResponseType(typeof(ApiResponse<HrStoredAttachment>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UploadAttachment(
+            [FromForm] IFormFile file,
+            [FromQuery] string? category,
+            [FromServices] HrAttachmentStorage storage,
+            CancellationToken cancellationToken = default)
+        {
+            var resolvedCategory = string.IsNullOrWhiteSpace(category) ? "restitution-receipt" : category.Trim();
+            if (!new[] { "restitution-receipt", "restitution-medical-resume" }.Contains(resolvedCategory))
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Jenis lampiran tidak dikenal untuk fitur ini."));
+            }
+
+            try
+            {
+                var stored = await storage.SaveAsync(resolvedCategory, User.GetUserId(), file, cancellationToken);
+                return StatusCode(StatusCodes.Status201Created, ApiResponse<HrStoredAttachment>.Ok(stored, "Lampiran berhasil diunggah."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Unduh lampiran klaim restitusi (MSL-15). Boleh untuk pengunggah, atau pemegang hak Read, ApproveSupervisor, ReviewHr, ApproveFinal pada fitur ini.
+        /// Lampiran milik orang lain tanpa hak dijawab 404 agar keberadaannya tidak bocor.
+        /// </summary>
+        [HttpGet("claims/attachments/download")]
+        [AccessAction("ViewOwn", "Melihat Kuota Restitusi Sendiri", AccessType = AccessTypes.Read, SortOrder = 31)]
+        [AccessPermission("RestitutionClaim", "ViewOwn")]
+        [Tags("HR Deductions - Restitution Claims")]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DownloadAttachment(
+            [FromQuery] string key,
+            [FromServices] HrAttachmentStorage storage,
+            [FromServices] AccessPermissionService accessPermissionService)
+        {
+            var category = HrAttachmentStorage.CategoryOf(key);
+            if (category == null || !new[] { "restitution-receipt", "restitution-medical-resume" }.Contains(category))
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Lampiran tidak ditemukan."));
+            }
+
+            try
+            {
+                var attachment = storage.Open(key, category);
+                var allowed = attachment.OwnerUserId == User.GetUserId() || await accessPermissionService.HasAccessAsync(User, "RestitutionClaim", "Read") || await accessPermissionService.HasAccessAsync(User, "RestitutionClaim", "ApproveSupervisor") || await accessPermissionService.HasAccessAsync(User, "RestitutionClaim", "ReviewHr") || await accessPermissionService.HasAccessAsync(User, "RestitutionClaim", "ApproveFinal");
+                if (!allowed)
+                {
+                    return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Lampiran tidak ditemukan."));
+                }
+
+                return PhysicalFile(attachment.PhysicalPath, attachment.ContentType, attachment.DownloadName);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
         }
     }
 }

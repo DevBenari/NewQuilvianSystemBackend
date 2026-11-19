@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagemen
 using System.Security.Claims;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Controllers
 {
@@ -73,7 +74,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             {
                 return BadRequest(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 _logger.LogError(ex, "Gagal mendaftarkan lisensi nakes.");
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Terjadi kesalahan internal server.", detail = ex.Message });
@@ -154,7 +155,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 _logger.LogError(ex, "Gagal melakukan verifikasi sumber primer untuk lisensi {LicenseId}", id);
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Terjadi kesalahan internal audit PSV.", detail = ex.Message });

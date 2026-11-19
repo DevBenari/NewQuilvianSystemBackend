@@ -141,5 +141,39 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
             var result = await _injuryService.GenerateBpjsFormAsync(injuryId, stage, cancellationToken);
             return Ok(ApiResponse<BpjsJkkClaimFormDto>.Ok(result, $"Formulir klaim JKK BPJS Ketenagakerjaan Tahap {stage} berhasil dibuat."));
         }
+
+        /// <summary>
+        /// Daftar pembatasan kerja seluruh pegawai (MSL-14, DEC-FER-05 opsi A, 18 Nov 2026). Filter: search, status, activeOnly, pageNumber, pageSize.
+        /// </summary>
+        [HttpGet("restrictions")]
+        [AccessAction("Read", "Melihat Daftar Restriksi Kerja Seluruh Pegawai", AccessType = AccessTypes.Read, SortOrder = 20)]
+        [AccessPermission("WorkRestrictionAndInjury", "Read")]
+        [Authorize]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<WorkRestrictionListItemDto>>), 200)]
+        public async Task<IActionResult> GetRestrictionList(
+            [FromQuery] OccupationalHealthListQuery query,
+            [FromServices] IOccupationalHealthListQueryService listService,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await listService.GetRestrictionsAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<WorkRestrictionListItemDto>>.Ok(result, "Daftar berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Daftar kecelakaan kerja seluruh pegawai (MSL-14, DEC-FER-05 opsi A, 18 Nov 2026). Filter: search, status, activeOnly, pageNumber, pageSize.
+        /// </summary>
+        [HttpGet("injuries")]
+        [AccessAction("Read", "Melihat Daftar Kecelakaan Kerja Seluruh Pegawai", AccessType = AccessTypes.Read, SortOrder = 21)]
+        [AccessPermission("WorkRestrictionAndInjury", "Read")]
+        [Authorize]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<InjuryListItemDto>>), 200)]
+        public async Task<IActionResult> GetInjuryList(
+            [FromQuery] OccupationalHealthListQuery query,
+            [FromServices] IOccupationalHealthListQueryService listService,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await listService.GetInjuriesAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<InjuryListItemDto>>.Ok(result, "Daftar berhasil diambil."));
+        }
     }
 }

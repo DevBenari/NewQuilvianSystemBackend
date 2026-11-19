@@ -12,6 +12,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         Task<RestitutionSettingResponseDto?> GetPolicyForGradeAndCategoryAsync(string gradeLevelCode, string benefitCategory, CancellationToken cancellationToken = default);
         Task<decimal> GetMaxDeductionPercentageAsync(string? gradeLevelCode = null, CancellationToken cancellationToken = default);
         Task<RestitutionSettingResponseDto> CreateOrUpdateSettingAsync(CreateRestitutionSettingRequestDto dto, Guid userId, CancellationToken cancellationToken = default);
+        Task<RestitutionSettingResponseDto> UpdateSettingAsync(Guid id, UpdateRestitutionSettingRequestDto dto, Guid userId, CancellationToken cancellationToken = default);
         Task<int> SeedDefaultHospitalSettingsAsync(Guid userId, CancellationToken cancellationToken = default);
     }
 }

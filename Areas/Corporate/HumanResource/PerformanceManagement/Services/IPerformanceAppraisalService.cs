@@ -11,9 +11,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// </summary>
     public interface IPerformanceAppraisalService
     {
-        Task<PerformanceAppraisalDto> GetMyAppraisalAsync(Guid workforceProfileId, Guid cycleId, CancellationToken cancellationToken = default);
+        Task<PerformanceAppraisalDto> GetMyAppraisalAsync(Guid workforceProfileId, Guid? cycleId, CancellationToken cancellationToken = default);
         Task<PerformanceAppraisalDto> SubmitSelfAppraisalAsync(Guid workforceProfileId, SubmitSelfAppraisalRequestDto dto, CancellationToken cancellationToken = default);
-        Task<List<PerformanceAppraisalDto>> GetSubordinateAppraisalsAsync(Guid managerId, Guid cycleId, CancellationToken cancellationToken = default);
+        Task<List<PerformanceAppraisalDto>> GetSubordinateAppraisalsAsync(Guid managerId, Guid? cycleId, CancellationToken cancellationToken = default);
         Task<PerformanceAppraisalDto> SubmitManagerAppraisalAsync(Guid appraisalId, Guid managerId, SubmitManagerAppraisalRequestDto dto, CancellationToken cancellationToken = default);
         Task<PerformanceAppraisalDto> ProcessSecondLineReviewAsync(Guid appraisalId, Guid secondLineId, ProcessSecondLineReviewDto dto, CancellationToken cancellationToken = default);
         Task<PerformanceAppraisalDto> AcknowledgeAppraisalAsync(Guid appraisalId, Guid staffId, AcknowledgeAppraisalRequestDto dto, CancellationToken cancellationToken = default);
