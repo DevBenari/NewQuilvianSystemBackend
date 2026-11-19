@@ -1053,6 +1053,32 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-331` | `S-D5` · Verifikasi | Layanan Verifikasi Struk Kasir & Pencairan Reimbursement Non-Trip (`ExpenseVerificationAndPaymentService` - `VR-TRV-16`, `VR-TRV-18`) | ✅ | `BE-HRD-330` |
 | `BE-HRD-332` | `S-D5` · Verifikasi | Integrasi Sinkronisasi Presensi Hadir Dinas Luar (Sub-07) & Gembok Hard-Stop Roster (Sub-06) (`TravelAttendanceAndRosterLockService` - `TRV-B6`, `HRD-DEC-193`, `INT-HR-97`) | ✅ | `BE-HRD-320` |
 | `BE-HRD-333` | `S-D5` · Verifikasi | 5 Controller API Kontrak v25 (24 Endpoint Swagger), Worker Kurs BI `TRV-W4`, 24 Permissions & Audit Verifikasi E2E QBE Conformance | 🟡 | Seluruh task backend `BE-HRD-318` s.d. `BE-HRD-332` |
+| `BE-HRD-334` | `A52` · `MVP-66` | Model, configuration, dan migration `AddSchedulingAttendanceAmendmentA52` | ✅ | — |
+| `BE-HRD-335` | `A52` · `MVP-66` | Konstanta nilai dan penanda hak akses tanpa endpoint | ✅ | `BE-HRD-334` |
+| `BE-HRD-336` | `A52` · `MVP-66` | `HrdUnitScopeService` dan penerapan cakupan pada endpoint roster | ✅ | `BE-HRD-334` |
+| `BE-HRD-337` | `A52` · `MVP-67` | `RosterValidationService`: `B3`, `B8`, `W6`, `W7`, kode `W2`/`W3`, `ValidateSingleShiftAsync` | ✅ | `BE-HRD-335` |
+| `BE-HRD-338` | `A52` · `MVP-67` | `ShiftRevisionRecorder` dan perbaikan Ganti Petugas | ✅ | `BE-HRD-337`, `BE-HRD-336` |
+| `BE-HRD-339` | `A52` · `MVP-67` | Koreksi mundur dengan riwayat dan pemicu hitung ulang | ✅ | `BE-HRD-338` |
+| `BE-HRD-340` | `A52` · `MVP-67` | Tambah shift tanpa turun ke `Draft`, hapus shift terbit, endpoint Riwayat Revisi | ✅ | `BE-HRD-338`, `BE-HRD-336` |
+| `BE-HRD-341` | `A52` · `MVP-67` | Pemberitahuan dampak penempatan sementara ke Kepala Unit asal | ✅ | `BE-HRD-337` |
+| `BE-HRD-342` | `A52` · `MVP-67` | Setelan kehadiran sebagai satu-satunya sumber toleransi dan jendela | ✅ | `BE-HRD-335` |
+| `BE-HRD-343` | `A52` · `MVP-67` | Status harian `NotYetPresent`/`NoScan`, hari libur hanya jadwal tetap, scan di luar jendela | ✅ | `BE-HRD-342` |
+| `BE-HRD-344` | `A52` · `MVP-67` | Pratinjau tutup berisi daftar dan konversi tanpa syarat setelan | ✅ | `BE-HRD-343` |
+| `BE-HRD-345` | `A52` · `MVP-67` | Scan mesin tak terdaftar ditahan dan dilepas sesudah pendaftaran | ✅ | `BE-HRD-335` |
+| `BE-HRD-346` | `A52` · `MVP-67` | API daftar mesin absen | ✅ | `BE-HRD-345` |
+| `BE-HRD-347` | `A52` · `MVP-67` | API master hari libur | ✅ | `BE-HRD-334` |
+| `BE-HRD-348` | `A52` · `MVP-68` | Jadwal Saya: jadwal sendiri dan roster unit | ✅ | `BE-HRD-343`, `BE-HRD-338` |
+| `BE-HRD-349` | `A52` · `MVP-68` | Laporan kehadiran (tujuh laporan) dengan cakupan unit | ✅ | `BE-HRD-336`, `BE-HRD-344` |
+| `BE-HRD-350` | `A52` · `MVP-68` | Ekspor `.xlsx` dan log ekspor | ✅ | `BE-HRD-349` |
+| `BE-HRD-351` | `A52` · `Verifikasi` | Verifikasi MVP `A52` | ✅ | `BE-HRD-334` s.d. `BE-HRD-350` |
+| `BE-HRD-352` | `A52` · `POST-MVP` | Cadangan siaga dan catatan panggilan (`POST-MVP`) | ✅ | `BE-HRD-335` |
+| `BE-HRD-353` | `A52` · `POST-MVP` | Dispensasi: pengajuan, catat atas nama, keputusan (`POST-MVP`) | ✅ | `BE-HRD-343` |
+| `BE-HRD-354` | `A52` · `POST-MVP` | Dispensasi pada pemrosesan harian (`POST-MVP`) | ✅ | `BE-HRD-353` |
+| `BE-HRD-355` | `A52` · `POST-MVP` | Tugas belajar (`POST-MVP`) | ✅ | `BE-HRD-343` |
+| `BE-HRD-356` | `A52` · `POST-MVP` | Kejadian gangguan mesin dan rujukan pada koreksi (`POST-MVP`) | ✅ | `BE-HRD-343` |
+| `BE-HRD-357` | `A52` · `POST-MVP` | Dashboard kehadiran (`POST-MVP`) | ✅ | `BE-HRD-336` |
+| `BE-HRD-358` | `A52` · `POST-MVP` | Verifikasi `POST-MVP` `A52` | ✅ | `BE-HRD-352` s.d. `BE-HRD-357` |
+| `BE-HRD-359` | `A52` · tidak dijadwalkan | Daftar penempatan sementara lintas pegawai (terblokir) | ⛔ | `{DSG-Q-02}` ⛔ |
 | `BE-HRD-364` | `S-C5-SEP` · Fondasi | Audit-kontrak ringkas + adapter GET/paging data nyata enam Submenu | ✅ | Governance/approved contract |
 | `BE-HRD-365` | `S-C5-SEP` · Keamanan | Actor identity, per-record access, permission dan audit yang tidak dapat dipalsukan | 🟡 | `BE-HRD-364` |
 | `BE-HRD-366` | `S-C5-SEP` · Transaksi | One-separation owner, idempotensi, number series, transaction safety | ✅ | `BE-HRD-364`, `BE-HRD-365` |
@@ -1126,6 +1152,8 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 > **Pemutakhiran register 10 November 2026.** Kolom status `BE-HRD-079` dan `BE-HRD-104` s.d. `BE-HRD-130` yang kosong diisi dari kartu task (seluruhnya ✅); baris `BE-HRD-146` s.d. `BE-HRD-175` yang kolomnya tertukar dirapikan ke urutan kolom tabel (dependency tertulis pada kartu task); 158 baris `BE-HRD-176` s.d. `BE-HRD-333` yang belum tercantum ditambahkan dari kartu task. Tanda 🟡 mengikuti pengerjaan ulang Gelombang 1 (`backend-unfinished-work.md`).
 
 > **Pemutakhiran register 19 November 2026.** Baris `BE-HRD-374` s.d. `BE-HRD-432` ditambahkan dari dokumen update (bagian 28). Kolom ringkasan memuat alias ID register finishing (`FIN-HRD-*`, `SKT-IMP`, `ST-IMP`, `DA-IMP`, `REG-IMP`). Tanda `BE-HRD-365`, `BE-HRD-368`, `BE-HRD-372`, `BE-HRD-373` diturunkan ke 🟡 sesudah audit source Menu 12.
+
+> **Pemutakhiran register 19 November 2026 (A52).** Baris `BE-HRD-334` s.d. `BE-HRD-359` (amandemen `A52`, bagian 24) ditambahkan dari kartu task; tanda status disalin apa adanya dari kartu (25 ✅, `BE-HRD-359` ⛔ menunggu `DSG-Q-02`). Baris `BE-HRD-360` s.d. `BE-HRD-363` (S-A8) belum dicantumkan.
 
 ---
 
@@ -6380,7 +6408,7 @@ BE-HRD-318 ✅ s.d. BE-HRD-332 ✅ ───────> BE-HRD-333 🟡
 | Field | Nilai |
 | --- | --- |
 | Roadmap revisi | `24` (melanjutkan revisi `23` pada manifest) |
-| Status | `PLANNED` — belum ada task yang dikerjakan |
+| Status | MVP dan `POST-MVP` selesai — 25 task ✅ (`BE-HRD-334` s.d. `BE-HRD-358`); `BE-HRD-359` ⛔ menunggu `DSG-Q-02`. Diverifikasi ulang 19 November 2026 pada branch `MHamzah` sesudah merge `QuilvianIntegrationBackEnd` (`afccff58`): `dotnet build -p:RunAnalyzers=False` 0 error; proyek uji HR 258/258 lulus (dijalankan dari salinan tanpa 4 berkas uji `WorkforcePayrollData*Tests` S-A8 yang tidak terkompilasi); migration `20261112043425_AddSchedulingAttendanceAmendmentA52` dan `20261113050000_AddMissingHrdColumnDefaults` terpasang di `QuilvianNewDevHamzah` beserta enam tabel A52 |
 | Dasar approval | Pengguna, pemilik teknis dan produk (`HRD-DEC-015`), 12 November 2026 — desain `A52` disetujui apa adanya |
 | Masukan | `02-backend-architecture.md` bagian 35; kontrak `v26` (`api-contract.md` 32, `permission-audit-matrix.md` 30, `state-transition-matrix.md` 30, `validation-matrix.md` 31, `integration-contract.md` 23); `testing/acceptance-test-matrix.md` 34; `04-prd-to-mvp.md` 40; decision log revision `37` (SHA-256 `df3cf67a…`); capability map revisi `1.4` (SHA-256 `d260d20f…`) |
 | Source SHA | BE `a437ae42` (branch `yoga`); FE `6a5658269` (branch `YogaV2`) |
