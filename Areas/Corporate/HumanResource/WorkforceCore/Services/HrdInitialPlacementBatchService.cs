@@ -526,6 +526,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             return (await GetBatchByIdAsync(id, ct))!;
         }
 
+        private const string BatchApprovalLockKey = "HRD_INITIAL_PLACEMENT_BATCH_APPROVAL";
+
+        /// <summary>Kunci penasihat PostgreSQL di dalam transaksi aktif; dilewati di luar PostgreSQL.</summary>
+        private async Task AcquireTransactionLockAsync(string lockKey, CancellationToken ct)
+        {
+            if (!_dbContext.Database.IsNpgsql())
+                return;
+
+            await _dbContext.Database.ExecuteSqlRawAsync(
+                "SELECT pg_advisory_xact_lock(hashtext({0}));",
+                [lockKey],
+                ct);
+        }
+
         public async Task<InitialBatchDetailResponse> ApproveBatchAsync(Guid id, Guid userId, CancellationToken ct = default)
         {
             var batch = await _dbContext.HrdInitialPlacementBatches
@@ -557,14 +571,39 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 throw new InvalidOperationException($"Persetujuan batch ditolak: Pegawai dengan ID '{conflictingEmployee.WorkforceProfileId}' telah tercatat dalam batch '{conflictingEmployee.BatchNumber}' yang berstatus '{conflictingEmployee.BatchStatus}'. Satu pegawai dilarang berada di dua batch penempatan yang sama-sama disetujui (AUD-HRD07-15 / HRD-DEC-054).");
             }
 
+            // BE-HRD-412: persetujuan batch diantrekan (kunci global persetujuan batch) dan status dibaca ulang,
+            // sehingga dua approver serentak tidak sama-sama menyetujui, dan dua batch berisi pegawai yang sama
+            // tidak lolos pemeriksaan sekali-per-pegawai secara bersamaan.
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
+            await AcquireTransactionLockAsync(BatchApprovalLockKey, ct);
+
+            var liveStatus = await _dbContext.HrdInitialPlacementBatches
+                .AsNoTracking()
+                .Where(x => x.Id == batch.Id)
+                .Select(x => x.BatchStatus)
+                .FirstOrDefaultAsync(ct);
+            if (liveStatus != "PendingApproval")
+            {
+                throw new InvalidOperationException($"Batch sudah diproses oleh petugas lain (status saat ini: '{liveStatus}'). Muat ulang data.");
+            }
+
+            var conflictAfterLock = await _dbContext.HrdInitialPlacementBatchRows
+                .Where(r => r.BatchId != batch.Id && profileIds.Contains(r.WorkforceProfileId) && (r.Batch!.BatchStatus == "Approved" || r.Batch.BatchStatus == "Executed") && !r.Batch.IsDelete)
+                .Select(r => r.Batch!.BatchNumber)
+                .FirstOrDefaultAsync(ct);
+            if (conflictAfterLock != null)
+            {
+                throw new InvalidOperationException($"Persetujuan batch ditolak: sebagian pegawai baru saja disetujui pada batch '{conflictAfterLock}' (HRD-DEC-054).");
+            }
+
             var now = DateTime.UtcNow;
             batch.BatchStatus = "Approved";
             batch.ApprovedByUserId = userId;
             batch.ApprovedAt = now;
             batch.UpdateDateTime = now;
             batch.UpdateBy = userId;
-
             await _dbContext.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
             return (await GetBatchByIdAsync(id, ct))!;
         }
 
@@ -634,6 +673,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
             try
             {
+                // BE-HRD-412: eksekusi tepat sekali walau dua permintaan datang bersamaan.
+                await AcquireTransactionLockAsync($"HRD_INITIAL_PLACEMENT_EXECUTE_{batch.Id}", ct);
+                var liveStatus = await _dbContext.HrdInitialPlacementBatches
+                    .AsNoTracking()
+                    .Where(x => x.Id == batch.Id)
+                    .Select(x => x.BatchStatus)
+                    .FirstOrDefaultAsync(ct);
+                if (liveStatus != "Approved")
+                {
+                    throw new InvalidOperationException($"Batch sudah diproses oleh petugas lain (status saat ini: '{liveStatus}').");
+                }
+
                 var now = DateTime.UtcNow;
 
                 var profiles = await _dbContext.MstWorkforceProfiles

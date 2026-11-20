@@ -1272,6 +1272,8 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.IEmployeeEmploymentRecordService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.EmployeeEmploymentRecordService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.EmployeeEmploymentRecordService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.IWorkforceIdentityResolverService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.WorkforceIdentityResolverService>();
+    // BE-HRD-401: penjaga reaktivasi purnatugas dan kunci akun skorsing pada Data Induk.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.IWorkforceLifecycleGuardService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.WorkforceLifecycleGuardService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.WorkforceIdentityResolverService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.IWfpContractHistoryWriteService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpContractHistoryWriteService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpContractHistoryWriteService>();
@@ -2736,6 +2738,26 @@ try
         uploadRootPath = Path.GetFullPath(uploadRootPath);
 
         Directory.CreateDirectory(uploadRootPath);
+
+        // BE-HRD-397 / HRD-DEC-053: dokumen personal dan ijazah pegawai tidak boleh terbuka lewat
+        // URL statis tanpa login. Berkas di bawah human-resource/workforce hanya disajikan oleh
+        // endpoint unduh yang memeriksa hak akses dan kerahasiaan
+        // (/workforce-profiles/{id}/documents/{docId}/file, /educations/{eduId}/file).
+        var protectedWorkforceFilePath = new PathString($"{publicRequestPath}/human-resource/workforce");
+        // BE-HRD-432: PDF SPK/RKK (nama nakes + rincian kewenangan) hanya lewat endpoint unduh berizin
+        // /credentialing/spk-rkk/{id}/files; gambar QR (hanya berisi hash) tetap boleh statis.
+        var protectedSpkRkkFilePath = new PathString($"{publicRequestPath}/storage/spk-rkk");
+        app.Use(async (context, next) =>
+        {
+            if (context.Request.Path.StartsWithSegments(protectedWorkforceFilePath, StringComparison.OrdinalIgnoreCase)
+                || context.Request.Path.StartsWithSegments(protectedSpkRkkFilePath, StringComparison.OrdinalIgnoreCase))
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                return;
+            }
+
+            await next();
+        });
 
         app.UseStaticFiles(new StaticFileOptions
         {

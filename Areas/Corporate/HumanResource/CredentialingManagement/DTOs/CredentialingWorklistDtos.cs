@@ -156,6 +156,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         public decimal? LatestOppeScore { get; set; }
         public string? LatestOppeGrade { get; set; }
         public string? LatestOppePeriodName { get; set; }
+        /// <summary>
+        /// BE-HRD-437: <c>OPPE_READY</c> bila ada evaluasi OPPE final (FINALIZED/ACKNOWLEDGED) yang periodenya berakhir di
+        /// dalam siklus SPK berjalan; selain itu <c>DATA_BELUM_CUKUP</c>. Tidak pernah diisi skor contoh.
+        /// </summary>
+        public string OppeReadiness { get; set; } = OppeReadinessStatus.NotEnoughData;
+        /// <summary>Jumlah evaluasi OPPE final yang periodenya berakhir di dalam siklus SPK berjalan.</summary>
+        public int OppeEvaluationsInCycle { get; set; }
+    }
+
+    /// <summary>BE-HRD-437: penanda kesiapan data OPPE untuk rekredensial.</summary>
+    public static class OppeReadinessStatus
+    {
+        public const string Ready = "OPPE_READY";
+        public const string NotEnoughData = "DATA_BELUM_CUKUP";
     }
 
     /// <summary>Baris registri kewenangan klinis lintas tenaga kesehatan.</summary>

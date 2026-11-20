@@ -25,6 +25,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
 
     public interface IWorkforceIdentityResolverService
     {
+        bool IsPassportType(string? identityType);
         string NormalizeIdentityNumber(string? identityType, string? identityNumber);
         bool IsValidIdentity(string? identityType, string? identityNumber, out string? errorMessage);
 

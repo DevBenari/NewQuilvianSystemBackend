@@ -1357,6 +1357,30 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
 
             try
             {
+                // BE-HRD-390: apply tepat sekali. Dua klik "Terapkan" yang bersamaan diantrekan per
+                // permintaan; yang kedua membaca ulang status sesudah yang pertama commit dan ditolak 409.
+                if (_dbContext.Database.IsNpgsql())
+                {
+                    await _dbContext.Database.ExecuteSqlRawAsync(
+                        "SELECT pg_advisory_xact_lock(hashtext({0}));",
+                        [$"HRD_PROFILE_CHANGE_APPLY_{entity.Id}"],
+                        cancellationToken);
+                }
+
+                var currentStatus = await _dbContext.Set<TrxEmployeeProfileChangeRequest>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == entity.Id)
+                    .Select(x => x.RequestStatus)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (currentStatus != "Approved")
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return EmployeeProfileChangeServiceResult<EmployeeProfileChangeApplyResponse>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Permintaan ini sudah diterapkan atau statusnya berubah. Muat ulang data.");
+                }
+
                 foreach (var item in planResult.Data)
                 {
                     item.Property.SetValue(item.Target, item.ConvertedValue);
@@ -2630,6 +2654,34 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>
+        /// BE-HRD-390: record anak profil (alamat, rekening, kontak darurat, keluarga, tanggungan) yang
+        /// dirujuk lewat TargetEntityId wajib milik profil pegawai pada permintaan yang sama dan belum
+        /// dihapus. Tanpa penjaga ini, pengajuan untuk pegawai A dapat mengubah rekening pegawai B.
+        /// </summary>
+        private static TargetResolution? GuardTargetOwnership(
+            Guid ownerWorkforceProfileId,
+            bool isDeleted,
+            MstWorkforceProfile workforceProfile,
+            string targetLabel)
+        {
+            if (ownerWorkforceProfileId != workforceProfile.Id)
+            {
+                return TargetResolution.Fail(
+                    StatusCodes.Status400BadRequest,
+                    $"Data {targetLabel} yang dirujuk bukan milik pegawai pada permintaan ini.");
+            }
+
+            if (isDeleted)
+            {
+                return TargetResolution.Fail(
+                    StatusCodes.Status409Conflict,
+                    $"Data {targetLabel} yang dirujuk sudah dihapus.");
+            }
+
+            return null;
+        }
+
         private static TargetResolution ResolveTarget(
             MstWorkforceProfile workforceProfile,
             MstEmployee employee,
@@ -2685,7 +2737,21 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 WfpAddress? address = null;
                 if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
                 {
-                    address = dbContext.Set<WfpAddress>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                    var existingWfpAddress = dbContext.Set<WfpAddress>().FirstOrDefault(x => x.Id == targetId);
+                    if (existingWfpAddress != null)
+                    {
+                        var ownershipFailure = GuardTargetOwnership(
+                            existingWfpAddress.WorkforceProfileId,
+                            existingWfpAddress.IsDelete,
+                            workforceProfile,
+                            "alamat");
+                        if (ownershipFailure != null)
+                        {
+                            return ownershipFailure;
+                        }
+
+                        address = existingWfpAddress;
+                    }
                 }
 
                 if (address == null)
@@ -2719,7 +2785,21 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 WfpBankAccount? bank = null;
                 if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
                 {
-                    bank = dbContext.Set<WfpBankAccount>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                    var existingWfpBankAccount = dbContext.Set<WfpBankAccount>().FirstOrDefault(x => x.Id == targetId);
+                    if (existingWfpBankAccount != null)
+                    {
+                        var ownershipFailure = GuardTargetOwnership(
+                            existingWfpBankAccount.WorkforceProfileId,
+                            existingWfpBankAccount.IsDelete,
+                            workforceProfile,
+                            "rekening bank");
+                        if (ownershipFailure != null)
+                        {
+                            return ownershipFailure;
+                        }
+
+                        bank = existingWfpBankAccount;
+                    }
                 }
 
                 if (bank == null)
@@ -2753,7 +2833,21 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 WfpEmergencyContact? contact = null;
                 if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
                 {
-                    contact = dbContext.Set<WfpEmergencyContact>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                    var existingWfpEmergencyContact = dbContext.Set<WfpEmergencyContact>().FirstOrDefault(x => x.Id == targetId);
+                    if (existingWfpEmergencyContact != null)
+                    {
+                        var ownershipFailure = GuardTargetOwnership(
+                            existingWfpEmergencyContact.WorkforceProfileId,
+                            existingWfpEmergencyContact.IsDelete,
+                            workforceProfile,
+                            "kontak darurat");
+                        if (ownershipFailure != null)
+                        {
+                            return ownershipFailure;
+                        }
+
+                        contact = existingWfpEmergencyContact;
+                    }
                 }
 
                 if (contact == null)
@@ -2787,7 +2881,21 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 WfpFamilyMember? fam = null;
                 if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
                 {
-                    fam = dbContext.Set<WfpFamilyMember>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                    var existingWfpFamilyMember = dbContext.Set<WfpFamilyMember>().FirstOrDefault(x => x.Id == targetId);
+                    if (existingWfpFamilyMember != null)
+                    {
+                        var ownershipFailure = GuardTargetOwnership(
+                            existingWfpFamilyMember.WorkforceProfileId,
+                            existingWfpFamilyMember.IsDelete,
+                            workforceProfile,
+                            "anggota keluarga");
+                        if (ownershipFailure != null)
+                        {
+                            return ownershipFailure;
+                        }
+
+                        fam = existingWfpFamilyMember;
+                    }
                 }
 
                 if (fam == null)
@@ -2821,7 +2929,21 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 WfpDependent? dep = null;
                 if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
                 {
-                    dep = dbContext.Set<WfpDependent>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                    var existingWfpDependent = dbContext.Set<WfpDependent>().FirstOrDefault(x => x.Id == targetId);
+                    if (existingWfpDependent != null)
+                    {
+                        var ownershipFailure = GuardTargetOwnership(
+                            existingWfpDependent.WorkforceProfileId,
+                            existingWfpDependent.IsDelete,
+                            workforceProfile,
+                            "tanggungan");
+                        if (ownershipFailure != null)
+                        {
+                            return ownershipFailure;
+                        }
+
+                        dep = existingWfpDependent;
+                    }
                 }
 
                 if (dep == null)

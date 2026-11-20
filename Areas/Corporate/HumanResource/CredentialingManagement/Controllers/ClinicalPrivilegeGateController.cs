@@ -91,6 +91,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             {
                 return NotFound(new { message = ex.Message });
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                // BE-HRD-434: bukan supervisor penanggung jawab → 403 (sebelumnya jatuh ke 500).
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return UnprocessableEntity(new { message = ex.Message });
+            }
         }
 
         /// <summary>

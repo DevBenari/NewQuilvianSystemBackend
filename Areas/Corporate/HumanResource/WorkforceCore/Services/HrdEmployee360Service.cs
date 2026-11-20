@@ -44,6 +44,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                        || await _permissionService.HasAccessAsync(userPrincipal, "HrdPersonnelActionOrder", "Read");
 
             // Check if caller is active direct manager of target employee
+            // BE-HRD-400: hak atasan dinilai pada tanggal server, bukan tanggal acuan kiriman pemanggil,
+            // supaya mantan atasan tidak dapat membuka profil mantan bawahan dengan tanggal lampau.
+            var serverToday = DateTime.UtcNow.Date;
             var isDirectManager = false;
             if (!isHr && caller.WorkforceProfileId.HasValue && caller.WorkforceProfileId.Value != Guid.Empty)
             {
@@ -54,8 +57,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                                    x.IsPrimaryManager &&
                                    x.IsActive &&
                                    !x.IsDelete &&
-                                   x.EffectiveStartDate <= today &&
-                                   (x.EffectiveEndDate == null || x.EffectiveEndDate >= today), ct);
+                                   x.EffectiveStartDate <= serverToday &&
+                                   (x.EffectiveEndDate == null || x.EffectiveEndDate >= serverToday), ct);
             }
 
             if (!isHr && !isDirectManager)
@@ -138,7 +141,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     EffectiveDate = x.EffectiveDate,
                     PostingDate = x.PostingDate,
                     OrderStatus = x.OrderStatus,
-                    ReasonText = x.ReasonText,
+                    // BE-HRD-400 / HRD-DEC-053: alasan SK (dapat memuat alasan disiplin) hanya untuk mode HR.
+                    ReasonText = isHr ? x.ReasonText : string.Empty,
                     HasSignedDocument = !string.IsNullOrEmpty(x.SignedDocumentPath),
                     SignedDocumentFileName = x.SignedDocumentFileName,
                     TargetOrganizationUnitName = x.TargetOrganizationUnit != null ? x.TargetOrganizationUnit.UnitName : null,

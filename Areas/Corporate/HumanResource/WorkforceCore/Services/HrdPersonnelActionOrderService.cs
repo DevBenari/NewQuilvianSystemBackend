@@ -5,6 +5,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -18,13 +20,51 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
     public class HrdPersonnelActionOrderService : IHrdPersonnelActionOrderService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly NumberSeriesAllocator _numberSeriesAllocator;
         private const string OrderNumberPrefix = "SK-RSMMC-";
-        private const string AdvisoryLockName = "HR_PERSONNEL_ACTION_ORDER_NUMBER";
-        private static readonly object _orderNumberLock = new();
+        private const string OrderNumberSeriesPrefix = "SK-RSMMC";
+        private const string OrderNumberSequenceKey = "HRD_PERSONNEL_ACTION_ORDER";
+        private const int OrderNumberDigits = 4;
 
-        public HrdPersonnelActionOrderService(ApplicationDbContext dbContext)
+        /// <summary>
+        /// BE-HRD-414 / HRD-DEC-036: perubahan penetapan atasan adalah jenis transaksi tersendiri, bukan
+        /// Mutasi atau Rotasi. Alur persetujuannya memakai pola MVP yang sama (pembuat ≠ penyetuju, scan wajib).
+        /// </summary>
+        public const string ManagerChangeCategory = "ManagerChange";
+
+        private static void ValidateManagerChangeShape(
+            string? actionCategory,
+            Guid? targetOrganizationUnitId,
+            Guid? targetDepartmentId,
+            Guid? targetPositionId,
+            Guid? targetManagerProfileId)
+        {
+            if (!string.Equals(actionCategory, ManagerChangeCategory, StringComparison.Ordinal))
+                return;
+
+            if (!targetManagerProfileId.HasValue || targetManagerProfileId.Value == Guid.Empty)
+                throw new ArgumentException("Perubahan atasan wajib memilih atasan langsung baru.");
+
+            if (targetOrganizationUnitId.HasValue || targetDepartmentId.HasValue || targetPositionId.HasValue)
+                throw new ArgumentException("Perubahan atasan hanya mengubah atasan langsung. Perubahan unit atau jabatan diajukan sebagai Mutasi/Rotasi/Promosi.");
+        }
+
+        public HrdPersonnelActionOrderService(ApplicationDbContext dbContext, NumberSeriesAllocator numberSeriesAllocator)
         {
             _dbContext = dbContext;
+            _numberSeriesAllocator = numberSeriesAllocator;
+        }
+
+        /// <summary>Kunci penasihat PostgreSQL di dalam transaksi aktif; dilewati di luar PostgreSQL.</summary>
+        private async Task AcquireTransactionLockAsync(string lockKey, CancellationToken ct)
+        {
+            if (!_dbContext.Database.IsNpgsql())
+                return;
+
+            await _dbContext.Database.ExecuteSqlRawAsync(
+                "SELECT pg_advisory_xact_lock(hashtext({0}));",
+                [lockKey],
+                ct);
         }
 
         public async Task<PagedResult<PersonnelActionOrderListResponse>> GetOrdersAsync(
@@ -163,7 +203,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
         {
             return Task.FromResult(new PersonnelActionOrderFilterMetadataResponse
             {
-                ActionCategories = new List<string> { "Mutation", "Promotion", "Rotation", "Demotion", "TemporaryAssignment" },
+                ActionCategories = new List<string> { "Mutation", "Promotion", "Rotation", "Demotion", "TemporaryAssignment", ManagerChangeCategory },
                 OrderStatuses = new List<string> { "Draft", "PendingApproval", "Scheduled", "Applied", "Rejected", "Cancelled" }
             });
         }
@@ -175,6 +215,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
         {
             if (request.WorkforceProfileId == Guid.Empty)
                 throw new ArgumentException("Pegawai target wajib dipilih.");
+
+            ValidateManagerChangeShape(request.ActionCategory, request.TargetOrganizationUnitId, request.TargetDepartmentId, request.TargetPositionId, request.TargetManagerProfileId);
 
             var employee = await _dbContext.MstWorkforceProfiles
                 .FirstOrDefaultAsync(x => x.Id == request.WorkforceProfileId && !x.IsDelete, ct);
@@ -193,7 +235,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             HrdPersonnelActionOrder? order = null;
             for (int attempt = 0; attempt < 3; attempt++)
             {
-                var orderNumber = await GenerateOrderNumberAsync(ct);
+                var orderNumber = await GenerateOrderNumberAsync(userId, ct);
                 order = new HrdPersonnelActionOrder
                 {
                     ActionOrderNumber = orderNumber,
@@ -240,6 +282,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             Guid userId,
             CancellationToken ct = default)
         {
+            ValidateManagerChangeShape(request.ActionCategory, request.TargetOrganizationUnitId, request.TargetDepartmentId, request.TargetPositionId, request.TargetManagerProfileId);
+
             var order = await _dbContext.HrdPersonnelActionOrders
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, ct);
 
@@ -434,6 +478,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
             try
             {
+                // BE-HRD-407: dua persetujuan paralel berlaku sekali. Persetujuan kedua menunggu kunci per SK,
+                // membaca ulang status sesudah yang pertama commit, lalu ditolak.
+                await AcquireTransactionLockAsync($"HRD_PAO_{order.Id}", ct);
+                var currentStatus = await _dbContext.HrdPersonnelActionOrders
+                    .AsNoTracking()
+                    .Where(x => x.Id == order.Id)
+                    .Select(x => x.OrderStatus)
+                    .FirstOrDefaultAsync(ct);
+                if (currentStatus != "PendingApproval")
+                {
+                    throw new InvalidOperationException($"SK sudah diproses oleh petugas lain (status saat ini: '{currentStatus}'). Muat ulang data.");
+                }
+
                 order.ApprovedByUserId = userId;
                 order.ApprovedAt = DateTime.UtcNow;
                 order.UpdateBy = userId;
@@ -825,6 +882,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
                 try
                 {
+                    // BE-HRD-411: dua tick atau dua instance worker tidak menerapkan SK yang sama dua kali, dan
+                    // permohonan pembatalan yang masuk sesudah daftar dibaca tetap dihormati.
+                    await AcquireTransactionLockAsync($"HRD_PAO_{order.Id}", ct);
+                    var live = await _dbContext.HrdPersonnelActionOrders
+                        .AsNoTracking()
+                        .Where(x => x.Id == order.Id)
+                        .Select(x => new { x.OrderStatus, x.CancellationRequestedByUserId })
+                        .FirstOrDefaultAsync(ct);
+                    if (live == null || live.OrderStatus != "Scheduled" || live.CancellationRequestedByUserId.HasValue)
+                    {
+                        await transaction.RollbackAsync(ct);
+                        continue;
+                    }
+
                     order.OrderStatus = "Applied";
                     order.ExecutedAt = DateTime.UtcNow;
                     order.UpdateDateTime = DateTime.UtcNow;
@@ -847,35 +918,38 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             return appliedCount;
         }
 
-        private async Task<string> GenerateOrderNumberAsync(CancellationToken ct)
+        /// <summary>
+        /// BE-HRD-409: nomor SK <c>SK-RSMMC-YYYYMMDD-NNNN</c> dari number series bersama yang atomik di
+        /// database (aman lintas instance), bukan baca-nomor-tertinggi + lock lokal. Nomor tertinggi hari ini
+        /// yang sudah terbit dipakai sebagai batas bawah agar tidak bentrok dengan nomor lama.
+        /// </summary>
+        private async Task<string> GenerateOrderNumberAsync(Guid actorUserId, CancellationToken ct)
         {
             var dateCode = GetHospitalBusinessDate().ToString("yyyyMMdd", CultureInfo.InvariantCulture);
             var prefix = $"{OrderNumberPrefix}{dateCode}-";
 
-            // AUD-HRD07-07: Query nomor SK tertinggi langsung dari DB dengan prefix hari ini
-            var latestNumber = await _dbContext.HrdPersonnelActionOrders
+            var todayNumbers = await _dbContext.HrdPersonnelActionOrders
                 .IgnoreQueryFilters()
                 .AsNoTracking()
                 .Where(x => x.ActionOrderNumber.StartsWith(prefix))
-                .OrderByDescending(x => x.ActionOrderNumber)
                 .Select(x => x.ActionOrderNumber)
-                .FirstOrDefaultAsync(ct);
+                .ToListAsync(ct);
 
-            int nextNum = 1;
-            if (!string.IsNullOrEmpty(latestNumber) && latestNumber.Length > prefix.Length)
-            {
-                var suffix = latestNumber[prefix.Length..];
-                if (int.TryParse(suffix, out var parsed))
-                {
-                    nextNum = parsed + 1;
-                }
-            }
+            var legacyHighWatermark = todayNumbers
+                .Select(n => long.TryParse(n[prefix.Length..], out var parsed) ? parsed : 0L)
+                .DefaultIfEmpty(0L)
+                .Max();
 
-            lock (_orderNumberLock)
-            {
-                var candidate = $"{prefix}{nextNum:D4}";
-                return candidate;
-            }
+            return await _numberSeriesAllocator.AllocateAsync(
+                new NumberAllocationRequest(
+                    SequenceKey: OrderNumberSequenceKey,
+                    Prefix: OrderNumberSeriesPrefix,
+                    ResetPolicy: NumberSeriesResetPolicies.Daily,
+                    SequenceDigits: OrderNumberDigits,
+                    ActorUserId: actorUserId,
+                    Instant: DateTimeOffset.UtcNow,
+                    MinimumValue: legacyHighWatermark),
+                ct);
         }
 
         private async Task<bool> WouldCreateCycleAsync(Guid workforceProfileId, Guid managerWorkforceProfileId, DateTime activeDate, CancellationToken ct)

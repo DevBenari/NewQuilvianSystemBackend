@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -9,11 +12,87 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 {
     public class RetirementService
     {
-        private readonly ApplicationDbContext _dbContext;
+        /// <summary>Kode kebijakan yang dikembalikan bila usia pensiun normal RS belum ditetapkan (BE-HRD-368).</summary>
+        public const string PolicyNotConfiguredCode = "POLICY_NOT_CONFIGURED";
 
-        public RetirementService(ApplicationDbContext dbContext)
+        // Jendela tampilan "mendekati pensiun": tiga tahun sebelum tanggal pensiun proyeksi, sama dengan
+        // perilaku lama (usia 55 untuk pensiun 58). Ini rentang tampilan, bukan usia pensiun.
+        private const int ApproachingWindowYears = 3;
+
+        private const string RetirementSequenceKey = "HRD_LC_RETIREMENT";
+        private const string RetirementPrefix = "RET";
+        private const string ExitClearanceSequenceKey = "HRD_LC_EXIT_CLEARANCE";
+        private const string ExitClearancePrefix = "EXC";
+        private const int SequenceDigits = 4;
+
+        private readonly ApplicationDbContext _dbContext;
+        private readonly NumberSeriesAllocator _numberSeriesAllocator;
+
+        public RetirementService(ApplicationDbContext dbContext, NumberSeriesAllocator numberSeriesAllocator)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+            _numberSeriesAllocator = numberSeriesAllocator ?? throw new ArgumentNullException(nameof(numberSeriesAllocator));
+        }
+
+        /// <summary>
+        /// Usia pensiun normal per rumah sakit dari pengaturan siklus kepegawaian (BE-HRD-368).
+        /// Kosong bila belum ada satu pun RS yang menetapkannya.
+        /// </summary>
+        private async Task<Dictionary<Guid, int>> LoadRetirementPolicyBySiteAsync(CancellationToken cancellationToken)
+        {
+            return await _dbContext.HrdEmploymentLifecycleSettings
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.NormalRetirementAge != null)
+                .ToDictionaryAsync(x => x.HospitalSiteId, x => x.NormalRetirementAge!.Value, cancellationToken);
+        }
+
+        /// <summary>
+        /// Usia pensiun yang berlaku untuk satu orang: RS penempatan utamanya; bila penempatannya tidak
+        /// diketahui dan hanya ada satu nilai kebijakan, nilai itu yang dipakai. Selain itu <c>null</c>.
+        /// </summary>
+        private static int? ResolveAgeForSite(Dictionary<Guid, int> policyBySite, Guid? hospitalSiteId)
+        {
+            if (hospitalSiteId.HasValue && policyBySite.TryGetValue(hospitalSiteId.Value, out var siteAge))
+            {
+                return siteAge;
+            }
+
+            var distinctAges = policyBySite.Values.Distinct().ToList();
+            return distinctAges.Count == 1 ? distinctAges[0] : null;
+        }
+
+        private async Task<Dictionary<Guid, Guid?>> LoadPrimarySiteByProfileAsync(
+            IReadOnlyCollection<Guid> workforceProfileIds,
+            CancellationToken cancellationToken)
+        {
+            var today = DateTime.UtcNow.Date;
+            var rows = await _dbContext.WfpOrganizationAssignments
+                .AsNoTracking()
+                .Where(x => workforceProfileIds.Contains(x.WorkforceProfileId) &&
+                            x.IsActive && !x.IsDelete &&
+                            x.EffectiveStartDate <= today &&
+                            (x.EffectiveEndDate == null || x.EffectiveEndDate >= today))
+                .OrderByDescending(x => x.IsPrimary)
+                .ThenByDescending(x => x.EffectiveStartDate)
+                .Select(x => new { x.WorkforceProfileId, x.HospitalSiteId })
+                .ToListAsync(cancellationToken);
+
+            return rows
+                .GroupBy(x => x.WorkforceProfileId)
+                .ToDictionary(g => g.Key, g => (Guid?)g.First().HospitalSiteId);
+        }
+
+        private Task<string> AllocateNumberAsync(string sequenceKey, string prefix, string resetPolicy, Guid actorUserId, CancellationToken cancellationToken)
+        {
+            return _numberSeriesAllocator.AllocateAsync(
+                new NumberAllocationRequest(
+                    SequenceKey: sequenceKey,
+                    Prefix: prefix,
+                    ResetPolicy: resetPolicy,
+                    SequenceDigits: SequenceDigits,
+                    ActorUserId: actorUserId,
+                    Instant: DateTimeOffset.UtcNow),
+                cancellationToken);
         }
 
         public RetirementFilterMetadataResponse GetFilterMetadata()
@@ -29,12 +108,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 .Select(x => x.RetirementStatus)
                 .ToListAsync(cancellationToken);
 
-            var today = DateTime.UtcNow.Date;
-            var cutOffDate = today.AddYears(-55);
-            var approachingCount = await _dbContext.MstEmployees
-                .AsNoTracking()
-                .Where(x => !x.IsDelete && x.IsActive && x.BirthDate <= cutOffDate)
-                .CountAsync(cancellationToken);
+            // BE-HRD-368: hitungan "mendekati pensiun" memakai usia pensiun kebijakan RS, bukan angka tertanam.
+            var policyBySite = await LoadRetirementPolicyBySiteAsync(cancellationToken);
+            var approachingCount = 0;
+            int? singlePolicyAge = null;
+            if (policyBySite.Count > 0)
+            {
+                var eligible = await ComputeApproachingAsync(policyBySite, null, int.MaxValue, cancellationToken);
+                approachingCount = eligible.Count;
+                var distinctAges = policyBySite.Values.Distinct().ToList();
+                singlePolicyAge = distinctAges.Count == 1 ? distinctAges[0] : null;
+            }
 
             return new RetirementSummaryResponse
             {
@@ -44,7 +128,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 Approved = all.Count(x => string.Equals(x, "Approved", StringComparison.OrdinalIgnoreCase)),
                 HandoffCompleted = all.Count(x => string.Equals(x, "HandoffCompleted", StringComparison.OrdinalIgnoreCase)),
                 Cancelled = all.Count(x => string.Equals(x, "Cancelled", StringComparison.OrdinalIgnoreCase)),
-                ApproachingRetirementCount = approachingCount
+                ApproachingRetirementCount = approachingCount,
+                RetirementPolicyStatus = policyBySite.Count > 0 ? "CONFIGURED" : PolicyNotConfiguredCode,
+                NormalRetirementAge = singlePolicyAge
             };
         }
 
@@ -135,12 +221,43 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             };
         }
 
-        public async Task<List<EligibleRetirementEmployeeResponse>> GetEligibleEmployeesAsync(
-            int minAge = 55,
+        /// <summary>
+        /// Kandidat pensiun dari master pegawai aktif (BE-HRD-368). Mengembalikan <c>null</c> bila usia
+        /// pensiun normal RS belum ditetapkan (<see cref="PolicyNotConfiguredCode"/>): penetapan kandidat
+        /// otomatis diblokir, tetapi kasus pensiun yang sudah ada tetap dapat dibaca.
+        /// </summary>
+        /// <param name="minAge">Penyaring tambahan usia saat ini (opsional), bukan usia pensiun.</param>
+        /// <param name="cancellationToken">Token pembatalan.</param>
+        public async Task<List<EligibleRetirementEmployeeResponse>?> GetEligibleEmployeesAsync(
+            int? minAge = null,
             CancellationToken cancellationToken = default)
         {
+            var policyBySite = await LoadRetirementPolicyBySiteAsync(cancellationToken);
+            if (policyBySite.Count == 0)
+            {
+                return null;
+            }
+
+            return await ComputeApproachingAsync(policyBySite, minAge, 50, cancellationToken);
+        }
+
+        private async Task<List<EligibleRetirementEmployeeResponse>> ComputeApproachingAsync(
+            Dictionary<Guid, int> policyBySite,
+            int? minAge,
+            int take,
+            CancellationToken cancellationToken)
+        {
             var today = DateTime.UtcNow.Date;
-            var maxBirthDate = today.AddYears(-minAge);
+
+            // Prasaring di database memakai usia kebijakan terkecil supaya tidak ada kandidat yang terlewat;
+            // usia per orang dihitung sesudahnya dari RS penempatannya.
+            var youngestPolicyAge = policyBySite.Values.Min();
+            var earliestQualifyingAge = Math.Max(0, youngestPolicyAge - ApproachingWindowYears);
+            if (minAge.HasValue)
+            {
+                earliestQualifyingAge = Math.Max(earliestQualifyingAge, minAge.Value);
+            }
+            var maxBirthDate = today.AddYears(-earliestQualifyingAge);
 
             var employees = await _dbContext.MstEmployees
                 .AsNoTracking()
@@ -150,17 +267,38 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     .ThenInclude(w => w!.PrimaryPosition)
                 .Where(x => !x.IsDelete && x.IsActive && x.BirthDate <= maxBirthDate)
                 .OrderBy(x => x.BirthDate)
-                .Take(50)
                 .ToListAsync(cancellationToken);
 
+            var siteByProfile = await LoadPrimarySiteByProfileAsync(
+                employees.Select(x => x.WorkforceProfileId).Distinct().ToList(),
+                cancellationToken);
+
+            var windowEnd = today.AddYears(ApproachingWindowYears);
             var result = new List<EligibleRetirementEmployeeResponse>();
             foreach (var emp in employees)
             {
+                siteByProfile.TryGetValue(emp.WorkforceProfileId, out var siteId);
+                var policyAge = ResolveAgeForSite(policyBySite, siteId);
+                if (!policyAge.HasValue)
+                {
+                    continue;
+                }
+
                 var birthDate = emp.BirthDate;
                 var age = today.Year - birthDate.Year;
                 if (birthDate.Date > today.AddYears(-age)) age--;
 
-                var projectedDate = birthDate.AddYears(58);
+                if (minAge.HasValue && age < minAge.Value)
+                {
+                    continue;
+                }
+
+                var projectedDate = birthDate.AddYears(policyAge.Value);
+                if (projectedDate.Date > windowEnd)
+                {
+                    continue;
+                }
+
                 var remainingMonths = ((projectedDate.Year - today.Year) * 12) + projectedDate.Month - today.Month;
 
                 result.Add(new EligibleRetirementEmployeeResponse
@@ -250,7 +388,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 ?? throw new KeyNotFoundException("Workforce Profile pegawai tidak ditemukan.");
 
             var now = DateTime.UtcNow;
-            var number = $"RET-{now:yyyyMMddHHmmss}-{Guid.NewGuid():N}"[..35];
+            // BE-HRD-368: nomor kasus dari number series bersama (RET-YYYYMM-NNNN), bukan cap waktu + GUID.
+            var number = await AllocateNumberAsync(RetirementSequenceKey, RetirementPrefix, NumberSeriesResetPolicies.Monthly, actorUserId, cancellationToken);
+
+            // Usia pensiun kasus: nilai yang diisi petugas, atau kebijakan RS bila tidak diisi.
+            var retirementAge = request.RetirementAge;
+            if (!retirementAge.HasValue)
+            {
+                var policyBySite = await LoadRetirementPolicyBySiteAsync(cancellationToken);
+                if (policyBySite.Count > 0)
+                {
+                    var siteByProfile = await LoadPrimarySiteByProfileAsync(new[] { request.WorkforceProfileId }, cancellationToken);
+                    siteByProfile.TryGetValue(request.WorkforceProfileId, out var siteId);
+                    retirementAge = ResolveAgeForSite(policyBySite, siteId);
+                }
+            }
 
             var retirement = new TrxRetirement
             {
@@ -261,7 +413,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 RetirementType = string.IsNullOrWhiteSpace(request.RetirementType) ? "Normal" : request.RetirementType.Trim(),
                 NormalRetirementDate = request.NormalRetirementDate,
                 ActualRetirementDate = request.ActualRetirementDate ?? request.NormalRetirementDate,
-                RetirementAge = request.RetirementAge,
+                RetirementAge = retirementAge,
                 BenefitPlanId = request.BenefitPlanId,
                 RetirementStatus = "Planned",
                 Notes = request.Notes?.Trim(),
@@ -385,7 +537,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             }
 
             var now = DateTime.UtcNow;
-            var separationNumber = $"SEP-RET-{now:yyyyMMddHHmmss}-{Guid.NewGuid():N}"[..35];
+            // BE-HRD-368: nomor separation memakai deret SEP bersama milik modul hubungan kerja (BE-HRD-366),
+            // nomor clearance dari deret EXC; keduanya atomik dan unik.
+            var separationNumber = await AllocateNumberAsync(
+                EmployeeRelationNumberSeries.Keys.Separation,
+                EmployeeRelationNumberSeries.Prefixes.Separation,
+                EmployeeRelationNumberSeries.ResetPolicies.Separation,
+                actorUserId,
+                cancellationToken);
+            var clearanceNumber = await AllocateNumberAsync(ExitClearanceSequenceKey, ExitClearancePrefix, NumberSeriesResetPolicies.Monthly, actorUserId, cancellationToken);
             var effectiveDate = retirement.ActualRetirementDate ?? retirement.NormalRetirementDate;
 
             var separation = new TrxEmployeeSeparation
@@ -417,7 +577,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             var exitClearance = new TrxExitClearance
             {
                 Id = Guid.NewGuid(),
-                ClearanceNumber = $"EXC-RET-{now:yyyyMMddHHmmss}-{Guid.NewGuid():N}"[..35],
+                ClearanceNumber = clearanceNumber,
                 EmployeeSeparationId = separation.Id,
                 WorkforceProfileId = retirement.WorkforceProfileId,
                 EmployeeId = retirement.EmployeeId,

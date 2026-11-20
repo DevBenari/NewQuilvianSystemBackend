@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using QRCoder;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.DTOs;
@@ -6,7 +7,10 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Mo
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Services.Security;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using System.Globalization;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
@@ -19,6 +23,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         private readonly IDocumentAutoNumberingService _numberingService;
         private readonly IPinRateLimiterService _rateLimiter;
         private readonly ILogger<EmployeeDocumentIssuanceService> _logger;
+        private readonly AccessPermissionService _accessPermissionService;
+        private readonly HrdUnitScopeService _unitScopeService;
+        private readonly IConfiguration _configuration;
 
         private static readonly CultureInfo IdCulture = new("id-ID");
 
@@ -26,12 +33,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             ApplicationDbContext dbContext,
             IDocumentAutoNumberingService numberingService,
             IPinRateLimiterService rateLimiter,
-            ILogger<EmployeeDocumentIssuanceService> logger)
+            ILogger<EmployeeDocumentIssuanceService> logger,
+            AccessPermissionService accessPermissionService,
+            HrdUnitScopeService unitScopeService,
+            IConfiguration configuration)
         {
             _dbContext = dbContext;
             _numberingService = numberingService;
             _rateLimiter = rateLimiter;
             _logger = logger;
+            _accessPermissionService = accessPermissionService ?? throw new ArgumentNullException(nameof(accessPermissionService));
+            _unitScopeService = unitScopeService ?? throw new ArgumentNullException(nameof(unitScopeService));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
         #region Pengajuan Dokumen & Anti-Manual Guard (BE-HRD-200)
@@ -40,7 +53,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             Guid workforceProfileId,
             SubmitDocumentRequestDto request,
             Guid requestedByUserId,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            ClaimsPrincipal? user = null)
         {
             var profile = await _dbContext.MstWorkforceProfiles
                 .Include(x => x.Employee)
@@ -70,6 +84,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             if (targetProfile == null)
             {
                 throw new InvalidOperationException($"Profil pegawai tujuan dengan ID {targetProfileId} tidak ditemukan.");
+            }
+
+            // BE-HRD-381: pengaju hanya boleh memohon surat untuk pegawai dalam kewenangannya. Identitas pengaju diambil
+            // dari token (bukan parameter query yang dapat diganti).
+            if (user != null && !await CanActForEmployeeAsync(user, requestedByUserId, targetProfileId, cancellationToken))
+            {
+                throw new UnauthorizedAccessException(
+                    "Anda tidak berwenang mengajukan surat untuk pegawai ini. Surat hanya dapat diajukan untuk diri sendiri atau pegawai di unit yang Anda pimpin.");
             }
 
             var docType = await _dbContext.MstEmployeeDocumentTypes
@@ -321,7 +343,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             // 2. Generator SHA-256 Verification Hash (BE-HRD-203)
             var rawHashSource = $"{issuance.IssuanceNumber}_{officialDocNumber}_{issuance.WorkforceProfileId}_{now.Ticks}_QUILVIAN_HRD_SALT";
             var verificationHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawHashSource))).ToLowerInvariant();
-            var verificationUrl = $"https://simrs.quilvian.co.id/public-verify/hr-document?hash={verificationHash}";
+            var verificationUrl = BuildVerificationUrl(verificationHash);
+            // BE-HRD-381: identitas rumah sakit (nama, alamat, kontak, kota) dari Master Lokasi RS, bukan teks tertanam.
+            var hospital = await ResolveHospitalIdentityAsync(cancellationToken);
 
             // 3. Generator QR Code PNG via QRCoder (BE-HRD-203)
             var qrCodeRelPath = GenerateAndSaveQrCode(verificationUrl, verificationHash);
@@ -342,7 +366,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             }
 
             // 5. Mesin Rendering Naskah Dinas PDF berbasis Token Dinamis (BE-HRD-202)
-            var renderedHtml = RenderDocumentTemplate(docType, issuance, officialDocNumber, verificationUrl, request.SignerName, request.SignerTitle, now);
+            var renderedHtml = RenderDocumentTemplate(docType, issuance, officialDocNumber, verificationUrl, request.SignerName, request.SignerTitle, now, hospital);
             var (pdfFilePath, fileSizeBytes, fileChecksum) = SaveRenderedDocumentFile(renderedHtml, officialDocNumber);
 
             // INT-HR-66: Pengarsipan Abadi ke Repositori Digital E-Dossier Sub-02 (WfpDocument)
@@ -357,7 +381,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
                     DocumentNumber = officialDocNumber,
                     IssueDate = now,
                     ExpiredDate = issuance.ValidUntil,
-                    IssuingAuthority = "Rumah Sakit Quilvian Utama",
+                    IssuingAuthority = hospital.Name,
                     FilePath = pdfFilePath,
                     FileContentType = "application/pdf",
                     StoredFileName = Path.GetFileName(pdfFilePath),
@@ -442,9 +466,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
                 return new PublicDocumentVerificationDto
                 {
                     IsValid = false,
-                    VerificationStatusMessage = "Dokumen tidak ditemukan atau kode verifikasi tidak terdaftar pada sistem Rumah Sakit Quilvian."
+                    VerificationStatusMessage = "Dokumen tidak ditemukan atau kode verifikasi tidak terdaftar pada sistem."
                 };
             }
+
+            // BE-HRD-381: nama penerbit dari arsip dokumen (IssuingAuthority saat terbit), atau Master Lokasi RS.
+            var issuerName = await ResolveIssuerNameAsync(issuance.EDossierDocumentId, cancellationToken);
 
             if (issuance.IsRevoked)
             {
@@ -454,11 +481,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
                     IssuanceNumber = issuance.IssuanceNumber,
                     OfficialDocumentNumber = issuance.OfficialDocumentNumber,
                     DocumentTypeName = issuance.EmployeeDocumentRequest?.EmployeeDocumentType?.DocumentTypeName ?? "Naskah Dinas SDM",
-                    VerificationStatusMessage = $"PERINGATAN RESMI: Dokumen ini telah DICABUT/DIBATALKAN oleh Rumah Sakit Quilvian pada {issuance.RevokedAt:dd MMMM yyyy} berdasarkan Berita Acara Pencabutan (BAP) No. {issuance.RevocationBapNumber}. Alasan: {issuance.RevocationReason}. Segala bentuk penggunaan dokumen ini adalah TIDAK SAH secara hukum."
+                    VerificationStatusMessage = $"PERINGATAN RESMI: Dokumen ini telah DICABUT/DIBATALKAN oleh {issuerName} pada {issuance.RevokedAt:dd MMMM yyyy} berdasarkan Berita Acara Pencabutan (BAP) No. {issuance.RevocationBapNumber}. Alasan: {issuance.RevocationReason}. Segala bentuk penggunaan dokumen ini adalah TIDAK SAH secara hukum."
                 };
             }
 
-            var empName = issuance.WorkforceProfile?.DisplayName ?? "Pegawai RS Quilvian";
+            var empName = issuance.WorkforceProfile?.DisplayName ?? "Pegawai";
             var empNumber = issuance.WorkforceProfile?.Employee?.EmployeeNumber ?? issuance.WorkforceProfile?.ProfileCode ?? string.Empty;
 
             var maskedName = MaskString(empName);
@@ -467,13 +494,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             return new PublicDocumentVerificationDto
             {
                 IsValid = true,
-                VerificationStatusMessage = "Dokumen Sah & Terverifikasi Diterbitkan Resmi oleh Rumah Sakit Quilvian.",
+                VerificationStatusMessage = $"Dokumen Sah & Terverifikasi Diterbitkan Resmi oleh {issuerName}.",
                 IssuanceNumber = issuance.IssuanceNumber,
                 OfficialDocumentNumber = issuance.OfficialDocumentNumber,
                 DocumentTypeName = issuance.EmployeeDocumentRequest?.EmployeeDocumentType?.DocumentTypeName ?? "Naskah Dinas SDM",
                 EmployeeNameMasked = maskedName,
                 EmployeeNumberMasked = maskedNumber,
-                IssuedByHospital = "Rumah Sakit Quilvian Utama",
+                IssuedByHospital = issuerName,
                 IssuedAt = issuance.IssuedAt,
                 ValidUntil = issuance.ValidUntil,
                 SignerName = issuance.SignerName ?? "Pejabat SDM Berwenang",
@@ -807,7 +834,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             string verificationUrl,
             string signerName,
             string signerTitle,
-            DateTime issuedDate)
+            DateTime issuedDate,
+            HrLetterhead hospital)
         {
             bool isAssignment = (docType.DocumentCategory != null && (
                                 docType.DocumentCategory.Contains("Duty", StringComparison.OrdinalIgnoreCase) ||
@@ -853,7 +881,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
                 .Replace("[GAJI_NETTO]", nettoStr)
                 .Replace("[NAMA_PENANDATANGAN]", signerName)
                 .Replace("[JABATAN_PENANDATANGAN]", signerTitle)
-                .Replace("[KOTA_RS]", "Jakarta")
+                .Replace("[KOTA_RS]", hospital.City)
+                .Replace("[NAMA_RS]", hospital.Name)
+                .Replace("[ALAMAT_RS]", hospital.Address)
+                .Replace("[KONTAK_RS]", hospital.Contact)
                 .Replace("[VERIFIKASI_URL]", verificationUrl);
         }
 
@@ -863,7 +894,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
 <html>
 <head>
     <meta charset='utf-8'/>
-    <title>Surat Perintah Tugas Resmi RS Quilvian</title>
+    <title>Surat Perintah Tugas - [NAMA_RS]</title>
     <style>
         body {{ font-family: 'Times New Roman', serif; margin: 40px; color: #1e293b; line-height: 1.6; }}
         .header {{ text-align: center; border-bottom: 3px double #0284c7; padding-bottom: 10px; margin-bottom: 25px; }}
@@ -882,8 +913,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
 </head>
 <body>
     <div class='header'>
-        <h2>Rumah Sakit Quilvian Utama</h2>
-        <p>Jl. Kesehatan Medika Raya No. 42, Jakarta Pusat | Telp: (021) 555-0199 | info@quilvian.co.id</p>
+        <h2>[NAMA_RS]</h2>
+        <p>[ALAMAT_RS] [KONTAK_RS]</p>
     </div>
     <div class='doc-title'>
         <h3>SURAT PERINTAH TUGAS</h3>
@@ -900,7 +931,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         </table>
         <p><strong>Ketentuan Pelaksanaan:</strong></p>
         <ol style='margin-left: 20px; font-size: 14px;'>
-            <li>Melaksanakan penugasan resmi dengan penuh tanggung jawab sesuai etika profesi dan SOP Rumah Sakit Quilvian Utama.</li>
+            <li>Melaksanakan penugasan resmi dengan penuh tanggung jawab sesuai etika profesi dan SOP [NAMA_RS].</li>
             <li>Melaporkan bukti kehadiran dan hasil pelaksanaan tugas dinas kepada pimpinan unit kerja setelah masa penugasan selesai.</li>
         </ol>
         <p>Demikian Surat Perintah Tugas ini dibuat untuk dilaksanakan dan dipergunakan sebagaimana mestinya.</p>
@@ -908,7 +939,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
     <div class='footer'>
         <div class='verification'>
             <p style='margin: 0 0 4px 0; font-weight: bold;'>Verifikasi Keaslian Dokumen:</p>
-            <p style='margin: 0;'>Pindai QR Code atau akses tautan resmi SIMRS Quilvian: [VERIFIKASI_URL]</p>
+            <p style='margin: 0;'>Pindai QR Code atau akses tautan resmi verifikasi: [VERIFIKASI_URL]</p>
         </div>
         <div class='signature-box'>
             <p>[KOTA_RS], [TANGGAL_SURAT]<br/><strong>[JABATAN_PENANDATANGAN]</strong></p>
@@ -930,13 +961,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
                      <tr style='border-bottom: 1px solid #ddd;'><td style='padding: 6px;'>Penghasilan Bruto (Kotor)</td><td style='padding: 6px; font-weight: bold;'>[GAJI_BRUTO]</td></tr>
                      <tr style='border-bottom: 1px solid #ddd;'><td style='padding: 6px;'>Penghasilan Netto (Bawa Pulang)</td><td style='padding: 6px; font-weight: bold; color: #0284c7;'>[GAJI_NETTO]</td></tr>
                    </table>"
-                : @"<p>Menerangkan bahwa yang bersangkutan adalah benar karyawan aktif di Rumah Sakit Quilvian Utama dengan reputasi dan kinerja yang baik.</p>";
+                : @"<p>Menerangkan bahwa yang bersangkutan adalah benar karyawan aktif di [NAMA_RS] dengan reputasi dan kinerja yang baik.</p>";
 
             return $@"<!DOCTYPE html>
 <html>
 <head>
     <meta charset='utf-8'/>
-    <title>Naskah Dinas Resmi RS Quilvian</title>
+    <title>Naskah Dinas Resmi - [NAMA_RS]</title>
     <style>
         body {{ font-family: 'Times New Roman', serif; margin: 40px; color: #1e293b; line-height: 1.6; }}
         .header {{ text-align: center; border-bottom: 3px double #0284c7; padding-bottom: 10px; margin-bottom: 25px; }}
@@ -955,15 +986,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
 </head>
 <body>
     <div class='header'>
-        <h2>Rumah Sakit Quilvian Utama</h2>
-        <p>Jl. Kesehatan Medika Raya No. 42, Jakarta Pusat | Telp: (021) 555-0199 | info@quilvian.co.id</p>
+        <h2>[NAMA_RS]</h2>
+        <p>[ALAMAT_RS] [KONTAK_RS]</p>
     </div>
     <div class='doc-title'>
         <h3>SURAT KETERANGAN RESMI KEPEGAWAIAN</h3>
         <p>Nomor: [NOMOR_SURAT]</p>
     </div>
     <div class='content'>
-        <p>Yang bertanda tangan di bawah ini, Manajemen Sumber Daya Manusia Rumah Sakit Quilvian Utama, dengan ini menerangkan bahwa:</p>
+        <p>Yang bertanda tangan di bawah ini, Manajemen Sumber Daya Manusia [NAMA_RS], dengan ini menerangkan bahwa:</p>
         <table class='meta-table'>
             <tr><td style='width: 200px;'>Nama Lengkap</td><td>: <strong>[NAMA_LENGKAP]</strong></td></tr>
             <tr><td>Nomor Induk Pegawai (NIP)</td><td>: [NIP]</td></tr>
@@ -977,7 +1008,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
     <div class='footer'>
         <div class='verification'>
             <p style='margin: 0 0 4px 0; font-weight: bold;'>Verifikasi Keaslian Dokumen:</p>
-            <p style='margin: 0;'>Pindai QR Code atau akses tautan resmi SIMRS Quilvian: [VERIFIKASI_URL]</p>
+            <p style='margin: 0;'>Pindai QR Code atau akses tautan resmi verifikasi: [VERIFIKASI_URL]</p>
         </div>
         <div class='signature-box'>
             <p>[KOTA_RS], [TANGGAL_SURAT]<br/><strong>[JABATAN_PENANDATANGAN]</strong></p>
@@ -989,6 +1020,77 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
     </div>
 </body>
 </html>";
+        }
+
+        /// <summary>BE-HRD-381: identitas RS dari Master Lokasi; penerbitan ditolak bila belum diatur (tanpa identitas karangan).</summary>
+        private async Task<HrLetterhead> ResolveHospitalIdentityAsync(CancellationToken cancellationToken) =>
+            await HrLetterheadResolver.TryResolveAsync(_dbContext, cancellationToken)
+                ?? throw new InvalidOperationException(HrLetterheadResolver.MissingIdentityMessage);
+
+        /// <summary>Nama penerbit untuk verifikasi publik: arsip dokumen saat terbit, lalu Master Lokasi RS, lalu teks generik.</summary>
+        private async Task<string> ResolveIssuerNameAsync(Guid? eDossierDocumentId, CancellationToken cancellationToken)
+        {
+            if (eDossierDocumentId.HasValue)
+            {
+                var archived = await _dbContext.WfpDocuments
+                    .AsNoTracking()
+                    .Where(d => d.Id == eDossierDocumentId.Value)
+                    .Select(d => d.IssuingAuthority)
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (!string.IsNullOrWhiteSpace(archived))
+                {
+                    return archived.Trim();
+                }
+            }
+
+            var siteName = await _dbContext.MstHospitalSites
+                .AsNoTracking()
+                .Where(s => s.IsActive && !s.IsDelete)
+                .OrderByDescending(s => s.IsMainSite)
+                .Select(s => s.SiteName)
+                .FirstOrDefaultAsync(cancellationToken);
+            return string.IsNullOrWhiteSpace(siteName) ? HrLetterheadResolver.GenericHospitalLabel : siteName.Trim();
+        }
+
+        private string BuildVerificationUrl(string verificationHash) =>
+            HrLetterheadResolver.BuildVerificationUrl(_configuration, verificationHash);
+
+        /// <summary>
+        /// BE-HRD-381: pemegang <c>EmployeeDocumentIssuance : AccessAllEmployees</c> boleh untuk siapa pun; selain itu hanya
+        /// diri sendiri dan pegawai yang penempatan organisasinya (hari ini) di unit yang dipimpin pengguna beserta turunannya.
+        /// </summary>
+        public async Task<bool> CanActForEmployeeAsync(ClaimsPrincipal user, Guid userId, Guid targetProfileId, CancellationToken cancellationToken)
+        {
+            if (await _accessPermissionService.HasAccessAsync(user, "EmployeeDocumentIssuance", HrServiceManagement.EmployeeDocumentIssuancePermissions.AccessAllEmployees))
+            {
+                return true;
+            }
+
+            var callerProfileId = await _dbContext.Users
+                .AsNoTracking()
+                .Where(u => u.Id == userId)
+                .Select(u => u.WorkforceProfileId)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (callerProfileId.HasValue && callerProfileId.Value == targetProfileId)
+            {
+                return true;
+            }
+
+            var scope = await _unitScopeService.GetManagerialReadScopeAsync(cancellationToken);
+            var unitIds = scope.UnitIds.ToList();
+            if (unitIds.Count == 0)
+            {
+                return false;
+            }
+
+            var today = DateTime.UtcNow.Date;
+            return await _dbContext.WfpOrganizationAssignments
+                .AsNoTracking()
+                .AnyAsync(a => a.WorkforceProfileId == targetProfileId &&
+                               a.OrganizationUnitId.HasValue && unitIds.Contains(a.OrganizationUnitId.Value) &&
+                               a.IsActive && !a.IsDelete &&
+                               a.EffectiveStartDate <= today &&
+                               (a.EffectiveEndDate == null || a.EffectiveEndDate >= today), cancellationToken);
         }
 
         private static string HashPinWithSalt(string pin, string salt)

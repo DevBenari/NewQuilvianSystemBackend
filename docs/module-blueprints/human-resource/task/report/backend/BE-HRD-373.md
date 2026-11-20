@@ -5,7 +5,7 @@
 * **Nama Task**: Pemeriksaan API/DB via Service, Concurrency, Keselarasan 6 Alur, Report & Retest
 * **Modul / Sub-Modul**: Human Resource / Sub-modul 12: Separation & Retirement (Pemberhentian & Pensiun)
 * **Slice Delivery**: `S-C5-SEP` (Verifikasi Menyeluruh Backend Menu 12)
-* **Status**: `✅ Selesai (2026-11-16)`
+* **Status**: `✅ Selesai (2026-11-20) — verifikasi ulang slice sesudah `BE-HRD-365`, `368`, `372` dikerjakan ulang`
 * **Deliverables**:
   - Audit komprehensif seluruh controller, service, dan DTO pada 6 Submenu Pemberhentian & Pensiun.
   - Verifikasi kompilasi `dotnet build QuilvianSystemBackend.csproj --no-restore` berhasil dengan **0 Error(s)**.
@@ -97,3 +97,53 @@
 * **Runtime Backend**: Server ASP.NET Core berjalan pada background task ID `c4dedf65-362b-45de-b26b-640c0ad51c86/task-412`.
 * **Kesiapan Frontend**: Lapisan frontend siap diimplementasikan murni berbasis kontrak di atas tanpa mock/fallback data.
 * **Traceability Requirement**: Terpetakan pada `requirement-traceability.md` Bagian 1x (`S-C5-SEP`).
+
+---
+
+## Pengerjaan ulang 20 November 2026
+
+| Field | Nilai |
+| --- | --- |
+| Pemicu | Audit source 19 November 2026 menurunkan task ini ke 🟡 (lihat kartu roadmap bagian 26.2) |
+| Task mode | `BACKEND` (instruksi pengguna 20 November 2026: kerjakan seluruh task backend roadmap HR) |
+| Commit backend saat dikerjakan | `d17aa187` (branch `MHamzah`), perubahan belum di-commit |
+| Model | Claude Opus 5.5 |
+| Governance | `AGENTS.md`; `docs/engineering/*`; `rules/backend/*` suite Skill 1.22.0; keberlakuan `TOUCHED LEGACY` + `NEW CODE` (penanda hak akses) |
+| Catatan baris lama | Baris verifikasi pengerjaan 16 November 2026 di atas dipertahankan sebagai riwayat (`rules/backend/TEST_POLICY.md` bagian 6) |
+
+### Ringkasan verifikasi ulang slice `S-C5-SEP`
+
+| Task | Hasil |
+| --- | --- |
+| `BE-HRD-365` ✅ | Penandatanganan kliring per departemen; serah terima per pemilik dan atasan |
+| `BE-HRD-368` ✅ | Usia pensiun dari pengaturan RS (`POLICY_NOT_CONFIGURED` bila kosong); nomor dari number series; migration ditulis, belum dijalankan |
+| `BE-HRD-372` ✅ | Hak per aspek keluarga B; lima aspek wajib sebelum selesai; satu clearance per pemberhentian |
+| `BE-HRD-364`, `366`, `367`, `369`, `370`, `371` | Tetap ✅ (tidak disentuh) |
+
+### Acceptance criteria
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| Seluruh endpoint 6 submenu terverifikasi | Terpenuhi (source) | Endpoint yang disentuh tetap memakai `[AccessAction]`/`[AccessPermission]` yang sama; kode status baru tercatat di laporan per task; uji API `NOT RUN` |
+| `dotnet build` lulus 0 error | Terpenuhi | Lihat tabel verifikasi |
+| Lembar kontrak API siap dipakai frontend | Terpenuhi | Delta kontrak: `minAge` opsional dan `409 POLICY_NOT_CONFIGURED` (pensiun); `403` per departemen/aspek; `RetirementPolicyStatus`/`NormalRetirementAge` di ringkasan pensiun; `NormalRetirementAge` di pengaturan siklus |
+| Tidak ada celah keamanan aktor | Terpenuhi | Signoff lintas unit dan otorisasi per item serah terima ditutup (`BE-HRD-365`) |
+
+### Catatan
+
+| Hal | Isi |
+| --- | --- |
+| Migration / basis data | Satu migration baru ditulis (`20261120090000_AddHrdRetirementPolicyAge`), belum dijalankan; tidak ada perintah database |
+| Git | Tidak ada stage, commit, push, pull, merge, rebase, atau deploy |
+| Langkah berikutnya | Slice `S-FIN-M07` (`BE-HRD-407` s.d. `412`) |
+
+### Verifikasi pengerjaan ulang
+
+| Pemeriksaan | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj --no-restore -p:OutDir=<scratchpad>` | Berhasil, 0 error, 608 warning (himpunan sama dengan sebelum perubahan; dua warning baru dari build pertama — field penjaga belum diisi di konstruktor serah terima dan tag dokumentasi — diperbaiki sebelum build final) | `PASS` | Log build 20 November 2026 |
+| QBE `Invoke-QbeConformanceCheck.ps1 -Mode Strict -Path` atas berkas slice Menu 12 | 17 berkas: 0 VIOLATION, 0 REVIEW, PASS | `PASS` | Keluaran checker |
+| Validator registri hak akses atas DLL hasil build (skrip `dotnet fsi` di luar repository) | `IsValid=True`, 2.646 identitas (bertambah 11 penanda Menu 12); build pertama sempat ditolak validator karena penanda `ExitClearance : Clear…` menunjuk modul yang salah, diperbaiki ke `HUMAN_RESOURCE_LIFECYCLE_EXIT_CLEARANCE` | `PASS` | Keluaran skrip |
+| Uji API di DB dev | Belum dijalankan | `NOT RUN` | Wewenang tulis DB dev belum diberikan; backend lokal pengguna sedang berjalan |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
