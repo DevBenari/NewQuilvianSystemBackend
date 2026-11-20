@@ -71,7 +71,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             {
                 return BadRequest(ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -101,7 +101,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             {
                 return BadRequest(ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -131,7 +131,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             {
                 return BadRequest(ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -157,7 +157,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             {
                 return BadRequest(ApiResponse<BulkApproveResultDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<BulkApproveResultDto>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -183,7 +183,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             {
                 return BadRequest(ApiResponse<WorkflowInstanceV2ResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<WorkflowInstanceV2ResponseDto>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }

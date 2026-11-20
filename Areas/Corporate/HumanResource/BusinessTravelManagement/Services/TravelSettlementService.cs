@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Models;
 using QuilvianSystemBackend.Repositories;
@@ -114,6 +116,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 .OrderByDescending(a => a.PaidAt)
                 .FirstOrDefaultAsync();
 
+            // VR-TRV-31 (kontrak v28): settlement hanya untuk SPPD yang sudah disetujui, kecuali SPPD lama yang uang mukanya
+            // sudah dicairkan (HRD-DEC-227) agar kas yang sudah keluar tetap dapat dipertanggungjawabkan.
+            if (!travel.ApprovedAt.HasValue && advance == null)
+            {
+                throw new BusinessTravelRequestException(
+                    StatusCodes.Status409Conflict,
+                    "SPPD belum disetujui sehingga belum dapat dipertanggungjawabkan.");
+            }
+
             var advancePaid = advance?.PaidAmount ?? 0m;
 
             var actualTotal = (dto.ActualExpenses?.Sum(e => e.ClaimedAmount) ?? 0m) +
@@ -205,6 +216,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
 
             if (settlement == null) throw new KeyNotFoundException("Berkas settlement tidak ditemukan");
 
+            // MSL-12: verifikasi hanya untuk settlement yang sudah diajukan pegawai dan belum ditutup.
+            if (settlement.SettlementStatus != "Submitted" && settlement.SettlementStatus != "Verified")
+            {
+                throw new InvalidOperationException($"Settlement berstatus '{settlement.SettlementStatus}' tidak dapat diverifikasi. Verifikasi hanya untuk settlement yang sudah diajukan dan belum ditutup.");
+            }
+
             var now = DateTime.UtcNow;
             settlement.ApprovedExpenseAmount = dto.ApprovedActualAmount;
             var advancePaid = settlement.AdvancePaidAmount;
@@ -269,11 +286,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
 
             if (settlement == null) throw new KeyNotFoundException("Berkas settlement tidak ditemukan");
 
+            // MSL-12 (18 Nov 2026): settlement baru boleh ditutup setelah diverifikasi, dan nomor bukti wajib bila ada selisih.
+            if (settlement.SettlementStatus != "Verified")
+            {
+                throw new InvalidOperationException("Settlement hanya dapat ditutup setelah diverifikasi bagian Keuangan.");
+            }
+
+            var paymentRef = dto.PaymentOrRefundRef?.Trim();
+            if (string.IsNullOrEmpty(paymentRef) && settlement.EmployeeRefundAmount > 0)
+            {
+                throw new InvalidOperationException("Ada kelebihan uang muka yang harus disetor balik pegawai. Isi nomor bukti setor balik sebelum menutup settlement.");
+            }
+
+            if (string.IsNullOrEmpty(paymentRef) && settlement.CompanyPayableAmount > 0)
+            {
+                throw new InvalidOperationException("Ada kekurangan biaya yang harus dibayar rumah sakit kepada pegawai. Isi nomor bukti pembayaran sebelum menutup settlement.");
+            }
+
             var now = DateTime.UtcNow;
             settlement.SettlementStatus = "Completed";
             settlement.SettledAt = now;
             settlement.IsOverdue = false;
-            settlement.PaymentOrRefundRef = dto.PaymentOrRefundRef;
+            settlement.PaymentOrRefundRef = string.IsNullOrEmpty(paymentRef) ? null : paymentRef;
             settlement.ReceiptDocUrl = dto.ReceiptDocUrl;
             settlement.SettlementNotes = string.IsNullOrWhiteSpace(dto.Notes) ? settlement.SettlementNotes : $"{settlement.SettlementNotes} [Penutupan: {dto.Notes}]";
             settlement.UpdateBy = currentUserId;

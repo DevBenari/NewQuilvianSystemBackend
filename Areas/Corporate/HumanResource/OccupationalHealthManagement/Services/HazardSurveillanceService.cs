@@ -46,7 +46,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
             if (employee == null)
                 throw new KeyNotFoundException($"Pegawai dengan ID {request.EmployeeId} tidak ditemukan.");
 
-            var isOverThreshold = request.DoseMsv > QuarterlyThresholdMsv;
+            // VR-OHS-17 menilai dosis KUMULATIF: triwulanan > 5 mSv (investigasi K3RS) dan tahunan > 20 mSv (rotasi wajib). Data TLD
+            // diimpor bulanan (INT-HR-91), jadi bacaan baru dijumlahkan dengan bacaan pegawai yang sama pada triwulan dan tahun
+            // periodenya, dengan cara baca yang sama dengan radar. Sebelumnya hanya satu bacaan > 5 mSv yang dianggap melampaui,
+            // sehingga 3 + 3 mSv dalam satu triwulan atau total tahunan > 20 mSv tidak memicu alarm OHS-W5 (BE-HRD-298).
+            var periodYear = request.PeriodEnd.Year;
+            var periodQuarter = QuarterOf(request.PeriodEnd);
+            var previousReadings = (await _uow.HealthSurveillances
+                    .Where(x => !x.IsDelete && x.EmployeeId == employee.Id && x.SurveillanceProgram.Contains("Radiasi") && x.ScheduledDate.Year == periodYear)
+                    .ToListAsync(cancellationToken))
+                .Select(x => new { x.ScheduledDate, Dose = ResolveDose(x) })
+                .Where(x => x.Dose.HasValue)
+                .ToList();
+            var yearlyDose = previousReadings.Sum(x => x.Dose!.Value) + request.DoseMsv;
+            var quarterlyDose = previousReadings.Where(x => QuarterOf(x.ScheduledDate) == periodQuarter).Sum(x => x.Dose!.Value) + request.DoseMsv;
+            var isOverQuarter = quarterlyDose > QuarterlyThresholdMsv;
+            var isOverYear = yearlyDose > YearlyThresholdMsv;
+            var isOverThreshold = isOverQuarter || isOverYear;
+            var cumulativeText = $"Kumulatif triwulan {periodQuarter}/{periodYear}: {quarterlyDose.ToString(CultureInfo.InvariantCulture)} mSv; tahun {periodYear}: {yearlyDose.ToString(CultureInfo.InvariantCulture)} mSv.";
+            var thresholdText = isOverYear
+                ? "[PERINGATAN]: Batas Dosis Radiasi Terlampaui (Bapeten): Staf telah mencapai batas dosis paparan radiasi dan wajib dirotasi sementara (kumulatif tahunan > 20 mSv)."
+                : isOverQuarter
+                    ? "[PERINGATAN]: Melebihi ambang batas kumulatif triwulanan 5 mSv; wajib investigasi K3RS."
+                    : "Dalam batas aman.";
 
             var surveillance = new TrxEmployeeHealthSurveillance
             {
@@ -66,7 +88,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 CompletedDate = DateTime.UtcNow,
                 SurveillanceStatus = "Completed",
                 MeasuredDoseMsv = request.DoseMsv,
-                AdministrativeOutcome = $"Dosis Tercatat: {request.DoseMsv.ToString(CultureInfo.InvariantCulture)} mSv. Badge: {request.BadgeNumber ?? "TLD-STD"}. {(isOverThreshold ? "[PERINGATAN]: Melebihi ambang batas triwulanan 5 mSv!" : "Dalam batas aman.")}",
+                AdministrativeOutcome = $"Dosis Tercatat: {request.DoseMsv.ToString(CultureInfo.InvariantCulture)} mSv. Badge: {request.BadgeNumber ?? "TLD-STD"}. {thresholdText} {cumulativeText}",
                 ClinicalFindingsRestricted = AesClinicalEncryptionHelper.Encrypt($"Pembacaan Lab: {request.ReaderLaboratoryName ?? "BATAN/BRIN"}. Dosis: {request.DoseMsv} mSv. Periode: {request.PeriodStart:dd/MM/yyyy} s.d. {request.PeriodEnd:dd/MM/yyyy}."),
                 IsCompliant = !isOverThreshold,
                 IsActive = true,

@@ -51,6 +51,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         /// <summary>
+        /// Mengambil ringkasan data masa percobaan untuk dashboard UI (Running, DueSoon, AwaitingDecision, Completed).
+        /// </summary>
+        [HttpGet("summary")]
+        [AccessAction("Read", "Melihat Masa Percobaan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceProbation", "Read")]
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(typeof(RecruitmentResult<HrdProbationSummaryResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetSummary([FromQuery] Guid? hospitalSiteId, CancellationToken cancellationToken)
+        {
+            var result = await _probationService.GetProbationSummaryAsync(hospitalSiteId, cancellationToken);
+            return StatusCode(result.StatusCode, result);
+        }
+
+        /// <summary>
         /// Mengambil detail lengkap masa percobaan beserta seluruh riwayat penilaiannya (assessments).
         /// </summary>
         [HttpGet("{id:guid}")]

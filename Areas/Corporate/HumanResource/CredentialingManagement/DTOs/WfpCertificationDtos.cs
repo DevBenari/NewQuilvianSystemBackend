@@ -183,4 +183,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         [Required, MaxLength(30)]
         public string VerificationStatus { get; set; } = "Verified";
     }
+
+    /// <summary>
+    /// FIN-HRD-09-BE-003: Portofolio sertifikasi gabungan internal (Diklat) dan eksternal.
+    /// </summary>
+    public class WfpCertificationPortfolioItemResponse
+    {
+        public Guid Id { get; set; }
+        public string Source { get; set; } = "Eksternal";
+        public string CertificationName { get; set; } = string.Empty;
+        public string CertificationType { get; set; } = string.Empty;
+        public string? CertificateNumber { get; set; }
+        public string? Issuer { get; set; }
+        public DateTime IssueDate { get; set; }
+        public DateTime? ExpiredDate { get; set; }
+        public bool IsLifetime { get; set; }
+        public bool IsVerified { get; set; }
+        public string VerificationStatus { get; set; } = "Pending";
+        public string? FilePath { get; set; }
+        public string? FileContentType { get; set; }
+        public Guid OriginId { get; set; }
+        public string? Description { get; set; }
+    }
 }

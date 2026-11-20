@@ -73,6 +73,7 @@ public sealed partial class AssetRecordService
                 new() { Name = "createdByMe", Type = "boolean", Description = "true = hanya aset yang dibuat pengguna ini", Example = "true" },
                 new() { Name = "approvedFrom", Type = "date", Description = "Tanggal disetujui paling awal (WIB), inklusif", Example = "2026-11-17" },
                 new() { Name = "approvedTo", Type = "date", Description = "Tanggal disetujui paling akhir (WIB), inklusif", Example = "2026-11-17" },
+                new() { Name = "isIdle", Type = "boolean", Description = "true = aset Terdaftar berkondisi Tidak Digunakan lebih lama dari batas hari menganggur di Pengaturan Aset", Example = "true" },
                 new() { Name = "sortBy", Type = "string", Description = "Kolom pengurutan, lihat sortOptions", Example = "createDateTime" },
                 new() { Name = "sortDirection", Type = "string", Description = "asc atau desc", Example = "desc" },
                 new() { Name = "pageNumber", Type = "integer", Description = "Halaman, mulai 1", Example = "1" },
@@ -111,6 +112,38 @@ public sealed partial class AssetRecordService
     }
 
     public async Task<PagedResult<AssetListItemResponse>> GetAssetsAsync(AssetPagedQuery request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var query = await FilteredAssetsAsync(request, cancellationToken);
+
+        var descending = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        IOrderedQueryable<AstAsset> ordered = (request.SortBy ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "name" => descending ? query.OrderByDescending(x => x.AssetName) : query.OrderBy(x => x.AssetName),
+            "inventorynumber" => descending ? query.OrderByDescending(x => x.InventoryNumber) : query.OrderBy(x => x.InventoryNumber),
+            "acquisitiondate" => descending ? query.OrderByDescending(x => x.AcquisitionDate) : query.OrderBy(x => x.AcquisitionDate),
+            "approvedat" => descending ? query.OrderByDescending(x => x.ApprovedAt) : query.OrderBy(x => x.ApprovedAt),
+            "recordstatus" => descending ? query.OrderByDescending(x => x.RecordStatus) : query.OrderBy(x => x.RecordStatus),
+            _ => descending ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime)
+        };
+
+        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+        var pageSize = request.PageSize < 1 ? 25 : Math.Min(request.PageSize, MaxPageSize);
+        var total = await query.CountAsync(cancellationToken);
+        var items = await ProjectList(ordered.ThenBy(x => x.Id).Skip((pageNumber - 1) * pageSize).Take(pageSize)).ToListAsync(cancellationToken);
+        items.ForEach(Describe);
+
+        return new PagedResult<AssetListItemResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            Items = items
+        };
+    }
+
+    internal async Task<IQueryable<AstAsset>> FilteredAssetsAsync(AssetPagedQuery request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         var actor = await RequireActorAsync(cancellationToken);
@@ -173,34 +206,86 @@ public sealed partial class AssetRecordService
             query = query.Where(x => x.ApprovedAt != null && x.ApprovedAt < toUtcExclusive);
         }
 
-        var keyword = string.IsNullOrWhiteSpace(request.Search) ? null : request.Search.Trim().ToUpper();
-        if (keyword != null)
+        if (request.IsIdle is { } isIdle)
         {
-            query = query.Where(x =>
-                x.AssetName.ToUpper().Contains(keyword) ||
-                (x.InventoryNumber != null && x.InventoryNumber.ToUpper().Contains(keyword)) ||
-                (x.Brand != null && x.Brand.ToUpper().Contains(keyword)) ||
-                (x.SerialNumber != null && x.SerialNumber.ToUpper().Contains(keyword)));
+            var entity = await _entityResolver.ResolveAsync(cancellationToken);
+            var settings = await AssetRegisterSettingReader.ReadAsync(_context, entity.LegalEntityId, cancellationToken);
+            var cutoff = AssetRegisterSettingReader.IdleCutoffUtc(settings.IdleThresholdDays);
+            query = isIdle
+                ? Idle(query, cutoff)
+                : query.Where(x => !(x.RecordStatus == AssetRecordStatus.Terdaftar &&
+                    x.Condition == AssetCondition.TidakDigunakan &&
+                    (x.ConditionChangedAt ?? x.ApprovedAt ?? x.CreateDateTime) < cutoff));
         }
 
-        var descending = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-        IOrderedQueryable<AstAsset> ordered = (request.SortBy ?? string.Empty).Trim().ToLowerInvariant() switch
+        return Search(query, request.Search);
+    }
+
+    public async Task<PagedResult<AssetIdleItemResponse>> GetIdleAssetsAsync(AssetPagedQuery request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var actor = await RequireActorAsync(cancellationToken);
+        var entity = await _entityResolver.ResolveAsync(cancellationToken);
+        var settings = await AssetRegisterSettingReader.ReadAsync(_context, entity.LegalEntityId, cancellationToken);
+        var query = Idle(await ScopedAssetsAsync(actor, cancellationToken), AssetRegisterSettingReader.IdleCutoffUtc(settings.IdleThresholdDays));
+
+        if (request.OrganizationUnitId is { } unitId && unitId != Guid.Empty)
         {
-            "name" => descending ? query.OrderByDescending(x => x.AssetName) : query.OrderBy(x => x.AssetName),
-            "inventorynumber" => descending ? query.OrderByDescending(x => x.InventoryNumber) : query.OrderBy(x => x.InventoryNumber),
-            "acquisitiondate" => descending ? query.OrderByDescending(x => x.AcquisitionDate) : query.OrderBy(x => x.AcquisitionDate),
-            "approvedat" => descending ? query.OrderByDescending(x => x.ApprovedAt) : query.OrderBy(x => x.ApprovedAt),
-            "recordstatus" => descending ? query.OrderByDescending(x => x.RecordStatus) : query.OrderBy(x => x.RecordStatus),
-            _ => descending ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime)
-        };
+            query = query.Where(x => x.CurrentOrganizationUnitId == unitId);
+        }
+
+        if (request.LocationId is { } locationId && locationId != Guid.Empty)
+        {
+            query = query.Where(x => x.CurrentLocationId == locationId);
+        }
+
+        if (request.CategoryId is { } categoryId && categoryId != Guid.Empty)
+        {
+            query = query.Where(x => x.AssetGroup!.CategoryId == categoryId);
+        }
+
+        if (request.GroupId is { } groupId && groupId != Guid.Empty)
+        {
+            query = query.Where(x => x.AssetGroupId == groupId);
+        }
+
+        query = Search(query, request.Search);
+        var ordered = string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase)
+            ? query.OrderByDescending(x => x.ConditionChangedAt ?? x.ApprovedAt ?? x.CreateDateTime)
+            : query.OrderBy(x => x.ConditionChangedAt ?? x.ApprovedAt ?? x.CreateDateTime);
 
         var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
         var pageSize = request.PageSize < 1 ? 25 : Math.Min(request.PageSize, MaxPageSize);
         var total = await query.CountAsync(cancellationToken);
-        var items = await ProjectList(ordered.ThenBy(x => x.Id).Skip((pageNumber - 1) * pageSize).Take(pageSize)).ToListAsync(cancellationToken);
-        items.ForEach(Describe);
+        var items = await ordered
+            .ThenBy(x => x.Id)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new AssetIdleItemResponse
+            {
+                Id = x.Id,
+                InventoryNumber = x.InventoryNumber,
+                AssetName = x.AssetName,
+                GroupName = x.AssetGroup != null ? x.AssetGroup.GroupName : null,
+                CategoryName = x.AssetGroup != null && x.AssetGroup.Category != null ? x.AssetGroup.Category.CategoryName : null,
+                CurrentOrganizationUnitId = x.CurrentOrganizationUnitId,
+                CurrentOrganizationUnitName = x.CurrentOrganizationUnit != null ? x.CurrentOrganizationUnit.UnitName : null,
+                CurrentLocationName = x.CurrentLocation != null ? x.CurrentLocation.LocationName : null,
+                CurrentCustodianEmployeeName = x.CurrentCustodianEmployee != null ? x.CurrentCustodianEmployee.FullName : null,
+                Condition = x.Condition,
+                ActiveProcessKind = x.ActiveProcessKind,
+                IdleSince = x.ConditionChangedAt ?? x.ApprovedAt ?? x.CreateDateTime
+            })
+            .ToListAsync(cancellationToken);
 
-        return new PagedResult<AssetListItemResponse>
+        foreach (var item in items)
+        {
+            item.ConditionName = AssetRegisterLabels.Condition(item.Condition);
+            item.IdleDays = AssetRegisterSettingReader.OperationalDaysSince(item.IdleSince);
+            item.IdleThresholdDays = settings.IdleThresholdDays;
+        }
+
+        return new PagedResult<AssetIdleItemResponse>
         {
             PageNumber = pageNumber,
             PageSize = pageSize,
@@ -208,6 +293,27 @@ public sealed partial class AssetRecordService
             TotalPage = (int)Math.Ceiling(total / (double)pageSize),
             Items = items
         };
+    }
+
+    private static IQueryable<AstAsset> Idle(IQueryable<AstAsset> query, DateTime cutoffUtc) =>
+        query.Where(x =>
+            x.RecordStatus == AssetRecordStatus.Terdaftar &&
+            x.Condition == AssetCondition.TidakDigunakan &&
+            (x.ConditionChangedAt ?? x.ApprovedAt ?? x.CreateDateTime) < cutoffUtc);
+
+    private static IQueryable<AstAsset> Search(IQueryable<AstAsset> query, string? search)
+    {
+        var keyword = string.IsNullOrWhiteSpace(search) ? null : search.Trim().ToUpper();
+        if (keyword == null)
+        {
+            return query;
+        }
+
+        return query.Where(x =>
+            x.AssetName.ToUpper().Contains(keyword) ||
+            (x.InventoryNumber != null && x.InventoryNumber.ToUpper().Contains(keyword)) ||
+            (x.Brand != null && x.Brand.ToUpper().Contains(keyword)) ||
+            (x.SerialNumber != null && x.SerialNumber.ToUpper().Contains(keyword)));
     }
 
     public async Task<AssetDetailResponse> GetAssetAsync(Guid id, CancellationToken cancellationToken = default)
@@ -431,7 +537,7 @@ public sealed partial class AssetRecordService
         return items;
     }
 
-    private static IQueryable<AssetListItemResponse> ProjectList(IQueryable<AstAsset> query) =>
+    internal static IQueryable<AssetListItemResponse> ProjectList(IQueryable<AstAsset> query) =>
         query.Select(x => new AssetListItemResponse
         {
             Id = x.Id,
@@ -469,7 +575,7 @@ public sealed partial class AssetRecordService
             CreateDateTime = x.CreateDateTime
         });
 
-    private static void Describe(AssetListItemResponse item)
+    internal static void Describe(AssetListItemResponse item)
     {
         item.RecordStatusName = AssetRegisterLabels.RecordStatus(item.RecordStatus);
         item.ConditionName = AssetRegisterLabels.Condition(item.Condition);
@@ -484,7 +590,7 @@ public sealed partial class AssetRecordService
         _ => []
     };
 
-    private async Task<Dictionary<Guid, string>> UserNamesAsync(IEnumerable<Guid?> userIds, CancellationToken cancellationToken)
+    internal async Task<Dictionary<Guid, string>> UserNamesAsync(IEnumerable<Guid?> userIds, CancellationToken cancellationToken)
     {
         var ids = userIds.Where(x => x.HasValue && x.Value != Guid.Empty).Select(x => x!.Value).Distinct().ToList();
         if (ids.Count == 0)

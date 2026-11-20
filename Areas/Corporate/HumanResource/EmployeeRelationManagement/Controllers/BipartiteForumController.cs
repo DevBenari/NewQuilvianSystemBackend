@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManage
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Controllers
 {
@@ -44,7 +45,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return UnprocessableEntity(ApiResponse<BipartiteForumResponseDto>.Fail(422, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<BipartiteForumResponseDto>.Fail(500, ex.Message));
             }
@@ -66,7 +67,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 var result = await _bipartiteService.GetBipartiteForumsAsync(disputeType, status, year, page, pageSize, cancellationToken);
                 return Ok(ApiResponse<PagedResult<BipartiteForumResponseDto>>.Ok(result, "Daftar arsip sidang forum Bipartit berhasil diambil."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<PagedResult<BipartiteForumResponseDto>>.Fail(500, ex.Message));
             }
@@ -87,7 +88,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return NotFound(ApiResponse<BipartiteForumResponseDto>.Fail(404, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<BipartiteForumResponseDto>.Fail(500, ex.Message));
             }
@@ -112,7 +113,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return NotFound(ApiResponse<BipartiteForumResponseDto>.Fail(404, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<BipartiteForumResponseDto>.Fail(500, ex.Message));
             }

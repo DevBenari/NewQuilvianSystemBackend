@@ -79,7 +79,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _oppeService.CreateMetricCatalogAsync(request, creatorId, cancellationToken);
                 return CreatedAtAction(nameof(GetMetricCatalogs), ApiResponse<OppeMetricCatalogDto>.Ok(result, "Indikator mutu klinis OPPE berhasil didaftarkan."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -127,7 +127,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _oppeService.CreateEvaluationPeriodAsync(request, creatorId, cancellationToken);
                 return StatusCode(201, ApiResponse<OppeEvaluationPeriodDto>.Ok(result, "Periode evaluasi kinerja klinis OPPE berhasil dibuka."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -150,7 +150,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var count = await _oppeService.InitiateStaffEvaluationsForPeriodAsync(id, Guid.Empty, cancellationToken);
                 return Ok(ApiResponse<int>.Ok(count, $"Berhasil menginisiasi draf rapor OPPE untuk {count} orang nakes."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -175,7 +175,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _oppeService.GetStaffEvaluationByIdAsync(id, cancellationToken);
                 return Ok(ApiResponse<OppeStaffEvaluationDto>.Ok(result, "Lembar evaluasi OPPE staf berhasil diambil."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return NotFound(ApiResponse<string>.Fail(404, ex.Message));
             }
@@ -198,7 +198,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _oppeService.AggregateSimrsQuantitativeMetricsAsync(id, Guid.Empty, cancellationToken);
                 return Ok(ApiResponse<OppeStaffEvaluationDto>.Ok(result, "Agregasi data indikator kuantitatif SIMRS/KMKP (bobot 60%) berhasil dihitung."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -222,7 +222,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _oppeService.FinalizeStaffEvaluationAsync(id, request, cancellationToken);
                 return Ok(ApiResponse<OppeStaffEvaluationDto>.Ok(result, "Rapor evaluasi kinerja OPPE berhasil disahkan oleh Kepala KSM."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -246,7 +246,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _oppeService.AcknowledgeStaffEvaluationAsync(id, request, cancellationToken);
                 return Ok(ApiResponse<OppeStaffEvaluationDto>.Ok(result, "Konfirmasi penerimaan rapor OPPE berhasil dicatat di sistem."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -297,7 +297,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var success = await _oppeService.SubmitPeerReviewScoresAsync(id, request, cancellationToken);
                 return Ok(ApiResponse<bool>.Ok(success, "Penilaian telaah sejawat kualitatif (bobot 40%) berhasil disimpan."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }

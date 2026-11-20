@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Controllers
 {
@@ -49,7 +50,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             {
                 return BadRequest(ApiResponse<string>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -74,7 +75,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             {
                 return BadRequest(ApiResponse<string>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -94,7 +95,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 }
                 return Ok(ApiResponse<TrainingBondContractDto>.Ok(result, "Data akta ikatan dinas berhasil diambil."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -110,7 +111,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 var results = await _bondingService.GetContractsByStaffAsync(workforceProfileId);
                 return Ok(ApiResponse<List<TrainingBondContractDto>>.Ok(results, "Daftar ikatan dinas staf berhasil diambil."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -126,7 +127,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 var results = await _bondingService.GetActiveContractsAsync();
                 return Ok(ApiResponse<List<TrainingBondContractDto>>.Ok(results, "Daftar ikatan dinas aktif rumah sakit berhasil diambil."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }

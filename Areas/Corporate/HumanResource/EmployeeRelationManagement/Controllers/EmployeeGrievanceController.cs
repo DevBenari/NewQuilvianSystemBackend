@@ -45,7 +45,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 var result = await _grievanceService.SubmitGrievanceAsync(request, actorEmail, ResolveComplainant(), cancellationToken);
                 return StatusCode(201, ApiResponse<GrievanceTicketResponseDto>.Ok(result, "Tiket keluhan kerja pegawai berhasil diajukan dengan target SLA 14 hari kerja."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<GrievanceTicketResponseDto>.Fail(500, ex.Message));
             }
@@ -66,7 +66,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return UnprocessableEntity(ApiResponse<WhistleblowerTicketReceiptDto>.Fail(422, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<WhistleblowerTicketReceiptDto>.Fail(500, ex.Message));
             }
@@ -87,7 +87,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 var result = await _grievanceService.GetMyTicketsAsync(ResolveComplainant(), status, page, pageSize, cancellationToken);
                 return Ok(ApiResponse<PagedResult<GrievanceTicketSummaryDto>>.Ok(result, "Daftar tiket keluhan kerja berhasil dimuat."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<PagedResult<GrievanceTicketSummaryDto>>.Fail(500, ex.Message));
             }
@@ -109,7 +109,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 var result = await _whistleblowerService.GetComplianceInboxAsync(category, severityLevel, status, page, pageSize, cancellationToken);
                 return Ok(ApiResponse<PagedResult<WhistleblowerCaseDto>>.Ok(result, "Kotak masuk investigasi rahasia Kepatuhan berhasil dimuat."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<PagedResult<WhistleblowerCaseDto>>.Fail(500, ex.Message));
             }
@@ -130,7 +130,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return NotFound(ApiResponse<GrievanceTicketResponseDto>.Fail(404, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<GrievanceTicketResponseDto>.Fail(500, ex.Message));
             }

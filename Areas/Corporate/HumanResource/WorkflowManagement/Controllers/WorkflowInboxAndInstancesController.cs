@@ -124,7 +124,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 var result = await _instanceService.CreateInstanceAsync(request, userId);
                 return StatusCode(StatusCodes.Status201Created, ApiResponse<WorkflowInstanceV2ResponseDto>.Ok(result, "Permohonan alur kerja berhasil didaftarkan"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<WorkflowInstanceV2ResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -146,7 +146,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 var result = await _instanceService.CancelInstanceAsync(id, request, userId);
                 return Ok(ApiResponse<WorkflowInstanceV2ResponseDto>.Ok(result, "Permohonan berhasil dibatalkan"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<WorkflowInstanceV2ResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }

@@ -11,6 +11,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
         Task<PagedResult<InitialBatchListResponse>> GetBatchesAsync(int page = 1, int pageSize = 10, CancellationToken ct = default);
         Task<InitialBatchDetailResponse?> GetBatchByIdAsync(Guid id, CancellationToken ct = default);
         Task<InitialBatchDetailResponse?> ValidateBatchByIdAsync(Guid id, CancellationToken ct = default);
+        Task<InitialBatchDetailResponse> SubmitBatchAsync(Guid id, Guid userId, CancellationToken ct = default);
+        Task<InitialBatchDetailResponse> ApproveBatchAsync(Guid id, Guid userId, CancellationToken ct = default);
         Task<InitialBatchDetailResponse> ExecuteBatchAsync(Guid id, Guid userId, CancellationToken ct = default);
     }
 }

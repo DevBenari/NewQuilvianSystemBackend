@@ -287,12 +287,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                     PracticeLocation = NormalizeNullableText(request.PracticeLocation),
                     IssueDate = NormalizeUtcDate(request.IssueDate),
                     ExpiredDate = NormalizeUtcDate(request.ExpiredDate),
-                    VerificationStatus = request.VerificationStatus,
+                    VerificationStatus = CredentialVerificationStatus.PendingVerification, // FIN-HRD-09-BE-002: Create selalu Pending
                     IsPrimary = request.IsPrimary,
-                    IsVerified = request.IsVerified,
-                    VerifiedAt = request.IsVerified ? now : null,
-                    VerifiedByUserId = request.IsVerified ? actorUserId : null,
-                    VerificationNotes = NormalizeNullableText(request.VerificationNotes),
+                    IsVerified = false,
+                    VerifiedAt = null,
+                    VerifiedByUserId = null,
+                    VerificationNotes = null,
                     IsRevoked = false,
                     BlocksSchedulingWhenInvalid = request.BlocksSchedulingWhenInvalid,
                     BlocksClinicalServiceWhenInvalid = request.BlocksClinicalServiceWhenInvalid,
@@ -491,6 +491,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+
+            // Anti-Self-Verification: nakes dilarang memverifikasi lisensi milik sendiri
+            var isSelf = await _dbContext.Users
+                .AsNoTracking()
+                .AnyAsync(u => u.Id == actorUserId && u.WorkforceProfileId == workforceProfileId, cancellationToken);
+            if (isSelf)
+            {
+                return BadRequest(ApiResponse<object>.Fail(400, "Pegawai dilarang memverifikasi dokumen lisensi milik sendiri (anti-self-verification)."));
+            }
             entity.IsVerified = request.IsVerified;
             if (request.VerificationStatus.HasValue)
                 entity.VerificationStatus = request.VerificationStatus.Value;

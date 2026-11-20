@@ -4841,6 +4841,531 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("MstAssetSetting", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstLoan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BorrowerOrganizationUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsApprovalByRequester")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("LoanNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateOnly>("OriginalPlannedReturnDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("OwnerOrganizationUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("PickedUpAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PickedUpBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("PlannedReturnDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RejectedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReturnConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReturnConfirmedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReturnedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReturnedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BorrowerOrganizationUnitId");
+
+                    b.HasIndex("LoanNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AstLoan_LoanNumber")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("OwnerOrganizationUnitId");
+
+                    b.HasIndex("RequestedBy");
+
+                    b.HasIndex("Status", "PlannedReturnDate")
+                        .HasDatabaseName("IX_AstLoan_Status_PlannedReturnDate");
+
+                    b.ToTable("AstLoan", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_AstLoan_DifferentUnits", "\"OwnerOrganizationUnitId\" <> \"BorrowerOrganizationUnitId\"");
+
+                            t.HasCheckConstraint("CK_AstLoan_ReturnAfterStart", "\"PlannedReturnDate\" >= \"StartDate\"");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstLoanExtension", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DecidedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("LoanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("PreviousReturnDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("RequestedReturnDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LoanId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AstLoanExtension_OpenPerLoan")
+                        .HasFilter("\"Status\" = 1 AND \"IsDelete\" = false");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("AstLoanExtension", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstLoanItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ConditionAtPickup")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("LoanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("ReturnCondition")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssetId");
+
+                    b.HasIndex("LoanId", "AssetId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AstLoanItem_Loan_Asset")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("AstLoanItem", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstTransfer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AssetHeadApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AssetHeadApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CorrectsTransferId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsUnitApprovalByRequester")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("Reason")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReasonNote")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReceivedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RejectedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SourceOrganizationUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SourceStockTakeResultId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("TargetCustodianEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TargetLocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TargetOrganizationUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TransferNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime?>("UnitApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UnitApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CorrectsTransferId");
+
+                    b.HasIndex("Reason");
+
+                    b.HasIndex("RequestedBy");
+
+                    b.HasIndex("SourceOrganizationUnitId");
+
+                    b.HasIndex("SourceStockTakeResultId");
+
+                    b.HasIndex("TargetCustodianEmployeeId");
+
+                    b.HasIndex("TargetLocationId");
+
+                    b.HasIndex("TargetOrganizationUnitId");
+
+                    b.HasIndex("TransferNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AstTransfer_TransferNumber")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("Status", "SourceOrganizationUnitId", "TargetOrganizationUnitId")
+                        .HasDatabaseName("IX_AstTransfer_Status_Units");
+
+                    b.ToTable("AstTransfer", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_AstTransfer_DifferentUnits", "\"SourceOrganizationUnitId\" <> \"TargetOrganizationUnitId\"");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstTransferItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ConditionAtReceipt")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ConditionAtSubmit")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("TransferId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssetId");
+
+                    b.HasIndex("TransferId", "AssetId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AstTransferItem_Transfer_Asset")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("AstTransferItem", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Models.AstAsset", b =>
                 {
                     b.Property<Guid>("Id")
@@ -43449,6 +43974,160 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("CountryId", "ProvinceId", "CityId", "DistrictId", "PostalCodeId");
 
                     b.ToTable("MstHospitalSite", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstJobDescription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EffectiveEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("EffectiveStartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("JobDescriptionCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("PositionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobDescriptionCode")
+                        .IsUnique();
+
+                    b.HasIndex("PositionId", "Status");
+
+                    b.HasIndex("PositionId", "VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("MstJobDescription", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstJobDescriptionItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("JobDescriptionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SectionType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobDescriptionId", "SectionType", "Sequence");
+
+                    b.ToTable("MstJobDescriptionItem", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstJobFamily", b =>
@@ -128451,6 +129130,114 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("LegalEntity");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstLoan", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstOrganizationUnit", "BorrowerOrganizationUnit")
+                        .WithMany()
+                        .HasForeignKey("BorrowerOrganizationUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstOrganizationUnit", "OwnerOrganizationUnit")
+                        .WithMany()
+                        .HasForeignKey("OwnerOrganizationUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BorrowerOrganizationUnit");
+
+                    b.Navigation("OwnerOrganizationUnit");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstLoanExtension", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstLoan", "Loan")
+                        .WithMany("Extensions")
+                        .HasForeignKey("LoanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Loan");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstLoanItem", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Models.AstAsset", "Asset")
+                        .WithMany()
+                        .HasForeignKey("AssetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstLoan", "Loan")
+                        .WithMany("Items")
+                        .HasForeignKey("LoanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Asset");
+
+                    b.Navigation("Loan");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstTransfer", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstTransfer", "CorrectsTransfer")
+                        .WithMany()
+                        .HasForeignKey("CorrectsTransferId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstOrganizationUnit", "SourceOrganizationUnit")
+                        .WithMany()
+                        .HasForeignKey("SourceOrganizationUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee", "TargetCustodianEmployee")
+                        .WithMany()
+                        .HasForeignKey("TargetCustodianEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Models.MstAssetLocation", "TargetLocation")
+                        .WithMany()
+                        .HasForeignKey("TargetLocationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstOrganizationUnit", "TargetOrganizationUnit")
+                        .WithMany()
+                        .HasForeignKey("TargetOrganizationUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CorrectsTransfer");
+
+                    b.Navigation("SourceOrganizationUnit");
+
+                    b.Navigation("TargetCustodianEmployee");
+
+                    b.Navigation("TargetLocation");
+
+                    b.Navigation("TargetOrganizationUnit");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstTransferItem", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Models.AstAsset", "Asset")
+                        .WithMany()
+                        .HasForeignKey("AssetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstTransfer", "Transfer")
+                        .WithMany("Items")
+                        .HasForeignKey("TransferId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Asset");
+
+                    b.Navigation("Transfer");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Models.AstAsset", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Models.MstAssetGroup", "AssetGroup")
@@ -137717,6 +138504,28 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PostalCode");
 
                     b.Navigation("Province");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstJobDescription", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstPosition", "Position")
+                        .WithMany()
+                        .HasForeignKey("PositionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Position");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstJobDescriptionItem", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstJobDescription", "JobDescription")
+                        .WithMany("Items")
+                        .HasForeignKey("JobDescriptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("JobDescription");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstOrganizationUnit", b =>
@@ -157401,6 +158210,18 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Runs");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstLoan", b =>
+                {
+                    b.Navigation("Extensions");
+
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models.AstTransfer", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Models.AstAsset", b =>
                 {
                     b.Navigation("Documents");
@@ -158136,6 +158957,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("OrganizationUnits");
 
                     b.Navigation("WorkLocations");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstJobDescription", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstJobLevel", b =>

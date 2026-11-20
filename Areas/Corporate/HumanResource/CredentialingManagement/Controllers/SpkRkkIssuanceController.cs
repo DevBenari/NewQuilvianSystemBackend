@@ -5,6 +5,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagemen
 using System.Security.Claims;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Controllers
 {
@@ -205,7 +207,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
 
             try
             {
-                var success = await _workflowService.SubmitPeerReviewAssessmentAsync(request, GetUserId(), cancellationToken);
+                // MSL-16: profil reviewer diambil dari token bila body kosong, lalu dicocokkan di service (VR-CRD-15).
+                var myProfileId = User.GetWorkforceProfileId();
+                if (request.ReviewerWorkforceProfileId == Guid.Empty && myProfileId.HasValue)
+                {
+                    request.ReviewerWorkforceProfileId = myProfileId.Value;
+                }
+
+                var success = await _workflowService.SubmitPeerReviewAssessmentAsync(request, GetUserId(), cancellationToken, myProfileId);
                 return Ok(new { success, message = "Asesmen portofolio klinis berhasil disimpan." });
             }
             catch (KeyNotFoundException ex)
@@ -362,6 +371,166 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             {
                 return NotFound(new { message = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Mengunduh berkas fisik SPK atau RKK dalam format PDF (FIN-HRD-09-BE-007, FIN-HRD-09-BE-010)
+        /// </summary>
+        [HttpGet("spk-rkk/{id:guid}/files")]
+        [AccessAction("Read", "Melihat Berkas Kredensial & SPK/RKK", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("SpkRkkIssuance", "Read")]
+        [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DownloadSpkRkkFile(
+            [FromRoute] Guid id,
+            [FromQuery] string fileType = "SPK",
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var (fileBytes, fileName, contentType) = await _spkRkkService.GetSpkRkkFileAsync(id, fileType, cancellationToken);
+                return File(fileBytes, contentType, fileName);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+        // =====================================================================
+        // WORKLIST KREDENSIAL (register masalah SDM MSL-16, 19 Nov 2026)
+        // =====================================================================
+
+        /// <summary>
+        /// Daftar permohonan kredensial seluruh tenaga kesehatan (MSL-16). Filter <c>status</c>: Submitted, InReview,
+        /// PlenarySessionConcluded. Cari nomor permohonan, nama, atau kode pegawai.
+        /// </summary>
+        [HttpGet("applications")]
+        [AccessAction("Read", "Melihat Berkas Kredensial & SPK/RKK", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("SpkRkkIssuance", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<CredentialingApplicationListItemDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetApplications(
+            [FromQuery] CredentialingWorklistQuery query,
+            [FromServices] ICredentialingWorklistQueryService worklist,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await worklist.GetApplicationsAsync(query, User.GetUserId(), cancellationToken);
+            return Ok(ApiResponse<PagedResult<CredentialingApplicationListItemDto>>.Ok(result, "Daftar permohonan kredensial berhasil dimuat."));
+        }
+
+        /// <summary>
+        /// Worklist Mitra Bestari (MSL-16): permohonan berstatus InReview yang menunjuk akun login sebagai reviewer.
+        /// Akun tanpa profil tenaga kerja mendapat daftar kosong beserta pesan penjelas.
+        /// </summary>
+        [HttpGet("applications/peer-review-worklist")]
+        [AccessAction("AssessPeer", "Menilai Berkas Kredensial (Mitra Bestari)", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("SpkRkkIssuance", "AssessPeer")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<CredentialingApplicationListItemDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPeerReviewWorklist(
+            [FromQuery] CredentialingWorklistQuery query,
+            [FromServices] ICredentialingWorklistQueryService worklist,
+            CancellationToken cancellationToken = default)
+        {
+            var profileId = User.GetWorkforceProfileId() ?? Guid.Empty;
+            var result = await worklist.GetPeerReviewWorklistAsync(query, profileId, User.GetUserId(), cancellationToken);
+            var message = profileId == Guid.Empty
+                ? "Akun Anda belum terhubung ke profil tenaga kerja, sehingga tidak ada penugasan Mitra Bestari yang bisa ditampilkan."
+                : "Worklist Mitra Bestari berhasil dimuat.";
+            return Ok(ApiResponse<PagedResult<CredentialingApplicationListItemDto>>.Ok(result, message));
+        }
+
+        /// <summary>
+        /// Lembar penilaian Mitra Bestari (MSL-16): butir kewenangan yang diajukan pemohon. Hanya untuk anggota panel;
+        /// selain itu dijawab 404.
+        /// </summary>
+        [HttpGet("applications/{id:guid}/peer-review-sheet")]
+        [AccessAction("AssessPeer", "Menilai Berkas Kredensial (Mitra Bestari)", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("SpkRkkIssuance", "AssessPeer")]
+        [ProducesResponseType(typeof(ApiResponse<CredentialingPeerReviewSheetDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetPeerReviewSheet(
+            [FromRoute] Guid id,
+            [FromServices] ICredentialingWorklistQueryService worklist,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await worklist.GetPeerReviewSheetAsync(id, User.GetWorkforceProfileId() ?? Guid.Empty, User.GetUserId(), cancellationToken);
+                return Ok(ApiResponse<CredentialingPeerReviewSheetDto>.Ok(result, "Lembar penilaian berhasil dimuat."));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+        }
+
+        /// <summary>Worklist sidang pleno (MSL-16): permohonan InReview beserta jumlah reviewer dan penilaian yang sudah masuk.</summary>
+        [HttpGet("applications/plenary-worklist")]
+        [AccessAction("ApproveCommittee", "Mengesahkan Sidang Pleno Komite", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("SpkRkkIssuance", "ApproveCommittee")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<CredentialingApplicationListItemDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPlenaryWorklist(
+            [FromQuery] CredentialingWorklistQuery query,
+            [FromServices] ICredentialingWorklistQueryService worklist,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await worklist.GetPlenaryWorklistAsync(query, User.GetUserId(), cancellationToken);
+            return Ok(ApiResponse<PagedResult<CredentialingApplicationListItemDto>>.Ok(result, "Worklist sidang pleno berhasil dimuat."));
+        }
+
+        /// <summary>
+        /// Matriks pleno (MSL-16): butir kewenangan yang diajukan dan penilaian setiap Mitra Bestari, untuk menyelesaikan
+        /// beda rekomendasi sebelum BAP pleno disahkan.
+        /// </summary>
+        [HttpGet("applications/{id:guid}/plenary-matrix")]
+        [AccessAction("ApproveCommittee", "Mengesahkan Sidang Pleno Komite", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("SpkRkkIssuance", "ApproveCommittee")]
+        [ProducesResponseType(typeof(ApiResponse<CredentialingPlenaryMatrixDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetPlenaryMatrix(
+            [FromRoute] Guid id,
+            [FromServices] ICredentialingWorklistQueryService worklist,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await worklist.GetPlenaryMatrixAsync(id, cancellationToken);
+                return Ok(ApiResponse<CredentialingPlenaryMatrixDto>.Ok(result, "Matriks pleno berhasil dimuat."));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Antrean draf SPK-RKK (MSL-16): permohonan yang sudah dipleno, tidak ditolak, dan belum punya SPK-RKK.
+        /// </summary>
+        [HttpGet("spk-rkk/draft-queue")]
+        [AccessAction("ParafDirector", "Memaraf Draf SPK/RKK", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("SpkRkkIssuance", "ParafDirector")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<CredentialingApplicationListItemDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetSpkRkkDraftQueue(
+            [FromQuery] CredentialingWorklistQuery query,
+            [FromServices] ICredentialingWorklistQueryService worklist,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await worklist.GetSpkRkkDraftQueueAsync(query, User.GetUserId(), cancellationToken);
+            return Ok(ApiResponse<PagedResult<CredentialingApplicationListItemDto>>.Ok(result, "Antrean draf SPK-RKK berhasil dimuat."));
+        }
+
+        /// <summary>SPK-RKK yang menunggu tanda tangan Direktur Utama (MSL-16), urut dari yang paling lama menunggu.</summary>
+        [HttpGet("spk-rkk/pending-signature")]
+        [AccessAction("SignDirector", "Menandatangani SPK/RKK", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("SpkRkkIssuance", "SignDirector")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<SpkRkkPendingSignatureItemDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetSpkRkkPendingSignature(
+            [FromQuery] CredentialingWorklistQuery query,
+            [FromServices] ICredentialingWorklistQueryService worklist,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await worklist.GetPendingSignatureAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<SpkRkkPendingSignatureItemDto>>.Ok(result, "Daftar SPK-RKK menunggu tanda tangan berhasil dimuat."));
         }
     }
 }

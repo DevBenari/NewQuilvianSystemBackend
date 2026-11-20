@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
+using QuilvianSystemBackend.Services.Security;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.DTOs;
@@ -108,6 +110,64 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return Unauthorized(ApiResponse<object>.Fail(
                 StatusCodes.Status401Unauthorized,
                 "Identitas user login tidak valid."));
+        }
+
+        /// <summary>
+        /// Unggah surat tugas/lampiran dinas luar (MSL-15 tahap 2, DEC-FER-02 opsi A, 19 Nov 2026). Multipart <c>file</c>; jawaban berisi <c>key</c>
+        /// yang dikirim ke kolom path berkas fitur ini. PDF/JPG/PNG/WEBP/Word/Excel, maksimal 10 MB.
+        /// </summary>
+        [HttpPost("attachments")]
+        [AccessAction("Create", "Create Official Duty Request", AccessType = AccessTypes.Create, SortOrder = 40)]
+        [AccessPermission("OfficialDutyRequest", "Create")]
+        [Tags("HR Attendance - Official Duty")]
+        [RequestSizeLimit(HrAttachmentStorage.DefaultMaximumFileSizeBytes + 1024 * 1024)]
+        [ProducesResponseType(typeof(ApiResponse<HrStoredAttachment>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UploadHrAttachment(
+            [FromForm] IFormFile file,
+            [FromServices] HrAttachmentStorage storage,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var stored = await storage.SaveAsync("attendance-official-duty", User.GetUserId(), file, cancellationToken);
+                return StatusCode(StatusCodes.Status201Created, ApiResponse<HrStoredAttachment>.Ok(stored, "Lampiran berhasil diunggah."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Unduh surat tugas/lampiran dinas luar (MSL-15 tahap 2). Boleh untuk pengunggah atau pemegang hak Read, Approve; selain itu 404.
+        /// </summary>
+        [HttpGet("attachments/download")]
+        [AccessAction("Read", "Read Official Duty Requests", AccessType = AccessTypes.Read, SortOrder = 41)]
+        [AccessPermission("OfficialDutyRequest", "Read")]
+        [Tags("HR Attendance - Official Duty")]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DownloadHrAttachment(
+            [FromQuery] string key,
+            [FromServices] HrAttachmentStorage storage,
+            [FromServices] AccessPermissionService accessPermissionService)
+        {
+            try
+            {
+                var attachment = storage.Open(key, "attendance-official-duty");
+                var allowed = attachment.OwnerUserId == User.GetUserId() || await accessPermissionService.HasAccessAsync(User, "OfficialDutyRequest", "Read") || await accessPermissionService.HasAccessAsync(User, "OfficialDutyRequest", "Approve");
+                if (!allowed)
+                {
+                    return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Lampiran tidak ditemukan."));
+                }
+
+                return PhysicalFile(attachment.PhysicalPath, attachment.ContentType, attachment.DownloadName);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
         }
     }
 }

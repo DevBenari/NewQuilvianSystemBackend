@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Controllers
 {
@@ -49,7 +50,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             {
                 return BadRequest(ApiResponse<string>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -70,7 +71,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 }
                 return Ok(ApiResponse<TrainingCertificateDto>.Ok(result, "Verifikasi keabsahan sertifikat pelatihan valid."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -86,7 +87,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 var results = await _certificationService.GetCertificatesByParticipantAsync(participantId);
                 return Ok(ApiResponse<List<TrainingCertificateDto>>.Ok(results, "Daftar sertifikat peserta berhasil diambil."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -102,7 +103,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 var results = await _certificationService.GetCertificatesByStaffAsync(workforceProfileId);
                 return Ok(ApiResponse<List<TrainingCertificateDto>>.Ok(results, "Daftar sertifikat portofolio staf berhasil diambil."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }

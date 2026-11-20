@@ -10,12 +10,15 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.DT
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Security;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services
 {
@@ -29,6 +32,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         private readonly IHrdNumberSeriesService _numberSeriesService;
         private readonly ResignationLifecycleHandoffService _resignationHandoffService;
         private readonly IHrdEmploymentLifecycleWorkflowIntegrationService _workflowIntegrationService;
+        private readonly IHrdFixedTermPolicyService _fixedTermPolicyService;
+        private readonly AccessPermissionService _permissionService;
 
         public HrdEmploymentContractService(
             ApplicationDbContext dbContext,
@@ -38,7 +43,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             IHrdLifecycleAttachmentService attachmentService,
             IHrdNumberSeriesService numberSeriesService,
             ResignationLifecycleHandoffService resignationHandoffService,
-            IHrdEmploymentLifecycleWorkflowIntegrationService workflowIntegrationService)
+            IHrdEmploymentLifecycleWorkflowIntegrationService workflowIntegrationService,
+            IHrdFixedTermPolicyService fixedTermPolicyService,
+            AccessPermissionService permissionService)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _contractWriteService = contractWriteService ?? throw new ArgumentNullException(nameof(contractWriteService));
@@ -48,6 +55,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             _numberSeriesService = numberSeriesService ?? throw new ArgumentNullException(nameof(numberSeriesService));
             _resignationHandoffService = resignationHandoffService ?? throw new ArgumentNullException(nameof(resignationHandoffService));
             _workflowIntegrationService = workflowIntegrationService ?? throw new ArgumentNullException(nameof(workflowIntegrationService));
+            _fixedTermPolicyService = fixedTermPolicyService ?? throw new ArgumentNullException(nameof(fixedTermPolicyService));
+            _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
         }
 
         private static Guid GetUserId(ClaimsPrincipal user)
@@ -91,7 +100,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             }
 
             DateTime? probationEndDate = null;
-            if (contractType != null && contractType.IsProbationApplicable)
+            // UU 27/2026 Pasal 86: Masa percobaan DILARANG untuk PKWT (RequiresEndDate)
+            if (contractType != null && contractType.IsProbationApplicable && !contractType.RequiresEndDate)
             {
                 probationEndDate = startDate.AddMonths(contractType.DefaultDurationMonths ?? 3);
             }
@@ -255,6 +265,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         {
             var contract = await _dbContext.WfpContractHistories
                 .Include(c => c.WorkforceProfile)
+                    .ThenInclude(p => p!.Employee)
                 .Include(c => c.ContractType)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == id && !c.IsDelete, cancellationToken);
@@ -282,23 +293,93 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
             var requisition = offer?.Application?.Vacancy?.Requisition;
 
+            // FIN-HRD-08-BE-002: Pemeriksaan hak akses nominal di backend
+            var canViewSalary = await _permissionService.HasAccessAsync(user, "WorkforceEmploymentContract", "ViewAmount");
+
+            // AUD-08-10: Masking NIK / National ID jika user bukan admin atau tidak memiliki izin full identity
+            var canViewFullIdentity = await _permissionService.HasAccessAsync(user, "WorkforceEmploymentContract", "ViewFullIdentity") ||
+                                      await _permissionService.HasAccessAsync(user, "WorkforceEmploymentContract", "Manage");
+            var rawNik = contract.WorkforceProfile?.Employee?.IdentityNumber;
+            var maskedNik = "-";
+            if (!string.IsNullOrWhiteSpace(rawNik) && rawNik != "-")
+            {
+                if (canViewFullIdentity)
+                {
+                    maskedNik = rawNik;
+                }
+                else
+                {
+                    maskedNik = rawNik.Length > 8
+                        ? string.Concat(rawNik.AsSpan(0, 4), new string('*', rawNik.Length - 8), rawNik.AsSpan(rawNik.Length - 4))
+                        : new string('*', rawNik.Length);
+                }
+            }
+
             var printData = new EmploymentContractPrintDataResponse
             {
                 ContractId = contract.Id,
                 ContractNumber = contract.ContractNumber,
-                HospitalName = requisition?.HospitalSite?.SiteName ?? "Rumah Sakit Quilvian",
+                HospitalName = requisition?.HospitalSite?.SiteName ?? "-",
                 EmployeeFullName = contract.WorkforceProfile?.DisplayName ?? string.Empty,
-                EmployeeNationalId = contract.WorkforceProfile?.ProfileCode ?? "-",
+                EmployeeNationalId = maskedNik,
                 PositionTitle = offer?.OfferedPositionTitle ?? requisition?.Position?.PositionName ?? "-",
                 DepartmentName = requisition?.OrganizationUnit?.UnitName ?? "-",
-                ContractTypeName = contract.ContractType?.ContractTypeName ?? "PKWT",
+                ContractTypeName = contract.ContractType?.ContractTypeName ?? "-",
                 StartDate = contract.StartDate,
                 EndDate = contract.EndDate,
-                BasicSalary = offer?.OfferedBasicSalary,
-                IsSalaryMasked = false
+                BasicSalary = canViewSalary ? offer?.OfferedBasicSalary : null,
+                IsSalaryMasked = !canViewSalary
             };
 
             return RecruitmentResult<EmploymentContractPrintDataResponse>.Ok(printData);
+        }
+
+        public async Task<RecruitmentResult<ContractSalaryDetailResponse>> GetSalaryDetailAsync(
+            Guid id,
+            ClaimsPrincipal user,
+            CancellationToken cancellationToken = default)
+        {
+            var contract = await _dbContext.WfpContractHistories
+                .Include(c => c.WorkforceProfile)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == id && !c.IsDelete, cancellationToken);
+
+            if (contract == null)
+            {
+                return RecruitmentResult<ContractSalaryDetailResponse>.NotFound("Kontrak kerja tidak ditemukan.");
+            }
+
+            var canViewSalary = await _permissionService.HasAccessAsync(user, "WorkforceEmploymentContract", "ViewAmount");
+
+            var offer = await _dbContext.HrdJobOffers
+                .Include(o => o.SalaryGrade)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == contract.SourceDocumentId, cancellationToken);
+
+            var salaryGradeId = offer?.SalaryGradeId;
+            string? salaryGradeName = offer?.SalaryGrade?.SalaryGradeName;
+            string? salaryStructureName = null;
+            decimal? basicSalary = offer?.OfferedBasicSalary;
+
+            if (salaryGradeId.HasValue)
+            {
+                var structure = await _dbContext.Set<MstSalaryStructure>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.SalaryGradeId == salaryGradeId.Value && s.IsActive && !s.IsDelete, cancellationToken);
+                salaryStructureName = structure?.SalaryStructureName;
+            }
+
+            var response = new ContractSalaryDetailResponse
+            {
+                ContractId = contract.Id,
+                BasicSalary = canViewSalary ? basicSalary : null,
+                Currency = "IDR",
+                SalaryGradeName = salaryGradeName,
+                SalaryStructureName = salaryStructureName,
+                IsMasked = !canViewSalary
+            };
+
+            return RecruitmentResult<ContractSalaryDetailResponse>.Ok(response);
         }
 
         public async Task<RecruitmentResult<EmploymentContractResponse>> RecordSignedAsync(
@@ -322,6 +403,69 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             {
                 return RecruitmentResult<EmploymentContractResponse>.BadRequest(
                     $"Kontrak dengan nomor {contract.ContractNumber} sudah berstatus {contract.ContractStatus} dan tidak dapat ditandatangani ulang.");
+            }
+
+            // Preflight validation sebelum simpan berkas (AUD-08-09 / P0-A / REG-HRD-08-001..003)
+            var offer = await _dbContext.HrdJobOffers
+                .Include(o => o.Application)
+                    .ThenInclude(a => a!.Vacancy)
+                        .ThenInclude(v => v!.Requisition)
+                .Include(o => o.Approvals)
+                .FirstOrDefaultAsync(o => o.Id == contract.SourceDocumentId, cancellationToken);
+
+            Guid? offerApproverUserId = null;
+            if (contract.HistoryType == "Initial" || contract.PreviousContractHistoryId == null)
+            {
+                if (offer?.Application?.Vacancy?.Requisition == null)
+                {
+                    return RecruitmentResult<EmploymentContractResponse>.BadRequest(
+                        "Job offer dan requisition untuk kontrak awal tidak ditemukan. Penandatanganan kontrak ditolak.");
+                }
+
+                var req = offer.Application.Vacancy.Requisition;
+
+                // Preflight Department FK
+                var orgUnit = await _dbContext.MstOrganizationUnits
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == req.OrganizationUnitId && !u.IsDelete, cancellationToken);
+                var actualDeptId = orgUnit?.DepartmentId ?? Guid.Empty;
+
+                var pos = await _dbContext.MstPositions
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == req.PositionId && !p.IsDelete, cancellationToken);
+                if (actualDeptId == Guid.Empty && pos?.DepartmentId != null)
+                {
+                    actualDeptId = pos.DepartmentId;
+                }
+
+                if (actualDeptId == Guid.Empty || !await _dbContext.MstDepartments.AnyAsync(d => d.Id == actualDeptId && !d.IsDelete, cancellationToken))
+                {
+                    return RecruitmentResult<EmploymentContractResponse>.BadRequest(
+                        "Departemen valid (MstDepartment) tidak dapat ditentukan dari Unit Organisasi atau Posisi jabatan. Konfigurasi master data belum lengkap (P0-B/REG-HRD-08-003).");
+                }
+
+                // Preflight SalaryGrade & SalaryStructure
+                var salaryGrade = await _dbContext.MstSalaryGrades
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(g => g.Id == offer.SalaryGradeId && !g.IsDelete, cancellationToken);
+                if (salaryGrade == null)
+                {
+                    return RecruitmentResult<EmploymentContractResponse>.BadRequest(
+                        $"Master golongan gaji (MstSalaryGrade) dengan ID '{offer.SalaryGradeId}' tidak ditemukan.");
+                }
+
+                var salaryStructure = await _dbContext.Set<MstSalaryStructure>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.SalaryGradeId == offer.SalaryGradeId && s.IsActive && !s.IsDelete, cancellationToken);
+                if (salaryStructure == null)
+                {
+                    return RecruitmentResult<EmploymentContractResponse>.BadRequest(
+                        $"Struktur penggajian aktif (MstSalaryStructure) untuk SalaryGrade '{salaryGrade.SalaryGradeName}' tidak ditemukan. Penandatanganan kontrak ditolak (REG-HRD-08-001/P0-A).");
+                }
+
+                offerApproverUserId = offer.Approvals
+                    .FirstOrDefault(a => a.Status == ApprovalStatus.Approved)?
+                    .ApproverUserId ?? offer.UpdateBy;
             }
 
             var saveResult = await _attachmentService.ValidateAndSaveAttachmentAsync(
@@ -351,12 +495,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     .Include(c => c.Items)
                     .FirstOrDefaultAsync(c => c.WorkforceProfileId == contract.WorkforceProfileId && !c.IsDelete, cancellationToken);
 
-                var offer = await _dbContext.HrdJobOffers
-                    .Include(o => o.Application)
-                        .ThenInclude(a => a!.Vacancy)
-                            .ThenInclude(v => v!.Requisition)
-                    .FirstOrDefaultAsync(o => o.Id == contract.SourceDocumentId, cancellationToken);
-
                 if (offer?.Application?.Vacancy?.Requisition != null)
                 {
                     var req = offer.Application.Vacancy.Requisition;
@@ -369,6 +507,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                         offer.OfferedBasicSalary,
                         contract.StartDate,
                         userId,
+                        offerApproverUserId,
                         cancellationToken);
                 }
 
@@ -403,10 +542,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await tx.CommitAsync(cancellationToken);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 await tx.RollbackAsync(cancellationToken);
-                throw;
+                await _attachmentService.DeleteAttachmentAsync(saveResult.StoragePath, cancellationToken);
+                return RecruitmentResult<EmploymentContractResponse>.BadRequest(
+                    $"Gagal memproses penandatanganan kontrak: {ex.Message}");
             }
 
             return await GetByIdAsync(contract.Id, cancellationToken);
@@ -427,7 +568,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             return await _attachmentService.GetAttachmentStreamAsync(contract.DocumentPath, cancellationToken);
         }
 
-        // --- BE-HRD-080: Keputusan Kontrak T16 & Batas 5 Tahun PKWT ---
+        // --- BE-HRD-080: Keputusan Kontrak T16 & Batas PKWT UU 27/2026 ---
 
         public async Task<RecruitmentResult<FixedTermCheckResponse>> FixedTermCheckAsync(
             Guid contractId,
@@ -443,49 +584,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 return RecruitmentResult<FixedTermCheckResponse>.NotFound("Kontrak kerja tidak ditemukan.");
             }
 
-            var isFixedTerm = contract.ContractType?.RequiresEndDate ?? contract.EndDate.HasValue;
-            if (!isFixedTerm || !contract.EndDate.HasValue)
-            {
-                return RecruitmentResult<FixedTermCheckResponse>.Ok(new FixedTermCheckResponse
-                {
-                    ContractHistoryId = contract.Id,
-                    StartDate = DateOnly.FromDateTime(contract.StartDate),
-                    EndDate = contract.EndDate.HasValue ? DateOnly.FromDateTime(contract.EndDate.Value) : null,
-                    FixedTermSeriesStartDate = DateOnly.FromDateTime(contract.StartDate),
-                    TotalUsedMonths = 0,
-                    RemainingMonths = 0,
-                    CanExtend = false,
-                    MaxExtensionMonths = 0,
-                    Message = "Bukan merupakan kontrak PKWT berjangka waktu (Pegawai Tetap/PKWTT)."
-                });
-            }
-
-            var seriesStart = contract.FixedTermSeriesStartDate.HasValue
-                ? DateOnly.FromDateTime(contract.FixedTermSeriesStartDate.Value)
-                : DateOnly.FromDateTime(contract.StartDate);
-
-            var end = DateOnly.FromDateTime(contract.EndDate.Value);
-            var totalUsedMonths = ((end.Year - seriesStart.Year) * 12) + end.Month - seriesStart.Month;
-            if (totalUsedMonths < 0) totalUsedMonths = 0;
-
-            const int maxMonths = 60; // 5 tahun
-            var remainingMonths = Math.Max(0, maxMonths - totalUsedMonths);
-            var canExtend = remainingMonths > 0;
-
-            return RecruitmentResult<FixedTermCheckResponse>.Ok(new FixedTermCheckResponse
-            {
-                ContractHistoryId = contract.Id,
-                StartDate = DateOnly.FromDateTime(contract.StartDate),
-                EndDate = end,
-                FixedTermSeriesStartDate = seriesStart,
-                TotalUsedMonths = totalUsedMonths,
-                RemainingMonths = remainingMonths,
-                CanExtend = canExtend,
-                MaxExtensionMonths = remainingMonths,
-                Message = canExtend
-                    ? $"Sisa batas waktu PKWT maksimal 5 tahun adalah {remainingMonths} bulan."
-                    : "Masa PKWT kumulatif telah mencapai batas maksimal 5 tahun. Kontrak harus diangkat menjadi pegawai tetap (PKWTT) atau tidak diperpanjang."
-            });
+            // FIN-HRD-08-BE-001/003: Evaluasi melalui service rule PKWT terpusat
+            var checkResponse = _fixedTermPolicyService.EvaluateCompliance(contract);
+            return RecruitmentResult<FixedTermCheckResponse>.Ok(checkResponse);
         }
 
         public async Task<RecruitmentResult<ContractDecisionResponse>> SubmitDecisionAsync(
@@ -526,26 +627,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     $"VR-ONB-37: Kontrak ini sudah memiliki keputusan yang berstatus {existingDecision.DecisionStatus} (Nomor: {existingDecision.DecisionNumber}).");
             }
 
-            // VR-ONB-36: Validasi batas 5 tahun jika Extend
+            // VR-ONB-36: Validasi perpanjangan PKWT berdasarkan UU No. 27/2026 Pasal 82 (FIN-HRD-08-BE-001/003)
             if (request.DecisionType == ContractDecisionType.Extend)
             {
-                if (!request.ProposedEndDate.HasValue)
+                var validation = _fixedTermPolicyService.ValidateRenewalProposal(
+                    contract,
+                    request.ProposedStartDate,
+                    request.ProposedEndDate,
+                    request.ExtensionMonths);
+
+                if (!validation.IsValid)
                 {
-                    return RecruitmentResult<ContractDecisionResponse>.BadRequest(
-                        "VR-ONB-36: Tanggal berakhir usulan (ProposedEndDate) wajib diisi untuk perpanjangan PKWT.");
-                }
-
-                var seriesStart = contract.FixedTermSeriesStartDate.HasValue
-                    ? DateOnly.FromDateTime(contract.FixedTermSeriesStartDate.Value)
-                    : DateOnly.FromDateTime(contract.StartDate);
-
-                var totalMonths = ((request.ProposedEndDate.Value.Year - seriesStart.Year) * 12) +
-                                  request.ProposedEndDate.Value.Month - seriesStart.Month;
-
-                if (totalMonths > 60)
-                {
-                    return RecruitmentResult<ContractDecisionResponse>.BadRequest(
-                        $"VR-ONB-36: Perpanjangan kontrak menghasilkan total durasi PKWT {totalMonths} bulan, yang melebihi batas maksimal 5 tahun (60 bulan). Pertimbangkan pengangkatan Tetap (ConvertToPermanent).");
+                    return RecruitmentResult<ContractDecisionResponse>.BadRequest(validation.ErrorMessage!);
                 }
             }
 
@@ -631,6 +724,44 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     $"Keputusan tidak dapat diubah karena berstatus {decision.DecisionStatus}.");
             }
 
+            // AUD-08-04: Validasi ulang kebijakan sesuai tipe keputusan yang dimutakhirkan
+            if (request.DecisionType == ContractDecisionType.Extend)
+            {
+                if (decision.ContractHistory != null)
+                {
+                    var validation = _fixedTermPolicyService.ValidateRenewalProposal(
+                        decision.ContractHistory,
+                        request.ProposedStartDate,
+                        request.ProposedEndDate,
+                        request.ExtensionMonths);
+
+                    if (!validation.IsValid)
+                    {
+                        return RecruitmentResult<ContractDecisionResponse>.BadRequest(validation.ErrorMessage!);
+                    }
+                }
+            }
+            else if (request.DecisionType == ContractDecisionType.ConvertToPermanent)
+            {
+                var permanentType = await _dbContext.MstContractTypes
+                    .FirstOrDefaultAsync(ct => !ct.RequiresEndDate && ct.IsActive && !ct.IsDelete, cancellationToken);
+
+                if (permanentType == null)
+                {
+                    return RecruitmentResult<ContractDecisionResponse>.BadRequest(
+                        "Master jenis kontrak PKWTT aktif (RequiresEndDate == false) tidak ditemukan. Konversi ke pegawai tetap tidak dapat diproses.");
+                }
+                request.ProposedEndDate = null;
+            }
+            else if (request.DecisionType == ContractDecisionType.NotRenew)
+            {
+                if (string.IsNullOrWhiteSpace(request.ReasonText))
+                {
+                    return RecruitmentResult<ContractDecisionResponse>.BadRequest(
+                        "Alasan tidak memperpanjang kontrak (ReasonText) wajib diisi untuk keputusan tidak perpanjang.");
+                }
+            }
+
             decision.DecisionType = request.DecisionType;
             decision.ExtensionMonths = request.ExtensionMonths;
             decision.ProposedStartDate = request.ProposedStartDate;
@@ -691,14 +822,48 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 return RecruitmentResult<ContractDecisionResponse>.NotFound("Keputusan kontrak tidak ditemukan.");
             }
 
-            // VR-ONB-40: Pencatatan tanggal pemberitahuan
+            // AUD-08-07: Tolak tanggal pemberitahuan di masa depan
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (request.NotifiedOn > today)
+            {
+                return RecruitmentResult<ContractDecisionResponse>.BadRequest("Tanggal pemberitahuan tidak boleh lebih besar dari hari ini.");
+            }
+
+            // Evaluasi tenggat H-7 tertulis UU No. 27/2026 Pasal 82 (FIN-HRD-08-BE-004 / AUD-08-07)
+            var complianceStatus = "NOT_APPLICABLE";
+            DateOnly? reqDate = null;
+            if (decision.ContractHistory?.EndDate != null)
+            {
+                reqDate = DateOnly.FromDateTime(decision.ContractHistory.EndDate.Value).AddDays(-7);
+                if (string.IsNullOrWhiteSpace(request.EvidenceNotes))
+                {
+                    complianceStatus = "MISSING";
+                }
+                else
+                {
+                    complianceStatus = request.NotifiedOn <= reqDate.Value ? "ON_TIME" : "LATE";
+                }
+            }
+
+            var channel = !string.IsNullOrWhiteSpace(request.DeliveryChannel) ? request.DeliveryChannel : "Surat Tertulis";
+            var noteDetail = $"[Pemberitahuan: Status={complianceStatus}, Kanal={channel}, Tgl={request.NotifiedOn:dd-MM-yyyy}, Catatan={request.EvidenceNotes ?? "-"}]";
+
             decision.EmployeeNotifiedOn = request.NotifiedOn;
             decision.NotificationRecordedByUserId = actorId;
+            decision.DecisionNote = string.IsNullOrWhiteSpace(decision.DecisionNote)
+                ? noteDetail
+                : $"{decision.DecisionNote} | {noteDetail}";
             decision.UpdateDateTime = DateTime.UtcNow;
             decision.UpdateBy = actorId;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
-            return RecruitmentResult<ContractDecisionResponse>.Ok(MapToDecisionResponse(decision, decision.ContractHistory, user.Identity?.Name));
+
+            var response = MapToDecisionResponse(decision, decision.ContractHistory, user.Identity?.Name);
+            response.NotificationChannel = channel;
+            response.NotificationEvidenceNotes = request.EvidenceNotes;
+            response.NotificationComplianceStatus = complianceStatus;
+            response.RequiredNoticeDate = reqDate;
+            return RecruitmentResult<ContractDecisionResponse>.Ok(response);
         }
 
         public async Task<RecruitmentResult<bool>> ApplyDecisionAsync(
@@ -717,52 +882,90 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 return RecruitmentResult<bool>.NotFound("Keputusan kontrak tidak ditemukan.");
             }
 
-            decision.DecisionStatus = isApproved ? ContractDecisionStatus.Approved : ContractDecisionStatus.Rejected;
-            decision.DecidedByUserId = deciderUserId;
-            decision.DecidedAt = DateTime.UtcNow;
-            decision.DecisionNote = decisionNote;
-            decision.UpdateDateTime = DateTime.UtcNow;
-            decision.UpdateBy = deciderUserId;
-
-            if (isApproved && decision.ContractHistory != null)
+            // HRD-DEC-031 / FIN-HRD-08-BE-005: Maker-Checker guard di backend
+            if (decision.SubmittedByUserId == deciderUserId)
             {
-                if (decision.DecisionType == ContractDecisionType.Extend || decision.DecisionType == ContractDecisionType.ConvertToPermanent)
-                {
-                    var followUp = await CreateFollowUpDraftAsync(
-                        decision.ContractHistoryId,
-                        decision.DecisionType,
-                        decision.ProposedStartDate,
-                        decision.ProposedEndDate,
-                        deciderUserId,
-                        cancellationToken);
-
-                    decision.FollowUpContractHistoryId = followUp.Id;
-                }
-                else if (decision.DecisionType == ContractDecisionType.NotRenew)
-                {
-                    var lastWorkingDate = decision.ContractHistory.EndDate.HasValue
-                        ? DateOnly.FromDateTime(decision.ContractHistory.EndDate.Value)
-                        : DateOnly.FromDateTime(DateTime.UtcNow);
-
-                    var handoff = await _resignationHandoffService.HandoffLifecycleSeparationAsync(
-                        decision.WorkforceProfileId,
-                        null,
-                        "ContractNonRenewal",
-                        lastWorkingDate,
-                        decision.ReasonText ?? "Kontrak kerja berakhir dan tidak diperpanjang.",
-                        decision.DecisionNote,
-                        deciderUserId,
-                        cancellationToken);
-
-                    if (handoff.Success && handoff.Data != null)
-                    {
-                        decision.EmployeeSeparationId = handoff.Data.EmployeeSeparationId;
-                    }
-                }
+                return RecruitmentResult<bool>.BadRequest(
+                    "Pembuat pengajuan keputusan tidak dapat menyetujui atau menolak keputusannya sendiri (Prinsip Maker-Checker HRD-DEC-031).");
             }
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            return RecruitmentResult<bool>.Ok(true, "Penerapan keputusan kontrak berhasil dieksekusi.");
+            // AUD-08-06: Idempotency lengkap untuk Approved, Rejected, dan Withdrawn
+            if (decision.DecisionStatus == ContractDecisionStatus.Approved)
+            {
+                if (decision.DecisionType == ContractDecisionType.NotRenew && decision.EmployeeSeparationId.HasValue)
+                {
+                    return RecruitmentResult<bool>.Ok(true, "Keputusan pengakhiran kontrak sudah pernah disetujui sebelumnya.");
+                }
+                if ((decision.DecisionType == ContractDecisionType.Extend || decision.DecisionType == ContractDecisionType.ConvertToPermanent) && decision.FollowUpContractHistoryId.HasValue)
+                {
+                    return RecruitmentResult<bool>.Ok(true, "Keputusan perpanjangan/konversi kontrak sudah pernah disetujui sebelumnya.");
+                }
+            }
+            if (decision.DecisionStatus == ContractDecisionStatus.Rejected)
+            {
+                return RecruitmentResult<bool>.Ok(true, "Keputusan kontrak sudah berstatus ditolak sebelumnya.");
+            }
+            if (decision.DecisionStatus == ContractDecisionStatus.Withdrawn)
+            {
+                return RecruitmentResult<bool>.BadRequest("Keputusan kontrak berstatus ditarik (Withdrawn) dan tidak dapat diproses.");
+            }
+
+            await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                decision.DecisionStatus = isApproved ? ContractDecisionStatus.Approved : ContractDecisionStatus.Rejected;
+                decision.DecidedByUserId = deciderUserId;
+                decision.DecidedAt = DateTime.UtcNow;
+                decision.DecisionNote = decisionNote;
+                decision.UpdateDateTime = DateTime.UtcNow;
+                decision.UpdateBy = deciderUserId;
+
+                if (isApproved && decision.ContractHistory != null)
+                {
+                    if (decision.DecisionType == ContractDecisionType.Extend || decision.DecisionType == ContractDecisionType.ConvertToPermanent)
+                    {
+                        var followUp = await CreateFollowUpDraftAsync(
+                            decision.ContractHistoryId,
+                            decision.DecisionType,
+                            decision.ProposedStartDate,
+                            decision.ProposedEndDate,
+                            deciderUserId,
+                            cancellationToken);
+
+                        decision.FollowUpContractHistoryId = followUp.Id;
+                    }
+                    else if (decision.DecisionType == ContractDecisionType.NotRenew)
+                    {
+                        var lastWorkingDate = decision.ContractHistory.EndDate.HasValue
+                            ? DateOnly.FromDateTime(decision.ContractHistory.EndDate.Value)
+                            : DateOnly.FromDateTime(DateTime.UtcNow);
+
+                        var handoff = await _resignationHandoffService.HandoffLifecycleSeparationAsync(
+                            decision.WorkforceProfileId,
+                            null,
+                            "ContractNonRenewal",
+                            lastWorkingDate,
+                            decision.ReasonText ?? "Kontrak kerja berakhir dan tidak diperpanjang.",
+                            decision.DecisionNote,
+                            deciderUserId,
+                            cancellationToken);
+
+                        if (handoff.Success && handoff.Data != null)
+                        {
+                            decision.EmployeeSeparationId = handoff.Data.EmployeeSeparationId;
+                        }
+                    }
+                }
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await tx.CommitAsync(cancellationToken);
+                return RecruitmentResult<bool>.Ok(true, "Penerapan keputusan kontrak berhasil dieksekusi.");
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                return RecruitmentResult<bool>.BadRequest($"Gagal menerapkan keputusan kontrak: {ex.Message}");
+            }
         }
 
         public async Task<WfpContractHistory> CreateFollowUpDraftAsync(
@@ -784,12 +987,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             {
                 historyType = "Conversion";
                 var permanentType = await _dbContext.MstContractTypes
-                    .FirstOrDefaultAsync(ct => !ct.RequiresEndDate && !ct.IsDelete, cancellationToken);
+                    .FirstOrDefaultAsync(ct => !ct.RequiresEndDate && ct.IsActive && !ct.IsDelete, cancellationToken);
 
-                if (permanentType != null)
+                if (permanentType == null)
                 {
-                    targetContractTypeId = permanentType.Id;
+                    throw new InvalidOperationException("Master jenis kontrak PKWTT aktif (RequiresEndDate == false) tidak ditemukan. Konversi ke pegawai tetap tidak dapat diproses (FIN-HRD-08-BE-007).");
                 }
+
+                targetContractTypeId = permanentType.Id;
+                endDate = null; // PKWTT tidak memiliki tanggal akhir
             }
 
             var nextSeq = parent.RenewalSequence + 1;
@@ -1145,6 +1351,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             WfpContractHistory? c,
             string? submitterName)
         {
+            var reqDate = c?.EndDate.HasValue == true
+                ? DateOnly.FromDateTime(c.EndDate.Value).AddDays(-7)
+                : (DateOnly?)null;
+            var complianceStatus = "NOT_APPLICABLE";
+            if (reqDate.HasValue)
+            {
+                if (d.EmployeeNotifiedOn.HasValue)
+                {
+                    complianceStatus = d.EmployeeNotifiedOn.Value <= reqDate.Value ? "ON_TIME" : "LATE";
+                }
+                else
+                {
+                    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                    complianceStatus = today > reqDate.Value ? "LATE" : "MISSING";
+                }
+            }
+
             return new ContractDecisionResponse
             {
                 Id = d.Id,
@@ -1154,6 +1377,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 WorkforceProfileId = d.WorkforceProfileId,
                 WorkforceCode = d.WorkforceProfile?.ProfileCode ?? string.Empty,
                 FullName = d.WorkforceProfile?.DisplayName ?? string.Empty,
+                RenewalSequence = c?.RenewalSequence ?? 0,
                 DecisionType = d.DecisionType,
                 ExtensionMonths = d.ExtensionMonths,
                 ProposedStartDate = d.ProposedStartDate,
@@ -1169,8 +1393,193 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 DecisionNote = d.DecisionNote,
                 FollowUpContractHistoryId = d.FollowUpContractHistoryId,
                 EmployeeNotifiedOn = d.EmployeeNotifiedOn,
-                EmployeeSeparationId = d.EmployeeSeparationId
+                EmployeeSeparationId = d.EmployeeSeparationId,
+                NotificationComplianceStatus = complianceStatus,
+                RequiredNoticeDate = reqDate
             };
+        }
+
+        // --- FIN-HRD-08: Worklist Keputusan & Ringkasan Dashboard ---
+
+        public async Task<RecruitmentResult<PagedResult<ContractDecisionResponse>>> GetDecisionsPagedAsync(
+            ContractDecisionQuery query,
+            ClaimsPrincipal user,
+            CancellationToken cancellationToken = default)
+        {
+            query ??= new ContractDecisionQuery();
+            var dbQuery = _dbContext.HrdContractDecisions
+                .AsNoTracking()
+                .Include(d => d.ContractHistory)
+                .Include(d => d.WorkforceProfile)
+                .Include(d => d.SubmittedByUser)
+                .Include(d => d.DecidedByUser)
+                .Where(d => !d.IsDelete);
+
+            if (query.DecisionType.HasValue)
+            {
+                dbQuery = dbQuery.Where(d => d.DecisionType == query.DecisionType.Value);
+            }
+
+            if (query.DecisionStatus.HasValue)
+            {
+                dbQuery = dbQuery.Where(d => d.DecisionStatus == query.DecisionStatus.Value);
+            }
+
+            if (query.WorkforceProfileId.HasValue)
+            {
+                dbQuery = dbQuery.Where(d => d.WorkforceProfileId == query.WorkforceProfileId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var term = query.Search.Trim().ToLower();
+                dbQuery = dbQuery.Where(d =>
+                    (d.DecisionNumber != null && d.DecisionNumber.ToLower().Contains(term)) ||
+                    (d.ContractHistory != null && d.ContractHistory.ContractNumber.ToLower().Contains(term)) ||
+                    (d.WorkforceProfile != null && d.WorkforceProfile.DisplayName.ToLower().Contains(term)) ||
+                    (d.WorkforceProfile != null && d.WorkforceProfile.ProfileCode.ToLower().Contains(term)));
+            }
+
+            var totalData = await dbQuery.CountAsync(cancellationToken);
+            var pageNumber = query.PageNumber > 0 ? query.PageNumber : 1;
+            var pageSize = query.PageSize > 0 ? query.PageSize : 10;
+
+            var items = await dbQuery
+                .OrderByDescending(d => d.SubmittedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var responseItems = items.Select(d => MapToDecisionResponse(d, d.ContractHistory, null)).ToList();
+
+            var paged = new PagedResult<ContractDecisionResponse>
+            {
+                Items = responseItems,
+                TotalData = totalData,
+                TotalPage = pageSize > 0 ? (int)Math.Ceiling((double)totalData / pageSize) : 0,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+
+            return RecruitmentResult<PagedResult<ContractDecisionResponse>>.Ok(paged, "Daftar keputusan kontrak berhasil diambil.");
+        }
+
+        public async Task<RecruitmentResult<EmploymentContractSummaryResponse>> GetContractSummaryAsync(
+            Guid? hospitalSiteId,
+            CancellationToken cancellationToken = default)
+        {
+            var today = DateTime.UtcNow.Date;
+            var sixtyDaysFromNow = today.AddDays(60);
+
+            var query = _dbContext.WfpContractHistories.AsNoTracking().Where(c => !c.IsDelete);
+
+            if (hospitalSiteId.HasValue && hospitalSiteId.Value != Guid.Empty)
+            {
+                var siteProfileIds = await _dbContext.Set<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpPositionAssignment>()
+                    .Where(p => p.HospitalSiteId == hospitalSiteId.Value && !p.IsDelete)
+                    .Select(p => p.WorkforceProfileId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+
+                query = query.Where(c => siteProfileIds.Contains(c.WorkforceProfileId));
+            }
+
+            var activeCount = await query.CountAsync(c => c.IsCurrent && (c.ContractStatus == "Active" || c.ContractStatus == EmploymentLifecycleValueConstants.ContractStatusSigned), cancellationToken);
+            var pendingSignedCount = await query.CountAsync(c => c.ContractStatus == EmploymentLifecycleValueConstants.ContractStatusDraft, cancellationToken);
+            var expiringSoonCount = await query.CountAsync(c => c.IsCurrent && c.EndDate.HasValue && c.EndDate.Value >= today && c.EndDate.Value <= sixtyDaysFromNow, cancellationToken);
+            var needsReviewCount = await query.CountAsync(c => c.ContractStatus == "LapsedWithoutDecision" || (c.EndDate.HasValue && c.EndDate.Value < today && (c.ContractStatus == "Active" || c.ContractStatus == EmploymentLifecycleValueConstants.ContractStatusSigned)), cancellationToken);
+
+            return RecruitmentResult<EmploymentContractSummaryResponse>.Ok(new EmploymentContractSummaryResponse
+            {
+                ActiveContractsCount = activeCount,
+                PendingSignedCount = pendingSignedCount,
+                ExpiringSoonCount = expiringSoonCount,
+                NeedsReviewCount = needsReviewCount
+            });
+        }
+
+        public async Task<RecruitmentResult<ContractRenewalSummaryResponse>> GetRenewalSummaryAsync(
+            Guid? hospitalSiteId,
+            CancellationToken cancellationToken = default)
+        {
+            var today = DateTime.UtcNow.Date;
+            var h60Date = today.AddDays(60);
+            var h14Date = today.AddDays(14);
+            var h7Date = today.AddDays(7);
+
+            var query = _dbContext.WfpContractHistories
+                .AsNoTracking()
+                .Where(c => !c.IsDelete && c.IsCurrent && c.EndDate.HasValue && c.EndDate.Value >= today);
+
+            var decisionQuery = _dbContext.HrdContractDecisions
+                .AsNoTracking()
+                .Where(d => !d.IsDelete && d.DecisionType == ContractDecisionType.Extend && d.DecisionStatus == ContractDecisionStatus.Submitted);
+
+            var overdueQuery = _dbContext.WfpContractHistories
+                .AsNoTracking()
+                .Where(c => !c.IsDelete && c.EndDate.HasValue && c.EndDate.Value < today &&
+                            (c.ContractStatus == "Active" || c.ContractStatus == EmploymentLifecycleValueConstants.ContractStatusSigned));
+
+            if (hospitalSiteId.HasValue && hospitalSiteId.Value != Guid.Empty)
+            {
+                var siteProfileIds = await _dbContext.Set<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpPositionAssignment>()
+                    .Where(p => p.HospitalSiteId == hospitalSiteId.Value && !p.IsDelete)
+                    .Select(p => p.WorkforceProfileId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+
+                query = query.Where(c => siteProfileIds.Contains(c.WorkforceProfileId));
+                decisionQuery = decisionQuery.Where(d => siteProfileIds.Contains(d.WorkforceProfileId));
+                overdueQuery = overdueQuery.Where(c => siteProfileIds.Contains(c.WorkforceProfileId));
+            }
+
+            var reminderH60Count = await query.CountAsync(c => c.EndDate.Value <= h60Date && c.EndDate.Value > h14Date, cancellationToken);
+            var escalationH14Count = await query.CountAsync(c => c.EndDate.Value <= h14Date && c.EndDate.Value > h7Date, cancellationToken);
+            var noticeDueH7Count = await query.CountAsync(c => c.EndDate.Value <= h7Date, cancellationToken);
+            var pendingDecisionCount = await decisionQuery.CountAsync(cancellationToken);
+            var overdueCount = await overdueQuery.CountAsync(cancellationToken);
+
+            return RecruitmentResult<ContractRenewalSummaryResponse>.Ok(new ContractRenewalSummaryResponse
+            {
+                ReminderH60Count = reminderH60Count,
+                EscalationH14Count = escalationH14Count,
+                NoticeDueH7Count = noticeDueH7Count,
+                PendingDecisionCount = pendingDecisionCount,
+                OverdueCount = overdueCount
+            });
+        }
+
+        public async Task<RecruitmentResult<EmploymentStatusChangeSummaryResponse>> GetConversionSummaryAsync(
+            Guid? hospitalSiteId,
+            CancellationToken cancellationToken = default)
+        {
+            var conversionDecisions = _dbContext.HrdContractDecisions
+                .AsNoTracking()
+                .Where(d => !d.IsDelete && d.DecisionType == ContractDecisionType.ConvertToPermanent);
+
+            if (hospitalSiteId.HasValue && hospitalSiteId.Value != Guid.Empty)
+            {
+                var siteProfileIds = await _dbContext.Set<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpPositionAssignment>()
+                    .Where(p => p.HospitalSiteId == hospitalSiteId.Value && !p.IsDelete)
+                    .Select(p => p.WorkforceProfileId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+
+                conversionDecisions = conversionDecisions.Where(d => siteProfileIds.Contains(d.WorkforceProfileId));
+            }
+
+            var submittedCount = await conversionDecisions.CountAsync(d => d.DecisionStatus == ContractDecisionStatus.Submitted, cancellationToken);
+            var pendingSignedCount = await conversionDecisions.CountAsync(d => d.DecisionStatus == ContractDecisionStatus.Approved && d.FollowUpContractHistory != null && d.FollowUpContractHistory.ContractStatus == EmploymentLifecycleValueConstants.ContractStatusDraft, cancellationToken);
+            var scheduledOrEffectiveCount = await conversionDecisions.CountAsync(d => d.DecisionStatus == ContractDecisionStatus.Approved && d.FollowUpContractHistory != null && (d.FollowUpContractHistory.ContractStatus == "Active" || d.FollowUpContractHistory.ContractStatus == EmploymentLifecycleValueConstants.ContractStatusSigned), cancellationToken);
+            var rejectedCount = await conversionDecisions.CountAsync(d => d.DecisionStatus == ContractDecisionStatus.Rejected, cancellationToken);
+
+            return RecruitmentResult<EmploymentStatusChangeSummaryResponse>.Ok(new EmploymentStatusChangeSummaryResponse
+            {
+                SubmittedCount = submittedCount,
+                PendingSignedCount = pendingSignedCount,
+                ScheduledOrEffectiveCount = scheduledOrEffectiveCount,
+                RejectedCount = rejectedCount
+            });
         }
     }
 }

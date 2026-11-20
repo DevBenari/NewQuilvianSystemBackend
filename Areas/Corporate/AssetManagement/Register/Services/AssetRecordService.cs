@@ -153,6 +153,91 @@ public static class AssetRegisterLabels
         _ => value.ToString()
     };
 
+    public static string HandoverPurpose(HandoverPurpose value) => value switch
+    {
+        Enums.HandoverPurpose.PenempatanAwal => "Penempatan Awal",
+        Enums.HandoverPurpose.PindahDalamUnit => "Pindah Dalam Unit",
+        Enums.HandoverPurpose.KoreksiOpname => "Koreksi Opname",
+        Enums.HandoverPurpose.PascaPemulihan => "Pascapemulihan",
+        _ => value.ToString()
+    };
+
+    public static string HandoverStatus(HandoverStatus value) => value switch
+    {
+        Enums.HandoverStatus.Diserahkan => "Diserahkan",
+        Enums.HandoverStatus.Dikonfirmasi => "Dikonfirmasi",
+        Enums.HandoverStatus.Ditolak => "Ditolak",
+        Enums.HandoverStatus.Dibatalkan => "Dibatalkan",
+        _ => value.ToString()
+    };
+
+    public static string ConditionReportStatus(ConditionReportStatus value) => value switch
+    {
+        Enums.ConditionReportStatus.Dilaporkan => "Dilaporkan",
+        Enums.ConditionReportStatus.Ditetapkan => "Ditetapkan",
+        Enums.ConditionReportStatus.Ditolak => "Ditolak",
+        _ => value.ToString()
+    };
+
+    public static string ConditionReportSource(ConditionReportSource value) => value switch
+    {
+        Enums.ConditionReportSource.LaporanUnit => "Laporan Unit",
+        Enums.ConditionReportSource.PemeriksaanBagianAset => "Pemeriksaan Bagian Aset",
+        Enums.ConditionReportSource.PengembalianPinjaman => "Pengembalian Pinjaman",
+        Enums.ConditionReportSource.TindakLanjutOpname => "Tindak Lanjut Opname",
+        Enums.ConditionReportSource.PenerimaanMutasi => "Penerimaan Mutasi",
+        _ => value.ToString()
+    };
+
+    public static string UtilizationType(UtilizationType value) => value switch
+    {
+        Enums.UtilizationType.Sewa => "Sewa",
+        Enums.UtilizationType.KerjaSamaOperasional => "Kerja Sama Operasional",
+        Enums.UtilizationType.PinjamPakai => "Pinjam Pakai",
+        _ => value.ToString()
+    };
+
+    public static string UtilizationStatus(UtilizationStatus value) => value switch
+    {
+        Enums.UtilizationStatus.Draft => "Draft",
+        Enums.UtilizationStatus.Diajukan => "Diajukan",
+        Enums.UtilizationStatus.MenungguDirektur => "Menunggu Direktur",
+        Enums.UtilizationStatus.Disetujui => "Disetujui",
+        Enums.UtilizationStatus.Berjalan => "Berjalan",
+        Enums.UtilizationStatus.Berakhir => "Berakhir",
+        Enums.UtilizationStatus.Ditolak => "Ditolak",
+        Enums.UtilizationStatus.Dibatalkan => "Dibatalkan",
+        _ => value.ToString()
+    };
+
+    public static string UtilizationApprovalLevel(UtilizationApprovalLevel value) => value switch
+    {
+        Enums.UtilizationApprovalLevel.KepalaBagianAset => "Kepala Bagian Aset",
+        Enums.UtilizationApprovalLevel.Direktur => "Direktur",
+        _ => value.ToString()
+    };
+
+    public static string ImportBatchStatus(ImportBatchStatus value) => value switch
+    {
+        Enums.ImportBatchStatus.Diunggah => "Diunggah",
+        Enums.ImportBatchStatus.GagalValidasi => "Gagal Validasi",
+        Enums.ImportBatchStatus.Tervalidasi => "Tervalidasi",
+        Enums.ImportBatchStatus.DisetujuiBagianAset => "Disetujui Bagian Aset",
+        Enums.ImportBatchStatus.Diterapkan => "Diterapkan",
+        Enums.ImportBatchStatus.Ditolak => "Ditolak",
+        Enums.ImportBatchStatus.Dibatalkan => "Dibatalkan",
+        _ => value.ToString()
+    };
+
+    public static string DocumentExpiryState(AssetDocumentExpiryState value) => value switch
+    {
+        AssetDocumentExpiryState.TanpaMasaBerlaku => "Tanpa Masa Berlaku",
+        AssetDocumentExpiryState.Berlaku => "Berlaku",
+        AssetDocumentExpiryState.HampirHabis => "Hampir Habis",
+        AssetDocumentExpiryState.Habis => "Habis",
+        _ => value.ToString()
+    };
+
     public static string AcquisitionType(AssetAcquisitionType value) => value switch
     {
         AssetAcquisitionType.Pembelian => "Pembelian",

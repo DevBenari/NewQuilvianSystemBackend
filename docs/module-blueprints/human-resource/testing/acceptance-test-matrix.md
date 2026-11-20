@@ -1161,3 +1161,29 @@ Untuk backend, kriteria di bawah dibuktikan dengan bukti verifikasi menurut `rul
 2. **UAT-WPD-02 (jalur gagal): Nomor rekening ganda.** Staf HR mengisi nomor rekening Budi dengan nomor yang sudah tercatat untuk Budi pada rekening nonaktif. Simpan ditolak dengan pesan nomor sudah tercatat; formulir tetap terbuka dan tidak ada yang tersimpan.
 3. **UAT-WPD-03 (jalur pengecualian): Koreksi gaji yang sudah disetujui.** Staf HR tanpa hak setuju mengoreksi gaji Dodi yang sudah disetujui. Toast menampilkan peringatan bahwa persetujuan dicabut; daftar menampilkan Dodi kembali "Menunggu Persetujuan" sampai manajer HR menyetujuinya.
 4. **UAT-WPD-04 (jalur hak akses): Petugas tanpa hak ubah.** Petugas dengan hak `Read` saja melihat daftar dan ringkasan, tetapi tombol **Ubah** tidak tampil, dan pemanggilan detail langsung ditolak `403`.
+
+---
+
+## 36. Matriks Uji Penerimaan Amandemen Slice `S-D5`: Persetujuan SPPD lewat Workflow (Kontrak `v28`, approved 19 November 2026)
+
+Dasar: `HRD-DEC-224` s.d. `HRD-DEC-228`. Bukti backend memakai harness `Tests/QuilvianSystemBackend.HumanResourceTests` (SQLite, tanpa menulis devYoga) bila data uji tidak tersedia; setiap uji wajib punya kontrol negatif (mutasi source → uji gagal).
+
+| ID | Skenario | Langkah | Hasil yang diharapkan | Rujukan |
+| --- | --- | --- | --- | --- |
+| `AT-HRD-TRV-23` | SPPD baru berstatus Draft | `POST /requests` | `201`, `travelStatus = Draft`, `workflowInstanceId = null`, `approvedAt = null`, `canSubmit = true`, `ApprovedBudgetAmount = 0` | FR-TRV-26, `VR-TRV-27` |
+| `AT-HRD-TRV-24` | Ajukan memulai workflow | `POST /requests/{id}/submit` oleh pemohon | `200`, status `Submitted`, `workflowInstanceId` terisi, instance `BUSINESS_TRAVEL_REQUEST` berstatus menunggu dengan tugas untuk atasan langsung pemohon; `SubmittedAt` terisi | FR-TRV-27, `INT-HR-109` |
+| `AT-HRD-TRV-25` | Isi terkunci saat menunggu | `PUT /requests/{id}` pada SPPD `Submitted` berworkflow | `409` pesan `VR-TRV-27`; data tidak berubah | `VR-TRV-27` |
+| `AT-HRD-TRV-26` | Persetujuan final | Approver menyetujui di kotak masuk Workflow V2 | SPPD `Approved`, `ApprovedAt`/`ApprovedByUserId` terisi, `ApprovedBudgetAmount = EstimatedTotalAmount`, satu `TrxTravelAttendanceLink` per hari dinas, `HasScheduleConflict = true` | FR-TRV-28, `INT-HR-110`, `VR-TRV-32` |
+| `AT-HRD-TRV-27` | Dikembalikan lalu diajukan ulang | Approver mengembalikan; pemohon mengubah lalu Ajukan | Status `NeedRevision`, `PUT` diizinkan, Ajukan ulang memakai instance yang sama dan status kembali `Submitted` | FR-TRV-29 |
+| `AT-HRD-TRV-28` | Ditolak final | Approver menolak; pemohon Ajukan lagi | Status `Rejected`, `RejectedAt` terisi; Ajukan → `409` pesan `VR-TRV-28` | FR-TRV-29, `VR-TRV-28` |
+| `AT-HRD-TRV-29` | Batal saat menunggu menarik workflow | `PUT /requests/{id}/cancel` pada SPPD `Submitted` | Workflow berstatus `Withdrawn`/`Cancelled`, SPPD `Cancelled`; bila penarikan ditolak engine, `409` dan SPPD tetap `Submitted` | FR-TRV-30, `VR-TRV-33` |
+| `AT-HRD-TRV-30` | Gerbang uang muka | `POST /advances` untuk SPPD `Draft`, `Submitted`, lalu `Approved` | Dua yang pertama `409` pesan `VR-TRV-30`; yang ketiga lolos dengan plafon 80% `ApprovedBudgetAmount` | FR-TRV-31, `VR-TRV-30` |
+| `AT-HRD-TRV-31` | Gerbang settlement | `POST /settlements` untuk SPPD tanpa `ApprovedAt` dan tanpa uang muka `Paid` | `409` pesan `VR-TRV-31`; SPPD lama dengan uang muka `Paid` tetap dapat di-settle | FR-TRV-31, `VR-TRV-31`, `HRD-DEC-227` |
+| `AT-HRD-TRV-32` | Presensi dan gembok hanya saat disetujui | Ajukan, kembalikan, tolak | Tidak ada tautan presensi dan `HasScheduleConflict` tetap `false` sampai `Approved` | `VR-TRV-32` |
+| `AT-HRD-TRV-33` | Penyelarasan idempoten | Panggil penyelarasan dua kali untuk instance `Approved` | Tidak ada perubahan kedua: `ApprovedAt` sama, tautan presensi tidak bertambah, event tidak ganda | `INT-HR-109` |
+| `AT-HRD-TRV-34` | SPPD lama `Submitted` | SPPD `Submitted` tanpa workflow: ajukan uang muka, lalu Ajukan, lalu setujui | Uang muka `409`; Ajukan lolos (`canSubmit = true`); sesudah disetujui uang muka lolos | FR-TRV-32, `HRD-DEC-227` |
+| `AT-HRD-TRV-35` | Uang muka lama tidak terganggu | SPPD lama dengan uang muka `Submitted`/`Paid` | Persetujuan, pencairan, dan settlement uang muka itu tetap berjalan | FR-TRV-32, `HRD-DEC-227` |
+| `AT-HRD-TRV-36` | 12 event audit bernama matriks | Jalankan satu SPPD sampai settlement ditutup, deklarasi tanpa nota, tunggakan > 14 dan > 30 hari | Jejak audit memuat ke-12 kode `HRD_TRV_*` bagian 32.2 matriks izin; tidak ada lagi `HRD_TRV_REQUEST_APPROVAL`, `HRD_TRV_ADVANCE_SUBMITTED`, `HRD_TRV_SETTLEMENT_DEFAULTED` | FR-TRV-33, `HRD-DEC-228` |
+| `AT-HRD-TRV-37` | Hak ajukan | Pengguna tanpa `BusinessTravelRequest : Create`, dan pengguna lain yang bukan pemohon | `403` untuk keduanya | Matriks izin 32.1 |
+| `AT-HRD-TRV-38` | Kepatuhan kontrak v28 | Uji kontrak reflektif (`TravelContractV25Tests` diperluas) | 25 endpoint (24 + `submit`) bertag, berlogin, berizin, lolos validator registri | Kontrak API 34.1 |
+| `AT-HRD-TRV-39` | Layar: Ajukan dan status (frontend) | Buat SPPD → Ajukan → buka kotak masuk sebagai atasan → setujui → kembali ke daftar | Label status Indonesia, tombol Ajukan hanya bila `canSubmit`, pesan gerbang `409` tampil apa adanya, tidak ada kirim ganda | FR-TRV-34; **bergantung `HRD-Q-221`** |

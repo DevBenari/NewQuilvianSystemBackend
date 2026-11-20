@@ -66,14 +66,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             return Ok(ApiResponse<List<TravelAdvanceResponseDto>>.Ok(items, $"Total {totalCount} permohonan uang muka ditemukan"));
         }
 
-        /// <summary>
-        /// Mengajukan uang muka perjalanan dinas (maksimal 80% dari pagu yang disetujui) (Kontrak v25)
-        /// </summary>
         [HttpPost]
         [AccessAction("Request", "Mengajukan Uang Muka Dinas", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("BusinessTravelAdvance", "Request")]
         [ProducesResponseType(typeof(ApiResponse<TravelAdvanceResponseDto>), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<TravelAdvanceResponseDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<TravelAdvanceResponseDto>), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> CreateAdvance([FromBody] CreateTravelAdvanceRequestDto dto)
         {
             try
@@ -82,7 +80,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _advanceRequestService.CreateAdvanceRequestAsync(dto, userId, empId);
                 return StatusCode(StatusCodes.Status201Created, ApiResponse<TravelAdvanceResponseDto>.Ok(result, "Permohonan uang muka berhasil diajukan"));
             }
-            catch (Exception ex)
+            catch (BusinessTravelRequestException ex)
+            {
+                return StatusCode(ex.StatusCode, ApiResponse<TravelAdvanceResponseDto>.Fail(ex.StatusCode, ex.Message));
+            }
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelAdvanceResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -106,7 +108,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _approvalService.ApproveAdvanceAsync(id, dto, userId, isFinance);
                 return Ok(ApiResponse<TravelAdvanceResponseDto>.Ok(result, "Persetujuan uang muka berhasil dicatat"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelAdvanceResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -128,7 +130,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _approvalService.ApproveAdvanceAsync(id, dto, userId, true);
                 return Ok(ApiResponse<TravelAdvanceResponseDto>.Ok(result, "Persetujuan Finance atas uang muka berhasil dicatat"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelAdvanceResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -150,7 +152,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _disbursementService.DisburseAdvanceAsync(id, dto, userId);
                 return Ok(ApiResponse<TravelAdvanceResponseDto>.Ok(result, "Pencairan dana uang muka berhasil dikonfirmasi kasir"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelAdvanceResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }

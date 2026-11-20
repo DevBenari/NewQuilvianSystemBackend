@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Attributes;
@@ -40,6 +41,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+        }
+
+        /// <summary>
+        /// Registri kewenangan klinis lintas tenaga kesehatan (register masalah SDM MSL-16, 19 Nov 2026). Rute absolut
+        /// karena controller ini berprefiks satu profil. Filter <c>status</c> memakai nama ClinicalPrivilegeStatus
+        /// (misalnya Active, Suspended); cari kode/nama kewenangan, nama, atau kode pegawai.
+        /// </summary>
+        [HttpGet("/api/v1/corporate/human-resource/clinical-privileges/registry")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<ClinicalPrivilegeRegistryItemDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Workforce Clinical Privilege", Description = "Melihat registri hak klinis seluruh workforce", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceClinicalPrivilege", "Read")]
+        public async Task<IActionResult> GetRegistry(
+            [FromQuery] ClinicalPrivilegeRegistryQuery query,
+            [FromServices] ICredentialingWorklistQueryService worklist,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await worklist.GetPrivilegeRegistryAsync(query, cancellationToken);
+                return Ok(ApiResponse<PagedResult<ClinicalPrivilegeRegistryItemDto>>.Ok(result, "Registri kewenangan klinis berhasil dimuat."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
         }
 
         [HttpGet("filters/metadata")]
