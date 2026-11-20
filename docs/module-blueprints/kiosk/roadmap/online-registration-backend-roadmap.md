@@ -4,7 +4,7 @@
 | --- | --- |
 | Roadmap ID | `KSK-PO-RM-BE-001` |
 | Revision | `1` |
-| Status | `draft` — menunggu approval Sukma Giri Pratama. Wewenang implementasi **belum** diberikan |
+| Status | `approved` — Sukma Giri Pratama, 2026-11-19 (`KSK-DEC-055`). Wewenang implementasi `GRANTED` untuk seluruh task; pembuatan dan penerapan migration tetap memerlukan konfirmasi terpisah |
 | Blueprint | `KSK-BP-001` revisi `2`, `approved` (Sukma Giri Pratama, 2026-11-19, `KSK-DEC-054`), bentuk `SINGLE` |
 | Cakupan | `EPIC KSK-PO-01` s.d. `KSK-PO-04` (sisi backend), rilis `MVP-0` s.d. `MVP-3` (`04-prd-to-mvp.md` PO-20). `POST-MVP` tidak direncanakan |
 | SHA baseline | BE `5e777833` (`sukmagp`), FE `5f18e9f04` (`sukmagpV2`) |
@@ -33,15 +33,15 @@
 ## Grafik Urutan Dependency
 
 ```text
-BE-KSK-PO-001 ─> BE-KSK-PO-002 ─┬─> BE-KSK-PO-004 ─> BE-KSK-PO-005 ─┬─> BE-KSK-PO-006
-                                │                                   │
-BE-KSK-PO-003 ──────────────────┘                                   ├─> BE-KSK-PO-008
-                                                                    │
-                                                                    └─> BE-KSK-PO-009
+BE-KSK-PO-001 ✅ ─> BE-KSK-PO-002 ✅ ─┬─> BE-KSK-PO-004 ✅ ─> BE-KSK-PO-005 ✅ ─┬─> BE-KSK-PO-006 🟡
+                                      │                                         │
+BE-KSK-PO-003 ✅ ─────────────────────┘                                         ├─> BE-KSK-PO-008
+                                                                                │
+                                                                                └─> BE-KSK-PO-009 🟡
 
-BE-KSK-PO-006 ─> BE-KSK-PO-007
+BE-KSK-PO-006 🟡 ─> BE-KSK-PO-007
 
-BE-KSK-PO-009 ─> BE-KSK-PO-010
+BE-KSK-PO-009 🟡 ─> BE-KSK-PO-010
 ```
 
 Blok kedua dan ketiga menyambung rantai dari `BE-KSK-PO-006` dan `BE-KSK-PO-009` pada blok pertama, karena satu baris tidak muat 100 karakter.
@@ -85,11 +85,11 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 
 ## Kartu task
 
-### `BE-KSK-PO-001` — Skema pendaftaran online dan migration
+### ✅ `BE-KSK-PO-001` — Skema pendaftaran online dan migration
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ 2026-11-19 — build PASS (0 error), `has-pending-model-changes` bersih, migration `20261119134155_AddRegOnlineRegistration` (3 tabel, 15 index, 11 FK `Restrict`, 1 check constraint) dibuat dan **diterapkan** ke `QuilvianNewDevSukma` atas izin terpisah (0 Pending sesudahnya), QBE Strict PASS (24 berkas). Delta: configuration di `Repositories/Configurations/HealthServices/`, section `HealthServices:Registration:OnlineRegistration`, 6 index FK otomatis — [laporan](../task/report/backend/BE-KSK-PO-001.md) |
 | Outcome | `RegOnlineRegistration`, `RegOnlineRegistrationReferralDocument`, `RegOnlineRegistrationHistory`; lima enum baru; `EncounterRegistrationSource.OnlineRegistration = 7`, `ReferralCaptureSource.OnlineRegistration = 3`; tiga configuration; tiga `DbSet`; `OnlineRegistrationOptions` beserta kunci `Registration:OnlineRegistration`, `Turnstile`, dan `Email:Smtp` tanpa nilai rahasia; migration `AddRegOnlineRegistration` |
 | Requirement/decision | `FR-KSK-PO-001`; `INV-PO-03`, `05`, `07`, `08`; `KSK-DSN-PO-001`, `002`, `003`, `014` |
 | Kontrak | `data/data-dictionary.md` PO-D.2–D.4 dan DDL PO-D.6; `02-backend-architecture.md` PO.6, PO.9–PO.11 |
@@ -102,11 +102,11 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | Risiko/pemilik | Migration modul lain dengan timestamp lebih awal (memori *pending migration tidak berurutan*). Pemilik: implementer + Sukma Giri Pratama |
 | DoD | Kriteria 1–5 terbukti; penerapan ke DB hanya dengan izin |
 
-### `BE-KSK-PO-002` — Kuota menghitung pendaftaran online dan dikunci per jadwal
+### ✅ `BE-KSK-PO-002` — Kuota menghitung pendaftaran online dan dikunci per jadwal
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ 2026-11-20 — AC 2 runtime terbukti lewat `BE-KSK-PO-005`: satu pendaftaran online sungguhan menaikkan `usedAppointment` 1→2 dan `usedTotal` 1→2, sisa kuota opsi publik 5→4, dan 34 kiriman yang ditolak tidak mengubah hitungan. Sebelumnya 🟡 2026-11-19 — build PASS, QBE Strict PASS; R1 regresi kuota lama vs baru identik (63 dan 65 jadwal, termasuk 6 slot terpakai); R4 5 permintaan bersamaan pada kuota 1: 1 berhasil, 4 ditolak (backend lama: 5/5 berhasil); harness in-memory 9/9 PASS — [laporan](../task/report/backend/BE-KSK-PO-002.md) |
 | Outcome | `GetUsageAsync` menambah pendaftaran Menunggu Check-in ke `Appointment` dan `Total`; `AcquireQuotaLockAsync(scheduleId, date)`; `CreateEncounterCoreAsync` mengambil kunci kuota sesudah kunci pasien bila ada `DoctorScheduleId` |
 | Requirement/decision | `FR-KSK-PO-002`; `INV-PO-02`; `KSK-DEC-030`; `KSK-DSN-PO-009`; `GATE-PO-17` |
 | Kontrak | `02-backend-architecture.md` PO.4.3; `contracts/api-contract.md` *Patient Encounter (diperluas)* (`doctor-schedule-quotas` perilaku diperbarui) |
@@ -118,11 +118,11 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | Risiko/pemilik | Jalur bersama RJ; regresi kuota. Catat titik sentuh ke blueprint `rawat-jalan` (`GATE-PO-06`). Pemilik: implementer + Sukma Giri Pratama |
 | DoD | Kriteria 1–4 terbukti; build, QBE Strict PASS |
 
-### `BE-KSK-PO-003` — Pemeriksa captcha dan pengirim email
+### ✅ `BE-KSK-PO-003` — Pemeriksa captcha dan pengirim email
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ 2026-11-19 — build PASS (0 error, 0 warning di berkas baru), QBE Strict PASS (5 berkas, 0 pelanggaran), harness 17/17 PASS (Turnstile kunci uji lolos/gagal, timeout 5,00 s, SMTP terkirim, SMTP diam 10,01 s, log bersih). Runtime aplikasi penuh `NOT RUN` karena belum ada endpoint pemakai — [laporan](../task/report/backend/BE-KSK-PO-003.md) |
 | Outcome | `TurnstileVerificationService` (klien bernama `Turnstile`, 5 detik, tanpa retry, fail-closed, `Enabled = false` selalu lolos dengan peringatan saat start); `SmtpEmailSender` (`System.Net.Mail`, 10 detik, satu percobaan); binding opsi dan DI |
 | Requirement/decision | `FR-KSK-PO-013`; `KSK-DEC-042`, `044`; `KSK-DSN-PO-006`, `007` |
 | Kontrak | `contracts/integration-contract.md` `INT-PO-01`, `INT-PO-03` |
@@ -134,11 +134,11 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | Risiko/pemilik | HTTP keluar pertama di backend; firewall server. Pemilik: implementer; akun nyata IT (`KSK-PO-OQ-015`, `016`) |
 | DoD | Kriteria 1–4 terbukti |
 
-### `BE-KSK-PO-004` — Opsi publik dan pencocokan pasien lama
+### ✅ `BE-KSK-PO-004` — Opsi publik dan pencocokan pasien lama
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ 2026-11-19 — build PASS, QBE Strict PASS, verifier otorisasi PASS (0 endpoint telanjang baru, 24/24 identitas); runtime 26/26 PASS di 7185 (tanpa token, jadwal tersaring appointment + kiosk termasuk 3 jadwal uji, field minimum, 404 identik untuk 3 jenis salah, captcha kosong 400, Cloudflare tak terjangkau 503, 429 tepat di permintaan ke-21, no-store, kartu tersamar); penyamar nama identik dengan kode lama (14 contoh); log tanpa NIK/tanggal lahir — [laporan](../task/report/backend/BE-KSK-PO-004.md) |
 | Outcome | `OnlineRegistrationPublicController` (`[AllowAnonymous]`, tanpa `[AccessController]`, `no-store`, path tersamar di log) dengan `GET options/clinics`, `options/doctor-schedules`, `options/insurance-providers`, `options/referral-institutions`, dan `POST patient-match`; `PatientNameMasker` di `Helpers/` dipakai juga oleh `QueueDisplayRuntimeController`; policy `OnlineRegistrationPublicOptions` dan `OnlineRegistrationPublicMatch` |
 | Requirement/decision | `FR-KSK-PO-010`, `011`, `014`; `KSK-DEC-031`, `038`; `KSK-PO-FE-002`; `KSK-DSN-PO-005`, `013` |
 | Kontrak | `api-contract.md` grup *Online Registration Public* (empat `GET` dan `patient-match`); `KSK-VAL-PO-001` s.d. `004`, `010` s.d. `012` |
@@ -150,11 +150,11 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | Risiko/pemilik | Membuka master ke internet. Pemilik: implementer + Sukma Giri Pratama |
 | DoD | Kriteria 1–7 terbukti; QBE Strict, verifier PASS |
 
-### `BE-KSK-PO-005` — Kirim pendaftaran online
+### ✅ `BE-KSK-PO-005` — Kirim pendaftaran online
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ 2026-11-20 — build PASS, QBE Strict PASS (37 berkas, 0 temuan), verifier otorisasi PASS (0 endpoint telanjang baru, 24/24 identitas); runtime di 7185: utama 50/50 (T4b dijalankan ulang sesudah perbaikan skrip uji), SMTP mati 2/2, captcha gagal + batas laju 3/3, Cloudflare mati 1/1, termasuk kirim ganda bersamaan `[200, 409]`, 34 validasi persis matriks, `429` tepat di kiriman ke-11, berkas 8 MB dan `.exe` ditolak; kueri baca-saja DB 11/11 PASS dengan izin pemilik (hash kode, `PatientId` kosong, consent, status email, riwayat, berkas); log 4 run tanpa data sensitif. Delta: nomor `PO-yyyyMMdd-nnnn` (format alokator), bukan `PO-yyMMdd-nnnn` — [laporan](../task/report/backend/BE-KSK-PO-005.md) |
 | Outcome | `POST online-registrations/public` (`multipart/form-data`): validasi seluruh langkah, pencocokan ulang pasien lama, captcha, kunci pasien lalu kunci kuota, kode 8 karakter + hash, nomor `PO-yyMMdd-nnnn`, berkas rujukan ke `online-registration-referrals/{id}/` (kompensasi hapus bila transaksi gagal), consent pasien baru, riwayat `SUBMITTED`, email sesudah transaksi; policy `OnlineRegistrationPublicSubmit` |
 | Requirement/decision | `FR-KSK-PO-012`; `KSK-DEC-030`, `032`, `034`, `035`, `038`, `042`, `043`, `047`; `INV-PO-01` s.d. `06`; `KSK-DSN-PO-002`, `004`, `011`, `012` |
 | Kontrak | `api-contract.md` grup publik `POST`; `KSK-VAL-PO-005` s.d. `034`; PO-S.1 baris pertama |
@@ -166,11 +166,11 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | Risiko/pemilik | Unggah berkas tanpa login. Pemilik: implementer + Sukma Giri Pratama |
 | DoD | Seluruh kriteria terbukti; log tanpa data sensitif |
 
-### `BE-KSK-PO-006` — Verifikasi check-in kiosk
+### 🟡 `BE-KSK-PO-006` — Verifikasi check-in kiosk
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-20 — build PASS, QBE Strict PASS, verifier otorisasi PASS (fallback 68 tetap, 0 endpoint telanjang baru); runtime di 7185 17/17 PASS (`401` tanpa login, `400` `KSK-VAL-PO-040`/`043`, `404` seragam, `409` "Check-in hanya dapat dilakukan pada 21 Nov 2026." untuk kode dan Lupa Kode, `429` tepat di permintaan ke-11 per akun, `no-store`); harness jam palsu 26/26 PASS (token 256 bit, hash, 15 menit, paket, 404 status akhir); log bersih. **Belum:** runtime `200` (token + paket) karena data uji baru jatuh hari H pada 2026-11-21 (`po006_test.py dday`); kode berstatus akhir hanya terbukti di harness sampai `BE-KSK-PO-008`/`010` ada — [laporan](../task/report/backend/BE-KSK-PO-006.md) |
 | Outcome | `POST online-registrations/kiosk/check-in/verify` (`KioskRead`, tanpa `[AccessAction]`): mode kode atau identitas + tanggal lahir; status dan tanggal hari ini (WIB); token 256 bit, hash disimpan, berlaku `CheckInTokenMinutes`; paket check-in; policy `OnlineRegistrationCheckIn` per akun kiosk |
 | Requirement/decision | `FR-KSK-PO-020`; `KSK-DEC-033`, `040`; `KSK-DSN-PO-008` |
 | Kontrak | Grup *Online Registration Check-In*; `KSK-VAL-PO-040` s.d. `045` |
@@ -214,11 +214,11 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | Risiko/pemilik | Menutup pendaftaran pasien lain bila pencocokan NIK salah. Pemilik: implementer |
 | DoD | Kriteria terbukti; menjalankan ulang tidak menambah riwayat |
 
-### `BE-KSK-PO-009` — Daftar, ringkasan, detail, dan berkas untuk petugas
+### 🟡 `BE-KSK-PO-009` — Daftar, ringkasan, detail, dan berkas untuk petugas
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-20 — build PASS, QBE Strict PASS (44 berkas, 0 temuan), verifier otorisasi PASS (fallback 68 tetap, 0 endpoint telanjang baru); runtime di 7185 32/32 PASS dengan akun fixture API ber-hak dan tanpa hak (`200`/`403`/`401`; pencarian kode lewat hash 6/6, nomor/nama/No. RM/NIK sebagian; `400` `KSK-VAL-PO-068`/`069`; paginasi; ringkasan; detail + riwayat; berkas PDF utuh, lintas pendaftaran `404`); kode tidak pernah keluar. **Belum:** aksi `Update` dan `Cancel` di Akses Role baru muncul bersama endpoint `BE-KSK-PO-010` (seeder membaca action descriptor); kini hanya `Read` — [laporan](../task/report/backend/BE-KSK-PO-009.md) |
 | Outcome | `OnlineRegistrationController` (`[AccessController(... "Online Registration", ControllerName = "OnlineRegistration")]`) dengan `GET`, `GET summary`, `GET {id}`, `GET {id}/referral-documents/{documentId}`; pencarian kode lewat hash persis, lainnya sebagian; detail beserta riwayat |
 | Requirement/decision | `FR-KSK-PO-030`, `032` (Resource); `KSK-DEC-050`; `KSK-PO-AS-002`; `KSK-DSN-PO-017` |
 | Kontrak | Grup *Online Registration* `GET`; `KSK-VAL-PO-068`, `069` |
@@ -250,7 +250,7 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 
 | Tindak lanjut | Pemilik | Kapan |
 | --- | --- | --- |
-| Catat titik sentuh kuota dan penutupan di decision log `rawat-jalan` (`GATE-PO-06`) | Sukma Giri Pratama | Sebelum `BE-KSK-PO-002` dirilis |
+| Catat titik sentuh kuota dan penutupan di decision log `rawat-jalan` (`GATE-PO-06`) | Sukma Giri Pratama | Sebelum `BE-KSK-PO-002` ✅ dirilis. Termasuk temuan: pindah jadwal kunjungan (`OutpatientEncounterScheduleService`) belum memakai kunci kuota |
 | Centang `OnlineRegistration : Read/Update/Cancel` di Akses Role | Admin | Go-live `MVP-3` |
 | `KSK-PO-OQ-010`, `015`, `016` | IT/infrastruktur | Go-live `MVP-1` |
 

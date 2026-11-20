@@ -92,6 +92,7 @@ using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Seeders
 using QuilvianSystemBackend.Seeders;
 using QuilvianSystemBackend.Services.Language;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Services.Notification;
 using QuilvianSystemBackend.Services.Security;
 using QuilvianSystemBackend.Services.System;
 using QuilvianSystemBackend.Shared.HumanResource.Services;
@@ -586,6 +587,26 @@ try
 
     // BE-KSK-001 — Cek Nomor Rekam Medis dari Kiosk (baca-saja).
     builder.Services.AddScoped<KioskPatientLookupService>();
+
+    // kiosk Amendment PO (BE-KSK-PO-003) — captcha Turnstile (INT-PO-01) dan email SMTP
+    // (INT-PO-03) untuk halaman publik Pendaftaran Pasien Online. Nilai rahasia hanya dari
+    // user-secrets atau variabel lingkungan, tidak dari appsettings.json.
+    builder.Services.Configure<TurnstileOptions>(
+        builder.Configuration.GetSection(TurnstileOptions.SectionName));
+    builder.Services.AddHttpClient(TurnstileVerificationService.HttpClientName);
+    builder.Services.AddScoped<TurnstileVerificationService>();
+    builder.Services.Configure<SmtpEmailOptions>(
+        builder.Configuration.GetSection(SmtpEmailOptions.SectionName));
+    builder.Services.AddScoped<SmtpEmailSender>();
+    // BE-KSK-PO-001 — konfigurasi Pendaftaran Pasien Online (KSK-DEC-038, KSK-DEC-047).
+    builder.Services.Configure<OnlineRegistrationOptions>(
+        builder.Configuration.GetSection(OnlineRegistrationOptions.SectionName));
+    // BE-KSK-PO-004 — opsi dan pencocokan pasien halaman publik Pendaftaran Pasien Online.
+    builder.Services.AddScoped<OnlineRegistrationPublicService>();
+    // BE-KSK-PO-006: verifikasi check-in pendaftaran online di kiosk.
+    builder.Services.AddScoped<OnlineRegistrationCheckInService>();
+    // BE-KSK-PO-009: layar Pendaftaran Online untuk petugas (kueri).
+    builder.Services.AddScoped<OnlineRegistrationService>();
 
     // BE-EXT-05 — penutupan otomatis kunjungan kiosk yang tidak dilanjutkan.
     //
@@ -2013,6 +2034,23 @@ try
         1,
         builder.Configuration.GetValue<int?>($"{PriorityReservationOptions.SectionName}:ArrivalLinkPermitPerMinute") ?? 20);
 
+    // kiosk Amendment PO (BE-KSK-PO-004, KSK-DEC-038): halaman publik Pendaftaran Pasien Online
+    // dibatasi per IP. Angka dari konfigurasi; bawaan 60 opsi per menit dan 20 pencocokan per jam.
+    var onlineRegistrationOptionsPermitPerMinute = Math.Max(
+        1,
+        builder.Configuration.GetValue<int?>($"{OnlineRegistrationOptions.SectionName}:OptionsPermitPerMinute") ?? 60);
+    var onlineRegistrationMatchPermitPerHour = Math.Max(
+        1,
+        builder.Configuration.GetValue<int?>($"{OnlineRegistrationOptions.SectionName}:MatchPermitPerHour") ?? 20);
+    // BE-KSK-PO-005 (KSK-VAL-PO-033): pengiriman pendaftaran, bawaan 10 per jam per IP.
+    var onlineRegistrationSubmitPermitPerHour = Math.Max(
+        1,
+        builder.Configuration.GetValue<int?>($"{OnlineRegistrationOptions.SectionName}:RegistrationPermitPerHour") ?? 10);
+    // BE-KSK-PO-006 (KSK-VAL-PO-044): verifikasi check-in per akun kiosk, bawaan 10 per menit.
+    var onlineRegistrationCheckInPermitPerMinute = Math.Max(
+        1,
+        builder.Configuration.GetValue<int?>($"{OnlineRegistrationOptions.SectionName}:CheckInPermitPerMinute") ?? 10);
+
     builder.Services.AddRateLimiter(options =>
     {
         options.AddPolicy(KioskPatientLookupController.RateLimitPolicy, httpContext =>
@@ -2043,6 +2081,61 @@ try
                     AutoReplenishment = true
                 }));
 
+        // kiosk Amendment PO (BE-KSK-PO-004): opsi halaman publik per IP per menit.
+        options.AddPolicy(OnlineRegistrationPublicController.OptionsRateLimitPolicy, httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = onlineRegistrationOptionsPermitPerMinute,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
+        // kiosk Amendment PO (BE-KSK-PO-004, KSK-VAL-PO-012): pencocokan pasien per IP per jam,
+        // supaya NIK/No. RM dan tanggal lahir tidak dapat ditebak beruntun.
+        options.AddPolicy(OnlineRegistrationPublicController.MatchRateLimitPolicy, httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = onlineRegistrationMatchPermitPerHour,
+                    Window = TimeSpan.FromHours(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
+        // kiosk Amendment PO (BE-KSK-PO-005, KSK-VAL-PO-033): pengiriman pendaftaran online per IP
+        // per jam, sehingga satu jaringan tidak dapat menghabiskan kuota appointment.
+        options.AddPolicy(OnlineRegistrationPublicController.SubmitRateLimitPolicy, httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = onlineRegistrationSubmitPermitPerHour,
+                    Window = TimeSpan.FromHours(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
+        // kiosk Amendment PO (BE-KSK-PO-006, KSK-VAL-PO-044): verifikasi check-in per akun kiosk per
+        // menit, pola yang sama dengan KioskPatientLookup. Menahan penebakan kode dari satu kiosk.
+        options.AddPolicy(OnlineRegistrationCheckInController.RateLimitPolicy, httpContext =>
+        {
+            var partitionKey =
+                httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+
+            return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = onlineRegistrationCheckInPermitPerMinute,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+        });
+
         // 429 wajib terbaca sebagai "coba lagi", bukan "pasien belum terdaftar" (KSK-INV-002).
         options.OnRejected = async (context, cancellationToken) =>
         {
@@ -2066,6 +2159,32 @@ try
                     ApiResponse<object>.Fail(
                         StatusCodes.Status429TooManyRequests,
                         PriorityReservationArrivalController.RateLimitedMessage),
+                    cancellationToken);
+                return;
+            }
+
+            if (rateLimitPolicyName == OnlineRegistrationCheckInController.RateLimitPolicy)
+            {
+                // Kiosk: hanya nama policy yang dicatat, tanpa akun, IP, maupun isi permintaan.
+                Log.Warning("Verifikasi check-in pendaftaran online ditolak batas laju. Policy={Policy}", rateLimitPolicyName);
+                await response.WriteAsJsonAsync(
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status429TooManyRequests,
+                        OnlineRegistrationCheckInController.RateLimitedMessage),
+                    cancellationToken);
+                return;
+            }
+
+            if (rateLimitPolicyName is OnlineRegistrationPublicController.OptionsRateLimitPolicy
+                or OnlineRegistrationPublicController.MatchRateLimitPolicy
+                or OnlineRegistrationPublicController.SubmitRateLimitPolicy)
+            {
+                // Halaman publik: hanya nama policy yang dicatat, tanpa IP maupun isi permintaan.
+                Log.Warning("Halaman publik Pendaftaran Pasien Online ditolak batas laju. Policy={Policy}", rateLimitPolicyName);
+                await response.WriteAsJsonAsync(
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status429TooManyRequests,
+                        OnlineRegistrationPublicController.RateLimitedMessage),
                     cancellationToken);
                 return;
             }
@@ -2258,6 +2377,9 @@ try
         .SetApplicationName(dataProtectionApplicationName);
 
     var app = builder.Build();
+
+    // BE-KSK-PO-003: captcha yang dimatikan atau tanpa secret wajib terlihat di log sejak awal.
+    TurnstileVerificationService.WarnIfMisconfigured(app.Services);
 
     static async Task SeedPrescriptionReviewCriteriaAsync(
     IServiceProvider services,

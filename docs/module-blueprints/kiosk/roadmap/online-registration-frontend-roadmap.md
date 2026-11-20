@@ -4,7 +4,7 @@
 | --- | --- |
 | Roadmap ID | `KSK-PO-RM-FE-001` |
 | Revision | `1` |
-| Status | `draft` — menunggu approval Sukma Giri Pratama. Wewenang implementasi **belum** diberikan |
+| Status | `approved` — Sukma Giri Pratama, 2026-11-19 (`KSK-DEC-055`). Wewenang implementasi `GRANTED` untuk seluruh task; pembuatan dan penerapan migration tetap memerlukan konfirmasi terpisah |
 | Blueprint | `KSK-BP-001` revisi `2`, `approved` (Sukma Giri Pratama, 2026-11-19, `KSK-DEC-054`), bentuk `SINGLE` |
 | Cakupan | `EPIC KSK-PO-05` s.d. `KSK-PO-07`, rilis `MVP-1` s.d. `MVP-3` (`04-prd-to-mvp.md` PO-20) |
 | SHA baseline | FE `5f18e9f04` (`sukmagpV2`), BE `5e777833` (`sukmagp`) |
@@ -34,17 +34,17 @@
 ## Grafik Urutan Dependency
 
 ```text
-BE-KSK-PO-004 [BE] ─> FE-KSK-PO-001 ─> FE-KSK-PO-002 ─┬─> FE-KSK-PO-003
-                                                      │
-BE-KSK-PO-005 [BE] ───────────────────────────────────┘
+BE-KSK-PO-004 ✅ [BE] ─> FE-KSK-PO-001 ─> FE-KSK-PO-002 ─┬─> FE-KSK-PO-003
+                                                         │
+BE-KSK-PO-005 ✅ [BE] ───────────────────────────────────┘
 
 BE-KSK-PO-007 [BE] ─> FE-KSK-PO-005 ─┬─> FE-KSK-PO-006
                                      │
-FE-KSK-PO-004 ───────────────────────┘
+FE-KSK-PO-004 ✅ ────────────────────┘
 
-BE-KSK-PO-009 [BE] ─> FE-KSK-PO-007 ─┬─> FE-KSK-PO-008
-                                     │
-BE-KSK-PO-010 [BE] ──────────────────┘
+BE-KSK-PO-009 🟡 [BE] ─> FE-KSK-PO-007 ─┬─> FE-KSK-PO-008
+                                        │
+BE-KSK-PO-010 [BE] ─────────────────────┘
 ```
 
 `[BE]` = task backend pada [online-registration-backend-roadmap.md](online-registration-backend-roadmap.md), cermin baca-saja.
@@ -122,11 +122,11 @@ Pasangan prasyarat → task: 10 (`BE-004→FE-001`, `FE-001→FE-002`, `FE-002�
 | Risiko/pemilik | Ukuran tanda tangan dan berkas di jaringan seluler. Pemilik: implementer |
 | DoD | Kriteria terbukti |
 
-### `FE-KSK-PO-004` — Varian langkah pindai kartu identitas
+### ✅ `FE-KSK-PO-004` — Varian langkah pindai kartu identitas
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ 2026-11-19 — `lint:errors` PASS (0 error), `build` PASS (854/854 halaman), render 8/8 PASS (HTML tanpa prop baru identik dengan `HEAD`), uji browser Playwright 2/2 PASS (NIK terkunci tidak berubah saat diketik). `test:unit` tidak punya berkas uji (kondisi lama). Uji di perangkat kiosk dilakukan bersama `FE-KSK-PO-006` — [laporan](../task/report/frontend/FE-KSK-PO-004.md) |
 | Outcome | `kiosk-new-patient-step-scan-identity.jsx` menerima prop opsional `lockedFieldNames` (kolom OCR yang tidak dapat diubah) dan `allowedIdentityTypes` (jenis kartu yang ditawarkan). Bawaan: kosong dan semua jenis, sehingga kiosk Pasien Baru tidak berubah |
 | Requirement/decision | `FR-KSK-PO-051`; `KSK-DEC-048`, `053`; `CAP-PO-37`; `GATE-PO-14` |
 | Kontrak | — (frontend murni) |

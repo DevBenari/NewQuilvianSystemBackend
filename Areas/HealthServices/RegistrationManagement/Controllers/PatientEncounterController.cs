@@ -1105,6 +1105,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 }
             }
 
+            // kiosk Amendment PO (BE-KSK-PO-002, KSK-DSN-PO-009, GATE-PO-17): pemeriksaan kuota di
+            // validasi tidak cukup bagi dua permintaan yang berebut slot terakhir. Kunci kuota per
+            // jadwal dan tanggal diambil sesudah kunci pasien (urutan yang sama di semua jalur agar
+            // tidak saling menunggu), lalu kuota dihitung ulang dengan aturan yang sama.
+            if (request.DoctorScheduleId is { } quotaScheduleId && quotaScheduleId != Guid.Empty)
+            {
+                var quotaVisitDate = ToUtcDate(targetEncounterDate);
+
+                await _doctorScheduleQuotaService.AcquireQuotaLockAsync(
+                    quotaScheduleId,
+                    quotaVisitDate,
+                    HttpContext.RequestAborted);
+
+                var quotaSchedule = await _dbContext.Set<MstDoctorSchedule>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == quotaScheduleId && !x.IsDelete, HttpContext.RequestAborted);
+
+                if (quotaSchedule is not null)
+                {
+                    var quotaRecheck = await ValidateDoctorScheduleQuotaAsync(quotaSchedule, request, quotaVisitDate);
+
+                    if (!quotaRecheck.IsValid)
+                    {
+                        return BadRequest(ApiResponse<object>.Fail(
+                            StatusCodes.Status400BadRequest,
+                            quotaRecheck.ErrorMessage ?? "Kuota pada jadwal dokter sudah penuh."));
+                    }
+                }
+            }
+
             RegAdmissionTicket? linkedAdmissionTicket = null;
 
             try
@@ -2870,32 +2900,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return (true, null);
         }
 
+        // BE-KSK-PO-004: aturan dipindah ke DoctorScheduleQuotaService agar opsi jadwal halaman publik
+        // memakai aturan yang sama persis dengan jalur kunjungan.
         private static bool IsDoctorScheduleValidForVisitDate(
             MstDoctorSchedule schedule,
-            DateTime visitDate)
-        {
-            var normalizedVisitDate = ToUtcDate(visitDate);
-
-            if (schedule.EffectiveStartDate.HasValue &&
-                ToUtcDate(schedule.EffectiveStartDate.Value) > normalizedVisitDate)
-            {
-                return false;
-            }
-
-            if (schedule.EffectiveEndDate.HasValue &&
-                ToUtcDate(schedule.EffectiveEndDate.Value) < normalizedVisitDate)
-            {
-                return false;
-            }
-
-            if (schedule.ScheduleType == DoctorScheduleType.WeeklyRecurring)
-            {
-                return schedule.PracticeDay == normalizedVisitDate.DayOfWeek;
-            }
-
-            return schedule.PracticeDate.HasValue &&
-                ToUtcDate(schedule.PracticeDate.Value) == normalizedVisitDate;
-        }
+            DateTime visitDate) =>
+            DoctorScheduleQuotaService.IsScheduleValidForVisitDate(schedule, visitDate);
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateDoctorScheduleQuotaAsync(
             MstDoctorSchedule schedule,

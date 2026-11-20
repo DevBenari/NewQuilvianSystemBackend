@@ -102,7 +102,7 @@ artifact_hashes:                     # sha256, 12 karakter pertama — dihitung 
 | `approved_by` / `approved_at` | Sukma Giri Pratama / 2026-11-19 — seluruh `KSK-DSN-PO-001` s.d. `017` dan letak menu `KSK-PO-FE-005` (`KSK-DEC-054`) |
 | Migration | `AddRegOnlineRegistration` (tiga tabel baru). Dibuat dan dijalankan hanya dengan persetujuan terpisah |
 | Go-live | Menunggu `KSK-PO-OQ-010` (domain publik dan IP asli), `015` (akun SMTP), `016` (kunci Turnstile), serta centang Akses Role `OnlineRegistration` |
-| Roadmap | `draft` r1 — [online-registration-backend-roadmap.md](roadmap/online-registration-backend-roadmap.md) (`KSK-PO-RM-BE-001`, `BE-KSK-PO-001` s.d. `010`), [online-registration-frontend-roadmap.md](roadmap/online-registration-frontend-roadmap.md) (`KSK-PO-RM-FE-001`, `FE-KSK-PO-001` s.d. `008`), [online-registration-traceability.md](roadmap/online-registration-traceability.md) (`KSK-PO-TRACE-001`). Menunggu approval |
+| Roadmap | r1 — [online-registration-backend-roadmap.md](roadmap/online-registration-backend-roadmap.md) (`KSK-PO-RM-BE-001`, `BE-KSK-PO-001` s.d. `010`), [online-registration-frontend-roadmap.md](roadmap/online-registration-frontend-roadmap.md) (`KSK-PO-RM-FE-001`, `FE-KSK-PO-001` s.d. `008`), [online-registration-traceability.md](roadmap/online-registration-traceability.md) (`KSK-PO-TRACE-001`). `approved` — Sukma Giri Pratama, 2026-11-19 (`KSK-DEC-055`) |
 
 `artifact_hashes` (SHA-256, 12 karakter awal, 2026-11-19, dihitung sebelum approval; sesudah approval hanya label status yang berubah; hash `00-interview-decisions.md` dihitung sesudah catatan desain ditambahkan, sedangkan hash `blueprint-manifest.md` tidak dicatat karena berkas ini memuat tabel ini sendiri):
 
