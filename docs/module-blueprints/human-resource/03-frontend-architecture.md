@@ -3838,3 +3838,107 @@ Nilai yang tidak dikenal ditampilkan apa adanya dengan badge netral (perilaku ya
 | --- | --- |
 | Peta status 32.3 dan aturan tombol | Uji unit `node --test` untuk util peta status |
 | Alur Ajukan → kotak masuk → disetujui | `AT-HRD-TRV-39`, Playwright terhadap dev 3000 → backend lokal; bergantung `HRD-Q-221` |
+
+---
+
+## 33. Amandemen Navigasi SDM Anti-Tumpang-Tindih — Paket A (approved 20 November 2026)
+
+### 33.1 Keputusan arsitektur
+
+Daftar 12 menu dan 61 submenu dari Business Analyst diperlakukan sebagai **register cakupan
+fungsi**, bukan instruksi untuk membuat parent baru secara satu-banding-satu. Satu fungsi hanya
+boleh mempunyai satu primary navigation owner. Route kompatibilitas atau deep-link boleh tetap
+hidup, tetapi tidak boleh menjadi pintu sidebar kedua menuju fungsi dan data yang sama.
+
+Paket A hanya mereorganisasi navigasi yang sudah mempunyai route. Paket ini tidak menambah API,
+entity, tabel, migration, halaman placeholder, maupun workflow backend. Menu existing yang tidak
+diminta Business Analyst tetap dipertahankan.
+
+### 33.2 Primary navigation owner yang dikunci
+
+| Kebutuhan BA | Primary navigation owner | Implementasi | Status |
+| --- | --- | --- | --- |
+| Administrasi Kepegawaian | `corporateHumanResourceWorkforceCore` | Lima fungsi BA ditempatkan di urutan awal; route existing tetap | `IMPLEMENTED` |
+| Perencanaan Kebutuhan SDM | `corporateWorkforcePlanningGroup` | Empat fungsi BA menjadi urutan awal; lima fungsi planning tambahan tetap ada | `IMPLEMENTED` |
+| Rekrutmen & Seleksi | `corporateRecruitmentGroup` | Lowongan, Pelamar, dan handoff Onboarding memakai route existing | `IMPLEMENTED` |
+| Data Induk Pegawai | Master Data Karyawan/Dokter | Blok `corporateHrDataIndukPegawai` tetap nonaktif pada sidebar; deep-link kompatibilitas tidak menjadi owner | `IMPLEMENTED` |
+| Struktur Organisasi & Jabatan | Master Data SDM | Struktur, unit, jabatan, rumpun, uraian tugas, dan relasi atasan tidak digandakan ke parent baru | `UNCHANGED / REUSED` |
+| Penempatan, Mutasi & Promosi | `corporateHrPlacementMutationPromotion` | Lima route existing dipertahankan | `UNCHANGED / REUSED` |
+| Kontrak & Masa Kerja | `corporateHrContractAndTenure` | Empat route existing dipertahankan | `UNCHANGED / REUSED` |
+| Pemberhentian & Pensiun | Group separation existing | Ejaan `Clearance` diperbaiki tanpa mengubah route atau `key` | `IMPLEMENTED` |
+| Kompetensi & Kredensial | `corporateCredentialingManagementGroup` | Lima fungsi BA tetap; OPPE/FPPE tidak lagi berada di owner credentialing | `IMPLEMENTED` |
+| Penilaian Kerja | `corporatePerformanceCareer` | Lima fungsi BA menjadi urutan awal; OPPE/FPPE dan fungsi karier berada pada owner kinerja yang sama | `IMPLEMENTED` |
+| Disiplin & Pembinaan | `corporateEmployeeRelations` | Teguran dan Pelanggaran memakai route existing; parent kedua tidak dibuat | `PARTIAL` |
+| Dashboard SDM dan worklist baru | Belum ditetapkan | Tidak dipublikasikan pada Paket A | `DEFERRED` |
+
+### 33.3 Invariant navigasi
+
+1. Setiap `pathname` dan `key` leaf menu harus unik di bawah root SDM.
+2. Permission existing tetap melekat pada item yang dipindahkan atau diurutkan ulang.
+3. Parent tanpa child yang boleh dilihat pengguna tidak ditampilkan oleh filter permission existing.
+4. Data Induk Pegawai tetap dapat dipakai sebagai deep-link kompatibilitas, tetapi tidak aktif di
+   sidebar selama Master Data menjadi owner data yang sama.
+5. OPPE dan FPPE hanya berada pada **Penilaian Kerja**, bukan pada Kompetensi & Kredensial.
+6. Onboarding pada Rekrutmen adalah handoff kandidat; pelaksanaan lifecycle tetap berada pada
+   **Onboarding & Kontrak**.
+7. Diklat, K3RS, SPPD, Layanan Mandiri, dan item non-BA lain tidak boleh dihapus sebagai efek
+   samping penyesuaian ini.
+
+### 33.4 Bukti implementasi
+
+| Bukti | Lokasi pada frontend SHA `51853893e9f229f0f22f5e86bc5f2e8c08946779` |
+| --- | --- |
+| Administrasi Kepegawaian | `src/utils/menu-sidebar/menu-items.jsx:652-718` |
+| Perencanaan Kebutuhan SDM | `src/utils/menu-sidebar/menu-items.jsx:827-918` |
+| Rekrutmen & Seleksi | `src/utils/menu-sidebar/menu-items.jsx:988-1059` |
+| Data Induk non-sidebar | `src/utils/menu-sidebar/menu-items.jsx:609-650` |
+| Clearance | `src/utils/menu-sidebar/menu-items.jsx:1515-1518` |
+| Kompetensi & Kredensial | `src/utils/menu-sidebar/menu-items.jsx:1557-1629` |
+| Penilaian Kerja termasuk OPPE/FPPE | `src/utils/menu-sidebar/menu-items.jsx:1723-1862` |
+| Hubungan Industrial & Terminasi | `src/utils/menu-sidebar/menu-items.jsx:1867-1958` |
+| Assertion anti-duplikasi dan urutan BA | `tests/unit/hr-master-data-sidebar-grouping.test.mjs:322-430` (`HR-07`, `HR-08`) |
+
+### 33.5 Gap dan konflik yang tidak boleh disamarkan sebagai menu siap pakai
+
+| Kebutuhan | Klasifikasi | Ketergantungan sebelum publikasi |
+| --- | --- | --- |
+| Dashboard SDM | `MISSING / DEFERRED` | Definisi kartu, owner sumber data agregat, cakupan dokumen kedaluwarsa, dan horizon peringatan |
+| Seleksi Administrasi | `EXTENSION / DEFERRED` | Keputusan filter Bank Pelamar atau worklist stabil |
+| Tes/Wawancara | `EXTENSION / DEFERRED` | Keputusan satu worklist atau pemisahan evaluasi HR dan klinis |
+| Riwayat Penyelesaian | `EXTENSION / DEFERRED` | Keputusan tab/filter atau worklist tersendiri |
+| Tindak Disiplin | `CONFLICT / NOT PUBLISHED` | Penyelarasan service frontend, kontrak backend, permission, serta keputusan entry point global atau per pegawai |
+
+Konflik Tindak Disiplin dibuktikan sebagai berikut:
+
+| Lapisan | Kontrak yang ditemukan | Dampak |
+| --- | --- | --- |
+| Frontend service | `src/lib/services/hr/employee-relations-service.js:6` memakai `GET /v1/hr/workforce-profile/disciplinary-actions` sebagai base URL | Tidak cocok dengan controller detail backend dan tidak membawa `workforceProfileId` |
+| Backend detail per pegawai | `GET /api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/disciplinary-actions` | Memerlukan ID profil dan permission `WorkforceDisciplinaryAction:Read` |
+| Swagger group backend | `Corporate / Human Resource / Employee Relation Management / Disciplinary Action` | Endpoint detail harus tetap terdokumentasi pada group ini |
+
+Endpoint read backend yang menjadi bukti kontrak detail, bukan kontrak menu global:
+
+| Method | Path relatif terhadap base controller | Permission | Hasil utama |
+| --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | `WorkforceDisciplinaryAction:Read` | Opsi status, klasifikasi, sort, dan page size |
+| `GET` | `/summary` | `WorkforceDisciplinaryAction:Read` | Ringkasan tindakan disiplin untuk satu `workforceProfileId` |
+| `GET` | `/` | `WorkforceDisciplinaryAction:Read` | Daftar terfilter untuk satu `workforceProfileId` |
+
+Karena itu, item sidebar **Tindak Disiplin** tidak boleh diarahkan ke service tersebut sampai
+kontrak global/per-pegawai diputuskan dan diperbaiki melalui task tersendiri.
+
+### 33.6 Validasi dan status acceptance
+
+| Validasi | Hasil |
+| --- | --- |
+| `npm run lint:errors` | `PASS` |
+| ESLint target menu dan test | `PASS` |
+| Pemeriksaan penggunaan CSS | `PASS`, 0 temuan |
+| Test target `hr-master-data-sidebar-grouping.test.mjs` | `PASS`, 8/8 |
+| `npm run build` | `PASS`, 890 route/page dihasilkan dan standalone disiapkan |
+| Seluruh unit test frontend | `PARTIAL`, 5.104/5.177 lulus; 73 kegagalan existing di luar target; test target lulus penuh |
+| Uji browser headed dan akun permission positif/negatif | `PENDING` |
+
+Putusan bagian ini adalah **`PARTIAL / VERIFYING`**. Paket A sudah diimplementasikan dan aman
+untuk dilanjutkan ke uji browser/permission, tetapi belum memenuhi syarat `DONE`. Paket B dan
+konflik Tindak Disiplin tidak termasuk implementasi commit ini.

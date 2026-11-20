@@ -30,8 +30,8 @@ Business Analyst tercakup tanpa menggandakan menu, halaman, data, atau workflow 
 Daftar BA diperlakukan sebagai **register kebutuhan fungsi**, bukan perintah untuk membuat 12
 parent baru secara harfiah.
 
-Perubahan yang direncanakan berfokus pada susunan `menu-items.jsx`. Planning ini tidak memberi
-wewenang untuk:
+Perubahan Paket A berfokus pada susunan `menu-items.jsx`. Persetujuan implementasi yang diberikan
+pengguna tidak mencakup wewenang untuk:
 
 1. menghapus halaman existing;
 2. menghapus route atau mengubah kontrak API;

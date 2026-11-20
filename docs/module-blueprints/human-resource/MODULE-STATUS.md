@@ -5,15 +5,15 @@
 | Blueprint ID | `HRD-BP-001` |
 | Module name | `Human Resource` |
 | Module slug | `human-resource` |
-| Revision | `20` — 9 November 2026: Seluruh 27 slice HRD telah 100% selesai di-plan (Roadmap rev 23, 0 BLOCKED, 0 DEFERRED, 0 Gap, kontrak v25 approved). Seluruh kelompok kemampuan berstatus PLANNED atau IMPLEMENTED (S-A1). |
-| Module status | `READY FOR IMPLEMENTATION (ALL SLICES PLANNED)` |
-| Current phase | `HRD-PH-ALL-SLICES-PLANNED` — Seluruh 27 slice HRD telah selesai di-design dan di-plan ke dalam task backend dan frontend terinci dengan matriks traceability 0 gap. |
-| Last verified at | `2026-11-02` — implementasi penuh end-to-end seluruh task backend (BE-HRD-023..028) dan frontend (FE-HRD-022..028) Slice S-A1 |
+| Revision | `21` — 20 November 2026: Paket A penyesuaian navigasi SDM anti-tumpang-tindih telah diimplementasikan dan masuk tahap verifikasi; Paket B tetap ditunda. |
+| Module status | `PARTIAL` — delivery slice existing tetap mengikuti status masing-masing; amandemen navigasi Paket A berstatus `VERIFYING` |
+| Current phase | `HRD-PH-NAVIGATION-PACKAGE-A-VERIFYING` — source, lint, test target, dan build tersedia; uji browser serta permission runtime belum tersedia. |
+| Last verified at | `2026-11-20` — navigasi frontend Paket A: lint lulus, test target 8/8 lulus, build produksi lulus; live browser/permission pending |
 | Backend source SHA — diaudit pada | `ecdc135444f0110482c9702212bcea30043983c8` (branch `AndryZain`) — **historical**, dipertahankan sebagai provenance audit lama |
 | Backend source SHA — diverifikasi berlaku pada | `16f6b2ad28e0e9cbd374354abe240ff3b163ace0` (baseline aktif) |
 | Backend source SHA — HEAD saat desain ditulis | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` (branch kerja `AndryZain`) |
-| Frontend source SHA | `2cd1c0610981b649f16a11bc74ac47ce6123e679` (baseline aktif) |
-| Frontend source SHA sebelumnya | `2a1cea7841a4433f8637d486204e60314c09d131` |
+| Frontend source SHA | `51853893e9f229f0f22f5e86bc5f2e8c08946779` (branch `HamzahV2`; bukti navigasi Paket A) |
+| Frontend source SHA sebelumnya | `e01411158` (provenance manifest sebelum amandemen navigasi) |
 
 Status modul `PARTIAL` dipilih sesuai kontrak status pada template: sekurang-kurangnya satu fase
 siap dijalankan sementara fase lain terblokir. Itu persis keadaan modul ini.
@@ -426,3 +426,42 @@ berkas saja tidak cukup.
 Klasifikasi kesiapan desain pada bagian 1 — `READY FOR DESIGN`, `PARTIAL`, `BLOCKED`,
 `DEFERRED` — adalah lapisan terpisah yang menjawab pertanyaan berbeda, yaitu boleh tidaknya
 sesuatu dirancang. Keduanya berdampingan dan tidak saling menggantikan.
+
+---
+
+## 9. Status amandemen navigasi SDM — 20 November 2026
+
+### 9.1 Ringkasan hasil
+
+| Komponen | Status | Bukti |
+| --- | --- | --- |
+| Persetujuan planning anti-tumpang-tindih | `APPROVED` | Instruksi pengguna 20 November 2026 |
+| Implementasi Paket A | `IMPLEMENTED` | Frontend commit `51853893e9f229f0f22f5e86bc5f2e8c08946779` |
+| Lint | `PASS` | `npm run lint:errors` |
+| Test menu HR | `PASS` | 8/8 pada `hr-master-data-sidebar-grouping.test.mjs` |
+| Build produksi | `PASS` | `npm run build`; 890 route/page |
+| Full unit suite | `PARTIAL` | 5.104/5.177 lulus; 73 kegagalan existing di luar file target |
+| Uji browser dan permission runtime | `PENDING` | Belum ada bukti headed browser dengan akun positif/negatif |
+| Paket B | `DEFERRED` | Keputusan bisnis/kontrak untuk dashboard dan worklist baru belum lengkap |
+
+### 9.2 Batas implementasi yang sudah dipenuhi
+
+- Data Induk Pegawai tidak dibuat sebagai parent sidebar kedua; Master Data tetap menjadi owner.
+- OPPE/FPPE hanya berada pada Penilaian Kerja.
+- Administrasi, planning, recruitment, performance, dan employee relations memakai route dan
+  permission existing.
+- Menu non-BA tidak dihapus.
+- Tidak ada perubahan API, entity, tabel, migration, atau workflow backend.
+
+### 9.3 Blocker dan kelanjutan yang aman
+
+| Item | Status | Tindakan berikutnya |
+| --- | --- | --- |
+| Dashboard SDM | `DEFERRED` | Kunci definisi agregat dan kontrak backend sebelum membuat entry point |
+| Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian | `DEFERRED` | Putuskan filter/tab atau worklist mandiri lalu rancang Paket B |
+| Tindak Disiplin | `CONFLICT` | Selaraskan base URL frontend dengan kontrak global/per-pegawai backend dan permission; jangan publikasikan link sebelum selesai |
+| Verifikasi Paket A | `READY` | Jalankan live browser dan permission regression; setelah buktinya lulus, status Paket A dapat dinaikkan menjadi `DONE` |
+
+Dokumen canonical terkait: `03-frontend-architecture.md` bagian 33,
+`testing/acceptance-test-matrix.md` bagian 37, dan
+`docs/PLANNING_PENYESUAIAN_MENU_SDM_BERDASARKAN_ANALISIS_BISNIS.md` bagian 15.

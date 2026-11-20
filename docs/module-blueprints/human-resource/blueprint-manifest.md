@@ -6,20 +6,21 @@ module_name: Human Resource
 module_slug: human-resource
 module_prefix: HRD
 blueprint_shape: SINGLE
-revision: 65
+revision: 66
 status: DRAFT
 design_readiness: COMPLETE
-current_phase: HRD-PH-AMENDMENT-S-D5-V28-PLANNED
+current_phase: HRD-PH-NAVIGATION-PACKAGE-A-VERIFYING
 created_at: 2026-08-27T07:02:01Z
-updated_at: 2026-11-19T14:00:00Z
-last_verified_at: 2026-11-12T00:00:00Z
+updated_at: 2026-11-20T16:37:44+07:00
+last_verified_at: 2026-11-20T16:37:44+07:00
+last_verified_scope: navigation_alignment_package_a_only
 backend_source_sha_audited: ecdc135444f0110482c9702212bcea30043983c8
 backend_source_sha_verified: 16b8b71f4cd61e083213cf90722f4d768d339739
 backend_source_sha_current: d7d4eb3b
 backend_source_branch_current: yoga
-frontend_source_sha: e01411158
-frontend_source_branch_current: YogaV2
-frontend_source_sha_previous: 6a5658269
+frontend_source_sha: 51853893e9f229f0f22f5e86bc5f2e8c08946779
+frontend_source_branch_current: HamzahV2
+frontend_source_sha_previous: e01411158
 skill_suite_version: 1.0.0-rc2
 input_revision_hash: 97de77558d030cb183f8f30974ae4b7d6cf79d27b3dcf548c6d9bb6a69d7e25b
 decision_revision: 39
@@ -49,12 +50,14 @@ contract_status_s_c2: approved
 contract_status_s_c3: approved
 contract_status_s_a8: approved
 contract_status_s_d5_v28: approved
+navigation_alignment_package_a_status: VERIFYING
+navigation_alignment_package_b_status: DEFERRED
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
 artifact_hashes:
   00-interview-decisions.md: 97de77558d030cb183f8f30974ae4b7d6cf79d27b3dcf548c6d9bb6a69d7e25b
   01-existing-capability-map.md: d260d20f1995e43286e095ff22fc393371d92a38dc9635cd2d1047f2966958c5
   02-backend-architecture.md: de946e0a06ea06fef40b02c1ab89692d0cc0cb3f1a69aafec340e300d7aa3a0c
-  03-frontend-architecture.md: 88a325c56c3518d39e40bb55abdcdd3004a86ef86aaef0be19a7969286dd8ff3
+  03-frontend-architecture.md: cf7846c949b7a86bb421f70447adf5732b1db15ed4fdf0bb495894ff083ed7c1
   04-prd-to-mvp.md: 0ab949f7833d45e2c192615c2fe9a183f3549725493bb251d7e04b0ccbfa08f8
   data/data-dictionary.md: 659005bf198f71f25a798f4d49e40487bd72b8fcc0d3808b9f61e55d8912ff0f
   contracts/api-contract.md: e93a84e21fccc40a275c2774bddd92f81ebd09b5d6489888be22ac474aba1626
@@ -62,7 +65,7 @@ artifact_hashes:
   contracts/validation-matrix.md: 441b1979d249647833ddfb1d4f850a1f7aab8e37e49dfe8555316a317cf995e9
   contracts/integration-contract.md: 2e4981ee2664768bef18738824b976a20c25fbcd2b69b58682925ee206736fb5
   contracts/permission-audit-matrix.md: 3fa967d360933ac5427d264ee5caacc5d48d710ccd19239bd36b0dd899dd7c2d
-  testing/acceptance-test-matrix.md: 6476fb64971b2f0f4a79e60a162fcfadeb72def62881d33777d850a249bec472
+  testing/acceptance-test-matrix.md: 46c92d97bf8ff35a50fd949948bba864d450f43741123712299baf079cae78b2
   flowcharts/00-alur-utama.md: 9a2af6abf27b896179af26191ed8ad255505385e3b5839ed12014e4023f33af3
   flowcharts/penjadwalan-kerja.md: 7c9a0560d62261f1a938192e7bbdd5b4dd4ccb7f89a025e5c7bdf6e1ed3d01ef
   flowcharts/presensi-dan-kehadiran.md: 4c1db3c47ade024988d62cc0c6cc6ae9372a264bf66386e50d61a088717a24d9
@@ -103,6 +106,16 @@ active_dependency_ids:
   - HRD-DEP-007
 active_roadmap_revision: 24
 approvals:
+  - scope: Penyesuaian navigasi SDM anti-tumpang-tindih — Paket A
+    approved_by: "Pengguna — pemilik kebutuhan dan pemberi instruksi implementasi"
+    approved_at: 2026-11-20
+    owner_answer: "Planning disetujui; implementasikan code terlebih dahulu, kemudian update module blueprint"
+    covers:
+      - 03-frontend-architecture.md bagian 33
+      - testing/acceptance-test-matrix.md bagian 37
+      - docs/PLANNING_PENYESUAIAN_MENU_SDM_BERDASARKAN_ANALISIS_BISNIS.md bagian 15
+      - frontend commit 51853893e9f229f0f22f5e86bc5f2e8c08946779
+    not_covered: "Paket B (Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian); perbaikan kontrak Tindak Disiplin; live browser dan permission runtime regression"
   - scope: A52 (amandemen S-B4 dan S-B1, PRD-HRD-PK-001)
     approved_by: "Pengguna — pemilik teknis dan produk (HRD-DEC-015)"
     approved_at: 2026-11-12

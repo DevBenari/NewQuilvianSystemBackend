@@ -4,15 +4,15 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `testing/acceptance-test-matrix.md` |
-| `contract_version` | `v6` |
-| `last_changed_in` | `v7` — bagian 15 (`S-D1`) ditambahkan 3 November 2026; bagian lain tidak berubah sejak `v6` |
+| `contract_version` | `v6` sebagai baseline; amandemen per bagian mengikuti kontrak sampai `v28`; bagian 37 memakai identitas `NAV-A1` tanpa perubahan kontrak API |
+| `last_changed_in` | `NAV-A1` — bagian 37 penyesuaian navigasi SDM ditambahkan 20 November 2026 |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`), bersama pemilik proses untuk skenario UAT |
-| `approved_by` / `approved_at` | **Hanya bagian 15** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
+| `approved_by` / `approved_at` | Bagian 15 (`S-D1`) disetujui 2026-11-03; bagian 37 (`NAV-A1`) disetujui pengguna 2026-11-20. Bagian lain mengikuti status lokalnya; status dokumen keseluruhan tetap `draft` |
 | `input_revision` | `contracts/state-transition-matrix.md` `v6`; `contracts/validation-matrix.md` `v6`; `contracts/api-contract.md` `v6`; `00-interview-decisions.md` rev `16` (`HRD-DEC-046` s.d. `HRD-DEC-057`) |
 | `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
-| Frontend SHA | `fff76a1b394d4b247c70a04f106c8ec098c9696e` |
+| Frontend SHA | `51853893e9f229f0f22f5e86bc5f2e8c08946779` untuk bagian 37; bagian historis mengikuti SHA lokal masing-masing |
 
 ---
 
@@ -1187,3 +1187,34 @@ Dasar: `HRD-DEC-224` s.d. `HRD-DEC-228`. Bukti backend memakai harness `Tests/Qu
 | `AT-HRD-TRV-37` | Hak ajukan | Pengguna tanpa `BusinessTravelRequest : Create`, dan pengguna lain yang bukan pemohon | `403` untuk keduanya | Matriks izin 32.1 |
 | `AT-HRD-TRV-38` | Kepatuhan kontrak v28 | Uji kontrak reflektif (`TravelContractV25Tests` diperluas) | 25 endpoint (24 + `submit`) bertag, berlogin, berizin, lolos validator registri | Kontrak API 34.1 |
 | `AT-HRD-TRV-39` | Layar: Ajukan dan status (frontend) | Buat SPPD → Ajukan → buka kotak masuk sebagai atasan → setujui → kembali ke daftar | Label status Indonesia, tombol Ajukan hanya bila `canSubmit`, pesan gerbang `409` tampil apa adanya, tidak ada kirim ganda | FR-TRV-34; **bergantung `HRD-Q-221`** |
+
+---
+
+## 37. Matriks Uji Penerimaan Penyesuaian Navigasi SDM — Paket A (approved 20 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Cakupan | Label, urutan, primary navigation owner, permission preservation, dan anti-duplikasi menu SDM |
+| Status | `PARTIAL / VERIFYING` |
+| Persetujuan | Pengguna, 20 November 2026 |
+| Frontend SHA | `51853893e9f229f0f22f5e86bc5f2e8c08946779` (`HamzahV2`) |
+| Perubahan backend/API | Tidak ada |
+| Cakupan tertunda | Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian, dan konflik Tindak Disiplin |
+
+| ID | Skenario | Jenis | Hasil yang diharapkan | Status/bukti |
+| --- | --- | --- | --- | --- |
+| `AT-HRD-NAV-01` | Buka root SDM dan periksa Perencanaan Kebutuhan SDM | `UNIT` | Empat item awal: Analisa Beban Kerja, Formasi Pegawai, Pengajuan Kebutuhan Tenaga, Evaluasi Kebutuhan | `PASS` — test `HR-07` |
+| `AT-HRD-NAV-02` | Periksa Rekrutmen & Seleksi | `UNIT` | Lowongan, Pelamar, dan Onboarding ditemukan pada route existing; fungsi non-BA tetap ada | `PASS` — test `HR-07` |
+| `AT-HRD-NAV-03` | Periksa Administrasi Kepegawaian | `UNIT` | Lima fungsi BA berada di urutan awal dan tidak ada `Relasi Atasan` sebagai owner kedua | `PASS` — test `HR-07` |
+| `AT-HRD-NAV-04` | Periksa Data Induk Pegawai | `UNIT` | Parent tidak aktif pada sidebar; Master Data tetap menjadi owner | `PASS` — test `HR-07` |
+| `AT-HRD-NAV-05` | Periksa Penilaian Kerja dan Kompetensi & Kredensial | `UNIT` | Lima fungsi BA kinerja berada di urutan awal; seluruh OPPE/FPPE hanya berada pada Penilaian Kerja | `PASS` — test `HR-08` |
+| `AT-HRD-NAV-06` | Periksa Teguran dan Pelanggaran | `UNIT` | Keduanya berada pada Hubungan Industrial & Terminasi; parent Disiplin kedua tidak dibuat | `PASS` — test `HR-08` |
+| `AT-HRD-NAV-07` | Periksa uniqueness leaf menu | `UNIT` | 54 leaf menu, 54 `key`, dan 54 `pathname` unik pada cakupan test | `PASS` — test `HR-02`; 8/8 test file target lulus |
+| `AT-HRD-NAV-08` | Build aplikasi sesudah reorganisasi | `BUILD` | Build produksi selesai tanpa error route/import | `PASS` — `npm run build`, 890 route/page |
+| `AT-HRD-NAV-09` | Pengguna dengan permission berbeda membuka sidebar | `E2E` | Hanya item berizin tampil; parent kosong tidak tampil; 403 tidak disamarkan sebagai data kosong | `PENDING` — butuh akun runtime positif/negatif |
+| `AT-HRD-NAV-10` | Navigasi dan refresh setiap menu terdampak di browser headed | `E2E / MANUAL` | Route terbuka, parent aktif benar, refresh mempertahankan active state, tidak ada error console/network | `PENDING` — live browser belum dijalankan |
+| `AT-HRD-NAV-11` | Coba publikasi Tindak Disiplin sebelum kontrak diperbaiki | `CONTRACT` | Item tidak dipublikasikan; tidak ada link yang mengarah ke base URL frontend yang tidak cocok | `PASS` untuk pengaman publikasi; perbaikan kontrak tetap `CONFLICT` |
+| `AT-HRD-NAV-12` | Periksa menu non-BA | `UNIT / REGRESSION` | Diklat, K3RS, SPPD, Layanan Mandiri, dan item existing lain tidak hilang | `PASS` melalui snapshot/struktur test target; visual regression tetap mengikuti `AT-HRD-NAV-10` |
+
+Acceptance Paket A belum boleh ditutup `DONE` sampai `AT-HRD-NAV-09` dan
+`AT-HRD-NAV-10` memiliki bukti runtime yang dapat ditelusuri.
