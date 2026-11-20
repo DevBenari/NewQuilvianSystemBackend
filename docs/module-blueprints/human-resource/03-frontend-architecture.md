@@ -4,17 +4,17 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `03-frontend-architecture.md` |
-| Revision | `3` — 3 November 2026: bagian 12 menambah layar `S-D1` Perencanaan Tenaga Kerja. Bagian 1–11 tidak berubah |
+| Revision | `4` — 20 November 2026: bagian 33 mencatat arsitektur navigasi SDM anti-tumpang-tindih dan hasil implementasi Paket A; bagian sebelumnya tidak diubah |
 | Status | `draft` — **belum** `approved` |
 | Owner desain | Technical owner (`HRD-DEC-015`), dengan ruang `DEV_DISCRETION` sesuai `HRD-FE-03` |
-| `approved_by` / `approved_at` | **Hanya bagian 12** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
+| `approved_by` / `approved_at` | Bagian 12 (`S-D1`) disetujui 2026-11-03. **Bagian 33** (penyesuaian navigasi SDM Paket A) disetujui pengguna pada 2026-11-20. Bagian lain mengikuti status persetujuan lokalnya; status dokumen keseluruhan tetap `draft` |
 | Repository target | `QuilvianSystemFrontendDev` |
-| Frontend SHA | `fff76a1b394d4b247c70a04f106c8ec098c9696e` (branch `AgentCodexFrontend`) |
+| Frontend SHA | `51853893e9f229f0f22f5e86bc5f2e8c08946779` (branch `HamzahV2`) — bukti terkini untuk bagian 33 |
 | Backend SHA rujukan kontrak | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | `input_revision` — arsitektur backend | `02-backend-architecture.md` revision `2` |
 | `input_revision` — decision log | `00-interview-decisions.md` revision `16` (Amendment Pass Workforce Core & Employee 360, `HRD-DEC-046` s.d. `HRD-DEC-057`) |
 | `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
-| Kompatibilitas | Tidak ada halaman existing yang dihapus. Satu halaman dipindahkan lokasinya (`S-A6`) dengan pengalihan |
+| Kompatibilitas | Tidak ada halaman existing yang dihapus. Bagian 33 hanya mengubah label, urutan, dan primary navigation owner; route, `key`, permission, API, dan data bisnis existing dipertahankan |
 
 ---
 

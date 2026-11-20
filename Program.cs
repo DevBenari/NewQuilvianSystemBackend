@@ -1576,6 +1576,9 @@ try
     // Slice S-D4 (HR Service Management) - MVP-40 & MVP-41 (Profile Sync, Document Issuance 2-Tier, Anti-Manual Guard, PDF Rendering, E-Dossier & Anti-Brute-Force Rate Limiter)
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IWorkforceProfileSyncService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.WorkforceProfileSyncService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IEmployeeDocumentIssuanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.EmployeeDocumentIssuanceService>();
+    // BE-HRD-382..385: Surat Tugas multi-pegawai berjenjang dan registri dokumen administrasi lintas jenis.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.AssignmentLetterService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.AdministrativeDocumentRegistryService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IPinRateLimiterService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.PinRateLimiterService>(); // Scoped sejak 10 Nov 2026: penghitung PIN kini di tabel HrdPinAttemptRecord (BE-HRD-204)
 
     // Slice S-C1 (Credentialing, License & Clinical Privilege) - MVP-42 (PSV Kemenkes/KKI & Radar Pemantau SIP 5 Tahun / Fail-Closed H-0)

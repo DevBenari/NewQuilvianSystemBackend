@@ -1097,12 +1097,12 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-378` | `S-D5` amandemen · `MVP-70` | Gerbang uang muka dan settlement untuk SPPD disetujui | ✅ | `BE-HRD-376` (butuh SPPD yang dapat disetujui untuk jalur lolos) |
 | `BE-HRD-379` | `S-D5` amandemen · `MVP-70` | Jejak audit 12 event `HRD_TRV_*` bernama matriks | ✅ | `BE-HRD-374` (boleh paralel dengan `BE-HRD-375`; event 1, 2, 11, 12 baru terisi nyata sesudah `BE-HRD-376`) |
 | `BE-HRD-380` | `S-D5` amandemen · Verifikasi | Verifikasi amandemen `S-D5` v28: kontrak, registri hak, build, QBE, dan penutupan celah `BE-HRD-333` | ✅ | `BE-HRD-374` s.d. `BE-HRD-379` |
-| `BE-HRD-381` | `S-FIN-ADM` · Surat Keterangan | Surat Keterangan: pegawai penerima, kewenangan pengaju, dan identitas RS dari pengaturan (alias `SKT-IMP (BUG-HRD-ADM-01)`) | 🟡 | — |
-| `BE-HRD-382` | `S-FIN-ADM` · Surat Tugas | Surat Tugas multi-pegawai: rancangan data peserta dan migration (alias `ST-IMP (data peserta)`) | ⛔ | `{ADM-Q-03}` ⛔ |
-| `BE-HRD-383` | `S-FIN-ADM` · Surat Tugas | Surat Tugas alur berjenjang: ajukan Kepala Unit, verifikasi HRD, pengesahan pejabat, terbit HRD, selesai atau batal (alias `ST-IMP (alur)`) |  | `BE-HRD-382` ⛔ |
-| `BE-HRD-384` | `S-FIN-ADM` · Surat Tugas | Template naskah SURAT TUGAS dari pengaturan yang memuat daftar peserta (alias `ST-IMP (template, BUG-HRD-ADM-02)`) | 🟡 | `BE-HRD-382` ⛔ |
-| `BE-HRD-385` | `S-FIN-ADM` · Dokumen Administrasi | Registri dokumen administrasi lintas jenis di server (alias `DA-IMP`) |  | `BE-HRD-381` 🟡, `BE-HRD-383` |
-| `BE-HRD-386` | `S-FIN-ADM` · Verifikasi | Verifikasi backend Administrasi Kepegawaian: matriks akses, kontrak, build, dan regresi SK serta Perubahan Data (alias `REG-IMP`) |  | `BE-HRD-384` 🟡, `BE-HRD-385` |
+| `BE-HRD-381` | `S-FIN-ADM` · Surat Keterangan | Surat Keterangan: pegawai penerima, kewenangan pengaju, dan identitas RS dari pengaturan (alias `SKT-IMP (BUG-HRD-ADM-01)`) | ✅ | — |
+| `BE-HRD-382` | `S-FIN-ADM` · Surat Tugas | Surat Tugas multi-pegawai: rancangan data peserta dan migration (alias `ST-IMP (data peserta)`) | ✅ | `{ADM-Q-03}` ✅ |
+| `BE-HRD-383` | `S-FIN-ADM` · Surat Tugas | Surat Tugas alur berjenjang: ajukan Kepala Unit, verifikasi HRD, pengesahan pejabat, terbit HRD, selesai atau batal (alias `ST-IMP (alur)`) | ✅ | `BE-HRD-382` ✅ |
+| `BE-HRD-384` | `S-FIN-ADM` · Surat Tugas | Template naskah SURAT TUGAS dari pengaturan yang memuat daftar peserta (alias `ST-IMP (template, BUG-HRD-ADM-02)`) | ✅ | `BE-HRD-382` ✅ |
+| `BE-HRD-385` | `S-FIN-ADM` · Dokumen Administrasi | Registri dokumen administrasi lintas jenis di server (alias `DA-IMP`) | ✅ | `BE-HRD-381` ✅, `BE-HRD-383` ✅ |
+| `BE-HRD-386` | `S-FIN-ADM` · Verifikasi | Verifikasi backend Administrasi Kepegawaian: matriks akses, kontrak, build, dan regresi SK serta Perubahan Data (alias `REG-IMP`) | 🟡 | `BE-HRD-384` ✅, `BE-HRD-385` ✅ |
 | `BE-HRD-387` | `S-FIN-M04` · Profil | Resolver identitas resmi lintas Pegawai, Dokter, dan Pengguna Eksternal (alias `FIN-HRD-04-BE-001`) | ✅ | — |
 | `BE-HRD-388` | `S-FIN-M04` · Profil | Tautan create Pegawai, Dokter, dan Eksternal ke profil yang sama secara atomik (alias `FIN-HRD-04-BE-002`) | ✅ | `BE-HRD-387` ✅ |
 | `BE-HRD-389` | `S-FIN-M04` · Profil | Guard server mutasi langsung field sensitif profil (alias `FIN-HRD-04-BE-003`) | ✅ | — |
@@ -1163,6 +1163,8 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 
 > **Pemutakhiran register 19 November 2026 (A52).** Baris `BE-HRD-334` s.d. `BE-HRD-359` (amandemen `A52`, bagian 24) ditambahkan dari kartu task; tanda status disalin apa adanya dari kartu (25 ✅, `BE-HRD-359` ⛔ menunggu `DSG-Q-02`). Baris `BE-HRD-360` s.d. `BE-HRD-363` (S-A8) belum dicantumkan.
 
+
+> **Pemutakhiran register 20 November 2026 (`S-FIN-ADM`).** Gerbang `{ADM-Q-03}` ditutup (pilihan A). `BE-HRD-381` s.d. `BE-HRD-385` ✅; `BE-HRD-386` 🟡 (uji runtime per peran belum dijalankan). Migration `20261120093000_AddHrdAssignmentLetter` ditulis, belum dijalankan. Penanda baru: `EmployeeDocumentIssuance : AccessAllEmployees`, `AssignmentLetter : ManageAllUnits`; aksi baru `AssignmentLetter : *` dan `AdministrativeDocumentRegistry : Read`.
 
 > **Pemutakhiran register 20 November 2026 (`S-FIN-M09`).** `BE-HRD-427` s.d. `BE-HRD-432` dan `BE-HRD-437` ditandai ✅ (build 0 error, QBE Strict 14 berkas `PASS`, registri `IsValid=True`). `BE-HRD-434` tetap 🟡 (penjagaan sisi HR ditambahkan; kontrak co-sign EMR belum ada) sehingga `BE-HRD-439` tetap 🟡. Penanda baru `Competency : ReadAllUnitsCompliance` perlu dicentang admin. Tanpa migration.
 
@@ -7343,7 +7345,7 @@ memelihara automated test; bukti verifikasinya build, QBE, kontrak API, dan uji 
 
 | Gerbang | Apa yang belum ada | Task yang tertahan | Siapa yang menyelesaikan | Yang tetap bisa jalan |
 | --- | --- | --- | --- | --- |
-| `{ADM-Q-03}` | Keputusan bentuk Surat Tugas multi-pegawai (satu surat bertabel peserta, atau satu surat per pegawai; rekomendasi dokumen update: satu surat) **dan** wewenang menulis migration tabel peserta | `BE-HRD-382`, lalu `BE-HRD-383` s.d. `BE-HRD-386` | Pengguna sebagai pemilik produk dan teknis | `BE-HRD-381` (Surat Keterangan) |
+| `{ADM-Q-03}` — ✅ **ditutup 20 November 2026**: pemilik memilih A (satu surat bertabel peserta) dan mengizinkan migration ditulis; migration `20261120093000_AddHrdAssignmentLetter` ditulis, belum dijalankan ([laporan](../task/report/backend/BE-HRD-382.md)) | Keputusan bentuk Surat Tugas multi-pegawai (satu surat bertabel peserta, atau satu surat per pegawai; rekomendasi dokumen update: satu surat) **dan** wewenang menulis migration tabel peserta | `BE-HRD-382`, lalu `BE-HRD-383` s.d. `BE-HRD-386` | Pengguna sebagai pemilik produk dan teknis | `BE-HRD-381` (Surat Keterangan) |
 | `{MIG-M05-JD}` — 🟡 **sebagian ditutup 20 November 2026**: migration `20261120091000_AddMstJobDescription` ditulis atas izin pemilik ([laporan](../task/report/backend/BE-HRD-404.md)); tinggal eksekusi ke DB dev | Eksekusi migration ke database (wewenang terpisah) | `BE-HRD-404` 🟡; `BE-HRD-405`, `406`, `413` ✅ di source tetapi endpoint Uraian Tugas baru berfungsi sesudah migration dijalankan | Pengguna (eksekusi migration) | Seluruh task Menu 05/07 lain |
 | `ADM-Q-01`, `ADM-Q-02` | Peringatan STR/SIP untuk Surat Tugas klinis; cetak pemberitahuan pencabutan untuk pihak ketiga | Tidak menahan task; menjadi masukan `BE-HRD-383` dan `BE-HRD-381` | Pengguna | Semua |
 | Kontrak co-sign EMR | Kontrak order-scoped dengan pemilik modul klinis untuk co-signature supervisor | Sisa `BE-HRD-434` | Pemilik modul EMR/Health Services | Seluruh task Menu 09 lain |
@@ -7356,10 +7358,10 @@ Instruksi: [INSTRUKSI_AGENT_ADMINISTRASI_KEPEGAWAIAN_UAT_LIVE.md](../docs/update
 #### Grafik B91 — `S-FIN-ADM`: Surat Keterangan, Surat Tugas, registri, verifikasi
 
 ```text
-BE-HRD-381 🟡 ──────────────────────────────────┐
-{ADM-Q-03 ⛔} ─> BE-HRD-382 ⛔ ─┬─> BE-HRD-383 ─┴─> BE-HRD-385 ─┐
-                                │                               │
-                                └─> BE-HRD-384 🟡 ──────────────┴─> BE-HRD-386
+BE-HRD-381 ✅ ─────────────────────────────────────┐
+{ADM-Q-03 ⛔} ─> BE-HRD-382 ✅ ─┬─> BE-HRD-383 ✅ ─┴─> BE-HRD-385 ✅ ─┐
+                                │                                     │
+                                └─> BE-HRD-384 ✅ ────────────────────┴─> BE-HRD-386 🟡
 ```
 
 #### Tabel gelombang eksekusi `S-FIN-ADM`
@@ -7375,57 +7377,57 @@ BE-HRD-381 🟡 ─────────────────────�
 
 #### Rincian task `S-FIN-ADM`
 
-#### 🟡 `BE-HRD-381` — Surat Keterangan: pegawai penerima, kewenangan pengaju, dan identitas RS dari pengaturan
+#### ✅ `BE-HRD-381` — Surat Keterangan: pegawai penerima, kewenangan pengaju, dan identitas RS dari pengaturan
 * **Slice / area**: `S-FIN-ADM` / Surat Keterangan
 * **Alias register finishing**: `SKT-IMP (BUG-HRD-ADM-01)` · baseline roadmap: `BE-HRD-200`, `BE-HRD-201`, `BE-HRD-202`, `BE-HRD-205`
-* **Status**: 🟡 **SEBAGIAN** — audit 19 November 2026: 1 dari 3 kriteria terbukti di source (`EmployeeDocumentIssuanceService.RequestDocumentAsync` memakai `targetProfile` dari `RequestedForWorkforceProfileId`, termasuk tarikan slip gaji). Belum: pemeriksaan kewenangan pengaju atas pegawai tujuan; `IssuingAuthority = "Rumah Sakit Quilvian Utama"` dan pesan verifikasi publik masih tertanam. Belum ada laporan tracked di `task/report/`.
+* **Status**: ✅ **SELESAI 20 November 2026** — pengaju hanya boleh untuk diri sendiri/unit yang dipimpin (`403`) kecuali penanda baru `EmployeeDocumentIssuance : AccessAllEmployees`; kop, kota, penerbit, dan pesan verifikasi dari Master Lokasi RS (tanpa nama RS tertanam); URL QR dari konfigurasi; nama peran tertanam pada unduh/C&B/terbit/cabut dihapus. `dotnet build` 0 error (himpunan warning sama dengan sebelum perubahan); QBE Strict 18 berkas `PASS`; validator registri hak akses `IsValid=True` (2.660 identitas); uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-381.md)
 * **Outcome**: Surat terbit atas nama pegawai tujuan, bukan staf HRD pembuat draf; pengaju hanya boleh memohon untuk pegawai dalam kewenangannya; nama, alamat, dan penandatangan rumah sakit diambil dari pengaturan.
 * **Dependencies**: —
 * **Acceptance Criteria**: (1) Data pegawai, slip gaji final, dan nama berkas memakai pegawai tujuan. (2) Pengaju tanpa kewenangan atas pegawai tujuan (misalnya Kepala Unit untuk pegawai unit lain) ditolak `403` oleh server. (3) Tidak ada nama RS tertanam pada `IssuingAuthority`, template default, dan pesan verifikasi publik.
 * **Verifikasi**: QBE preflight dan conformance, `dotnet build` project aplikasi, verifikasi kontrak API (method, route, permission, DTO), dan uji API berizin pada DB dev. QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend.
 
-#### ⛔ `BE-HRD-382` — Surat Tugas multi-pegawai: rancangan data peserta dan migration
+#### ✅ `BE-HRD-382` — Surat Tugas multi-pegawai: rancangan data peserta dan migration
 * **Slice / area**: `S-FIN-ADM` / Surat Tugas
 * **Alias register finishing**: `ST-IMP (data peserta)` · baseline roadmap: `BE-HRD-109` (dinas luar presensi, satu pegawai)
-* **Status**: ⛔ **TERBLOKIR** — tertahan `{ADM-Q-03}`: keputusan pemilik bentuk surat (satu surat bertabel peserta atau satu surat per pegawai; rekomendasi dokumen update: satu surat) dan wewenang menulis migration. Source saat ini: `HrdOfficialDutyRequest` hanya menyimpan satu `WorkforceProfileId`.
+* **Status**: ✅ **SELESAI 20 November 2026** — `{ADM-Q-03}` = A: aggregate `HrdAssignmentLetter` + tabel peserta `HrdAssignmentLetterParticipant` (snapshot, unik per surat); peserta nonaktif `422`, di luar unit pengaju `403`. Migration `20261120093000_AddHrdAssignmentLetter` ditulis, **belum dijalankan**. `dotnet build` 0 error (himpunan warning sama dengan sebelum perubahan); QBE Strict 18 berkas `PASS`; validator registri hak akses `IsValid=True` (2.660 identitas); uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-382.md)
 * **Outcome**: Satu Surat Tugas memuat beberapa pegawai lewat tabel peserta yang terhubung ke aggregate Surat Tugas, tanpa mengubah jabatan definitif, gaji, kontrak, atau kewenangan klinis.
-* **Dependencies**: `{ADM-Q-03}` ⛔
+* **Dependencies**: `{ADM-Q-03}` ✅
 * **Acceptance Criteria**: (1) Satu pengajuan menyimpan dua pegawai atau lebih dan tetap utuh setelah dimuat ulang. (2) Peserta nonaktif atau di luar unit pengaju ditolak server. (3) Migration ditulis sesudah keputusan dan baru dijalankan dengan izin terpisah.
 * **Verifikasi**: QBE preflight dan conformance, `dotnet build` project aplikasi, verifikasi kontrak API (method, route, permission, DTO), dan uji API berizin pada DB dev. QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend.
 
-#### `BE-HRD-383` — Surat Tugas alur berjenjang: ajukan Kepala Unit, verifikasi HRD, pengesahan pejabat, terbit HRD, selesai atau batal
+#### ✅ `BE-HRD-383` — Surat Tugas alur berjenjang: ajukan Kepala Unit, verifikasi HRD, pengesahan pejabat, terbit HRD, selesai atau batal
 * **Slice / area**: `S-FIN-ADM` / Surat Tugas
 * **Alias register finishing**: `ST-IMP (alur)` · baseline roadmap: `BE-HRD-109`, `BE-HRD-194` (penomoran)
-* **Status**: Belum dikerjakan. `OfficialDutyRequestController` hanya punya `approve`/`reject` satu tahap untuk dinas luar presensi; tidak ada verifikasi HRD, pengesahan terpisah, penerbitan bernomor, maupun status pelaksanaan.
+* **Status**: ✅ **SELESAI 20 November 2026** — endpoint `assignment-letters`: Draf → Diajukan → Verifikasi HRD (lulus/revisi/tolak) → Menunggu Pengesahan → Disahkan → Diterbitkan (nomor `ST-RSMMC` allocator) → Dilaksanakan → Selesai, batal berjustifikasi; aktor tiap tahap terpisah, benturan jadwal sebagai peringatan, transisi tidak sah `409`; terbit membuat penugasan presensi per peserta. Migration `20261120093000_AddHrdAssignmentLetter` ditulis, **belum dijalankan**. `dotnet build` 0 error (himpunan warning sama dengan sebelum perubahan); QBE Strict 18 berkas `PASS`; validator registri hak akses `IsValid=True` (2.660 identitas); uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-383.md)
 * **Outcome**: Alur `Draft → Diajukan → Verifikasi HRD (minta revisi/tolak/lulus) → Menunggu Pengesahan → Disahkan → Diterbitkan → Dilaksanakan → Selesai`, dengan pembatalan berhak dan berjustifikasi.
-* **Dependencies**: `BE-HRD-382` ⛔
+* **Dependencies**: `BE-HRD-382` ✅
 * **Acceptance Criteria**: (1) Pengaju, verifikator, pengesah, dan penerbit tercatat terpisah; minta revisi dan tolak wajib alasan. (2) Tidak ada penerbitan dan nomor resmi sebelum disahkan pejabat sesuai matriks kewenangan. (3) Kepala Unit hanya dapat memilih bawahannya; benturan jadwal ditampilkan sebagai peringatan. (4) Status pelaksanaan dan bukti hasil tugas tersimpan; transisi tidak sah ditolak `409`.
 * **Verifikasi**: QBE preflight dan conformance, `dotnet build` project aplikasi, verifikasi kontrak API (method, route, permission, DTO), dan uji API berizin pada DB dev. QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend.
 
-#### 🟡 `BE-HRD-384` — Template naskah SURAT TUGAS dari pengaturan yang memuat daftar peserta
+#### ✅ `BE-HRD-384` — Template naskah SURAT TUGAS dari pengaturan yang memuat daftar peserta
 * **Slice / area**: `S-FIN-ADM` / Surat Tugas
 * **Alias register finishing**: `ST-IMP (template, BUG-HRD-ADM-02)` · baseline roadmap: `BE-HRD-202`, `BE-HRD-203`
-* **Status**: 🟡 **SEBAGIAN** — 1 dari 3 kriteria: `GetDefaultAssignmentLetterTemplate()` ada dan dipilih untuk jenis dokumen bertipe tugas. Belum: kop dan nama RS masih tertanam di HTML; daftar peserta multi-pegawai; penerbitan dari aggregate Surat Tugas. Belum ada laporan tracked di `task/report/`.
+* **Status**: ✅ **SELESAI 20 November 2026** — naskah SURAT TUGAS dirakit server: kop dari Master Lokasi RS, nomor, dasar, tabel peserta, tugas, tujuan, periode, penandatangan (pengesah), QR verifikasi publik; template tugas pada Surat Keterangan berjudul SURAT TUGAS. Migration `20261120093000_AddHrdAssignmentLetter` ditulis, **belum dijalankan**. `dotnet build` 0 error (himpunan warning sama dengan sebelum perubahan); QBE Strict 18 berkas `PASS`; validator registri hak akses `IsValid=True` (2.660 identitas); uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-384.md)
 * **Outcome**: Naskah berjudul SURAT TUGAS dengan nomor resmi, dasar, daftar peserta, tugas, lokasi, periode, penandatangan, dan QR verifikasi; kop diambil dari pengaturan.
-* **Dependencies**: `BE-HRD-382` ⛔
+* **Dependencies**: `BE-HRD-382` ✅
 * **Acceptance Criteria**: (1) Jenis dokumen tugas selalu memakai template SURAT TUGAS, bukan Surat Keterangan. (2) Kop, alamat, dan penandatangan berasal dari pengaturan, bukan teks tertanam. (3) Daftar peserta tercetak sebagai tabel lampiran.
 * **Verifikasi**: QBE preflight dan conformance, `dotnet build` project aplikasi, verifikasi kontrak API (method, route, permission, DTO), dan uji API berizin pada DB dev. QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend.
 
-#### `BE-HRD-385` — Registri dokumen administrasi lintas jenis di server
+#### ✅ `BE-HRD-385` — Registri dokumen administrasi lintas jenis di server
 * **Slice / area**: `S-FIN-ADM` / Dokumen Administrasi
 * **Alias register finishing**: `DA-IMP` · baseline roadmap: `BE-HRD-025`, `BE-HRD-205`
-* **Status**: Belum dikerjakan. Registri saat ini dirakit di klien dari tiga daftar terpisah.
+* **Status**: ✅ **SELESAI 20 November 2026** — `GET /api/v1/corporate/human-resource/administrative-documents`: SK, Surat Tugas, Surat Keterangan, dokumen personal; filter server (sumber, jenis, pegawai, unit, tanggal, keberlakuan, kerahasiaan); rahasia hanya bagi `WorkforceDocument : ViewConfidential`; dicabut tampil TIDAK BERLAKU + riwayat. `dotnet build` 0 error (himpunan warning sama dengan sebelum perubahan); QBE Strict 18 berkas `PASS`; validator registri hak akses `IsValid=True` (2.660 identitas); uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-385.md)
 * **Outcome**: Satu endpoint daftar berpaging untuk SK, Surat Tugas, Surat Keterangan, dan dokumen personal `WfpDocument`, memuat asal, pemilik, nomor, versi, status berlaku/dicabut, level akses, dan riwayat.
-* **Dependencies**: `BE-HRD-381` 🟡, `BE-HRD-383`
+* **Dependencies**: `BE-HRD-381` ✅, `BE-HRD-383` ✅
 * **Acceptance Criteria**: (1) Filter jenis, pegawai, unit, sumber, tanggal, status, dan kerahasiaan berjalan di server. (2) Dokumen rahasia hanya tampil bagi peran berhak; unduhan lewat endpoint terotorisasi. (3) Dokumen dicabut tampil sebagai TIDAK BERLAKU beserta riwayat statusnya.
 * **Verifikasi**: QBE preflight dan conformance, `dotnet build` project aplikasi, verifikasi kontrak API (method, route, permission, DTO), dan uji API berizin pada DB dev. QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend.
 
-#### `BE-HRD-386` — Verifikasi backend Administrasi Kepegawaian: matriks akses, kontrak, build, dan regresi SK serta Perubahan Data
+#### 🟡 `BE-HRD-386` — Verifikasi backend Administrasi Kepegawaian: matriks akses, kontrak, build, dan regresi SK serta Perubahan Data
 * **Slice / area**: `S-FIN-ADM` / Verifikasi
 * **Alias register finishing**: `REG-IMP` · baseline roadmap: `BE-HRD-024`, `BE-HRD-028`
-* **Status**: Belum dikerjakan.
+* **Status**: 🟡 **SEBAGIAN 20 November 2026** — matriks akses aksi tulis ditelusuri di source, kontrak `hr-service.js` cocok, regresi SK/Perubahan Data terverifikasi di source; build/QBE lulus. Belum: uji per peran berhak/tidak berhak di runtime (butuh migration dijalankan dan wewenang uji DB dev). Bukti: [laporan](../task/report/backend/BE-HRD-386.md)
 * **Outcome**: Bukti bahwa matriks akses lima peran ditegakkan di backend dan tidak ada regresi pada SK dan Perubahan Data.
-* **Dependencies**: `BE-HRD-384` 🟡, `BE-HRD-385`
+* **Dependencies**: `BE-HRD-384` ✅, `BE-HRD-385` ✅
 * **Acceptance Criteria**: (1) Setiap aksi tulis diuji dengan peran berhak dan tidak berhak. (2) `dotnet build` dan QBE lulus; kontrak API dicocokkan dengan service frontend. (3) SK tidak mengubah master sebelum tanggal efektif; Perubahan Data diterapkan sekali.
 * **Verifikasi**: QBE preflight dan conformance, `dotnet build` project aplikasi, verifikasi kontrak API (method, route, permission, DTO), dan uji API berizin pada DB dev. QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend.
 

@@ -82,7 +82,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         [HttpPost("{id:guid}/cb-approve")]
         [AccessAction("ApproveDraft", "Menyetujui Draf Surat (Supervisor C&B)", AccessType = AccessTypes.Update, SortOrder = 2)]
         [AccessPermission("EmployeeDocumentIssuance", "ApproveDraft")]
-        [Authorize(Roles = "SuperAdmin,HRAdmin,HRManager,HRStaff")]
         public async Task<IActionResult> CbSupervisorApprove(
             Guid id,
             [FromBody] CbSupervisorApprovalDto request,
@@ -106,7 +105,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         [HttpPost("{id:guid}/authorize-issue")]
         [AccessAction("Issue", "Mengesahkan & Menerbitkan Surat Resmi", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("EmployeeDocumentIssuance", "Issue")]
-        [Authorize(Roles = "SuperAdmin,HRAdmin,HRManager")]
         public async Task<IActionResult> FinalAuthorizeAndIssue(
             Guid id,
             [FromBody] FinalAuthorizeAndIssueDto request,
@@ -193,7 +191,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         [HttpPost("{id:guid}/revoke")]
         [AccessAction("Revoke", "Mencabut Dokumen Resmi", AccessType = AccessTypes.Update, SortOrder = 6)]
         [AccessPermission("EmployeeDocumentIssuance", "Revoke")]
-        [Authorize(Roles = "SuperAdmin,HRAdmin,HRManager")]
         public async Task<IActionResult> RevokeDocument(
             Guid id,
             [FromBody] RevokeDocumentRequestDto request,
@@ -212,7 +209,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         }
 
         /// <summary>
-        /// Endpoint Publik: Verifikasi keabsahan naskah dinas resmi RS Quilvian via SHA-256 Hash / QR Code (HRS-B5)
+        /// Endpoint Publik: Verifikasi keabsahan naskah dinas resmi via SHA-256 Hash / QR Code (HRS-B5)
         /// Catatan: Nominal finansial disamarkan secara default (Masked).
         /// </summary>
         [HttpGet("public-verify/{hash}")]

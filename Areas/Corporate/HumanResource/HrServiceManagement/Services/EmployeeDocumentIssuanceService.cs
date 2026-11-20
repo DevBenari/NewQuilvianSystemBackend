@@ -463,6 +463,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
 
             if (issuance == null)
             {
+                // BE-HRD-384: QR Surat Tugas memakai endpoint verifikasi publik yang sama.
+                var letterResult = await VerifyPublicAssignmentLetterAsync(verificationHash.Trim().ToLowerInvariant(), cancellationToken);
+                if (letterResult != null)
+                {
+                    return letterResult;
+                }
+
                 return new PublicDocumentVerificationDto
                 {
                     IsValid = false,
@@ -894,7 +901,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
 <html>
 <head>
     <meta charset='utf-8'/>
-    <title>Surat Perintah Tugas - [NAMA_RS]</title>
+    <title>Surat Tugas - [NAMA_RS]</title>
     <style>
         body {{ font-family: 'Times New Roman', serif; margin: 40px; color: #1e293b; line-height: 1.6; }}
         .header {{ text-align: center; border-bottom: 3px double #0284c7; padding-bottom: 10px; margin-bottom: 25px; }}
@@ -917,11 +924,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         <p>[ALAMAT_RS] [KONTAK_RS]</p>
     </div>
     <div class='doc-title'>
-        <h3>SURAT PERINTAH TUGAS</h3>
+        <h3>SURAT TUGAS</h3>
         <p>Nomor: [NOMOR_SURAT]</p>
     </div>
     <div class='content'>
-        <p>Yang bertanda tangan di bawah ini menerbitkan Surat Perintah Tugas kepada personel berikut:</p>
+        <p>Yang bertanda tangan di bawah ini menugaskan personel berikut:</p>
         <table class='meta-table'>
             <tr><td style='width: 200px;'>Nama Lengkap</td><td>: <strong>[NAMA_LENGKAP]</strong></td></tr>
             <tr><td>Nomor Induk Pegawai (NIP)</td><td>: [NIP]</td></tr>
@@ -934,7 +941,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             <li>Melaksanakan penugasan resmi dengan penuh tanggung jawab sesuai etika profesi dan SOP [NAMA_RS].</li>
             <li>Melaporkan bukti kehadiran dan hasil pelaksanaan tugas dinas kepada pimpinan unit kerja setelah masa penugasan selesai.</li>
         </ol>
-        <p>Demikian Surat Perintah Tugas ini dibuat untuk dilaksanakan dan dipergunakan sebagaimana mestinya.</p>
+        <p>Demikian Surat Tugas ini dibuat untuk dilaksanakan dan dipergunakan sebagaimana mestinya.</p>
     </div>
     <div class='footer'>
         <div class='verification'>
@@ -1023,6 +1030,44 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         }
 
         /// <summary>BE-HRD-381: identitas RS dari Master Lokasi; penerbitan ditolak bila belum diatur (tanpa identitas karangan).</summary>
+        /// <summary>
+        /// BE-HRD-384: verifikasi publik Surat Tugas. Nama peserta disamarkan; surat dibatalkan dinyatakan tidak sah.
+        /// </summary>
+        private async Task<PublicDocumentVerificationDto?> VerifyPublicAssignmentLetterAsync(string hash, CancellationToken cancellationToken)
+        {
+            var letter = await _dbContext.Set<HrdAssignmentLetter>()
+                .AsNoTracking()
+                .Where(x => x.VerificationHash == hash && !x.IsDelete)
+                .Select(x => new
+                {
+                    x.LetterNumber, x.LetterStatus, x.IssuedAt, x.EndAt, x.CancelledAt, x.CancellationReason, x.SignerName, x.SignerTitle,
+                    Names = x.Participants.Where(p => !p.IsDelete).OrderBy(p => p.DisplayNameSnapshot).Select(p => p.DisplayNameSnapshot).ToList()
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (letter == null)
+            {
+                return null;
+            }
+
+            var issuer = await ResolveIssuerNameAsync(null, cancellationToken);
+            var cancelled = letter.LetterStatus == DTOs.AssignmentLetterStatuses.Cancelled;
+            return new PublicDocumentVerificationDto
+            {
+                IsValid = !cancelled,
+                VerificationStatusMessage = cancelled
+                    ? $"PERINGATAN: Surat Tugas ini telah DIBATALKAN oleh {issuer} pada {letter.CancelledAt:dd MMMM yyyy}. Alasan: {letter.CancellationReason}. Surat tidak berlaku."
+                    : $"Surat Tugas Sah & Terverifikasi, diterbitkan resmi oleh {issuer}.",
+                OfficialDocumentNumber = letter.LetterNumber ?? string.Empty,
+                DocumentTypeName = "Surat Tugas",
+                EmployeeNameMasked = string.Join(", ", letter.Names.Select(MaskString)),
+                IssuedByHospital = issuer,
+                IssuedAt = letter.IssuedAt ?? DateTime.MinValue,
+                ValidUntil = letter.EndAt,
+                SignerName = letter.SignerName ?? string.Empty,
+                SignerTitle = letter.SignerTitle ?? string.Empty
+            };
+        }
+
         private async Task<HrLetterhead> ResolveHospitalIdentityAsync(CancellationToken cancellationToken) =>
             await HrLetterheadResolver.TryResolveAsync(_dbContext, cancellationToken)
                 ?? throw new InvalidOperationException(HrLetterheadResolver.MissingIdentityMessage);

@@ -7,21 +7,21 @@
 | Modul | Human Resource / Sumber Daya Manusia |
 | Blueprint | `HRD-BP-001` |
 | Blueprint shape | `SINGLE` |
-| Jenis dokumen | Planning penyesuaian navigasi frontend; bukan task implementasi |
-| Status | `DRAFT` — menunggu persetujuan pemilik kebutuhan sebelum source frontend diubah |
-| Revision dokumen | `2` — koreksi anti-tumpang-tindih: kebutuhan BA dipetakan ke pemilik fungsi existing, bukan otomatis menjadi parent/menu baru |
+| Jenis dokumen | Planning dan rekam hasil penyesuaian navigasi frontend; bukan roadmap task |
+| Status | `PARTIAL / VERIFYING` — Paket A telah diimplementasikan; verifikasi browser dan permission runtime belum tersedia; Paket B tetap ditunda |
+| Revision dokumen | `3` — mencatat persetujuan, implementasi Paket A, bukti validasi, serta konflik kontrak Tindak Disiplin |
 | Tanggal | 20 November 2026 |
 | Masukan bisnis | Daftar 12 menu dan 61 submenu dari Business Analyst yang disampaikan pengguna pada 20 November 2026 |
 | Referensi visual | Capture sidebar SDM yang memuat Diklat, Manajemen Kinerja & Karier, Hubungan Industrial & Terminasi, K3RS, SPPD, dan Layanan Mandiri |
-| Source frontend yang diperiksa | `QuilvianSystemFrontendDev@0fc88be5c64e68d105c7c75adbca2e7104d8de4a` (`HamzahV2`) |
-| Source backend yang diperiksa | `NewQuilvianSystemBackend@b9a9ae08709fe103eeb0cbaff29682e8ecc2a246` (`MHamzah`) |
+| Source frontend hasil implementasi | `QuilvianSystemFrontendDev@51853893e9f229f0f22f5e86bc5f2e8c08946779` (`HamzahV2`) |
+| Source backend yang diperiksa untuk konflik disiplin | `NewQuilvianSystemBackend@a7c37c56052ee390aa8f222edbd143736dd20786` (`MHamzah`) |
 | Target source saat implementasi | `QuilvianSystemFrontendDev/src/utils/menu-sidebar/menu-items.jsx` |
-| Batas tulis dokumen ini | Hanya dokumen blueprint; source frontend dan backend tidak diubah |
+| Persetujuan | Disetujui pengguna pada 20 November 2026; pengguna memerintahkan implementasi code terlebih dahulu dan pembaruan blueprint setelahnya |
+| Batas implementasi | Hanya susunan menu dan test unit terkait; tidak menambah API, tabel, migration, atau workflow backend |
 
-> **Catatan bukti usang:** SHA pada `blueprint-manifest.md` belum sama dengan HEAD yang diperiksa
-> untuk dokumen ini. Karena itu, planning ini memakai impact scan terbatas terhadap source frontend
-> terkini di atas. Planning ini tidak mengubah revision, status, keputusan, kontrak, atau roadmap
-> blueprint yang sudah ada.
+> **Catatan pemutakhiran:** revision 3 merekonsiliasi planning dengan commit frontend hasil
+> implementasi. Blueprint manifest diperbarui secara terbatas; roadmap tidak diubah karena pengguna
+> meminta pembaruan module blueprint setelah implementasi code.
 
 ## 2. Tujuan
 
@@ -129,12 +129,12 @@ Contoh konflik existing yang perlu diselesaikan saat implementasi:
 | Disiplin & Pembinaan | `REUSE WITH ADAPTER` | Fungsi sudah berada di `Hubungan Industrial & Terminasi` dan disciplinary action | Petakan kebutuhan BA di dalam owner existing; jangan membentuk parent disiplin kedua |
 | Pemberhentian & Pensiun | `READY TO REUSE` | Enam submenu sudah ada | Pertahankan route dan perbaiki label `Clearense` menjadi `Clearance` |
 
-## 5. Target struktur menu dan pemetaan route
+## 5. Pemetaan kebutuhan BA ke owner navigasi dan route
 
 Status pada tabel menggunakan taxonomy kemampuan canonical. `Rencana baru` berarti route target
 belum boleh dianggap tersedia sebelum task desain dan implementasi terpisah disetujui.
 
-### 5.1 Menu 01 — Dashboard SDM
+### 5.1 Kebutuhan BA 01 — Dashboard SDM
 
 | Urutan | Label target | Route/kemampuan target | Status | Tindakan planning |
 | ---: | --- | --- | --- | --- |
@@ -152,7 +152,7 @@ frontend disetujui.
 audit endpoint agregat existing. Jika belum tersedia, kontrak endpoint ringkasan wajib dirancang
 dan disetujui lebih dahulu; dokumen ini tidak mengarang URL, DTO, atau permission backend.
 
-### 5.2 Menu 02 — Perencanaan Kebutuhan SDM
+### 5.2 Kebutuhan BA 02 — Perencanaan Kebutuhan SDM
 
 | Urutan | Label target BA | Route existing yang direkomendasikan | Status | Catatan |
 | ---: | --- | --- | --- | --- |
@@ -165,7 +165,7 @@ Item existing `Pengaturan Perencanaan`, `Batch Formasi Awal`, `Standar Kebutuhan
 Rekrutmen`, dan `Rencana Tahunan` tidak dihapus. Item tersebut tetap berada setelah empat item BA
 atau dipertahankan sebagai fungsi lanjutan sesuai kemampuan sidebar existing.
 
-### 5.3 Menu 03 — Rekrutmen & Seleksi
+### 5.3 Kebutuhan BA 03 — Rekrutmen & Seleksi
 
 | Urutan | Label target BA | Route/entry point | Status | Catatan ownership |
 | ---: | --- | --- | --- | --- |
@@ -179,7 +179,7 @@ Item `Permintaan Requisition`, `Surat Penawaran`, `Pemantauan MCU Pra-Kerja`, da
 tetap dipertahankan sebagai fungsi existing tambahan. Parent `Onboarding & Kontrak` existing juga
 tidak dihapus karena parent tersebut mengelola pelaksanaan onboarding setelah handoff.
 
-### 5.4 Menu 04 — Data Induk Pegawai
+### 5.4 Kebutuhan BA 04 — Data Induk Pegawai
 
 Kebutuhan ini **tidak menjadi parent sidebar baru**. Pemilik utamanya tetap **Master Data →
 Karyawan** dan **Master Data → Dokter** karena halaman Data Induk yang dibuat sebelumnya memakai
@@ -199,7 +199,7 @@ kompatibilitas selama belum ada keputusan penghapusan. Namun blok `Data Induk Pe
 `menu-items.jsx` tetap dikomentari/nonaktif agar pengguna tidak melihat dua pintu untuk fungsi
 yang sama.
 
-### 5.5 Menu 05 — Struktur Organisasi & Jabatan
+### 5.5 Kebutuhan BA 05 — Struktur Organisasi & Jabatan
 
 | Urutan | Label target BA | Route/entry point existing | Status | Catatan |
 | ---: | --- | --- | --- | --- |
@@ -215,7 +215,7 @@ Tidak dibuat parent tingkat atas `Struktur Organisasi & Jabatan` kedua. Item Mas
 seperti Legal Entity, Fasilitas Rumah Sakit, Lokasi Kerja, Pusat Biaya, Level Jabatan, dan Grade
 Karyawan tetap berada di tempatnya dan tidak diubah.
 
-### 5.6 Menu 06 — Administrasi Kepegawaian
+### 5.6 Kebutuhan BA 06 — Administrasi Kepegawaian
 
 | Urutan | Label target BA | Route existing | Status |
 | ---: | --- | --- | --- |
@@ -226,10 +226,10 @@ Karyawan tetap berada di tempatnya dan tidak diubah.
 | 5 | Pengajuan Perubahan Data | `/hr/workforce-core/employee-profile-changes` | `READY TO REUSE` |
 
 Item existing lain pada Administrasi Kepegawaian tidak dihapus pada pekerjaan ini. Namun route
-yang menjadi primary navigation Menu 05 atau Menu 07 tidak boleh tetap ditampilkan sebagai item
+yang menjadi primary navigation Master Data atau Menu 07 tidak boleh tetap ditampilkan sebagai item
 duplikat tanpa alasan dan label yang jelas.
 
-### 5.7 Menu 07 — Penempatan, Mutasi & Promosi
+### 5.7 Kebutuhan BA 07 — Penempatan, Mutasi & Promosi
 
 | Urutan | Label target BA | Route existing | Status |
 | ---: | --- | --- | --- |
@@ -243,7 +243,7 @@ Untuk membedakan makna dari Menu 05, teks bantuan halaman disarankan menggunakan
 **Uraian Tugas Pegawai** dan **Atasan Langsung Pegawai**, sedangkan label sidebar tetap mengikuti
 kebutuhan BA.
 
-### 5.8 Menu 08 — Kontrak & Masa Kerja
+### 5.8 Kebutuhan BA 08 — Kontrak & Masa Kerja
 
 | Urutan | Label target BA | Route existing | Status |
 | ---: | --- | --- | --- |
@@ -255,7 +255,7 @@ kebutuhan BA.
 Tidak direncanakan perubahan route. Pekerjaan hanya memastikan urutan, permission, active state,
 dan deep-link tetap berfungsi.
 
-### 5.9 Menu 09 — Kompetensi & Kredensial
+### 5.9 Kebutuhan BA 09 — Kompetensi & Kredensial
 
 | Urutan | Label target BA | Route existing | Status |
 | ---: | --- | --- | --- |
@@ -269,7 +269,7 @@ Fungsi kredensial lanjutan seperti kalkulator rapor komposit dan sinkronisasi SI
 parent ini. Item OPPE/FPPE yang merupakan evaluasi kinerja dipindahkan ke Menu 10 hanya setelah
 dipastikan tidak menghasilkan `pathname` ganda.
 
-### 5.10 Menu 10 — Penilaian Kerja
+### 5.10 Kebutuhan BA 10 — Penilaian Kerja
 
 Parent existing `Manajemen Kinerja & Karier` diselaraskan menjadi `Penilaian Kerja`.
 
@@ -286,22 +286,26 @@ dipertahankan setelah lima submenu BA. Fungsi OPPE/FPPE dapat ditempatkan sebaga
 tambahan karena merupakan penilaian klinis, tetapi pemindahannya harus menjaga permission dan
 deep-link existing.
 
-### 5.11 Menu 11 — Disiplin & Pembinaan
+### 5.11 Kebutuhan BA 11 — Disiplin & Pembinaan
 
-| Urutan | Label target BA | Sumber kemampuan existing | Status | Tindakan sebelum implementasi |
+Kebutuhan ini dipenuhi di dalam parent existing **Hubungan Industrial & Terminasi**. Tidak dibuat
+parent `Disiplin & Pembinaan` kedua. Lima butir BA boleh diwujudkan sebagai label, tab, atau filter
+pada halaman existing; tidak semuanya harus menjadi submenu sidebar tersendiri.
+
+| Urutan | Kebutuhan BA | Sumber kemampuan existing | Status | Representasi tanpa duplikasi |
 | ---: | --- | --- | --- | --- |
-| 1 | Catatan Pembinaan | Disciplinary action/coaching existing | `REUSE WITH ADAPTER` | Tentukan filter/status yang membedakan pembinaan dari sanksi |
+| 1 | Catatan Pembinaan | Disciplinary action/coaching existing | `REUSE WITH ADAPTER` | Tab/filter pembinaan pada halaman tindakan disiplin; bukan parent baru |
 | 2 | Teguran | `/hrd/relations/sanctions` | `REUSE WITH ADAPTER` | Gunakan kategori teguran/SP tanpa membuat record kedua |
 | 3 | Pelanggaran | `/hrd/relations/incidents` | `READY TO REUSE` | Reuse laporan insiden/pelanggaran |
 | 4 | Tindak Disiplin | `/hr/employee-relations/disciplinary-actions` | `READY TO REUSE` | Pastikan permission dan sumber data sama dengan hubungan industrial |
-| 5 | Riwayat Penyelesaian | Riwayat kasus/sanksi existing | `EXTEND` | Tentukan entry point daftar selesai; jangan menebak route baru sebelum audit view/service |
+| 5 | Riwayat Penyelesaian | Riwayat kasus/sanksi existing | `EXTEND` | Tab/filter status selesai pada owner existing; jangan membuat daftar kasus kedua |
 
 Parent `Hubungan Industrial & Terminasi` tidak dihapus. Submenu di luar lima kebutuhan ini,
 seperti skorsing investigasi, pengaduan/whistleblowing, dan forum bipartit, tetap berada pada
-parent existing. Saat fungsi disiplin dipindahkan, parent lama tidak boleh mempertahankan link
-duplikat ke route yang sama.
+parent existing. Penyesuaian label atau tab dilakukan di tempat yang sama, bukan dengan
+memindahkan fungsi ke parent baru.
 
-### 5.12 Menu 12 — Pemberhentian & Pensiun
+### 5.12 Kebutuhan BA 12 — Pemberhentian & Pensiun
 
 | Urutan | Label target BA | Route existing | Status |
 | ---: | --- | --- | --- |
@@ -318,25 +322,27 @@ menghasilkan dua menu utama yang membingungkan; ownership primary-nya adalah Men
 
 ## 6. Urutan target pada sidebar
 
-Susunan berikut adalah target di dalam parent **Sumber Daya Manusia**. Parent existing di luar
-scope tetap dipertahankan dan tidak harus dipindahkan apabila pemindahan berisiko merusak
-permission atau active-route.
+Susunan berikut adalah target anti-tumpang-tindih di dalam parent **Sumber Daya Manusia**. Nomor
+BA pada tanda kurung menunjukkan kebutuhan yang dipenuhi; nomor tersebut bukan parent tambahan.
+Parent existing di luar scope tetap dipertahankan.
 
 ```text
 Sumber Daya Manusia
-├── Master Data                                  [EXISTING — pertahankan fungsi non-BA]
-├── 01 Dashboard SDM                            [BARU]
-├── 02 Perencanaan Kebutuhan SDM                [ADAPTASI]
-├── 03 Rekrutmen & Seleksi                      [ADAPTASI]
-├── 04 Data Induk Pegawai                       [AKTIFKAN KEMBALI]
-├── 05 Struktur Organisasi & Jabatan            [ADAPTASI]
-├── 06 Administrasi Kepegawaian                 [ADAPTASI]
-├── 07 Penempatan, Mutasi & Promosi             [PERTAHANKAN]
-├── 08 Kontrak & Masa Kerja                     [PERTAHANKAN]
-├── 09 Kompetensi & Kredensial                  [RAPIKAN]
-├── 10 Penilaian Kerja                          [RENAME/ADAPTASI]
-├── 11 Disiplin & Pembinaan                     [ADAPTASI]
-├── 12 Pemberhentian & Pensiun                  [PERTAHANKAN]
+├── Master Data                                  [EXISTING]
+│   ├── Data Karyawan & Perencanaan SDM
+│   │   ├── Karyawan                             [memenuhi BA 04]
+│   │   └── Dokter                               [memenuhi BA 04]
+│   └── Organisasi & Struktur Jabatan            [memenuhi BA 05]
+├── Dashboard SDM                                [BA 01 — BARU setelah kontrak siap]
+├── Perencanaan Kebutuhan SDM                    [BA 02 — ADAPTASI parent existing]
+├── Rekrutmen & Seleksi                          [BA 03 — ADAPTASI parent existing]
+├── Administrasi Kepegawaian                     [BA 06 — ADAPTASI parent existing]
+├── Penempatan, Mutasi & Promosi                 [BA 07 — PERTAHANKAN]
+├── Kontrak & Masa Kerja                         [BA 08 — PERTAHANKAN]
+├── Kompetensi & Kredensial                      [BA 09 — RAPIKAN]
+├── Penilaian Kerja                              [BA 10 — rename parent existing in-place]
+├── Hubungan Industrial & Terminasi              [memenuhi BA 11; tidak membuat parent kedua]
+├── Pemberhentian & Pensiun                      [BA 12 — PERTAHANKAN]
 ├── Presensi & Kehadiran                        [EXISTING — jangan diubah]
 ├── Onboarding & Kontrak                        [EXISTING — jangan dihapus]
 ├── Kotak Masuk Persetujuan                     [EXISTING — jangan diubah]
@@ -346,14 +352,13 @@ Sumber Daya Manusia
 ├── Manajemen Manfaat                           [EXISTING — jangan diubah]
 ├── Layanan SDM & Meja Bantuan                  [EXISTING — jangan diubah]
 ├── Pendidikan & Pelatihan RS (Diklat)          [CAPTURE — jangan diubah]
-├── Hubungan Industrial & Terminasi             [PERTAHANKAN fungsi non-BA]
 ├── Kesehatan & Keselamatan Kerja RS (K3RS)     [CAPTURE — jangan diubah]
 ├── Perjalanan Dinas & Biaya (SPPD)             [CAPTURE — jangan diubah]
 └── Layanan Mandiri                             [CAPTURE — jangan diubah]
 ```
 
-Nomor `01` sampai `12` pada diagram adalah penanda urutan planning. Nomor tidak harus menjadi
-bagian label visual apabila style sidebar existing tidak menggunakan nomor.
+Tidak ada parent fisik `Data Induk Pegawai`, `Struktur Organisasi & Jabatan`, atau `Disiplin &
+Pembinaan` kedua. Ketiga kebutuhan tersebut dipenuhi melalui owner existing sebagaimana diagram.
 
 ## 7. Aturan perubahan `menu-items.jsx`
 
@@ -387,25 +392,30 @@ delivery planning setelah scope ini disetujui.
 2. Ekstrak seluruh parent, child, `key`, `pathname`, dan `requiredPermission` dari
    `menu-items.jsx`.
 3. Tandai setiap item sebagai BA, pendukung BA, atau di luar scope.
-4. Selesaikan konflik ownership route Menu 05/07, Menu 09/10, dan Menu 11/12.
-5. Hasil: matriks before/after tanpa route yatim dan tanpa route primary ganda.
+4. Tetapkan owner existing untuk setiap kebutuhan BA sebelum mengusulkan parent/item baru.
+5. Selesaikan konflik ownership route Menu 05/07, Menu 09/10, dan Menu 11/12.
+6. Hasil: matriks before/after tanpa route yatim dan tanpa route primary ganda.
 
 ### Tahap P1 — Perubahan aman yang sudah memiliki route
 
-1. Aktifkan Data Induk Pegawai.
-2. Rapikan label dan urutan Perencanaan Kebutuhan SDM.
-3. Rapikan Administrasi Kepegawaian.
-4. Pertahankan Menu 07 dan Menu 08.
-5. Rapikan lima submenu utama Kompetensi & Kredensial.
-6. Koreksi `Clearense` menjadi `Clearance`.
-7. Jangan mengerjakan Dashboard atau route worklist yang masih `MISSING`/`EXTEND` pada tahap ini.
+1. Pertahankan blok sidebar Data Induk Pegawai dalam keadaan nonaktif.
+2. Catat Master Data Karyawan/Dokter sebagai pemenuh kebutuhan BA 04 tanpa menambah link.
+3. Rapikan label dan urutan Perencanaan Kebutuhan SDM.
+4. Rapikan Administrasi Kepegawaian.
+5. Pertahankan Menu 07 dan Menu 08.
+6. Rapikan lima submenu utama Kompetensi & Kredensial.
+7. Koreksi `Clearense` menjadi `Clearance`.
+8. Jangan mengerjakan Dashboard atau route worklist yang masih `MISSING`/`EXTEND` pada tahap ini.
 
 ### Tahap P2 — Konsolidasi menu yang tumpang tindih
 
-1. Bentuk Struktur Organisasi & Jabatan dari route existing.
-2. Ubah parent Manajemen Kinerja & Karier menjadi Penilaian Kerja dan pertahankan item tambahan.
-3. Bentuk Disiplin & Pembinaan dengan memindahkan hanya fungsi disiplin yang relevan.
-4. Pastikan Hubungan Industrial & Terminasi tetap memuat fungsi non-BA.
+1. Pertahankan Struktur Organisasi & Jabatan di bawah Master Data; hilangkan hanya shortcut yang
+   terbukti ganda setelah owner primary ditetapkan.
+2. Selaraskan Manajemen Kinerja & Karier dengan kebutuhan Penilaian Kerja pada parent yang sama;
+   jangan membuat parent Penilaian Kerja kedua.
+3. Petakan Disiplin & Pembinaan sebagai label/tab/filter pada Hubungan Industrial & Terminasi;
+   jangan membuat parent Disiplin & Pembinaan kedua.
+4. Pertahankan fungsi hubungan industrial non-BA.
 5. Pastikan tidak ada `pathname` primary yang muncul ganda.
 
 ### Tahap P3 — Entry point yang belum tersedia
@@ -450,8 +460,8 @@ tabel atau struktur teknis aplikasi.
 
 1. Pengguna membuka **Sumber Daya Manusia**.
 2. Sistem hanya menampilkan parent dan submenu yang diizinkan permission pengguna.
-3. Pengguna memilih salah satu dari 12 proses bisnis.
-4. Sistem membuka route existing yang menjadi pemilik kemampuan tersebut.
+3. Pengguna memilih menu existing yang menjadi pemilik salah satu kebutuhan bisnis BA.
+4. Sistem membuka route existing tersebut tanpa melewati façade kedua dengan data yang sama.
 5. Untuk proses lintas domain, sistem meneruskan pengguna ke workflow pemilik tanpa membuat data
    baru. Contoh: kandidat lulus diteruskan dari Rekrutmen ke Onboarding.
 6. Ketika pengguna kembali atau me-refresh halaman, parent yang benar tetap terbuka dan submenu
@@ -470,29 +480,32 @@ tabel atau struktur teknis aplikasi.
 
 ### 9.5 Hasil akhir
 
-Pengguna dapat menemukan pekerjaan SDM melalui 12 kelompok Business Analyst, sementara menu
-existing di luar scope tetap tersedia dan berfungsi seperti sebelum perubahan.
+Seluruh 12 kelompok kebutuhan Business Analyst dapat ditemukan melalui owner menu existing atau
+fitur baru yang benar-benar belum tersedia, tanpa membuat navigasi kedua untuk fungsi yang sama.
 
 ## 10. Acceptance criteria planning
 
 Planning dianggap siap diturunkan menjadi task implementasi setelah seluruh kriteria berikut
 disetujui:
 
-1. Dua belas parent bisnis dan seluruh submenu BA memiliki pemetaan route atau status gap yang
-   eksplisit.
+1. Dua belas kelompok kebutuhan BA dan 61 butirnya memiliki pemetaan owner existing, route, tab,
+   filter, atau status gap yang eksplisit; tidak diwajibkan menjadi 12 parent fisik.
 2. Tidak ada halaman existing yang dihapus.
 3. Tidak ada tabel, record, atau workflow baru hanya karena menu dipindahkan.
 4. Setiap route memiliki satu primary navigation owner.
-5. Data Induk Pegawai diaktifkan dengan permission yang benar.
+5. Data Induk Pegawai dipenuhi oleh Master Data Karyawan/Dokter; blok sidebar Data Induk tetap
+   nonaktif dan route kompatibilitas tidak menjadi primary navigation.
 6. Dashboard SDM tidak diimplementasikan sebelum sumber data dan kontrak agregat dipastikan.
 7. Onboarding pada Rekrutmen dipahami sebagai handoff, sedangkan pelaksanaan onboarding tetap
    memakai lifecycle existing.
-8. Uraian Tugas dan Atasan Langsung pada Menu 05 dibedakan dari data efektif pegawai pada Menu 07.
+8. Uraian Tugas dan Atasan Langsung pada Master Data dibedakan dari data efektif pegawai pada
+   Menu 07.
 9. Diklat, K3RS, SPPD, dan Layanan Mandiri tidak mengalami perubahan label, `key`, `pathname`,
    permission, atau perilaku.
 10. Fungsi karier tambahan pada Manajemen Kinerja tidak dihapus saat parent diselaraskan menjadi
     Penilaian Kerja.
-11. Fungsi hubungan industrial non-BA tidak dihapus saat Disiplin & Pembinaan dibentuk.
+11. Fungsi Disiplin & Pembinaan dipetakan pada Hubungan Industrial & Terminasi tanpa membuat
+    parent kedua dan tanpa menghapus fungsi hubungan industrial non-BA.
 12. Lint, build, route smoke test, permission test, dan live browser regression menghasilkan bukti
     yang dapat ditelusuri.
 
@@ -514,7 +527,10 @@ disetujui:
 | --- | --- | --- |
 | Parent Sumber Daya Manusia | `QuilvianSystemFrontendDev/src/utils/menu-sidebar/menu-items.jsx:213` | Root sidebar HR |
 | Master struktur organisasi | `menu-items.jsx:223-292` | Struktur, unit, rumpun, uraian, dan atasan saat ini berada di Master Data |
-| Data Induk Pegawai | `menu-items.jsx:608-650` | Enam submenu tersedia tetapi dikomentari |
+| Blok sidebar Data Induk Pegawai | `menu-items.jsx:608-650` | Enam submenu tersedia tetapi dikomentari; dipertahankan nonaktif agar tidak menjadi navigasi kedua |
+| Façade Data Induk memakai komponen Master Data | `src/components/view/hr/data-induk-pegawai/data-induk-pegawai-view.jsx:25-26,315-359` | Mengimpor dan merender `EmployeeDetailView` serta `EmployeeWorkforceManageView` milik Master Data |
+| Detail Karyawan sebagai owner profil | `src/components/view/hr/master-data/employees/detail/employee-detail-view.jsx:11,146-160` | Menggunakan `WorkforceProfileDashboard` yang sama untuk profil dan resource workforce |
+| Endpoint detail Karyawan | `NewQuilvianSystemBackend/Areas/Corporate/HumanResource/MasterData/Workforce/Controllers/EmployeeController.cs:32-43,82-160` | Master Data Karyawan mengekspos tab ke endpoint dokumen, pendidikan, sertifikasi, dan kredensial workforce yang sama |
 | Administrasi Kepegawaian | `menu-items.jsx:651-728` | Fungsi perubahan data, penempatan, SK, surat, dokumen, dan payroll |
 | Penempatan, Mutasi & Promosi | `menu-items.jsx:729-785` | Lima submenu BA sudah tersedia |
 | Kontrak & Masa Kerja | `menu-items.jsx:786-833` | Empat submenu BA sudah tersedia |
@@ -525,14 +541,14 @@ disetujui:
 | Manajemen Kinerja & Karier | `menu-items.jsx:1780-1873` | Kemampuan KPI, cycle, appraisal, calibration, PIP, karier, dan senggah |
 | Hubungan Industrial & Terminasi | `menu-items.jsx:1874-1970` | Kemampuan insiden, sanksi, skorsing, grievance, bipartit, separation, clearance |
 
-Seluruh bukti frontend pada tabel merujuk commit
-`0fc88be5c64e68d105c7c75adbca2e7104d8de4a`. Nomor baris harus diperbarui apabila source berubah
-sebelum task implementasi dimulai.
+Tabel di atas adalah bukti baseline sebelum implementasi pada commit
+`0fc88be5c64e68d105c7c75adbca2e7104d8de4a`. Bukti source sesudah implementasi dicatat pada
+bagian 15 dan menjadi rujukan terkini untuk Paket A.
 
-## 13. Keputusan yang masih diperlukan sebelum implementasi
+## 13. Keputusan yang masih diperlukan untuk Paket B
 
-1. Apakah label visual parent memakai nomor `01` sampai `12`, atau nomor hanya dipakai dalam
-   dokumen dan urutan?
+1. Apakah istilah BA harus tampil sebagai label menu/tab persis, atau cukup tercatat sebagai
+   cakupan fungsi pada owner menu existing?
 2. Apakah Seleksi Administrasi cukup berupa filter pada Bank Pelamar, atau harus memiliki worklist
    tersendiri?
 3. Apakah Tes/Wawancara cukup berupa worklist gabungan evaluasi HR dan klinis, atau dipisahkan?
@@ -545,16 +561,67 @@ sebelum task implementasi dimulai.
 Pertanyaan tersebut tidak menghalangi perubahan aman pada Tahap P1, tetapi menghalangi publikasi
 menu Dashboard, Seleksi Administrasi, Tes/Wawancara, dan Riwayat Penyelesaian.
 
-## 14. Rekomendasi tindakan berikutnya
+## 14. Paket delivery yang disetujui
 
-Setelah planning ini disetujui, lakukan delivery planning frontend dengan dua paket terpisah:
+Planning ini disetujui pengguna pada 20 November 2026 dengan dua paket terpisah:
 
-1. **Paket A — Reorganisasi menu berbasis route existing.** Cakup rename, reorder, pemindahan
-   primary navigation, aktivasi Data Induk Pegawai, permission, active-route, dan regresi menu
-   non-BA. Paket ini tidak membuat API atau halaman bisnis baru.
+1. **Paket A — Reorganisasi menu berbasis route existing.** Cakup rename, reorder, penetapan
+   primary navigation, mempertahankan Data Induk sebagai route kompatibilitas non-sidebar,
+   permission, active-route, dan regresi menu non-BA. Paket ini tidak membuat API atau halaman
+   bisnis baru.
 2. **Paket B — Gap layar/entry point.** Cakup Dashboard SDM, Seleksi Administrasi,
    Tes/Wawancara, serta Riwayat Penyelesaian hanya setelah keputusan bagian 13 dan kontrak yang
    dibutuhkan disetujui.
 
 Pemisahan ini menjaga perubahan navigasi yang aman dapat berjalan tanpa menunggu kebutuhan baru
-yang masih memerlukan keputusan bisnis atau kontrak backend.
+yang masih memerlukan keputusan bisnis atau kontrak backend. Paket A telah diimplementasikan;
+Paket B belum diberi wewenang implementasi.
+
+## 15. Rekam hasil implementasi Paket A — 20 November 2026
+
+### 15.1 Hasil yang diterapkan
+
+| Area | Hasil implementasi | Bukti source frontend |
+| --- | --- | --- |
+| Administrasi Kepegawaian | Lima fungsi BA ditempatkan di urutan awal. `Relasi Atasan` tidak dibuat sebagai pintu kedua; kepemilikan tetap pada Master Data | `menu-items.jsx:652-718`; `hr-master-data-sidebar-grouping.test.mjs:356-379` |
+| Perencanaan Kebutuhan SDM | Parent diselaraskan dan empat fungsi BA menjadi urutan awal; lima fungsi existing non-BA dipertahankan | `menu-items.jsx:827-918`; test `HR-07` baris `326-336` |
+| Rekrutmen & Seleksi | Label parent, Lowongan, Pelamar, dan handoff Onboarding diselaraskan; requisition, offer, MCU, dan talent pool tetap ada | `menu-items.jsx:988-1059`; test `HR-07` baris `338-354` |
+| Data Induk Pegawai | Blok sidebar tetap nonaktif; Master Data Karyawan/Dokter tetap menjadi owner sehingga tidak ada navigasi kedua | `menu-items.jsx:609-650`; test `HR-07` baris `375-379` |
+| Pemberhentian & Pensiun | Ejaan `Clearense` dikoreksi menjadi `Clearance` tanpa mengubah `key` atau route | `menu-items.jsx:1515-1518` |
+| Kompetensi & Kredensial | Lima fungsi BA tetap di owner ini; OPPE/FPPE tidak lagi digandakan pada credentialing | `menu-items.jsx:1557-1629`; test `HR-08` baris `387-419` |
+| Penilaian Kerja | Parent diselaraskan; lima fungsi BA menjadi urutan awal; OPPE/FPPE dan fungsi karier existing tetap tersedia pada satu owner kinerja | `menu-items.jsx:1723-1862`; test `HR-08` baris `382-419` |
+| Hubungan Industrial & Terminasi | `Teguran` dan `Pelanggaran` memakai route existing; fungsi hubungan industrial non-BA tidak dihapus | `menu-items.jsx:1867-1958`; test `HR-08` mulai baris `422` |
+| Menu di luar kebutuhan BA | Diklat, K3RS, SPPD, Layanan Mandiri, dan kelompok existing lain dipertahankan | Diff commit dan test regresi leaf menu |
+
+Commit hasil implementasi:
+`QuilvianSystemFrontendDev@51853893e9f229f0f22f5e86bc5f2e8c08946779` pada branch
+`HamzahV2`.
+
+### 15.2 Hasil verifikasi
+
+| Pemeriksaan | Hasil | Bukti |
+| --- | --- | --- |
+| Lint error | `PASS` | `npm run lint:errors` |
+| ESLint target | `PASS` | Pemeriksaan target `menu-items.jsx` dan test menu HR |
+| Pemeriksaan penggunaan CSS | `PASS` | 0 temuan |
+| Test unit menu HR | `PASS` | 8/8 pada `tests/unit/hr-master-data-sidebar-grouping.test.mjs`; termasuk `HR-07` dan `HR-08` |
+| Build produksi | `PASS` | `npm run build`; 890 route/page dihasilkan dan standalone disiapkan |
+| Seluruh unit test frontend | `PARTIAL` | 5.104 lulus dan 73 gagal dari 5.177; kegagalan berada pada modul existing di luar perubahan menu; file test target lulus seluruhnya |
+| Uji browser dan permission runtime | `PENDING` | Belum dijalankan; Paket A belum boleh dinyatakan `DONE` |
+
+### 15.3 Cakupan yang ditunda atau terblokir
+
+| Kebutuhan | Status | Alasan |
+| --- | --- | --- |
+| Dashboard SDM | `DEFERRED / PACKAGE B` | Sumber data agregat, definisi dokumen kedaluwarsa, dan horizon peringatan belum dikunci |
+| Seleksi Administrasi | `DEFERRED / PACKAGE B` | Belum diputuskan apakah filter Bank Pelamar atau worklist tersendiri |
+| Tes/Wawancara | `DEFERRED / PACKAGE B` | Belum diputuskan bentuk worklist dan pembagian evaluasi HR/klinis |
+| Riwayat Penyelesaian | `DEFERRED / PACKAGE B` | Belum diputuskan sebagai filter, tab, atau worklist |
+| Tindak Disiplin | `CONFLICT — NOT PUBLISHED` | Service frontend memakai `/v1/hr/workforce-profile/disciplinary-actions`, sedangkan kontrak detail backend berada di `/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/disciplinary-actions`; diperlukan perbaikan kontrak/service dan keputusan entry point sebelum item sidebar dipublikasikan |
+
+### 15.4 Putusan status
+
+Paket A berstatus **`PARTIAL / VERIFYING`**. Perubahan struktur aman sudah berada pada source dan
+lulus lint, test target, serta build. Status belum dinaikkan menjadi `DONE` karena belum ada bukti
+uji browser headed dan matriks permission akun positif/negatif. Paket B tetap di luar implementasi
+ini. Tidak ada API, entity, tabel, migration, atau workflow backend yang dibuat oleh perubahan menu.
