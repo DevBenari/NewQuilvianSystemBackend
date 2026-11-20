@@ -170,6 +170,28 @@ public sealed class PayrollCompensationSalaryHistoryResponse
 
     public DateTime? ApprovedAt { get; set; }
 
+    /// <summary>Nama pengesah bila persetujuan manual tercatat; null bila belum ada persetujuan manual atau nama tidak dapat ditentukan. Aditif (PAY-BE-FIX-010).</summary>
+    public string? ApprovedByUserName { get; set; }
+
+    /// <summary>
+    /// Asal wewenang untuk Payroll: ManualApproved | AutoByPolicy | PendingApproval (WfpSalaryAuthorizationStatuses). AutoByPolicy berarti sah
+    /// menurut kebijakan Payroll tanpa persetujuan manual; ia bukan persetujuan oleh seseorang, jadi ApprovedAt/ApprovedByUserName tetap
+    /// kosong dan IsApproved tetap false. Aditif (PAY-BE-FIX-010).
+    /// </summary>
+    public string AuthorizationStatus { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Keadaan operasional pada tanggal acuan, terpisah dari asal persetujuan: Current | Scheduled | Expired | Inactive | NotPrimary
+    /// (WfpSalaryOperationalStatuses). Aditif (PAY-BE-FIX-010).
+    /// </summary>
+    public string OperationalStatusCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// True bila penetapan ini sedang berlaku sebagai penetapan utama dan boleh dipakai Payroll menurut kebijakan (Current dan bukan
+    /// PendingApproval). Aturan yang sama dengan pembaca Payroll. Aditif (PAY-BE-FIX-010).
+    /// </summary>
+    public bool IsPayrollUsable { get; set; }
+
     /// <summary>Null bila pemanggil tidak memiliki izin ViewAmount.</summary>
     public decimal? BaseSalary { get; set; }
 }

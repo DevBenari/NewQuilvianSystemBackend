@@ -8,8 +8,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public int ActiveData { get; set; }
         public int InactiveData { get; set; }
         public int PrimaryData { get; set; }
+        /// <summary>Persetujuan manual tercatat (ApprovedAt dan ApprovedByUserId terisi). Bukan "sah dipakai Payroll": lihat PayrollUsableData.</summary>
         public int ApprovedData { get; set; }
+
+        /// <summary>
+        /// Belum ada persetujuan manual. Bila ApprovalRequired false, ini BUKAN antrean yang perlu disetujui: penetapan itu sah menurut
+        /// kebijakan (lihat AutoByPolicyData). Maknanya tidak diubah demi kompatibilitas.
+        /// </summary>
         public int PendingApprovalData { get; set; }
+
+        /// <summary>True bila Payroll mensyaratkan persetujuan manual (Payroll:Policy:RequireApprovedSalaryAssignment). Aditif.</summary>
+        public bool ApprovalRequired { get; set; }
+
+        /// <summary>Belum ada persetujuan manual dan kebijakan tidak mensyaratkannya: sah menurut kebijakan. Selalu 0 bila ApprovalRequired true. Aditif.</summary>
+        public int AutoByPolicyData { get; set; }
+
+        /// <summary>Menunggu persetujuan yang disyaratkan kebijakan. Selalu 0 bila ApprovalRequired false. Aditif.</summary>
+        public int AwaitingApprovalData { get; set; }
+
+        /// <summary>Jumlah penetapan yang saat ini berlaku sebagai penetapan utama dan boleh dipakai Payroll (IsPayrollUsable). Aditif.</summary>
+        public int PayrollUsableData { get; set; }
     }
 
     public class WfpSalaryAssignmentResponse
@@ -63,6 +81,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         /// </summary>
         public bool ApprovalRequired { get; set; }
 
+        /// <summary>
+        /// Asal wewenang untuk Payroll: ManualApproved | AutoByPolicy | PendingApproval (WfpSalaryAuthorizationStatuses). AutoByPolicy berarti sah
+        /// menurut kebijakan tanpa persetujuan manual; ApprovedAt/ApprovedByUserId tetap kosong. Aditif (PAY-BE-FIX-010).
+        /// </summary>
+        public string AuthorizationStatus { get; set; } = string.Empty;
+
+        /// <summary>Current | Scheduled | Expired | Inactive | NotPrimary (WfpSalaryOperationalStatuses), terpisah dari asal persetujuan. Aditif (PAY-BE-FIX-010).</summary>
+        public string OperationalStatusCode { get; set; } = string.Empty;
+
+        /// <summary>True bila penetapan ini sedang berlaku sebagai penetapan utama dan boleh dipakai Payroll menurut kebijakan. Aditif (PAY-BE-FIX-010).</summary>
+        public bool IsPayrollUsable { get; set; }
+
         /// <summary>SK Kepegawaian (HrdPersonnelActionOrder) yang menjadi dasar penetapan ini; null bila tidak ditautkan. Aditif.</summary>
         public Guid? PersonnelActionOrderId { get; set; }
         public string? PersonnelActionOrderNumber { get; set; }
@@ -75,6 +105,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
 
         /// <summary>Akhir periode payroll terakhir yang disahkan dan memakai penetapan ini; null bila belum dipakai. Aditif.</summary>
         public DateTime? LastFinalPayrollPeriodEnd { get; set; }
+
+        /// <summary>
+        /// Gaji Dasar bawaan Struktur Gaji (MstSalaryStructure.DefaultBaseSalary) SAAT INI. Bukan nominal tersimpan: penetapan menyimpan
+        /// <see cref="BaseSalary"/> miliknya sendiri sebagai histori. Null tanpa izin ViewAmount. Aditif (PAY-BE-FIX-011).
+        /// </summary>
+        public decimal? StructureDefaultBaseSalary { get; set; }
+
+        /// <summary>
+        /// True bila nominal tersimpan berbeda dari Gaji Dasar bawaan struktur saat ini (master berubah setelah penetapan dibuat, atau data
+        /// lama). Hanya penanda untuk ditinjau: tidak ada yang diubah otomatis. Null tanpa izin ViewAmount atau tanpa struktur. Aditif.
+        /// </summary>
+        public bool? BaseSalaryDiffersFromStructureDefault { get; set; }
+
+        /// <summary>
+        /// Keabsahan master pada hari ini: Valid | StructureInactive | GradeInactive | StructureNotYetEffective | StructureExpired
+        /// (PayrollSalaryMasterValidity). Penetapan lama tetap tersimpan apa adanya; status ini hanya menjelaskan mengapa struktur itu tidak
+        /// lagi dapat dipilih untuk penetapan baru. Aditif (PAY-BE-FIX-011).
+        /// </summary>
+        public string MasterValidityStatus { get; set; } = "Valid";
+
+        /// <summary>Alasan yang dapat dibaca pengguna untuk <see cref="MasterValidityStatus"/>; null bila Valid. Aditif.</summary>
+        public string? MasterValidityMessage { get; set; }
 
         public string? Description { get; set; }
         public DateTime CreateDateTime { get; set; }
@@ -140,8 +192,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         /// </summary>
         public Guid? PersonnelActionOrderId { get; set; }
 
+        /// <summary>
+        /// TIDAK OTORITATIF (PAY-BE-FIX-011). Gaji Dasar ditentukan server: untuk penetapan baru atau pergantian struktur/grade dari
+        /// MstSalaryStructure.DefaultBaseSalary; untuk penetapan yang struktur dan gradenya tidak berubah, nominal tersimpan dipertahankan.
+        /// Boleh dikosongkan. Klien lama yang masih mengirimnya diterima HANYA bila sama dengan nominal hasil penentuan server; nilai
+        /// berbeda ditolak (400), tidak pernah disimpan.
+        /// </summary>
         [Range(0, double.MaxValue)]
-        public decimal BaseSalary { get; set; }
+        public decimal? BaseSalary { get; set; }
 
         [Required, StringLength(3, MinimumLength = 3)]
         public string CurrencyCode { get; set; } = "IDR";

@@ -118,14 +118,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             var query = _dbContext.Set<WfpSalaryAssignment>().AsNoTracking()
                 .Where(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
+            var approvalRequired = _policy.RequireApprovedSalaryAssignment;
+            var today = DateTime.UtcNow.Date;
             var result = new WfpSalaryAssignmentSummaryResponse
             {
                 TotalData = await query.CountAsync(ct),
                 ActiveData = await query.CountAsync(x => x.IsActive, ct),
                 InactiveData = await query.CountAsync(x => !x.IsActive, ct),
                 PrimaryData = await query.CountAsync(x => x.IsPrimary && x.IsActive, ct),
+                // Dua hitungan lama tetap berarti fakta persetujuan manual (kompatibilitas); jangan dibaca sebagai "perlu disetujui".
                 ApprovedData = await query.CountAsync(WfpSalaryAssignmentRules.IsApprovedExpression, ct),
-                PendingApprovalData = await query.CountAsync(WfpSalaryAssignmentRules.IsPendingExpression, ct)
+                PendingApprovalData = await query.CountAsync(WfpSalaryAssignmentRules.IsPendingExpression, ct),
+                // Penambahan PAY-BE-FIX-010: kelayakan Payroll menurut kebijakan, supaya ringkasan tidak bertentangan dengan daftar.
+                ApprovalRequired = approvalRequired,
+                AutoByPolicyData = await query.CountAsync(
+                    WfpSalaryAssignmentRules.AuthorizationStatusExpression(WfpSalaryAuthorizationStatuses.AutoByPolicy, approvalRequired), ct),
+                AwaitingApprovalData = await query.CountAsync(
+                    WfpSalaryAssignmentRules.AuthorizationStatusExpression(WfpSalaryAuthorizationStatuses.PendingApproval, approvalRequired), ct),
+                PayrollUsableData = await query.CountAsync(WfpSalaryAssignmentRules.PayrollUsableExpression(approvalRequired, today), ct)
             };
 
             return Ok(ApiResponse<WfpSalaryAssignmentSummaryResponse>.Ok(result, "Ringkasan salary assignment berhasil diambil."));
@@ -250,7 +260,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                         EmployeeGradeId = NormalizeGuid(request.EmployeeGradeId),
                         PayrollPeriodId = NormalizeGuid(request.PayrollPeriodId),
                         PersonnelActionOrderId = NormalizeGuid(request.PersonnelActionOrderId),
-                        BaseSalary = request.BaseSalary,
+                        // Gaji Dasar ditentukan server dari master Struktur Gaji (ValidateRequestAsync); nominal dari klien tidak pernah disimpan.
+                        BaseSalary = validation.BaseSalary,
                         CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant(),
                         PaymentFrequency = NormalizeFrequency(request.PaymentFrequency),
                         EffectiveStartDate = request.EffectiveStartDate.Date,
@@ -258,7 +269,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                         IsPrimary = request.IsPrimary,
                         IsConfidential = request.IsConfidential,
                         IsActive = request.IsActive,
-                        // Penetapan baru selalu menunggu persetujuan; tidak ada jalur yang membuatnya langsung disetujui.
+                        // Create tidak pernah mengisi metadata persetujuan manual (tidak ada jalur yang membuatnya "langsung disetujui" oleh
+                        // seseorang). Apakah penetapan baru lalu menunggu persetujuan atau sah otomatis ditentukan kebijakan
+                        // Payroll:Policy:RequireApprovedSalaryAssignment saat dibaca (AuthorizationStatus), bukan oleh kolom ini (PAY-BE-FIX-010).
                         ApprovedAt = null,
                         ApprovedByUserId = null,
                         Description = Normalize(request.Description),
@@ -297,7 +310,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 {
                     var entity = await FindEntityAsync(workforceProfileId, id, ct);
                     if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
-                    var validation = await ValidateRequestAsync(workforceProfileId, id, request, ct);
+                    // Entity (terlacak, belum diubah) diteruskan supaya nominal tersimpan dipertahankan bila struktur/grade tidak berubah.
+                    var validation = await ValidateRequestAsync(workforceProfileId, entity, request, ct);
                     if (!validation.IsValid) return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage!));
 
                     var now = DateTime.UtcNow;
@@ -306,10 +320,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                     var currency = request.CurrencyCode.Trim().ToUpperInvariant();
                     var frequency = NormalizeFrequency(request.PaymentFrequency);
 
+                    // Perubahan finansial dinilai terhadap nominal hasil penentuan server, bukan nominal kiriman klien.
                     var financialChange = WfpSalaryAssignmentRules.HasFinancialChange(
-                        entity, request.SalaryStructureId, request.SalaryGradeId, request.BaseSalary, currency, frequency, start, end);
+                        entity, request.SalaryStructureId, request.SalaryGradeId, validation.BaseSalary, currency, frequency, start, end);
                     var closureOnly = WfpSalaryAssignmentRules.IsClosureOnly(
-                        entity, request.SalaryStructureId, request.SalaryGradeId, request.BaseSalary, currency, frequency, start, end);
+                        entity, request.SalaryStructureId, request.SalaryGradeId, validation.BaseSalary, currency, frequency, start, end);
                     var wasApproved = WfpSalaryAssignmentRules.IsApproved(entity.ApprovedAt, entity.ApprovedByUserId);
 
                     // Penetapan yang sudah dipakai payroll yang disahkan tidak boleh ditulis ulang: koreksinya adalah menutup masa berlaku lalu
@@ -357,7 +372,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                     {
                         entity.PersonnelActionOrderId = request.PersonnelActionOrderId.Value;
                     }
-                    entity.BaseSalary = request.BaseSalary;
+                    entity.BaseSalary = validation.BaseSalary;
                     entity.CurrencyCode = currency;
                     entity.PaymentFrequency = frequency;
                     entity.EffectiveStartDate = start;
@@ -601,17 +616,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             };
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(Guid workforceProfileId, Guid? excludeId, CreateWfpSalaryAssignmentRequest request, CancellationToken ct)
+        private const string DerivedAmountMismatchMessage =
+            "Gaji Dasar ditentukan otomatis dari Struktur Gaji yang dipilih dan tidak dapat diisi atau diubah manual. "
+            + "Nominal pada permintaan tidak sama dengan Gaji Dasar struktur. Muat ulang pilihan Struktur Gaji lalu simpan kembali tanpa mengubah nominal.";
+        private const string StoredAmountMismatchMessage =
+            "Gaji Dasar penetapan yang sudah tersimpan tidak dapat diubah dari formulir ini. "
+            + "Untuk mengubah nominal, tutup masa berlaku penetapan ini lalu buat penetapan baru dengan Struktur Gaji yang sesuai.";
+
+        private static (bool IsValid, string? ErrorMessage, decimal BaseSalary) Reject(string message) => (false, message, 0m);
+
+        /// <summary>
+        /// Validasi permintaan sekaligus MENENTUKAN Gaji Dasar di server (PAY-BE-FIX-011). Nominal dari klien tidak pernah otoritatif:
+        /// penetapan baru atau pergantian struktur/grade memakai MstSalaryStructure.DefaultBaseSalary; bila struktur dan grade tidak berubah,
+        /// nominal tersimpan dipertahankan (histori tidak ditimpa perubahan master). <paramref name="existing"/> null berarti Create.
+        /// </summary>
+        private async Task<(bool IsValid, string? ErrorMessage, decimal BaseSalary)> ValidateRequestAsync(
+            Guid workforceProfileId, WfpSalaryAssignment? existing, CreateWfpSalaryAssignmentRequest request, CancellationToken ct)
         {
-            if (request.SalaryStructureId == Guid.Empty) return (false, "Salary structure wajib dipilih.");
-            if (request.SalaryGradeId == Guid.Empty) return (false, "Salary grade wajib dipilih.");
-            if (request.BaseSalary < 0) return (false, "Base salary tidak boleh negatif.");
-            if (string.IsNullOrWhiteSpace(request.CurrencyCode) || request.CurrencyCode.Trim().Length != 3) return (false, "Currency code wajib terdiri dari 3 karakter.");
-            if (!PaymentFrequencies.Contains(NormalizeFrequency(request.PaymentFrequency), StringComparer.OrdinalIgnoreCase)) return (false, "Payment frequency tidak valid.");
-            if (request.EffectiveStartDate == default) return (false, "Effective start date wajib diisi.");
-            if (request.EffectiveEndDate.HasValue && request.EffectiveEndDate.Value.Date < request.EffectiveStartDate.Date) return (false, "Effective end date tidak boleh lebih kecil dari effective start date.");
-            if (!await ExistsActiveIfProvidedAsync<MstEmployeeGrade>(request.EmployeeGradeId, ct)) return (false, "Employee grade tidak ditemukan atau tidak aktif.");
-            if (!await ExistsActiveIfProvidedAsync<MstPayrollPeriod>(request.PayrollPeriodId, ct)) return (false, "Payroll period tidak ditemukan atau tidak aktif.");
+            var excludeId = existing?.Id;
+            if (request.SalaryStructureId == Guid.Empty) return Reject("Salary structure wajib dipilih.");
+            if (request.SalaryGradeId == Guid.Empty) return Reject("Salary grade wajib dipilih.");
+            if (request.BaseSalary.HasValue && request.BaseSalary.Value < 0) return Reject("Base salary tidak boleh negatif.");
+            if (string.IsNullOrWhiteSpace(request.CurrencyCode) || request.CurrencyCode.Trim().Length != 3) return Reject("Currency code wajib terdiri dari 3 karakter.");
+            if (!PaymentFrequencies.Contains(NormalizeFrequency(request.PaymentFrequency), StringComparer.OrdinalIgnoreCase)) return Reject("Payment frequency tidak valid.");
+            if (request.EffectiveStartDate == default) return Reject("Effective start date wajib diisi.");
+            if (request.EffectiveEndDate.HasValue && request.EffectiveEndDate.Value.Date < request.EffectiveStartDate.Date) return Reject("Effective end date tidak boleh lebih kecil dari effective start date.");
+            if (!await ExistsActiveIfProvidedAsync<MstEmployeeGrade>(request.EmployeeGradeId, ct)) return Reject("Employee grade tidak ditemukan atau tidak aktif.");
+            if (!await ExistsActiveIfProvidedAsync<MstPayrollPeriod>(request.PayrollPeriodId, ct)) return Reject("Payroll period tidak ditemukan atau tidak aktif.");
 
             // SK yang ditautkan harus milik pegawai yang sama; SK hanya referensi dan tidak pernah mengubah nominal gaji.
             if (request.PersonnelActionOrderId.HasValue && request.PersonnelActionOrderId.Value != Guid.Empty)
@@ -619,11 +650,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 var orderId = request.PersonnelActionOrderId.Value;
                 var orderOk = await _dbContext.Set<HrdPersonnelActionOrder>().AsNoTracking()
                     .AnyAsync(o => o.Id == orderId && o.WorkforceProfileId == workforceProfileId && !o.IsDelete, ct);
-                if (!orderOk) return (false, "SK Kepegawaian yang ditautkan tidak ditemukan atau bukan milik pegawai ini.");
+                if (!orderOk) return Reject("SK Kepegawaian yang ditautkan tidak ditemukan atau bukan milik pegawai ini.");
             }
 
-            var rangeCheck = await _salaryRangeRuleService.ValidateSalaryAssignmentAsync(request.SalaryStructureId, request.SalaryGradeId, request.BaseSalary, request.CurrencyCode, ct);
-            if (!rangeCheck.IsValid) return (false, rangeCheck.Message);
+            // Penentuan Gaji Dasar. Struktur/grade baru (atau pergantian) memakai DefaultBaseSalary master; tanggal mulai yang berubah pada
+            // struktur yang sama hanya memeriksa keabsahan struktur pada tanggal itu. Selain itu nominal tersimpan tidak disentuh.
+            var structureChanged = existing == null
+                || existing.SalaryStructureId != request.SalaryStructureId
+                || existing.SalaryGradeId != request.SalaryGradeId;
+            var startChanged = existing != null && existing.EffectiveStartDate.Date != request.EffectiveStartDate.Date;
+
+            decimal baseSalary;
+            if (structureChanged || startChanged)
+            {
+                var basis = await _salaryRangeRuleService.ResolveSalaryAssignmentBasisAsync(
+                    request.SalaryStructureId, request.SalaryGradeId, request.EffectiveStartDate, requireDefaultBaseSalary: structureChanged, ct);
+                if (!basis.IsValid) return Reject(basis.Message!);
+                baseSalary = structureChanged ? basis.DefaultBaseSalary : existing!.BaseSalary;
+            }
+            else
+            {
+                baseSalary = existing!.BaseSalary;
+            }
+
+            // Klien lama yang masih mengirim nominal: hanya diterima bila identik dengan hasil penentuan server; selain itu ditolak, bukan disimpan.
+            if (request.BaseSalary.HasValue && Math.Round(request.BaseSalary.Value, 2) != Math.Round(baseSalary, 2))
+                return Reject(structureChanged ? DerivedAmountMismatchMessage : StoredAmountMismatchMessage);
+
+            var rangeCheck = await _salaryRangeRuleService.ValidateSalaryAssignmentAsync(request.SalaryStructureId, request.SalaryGradeId, baseSalary, request.CurrencyCode, ct);
+            if (!rangeCheck.IsValid) return Reject(rangeCheck.Message!);
 
             // Pemeriksaan lama dipertahankan: struktur dan grade yang sama tidak boleh beririsan (apa pun status utama/aktifnya).
             var overlaps = await _dbContext.Set<WfpSalaryAssignment>().AsNoTracking().AnyAsync(x =>
@@ -631,8 +686,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 x.EffectiveStartDate <= (request.EffectiveEndDate ?? DateTime.MaxValue).Date &&
                 (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= request.EffectiveStartDate.Date) &&
                 x.SalaryStructureId == request.SalaryStructureId && x.SalaryGradeId == request.SalaryGradeId, ct);
-            if (overlaps) return (false, "Periode salary assignment dengan struktur dan grade yang sama beririsan.");
-            return (true, null);
+            if (overlaps) return Reject("Periode salary assignment dengan struktur dan grade yang sama beririsan.");
+            return (true, null, baseSalary);
         }
 
         /// <summary>
@@ -737,22 +792,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             var range = PayrollSalaryRangeRuleService.CalculateEffectiveRange(gradeMin, gradeMax, structMin, structMax);
             var approved = WfpSalaryAssignmentRules.IsApproved(x.ApprovedAt, x.ApprovedByUserId);
 
+            // PAY-BE-FIX-011: keabsahan master hari ini dan perbandingan nominal tersimpan dengan Gaji Dasar bawaan struktur saat ini.
+            // Hanya informasi untuk ditinjau; penetapan lama tidak pernah diubah otomatis mengikuti master.
+            var validity = PayrollSalaryRangeRuleService.AssessMasterValidity(
+                x.SalaryStructure?.IsActive, x.SalaryStructure?.EffectiveStartDate, x.SalaryStructure?.EffectiveEndDate, x.SalaryGrade?.IsActive, today);
+            bool? differsFromStructureDefault = includeAmounts && x.SalaryStructure != null
+                ? Math.Round(x.BaseSalary, 2) != Math.Round(x.SalaryStructure.DefaultBaseSalary, 2)
+                : null;
+
+            // Satu aturan untuk teks lama dan kode baru (PAY-BE-FIX-010). Teks OperationalStatus dipertahankan persis seperti sebelumnya:
+            // nonaktif, lalu "Menunggu Persetujuan" (hanya bila kebijakan mensyaratkan approval dan belum tercatat), lalu menurut tanggal.
+            var standing = WfpSalaryAssignmentRules.StandingOf(
+                x.IsActive, x.IsPrimary, x.EffectiveStartDate, x.EffectiveEndDate, x.ApprovedAt, x.ApprovedByUserId, approvalRequired, today);
+
             string statusText;
-            if (!x.IsActive)
+            if (standing.OperationalStatus == WfpSalaryOperationalStatuses.Inactive)
             {
                 statusText = "Nonaktif";
             }
-            else if (!approved && approvalRequired)
+            else if (standing.AuthorizationStatus == WfpSalaryAuthorizationStatuses.PendingApproval)
             {
                 // Payroll mensyaratkan approval (RequireApprovedSalaryAssignment menyala): aktif tetapi belum disetujui bukan "Berlaku",
                 // ia belum dipakai payroll. Bila approval tidak disyaratkan (bawaan), status operasional mengikuti tanggal seperti semula.
                 statusText = "Menunggu Persetujuan";
             }
-            else if (x.EffectiveStartDate.Date > today)
+            else if (standing.OperationalStatus == WfpSalaryOperationalStatuses.Scheduled)
             {
                 statusText = "Terjadwal";
             }
-            else if (x.EffectiveEndDate.HasValue && x.EffectiveEndDate.Value.Date < today)
+            else if (standing.OperationalStatus == WfpSalaryOperationalStatuses.Expired)
             {
                 statusText = "Berakhir";
             }
@@ -808,10 +876,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 IsApproved = approved,
                 ApprovalStatus = WfpSalaryAssignmentRules.StatusOf(x.ApprovedAt, x.ApprovedByUserId),
                 ApprovalRequired = approvalRequired,
+                // Kelayakan Payroll, terpisah dari fakta persetujuan di atas. AutoByPolicy tidak mengisi ApprovedAt/ApprovedByUserId.
+                AuthorizationStatus = standing.AuthorizationStatus,
+                OperationalStatusCode = standing.OperationalStatus,
+                IsPayrollUsable = standing.IsPayrollUsable,
                 PersonnelActionOrderId = x.PersonnelActionOrderId,
                 PersonnelActionOrderNumber = x.PersonnelActionOrder?.ActionOrderNumber,
                 IsLockedByFinalPayroll = lastFinalPayrollPeriodEnd.HasValue,
                 LastFinalPayrollPeriodEnd = lastFinalPayrollPeriodEnd,
+                StructureDefaultBaseSalary = includeAmounts ? x.SalaryStructure?.DefaultBaseSalary : null,
+                BaseSalaryDiffersFromStructureDefault = differsFromStructureDefault,
+                MasterValidityStatus = validity.Code,
+                MasterValidityMessage = validity.Message,
                 Description = x.Description,
                 CreateDateTime = x.CreateDateTime,
                 CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,

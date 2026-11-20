@@ -113,3 +113,28 @@ Tes `workforce-salary-assignment.test.mjs` dan `payroll-allowance-policy-grade-s
 ## 9. Status Git
 
 Tidak ada stage, commit, push, pull, merge, atau perubahan remote. Perubahan sebelum task tidak dibuang atau ditimpa.
+
+## 10. Putaran 3 (20 Nov 2026): kerapian tabel "Tunjangan Tetap"
+
+Permintaan pemilik (dengan screenshot `/payroll/master-data/salary-structure/<slug>`): rapikan header dan posisi isi tiap kolom. Hanya presentasi; kontrak API dan perilaku tidak berubah.
+
+**Akar masalah.** `DataTable` menyetel `text-align` pada `<th>` dan `<td>` dari `column.align` (bawaan kiri). Kolom Nilai dan Batas Maksimum tidak punya `align`, sehingga header rata kiri, padahal isinya memakai `.amountCell` (`text-align: right`). Kolom Status juga rata kiri sementara Pajak, Prorata, dan Aksi terpusat, dan tombol Ubah/Hapus ditumpuk selebar kolom karena memakai `cellStack` (kolom flex).
+
+| Kolom | Sebelum (header / isi) | Sesudah |
+| --- | --- | --- |
+| No., Jenis Tunjangan, Cara Hitung | kiri / kiri | tidak diubah |
+| Nilai, Batas Maksimum | kiri / **kanan** | `align: "right"` → kanan / kanan (Batas Maksimum `minWidth` 150→160) |
+| Pajak, Prorata | tengah / tengah | tidak diubah |
+| Status | kiri / kiri | `align: "center"` → tengah / tengah |
+| Aksi | tengah / tombol bertumpuk selebar kolom | tengah; tombol berjajar mendatar dan terpusat (`minWidth` 130→170) |
+
+**UI GATE.** `DataTable` (`align`), `StatusBadge`, `BaseButton`: `REUSE`, tanpa perubahan base component. Sumber gaya: (b) CSS Module yang sudah dipakai berkas itu; satu kelas `.rowActions` (+ `.rowActions > *` lebar minimum sama) ditambahkan pada `src/style/payroll/payroll-run.module.css`, seluruhnya token `var(--space-*)`.
+
+**Berkas.** `…/salary-structure/detail/salary-structure-allowance-table-columns.jsx`, `src/style/payroll/payroll-run.module.css`. `.rowActions` baru di `payroll-run.module.css`; kelas bernama sama di `payroll-policy.module.css` dan `payroll-workforce-allowance.module.css` adalah module terpisah, jadi tidak bentrok.
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| ESLint (berkas kolom) | 0 error, 0 warning |
+| `check-css-usage.mjs` (kolom + section) | **OK — 2 berkas diperiksa, 0 temuan** |
+| Tes unit `payroll-salary-structure-allowance.test.mjs` (dari root workspace) | **29 lulus, 0 gagal** (tes teks source; bukan bukti tampilan) |
+| `VISUAL CHECK` | **NOT RUN**: tidak ada screenshot sesudah perubahan; server dev tidak dijalankan atas inisiatif agen. Status paling tinggi 🟡 sampai tampilan dilihat |

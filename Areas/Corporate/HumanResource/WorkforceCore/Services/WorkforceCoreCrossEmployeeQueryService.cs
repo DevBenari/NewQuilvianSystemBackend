@@ -536,10 +536,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             string? sortDirection,
             int pageNumber,
             int pageSize,
+            string? authorizationStatus = null,
+            string? operationalStatus = null,
             CancellationToken ct = default)
         {
             NormalizePaging(ref pageNumber, ref pageSize);
             var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+            // Tanggal acuan sama dengan pembacaan lain (WfpSalaryAssignmentController, PayrollCompensationService).
+            var today = DateTime.UtcNow.Date;
 
             var query = _dbContext.Set<WfpSalaryAssignment>().AsNoTracking()
                 .Include(x => x.WorkforceProfile)
@@ -565,6 +569,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             }
             if (isActive.HasValue) query = query.Where(x => x.IsActive == isActive.Value);
 
+            // PAY-BE-FIX-010: dua filter tambahan, terpisah dari isApproved (yang tetap berarti persetujuan manual tercatat). Nilai tidak
+            // dikenal diabaikan di sini; controller menolaknya lebih dulu dengan 400.
+            if (WfpSalaryAssignmentRules.NormalizeAuthorizationStatus(authorizationStatus) is { } authorizationFilter)
+                query = query.Where(WfpSalaryAssignmentRules.AuthorizationStatusExpression(authorizationFilter, _requireApprovedSalary));
+            if (WfpSalaryAssignmentRules.NormalizeOperationalStatus(operationalStatus) is { } operationalFilter)
+                query = query.Where(WfpSalaryAssignmentRules.OperationalStatusExpression(operationalFilter, today));
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -585,6 +596,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             var actorNames = await GetActorNamesAsync(actorIds, ct);
 
             // Mappings explicitly OMIT BaseSalary (HRD-DEC-033)
+            // Kedudukan terhadap Payroll diturunkan dari kebijakan, status aktif, penetapan utama, dan masa berlaku; tidak pernah mengisi
+            // atau menebak ApprovedAt/ApprovedByUserId (PAY-BE-FIX-010).
+            SalaryStanding StandingOf(WfpSalaryAssignment x) => WfpSalaryAssignmentRules.StandingOf(
+                x.IsActive, x.IsPrimary, x.EffectiveStartDate, x.EffectiveEndDate, x.ApprovedAt, x.ApprovedByUserId, _requireApprovedSalary, today);
+
             var items = entities.Select(x => new WfpSalaryAssignmentCrossEmployeeResponse
             {
                 Id = x.Id,
@@ -611,6 +627,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 ApprovedAt = x.ApprovedAt,
                 IsApproved = x.ApprovedAt.HasValue && x.ApprovedByUserId.HasValue,
                 ApprovalRequired = _requireApprovedSalary,
+                ApprovalStatus = WfpSalaryAssignmentRules.StatusOf(x.ApprovedAt, x.ApprovedByUserId),
+                AuthorizationStatus = StandingOf(x).AuthorizationStatus,
+                OperationalStatusCode = StandingOf(x).OperationalStatus,
+                IsPayrollUsable = StandingOf(x).IsPayrollUsable,
                 Description = x.Description,
                 CreateDateTime = x.CreateDateTime,
                 CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,

@@ -10,7 +10,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.PayrollMan
         public void Configure(EntityTypeBuilder<PrlTransportAllowancePolicy> entity)
         {
 
-            entity.ToTable("PrlTransportAllowancePolicy", "public");
+            // Nama check constraint sama persis dengan DDL yang diterapkan pemilik (PAY-BE-FIX-013 bagian 3, terkoreksi).
+            entity.ToTable("PrlTransportAllowancePolicy", "public", table =>
+                table.HasCheckConstraint(
+                    "CK_PrlTransportAllowancePolicy_StructureRequiresGrade",
+                    "\"SalaryStructureId\" IS NULL OR \"SalaryGradeId\" IS NOT NULL"));
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.PolicyCode).HasMaxLength(50).IsRequired();
@@ -31,9 +35,19 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.PayrollMan
             entity.HasOne(x => x.EmployeeGrade).WithMany().HasForeignKey(x => x.EmployeeGradeId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.PayrollComponent).WithMany().HasForeignKey(x => x.PayrollComponentId).OnDelete(DeleteBehavior.Restrict);
 
+            // PAY-BE-FIX-014: cakupan Grade Gaji dan Struktur Gaji. Nama diberikan eksplisit (maksimum 58 karakter, di bawah batas 63
+            // PostgreSQL) dan identik dengan DDL, karena nama otomatis EF yang terlalu panjang dipotong dan tidak akan cocok dengan database.
+            entity.HasOne(x => x.SalaryGrade).WithMany().HasForeignKey(x => x.SalaryGradeId)
+                .HasConstraintName("FK_PrlTransportAllowancePolicy_SalaryGrade").OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.SalaryStructure).WithMany().HasForeignKey(x => x.SalaryStructureId)
+                .HasConstraintName("FK_PrlTransportAllowancePolicy_SalaryStructure").OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(x => x.PolicyCode).IsUnique().HasFilter("\"IsDelete\" = false");
             entity.HasIndex(x => new { x.LegalEntityId, x.HospitalSiteId, x.EmployeeGradeId, x.IsActive, x.IsDelete });
             entity.HasIndex(x => new { x.EffectiveStartDate, x.EffectiveEndDate, x.IsDelete });
+            entity.HasIndex(x => new { x.SalaryGradeId, x.SalaryStructureId, x.IsActive, x.IsDelete })
+                .HasDatabaseName("IX_PrlTransportAllowancePolicy_SalaryGrade_SalaryStructure");
+            entity.HasIndex(x => x.SalaryStructureId).HasDatabaseName("IX_PrlTransportAllowancePolicy_SalaryStructureId");
         }
 
         private static void ConfigureIdentity<T>(EntityTypeBuilder<T> entity)

@@ -14,6 +14,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models
         public Guid? LegalEntityId { get; set; }
         public Guid? HospitalSiteId { get; set; }
         public Guid? EmployeeGradeId { get; set; }
+
+        /// <summary>
+        /// Grade Gaji (penggajian) yang menjadi cakupan kebijakan; BUKAN <see cref="EmployeeGradeId"/> (grade kepegawaian). Null pada
+        /// kebijakan lama: tidak dimigrasikan dan tidak dianggap berlaku untuk grade tertentu (PAY-BE-FIX-014). Membutuhkan kolom database
+        /// yang diterapkan pemilik lebih dulu (lihat laporan PAY-BE-FIX-013 bagian 3).
+        /// </summary>
+        public Guid? SalaryGradeId { get; set; }
+
+        /// <summary>
+        /// Struktur Gaji yang menjadi cakupan kebijakan. Harus milik <see cref="SalaryGradeId"/> yang sama (divalidasi service pada Create,
+        /// Update, dan aktivasi). Null berarti seluruh struktur milik grade itu (bila grade terisi) atau data lama (bila grade kosong).
+        /// </summary>
+        public Guid? SalaryStructureId { get; set; }
+
         public Guid? PayrollComponentId { get; set; }
 
         [Required, MaxLength(50)]
@@ -61,6 +75,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models
         public MstLegalEntity? LegalEntity { get; set; }
         public MstHospitalSite? HospitalSite { get; set; }
         public MstEmployeeGrade? EmployeeGrade { get; set; }
+        public MstSalaryGrade? SalaryGrade { get; set; }
+        public MstSalaryStructure? SalaryStructure { get; set; }
         public MstPayrollComponent? PayrollComponent { get; set; }
 
         public ICollection<PrlTransportAllowance> TransportAllowances { get; set; }

@@ -250,21 +250,48 @@ public sealed class PayrollCompensationService
         detail.TaxStatus = tax?.TaxStatus;
         detail.IsNpwpRegistered = tax?.IsNpwpRegistered ?? false;
         detail.NpwpMasked = MaskTail(tax?.NpwpNumber, 5);
-        detail.SalaryHistory = assignments.Select(a => new PayrollCompensationSalaryHistoryResponse
+        // Nama pengesah hanya untuk persetujuan yang benar-benar tercatat; sah otomatis menurut kebijakan tidak punya pengesah.
+        var approverIds = assignments
+            .Where(a => WfpSalaryAssignmentRules.IsApproved(a.ApprovedAt, a.ApprovedByUserId))
+            .Select(a => a.ApprovedByUserId!.Value)
+            .Distinct()
+            .ToList();
+        var approverNames = approverIds.Count == 0
+            ? new Dictionary<Guid, string?>()
+            : await _dbContext.Users.AsNoTracking()
+                .Where(u => approverIds.Contains(u.Id))
+                .Select(u => new { u.Id, Name = u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode })
+                .ToDictionaryAsync(u => u.Id, u => (string?)u.Name, cancellationToken);
+
+        detail.SalaryHistory = assignments.Select(a =>
         {
-            Id = a.Id,
-            SalaryStructureName = a.SalaryStructureName,
-            SalaryGradeName = a.SalaryGradeName,
-            EffectiveStartDate = a.EffectiveStartDate,
-            EffectiveEndDate = a.EffectiveEndDate,
-            IsPrimary = a.IsPrimary,
-            IsActive = a.IsActive,
-            // IsActive tidak pernah berarti disetujui (PAY-BE-FIX-008); satu aturan: ApprovedAt dan ApprovedByUserId terisi.
-            IsApproved = WfpSalaryAssignmentRules.IsApproved(a.ApprovedAt, a.ApprovedByUserId),
-            ApprovalStatus = WfpSalaryAssignmentRules.StatusOf(a.ApprovedAt, a.ApprovedByUserId),
-            ApprovalRequired = _requireApprovedSalary,
-            ApprovedAt = a.ApprovedAt,
-            BaseSalary = includeAmounts ? (decimal?)a.BaseSalary : null
+            // Satu aturan untuk semua pembaca (PAY-BE-FIX-010): asal wewenang, keadaan operasional, dan kelayakan Payroll diturunkan dari
+            // kebijakan, status aktif, penetapan utama, dan masa berlaku. ApprovedAt/ApprovedByUserId TIDAK pernah diisi atau ditebak.
+            var standing = WfpSalaryAssignmentRules.StandingOf(
+                a.IsActive, a.IsPrimary, a.EffectiveStartDate, a.EffectiveEndDate, a.ApprovedAt, a.ApprovedByUserId, _requireApprovedSalary, today);
+            return new PayrollCompensationSalaryHistoryResponse
+            {
+                Id = a.Id,
+                SalaryStructureName = a.SalaryStructureName,
+                SalaryGradeName = a.SalaryGradeName,
+                EffectiveStartDate = a.EffectiveStartDate,
+                EffectiveEndDate = a.EffectiveEndDate,
+                IsPrimary = a.IsPrimary,
+                IsActive = a.IsActive,
+                // IsActive tidak pernah berarti disetujui (PAY-BE-FIX-008); satu aturan: ApprovedAt dan ApprovedByUserId terisi.
+                IsApproved = WfpSalaryAssignmentRules.IsApproved(a.ApprovedAt, a.ApprovedByUserId),
+                ApprovalStatus = WfpSalaryAssignmentRules.StatusOf(a.ApprovedAt, a.ApprovedByUserId),
+                ApprovalRequired = _requireApprovedSalary,
+                ApprovedAt = a.ApprovedAt,
+                ApprovedByUserName = a.ApprovedByUserId.HasValue && approverNames.TryGetValue(a.ApprovedByUserId.Value, out var approverName)
+                    && WfpSalaryAssignmentRules.IsApproved(a.ApprovedAt, a.ApprovedByUserId)
+                    ? approverName
+                    : null,
+                AuthorizationStatus = standing.AuthorizationStatus,
+                OperationalStatusCode = standing.OperationalStatus,
+                IsPayrollUsable = standing.IsPayrollUsable,
+                BaseSalary = includeAmounts ? (decimal?)a.BaseSalary : null
+            };
         }).ToList();
         detail.BankAccounts = bankRows.Select(b => new PayrollCompensationBankResponse
         {

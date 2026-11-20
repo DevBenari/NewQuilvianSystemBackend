@@ -33,6 +33,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
 
         /// <summary>True bila Payroll mensyaratkan penetapan disetujui (Payroll:Policy:RequireApprovedSalaryAssignment); false (bawaan) = penetapan aktif dipakai walau belum disetujui. Aditif.</summary>
         public bool ApprovalRequired { get; set; }
+
+        /// <summary>Approved | PendingApproval: hanya fakta persetujuan manual (sama dengan IsApproved), bukan kelayakan Payroll. Aditif (PAY-BE-FIX-010).</summary>
+        public string ApprovalStatus { get; set; } = string.Empty;
+
+        /// <summary>Asal wewenang untuk Payroll: ManualApproved | AutoByPolicy | PendingApproval. AutoByPolicy bukan persetujuan manual. Aditif (PAY-BE-FIX-010).</summary>
+        public string AuthorizationStatus { get; set; } = string.Empty;
+
+        /// <summary>Current | Scheduled | Expired | Inactive | NotPrimary, terpisah dari asal persetujuan. Aditif (PAY-BE-FIX-010).</summary>
+        public string OperationalStatusCode { get; set; } = string.Empty;
+
+        /// <summary>True bila penetapan ini sedang berlaku sebagai penetapan utama dan boleh dipakai Payroll menurut kebijakan. Aditif (PAY-BE-FIX-010).</summary>
+        public bool IsPayrollUsable { get; set; }
         public string? Description { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }

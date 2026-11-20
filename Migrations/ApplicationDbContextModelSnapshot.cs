@@ -74526,6 +74526,12 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<Guid?>("SalaryGradeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SalaryStructureId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
 
@@ -74544,11 +74550,20 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
+                    b.HasIndex("SalaryStructureId")
+                        .HasDatabaseName("IX_PrlTransportAllowancePolicy_SalaryStructureId");
+
                     b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsDelete");
+
+                    b.HasIndex("SalaryGradeId", "SalaryStructureId", "IsActive", "IsDelete")
+                        .HasDatabaseName("IX_PrlTransportAllowancePolicy_SalaryGrade_SalaryStructure");
 
                     b.HasIndex("LegalEntityId", "HospitalSiteId", "EmployeeGradeId", "IsActive", "IsDelete");
 
-                    b.ToTable("PrlTransportAllowancePolicy", "public");
+                    b.ToTable("PrlTransportAllowancePolicy", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_PrlTransportAllowancePolicy_StructureRequiresGrade", "\"SalaryStructureId\" IS NULL OR \"SalaryGradeId\" IS NOT NULL");
+                        });
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowanceTransaction", b =>
@@ -147245,6 +147260,18 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PayrollComponentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstSalaryGrade", "SalaryGrade")
+                        .WithMany()
+                        .HasForeignKey("SalaryGradeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_PrlTransportAllowancePolicy_SalaryGrade");
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstSalaryStructure", "SalaryStructure")
+                        .WithMany()
+                        .HasForeignKey("SalaryStructureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_PrlTransportAllowancePolicy_SalaryStructure");
+
                     b.Navigation("EmployeeGrade");
 
                     b.Navigation("HospitalSite");
@@ -147252,6 +147279,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("LegalEntity");
 
                     b.Navigation("PayrollComponent");
+
+                    b.Navigation("SalaryGrade");
+
+                    b.Navigation("SalaryStructure");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowanceTransaction", b =>
