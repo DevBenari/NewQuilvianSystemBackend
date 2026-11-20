@@ -18,16 +18,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<PayrollSettingService> _logger;
-        private readonly PayrollPolicyOptions _policy;
 
         public PayrollSettingService(
             ApplicationDbContext context,
-            ILogger<PayrollSettingService> logger,
-            IOptions<PayrollPolicyOptions> policyOptions)
+            ILogger<PayrollSettingService> logger)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _policy = policyOptions?.Value ?? new PayrollPolicyOptions();
         }
 
         public async Task<HrdPayrollSettingDto> GetSettingAsync(CancellationToken cancellationToken = default)
@@ -39,19 +36,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             return dto;
         }
 
-        /// <summary>
-        /// Menandai status verifikasi nilai BPJS: tanpa kebijakan iuran BPJS yang disahkan dan berlaku hari ini, nilai pada pengaturan
-        /// ini berstatus "Menunggu Verifikasi Kebijakan" dan tidak dipakai payroll. Murni baca.
-        /// </summary>
+        /// <summary>Menandai ketersediaan kebijakan tarif PPh yang disahkan dan berlaku hari ini. Murni baca.</summary>
         private async Task ApplyPolicyStatusAsync(HrdPayrollSettingDto dto, CancellationToken cancellationToken)
         {
             var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
-            var bpjs = await _context.Set<PrlBpjsPolicy>().AsNoTracking()
-                .Where(x => !x.IsDelete && x.IsActive && x.PolicyStatus == StatutoryPolicyStatuses.Approved
-                    && x.EffectiveStartDate <= today && (x.EffectiveEndDate == null || x.EffectiveEndDate >= today))
-                .OrderByDescending(x => x.EffectiveStartDate)
-                .Select(x => new { x.Id, x.PolicyVersion })
-                .FirstOrDefaultAsync(cancellationToken);
             var tax = await _context.Set<PrlTaxPolicy>().AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive && x.PolicyStatus == StatutoryPolicyStatuses.Approved
                     && x.EffectiveStartDate <= today && (x.EffectiveEndDate == null || x.EffectiveEndDate >= today))
@@ -59,21 +47,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 .Select(x => x.PolicyVersion)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            dto.BpjsPolicyApproved = bpjs is not null;
-            dto.BpjsPolicyId = bpjs?.Id;
-            dto.BpjsPolicyVersion = bpjs?.PolicyVersion;
-            if (!_policy.EnableBpjsInPayroll)
-            {
-                dto.BpjsValuesStatus = PayrollConfigurationStatuses.TestingModeDisabled;
-                dto.BpjsValuesStatusLabel = StatutoryPolicyLabels.BpjsTestingModeDisabled;
-            }
-            else
-            {
-                dto.BpjsValuesStatus = bpjs is null ? "PENDING_VERIFICATION" : "REPLACED_BY_APPROVED_POLICY";
-                dto.BpjsValuesStatusLabel = bpjs is null
-                    ? StatutoryPolicyLabels.AwaitingVerification
-                    : $"Tidak dipakai payroll; tarif resmi mengikuti kebijakan {bpjs.PolicyVersion}";
-            }
             dto.TaxPolicyApproved = tax is not null;
             dto.TaxPolicyVersion = tax;
         }
@@ -87,22 +60,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             setting.SettingName = command.SettingName;
 
-            // Parameter BPJS hanya diubah saat fitur BPJS aktif. Saat nonaktif, Frontend tidak lagi menampilkan atau mengirimnya, sehingga
-            // command membawa nilai bawaan DTO; menimpa kolom dengan nilai itu akan mereset tarif dan plafon yang sudah tersimpan. Nilai
-            // tersimpan dipertahankan apa adanya (non-destruktif) dan dipakai kembali bila BPJS diaktifkan lagi.
-            if (_policy.EnableBpjsInPayroll)
-            {
-                setting.BpjsKesehatanCapAmount = command.BpjsKesehatanCapAmount;
-                setting.BpjsKesehatanEmployeeRate = command.BpjsKesehatanEmployeeRate;
-                setting.BpjsKesehatanEmployerRate = command.BpjsKesehatanEmployerRate;
-                setting.BpjsKetenagakerjaanJpCapAmount = command.BpjsKetenagakerjaanJpCapAmount;
-                setting.BpjsKetenagakerjaanJpEmployeeRate = command.BpjsKetenagakerjaanJpEmployeeRate;
-                setting.BpjsKetenagakerjaanJpEmployerRate = command.BpjsKetenagakerjaanJpEmployerRate;
-                setting.BpjsKetenagakerjaanJhtEmployeeRate = command.BpjsKetenagakerjaanJhtEmployeeRate;
-                setting.BpjsKetenagakerjaanJhtEmployerRate = command.BpjsKetenagakerjaanJhtEmployerRate;
-                setting.BpjsKetenagakerjaanJkkRate = command.BpjsKetenagakerjaanJkkRate;
-                setting.BpjsKetenagakerjaanJkmRate = command.BpjsKetenagakerjaanJkmRate;
-            }
+            // Kolom BPJS pada HrdPayrollSetting (LEGACY_PERSISTED) tidak pernah disentuh: tidak dibaca dari command dan tidak ditimpa,
+            // sehingga nilai yang sudah tersimpan tetap utuh sebagai data historis.
             setting.VarianceThresholdPercentage = command.VarianceThresholdPercentage;
             setting.VarianceThresholdAmount = command.VarianceThresholdAmount;
             setting.MonthlyCutoffDay = command.MonthlyCutoffDay;
@@ -139,16 +98,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 {
                     Id = Guid.NewGuid(),
                     SettingName = "Standar Penggajian Rumah Sakit",
-                    BpjsKesehatanCapAmount = 12000000m,
-                    BpjsKesehatanEmployeeRate = 1.00m,
-                    BpjsKesehatanEmployerRate = 4.00m,
-                    BpjsKetenagakerjaanJpCapAmount = 10042300m,
-                    BpjsKetenagakerjaanJpEmployeeRate = 1.00m,
-                    BpjsKetenagakerjaanJpEmployerRate = 2.00m,
-                    BpjsKetenagakerjaanJhtEmployeeRate = 2.00m,
-                    BpjsKetenagakerjaanJhtEmployerRate = 3.70m,
-                    BpjsKetenagakerjaanJkkRate = 0.89m,
-                    BpjsKetenagakerjaanJkmRate = 0.30m,
                     VarianceThresholdPercentage = 20.00m,
                     VarianceThresholdAmount = 2000000m,
                     MonthlyCutoffDay = 20,
@@ -172,16 +121,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Id = entity.Id,
             HospitalSiteId = entity.HospitalSiteId,
             SettingName = entity.SettingName,
-            BpjsKesehatanCapAmount = entity.BpjsKesehatanCapAmount,
-            BpjsKesehatanEmployeeRate = entity.BpjsKesehatanEmployeeRate,
-            BpjsKesehatanEmployerRate = entity.BpjsKesehatanEmployerRate,
-            BpjsKetenagakerjaanJpCapAmount = entity.BpjsKetenagakerjaanJpCapAmount,
-            BpjsKetenagakerjaanJpEmployeeRate = entity.BpjsKetenagakerjaanJpEmployeeRate,
-            BpjsKetenagakerjaanJpEmployerRate = entity.BpjsKetenagakerjaanJpEmployerRate,
-            BpjsKetenagakerjaanJhtEmployeeRate = entity.BpjsKetenagakerjaanJhtEmployeeRate,
-            BpjsKetenagakerjaanJhtEmployerRate = entity.BpjsKetenagakerjaanJhtEmployerRate,
-            BpjsKetenagakerjaanJkkRate = entity.BpjsKetenagakerjaanJkkRate,
-            BpjsKetenagakerjaanJkmRate = entity.BpjsKetenagakerjaanJkmRate,
             VarianceThresholdPercentage = entity.VarianceThresholdPercentage,
             VarianceThresholdAmount = entity.VarianceThresholdAmount,
             MonthlyCutoffDay = entity.MonthlyCutoffDay,

@@ -30,12 +30,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public bool IsRecurring { get; set; }
         public bool IsTaxable { get; set; }
 
-        /// <summary>Klasifikasi tunjangan tetap (perjanjian kerja/kebijakan HRD), terpisah dari IsTaxable. Null = belum diklasifikasikan.</summary>
-        public bool? IsFixedAllowance { get; set; }
-
-        /// <summary>Masuk dasar upah iuran BPJS; hanya boleh true bila IsFixedAllowance true. Null = belum diklasifikasikan (menahan iuran BPJS).</summary>
-        public bool? IncludeInBpjsWageBase { get; set; }
-
         public bool IsProrated { get; set; }
         public bool RequiresAttendance { get; set; }
         public bool RequiresApproval { get; set; }
@@ -184,12 +178,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
         public bool IsRecurring { get; set; } = true;
         public bool IsTaxable { get; set; } = true;
-
-        /// <summary>Klasifikasi tunjangan tetap; terpisah dari IsTaxable. Kosong = belum diklasifikasikan.</summary>
-        public bool? IsFixedAllowance { get; set; }
-
-        /// <summary>Masuk dasar upah iuran BPJS; hanya boleh true bila IsFixedAllowance true.</summary>
-        public bool? IncludeInBpjsWageBase { get; set; }
 
         public bool IsProrated { get; set; } = true;
         public bool RequiresAttendance { get; set; }

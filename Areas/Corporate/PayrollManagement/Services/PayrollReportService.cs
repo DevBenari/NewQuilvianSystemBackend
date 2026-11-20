@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
-using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 using QuilvianSystemBackend.Repositories;
 using System.Text.Json;
 
@@ -26,12 +24,10 @@ public sealed class PayrollReportService
     private const string PersonDoctor = "Dokter";
 
     private readonly ApplicationDbContext _dbContext;
-    private readonly PayrollPolicyOptions _policy;
 
-    public PayrollReportService(ApplicationDbContext dbContext, IOptions<PayrollPolicyOptions> policyOptions)
+    public PayrollReportService(ApplicationDbContext dbContext)
     {
         _dbContext = dbContext;
-        _policy = policyOptions.Value;
     }
 
     // ------------------------------------------------------------------------------------
@@ -264,7 +260,11 @@ public sealed class PayrollReportService
         return response;
     }
 
-    /// <summary>PPh 21 dan iuran BPJS pegawai yang dipakai run yang sudah disahkan, beserta sumbernya (tetapan profil).</summary>
+    /// <summary>
+    /// PPh 21 dan iuran/asuransi pegawai yang dipakai run yang sudah disahkan, beserta sumbernya. Run lama dapat memuat potongan BPJS
+    /// historis (komponen PAY_INS_BPJS_*); nilainya tetap dijumlahkan supaya laporan historis tidak kehilangan data sumber, tetapi
+    /// run baru tidak lagi memuat iuran BPJS.
+    /// </summary>
     public async Task<PayrollTaxContributionPagedResult> GetTaxContributionAsync(PayrollTaxContributionQuery query, CancellationToken cancellationToken)
     {
         var (periodCode, runs) = await LoadApprovedRunsAsync(query.PayrollPeriodId, query.PayrollRunId, cancellationToken);
@@ -273,7 +273,6 @@ public sealed class PayrollReportService
         var result = new PayrollTaxContributionPagedResult { PageNumber = pageNumber, PageSize = pageSize, PeriodCode = periodCode };
 
         // RPT-01
-        result.EnableBpjsInPayroll = _policy.EnableBpjsInPayroll;
         if (runs.Count == 0)
         {
             result.Note = NoApprovedRunNote;
@@ -294,6 +293,7 @@ public sealed class PayrollReportService
         var insuranceEmployeeCodes = new[]
         {
             PayrollEngineComponentCodes.InsuranceEmployee,
+            // Komponen BPJS HISTORIS pada run lama; mesin tidak lagi membuatnya.
             PayrollInsuranceComponentCodes.BpjsHealthEmployee,
             PayrollInsuranceComponentCodes.BpjsJhtEmployee,
             PayrollInsuranceComponentCodes.BpjsJpEmployee,
@@ -335,8 +335,6 @@ public sealed class PayrollReportService
 
         var runById = runs.ToDictionary(r => r.Id);
         var policyVersionByRun = runs.ToDictionary(r => r.Id, r => ReadPolicyVersion(r.PolicySnapshotJson));
-        var testingModeByRun = runs.ToDictionary(r => r.Id, r => PayrollTaxInsuranceRules.IsTestingModeWithoutBpjs(r.PolicySnapshotJson));
-        result.HasTestingModeRuns = testingModeByRun.Values.Any(v => v);
 
         decimal TaxAmountOf(Guid employeeId) =>
             pageAmounts.Where(a => a.PayrollRunEmployeeId == employeeId && a.ComponentCodeSnapshot == PayrollEngineComponentCodes.Tax).Sum(a => a.Amount);
@@ -364,14 +362,12 @@ public sealed class PayrollReportService
                 InsuranceEmployeeAmount = InsuranceAmountOf(e.Id),
                 Source = source,
                 PolicyVersion = taxPolicyVersion ?? policyVersionByRun[e.PayrollRunId],
-                TaxPolicyVersion = taxPolicyVersion,
-                IsTestingModeWithoutBpjs = testingModeByRun[e.PayrollRunId]
+                TaxPolicyVersion = taxPolicyVersion
             };
         }).ToList();
 
-        result.Note = !_policy.EnableBpjsInPayroll || result.HasTestingModeRuns
-            ? "Mode pengujian aktif: kalkulasi BPJS Kesehatan dan BPJS Ketenagakerjaan dinonaktifkan sementara (belum dihitung). Nilai PPh 21 bersumber dari snapshot kebijakan tarif PPh yang disahkan pada masing-masing payroll run."
-            : "Nilai PPh 21 dan iuran pegawai bersumber dari snapshot kebijakan yang disahkan pada masing-masing payroll run.";
+        result.Note = "Nilai PPh 21 dan iuran pegawai bersumber dari snapshot kebijakan yang disahkan pada masing-masing payroll run. "
+            + "Potongan BPJS hanya muncul pada payroll run lama (data historis).";
         return result;
     }
 

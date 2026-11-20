@@ -30,6 +30,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public string? ApprovedByUserName { get; set; }
         public DateTime? ApprovedAt { get; set; }
         public bool IsApproved { get; set; }
+
+        /// <summary>True bila Payroll mensyaratkan penetapan disetujui (Payroll:Policy:RequireApprovedSalaryAssignment); false (bawaan) = penetapan aktif dipakai walau belum disetujui. Aditif.</summary>
+        public bool ApprovalRequired { get; set; }
         public string? Description { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }

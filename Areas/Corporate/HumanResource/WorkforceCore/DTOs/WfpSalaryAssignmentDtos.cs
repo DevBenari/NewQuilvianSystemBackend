@@ -29,7 +29,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public Guid? PayrollPeriodId { get; set; }
         public string? PayrollPeriodCode { get; set; }
         public string? PayrollPeriodName { get; set; }
-        public decimal BaseSalary { get; set; }
+        /// <summary>Null (bukan 0) bila pemanggil tidak memiliki izin ViewAmount; gunakan <see cref="AmountsVisible"/> untuk membedakannya dari nilai nol sungguhan.</summary>
+        public decimal? BaseSalary { get; set; }
         public decimal? GradeMinimumSalary { get; set; }
         public decimal? GradeMaximumSalary { get; set; }
         public decimal? StructureMinimumSalary { get; set; }
@@ -49,7 +50,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public Guid? ApprovedByUserId { get; set; }
         public string? ApprovedByUserName { get; set; }
         public DateTime? ApprovedAt { get; set; }
+
+        /// <summary>Benar hanya bila ApprovedAt dan ApprovedByUserId terisi. IsActive tidak pernah berarti disetujui (PAY-BE-FIX-008).</summary>
         public bool IsApproved { get; set; }
+
+        /// <summary>Approved | PendingApproval (WfpSalaryAssignmentRules). Skema belum memisahkan Draft dari PendingApproval. Aditif.</summary>
+        public string ApprovalStatus { get; set; } = "PendingApproval";
+
+        /// <summary>
+        /// True bila Payroll saat ini mensyaratkan penetapan disetujui (Payroll:Policy:RequireApprovedSalaryAssignment). False (bawaan): penetapan
+        /// aktif dipakai payroll walaupun PendingApproval, sehingga status itu bersifat informasi. Aditif.
+        /// </summary>
+        public bool ApprovalRequired { get; set; }
+
+        /// <summary>SK Kepegawaian (HrdPersonnelActionOrder) yang menjadi dasar penetapan ini; null bila tidak ditautkan. Aditif.</summary>
+        public Guid? PersonnelActionOrderId { get; set; }
+        public string? PersonnelActionOrderNumber { get; set; }
+
+        /// <summary>
+        /// Penetapan ini sudah dipakai payroll run yang disahkan: struktur, grade, gaji pokok, mata uang, dan tanggal mulainya tidak lagi
+        /// dapat diubah (hanya penutupan masa berlaku dan penetapan baru). Aditif.
+        /// </summary>
+        public bool IsLockedByFinalPayroll { get; set; }
+
+        /// <summary>Akhir periode payroll terakhir yang disahkan dan memakai penetapan ini; null bila belum dipakai. Aditif.</summary>
+        public DateTime? LastFinalPayrollPeriodEnd { get; set; }
+
         public string? Description { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }
@@ -107,6 +133,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
 
         public Guid? EmployeeGradeId { get; set; }
         public Guid? PayrollPeriodId { get; set; }
+
+        /// <summary>
+        /// SK Kepegawaian (promosi/mutasi) yang menjadi dasar penetapan ini. Opsional dan aditif: SK tidak pernah mengubah gaji langsung;
+        /// ini hanya tautan agar HRD dan approver dapat menelusuri penetapan ke SK-nya. Harus milik pegawai yang sama.
+        /// </summary>
+        public Guid? PersonnelActionOrderId { get; set; }
 
         [Range(0, double.MaxValue)]
         public decimal BaseSalary { get; set; }

@@ -8,7 +8,6 @@ using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
-using QuilvianSystemBackend.Services.Features;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 
@@ -58,17 +57,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
-        private readonly IBpjsFeatureGate _bpjsGate;
 
         public AllowanceTypeController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService,
-            IBpjsFeatureGate bpjsGate)
+            LoggerService loggerService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
-            _bpjsGate = bpjsGate;
         }
+
+        // Klasifikasi dasar upah iuran BPJS (IsFixedAllowance, IncludeInBpjsWageBase) tidak lagi dikelola (PAY-BE-FIX-007): kolom dipertahankan sebagai data historis dan tidak dibaca, ditulis, maupun dikembalikan oleh kontrak ini.
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<AllowanceTypeFilterMetadataResponse>), StatusCodes.Status200OK)]
@@ -382,8 +380,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 MaximumAmount = entity.MaximumAmount,
                 IsRecurring = entity.IsRecurring,
                 IsTaxable = entity.IsTaxable,
-                IsFixedAllowance = entity.IsFixedAllowance,
-                IncludeInBpjsWageBase = entity.IncludeInBpjsWageBase,
                 IsProrated = entity.IsProrated,
                 RequiresAttendance = entity.RequiresAttendance,
                 RequiresApproval = entity.RequiresApproval,
@@ -435,9 +431,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 MaximumAmount = request.MaximumAmount,
                 IsRecurring = request.IsRecurring,
                 IsTaxable = request.IsTaxable,
-                // Jenis tunjangan baru saat BPJS nonaktif: belum diklasifikasikan (null), bukan false.
-                IsFixedAllowance = _bpjsGate.IsEnabled ? request.IsFixedAllowance : null,
-                IncludeInBpjsWageBase = _bpjsGate.IsEnabled ? request.IncludeInBpjsWageBase : null,
                 IsProrated = request.IsProrated,
                 RequiresAttendance = request.RequiresAttendance,
                 RequiresApproval = request.RequiresApproval,
@@ -496,11 +489,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             entity.MaximumAmount = request.MaximumAmount;
             entity.IsRecurring = request.IsRecurring;
             entity.IsTaxable = request.IsTaxable;
-            if (_bpjsGate.IsEnabled)
-            {
-                entity.IsFixedAllowance = request.IsFixedAllowance;
-                entity.IncludeInBpjsWageBase = request.IncludeInBpjsWageBase;
-            }
             entity.IsProrated = request.IsProrated;
             entity.RequiresAttendance = request.RequiresAttendance;
             entity.RequiresApproval = request.RequiresApproval;
@@ -608,8 +596,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 MaximumAmount = x.MaximumAmount,
                 IsRecurring = x.IsRecurring,
                 IsTaxable = x.IsTaxable,
-                IsFixedAllowance = x.IsFixedAllowance,
-                IncludeInBpjsWageBase = x.IncludeInBpjsWageBase,
                 IsProrated = x.IsProrated,
                 RequiresAttendance = x.RequiresAttendance,
                 RequiresApproval = x.RequiresApproval,
@@ -635,16 +621,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         {
             if (string.IsNullOrWhiteSpace(request.AllowanceTypeName))
                 return (false, "Nama allowance type wajib diisi.");
-
-            // Klasifikasi dasar upah BPJS: kedua isian ditetapkan bersamaan, dan hanya tunjangan tetap yang boleh masuk dasar upah.
-            // Diperiksa hanya saat BPJS aktif; saat nonaktif isian ini diabaikan (lihat penyimpanan di bawah).
-            if (_bpjsGate.IsEnabled)
-            {
-                if (request.IsFixedAllowance.HasValue != request.IncludeInBpjsWageBase.HasValue)
-                    return (false, "Klasifikasi tunjangan tetap dan dasar upah BPJS harus diisi bersamaan (atau dikosongkan bersamaan).");
-                if (request.IncludeInBpjsWageBase == true && request.IsFixedAllowance != true)
-                    return (false, "Hanya tunjangan tetap yang boleh masuk dasar upah BPJS.");
-            }
 
             if (!AllowedCategories.Contains(request.AllowanceCategory.Trim()))
                 return (false, "Allowance category tidak valid.");

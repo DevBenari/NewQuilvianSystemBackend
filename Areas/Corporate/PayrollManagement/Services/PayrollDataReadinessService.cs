@@ -91,12 +91,6 @@ public sealed class PayrollDataReadinessService
             TaxPolicyApproved = availability.TaxApproved,
             TaxPolicyVersion = availability.TaxVersion,
             TaxPolicyStatusLabel = availability.TaxApproved ? "Kebijakan tarif PPh disahkan" : StatutoryPolicyLabels.AwaitingVerification,
-            EnableBpjsInPayroll = availability.EnableBpjsInPayroll,
-            BpjsPolicyApproved = availability.BpjsApproved,
-            BpjsPolicyVersion = availability.BpjsVersion,
-            BpjsPolicyStatusLabel = !availability.EnableBpjsInPayroll
-                ? StatutoryPolicyLabels.BpjsTestingModeDisabled
-                : (availability.BpjsApproved ? "Kebijakan iuran BPJS disahkan" : StatutoryPolicyLabels.AwaitingVerification),
             TotalPeople = all.Count,
             WithPayrollProfile = all.Count(x => x.HasPayrollProfile),
             WithApprovedSalaryAssignment = all.Count(x => x.HasApprovedSalaryAssignment),
@@ -106,9 +100,7 @@ public sealed class PayrollDataReadinessService
             ProfilesToPrepare = all.Count(x => x.PayrollProfileStatus == PayrollReadinessEvaluator.ProfileAutoPrepare),
             ProfilesNeedAttention = all.Count(x => x.PayrollProfileStatus == PayrollReadinessEvaluator.ProfileNeedsAttention),
             TaxNotSet = unconfiguredTaxCount,
-            TaxInsuranceNotSet = availability.EnableBpjsInPayroll
-                ? all.Count(x => x.TaxInsuranceStatus == PayrollReadinessEvaluator.TaxNotSet)
-                : unconfiguredTaxCount
+            TaxInsuranceNotSet = unconfiguredTaxCount
         };
     }
 
@@ -164,13 +156,6 @@ public sealed class PayrollDataReadinessService
             .ToDictionary(
                 g => g.Key,
                 g => SelectTaxConfig(g, today));
-        var insuranceConfigs = availability.EnableBpjsInPayroll
-            ? (await _dbContext.PrlInsurances.AsNoTracking().Where(x => !x.IsDelete).ToListAsync(cancellationToken))
-                .GroupBy(x => x.WorkforceProfileId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => PayrollInsuranceConfigFacts.From(g.OrderByDescending(t => t.IsActive).ThenByDescending(t => t.EffectiveStartDate).First()))
-            : new Dictionary<Guid, PayrollInsuranceConfigFacts>();
 
         var items = new List<PayrollDataReadinessItemResponse>(people.Count);
         foreach (var person in people)
@@ -184,7 +169,6 @@ public sealed class PayrollDataReadinessService
                 taxConfig = taxSelected.Facts;
                 taxConflict = taxSelected.Conflict;
             }
-            insuranceConfigs.TryGetValue(person.WorkforceProfileId, out var insuranceConfig);
 
             // (1) Sumber HRD dan (2) profil operasional internal Payroll dinilai oleh evaluator yang SAMA dengan layar Profil
             // Penggajian. Profil tidak pernah dibuat di sini.
@@ -197,9 +181,10 @@ public sealed class PayrollDataReadinessService
                 profileConflict = found.Conflict;
             }
 
-            // Kelengkapan PPh dan iuran dinilai dari konfigurasi eksplisit HRD; tetapan lama pada profil payroll hanya cadangan bertanda.
+            // Kelengkapan PPh dinilai dari konfigurasi eksplisit HRD; tetapan lama pada profil payroll hanya cadangan bertanda.
+            // Asuransi swasta dan iuran BPJS bukan syarat kelengkapan.
             var taxInsurance = PayrollTaxInsuranceRules.AssessReadiness(
-                taxConfig, insuranceConfig, profile?.TaxAmount ?? 0m, profile?.InsuranceAmount ?? 0m, today, availability);
+                taxConfig, profile?.TaxAmount ?? 0m, today, availability);
             var profileAssessment = PayrollReadinessEvaluator.AssessProfile(
                 profile, PayrollProfileRules.CanAutoPrepare(salary is not null, bank is not null), taxInsurance, today, profileConflict);
 
@@ -222,16 +207,8 @@ public sealed class PayrollDataReadinessService
                 ? PayrollReadinessEvaluator.TaxSet
                 : PayrollReadinessEvaluator.TaxNotSet;
 
-            var itemNotes = availability.EnableBpjsInPayroll
-                ? profileAssessment.Notes
-                : profileAssessment.Notes
-                    .Where(n => !n.Contains("BPJS", StringComparison.OrdinalIgnoreCase)
-                             && !n.Contains("iuran", StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-
-            if (!availability.EnableBpjsInPayroll
-                && effectiveTaxConfigStatus == PayrollConfigurationStatuses.Configured
-                && itemNotes.Count == 0)
+            var itemNotes = profileAssessment.Notes.ToList();
+            if (effectiveTaxConfigStatus == PayrollConfigurationStatuses.Configured && itemNotes.Count == 0)
             {
                 itemNotes.Add("Konfigurasi PPh lengkap.");
             }
@@ -249,17 +226,9 @@ public sealed class PayrollDataReadinessService
                 HrdComplete = hrd.HrdComplete,
                 PayrollProfileStatus = profileAssessment.ProfileStatus,
                 TaxStatus = taxStatus,
-                TaxInsuranceStatus = availability.EnableBpjsInPayroll
-                    ? (taxConflict ? PayrollReadinessEvaluator.TaxNotSet : profileAssessment.TaxInsuranceStatus)
-                    : taxStatus,
+                TaxInsuranceStatus = taxStatus,
                 TaxConfigurationStatus = effectiveTaxConfigStatus,
-                InsuranceConfigurationStatus = availability.EnableBpjsInPayroll
-                    ? profileAssessment.InsuranceConfigurationStatus
-                    : string.Empty,
                 TaxConfigurationIssues = taxIssues,
-                InsuranceConfigurationIssues = availability.EnableBpjsInPayroll
-                    ? (profileAssessment.InsuranceIssues ?? new List<string>())
-                    : new List<string>(),
                 // (3) Siap mengikuti proses Payroll: tidak ada penghalang. Tetapan PPh dilaporkan terpisah.
                 IsComplete = issues.Count == 0,
                 Issues = issues,

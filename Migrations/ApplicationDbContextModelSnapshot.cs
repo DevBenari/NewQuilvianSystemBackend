@@ -53305,6 +53305,107 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("WfpHealthRecord", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.HrdOvertimeSetting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("BiometricDiscrepancyTolerance")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(30);
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("CtoValidityDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(90);
+
+                    b.Property<decimal>("DailyMaxHoursRegular")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(5,2)")
+                        .HasDefaultValue(4m);
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HospitalCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("MinimumThresholdMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(30);
+
+                    b.Property<int>("MonthlyCutoffDay")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(20);
+
+                    b.Property<int>("PostClaimCitoGraceDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("RoundingIntervalMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(30);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("WeeklyMaxHoursRegular")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(5,2)")
+                        .HasDefaultValue(18m);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HospitalCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("HrdOvertimeSetting", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxCompensatoryTimeOff", b =>
                 {
                     b.Property<Guid>("Id")

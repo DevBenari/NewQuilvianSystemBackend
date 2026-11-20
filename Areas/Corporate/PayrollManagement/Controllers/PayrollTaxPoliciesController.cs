@@ -62,7 +62,7 @@ public sealed class PayrollTaxPoliciesController : ControllerBase
     [AccessPermission("PayrollTaxPolicy", "Read")]
     public IActionResult GetMetadata() =>
         Ok(ApiResponse<PayrollStatutoryPolicyMetadataResponse>.Ok(
-            PayrollStatutoryPolicyMetadataFactory.Build(_resolver.IsBpjsEnabled), "Metadata kebijakan tarif PPh berhasil dimuat."));
+            PayrollStatutoryPolicyMetadataFactory.Build(), "Metadata kebijakan tarif PPh berhasil dimuat."));
 
     /// <summary>Ketersediaan kebijakan yang disahkan pada tanggal tertentu (bawaan hari ini): "Menunggu Verifikasi Kebijakan" bila belum ada.</summary>
     [HttpGet("availability")]
@@ -168,7 +168,7 @@ public sealed class PayrollTaxPoliciesController : ControllerBase
 /// <summary>Opsi metadata kebijakan regulasi (kosakata kode dan status referensi tarif PPh 21 resmi yang dikelola Backend).</summary>
 internal static class PayrollStatutoryPolicyMetadataFactory
 {
-    public static PayrollStatutoryPolicyMetadataResponse Build(bool enableBpjsInPayroll = true)
+    public static PayrollStatutoryPolicyMetadataResponse Build()
     {
         var officialRef = PayrollTaxOfficialReferenceProvider.GetStatus();
 
@@ -312,14 +312,6 @@ internal static class PayrollStatutoryPolicyMetadataFactory
                 new() { Value = "JKM", Label = "JKM" },
                 new() { Value = "PRIVATE", Label = "Asuransi swasta" }
             },
-            JkkRiskClassOptions = new List<PayrollStatutoryPolicyOptionResponse>
-            {
-                new() { Value = "1", Label = "Kelompok risiko 1" },
-                new() { Value = "2", Label = "Kelompok risiko 2" },
-                new() { Value = "3", Label = "Kelompok risiko 3" },
-                new() { Value = "4", Label = "Kelompok risiko 4" },
-                new() { Value = "5", Label = "Kelompok risiko 5" }
-            },
             OfficialTaxReference = new PayrollTaxOfficialReferenceResponse
             {
                 ReferenceCode = officialRef.ReferenceCode,
@@ -334,9 +326,7 @@ internal static class PayrollStatutoryPolicyMetadataFactory
                 TerRateCount = officialRef.TerRateCount,
                 BracketCount = officialRef.BracketCount,
                 Issues = officialRef.Issues.ToList()
-            },
-            EnableBpjsInPayroll = enableBpjsInPayroll,
-            BpjsTestingModeLabel = enableBpjsInPayroll ? null : StatutoryPolicyLabels.BpjsTestingModeDisabled
+            }
         };
     }
 }

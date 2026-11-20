@@ -21,11 +21,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
         private readonly LoggerService _loggerService;
         private readonly QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.IJobDescriptionService _jobDescriptionService;
 
+        private readonly bool _requireApprovedSalary;
+
         public WorkforceCoreCrossEmployeeQueryService(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.IJobDescriptionService jobDescriptionService)
+            QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.IJobDescriptionService jobDescriptionService,
+            Microsoft.Extensions.Options.IOptions<QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options.PayrollPolicyOptions> payrollPolicyOptions)
         {
+            _requireApprovedSalary = payrollPolicyOptions.Value.RequireApprovedSalaryAssignment;
             _dbContext = dbContext;
             _loggerService = loggerService;
             _jobDescriptionService = jobDescriptionService;
@@ -606,6 +610,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 ApprovedByUserName = x.ApprovedByUserId.HasValue ? GetActorName(actorNames, x.ApprovedByUserId.Value) : null,
                 ApprovedAt = x.ApprovedAt,
                 IsApproved = x.ApprovedAt.HasValue && x.ApprovedByUserId.HasValue,
+                ApprovalRequired = _requireApprovedSalary,
                 Description = x.Description,
                 CreateDateTime = x.CreateDateTime,
                 CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,

@@ -1,6 +1,6 @@
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 
-// Kosakata kebijakan regulasi penggajian berversi: tarif PPh (PrlTaxPolicy) dan tarif/batas iuran BPJS (PrlBpjsPolicy). Kolom string
+// Kosakata kebijakan regulasi penggajian berversi: tarif PPh (PrlTaxPolicy). Kebijakan iuran BPJS (PrlBpjsPolicy) tidak lagi dikelola; tabelnya dipertahankan sebagai data historis. Kolom string
 // tanpa check constraint: nilai dijaga validasi layanan kebijakan. Tidak ada tarif atau nominal regulasi di sini; angkanya hanya ada
 // pada kebijakan yang disahkan.
 
@@ -65,14 +65,6 @@ public static class ManualAmountApprovalStatuses
     public static readonly IReadOnlyList<string> All = new[] { Pending, Approved, Rejected };
 }
 
-/// <summary>Hasil klasifikasi satu komponen penghasilan terhadap dasar upah iuran BPJS.</summary>
-public static class WageBaseClassifications
-{
-    public const string Included = "INCLUDED";
-    public const string Excluded = "EXCLUDED";
-    public const string Unclassified = "UNCLASSIFIED";
-}
-
 
 /// <summary>Status keberlakuan kebijakan tarif PPh yang ditentukan otomatis oleh sistem.</summary>
 public static class TaxPolicyEffectiveStatuses
@@ -127,5 +119,4 @@ public static class TaxPolicyCalculationTypes
 public static class StatutoryPolicyLabels
 {
     public const string AwaitingVerification = "Menunggu Verifikasi Kebijakan";
-    public const string BpjsTestingModeDisabled = "Mode Pengujian — BPJS belum dihitung";
 }

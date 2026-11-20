@@ -590,7 +590,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             }
             else
             {
-                salaryStatus = assessment.SalaryConflict ? SalaryConflictLabel : SalaryApprovedLabel;
+                salaryStatus = assessment.SalaryConflict
+                    ? SalaryConflictLabel
+                    : assessment.SalaryApproved ? SalaryApprovedLabel : SalaryPendingApproval;
             }
 
             string bankStatus;

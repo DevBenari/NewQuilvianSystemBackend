@@ -463,6 +463,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PrlTransportAllowanceTransaction> PrlTransportAllowanceTransactions { get; set; }
         public DbSet<PrlWorkforceAllowance> PrlWorkforceAllowances { get; set; }
         public DbSet<PrlTaxPolicy> PrlTaxPolicies { get; set; }
+        // LEGACY_PERSISTED (PAY-BE-FIX-007): tidak ada consumer aktif; dipertahankan agar model EF tetap sinkron dengan database dan snapshot migration.
         public DbSet<PrlBpjsPolicy> PrlBpjsPolicies { get; set; }
         public DbSet<PrlPayrollRun> PrlPayrollRuns { get; set; }
         public DbSet<PrlPayrollRunEmployee> PrlPayrollRunEmployees { get; set; }

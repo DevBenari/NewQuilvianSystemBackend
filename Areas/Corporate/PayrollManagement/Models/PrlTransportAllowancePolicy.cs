@@ -38,7 +38,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models
 
         /// <summary>
         /// Klasifikasi tunjangan tetap (perjanjian kerja/kebijakan HRD), terpisah dari <see cref="IsTaxable"/>. Transportasi berbasis
-        /// kehadiran/per hari tidak pernah tunjangan tetap. Null = belum diklasifikasikan (menahan dasar upah iuran BPJS untuk metode FixedMonthly).
+        /// kehadiran/per hari tidak pernah tunjangan tetap. Null = belum diklasifikasikan. LEGACY_PERSISTED: klasifikasi untuk dasar upah iuran BPJS yang tidak lagi dipakai (PAY-BE-FIX-007); kolom dipertahankan.
         /// </summary>
         public bool? IsFixedAllowance { get; set; }
 

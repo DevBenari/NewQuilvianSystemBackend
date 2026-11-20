@@ -61,27 +61,20 @@ public sealed class PayrollDataReadinessItemResponse
     public string TaxStatus { get; set; } = string.Empty;
 
     /// <summary>
-    /// "Sudah ditetapkan" (konfigurasi PPh DAN iuran yang ditetapkan HRD sah dan berlaku) atau "Belum ditetapkan" (salah satunya belum
-    /// ada, belum lengkap, belum/tidak berlaku, atau tidak sah). Diturunkan dari status konfigurasi eksplisit di bawah, BUKAN dari
-    /// perbandingan nominal nol. Tidak memengaruhi <see cref="IsComplete"/>.
+    /// Nama historis: sama dengan <see cref="TaxStatus"/>. Sejak PAY-BE-FIX-007 hanya konfigurasi PPh yang dinilai; asuransi swasta dan
+    /// iuran BPJS bukan syarat. Tidak memengaruhi <see cref="IsComplete"/>.
     /// </summary>
     public string TaxInsuranceStatus { get; set; } = string.Empty;
 
     /// <summary>NOT_CONFIGURED | CONFIGURED | NOT_EFFECTIVE | ERROR untuk konfigurasi PPh (Profil Pajak HRD).</summary>
     public string TaxConfigurationStatus { get; set; } = string.Empty;
 
-    /// <summary>NOT_CONFIGURED | CONFIGURED | NOT_EFFECTIVE | ERROR untuk konfigurasi iuran (Profil Iuran HRD).</summary>
-    public string InsuranceConfigurationStatus { get; set; } = string.Empty;
-
     /// <summary>Kekurangan konfigurasi PPh yang sebenarnya (mis. jenis PPh atau kategori belum ditentukan); kosong bila lengkap.</summary>
     public List<string> TaxConfigurationIssues { get; set; } = new();
 
-    /// <summary>Kekurangan konfigurasi iuran yang sebenarnya; kosong bila lengkap.</summary>
-    public List<string> InsuranceConfigurationIssues { get; set; } = new();
-
     /// <summary>
     /// (3) Siap mengikuti proses Payroll: tidak ada penghalang. Benar bila <see cref="HrdComplete"/> dan profil "Siap" atau "Akan
-    /// disiapkan otomatis". Tidak mencakup tetapan PPh dan iuran (lihat <see cref="TaxInsuranceStatus"/>).
+    /// disiapkan otomatis". Tidak mencakup tetapan PPh (lihat <see cref="TaxStatus"/>).
     /// </summary>
     public bool IsComplete { get; set; }
 
@@ -120,21 +113,14 @@ public sealed class PayrollDataReadinessSummaryResponse
     /// </summary>
     public int TaxNotSet { get; set; }
 
-    /// <summary>
-    /// Orang yang konfigurasi PPh dan/atau iurannya di HRD belum ditetapkan secara sah dan berlaku (jenis PPh, kategori, skema, atau
-    /// kepesertaan iuran belum ditentukan, belum/tidak berlaku, atau tidak sah). Bukan perbandingan nominal nol.
-    /// </summary>
+    /// <summary>Nama historis: sama dengan <see cref="TaxNotSet"/> (hanya PPh).</summary>
     public int TaxInsuranceNotSet { get; set; }
 
     /// <summary>
-    /// Ketersediaan kebijakan regulasi berversi yang disahkan dan berlaku hari ini. "Menunggu Verifikasi Kebijakan" berarti PPh otomatis
-    /// dan iuran BPJS menahan payroll run walaupun konfigurasi per orang sudah lengkap.
+    /// Ketersediaan kebijakan tarif PPh berversi yang disahkan dan berlaku hari ini. "Menunggu Verifikasi Kebijakan" berarti PPh
+    /// otomatis menahan payroll run walaupun konfigurasi per orang sudah lengkap.
     /// </summary>
     public bool TaxPolicyApproved { get; set; }
     public string? TaxPolicyVersion { get; set; }
     public string TaxPolicyStatusLabel { get; set; } = string.Empty;
-    public bool EnableBpjsInPayroll { get; set; } = true;
-    public bool BpjsPolicyApproved { get; set; }
-    public string? BpjsPolicyVersion { get; set; }
-    public string BpjsPolicyStatusLabel { get; set; } = string.Empty;
 }
