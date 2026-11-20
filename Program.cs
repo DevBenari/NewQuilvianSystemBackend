@@ -1866,6 +1866,8 @@ try
         builder.Services.AddHostedService<OptExamChargeRetryHostedService>();
         // rawat-jalan BE-RJP-009: reservasi prioritas yang tidak datang ditutup saat start dan 00.05 WIB.
         builder.Services.AddHostedService<OutpatientPriorityReservationClosureHostedService>();
+        // kiosk Amendment PO (BE-KSK-PO-008): pendaftaran online yang tidak check-in ditutup Tidak Datang saat start dan 00.05 WIB.
+        builder.Services.AddHostedService<OnlineRegistrationClosureHostedService>();
         builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
         builder.Services.AddHostedService<InpatientIntegrationOutboxWorker>();
         builder.Services.AddHostedService<EmergencyTriageSlaMonitorHostedService>();

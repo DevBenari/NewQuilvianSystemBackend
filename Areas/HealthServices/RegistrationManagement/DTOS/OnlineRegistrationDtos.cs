@@ -200,6 +200,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime OccurredAt { get; set; }
     }
 
+    /// <summary>
+    /// Ubah tanggal dan/atau jadwal dokter di poli yang sama (<c>BE-KSK-PO-010</c>, <c>KSK-DEC-051</c>).
+    /// Kode pendaftaran tetap.
+    /// </summary>
+    public class OnlineRegistrationScheduleChangeRequest
+    {
+        /// <summary>Kalender WIB, <c>yyyy-MM-dd</c>, H+1 s.d. H+30 dari hari perubahan.</summary>
+        public DateTime? VisitDate { get; set; }
+
+        public Guid? DoctorScheduleId { get; set; }
+
+        public Guid ExpectedRowVersion { get; set; }
+    }
+
+    /// <summary>Ubah No. WA atau email (<c>KSK-DEC-051</c>). Kode tidak dikirim ulang (<c>KSK-PO-AS-003</c>).</summary>
+    public class OnlineRegistrationContactChangeRequest
+    {
+        public string? Contact { get; set; }
+
+        public Guid ExpectedRowVersion { get; set; }
+    }
+
+    /// <summary>Batal dengan alasan wajib 5–500 karakter (<c>KSK-DEC-052</c>).</summary>
+    public class OnlineRegistrationCancelRequest
+    {
+        public string? Reason { get; set; }
+
+        public Guid ExpectedRowVersion { get; set; }
+    }
+
     /// <summary>Jumlah pendaftaran per status pada rentang tanggal kunjungan.</summary>
     public class OnlineRegistrationSummaryResponse
     {

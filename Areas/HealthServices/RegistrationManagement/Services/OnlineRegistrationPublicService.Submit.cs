@@ -507,26 +507,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         private static SubmitError? ValidateContact(string? contact, SubmitDraft draft)
         {
+            var error = ParseContact(contact, out var whatsApp, out var email);
+            if (error != null)
+                return new SubmitError(error.Value.Rule, error.Value.Message);
+
+            draft.WhatsAppNumber = whatsApp;
+            draft.Email = email;
+            return null;
+        }
+
+        /// <summary>
+        /// Kolom kontak: No. WA lokal <c>08…</c> atau email sah, salah satu (<c>KSK-DEC-043</c>,
+        /// <c>KSK-VAL-PO-007</c> s.d. <c>009</c>). Dipakai juga ubah kontak petugas (<c>KSK-VAL-PO-067</c>).
+        /// </summary>
+        internal static (string Rule, string Message)? ParseContact(string? contact, out string? whatsApp, out string? email)
+        {
+            whatsApp = null;
+            email = null;
             var value = contact?.Trim() ?? string.Empty;
 
             if (value.Length == 0)
-                return new SubmitError("KSK-VAL-PO-007", ContactRequiredMessage);
+                return ("KSK-VAL-PO-007", ContactRequiredMessage);
 
             if (value.Contains('@'))
             {
                 if (value.Length > MaxEmailLength || !IsValidEmail(value))
-                    return new SubmitError("KSK-VAL-PO-009", EmailInvalidMessage);
+                    return ("KSK-VAL-PO-009", EmailInvalidMessage);
 
-                draft.Email = value;
+                email = value;
                 return null;
             }
 
-            var whatsApp = NormalizeWhatsAppNumber(value);
-            if (whatsApp == null)
-                return new SubmitError("KSK-VAL-PO-008", WhatsAppInvalidMessage);
-
-            draft.WhatsAppNumber = whatsApp;
-            return null;
+            whatsApp = NormalizeWhatsAppNumber(value);
+            return whatsApp == null ? ("KSK-VAL-PO-008", WhatsAppInvalidMessage) : null;
         }
 
         private SubmitError? ValidateVisit(OnlineRegistrationSubmitRequest request, SubmitDraft draft)
@@ -844,14 +857,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         /// bersamaan untuk pasien yang sama diproses bergantian dan yang kedua ditolak
         /// <c>KSK-VAL-PO-023</c>.
         /// </summary>
-        private async Task LockOnlinePatientAsync(SubmitDraft draft, CancellationToken cancellationToken)
+        private Task LockOnlinePatientAsync(SubmitDraft draft, CancellationToken cancellationToken) =>
+            LockOnlinePatientAsync(draft.PatientId, draft.IdentityNumber, cancellationToken);
+
+        /// <inheritdoc cref="LockOnlinePatientAsync(SubmitDraft, CancellationToken)"/>
+        /// <remarks>Dipakai juga ubah jadwal petugas (<c>BE-KSK-PO-010</c>) dengan kunci yang sama.</remarks>
+        internal async Task LockOnlinePatientAsync(Guid? patientId, string? identityNumber, CancellationToken cancellationToken)
         {
             if (!_dbContext.Database.IsNpgsql())
                 return;
 
-            var key = draft.PatientId.HasValue
-                ? $"{PatientLockKeyPrefix}{draft.PatientId.Value:N}"
-                : $"{PatientLockKeyPrefix}NIK_{draft.IdentityNumber}";
+            var key = patientId.HasValue
+                ? $"{PatientLockKeyPrefix}{patientId.Value:N}"
+                : $"{PatientLockKeyPrefix}NIK_{identityNumber}";
 
             await _dbContext.Database.ExecuteSqlRawAsync(
                 "SELECT pg_advisory_xact_lock(hashtext({0}));",
@@ -864,16 +882,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         /// dikenali dari <c>PatientId</c> dan NIK masternya; pasien baru dari NIK, termasuk pendaftaran
         /// pasien lama yang NIK masternya sama.
         /// </summary>
-        private async Task<bool> HasOpenRegistrationAsync(SubmitDraft draft, CancellationToken cancellationToken)
+        private Task<bool> HasOpenRegistrationAsync(SubmitDraft draft, CancellationToken cancellationToken) =>
+            HasOpenRegistrationAsync(draft.PatientId, draft.IdentityNumber, draft.VisitDate, null, cancellationToken);
+
+        /// <inheritdoc cref="HasOpenRegistrationAsync(SubmitDraft, CancellationToken)"/>
+        /// <remarks>
+        /// <paramref name="excludeRegistrationId"/> dipakai ubah jadwal petugas supaya pendaftaran yang
+        /// sedang dipindah tidak dihitung sebagai bentrok dengan dirinya sendiri.
+        /// </remarks>
+        internal async Task<bool> HasOpenRegistrationAsync(
+            Guid? registrationPatientId,
+            string? registrationIdentityNumber,
+            DateTime visitDate,
+            Guid? excludeRegistrationId,
+            CancellationToken cancellationToken)
         {
-            var visitDate = draft.VisitDate;
             var open = _dbContext.RegOnlineRegistrations
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && x.Status == OnlineRegistrationStatus.AwaitingCheckIn && x.VisitDate == visitDate);
 
-            if (draft.PatientId.HasValue)
+            if (excludeRegistrationId.HasValue)
+                open = open.Where(x => x.Id != excludeRegistrationId.Value);
+
+            if (registrationPatientId.HasValue)
             {
-                var patientId = draft.PatientId.Value;
+                var patientId = registrationPatientId.Value;
                 var masterIdentityNumber = await _dbContext.Set<MstPatient>()
                     .AsNoTracking()
                     .Where(x => x.Id == patientId)
@@ -887,7 +920,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     cancellationToken);
             }
 
-            var identityNumber = draft.IdentityNumber!;
+            var identityNumber = registrationIdentityNumber!;
             var masterPatientIds = await _patientLookupService.FindPatientIdsByIdentityNumberAsync(identityNumber, cancellationToken);
 
             return await open.AnyAsync(
@@ -900,7 +933,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         /// <c>KSK-VAL-PO-024</c>: kunjungan Rawat Jalan aktif pada tanggal itu, aturan yang sama dengan
         /// Reservasi Prioritas (<c>OutpatientEncounterRules.WhereBlocksRegistration</c>).
         /// </summary>
-        private Task<bool> HasActiveOutpatientEncounterOnAsync(
+        internal Task<bool> HasActiveOutpatientEncounterOnAsync(
             Guid patientId,
             DateTime visitDate,
             CancellationToken cancellationToken)

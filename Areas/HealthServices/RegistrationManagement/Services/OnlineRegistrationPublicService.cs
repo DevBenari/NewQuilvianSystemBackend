@@ -404,7 +404,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         /// <b>dan</b> pendaftaran kiosk (<c>KSK-DSN-PO-013</c>), dengan dokter, unit, dan poli aktif, serta
         /// berlaku pada tanggal kunjungan menurut aturan yang sama dengan jalur kunjungan.
         /// </summary>
-        private async Task<List<MstDoctorSchedule>> LoadOfferedSchedulesAsync(
+        internal async Task<List<MstDoctorSchedule>> LoadOfferedSchedulesAsync(
             Guid? clinicId,
             DateTime visitDate,
             CancellationToken cancellationToken)

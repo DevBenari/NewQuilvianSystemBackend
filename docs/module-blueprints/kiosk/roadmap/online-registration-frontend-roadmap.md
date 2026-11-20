@@ -34,17 +34,17 @@
 ## Grafik Urutan Dependency
 
 ```text
-BE-KSK-PO-004 ✅ [BE] ─> FE-KSK-PO-001 ─> FE-KSK-PO-002 ─┬─> FE-KSK-PO-003
-                                                         │
-BE-KSK-PO-005 ✅ [BE] ───────────────────────────────────┘
+BE-KSK-PO-004 ✅ [BE] ─> FE-KSK-PO-001 ✅ ─> FE-KSK-PO-002 ✅ ─┬─> FE-KSK-PO-003 ✅
+                                                               │
+BE-KSK-PO-005 ✅ [BE] ─────────────────────────────────────────┘
 
 BE-KSK-PO-007 [BE] ─> FE-KSK-PO-005 ─┬─> FE-KSK-PO-006
                                      │
 FE-KSK-PO-004 ✅ ────────────────────┘
 
-BE-KSK-PO-009 🟡 [BE] ─> FE-KSK-PO-007 ─┬─> FE-KSK-PO-008
-                                        │
-BE-KSK-PO-010 [BE] ─────────────────────┘
+BE-KSK-PO-009 ✅ [BE] ─> FE-KSK-PO-007 ✅ ─┬─> FE-KSK-PO-008
+                                           │
+BE-KSK-PO-010 ✅ [BE] ─────────────────────┘
 ```
 
 `[BE]` = task backend pada [online-registration-backend-roadmap.md](online-registration-backend-roadmap.md), cermin baca-saja.
@@ -74,11 +74,11 @@ Pasangan prasyarat → task: 10 (`BE-004→FE-001`, `FE-001→FE-002`, `FE-002�
 
 ## Kartu task
 
-### `FE-KSK-PO-001` — Fondasi halaman publik
+### ✅ `FE-KSK-PO-001` — Fondasi halaman publik
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ 2026-11-20 — `lint:errors` PASS (0 error), `build` PASS (854/854 halaman, `ƒ /online-registration`); browser privat 9/9 PASS (halaman terbuka tanpa login, halaman lain dan awalan mirip dialihkan ke `/login`, CSP memuat Cloudflare pada `script-src`/`frame-src`, skrip + iframe Turnstile termuat dan token uji terbit, konsol tanpa pelanggaran CSP, HP 375 px tanpa gulir mendatar); jalur gagal widget 2/2 PASS; service asli ke backend uji 11/11 PASS (opsi poli/jadwal/asuransi/faskes, `400` hari ini, `404` pencocokan, urutan langkah = menu RJ). Keputusan komponen captcha `NEW` opsi A disetujui user. Catatan go-live: site key belum ada di `build.args` Docker — [laporan](../task/report/frontend/FE-KSK-PO-001.md) |
 | Outcome | `src/app/online-registration/page.jsx` dan `layout.jsx` tanpa navbar/sidebar; `/online-registration` terdaftar di `src/proxy.js`, `root-layout-shell.jsx`, `auth-wrapper.jsx`; `next.config.js` mengizinkan `https://challenges.cloudflare.com` pada `script-src` dan `frame-src`; `online-registration-public.service.js` untuk opsi dan pencocokan; konstanta urutan langkah diturunkan dari `outpatient-registration.constants.js`; `NEXT_PUBLIC_TURNSTILE_SITE_KEY` di contoh env |
 | Requirement/decision | `FR-KSK-PO-040`; `KSK-PO-FE-004`; `CAP-PO-21`, `29` |
 | Kontrak | Grup *Online Registration Public* |
@@ -90,11 +90,11 @@ Pasangan prasyarat → task: 10 (`BE-004→FE-001`, `FE-001→FE-002`, `FE-002�
 | Risiko/pemilik | Lupa satu dari tiga daftar jalur publik → redirect login. Pemilik: implementer |
 | DoD | Kriteria 1–4 terbukti |
 
-### `FE-KSK-PO-002` — Langkah Data Pasien, Jenis Pasien, Data Kunjungan, Penjamin
+### ✅ `FE-KSK-PO-002` — Langkah Data Pasien, Jenis Pasien, Data Kunjungan, Penjamin
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ 2026-11-20 — ESLint 12 berkas 0 error/0 warning, `lint:errors` PASS, `build` PASS (854/854, `ƒ /online-registration`); Playwright HP 375 px tiga jenis pasien 38/38 PASS (urutan langkah = menu RJ untuk Pribadi/Asuransi/Rujukan, validasi `KSK-VAL-PO-001` s.d. `009`, `020`, `026`, pencocokan pasien lama + captcha sekali pakai → nama tersamar, `404` pesan umum, kartu milik pasien tersamar dan kartu asuransi baru, hari ini dan > H+30 tidak dapat dipilih, kartu jadwal dengan sisa kuota, URL/storage tanpa data pasien, semua request hanya grup publik); regresi menu RJ petugas 13/13 PASS (satu pasien lama per jenis sampai Verifikasi, tanpa menyimpan). UI GATE 8 elemen: REUSE 3, EXTEND 3 (prop opsional, bawaan tetap), COMPOSE 2, NEW 0. Penjamin Pasien Rujukan baru dapat diuji di layar sesudah Data Rujukan (`FE-KSK-PO-003`); langkah `FE-KSK-PO-003` sementara berisi penanda "disiapkan pada tahap berikutnya" — [laporan](../task/report/frontend/FE-KSK-PO-002.md) |
 | Outcome | Langkah Data Pasien publik (lama: NIK/No. RM + tanggal lahir + captcha → nama tersamar; baru: NIK, nama, tanggal lahir, jenis kelamin; kolom No. WA/email); Jenis Pasien; Data Kunjungan (tanggal H+1 s.d. H+30, poli, kartu jadwal dengan sisa kuota); Penjamin (kartu milik pasien tersamar, kartu asuransi baru, Tunai). Urutan langkah per jenis pasien sama dengan menu RJ |
 | Requirement/decision | `FR-KSK-PO-041`, `042`; `KSK-DEC-029`, `031`, `035`, `043`, `047`; `KSK-PO-FE-001`, `002`; `KSK-DSN-PO-004`, `012`, `013` |
 | Kontrak | Grup publik `GET options/*`, `POST patient-match`; `KSK-VAL-PO-001` s.d. `012`, `020` s.d. `026` (sisi `FE`) |
@@ -106,11 +106,11 @@ Pasangan prasyarat → task: 10 (`BE-004→FE-001`, `FE-001→FE-002`, `FE-002�
 | Risiko/pemilik | Perubahan komponen bersama RJ. Pemilik: implementer |
 | DoD | Kriteria terbukti; tabel keputusan base component dan baris `UI GATE` di laporan |
 
-### `FE-KSK-PO-003` — Data Rujukan, Consent, Verifikasi, Kirim, Selesai
+### ✅ `FE-KSK-PO-003` — Data Rujukan, Consent, Verifikasi, Kirim, Selesai
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ 2026-11-20 — ESLint 0 error/0 warning, `lint:errors` PASS, `build` PASS (854/854, `ƒ /online-registration`); Playwright HP 375 px dengan kunci uji Turnstile dan SMTP uji: kiriman 28/29 pada run penuh (S1k gagal karena skrip membaca email base64 mentah), S1 ulang 13/13, kartu asuransi baru 2/2; data backend lewat API petugas 7/7 (consent tersimpan, 2 berkas rujukan, kartu baru, status email); regresi menu RJ petugas 14/14; uji FE-002 ulang 38/38. Terbukti: tombol Kirim "Mengirim..." terkunci dan klik ganda = 1 kiriman; `409` kuota → Data Kunjungan (Rujukan → Data Rujukan, tempat jadwal dipilih) tanpa menghapus isian; `409` ganda nyata → Data Kunjungan; berkas 6 MB/`.exe`/> 3 ditolak; email SMTP uji berisi kode tanpa NIK; tombol WhatsApp `wa.me/62…` berisi kode, tanggal, poli; kode tidak di URL/storage. UI GATE 7 elemen: REUSE 2, EXTEND 2 (ekspor + prop opsional `ReferralDocumentsField`), COMPOSE 3, NEW 0; Data Rujukan dan Verifikasi dirangkai dari bagian langkah RJ, bukan langkah RJ utuh (alasan di laporan) — [laporan](../task/report/frontend/FE-KSK-PO-003.md) |
 | Outcome | Data Rujukan (cari faskes, tanggal, nomor, dokter, catatan, alasan, 1–3 berkas ≤ 5 MB); General Consent pasien baru (komponen RJ); Verifikasi dengan widget Turnstile dan Kirim multipart; Selesai (nomor, kode berkelompok, ringkasan, status email, tombol "Kirim kode ke WhatsApp saya", tombol salin) |
 | Requirement/decision | `FR-KSK-PO-041`, `042`; `KSK-DEC-034`, `035`, `041`, `042`, `044`; `KSK-PO-FE-003`; `KSK-DSN-PO-011` |
 | Kontrak | Grup publik `POST`, `GET options/referral-institutions`; `KSK-VAL-PO-027` s.d. `034` |
@@ -170,11 +170,11 @@ Pasangan prasyarat → task: 10 (`BE-004→FE-001`, `FE-001→FE-002`, `FE-002�
 | Risiko/pemilik | Kegagalan sebagian (master terbuat, kunjungan gagal). Pemilik: implementer |
 | DoD | Kriteria terbukti |
 
-### `FE-KSK-PO-007` — Daftar Pendaftaran Online dan butir menu
+### ✅ `FE-KSK-PO-007` — Daftar Pendaftaran Online dan butir menu
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ 2026-11-20 — ESLint 0 error/0 warning, `lint:errors` PASS, `build` PASS (855/855, `○ /health-services/registration-management/online-registrations`); Playwright 1366 px 22/22 PASS + paginasi ketat PASS (10 + 7 baris, `pageNumber=2`): menu satu grup tepat di bawah Reservasi Prioritas dan terjangkau akun ber-hak; bawaan hari ini s.d. 30 hari; filter status; cari nomor/NIK/nama; kata kunci < 3 tidak dikirim (`068`); rentang 76 hari ditolak (`069`); kosong, gagal + Coba lagi, Atur ulang; kode tidak pernah tampil; akun tanpa hak: menu tersembunyi dan `403` → `AccessDeniedGate`. UI GATE 10 elemen: REUSE 9, COMPOSE 1, NEW 0. Akun uji tanpa hak baru (`TEST-PO007 noread`) dibuat lewat API karena `TEST-PO009 noaccess` sudah diberi Read oleh uji BE-010 — [laporan](../task/report/frontend/FE-KSK-PO-007.md) |
 | Outcome | Route `/health-services/registration-management/online-registrations`; ringkasan per status; filter rentang tanggal dan status; pencarian; tabel; `online-registration-slice`, service, hook, konstanta; butir menu "Pendaftaran Online" di grup yang sama dengan "Reservasi Prioritas" dengan `requiredPermission` `OnlineRegistration : Read`; `AccessDeniedGate` |
 | Requirement/decision | `FR-KSK-PO-060`; `KSK-DEC-050`; `KSK-PO-FE-005` |
 | Kontrak | Grup *Online Registration* `GET`, `GET summary`; `KSK-VAL-PO-068`, `069` |

@@ -87,6 +87,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private OutpatientPriorityReservationService PriorityReservationService =>
             HttpContext.RequestServices.GetRequiredService<OutpatientPriorityReservationService>();
 
+        // kiosk Amendment PO (BE-KSK-PO-008): diambil per request dengan alasan yang sama.
+        private OnlineRegistrationService OnlineRegistrationService =>
+            HttpContext.RequestServices.GetRequiredService<OnlineRegistrationService>();
+
         private IActionResult MapPriorityReservationFailure(PriorityReservationOutcome outcome, string message) =>
             outcome switch
             {
@@ -1105,6 +1109,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 }
             }
 
+            // kiosk Amendment PO (BE-KSK-PO-008, NFR-PO-002): kunjungan Rawat Jalan berpoli menutup
+            // pendaftaran online pasien pada tanggal yang sama. Kunci pendaftaran online pasien diambil
+            // sesudah kunci kunjungan aktif dan sebelum kunci kuota, urutan yang sama dengan pengiriman
+            // dan ubah jadwal pendaftaran online, sehingga keduanya tidak saling menunggu.
+            if (!isEmergencyEncounter && request.EncounterType == EncounterType.Outpatient && clinic != null)
+            {
+                await OnlineRegistrationService.LockPatientForEncounterAsync(request.PatientId, HttpContext.RequestAborted);
+            }
+
             // kiosk Amendment PO (BE-KSK-PO-002, KSK-DSN-PO-009, GATE-PO-17): pemeriksaan kuota di
             // validasi tidak cukup bagi dua permintaan yang berebut slot terakhir. Kunci kuota per
             // jadwal dan tanggal diambil sesudah kunci pasien (urutan yang sama di semua jalur agar
@@ -1228,6 +1241,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         actorUserId,
                         HttpContext.RequestAborted);
                     changedReservations.AddRange(closed.Select(x => (x, RegPriorityReservationHistory.EventRegisteredElsewhere)));
+                }
+
+                // kiosk Amendment PO (BE-KSK-PO-008, KSK-DEC-045): pendaftaran online pasien ini untuk
+                // tanggal yang sama ditutup sebagai Didaftarkan lewat Jalur Lain dan ditautkan ke kunjungan
+                // ini, ikut transaksi yang sama. Kunjungan IGD dan tanpa poliklinik tidak menyentuhnya.
+                if (!isEmergencyEncounter && request.EncounterType == EncounterType.Outpatient && clinic != null)
+                {
+                    await OnlineRegistrationService.CloseForEncounterAsync(
+                        request.PatientId,
+                        targetEncounterDate,
+                        encounterId,
+                        actorUserId,
+                        HttpContext.RequestAborted);
                 }
 
                 var encounter = new RegPatientEncounter
@@ -2915,6 +2941,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             // RJ-REG-REV-BE-006: hitungan dipusatkan di DoctorScheduleQuotaService supaya sama
             // dengan endpoint kuota layar pendaftaran. Urutan dan kalimat penolakan tidak berubah.
             var usage = await _doctorScheduleQuotaService.GetUsageAsync(schedule.Id, visitDate);
+
+            // kiosk Amendment PO (BE-KSK-PO-008, KSK-DEC-045): pendaftaran online pasien ini pada jadwal
+            // dan tanggal yang sama akan ditutup Jalur Lain oleh kunjungan ini, jadi kuotanya tidak
+            // dihitung dua kali. Aturan pencocokannya sama dengan penutupan.
+            if (request.EncounterType == EncounterType.Outpatient &&
+                request.ClinicId.HasValue &&
+                request.ClinicId.Value != Guid.Empty)
+            {
+                var ownOnline = await OnlineRegistrationService.CountClosableOnScheduleAsync(
+                    request.PatientId,
+                    schedule.Id,
+                    visitDate);
+
+                if (ownOnline > 0)
+                {
+                    usage = usage with
+                    {
+                        Total = Math.Max(0, usage.Total - ownOnline),
+                        Appointment = Math.Max(0, usage.Appointment - ownOnline)
+                    };
+                }
+            }
 
             if (DoctorScheduleQuotaService.IsFull(schedule.MaxPatientQuota, usage.Total))
             {

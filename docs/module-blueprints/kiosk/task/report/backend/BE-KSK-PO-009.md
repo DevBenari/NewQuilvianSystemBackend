@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit backend saat dikerjakan | `a86001e2` (`sukmagp`) |
 | Tanggal | 2026-11-20 |
-| Status | 🟡 Sebagian — semua kriteria terbukti di runtime kecuali aksi `Update` dan `Cancel` pada Resource `OnlineRegistration`, yang baru muncul di Akses Role ketika endpoint-nya dibuat di `BE-KSK-PO-010` |
+| Status | ✅ Selesai (2026-11-20) — semua kriteria terbukti di runtime. Aksi `Update` dan `Cancel` muncul di Akses Role bersama endpoint `BE-KSK-PO-010` dan terbukti di sana (A1). Sebelumnya 🟡 |
 
 **Backend Governance Preflight**
 
@@ -126,7 +126,7 @@ Total runtime 32/32 PASS.
 | --- | --- | --- |
 | AC 18: petugas ber-hak membuka daftar, filter tanggal dan status, cari kode/nomor/nama/No. RM/NIK; kode tidak pernah tampil | Terpenuhi | B1, C1, C5–C14 |
 | AC 18: petugas tanpa hak `403` | Terpenuhi | B2, E6 |
-| Tambahan (1): Resource `OnlineRegistration` dengan aksi `Read`, `Update`, `Cancel` muncul di Akses Role | **Sebagian** | `Read` terbukti (A1). `Update` dan `Cancel` muncul bersama endpoint `BE-KSK-PO-010` |
+| Tambahan (1): Resource `OnlineRegistration` dengan aksi `Read`, `Update`, `Cancel` muncul di Akses Role | Terpenuhi | `Read` terbukti di task ini (A1); ketiga aksi terbukti sesudah endpoint `BE-KSK-PO-010` ada ([laporan](BE-KSK-PO-010.md) A1, 2026-11-20) |
 | Tambahan (2): kode tidak pernah dikembalikan | Terpenuhi | C1, E3 |
 | Tambahan (3): tanpa hak `403` | Terpenuhi | B2, E6 |
 | DoD: QBE Strict, verifier PASS | Terpenuhi | Bagian 5 |
@@ -135,7 +135,7 @@ Total runtime 32/32 PASS.
 
 | Hal | Isi |
 | --- | --- |
-| Yang belum | Aksi `Update`/`Cancel` di Akses Role, otomatis bersama `BE-KSK-PO-010`. Task ini dapat ditandai ✅ sesudah A1 dijalankan ulang dan menampilkan ketiga aksi |
+| Yang belum | Tidak ada. Aksi `Update`/`Cancel` terbukti di `BE-KSK-PO-010` A1 |
 | Data uji | Fixture `TEST-PO009` (unit, 2 jabatan, 2 pegawai dengan akun, 1 policy) **sengaja dipertahankan** untuk uji hak `Update`/`Cancel` di `BE-KSK-PO-010`; id di `po009_fixture.json` (scratchpad). Bersihkan sesudah `BE-KSK-PO-010`: hapus lunak dengan akhiran `-DEL-<stamp>` pada kode unit dan nonaktifkan akun |
 | Risiko tersisa | Layar petugas menampilkan data pribadi lengkap; batasi hak `Read` ke jabatan admisi saja |
 | Perubahan sampingan | `NONE` di repository. Skrip uji dan log di scratchpad |

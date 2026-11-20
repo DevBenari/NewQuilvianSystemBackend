@@ -13,9 +13,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 {
     /// <summary>
     /// Layar Pendaftaran Online untuk petugas (kiosk Amendment PO, <c>KSK-DEC-050</c>). Task ini
-    /// (<c>BE-KSK-PO-009</c>) memuat kueri: daftar, ringkasan, detail beserta riwayat, dan pembukaan
-    /// berkas surat rujukan. Ubah jadwal, ubah kontak, dan batal menyusul di <c>BE-KSK-PO-010</c>;
-    /// penutupan Jalur Lain dan Tidak Datang di <c>BE-KSK-PO-008</c>.
+    /// <c>BE-KSK-PO-009</c> memuat kueri: daftar, ringkasan, detail beserta riwayat, dan pembukaan
+    /// berkas surat rujukan. <c>BE-KSK-PO-010</c> menambah ubah jadwal, ubah kontak, dan batal
+    /// (<c>OnlineRegistrationService.Commands.cs</c>). Penutupan Jalur Lain dan Tidak Datang menyusul di
+    /// <c>BE-KSK-PO-008</c>.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -29,7 +30,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
     /// Nomor pendaftaran, nama, No. RM, dan NIK dicocokkan sebagian.
     /// </para>
     /// </remarks>
-    public class OnlineRegistrationService
+    public partial class OnlineRegistrationService
     {
         public const string NotFoundMessage = "Pendaftaran online tidak ditemukan.";
         public const string SearchTooShortMessage = "Kata kunci pencarian minimal 3 karakter.";
@@ -53,16 +54,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         private readonly ApplicationDbContext _dbContext;
         private readonly ReferralDocumentStorageService _documentStorage;
+        private readonly OnlineRegistrationPublicService _publicService;
+        private readonly DoctorScheduleQuotaService _quotaService;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<OnlineRegistrationService> _logger;
         private readonly TimeProvider _timeProvider;
         private readonly TimeZoneInfo _businessTimeZone;
 
         public OnlineRegistrationService(
             ApplicationDbContext dbContext,
             ReferralDocumentStorageService documentStorage,
+            OnlineRegistrationPublicService publicService,
+            DoctorScheduleQuotaService quotaService,
+            IConfiguration configuration,
+            ILogger<OnlineRegistrationService> logger,
             TimeProvider? timeProvider = null)
         {
             _dbContext = dbContext;
             _documentStorage = documentStorage;
+            _publicService = publicService;
+            _quotaService = quotaService;
+            _configuration = configuration;
+            _logger = logger;
             _timeProvider = timeProvider ?? TimeProvider.System;
             _businessTimeZone = ResolveBusinessTimeZone();
         }

@@ -35,13 +35,13 @@
 ```text
 BE-KSK-PO-001 ✅ ─> BE-KSK-PO-002 ✅ ─┬─> BE-KSK-PO-004 ✅ ─> BE-KSK-PO-005 ✅ ─┬─> BE-KSK-PO-006 🟡
                                       │                                         │
-BE-KSK-PO-003 ✅ ─────────────────────┘                                         ├─> BE-KSK-PO-008
+BE-KSK-PO-003 ✅ ─────────────────────┘                                         ├─> BE-KSK-PO-008 🟡
                                                                                 │
-                                                                                └─> BE-KSK-PO-009 🟡
+                                                                                └─> BE-KSK-PO-009 ✅
 
 BE-KSK-PO-006 🟡 ─> BE-KSK-PO-007
 
-BE-KSK-PO-009 🟡 ─> BE-KSK-PO-010
+BE-KSK-PO-009 ✅ ─> BE-KSK-PO-010 ✅
 ```
 
 Blok kedua dan ketiga menyambung rantai dari `BE-KSK-PO-006` dan `BE-KSK-PO-009` pada blok pertama, karena satu baris tidak muat 100 karakter.
@@ -170,7 +170,7 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 2026-11-20 — build PASS, QBE Strict PASS, verifier otorisasi PASS (fallback 68 tetap, 0 endpoint telanjang baru); runtime di 7185 17/17 PASS (`401` tanpa login, `400` `KSK-VAL-PO-040`/`043`, `404` seragam, `409` "Check-in hanya dapat dilakukan pada 21 Nov 2026." untuk kode dan Lupa Kode, `429` tepat di permintaan ke-11 per akun, `no-store`); harness jam palsu 26/26 PASS (token 256 bit, hash, 15 menit, paket, 404 status akhir); log bersih. **Belum:** runtime `200` (token + paket) karena data uji baru jatuh hari H pada 2026-11-21 (`po006_test.py dday`); kode berstatus akhir hanya terbukti di harness sampai `BE-KSK-PO-008`/`010` ada — [laporan](../task/report/backend/BE-KSK-PO-006.md) |
+| Status | 🟡 2026-11-20 — build PASS, QBE Strict PASS, verifier otorisasi PASS (fallback 68 tetap, 0 endpoint telanjang baru); runtime di 7185 17/17 PASS (`401` tanpa login, `400` `KSK-VAL-PO-040`/`043`, `404` seragam, `409` "Check-in hanya dapat dilakukan pada 21 Nov 2026." untuk kode dan Lupa Kode, `429` tepat di permintaan ke-11 per akun, `no-store`); harness jam palsu 26/26 PASS (token 256 bit, hash, 15 menit, paket, 404 status akhir); log bersih. **Belum:** runtime `200` (token + paket) karena data uji baru jatuh hari H pada 2026-11-21 (`po006_test.py dday`); kode berstatus akhir kini terbukti juga di runtime (`404` untuk Dibatalkan di `BE-KSK-PO-010` X2 dan Jalur Lain di `BE-KSK-PO-008` J3) — [laporan](../task/report/backend/BE-KSK-PO-006.md) |
 | Outcome | `POST online-registrations/kiosk/check-in/verify` (`KioskRead`, tanpa `[AccessAction]`): mode kode atau identitas + tanggal lahir; status dan tanggal hari ini (WIB); token 256 bit, hash disimpan, berlaku `CheckInTokenMinutes`; paket check-in; policy `OnlineRegistrationCheckIn` per akun kiosk |
 | Requirement/decision | `FR-KSK-PO-020`; `KSK-DEC-033`, `040`; `KSK-DSN-PO-008` |
 | Kontrak | Grup *Online Registration Check-In*; `KSK-VAL-PO-040` s.d. `045` |
@@ -198,11 +198,11 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | Risiko/pemilik | Jalur bersama kunjungan. Pemilik: implementer + Sukma Giri Pratama |
 | DoD | Kriteria terbukti; regresi kunjungan RJ/kiosk/IGD dibuktikan dengan satu kunjungan per kanal |
 
-### `BE-KSK-PO-008` — Penutupan Jalur Lain dan Tidak Datang
+### 🟡 `BE-KSK-PO-008` — Penutupan Jalur Lain dan Tidak Datang
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-20 — build PASS, QBE Strict PASS (10 berkas, 0 temuan), verifier otorisasi PASS (fallback 68 tetap); runtime di 7185 8/8 PASS untuk Jalur Lain (pasien lama di jadwal berkuota 1 yang penuh oleh pendaftarannya sendiri tetap diterima dan pendaftaran status 3 + nomor kunjungan; kuota tidak ganda; kode ditolak kiosk `404`; pasien lain ditolak kuota penuh; pasien baru lewat NIK master status 3; pendaftaran lain tidak tersentuh); harness jam palsu 11/11 PASS untuk Tidak Datang (2 hari tertinggal, idempoten, kuota kembali, berjalan saat start) dan aturan pencocokan; layanan harian tercatat berjalan saat start di runtime. **Belum:** AC 11 runtime dengan pendaftaran bertanggal lewat, paling cepat 2026-11-22 — [laporan](../task/report/backend/BE-KSK-PO-008.md) |
 | Outcome | `OnlineRegistrationService.CloseForEncounterAsync` dipanggil di samping penutupan Reservasi Prioritas untuk kunjungan RJ berpoli tanpa `OnlineRegistrationId` (pasien lama lewat `PatientId`, pasien baru lewat NIK master); `CloseExpiredAsync` + `OnlineRegistrationClosureHostedService` (00:05 WIB, mengejar hari tertinggal, idempoten) |
 | Requirement/decision | `FR-KSK-PO-003`, `004`; `KSK-DEC-037`, `045`; `GATE-PO-04`; `KSK-DSN-PO-015` |
 | Kontrak | PO-S.1 baris keempat dan kelima; PO-I.3 |
@@ -214,11 +214,11 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | Risiko/pemilik | Menutup pendaftaran pasien lain bila pencocokan NIK salah. Pemilik: implementer |
 | DoD | Kriteria terbukti; menjalankan ulang tidak menambah riwayat |
 
-### 🟡 `BE-KSK-PO-009` — Daftar, ringkasan, detail, dan berkas untuk petugas
+### ✅ `BE-KSK-PO-009` — Daftar, ringkasan, detail, dan berkas untuk petugas
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 2026-11-20 — build PASS, QBE Strict PASS (44 berkas, 0 temuan), verifier otorisasi PASS (fallback 68 tetap, 0 endpoint telanjang baru); runtime di 7185 32/32 PASS dengan akun fixture API ber-hak dan tanpa hak (`200`/`403`/`401`; pencarian kode lewat hash 6/6, nomor/nama/No. RM/NIK sebagian; `400` `KSK-VAL-PO-068`/`069`; paginasi; ringkasan; detail + riwayat; berkas PDF utuh, lintas pendaftaran `404`); kode tidak pernah keluar. **Belum:** aksi `Update` dan `Cancel` di Akses Role baru muncul bersama endpoint `BE-KSK-PO-010` (seeder membaca action descriptor); kini hanya `Read` — [laporan](../task/report/backend/BE-KSK-PO-009.md) |
+| Status | ✅ 2026-11-20 — build PASS, QBE Strict PASS (44 berkas, 0 temuan), verifier otorisasi PASS (fallback 68 tetap, 0 endpoint telanjang baru); runtime di 7185 32/32 PASS dengan akun fixture API ber-hak dan tanpa hak (`200`/`403`/`401`; pencarian kode lewat hash 6/6, nomor/nama/No. RM/NIK sebagian; `400` `KSK-VAL-PO-068`/`069`; paginasi; ringkasan; detail + riwayat; berkas PDF utuh, lintas pendaftaran `404`); kode tidak pernah keluar. Aksi `Read`, `Update`, `Cancel` di Akses Role terbukti bersama endpoint `BE-KSK-PO-010` (A1). Sebelumnya 🟡 — [laporan](../task/report/backend/BE-KSK-PO-009.md) |
 | Outcome | `OnlineRegistrationController` (`[AccessController(... "Online Registration", ControllerName = "OnlineRegistration")]`) dengan `GET`, `GET summary`, `GET {id}`, `GET {id}/referral-documents/{documentId}`; pencarian kode lewat hash persis, lainnya sebagian; detail beserta riwayat |
 | Requirement/decision | `FR-KSK-PO-030`, `032` (Resource); `KSK-DEC-050`; `KSK-PO-AS-002`; `KSK-DSN-PO-017` |
 | Kontrak | Grup *Online Registration* `GET`; `KSK-VAL-PO-068`, `069` |
@@ -230,11 +230,11 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | Risiko/pemilik | Data pribadi lengkap di layar petugas. Pemilik: implementer |
 | DoD | Kriteria terbukti; QBE Strict, verifier PASS |
 
-### `BE-KSK-PO-010` — Ubah jadwal, ubah kontak, batal
+### ✅ `BE-KSK-PO-010` — Ubah jadwal, ubah kontak, batal
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ 2026-11-20 — build PASS, QBE Strict PASS (6 berkas diff, 0 temuan), verifier otorisasi PASS (fallback 68 tetap, 0 endpoint telanjang baru); runtime di 7185 33/33 PASS: pindah tanggal + dokter lain di poli sama (kuota lama 5→4, baru 0→1, riwayat lama/baru, kode lama di kiosk menyebut 23 Nov), jadwal baru penuh `409` tanpa perubahan, poli lain `400`, bentrok tanggal `409`, versi lama `409`; ubah kontak dengan riwayat dan tanpa kirim ulang; batal: status 5, kuota kembali, kode ditolak kiosk `404`, batal ulang `409`, alasan pendek `400`; akun hanya `Read` `403`; log tanpa kontak — [laporan](../task/report/backend/BE-KSK-PO-010.md) |
 | Outcome | `PUT {id}/schedule` (poli sama, H+1 s.d. H+30, kuota baru dengan kunci kuota jadwal baru, aturan satu per tanggal, kode tetap), `PUT {id}/contact`, `POST {id}/cancel` (alasan wajib, status Dibatalkan); semuanya dengan `expectedRowVersion` dan riwayat nilai lama/baru |
 | Requirement/decision | `FR-KSK-PO-031`, `032`; `KSK-DEC-051`, `052`; `KSK-PO-AS-003`; `KSK-DSN-PO-016`; `GATE-PO-16` |
 | Kontrak | Grup *Online Registration* `PUT`/`POST`; `KSK-VAL-PO-060` s.d. `072`; PO-S.1 baris enam s.d. delapan, PO-S.2 |

@@ -140,7 +140,7 @@ Akun uji: seed SuperAdmin dari `appsettings.Development.json` (kredensial tidak 
 | --- | --- | --- |
 | AC 8: sebelum hari H ditolak dengan tanggal; tanggal lahir salah ditolak pesan umum | Terpenuhi | R4, R5, R5b, harness H5a, H6 |
 | AC 10: Lupa Kode NIK/No. RM + tanggal lahir menemukan pendaftaran hari ini | **Sebagian** | Pencarian terbukti di runtime (R6, `409` karena belum hari H); hasil `200` pada hari H baru di harness (H4a–H4c) |
-| Tambahan (1): kode berstatus akhir → `404` identik | Terpenuhi lewat harness | H5c. Runtime belum punya pendaftaran berstatus akhir; status itu baru dapat dibuat lewat `BE-KSK-PO-008`/`010` |
+| Tambahan (1): kode berstatus akhir → `404` identik | Terpenuhi | Harness H5c; runtime 2026-11-20: kode pendaftaran Dibatalkan (`BE-KSK-PO-010` X2) dan Didaftarkan lewat Jalur Lain (`BE-KSK-PO-008` J3) → `404` pesan seragam |
 | Tambahan (2): belum hari H → `409` menyebut tanggal | Terpenuhi | R4, R5, R6 |
 | Tambahan (3): paket tanpa kode; `identityNumberForScan` hanya pasien baru | Terpenuhi lewat harness | H1c, H3. Runtime menunggu D2–D3 |
 | DoD: verifier otorisasi PASS (`KSK-DSN-006`) | Terpenuhi | Bagian 5 |
