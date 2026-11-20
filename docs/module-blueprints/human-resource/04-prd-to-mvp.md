@@ -4682,3 +4682,130 @@ Mengikuti `contracts/state-transition-matrix.md` bagian 32: `Draft` → `Submitt
 
 Dokumen ini boleh diteruskan ke `/plan-module-delivery` **sesudah** pengguna menyetujui desain
 bagian 36 dan kontrak `v28`.
+
+---
+
+## 42. PRD → MVP Amandemen `S-A7-V2` — Kotak Masuk Persetujuan Terpadu di atas Engine Workflow (kontrak `v29`)
+
+### 42.1 Identitas dokumen
+
+| Field | Nilai |
+| --- | --- |
+| Produk | Quilvian V2 — Modul Human Resource |
+| Modul / slice | `human-resource` — amandemen `S-A7-V2` Employee Self-Service & Kotak Masuk Persetujuan Terpadu |
+| Status | `approved` — pengguna, 20 November 2026 ("setujui kontrak v29, lanjut plan"); dua pertanyaan Admin HR di 42.12 tetap terbuka tanpa memblokir development |
+| Repository target | `NewQuilvianSystemBackend` (`815ce085`, branch `yoga`), `QuilvianSystemFrontendDev` (`564365595`, branch `YogaV2`) |
+| `input_revision` | `00-interview-decisions.md` revision `40` bagian 56; `02-backend-architecture.md` bagian 37; `03-frontend-architecture.md` bagian 33; kontrak `v29` |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — platform workflow internal; tanpa konsep klinis atau billing baru |
+| Ringkasan cakupan | Atasan memutuskan semua permohonan HR dari satu kotak masuk terpadu, dan setiap keputusan mengubah status di modul asalnya |
+
+### 42.2 Ringkasan eksekutif dan masalah produk
+
+Atasan di rumah sakit menerima permohonan cuti, lembur, tukar shift, SPPD, dan lainnya. Menu "Kotak Masuk Persetujuan Terpadu" seharusnya menjadi satu tempat untuk semuanya. Kenyataannya menu itu kosong untuk permohonan yang nyata. Kalaupun ada yang diputuskan dari sana, status di modul asalnya tidak berubah. Atasan terpaksa memakai kotak masuk lama yang tampilannya berbeda, dan fitur kotak terpadu (persetujuan massal, Plh, eskalasi SLA) tidak bekerja untuk permohonan nyata.
+
+| Kondisi sekarang | Bukti |
+| --- | --- |
+| Antrean terpadu hanya membaca penugasan engine lama; delapan modul HR memakai engine `WorkflowService` | `HRD-TF-080`, `HRD-TF-081`; uji browser `FE-HRD-339`/`340` |
+| Aksi terpadu tidak memanggil penangan modul | `HRD-TF-082` |
+| PIN diminta tetapi tidak pernah diperiksa | `HRD-TF-083` |
+| Eskalasi SLA tidak pernah terjadi untuk permohonan nyata | `HRD-TF-084` |
+
+### 42.3 Batas MVP
+
+| Batas | Isi |
+| --- | --- |
+| Titik mulai | Pegawai mengajukan permohonan dari layar modul (SPPD, cuti, lembur, …) |
+| Titik akhir | Atasan (atau Plh, atau atasan hasil eskalasi) memutuskan dari kotak terpadu, status modul berubah, dan pemohon melihat hasilnya di layar modul serta "Permohonan Saya" |
+| `MUST HAVE` | Antrean dan aksi di atas engine (`HRD-CAP-23`, `HRD-CAP-24`); Tolak dengan alasan berkode; tanpa PIN; massal hanya jenis bertanda; eskalasi menambah atasan; Plh untuk penugasan yang sudah ada; endpoint generik menolak permohonan modul; pemeriksaan pra-rilis |
+| Ditunda (`POST-MVP`) | Pensiun kotak masuk lama dan layar delegasi lama: menunggu bukti `AT-HRD-WF-38` untuk SPPD dan Cuti (`HRD-DEC-231`). Pengganti selama MVP: kotak lama tetap tersedia |
+| Di luar | Kotak masuk Procurement; isi master alasan penolakan; aturan bisnis tiap modul |
+
+### 42.4 Alur bisnis target (`FLOW-WF-MVP-002`)
+
+1. Perawat Sari mengajukan SPPD dari formulir SPPD. Engine membuat tugas untuk Ns. Rina (atasan langsung).
+2. Rina membuka Kotak Masuk Persetujuan Terpadu. SPPD Sari tampil bersama cuti dan lembur staf lain.
+3. Rina menyetujui SPPD. Status SPPD menjadi Disetujui dan presensi Dinas Luar tercatat.
+4. Rina mencentang lima lembur rutin lalu Setujui Massal. Kelimanya disetujui. SPPD tidak bisa dicentang.
+5. Rina cuti tiga hari dan mendaftarkan Wakil Karu sebagai Plh. Tugas Rina yang masih terbuka tampil di kotak Wakil Karu, dan Wakil Karu memutuskannya atas nama Rina.
+6. Sebuah cuti tidak diputuskan sampai batas waktunya. Kepala Instalasi ditambahkan sebagai penyetuju. Siapa pun yang memutuskan lebih dulu menutup tahap.
+7. Cuti yang dikembalikan untuk revisi diperbaiki pemohon di layar Cuti, bukan di "Permohonan Saya".
+
+### 42.5 Epic dan functional requirement
+
+#### `EPIC HRD-124` — Kotak Masuk Terpadu di atas Engine Workflow (`MUST HAVE`)
+
+| FR | Kebutuhan (dapat diuji) | Disposisi | Rujukan |
+| --- | --- | --- | --- |
+| `FR-WF-26` | Antrean dan ringkasan menampilkan penugasan engine terbuka milik pengguna dan pejabat yang mendelegasikan kepadanya, tanpa penugasan engine lama | `EXTEND` | `HRD-DEC-229`, API 35.1, `AT-HRD-WF-23` |
+| `FR-WF-27` | Setujui/Tolak/Kembalikan diteruskan ke engine; status modul berubah sama dengan kotak lama; Tolak wajib alasan berkode; Kembalikan wajib catatan | `EXTEND` | `HRD-DEC-229`, API 35.2, `AT-HRD-WF-24` s.d. `27` |
+| `FR-WF-28` | Tidak ada PIN pada aksi persetujuan | `EXTEND` | `HRD-DEC-230`, `AT-HRD-WF-28` |
+| `FR-WF-29` | Persetujuan massal hanya untuk jenis bertanda `AllowBulkApproval`, tidak mendesak, bukan milik sendiri; setiap butir lewat engine | `EXTEND` | `HRD-DEC-233`, `VR-WF-32`, `AT-HRD-WF-29` |
+| `FR-WF-30` | Penugasan lewat batas waktu menambahkan atasan satu tingkat sebagai penyetuju setara, sekali per penugasan, tanpa persetujuan otomatis | `EXTEND` | `HRD-DEC-232`, state 33, `AT-HRD-WF-30` s.d. `32` |
+| `FR-WF-31` | Plh aktif dapat melihat dan memutuskan penugasan pejabat yang sudah ada; jejak menyimpan pelaku dan pejabat definitif; Plh tidak dapat memutuskan permohonannya sendiri | `EXTEND` | `HRD-DEC-234`, `INT-HR-113`, `AT-HRD-WF-33`, `34` |
+| `FR-WF-32` | Endpoint generik (buat, batal, kirim ulang) menolak permohonan modul; "Permohonan Saya" menampilkan permohonan engine dan mengarahkan perbaikan ke layar modul | `EXTEND` | `HRD-DEC-235`, `VR-WF-29`, `AT-HRD-WF-35`, `36` |
+| `FR-WF-33` | Rilis tertahan bila ada tiket engine lama terbuka; kotak lama dipensiunkan sesudah terbukti | `MISSING / NEW` (pemeriksaan) | `HRD-DEC-231`, `HRD-DEC-236`, `AT-HRD-WF-37`, `39` |
+
+### 42.6 Model status
+
+Tidak ada status permohonan baru. Penugasan mendapat pola eskalasi (penugasan atasan dengan `EscalatedFromAssignmentId`) dan status `Skipped` untuk kembaran yang ditutup (state-transition matrix bagian 33).
+
+### 42.7 Matriks kewenangan
+
+| Peran | Boleh | Tidak boleh |
+| --- | --- | --- |
+| Penyetuju (pemegang penugasan) | Melihat dan memutuskan tugasnya; setujui massal butir layak | Memutuskan permohonan sendiri; tugas orang lain tanpa delegasi |
+| Plh aktif | Melihat dan memutuskan tugas pejabat yang mendelegasikan selama periode delegasi | Memutuskan permohonan sendiri; mendelegasikan ulang (`VR-WF-04`) |
+| Atasan hasil eskalasi | Memutuskan tugas yang dieskalasi kepadanya | Persetujuan otomatis |
+| HR Admin | Eskalasi manual; mengatur `AllowBulkApproval` dan alasan penolakan | Memutuskan atas nama penyetuju tanpa penugasan |
+| Pemohon | Mengajukan, memperbaiki, membatalkan dari layar modul; melihat "Permohonan Saya" | Kirim ulang atau batal generik untuk permohonan modul |
+
+### 42.8 Batas integrasi dan billing
+
+Tidak ada integrasi lintas modul RS atau dampak billing baru. Integrasi di dalam HR: `INT-HR-111` s.d. `INT-HR-114`.
+
+### 42.9 Kebutuhan non-fungsional
+
+| Aspek | Kebutuhan |
+| --- | --- |
+| Konsistensi | Satu sumber status persetujuan (engine); tidak ada keputusan ganda pada pasangan eskalasi |
+| Kinerja | Antrean dan ringkasan satu kueri penugasan berhalaman; massal maksimal 50 butir |
+| Keamanan | Otorisasi dua gerbang (hak + penugasan/delegasi); pemisahan tugas pemohon–penyetuju |
+| Privasi | Komentar dan alasan tidak masuk custom logger |
+| Ketersediaan | Migration tanpa downtime; rilis tertahan bila pemeriksaan pra-rilis gagal |
+
+### 42.10 Skenario UAT
+
+| ID | Jalur | Skenario | Hasil yang diharapkan |
+| --- | --- | --- | --- |
+| `UAT-WF-06` | Berhasil | Rina menyetujui SPPD Sari dari kotak terpadu | SPPD Disetujui; presensi Dinas Luar tercatat |
+| `UAT-WF-07` | Berhasil | Rina mengembalikan cuti dengan catatan; pemohon memperbaiki di layar Cuti | Cuti kembali Menunggu pada workflow yang sama |
+| `UAT-WF-08` | Gagal | Rina menolak tanpa memilih alasan | Tombol nonaktif; bila dipaksa, `400` "Pilih alasan penolakan …" |
+| `UAT-WF-09` | Berhasil/gagal | Setujui massal 5 lembur + 1 SPPD | 5 lembur disetujui; SPPD dilewati "harus disetujui satu per satu" |
+| `UAT-WF-10` | Berhasil | Wakil Karu (Plh) memutuskan tugas Rina yang sudah ada | Berhasil; jejak menyebut Plh atas nama Rina |
+| `UAT-WF-11` | Gagal | Plh mencoba memutuskan permohonannya sendiri | Ditolak |
+| `UAT-WF-12` | Berhasil | Cuti lewat batas waktu | Kepala Instalasi ditambahkan; Rina tetap dapat memutuskan; tidak ada persetujuan otomatis |
+| `UAT-WF-13` | Gagal | Pemohon menekan kirim ulang generik untuk SPPD di "Permohonan Saya" | Tombol tidak ada; tautan ke layar SPPD; dipaksa lewat API → `409` |
+
+### 42.11 Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| `AT-HRD-WF-23` s.d. `AT-HRD-WF-37` lulus di harness dengan kontrol negatif | Laporan task backend |
+| `AT-HRD-WF-38` lulus di browser untuk SPPD dan Cuti, desktop dan ponsel | Laporan task frontend |
+| Uji SPPD dan regresi penuh HR tetap hijau | Laporan task backend terakhir gelombang |
+| Tidak ada isian PIN di layar | Uji browser |
+| Pemeriksaan pra-rilis tercatat 0 di lingkungan rilis | Keluaran kueri |
+| Lint dan build frontend lulus | Laporan task frontend |
+
+### 42.12 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Prasyarat |
+| --- | --- | --- |
+| `MVP-72` | Backend `EPIC HRD-124` (`FR-WF-26` s.d. `FR-WF-32`, migration, pemeriksaan pra-rilis) | Kontrak `v29` disetujui; izin migration |
+| `MVP-73` | Frontend kotak terpadu, modal, detail, ESS, Master Workflow | `MVP-72` |
+| `POST-MVP` | Pensiun kotak masuk lama dan layar delegasi lama (`FR-WF-33` bagian pensiun) | `AT-HRD-WF-38` lulus untuk SPPD dan Cuti |
+
+| Pertanyaan | Pemilik | Memblokir? |
+| --- | --- | --- |
+| Kode definisi lembur rutin dan cuti tahunan yang diberi `AllowBulkApproval = true` (`HRD-ASM-90`) | Admin HR | Tidak — dipastikan saat implementasi dari Master Workflow |
+| Isi alasan penolakan per jenis selain SPPD | Admin HR | Tidak untuk development; ya untuk penggunaan Tolak di produksi |

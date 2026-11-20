@@ -1398,3 +1398,28 @@ Dasar: `HRD-DEC-224` s.d. `HRD-DEC-227`. Aturan `VR-TRV-01` s.d. `VR-TRV-25` (ba
 | `VR-TRV-33` | Batal saat menunggu menarik workflow | `PUT /requests/{id}/cancel` | Penarikan workflow ditolak Workflow V2 | `409` dengan pesan Workflow V2; SPPD tetap `Submitted` |
 
 Persetujuan susulan sesudah tanggal berangkat **tidak** divalidasi (diizinkan, `HRD-DEC-225`). Anggaran disetujui tidak dapat diisi penyetuju; nilainya selalu sama dengan estimasi (`HRD-DEC-226`).
+
+---
+
+## 34. Matriks Aturan Validasi Amandemen Slice `S-A7-V2`: Kotak Masuk Terpadu di atas Engine Workflow (Kontrak `v29`, approved 20 November 2026)
+
+Dasar: `HRD-DEC-229` s.d. `HRD-DEC-236`. Aturan `VR-WF-01` s.d. `VR-WF-25` (bagian 29) tetap berlaku, **kecuali**:
+
+| Aturan lama | Perlakuan di `v29` | Alasan |
+| --- | --- | --- |
+| `VR-WF-05` Alasan penolakan tertulis minimal 15 karakter | **Digantikan** `VR-WF-26` dan `VR-WF-27` | Tolak memakai alasan berkode engine (`HRD-DEC-229`); catatan wajib bila alasan menuntutnya |
+| `VR-WF-07` Kelayakan persetujuan massal | **Diubah** menjadi `VR-WF-32` | Kelayakan memakai penanda `AllowBulkApproval` per definisi (`HRD-DEC-233`) |
+| `VR-WF-08` Verifikasi keaslian PIN otorisasi | **Dihapus** | PIN tidak pernah diverifikasi (`HRD-TF-083`) dan dihapus (`HRD-DEC-230`) |
+
+| ID | Aturan | Kapan diperiksa | Kondisi gagal | Respons dan pesan |
+| --- | --- | --- | --- | --- |
+| `VR-WF-26` | Tolak wajib alasan berkode yang berlaku | `POST /approvals/{stepInstanceId}/reject` (diperiksa engine) | `rejectionReasonId` kosong, alasan tidak aktif, di luar masa berlaku, atau `RequestType`/definisi/tahapnya tidak cocok | `400` "Pilih alasan penolakan yang berlaku untuk permohonan ini." |
+| `VR-WF-27` | Catatan wajib bila alasan menuntutnya | Sama | Alasan `IsCommentRequired = true` dan `comment` kosong | `400` "Alasan ini mewajibkan catatan." |
+| `VR-WF-28` | Kembalikan wajib catatan revisi | `POST /approvals/{stepInstanceId}/return` | `revisionNotes` kosong | `400` "Isi catatan revisi untuk pemohon." |
+| `VR-WF-29` | Permohonan milik modul tidak diubah lewat endpoint generik | `POST /instances`, `PUT /instances/{id}/cancel`, `POST /instances/{id}/resubmit` | Membuat instance generik; atau instance adalah instance engine (tanpa penugasan berisi `ApproverEmployeeId`) | `409` dengan pesan 35.1/35.2 kontrak API |
+| `VR-WF-30` | Hanya penyetuju tahap atau Plh aktifnya yang boleh memutuskan | Semua aksi 35.2 (diperiksa engine) | Pengguna bukan `AssignedApproverUserId` penugasan terbuka, **dan** tidak ada delegasi aktif dari pemegang penugasan kepadanya (status `Active`/`Approved`, dalam rentang `EffectiveStartAt`–`EffectiveEndAt`, cakupan definisi/tahap cocok); atau pengguna adalah pemohon (`VR-WF-02`) | `403` "Anda bukan penyetuju tahap ini." / "Pejabat tidak boleh menyetujui permohonan sendiri." |
+| `VR-WF-31` | Eskalasi SLA hanya sekali per penugasan dan tanpa persetujuan otomatis | Worker eskalasi; `POST /sla/escalate/{id}` | Penugasan bukan penugasan wajib yang terbuka; `DueAt` belum lewat (otomatis); penugasan sudah pernah dieskalasi; atasan/pejabat tujuan tidak berakun aktif atau adalah pemohon | Otomatis: dilewati tanpa perubahan; bila atasan tidak ditemukan, Admin HR diberi notifikasi (`HRD-ASM-88`). Manual: `400` "Pejabat tujuan eskalasi tidak sah." |
+| `VR-WF-32` | Persetujuan massal hanya untuk butir layak | `POST /approvals/bulk-approve` | Salah satu syarat 35.5 kontrak API tidak terpenuhi; jumlah butir lebih dari 50 (`VR-WF-17`) | Butir dilewati dengan alasan; lebih dari 50 butir → `400` |
+| `VR-WF-33` | Tidak ada tiket engine lama terbuka saat rilis penyatuan | Pemeriksaan pra-rilis (baca-saja) | Ada penugasan terbuka dengan `ApproverEmployeeId` terisi | Rilis tertahan (`HRD-DEC-236`); bukan respons API |
+
+Aturan yang **tidak** ditambahkan: tidak ada pembatasan jenis permohonan pada antrean (semua jenis engine tampil). Tidak ada batas waktu tambahan untuk Plh di luar `VR-WF-03`.

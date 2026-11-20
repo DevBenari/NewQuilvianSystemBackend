@@ -3838,3 +3838,58 @@ Nilai yang tidak dikenal ditampilkan apa adanya dengan badge netral (perilaku ya
 | --- | --- |
 | Peta status 32.3 dan aturan tombol | Uji unit `node --test` untuk util peta status |
 | Alur Ajukan → kotak masuk → disetujui | `AT-HRD-TRV-39`, Playwright terhadap dev 3000 → backend lokal; bergantung `HRD-Q-221` |
+
+---
+
+## 33. Arsitektur Frontend Amandemen `S-A7-V2` — Kotak Masuk Terpadu di atas Engine Workflow (kontrak `v29`, 20 November 2026; approved 20 November 2026)
+
+Dasar: `HRD-DEC-229` s.d. `HRD-DEC-235`; kontrak API bagian 35. Hierarki wewenang UI: keamanan/invariant (penyetuju sah, tanpa PIN palsu) → keputusan bagian 56 → pola proyek (`useHrRemoteData`, `useHrAction`, `ConfirmModal`, `BaseSelectField`, `StatusBadge`) → `DEV_DISCRETION`. **Tidak ada menu, rute, atau layar baru.** Layar yang ada diselaraskan dengan respons `v29`.
+
+### 33.1 Layar terdampak
+
+| Layar | File view | Perubahan |
+| --- | --- | --- |
+| Kotak Masuk Persetujuan Terpadu `/hrd/approvals/inbox`, `/corporate/hrd/approvals/inbox` | `src/components/view/hr/approvals/unified-approval-inbox-view.jsx` | Baris dari penugasan engine. Kolom Jenis dari peta `REQUEST_TYPE` (33.2). Ringkasan memakai `referenceNumber` bila ada. Tombol "Pilih" untuk massal hanya aktif bila `canBulkApprove` (selain itu tampil nonaktif dengan keterangan "Setujui satu per satu"). Penanda Plh dari `isDelegated`/`delegatedFromEmployeeName` |
+| Modal Setujui | `modal/ApprovalConfirmationModal.jsx` | Hapus isian PIN; catatan opsional |
+| Modal Tolak | `modal/RejectRequestModal.jsx` | Hapus PIN dan aturan teks minimal 15 karakter. Saat dibuka, muat `GET /instances/{id}` dan pakai `myAction.rejectionReasons` untuk `BaseSelectField` "Alasan Penolakan" (wajib). "Catatan" wajib bila alasan `isCommentRequired`. Bila tidak ada alasan: keterangan "Belum ada alasan penolakan untuk jenis permohonan ini. Hubungi admin workflow." dan tombol konfirmasi nonaktif. Kirim `rejectionReasonId` + `comment` |
+| Modal Kembalikan | `modal/ReturnForRevisionModal.jsx` | Catatan revisi wajib (tetap); pesan galat server tampil apa adanya |
+| Modal Setujui Massal | `modal/BulkApprovalModal.jsx` | Hapus PIN; hasil menampilkan jumlah disetujui dan daftar `skippedItems` beserta alasannya |
+| Detail permohonan `/hrd/approvals/{id}` | `unified-approval-detail-view.jsx` | Tombol aksi dari `myAction` (bukan dari tahap berstatus `Pending`). Bila `myAction.isDelegated`, tampil "Anda bertindak sebagai Plh {onBehalfOfName}". Tanpa `myAction`: keterangan "Tidak ada tahap yang menunggu keputusan Anda" (as-is) |
+| Permohonan Saya (ESS) | `unified-ess-my-requests-view.jsx` | Untuk `isModuleManaged = true`: sembunyikan tombol kirim ulang dan batal generik; tampilkan tautan "Perbaiki di {nama modul}" ke rute modul (33.2). Jenis tanpa rute: keterangan saja |
+| Halaman revisi ESS `/hrd/self-service/revisions/{id}` | `unified-ess-revision-view.jsx` | Untuk instance modul: alih-alih formulir kirim ulang, tampilkan tautan ke layar modul; `409` dari server tampil apa adanya |
+| Master Workflow — definisi | `src/lib/constants/hr/master-data/workflow-definition/workflow-definition-constants.jsx` (+ halaman `src/app/hr/master-data/workflow-definition/*`) | Sakelar "Boleh disetujui massal" (`allowBulkApproval`) pada formulir dan kolom daftar |
+| Kotak masuk lama `/hr/workflow/approval-inbox` dan layar delegasi lama | `src/components/view/hr/workflow/approval-inbox-view.jsx` | **Tidak diubah di gelombang ini.** Pengalihan ke kotak terpadu adalah task terpisah sesudah `AT-HRD-WF-38` lulus untuk SPPD dan Cuti (`HRD-DEC-231`) |
+
+### 33.2 Konstanta
+
+| Unit | Perubahan |
+| --- | --- |
+| `REQUEST_TYPE` (`src/lib/constants/hr/approvals/approval-constants.js`) | Tambah kode `ReferenceType` engine: `LEAVE_REQUEST` "Cuti", `OVERTIME_REQUEST` "Lembur", `SHIFT_SWAP_REQUEST` "Tukar Shift", `SCHEDULE_CHANGE_REQUEST` "Perubahan Jadwal", `RESIGNATION_REQUEST` "Pengunduran Diri", koreksi presensi, rencana tenaga kerja, dan seterusnya (daftar lengkap diambil dari konstanta `ReferenceType` modul saat implementasi). `HRD_TRV_REQUEST` sudah ada (`FE-HRD-339`). Kode tak dikenal tetap tampil apa adanya |
+| Peta rute modul (baru, di file konstanta yang sama) | `ReferenceType` → rute layar pemohon, mis. `HRD_TRV_REQUEST` → `/hrd/travel/requests`. Hanya rute yang sudah ada; tidak membuat rute baru |
+| `src/lib/services/hr/unified-approval-service.js` | `rejectItem` mengirim `{ rejectionReasonId, comment }`; `approveItem` dan `executeBulkApproval` tanpa `pinSignature`; `getItemDetail` dipakai modal Tolak untuk `myAction.rejectionReasons` |
+
+### 33.3 State wajib dan aturan
+
+| Aturan | Sumber |
+| --- | --- |
+| Tombol konfirmasi nonaktif selama permintaan berjalan dan saat isian wajib belum lengkap, memakai `confirmProps={{ disabled }}` | Konvensi proyek |
+| Sesudah aksi berhasil, antrean dan ringkasan dimuat ulang dari server | Status ditentukan engine |
+| Pesan `400/403/409` dari server tampil apa adanya | Kontrak API 35.7 |
+| Tidak ada isian PIN di layar mana pun | `HRD-DEC-230` |
+| Pemohon tidak pernah melihat tombol keputusan atas permohonannya sendiri (server tetap penentu) | `VR-WF-02` |
+
+### 33.4 Wewenang UI
+
+| Pilihan | Kategori |
+| --- | --- |
+| Letak keterangan "Setujui satu per satu" dan "Anda bertindak sebagai Plh" | `DEV_DISCRETION` |
+| Tautan perbaikan di ESS memakai tombol sekunder atau tautan teks | `DEV_DISCRETION` |
+| Tidak menambah menu atau rute | Keputusan (tidak ada wewenang menambah menu) |
+
+### 33.5 Uji frontend
+
+| Uji | Bukti |
+| --- | --- |
+| Peta `REQUEST_TYPE`, peta rute modul, aturan isian modal Tolak/Kembalikan, kelayakan `canBulkApprove` | Uji unit `node --test` dengan kontrol negatif |
+| Kotak terpadu ujung-ke-ujung (`AT-HRD-WF-38`) | Playwright dev 3000 → backend lokal → devYoga, akun pemohon/atasan/Plh asli; desktop dan ponsel |
+| Lint dan build | `npm run lint:errors`, `npm run build` |

@@ -6,27 +6,27 @@ module_name: Human Resource
 module_slug: human-resource
 module_prefix: HRD
 blueprint_shape: SINGLE
-revision: 65
+revision: 67
 status: DRAFT
 design_readiness: COMPLETE
-current_phase: HRD-PH-AMENDMENT-S-D5-V28-PLANNED
+current_phase: HRD-PH-AMENDMENT-S-A7-V2-V29-PLANNED
 created_at: 2026-08-27T07:02:01Z
-updated_at: 2026-11-19T14:00:00Z
+updated_at: 2026-11-20T10:00:00Z
 last_verified_at: 2026-11-12T00:00:00Z
 backend_source_sha_audited: ecdc135444f0110482c9702212bcea30043983c8
 backend_source_sha_verified: 16b8b71f4cd61e083213cf90722f4d768d339739
-backend_source_sha_current: d7d4eb3b
+backend_source_sha_current: 815ce085
 backend_source_branch_current: yoga
-frontend_source_sha: e01411158
+frontend_source_sha: 564365595
 frontend_source_branch_current: YogaV2
-frontend_source_sha_previous: 6a5658269
+frontend_source_sha_previous: e01411158
 skill_suite_version: 1.0.0-rc2
-input_revision_hash: 97de77558d030cb183f8f30974ae4b7d6cf79d27b3dcf548c6d9bb6a69d7e25b
-decision_revision: 39
+input_revision_hash: 956024bdc1a37e6a92ba8c341debf568dbc31320746b7a691c62b999d6631a45
+decision_revision: 40
 backend_baseline_branch: QuilvianIntegrationBackend
 capability_map_revision: 1.4
 capability_map_hash: d260d20f1995e43286e095ff22fc393371d92a38dc9635cd2d1047f2966958c5
-contract_versions: v28
+contract_versions: v29
 contract_status_amendment_a52: approved
 contract_status_s_c5: approved
 contract_status_s_c6: approved
@@ -49,20 +49,21 @@ contract_status_s_c2: approved
 contract_status_s_c3: approved
 contract_status_s_a8: approved
 contract_status_s_d5_v28: approved
+contract_status_s_a7_v2_v29: approved
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
 artifact_hashes:
-  00-interview-decisions.md: 97de77558d030cb183f8f30974ae4b7d6cf79d27b3dcf548c6d9bb6a69d7e25b
+  00-interview-decisions.md: 956024bdc1a37e6a92ba8c341debf568dbc31320746b7a691c62b999d6631a45
   01-existing-capability-map.md: d260d20f1995e43286e095ff22fc393371d92a38dc9635cd2d1047f2966958c5
-  02-backend-architecture.md: de946e0a06ea06fef40b02c1ab89692d0cc0cb3f1a69aafec340e300d7aa3a0c
-  03-frontend-architecture.md: 88a325c56c3518d39e40bb55abdcdd3004a86ef86aaef0be19a7969286dd8ff3
-  04-prd-to-mvp.md: 0ab949f7833d45e2c192615c2fe9a183f3549725493bb251d7e04b0ccbfa08f8
-  data/data-dictionary.md: 659005bf198f71f25a798f4d49e40487bd72b8fcc0d3808b9f61e55d8912ff0f
-  contracts/api-contract.md: e93a84e21fccc40a275c2774bddd92f81ebd09b5d6489888be22ac474aba1626
-  contracts/state-transition-matrix.md: 37930a79add5cc9f93c740231a7460e15c53466c92466173901a7d7f48a288b7
-  contracts/validation-matrix.md: 441b1979d249647833ddfb1d4f850a1f7aab8e37e49dfe8555316a317cf995e9
-  contracts/integration-contract.md: 2e4981ee2664768bef18738824b976a20c25fbcd2b69b58682925ee206736fb5
-  contracts/permission-audit-matrix.md: 3fa967d360933ac5427d264ee5caacc5d48d710ccd19239bd36b0dd899dd7c2d
-  testing/acceptance-test-matrix.md: 6476fb64971b2f0f4a79e60a162fcfadeb72def62881d33777d850a249bec472
+  02-backend-architecture.md: a8e46241cc0e493323db5ced372c2e3f4f846724a23e4a32bfeca56d7ac9da97
+  03-frontend-architecture.md: 1ba1ad7a0433baa94653c32669eb4da2c75bc8195b2142a96ea6e5ca8eeb110f
+  04-prd-to-mvp.md: 041119a34322e72b6c0290b1426c24cebf71ff4a6f3c065696be638158c7d2d4
+  data/data-dictionary.md: 222be99d621f1ad2c8efb334fe513bd0776f0402e4cda1e3c111da21655ba0f1
+  contracts/api-contract.md: fc74f62d8224a6d06132e98c39aefb1d16443448914b1c4fead619592a1662c7
+  contracts/state-transition-matrix.md: 1d0cea28245fe32a9e00b30317c6020c261a039d134b9d6c0e5989e4abb1bbfe
+  contracts/validation-matrix.md: f3957ffabcf12c5e65bbcdd230b3b2834e0e03fad2b31fdae87effea82f234ee
+  contracts/integration-contract.md: 53c06a1e85314e29ec1906a657fe5ee5dcde33fc6a21a22ea06593d4ae56bee2
+  contracts/permission-audit-matrix.md: acb1b9de055d1e618b76f1d14915f21b3518e743655172b4267627790ef3a347
+  testing/acceptance-test-matrix.md: 2872d9e5750f09b40161af3fb20e268cf3c62d819162577dba8eeeb8d3ef8360
   flowcharts/00-alur-utama.md: 9a2af6abf27b896179af26191ed8ad255505385e3b5839ed12014e4023f33af3
   flowcharts/penjadwalan-kerja.md: 7c9a0560d62261f1a938192e7bbdd5b4dd4ccb7f89a025e5c7bdf6e1ed3d01ef
   flowcharts/presensi-dan-kehadiran.md: 4c1db3c47ade024988d62cc0c6cc6ae9372a264bf66386e50d61a088717a24d9
@@ -103,6 +104,19 @@ active_dependency_ids:
   - HRD-DEP-007
 active_roadmap_revision: 24
 approvals:
+  - scope: S-A7-V2 v29 (amandemen kotak masuk terpadu di atas engine WorkflowService)
+    approved_by: "Pengguna — pemilik teknis dan produk (HRD-DEC-015)"
+    approved_at: 2026-11-20
+    owner_answer: "setujui kontrak v29, lanjut plan"
+    covers:
+      - 02-backend-architecture.md bagian 37
+      - 03-frontend-architecture.md bagian 33
+      - 04-prd-to-mvp.md bagian 42
+      - data/data-dictionary.md bagian 30
+      - contracts/* bagian S-A7-V2 v29 (API 35, State 33, Validation 34, Integration 26, Permission 33)
+      - testing/acceptance-test-matrix.md bagian 37
+      - roadmap/* (backend revisi 18 bagian 29 BE-HRD-440 s.d. BE-HRD-449; frontend revisi 19 bagian 30 FE-HRD-394 s.d. FE-HRD-400; traceability revisi 16 bagian 1ad)
+    not_covered: "flowcharts/kotak-masuk-persetujuan-terpadu-v2.md belum diperbarui; migration dan skrip data butuh izin eksekusi terpisah (G2, G3); HRD-ASM-90 kode definisi massal (G4, Admin HR)"
   - scope: A52 (amandemen S-B4 dan S-B1, PRD-HRD-PK-001)
     approved_by: "Pengguna — pemilik teknis dan produk (HRD-DEC-015)"
     approved_at: 2026-11-12
@@ -526,6 +540,8 @@ Kehadirannya bukan penyimpangan struktur, dan ketiadaannya bukan blueprint yang 
 
 | Revision | Tanggal | Isi | Dasar |
 | --- | --- | --- | --- |
+| `67` | 2026-11-20 | **Kontrak `v29` amandemen `S-A7-V2` disetujui dan direncanakan.** Status kesepuluh bagian (API 35, State 33, Validation 34, Integration 26, Permission 33, Acceptance 37, Data 30, `02` 37, `03` 33, `04` 42) menjadi `approved`; `contract_status_s_a7_v2_v29: approved`; `current_phase: HRD-PH-AMENDMENT-S-A7-V2-V29-PLANNED`. Roadmap backend revisi `18` bagian 29 (`BE-HRD-440` s.d. `BE-HRD-449`, `MVP-72`, Grafik B100, gerbang G2 migration, G3 skrip data, G4 kode definisi massal), frontend revisi `19` bagian 30 (`FE-HRD-394` s.d. `FE-HRD-400`, `MVP-73` + `POST-MVP`, Grafik F97), traceability revisi `16` bagian 1ad (lima celah cakupan). Hash sepuluh artefak disegarkan; decision log tidak berubah sejak revision `66`. | Pengguna (`HRD-DEC-015`), 20 November 2026: "setujui kontrak v29, lanjut plan" |
+| `66` | 2026-11-20 | **Amandemen `S-A7-V2`: Kotak Masuk Persetujuan Terpadu di atas engine `WorkflowService` — kontrak `v29` sebagai `draft`.** Menyerap decision log revision `40` bagian 56 (`HRD-DEC-229` s.d. `HRD-DEC-236`, `approved`; fakta `HRD-TF-080` s.d. `HRD-TF-087`; asumsi `HRD-ASM-88` s.d. `HRD-ASM-90`). Bagian baru: `api-contract.md` 35 (antrean/aksi/massal/SLA di atas engine, PIN dihapus, Tolak beralasan berkode, endpoint generik `409` untuk permohonan modul, ruas `assignmentId`/`canBulkApprove`/`myAction`/`isModuleManaged`), `state-transition-matrix.md` 33 (aksi → transisi engine, eskalasi menambah penugasan setara, `Skipped`), `validation-matrix.md` 34 (`VR-WF-26` s.d. `VR-WF-33`; `VR-WF-05`/`07` digantikan, `VR-WF-08` dihapus), `integration-contract.md` 26 (`INT-HR-111` s.d. `INT-HR-114`), `permission-audit-matrix.md` 33 (tanpa hak baru; gerbang kedua penugasan/delegasi; aksi `Escalate`), `testing/acceptance-test-matrix.md` 37 (`AT-HRD-WF-23` s.d. `AT-HRD-WF-39`), `data/data-dictionary.md` 30 (kolom `MstWorkflowDefinition.AllowBulkApproval`, `TrxWorkflowApproverAssignment.EscalatedFromAssignmentId`), `02-backend-architecture.md` 37, `03-frontend-architecture.md` 33, `04-prd-to-mvp.md` 42 (`EPIC HRD-124`, `FR-WF-26` s.d. `FR-WF-33`, `UAT-WF-06` s.d. `UAT-WF-13`, `MVP-72`/`MVP-73`). Impact scan `815ce085`: layanan delegasi V2 sudah mengisi kunci akun (koreksi `HRD-TF-085`). `flowcharts/kotak-masuk-persetujuan-terpadu-v2.md` belum diperbarui (bagian 3 eskalasi dan 4 massal kini usang). Hash sebelas artefak disegarkan. | Pengguna (`HRD-DEC-015`), 20 November 2026: "lanjut desain" |
 | `65` | 2026-11-19 | **Kontrak `v28` amandemen `S-D5` disetujui dan direncanakan.** Status kesepuluh bagian (API 34, State 32, Validation 33, Integration 25, Permission 32, Acceptance 36, Data 29, `02` 36, `03` 32, `04` 41) menjadi `approved`; `contract_status_s_d5_v28: approved`; `current_phase: HRD-PH-AMENDMENT-S-D5-V28-PLANNED`. Roadmap backend revisi `17` bagian 27 (`BE-HRD-374` s.d. `BE-HRD-380`, `MVP-70`, Grafik B90), frontend revisi `18` bagian 28 (`FE-HRD-337` s.d. `FE-HRD-340`, `MVP-71`, Grafik F87), traceability revisi `15` bagian 1aa (termasuk tiga celah cakupan). `HRD-Q-221` dan `HRD-Q-222` tetap terbuka tanpa memblokir. Hash sepuluh artefak disegarkan; decision log tidak berubah sejak revision `64`. | Pengguna (`HRD-DEC-015`), 19 November 2026: "setujui kontrak v28, lanjut plan" |
 | `64` | 2026-11-19 | **Amandemen `S-D5`: persetujuan SPPD lewat workflow persetujuan umum — kontrak `v28` sebagai `draft`.** Menyerap decision log revision `39` bagian 55 (`HRD-DEC-224` s.d. `HRD-DEC-228`, `approved`; fakta `HRD-TF-072` s.d. `HRD-TF-079`, tiga terakhir ditambahkan saat desain). Bagian baru: `api-contract.md` 34 (endpoint `POST /requests/{id}/submit` berstatus Rencana, perubahan buat/ubah/batal SPPD, gerbang uang muka dan settlement), `state-transition-matrix.md` 32 (status `NeedRevision` baru, pemetaan status workflow), `validation-matrix.md` 33 (`VR-TRV-26` s.d. `VR-TRV-33`), `integration-contract.md` 25 (`INT-HR-109` SPPD ↔ Workflow V2, `INT-HR-110` persetujuan → presensi Dinas Luar dan gembok roster), `permission-audit-matrix.md` 32 (hak Approve = penugasan approver workflow; 12 event `HRD_TRV_*` dan sumber datanya), `testing/acceptance-test-matrix.md` 36 (`AT-HRD-TRV-23` s.d. `AT-HRD-TRV-39`), `data/data-dictionary.md` 29 (tanpa perubahan skema, tanpa migration), `02-backend-architecture.md` 36, `03-frontend-architecture.md` 32, `04-prd-to-mvp.md` 41 (`EPIC HRD-121` s.d. `HRD-123`, `FR-TRV-26` s.d. `FR-TRV-34`, `UAT-TRV-06` s.d. `UAT-TRV-12`, `MVP-70`/`MVP-71`). `contract_status_s_d5_v28: draft`. Pertanyaan terbuka tak-memblokir backend: `HRD-Q-221` (layar SPPD masih data contoh), `HRD-Q-222` (definisi workflow ditanam aktif). `input_revision_hash` dan hash sebelas artefak yang diubah dihitung ulang (SHA-256 byte berkas); hash flowchart tidak disentuh. | Pengguna, 18 November 2026: "lewat workflow persetujuan umum", "lanjut desain" |
 | `63` — penyelesaian merge, **tanpa naik revision** | 2026-11-16 | **Merge `QuilvianIntegrationBackend` ke `Yasmina`.** Amandemen `A52` (12 November 2026) dan slice `S-A8` sama-sama memakai bagian 52 keputusan, kontrak `v26`, dan task mulai `BE-HRD-334`. Isi `A52` dipertahankan utuh; `S-A8` dinomori ulang: `HRD-DEC-218` s.d. `223`, `HRD-ASM-84` s.d. `87`, `HRD-Q-218` s.d. `220`, `BE-HRD-360` s.d. `363`, `FE-HRD-325` s.d. `327`, `INT-HR-108`, `MVP-69`, kontrak `v27` (API bagian 33, State 31, Validation 32, Permission 31, Integration 24, Data 28, Acceptance 35), decision log bagian 54 (revision `38`), roadmap backend bagian 25 dan frontend bagian 26. Isi keputusan dan kontrak tidak berubah. | Penyelesaian konflik merge 16 November 2026 |

@@ -65,8 +65,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
         {
-            var empId = GetCurrentEmployeeId();
-            var result = await _inboxService.GetInboxAsync(empId, status, requestType, isUrgent, isDelegated, pageNumber, pageSize);
+            // BE-HRD-443 (kontrak v29 §35.1): antrean engine dipilih per akun (AssignedApproverUserId), bukan per pegawai.
+            var result = await _inboxService.GetInboxAsync(User.GetUserId(), status, requestType, isUrgent, isDelegated, pageNumber, pageSize);
             return Ok(ApiResponse<PagedResult<ApprovalInboxItemV2ResponseDto>>.Ok(result));
         }
 
@@ -79,8 +79,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         [ProducesResponseType(typeof(ApiResponse<ApprovalInboxSummaryV2ResponseDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetInboxSummary()
         {
-            var empId = GetCurrentEmployeeId();
-            var result = await _inboxService.GetInboxSummaryAsync(empId);
+            var result = await _inboxService.GetInboxSummaryAsync(User.GetUserId());
             return Ok(ApiResponse<ApprovalInboxSummaryV2ResponseDto>.Ok(result));
         }
 
@@ -99,6 +98,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             {
                 return NotFound(ApiResponse<WorkflowInstanceDetailV2ResponseDto>.Fail(StatusCodes.Status404NotFound, "Tiket workflow tidak ditemukan"));
             }
+
+            // BE-HRD-443 (kontrak v29 §35.6): blok aksi untuk pemegang penugasan atau Plh aktifnya.
+            result.MyAction = await _inboxService.GetMyActionAsync(id, User.GetUserId(), HttpContext.RequestAborted);
             return Ok(ApiResponse<WorkflowInstanceDetailV2ResponseDto>.Ok(result));
         }
 
@@ -110,6 +112,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         [AccessPermission("WorkflowInboxInstance", "CreateInstance")]
         [ProducesResponseType(typeof(ApiResponse<WorkflowInstanceV2ResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> CreateInstance([FromBody] CreateWorkflowInstanceRequestDto request)
         {
             try
@@ -123,6 +126,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
                 var result = await _instanceService.CreateInstanceAsync(request, userId);
                 return StatusCode(StatusCodes.Status201Created, ApiResponse<WorkflowInstanceV2ResponseDto>.Ok(result, "Permohonan alur kerja berhasil didaftarkan"));
+            }
+            catch (WorkflowModuleManagedException ex)
+            {
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, ex.Message));
             }
             catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
@@ -138,6 +145,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         [AccessPermission("WorkflowInboxInstance", "CancelMyInstance")]
         [ProducesResponseType(typeof(ApiResponse<WorkflowInstanceV2ResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> CancelInstance([FromRoute] Guid id, [FromBody] CancelWorkflowRequestDto request)
         {
             try
@@ -145,6 +153,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 var userId = GetCurrentUserId();
                 var result = await _instanceService.CancelInstanceAsync(id, request, userId);
                 return Ok(ApiResponse<WorkflowInstanceV2ResponseDto>.Ok(result, "Permohonan berhasil dibatalkan"));
+            }
+            catch (WorkflowModuleManagedException ex)
+            {
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, ex.Message));
             }
             catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
@@ -168,7 +180,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             [FromQuery] int pageSize = 25)
         {
             var empId = GetCurrentEmployeeId();
-            var result = await _instanceService.GetMyRequestsAsync(empId, status, requestType, startDate, endDate, pageNumber, pageSize);
+            var result = await _instanceService.GetMyRequestsAsync(User.GetUserId(), empId, status, requestType, startDate, endDate, pageNumber, pageSize);
             return Ok(ApiResponse<PagedResult<WorkflowInstanceV2ResponseDto>>.Ok(result));
         }
     }

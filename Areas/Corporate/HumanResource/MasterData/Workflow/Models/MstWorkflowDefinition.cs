@@ -58,6 +58,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflo
 
         public bool IsDefault { get; set; } = false;
 
+        // BE-HRD-440 (kontrak v29, HRD-DEC-233): permohonan dari definisi ini boleh masuk Setujui Massal (VR-WF-32).
+        public bool AllowBulkApproval { get; set; } = false;
+
         [MaxLength(1000)]
         public string? Description { get; set; }
 

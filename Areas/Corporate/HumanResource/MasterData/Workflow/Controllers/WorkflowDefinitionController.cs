@@ -190,6 +190,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflo
                     AllowRequesterWithdraw = x.AllowRequesterWithdraw,
                     AllowParallelApproval = x.AllowParallelApproval,
                     AllowStepSkip = x.AllowStepSkip,
+                    AllowBulkApproval = x.AllowBulkApproval,
                     StopOnRejection = x.StopOnRejection,
                     IsDefault = x.IsDefault,
                     Description = x.Description,
@@ -584,6 +585,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflo
                 AllowRequesterWithdraw = request.AllowRequesterWithdraw,
                 AllowParallelApproval = request.AllowParallelApproval,
                 AllowStepSkip = request.AllowStepSkip,
+                AllowBulkApproval = request.AllowBulkApproval,
                 StopOnRejection = request.StopOnRejection,
                 IsDefault = request.IsDefault,
                 Description = WorkflowMasterDataSupport.NormalizeNullableString(request.Description),
@@ -661,6 +663,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflo
             entity.AllowRequesterWithdraw = request.AllowRequesterWithdraw;
             entity.AllowParallelApproval = request.AllowParallelApproval;
             entity.AllowStepSkip = request.AllowStepSkip;
+            entity.AllowBulkApproval = request.AllowBulkApproval;
             entity.StopOnRejection = request.StopOnRejection;
             entity.IsDefault = request.IsDefault;
             entity.Description = WorkflowMasterDataSupport.NormalizeNullableString(request.Description);
@@ -832,6 +835,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflo
                     AllowRequesterWithdraw = x.AllowRequesterWithdraw,
                     AllowParallelApproval = x.AllowParallelApproval,
                     AllowStepSkip = x.AllowStepSkip,
+                    AllowBulkApproval = x.AllowBulkApproval,
                     StopOnRejection = x.StopOnRejection,
                     IsDefault = x.IsDefault,
                     Description = x.Description,

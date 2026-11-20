@@ -34,6 +34,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
             if (instance == null) throw new KeyNotFoundException("Tiket alur kerja tidak ditemukan");
 
+            // BE-HRD-447 (kontrak v29 §35.2, VR-WF-29, HRD-DEC-235): permohonan modul diperbaiki dan diajukan ulang dari layar modulnya.
+            if (await WorkflowInstanceOwnership.IsModuleManagedAsync(_context, workflowInstanceId))
+            {
+                throw new WorkflowModuleManagedException(WorkflowInstanceOwnership.ResubmitFromModuleMessage);
+            }
+
             if (instance.WorkflowStatus != "ReturnedForRevision")
             {
                 throw new InvalidOperationException("Hanya tiket berstatus 'ReturnedForRevision' yang dapat diajukan ulang (VR-WF-06)");

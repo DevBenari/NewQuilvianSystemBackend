@@ -171,6 +171,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         [AccessPermission("WorkflowApprovalAction", "ResubmitRevision")]
         [ProducesResponseType(typeof(ApiResponse<WorkflowInstanceV2ResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> Resubmit([FromRoute] Guid id, [FromBody] ResubmitWorkflowRequestDto request)
         {
             try
@@ -178,6 +179,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 var empId = GetCurrentEmployeeId();
                 var result = await _resubmitService.ResubmitAsync(id, request, empId);
                 return Ok(ApiResponse<WorkflowInstanceV2ResponseDto>.Ok(result, "Draf perbaikan berhasil diajukan ulang ke tahapan review"));
+            }
+            catch (WorkflowModuleManagedException ex)
+            {
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, ex.Message));
             }
             catch (InvalidOperationException ex)
             {
