@@ -34,8 +34,8 @@ Kolom **Status** diisi task builder sesudah laporan task ada (`✅`, `🟡`, `�
 | AC 16 — hari ini ditolak, H+1 s.d. H+30 diterima | `KSK-DEC-047` | `KSK-VAL-PO-020` | `BE-KSK-PO-005` | `FE-KSK-PO-002` | PO-T.1 baris AC 6/16 | ✅ `BE-KSK-PO-005` ✅ 2026-11-20 ([laporan](../task/report/backend/BE-KSK-PO-005.md), T5f, T5g); `FE-KSK-PO-002` ✅ 2026-11-20 (kalender: hari ini dan H+31 nonaktif, H+1 s.d. H+30 aktif; [laporan](../task/report/frontend/FE-KSK-PO-002.md)) |
 | AC 17 — NIK KTP/KIA wajib sama; SIM ditolak; master dari pindai | `KSK-DEC-048`, `053` | `KSK-VAL-PO-050` s.d. `052`; `CAP-PO-37` | `BE-KSK-PO-007` | `FE-KSK-PO-004`, `006` | PO-T.2 baris AC 17 | 🟡 `FE-KSK-PO-004` ✅ 2026-11-19 ([laporan](../task/report/frontend/FE-KSK-PO-004.md)); menunggu `BE-KSK-PO-007`, `FE-KSK-PO-006` |
 | AC 18 — daftar petugas dengan hak akses | `KSK-DEC-050`; `KSK-PO-AS-002` | PO-FE.3 `FE-KSK-PO-03`; PO-P.2 | `BE-KSK-PO-009` | `FE-KSK-PO-007` | PO-T.4 baris AC 18 | ✅ `BE-KSK-PO-009` ✅ 2026-11-20 ([laporan](../task/report/backend/BE-KSK-PO-009.md); aksi Akses Role lengkap lewat `BE-KSK-PO-010`); `FE-KSK-PO-007` ✅ 2026-11-20 (daftar, filter, cari, kode tidak tampil; tanpa hak: menu tersembunyi + `AccessDeniedGate`; [laporan](../task/report/frontend/FE-KSK-PO-007.md)) |
-| AC 19 — ubah jadwal/kontak, pertukaran kuota, riwayat | `KSK-DEC-051`; `KSK-DSN-PO-016` | `KSK-VAL-PO-060` s.d. `067` | `BE-KSK-PO-010` | `FE-KSK-PO-008` | PO-T.4 baris AC 19 | 🟡 `BE-KSK-PO-010` ✅ 2026-11-20 (pertukaran kuota, riwayat, kode tetap; [laporan](../task/report/backend/BE-KSK-PO-010.md)); menunggu `FE-KSK-PO-008` |
-| AC 20 — batal dengan alasan, kode mati, kuota lepas | `KSK-DEC-052` | `KSK-VAL-PO-070` s.d. `072` | `BE-KSK-PO-010` | `FE-KSK-PO-008` | PO-T.4 baris AC 20 | 🟡 `BE-KSK-PO-010` ✅ 2026-11-20 (status 5, kode mati di kiosk, kuota lepas; [laporan](../task/report/backend/BE-KSK-PO-010.md)); menunggu `FE-KSK-PO-008` |
+| AC 19 — ubah jadwal/kontak, pertukaran kuota, riwayat | `KSK-DEC-051`; `KSK-DSN-PO-016` | `KSK-VAL-PO-060` s.d. `067` | `BE-KSK-PO-010` | `FE-KSK-PO-008` | PO-T.4 baris AC 19 | ✅ `BE-KSK-PO-010` ✅ 2026-11-20 (pertukaran kuota, riwayat, kode tetap; [laporan](../task/report/backend/BE-KSK-PO-010.md)); `FE-KSK-PO-008` ✅ 2026-11-20 (Ubah Jadwal ke tanggal lain dengan dokter lain di poli yang sama, kuota ±1, jadwal penuh ditolak, Ubah Kontak dengan riwayat; [laporan](../task/report/frontend/FE-KSK-PO-008.md)) |
+| AC 20 — batal dengan alasan, kode mati, kuota lepas | `KSK-DEC-052` | `KSK-VAL-PO-070` s.d. `072` | `BE-KSK-PO-010` | `FE-KSK-PO-008` | PO-T.4 baris AC 20 | ✅ `BE-KSK-PO-010` ✅ 2026-11-20 (status 5, kode mati di kiosk, kuota lepas; [laporan](../task/report/backend/BE-KSK-PO-010.md)); `FE-KSK-PO-008` ✅ 2026-11-20 (Batalkan dengan alasan wajib, tombol hilang pada status akhir; [laporan](../task/report/frontend/FE-KSK-PO-008.md)) |
 
 ## 2. Functional requirement → task
 
@@ -57,7 +57,7 @@ Kolom **Status** diisi task builder sesudah laporan task ada (`✅`, `🟡`, `�
 | `FR-KSK-PO-050` | `FE-KSK-PO-005` |
 | `FR-KSK-PO-051` | `FE-KSK-PO-004` ✅ 2026-11-19 ([laporan](../task/report/frontend/FE-KSK-PO-004.md)), `FE-KSK-PO-006` |
 | `FR-KSK-PO-060` | `FE-KSK-PO-007` ✅ 2026-11-20 ([laporan](../task/report/frontend/FE-KSK-PO-007.md)) |
-| `FR-KSK-PO-061` | `FE-KSK-PO-008` |
+| `FR-KSK-PO-061` | `FE-KSK-PO-008` ✅ 2026-11-20 ([laporan](../task/report/frontend/FE-KSK-PO-008.md)) |
 
 ## 3. Keputusan desain → task
 
@@ -70,7 +70,7 @@ Kolom **Status** diisi task builder sesudah laporan task ada (`✅`, `🟡`, `�
 | `KSK-DSN-PO-008`, `010` | `BE-KSK-PO-006` 🟡 2026-11-20, `007` |
 | `KSK-DSN-PO-009` | `BE-KSK-PO-002` ✅ 2026-11-20 |
 | `KSK-DSN-PO-015` | `BE-KSK-PO-008` 🟡 2026-11-20 |
-| `KSK-DSN-PO-016` | `BE-KSK-PO-010` ✅ 2026-11-20, `FE-KSK-PO-008` |
+| `KSK-DSN-PO-016` | `BE-KSK-PO-010` ✅ 2026-11-20, `FE-KSK-PO-008` ✅ 2026-11-20 (pilihan jadwal hanya poli yang sama; [laporan](../task/report/frontend/FE-KSK-PO-008.md)) |
 | `KSK-DSN-PO-017` | `BE-KSK-PO-009` ✅ 2026-11-20, `FE-KSK-PO-007` ✅ 2026-11-20 ([laporan](../task/report/frontend/FE-KSK-PO-007.md)) |
 | `KSK-PO-FE-005` (letak menu) | `FE-KSK-PO-007` ✅ 2026-11-20 (butir "Pendaftaran Online" tepat di bawah "Reservasi Prioritas"; [laporan](../task/report/frontend/FE-KSK-PO-007.md)) |
 

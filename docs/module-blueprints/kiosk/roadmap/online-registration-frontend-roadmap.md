@@ -42,7 +42,7 @@ BE-KSK-PO-007 [BE] ─> FE-KSK-PO-005 ─┬─> FE-KSK-PO-006
                                      │
 FE-KSK-PO-004 ✅ ────────────────────┘
 
-BE-KSK-PO-009 ✅ [BE] ─> FE-KSK-PO-007 ✅ ─┬─> FE-KSK-PO-008
+BE-KSK-PO-009 ✅ [BE] ─> FE-KSK-PO-007 ✅ ─┬─> FE-KSK-PO-008 ✅
                                            │
 BE-KSK-PO-010 ✅ [BE] ─────────────────────┘
 ```
@@ -186,11 +186,11 @@ Pasangan prasyarat → task: 10 (`BE-004→FE-001`, `FE-001→FE-002`, `FE-002�
 | Risiko/pemilik | — Pemilik: implementer |
 | DoD | Kriteria terbukti; butir menu terjangkau |
 
-### `FE-KSK-PO-008` — Detail, Ubah Jadwal, Ubah Kontak, Batalkan
+### ✅ `FE-KSK-PO-008` — Detail, Ubah Jadwal, Ubah Kontak, Batalkan
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ 2026-11-20 — ESLint 0 error/0 warning, `lint:errors` PASS, `build` PASS (855/855, `ƒ …/online-registrations/[id]`); Playwright 1366 px 19 + 3 butir PASS dengan perubahan nyata ke backend uji: pindah Rab 25 Nov dr. Dewi → Rab 2 Des dr. Arif (poli sama, kuota 14→15 dan 8→7, riwayat lama → baru), jadwal penuh dan `409` kuota (tiruan) ditolak di dialog, ubah kontak + riwayat, RowVersion basi nyata → `409` + muat ulang, batal dengan alasan (< 5 karakter ditolak) → Dibatalkan dan tombol hilang; berkas rujukan dibuka (`200 application/pdf`); akun Read saja tanpa tombol aksi, akun tanpa hak `Akses Ditolak`, id tak dikenal `Pendaftaran tidak ditemukan.`. Bentuk dialog `ConfirmModal` (`DEV_DISCRETION`). Delta kontrak: pilihan jadwal dari `public/options/doctor-schedules`, bukan `doctor-schedule-quotas` (alasan di laporan) — [laporan](../task/report/frontend/FE-KSK-PO-008.md) |
 | Outcome | Route detail; bagian pasien, kunjungan, rujukan (buka berkas), kontak, riwayat; aksi Ubah Jadwal (tanggal + jadwal poli yang sama + sisa kuota), Ubah Kontak, Batalkan (alasan wajib, `ConfirmModal`); tombol disembunyikan sesuai hak dan `can*`; `409` memuat ulang |
 | Requirement/decision | `FR-KSK-PO-061`; `KSK-DEC-051`, `052`; `KSK-DSN-PO-016` |
 | Kontrak | Grup *Online Registration* `GET {id}`, `GET {id}/referral-documents/{documentId}`, `PUT {id}/schedule`, `PUT {id}/contact`, `POST {id}/cancel`; `GET patient-encounters/doctor-schedule-quotas`; `KSK-VAL-PO-060` s.d. `072` |
