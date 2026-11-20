@@ -91,6 +91,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private OnlineRegistrationService OnlineRegistrationService =>
             HttpContext.RequestServices.GetRequiredService<OnlineRegistrationService>();
 
+        // kiosk Amendment PO (BE-KSK-PO-007): diambil per request dengan alasan yang sama.
+        private OnlineRegistrationCheckInService OnlineRegistrationCheckIn =>
+            HttpContext.RequestServices.GetRequiredService<OnlineRegistrationCheckInService>();
+
+        // Kalimat penolakan kuota jalur kunjungan. Check-in pendaftaran online memetakannya ke
+        // KSK-VAL-PO-054; penolakan jadwal lainnya ke KSK-VAL-PO-053.
+        private const string DoctorScheduleTotalQuotaFullMessage = "Kuota pasien pada jadwal dokter sudah penuh.";
+        private const string DoctorScheduleAppointmentQuotaFullMessage = "Kuota appointment pada jadwal dokter sudah penuh.";
+        private const string DoctorScheduleWalkInQuotaFullMessage = "Kuota walk-in pada jadwal dokter sudah penuh.";
+
+        private const string OnlineRegistrationSourceMessage =
+            "Sumber registrasi Pendaftaran Online hanya untuk check-in pendaftaran online di kiosk.";
+
+        private IActionResult MapOnlineCheckInFailure(OnlineRegistrationPublicOutcome outcome, string message) =>
+            outcome switch
+            {
+                OnlineRegistrationPublicOutcome.NotFound => NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, message)),
+                OnlineRegistrationPublicOutcome.Conflict => Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, message)),
+                _ => BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, message))
+            };
+
+        private IActionResult OnlineCheckInScheduleConflict(string? scheduleError) =>
+            Conflict(ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict,
+                scheduleError is DoctorScheduleTotalQuotaFullMessage
+                    or DoctorScheduleAppointmentQuotaFullMessage
+                    or DoctorScheduleWalkInQuotaFullMessage
+                    ? OnlineRegistrationCheckInService.QuotaFullMessage
+                    : OnlineRegistrationCheckInService.ScheduleChangedMessage));
+
         private IActionResult MapPriorityReservationFailure(PriorityReservationOutcome outcome, string message) =>
             outcome switch
             {
@@ -890,6 +920,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 }
             }
 
+            // kiosk Amendment PO (BE-KSK-PO-007, KSK-DEC-046): check-in pendaftaran online hanya di kiosk
+            // (KSK-VAL-PO-047). Pemeriksaan token, status, hari H, pasien, dan isi kunjungan ada di service;
+            // bila lolos, tanggal, IsAppointment, sumber registrasi, dan rujukan dinormalisasi dari
+            // pendaftaran. Reservasi prioritas dan tiket admisi sudah ditolak kiosk di atas.
+            if (request.OnlineRegistrationId == Guid.Empty)
+                request.OnlineRegistrationId = null;
+
+            OnlineRegistrationCheckInPreparation? onlineCheckIn = null;
+
+            if (request.OnlineRegistrationId.HasValue || !string.IsNullOrWhiteSpace(request.OnlineRegistrationCheckInToken))
+            {
+                if (!logScope.EndsWith("ForKiosk", StringComparison.Ordinal))
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        OnlineRegistrationCheckInService.StaffChannelMessage));
+                }
+
+                var checkInPreparation = await OnlineRegistrationCheckIn.PrepareCheckInAsync(
+                    request,
+                    HttpContext.RequestAborted);
+
+                if (checkInPreparation.Outcome != OnlineRegistrationPublicOutcome.Ok || checkInPreparation.Data == null)
+                    return MapOnlineCheckInFailure(checkInPreparation.Outcome, checkInPreparation.Message);
+
+                onlineCheckIn = checkInPreparation.Data;
+            }
+            else if (request.RegistrationSource == EncounterRegistrationSource.OnlineRegistration)
+            {
+                // Sumber 7 hanya lahir dari check-in (KSK-DSN-PO-014); sebelum Amendment PO nilai ini
+                // memang ditolak validasi enum, jadi kunjungan biasa tidak berubah perilaku.
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    OnlineRegistrationSourceMessage));
+            }
+
             var now = DateTime.UtcNow;
             var operationalDate = ToUtcDate(AppDateTimeHelper.OperationalDate());
 
@@ -905,6 +971,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             }
 
             var targetEncounterDate = targetDateResult.TargetDate;
+
+            // kiosk Amendment PO (BE-KSK-PO-007): jadwal yang batal, berubah, atau penuh pada hari H
+            // dijawab 409 dengan arahan ke loket (KSK-VAL-PO-053/054), memakai validasi jalur kunjungan
+            // yang sama. Validasi lengkap di bawah tetap berjalan.
+            if (onlineCheckIn != null)
+            {
+                var checkInSchedule = await ValidateDoctorScheduleForEncounterAsync(request, targetEncounterDate);
+
+                if (!checkInSchedule.IsValid)
+                    return OnlineCheckInScheduleConflict(checkInSchedule.ErrorMessage);
+            }
 
             // Rawat jalan selalu menggunakan kelas pasien RAWAT JALAN yang
             // diselesaikan oleh backend. Dengan demikian kiosk/front desk tidak
@@ -1141,6 +1218,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
                     if (!quotaRecheck.IsValid)
                     {
+                        if (onlineCheckIn != null)
+                            return OnlineCheckInScheduleConflict(quotaRecheck.ErrorMessage);
+
                         return BadRequest(ApiResponse<object>.Fail(
                             StatusCodes.Status400BadRequest,
                             quotaRecheck.ErrorMessage ?? "Kuota pada jadwal dokter sudah penuh."));
@@ -1246,7 +1326,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 // kiosk Amendment PO (BE-KSK-PO-008, KSK-DEC-045): pendaftaran online pasien ini untuk
                 // tanggal yang sama ditutup sebagai Didaftarkan lewat Jalur Lain dan ditautkan ke kunjungan
                 // ini, ikut transaksi yang sama. Kunjungan IGD dan tanpa poliklinik tidak menyentuhnya.
-                if (!isEmergencyEncounter && request.EncounterType == EncounterType.Outpatient && clinic != null)
+                // Check-in (BE-KSK-PO-007) justru menyelesaikan pendaftaran itu sendiri di bawah, sesudah
+                // kunjungan dan rinciannya terbentuk; INV-PO-03 menjamin tidak ada pendaftaran lain.
+                if (onlineCheckIn == null &&
+                    !isEmergencyEncounter &&
+                    request.EncounterType == EncounterType.Outpatient &&
+                    clinic != null)
                 {
                     await OnlineRegistrationService.CloseForEncounterAsync(
                         request.PatientId,
@@ -1344,6 +1429,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     now,
                     HttpContext.RequestAborted);
                 _dbContext.Set<RegPatientEncounterGuarantor>().Add(paymentSource);
+
+                // kiosk Amendment PO (BE-KSK-PO-007, KSK-DSN-PO-008/010): pendaftaran online menjadi
+                // kunjungan di transaksi ini, bersama consent dan berkas rujukannya. Pendaftaran yang berubah
+                // sesudah diperiksa melempar OnlineRegistrationCheckInConflictException (KSK-VAL-PO-055).
+                if (onlineCheckIn != null)
+                {
+                    await OnlineRegistrationCheckIn.CompleteCheckInInTransactionAsync(
+                        onlineCheckIn,
+                        encounter,
+                        encounterReferral,
+                        actorUserId,
+                        now,
+                        HttpContext.RequestAborted);
+                }
 
                 RegQueue? queue = null;
                 OutpatientQueueClassification? queueClassification = null;
@@ -1618,6 +1717,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return Conflict(ApiResponse<object>.Fail(
                     StatusCodes.Status409Conflict,
                     OutpatientPriorityReservationService.StaleMessage));
+            }
+            catch (OnlineRegistrationCheckInConflictException checkInConflict)
+            {
+                // Pendaftaran online berubah sesudah diperiksa: kunjungan batal, status tetap Menunggu Check-in.
+                if (!transactionCommitted)
+                    await transaction.RollbackAsync();
+
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    checkInConflict.Message));
+            }
+            catch (DbUpdateConcurrencyException) when (onlineCheckIn != null && !transactionCommitted)
+            {
+                // Petugas mengubah atau membatalkan pendaftaran pada saat yang sama (RowVersion).
+                await transaction.RollbackAsync();
+
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    OnlineRegistrationCheckInService.RegistrationChangedMessage));
             }
             catch (DbUpdateException dbException)
             {
@@ -2966,19 +3084,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             if (DoctorScheduleQuotaService.IsFull(schedule.MaxPatientQuota, usage.Total))
             {
-                return (false, "Kuota pasien pada jadwal dokter sudah penuh.");
+                return (false, DoctorScheduleTotalQuotaFullMessage);
             }
 
             if (request.IsAppointment &&
                 DoctorScheduleQuotaService.IsFull(schedule.MaxAppointmentQuota, usage.Appointment))
             {
-                return (false, "Kuota appointment pada jadwal dokter sudah penuh.");
+                return (false, DoctorScheduleAppointmentQuotaFullMessage);
             }
 
             if (request.IsWalkIn &&
                 DoctorScheduleQuotaService.IsFull(schedule.MaxWalkInQuota, usage.WalkIn))
             {
-                return (false, "Kuota walk-in pada jadwal dokter sudah penuh.");
+                return (false, DoctorScheduleWalkInQuotaFullMessage);
             }
 
             return (true, null);

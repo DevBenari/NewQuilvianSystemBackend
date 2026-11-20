@@ -12,9 +12,10 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services
 {
     /// <summary>
-    /// Check-in pendaftaran online di kiosk (kiosk Amendment PO, <c>KSK-DSN-PO-008</c>). Task ini
+    /// Check-in pendaftaran online di kiosk (kiosk Amendment PO, <c>KSK-DSN-PO-008</c>). Berkas ini
     /// (<c>BE-KSK-PO-006</c>) memuat langkah pertama: verifikasi dan penerbitan token check-in.
-    /// Pembuatan kunjungan dari token itu menyusul di <c>BE-KSK-PO-007</c>.
+    /// Pembuatan kunjungan dari token itu ada di <c>OnlineRegistrationCheckInService.Encounter.cs</c>
+    /// (<c>BE-KSK-PO-007</c>).
     /// </summary>
     /// <remarks>
     /// <para>
@@ -39,7 +40,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
     /// lahir tidak pernah dicatat.
     /// </para>
     /// </remarks>
-    public class OnlineRegistrationCheckInService
+    public partial class OnlineRegistrationCheckInService
     {
         public const string IncompleteMessage = "Isian tidak lengkap. Periksa kembali isian Anda.";
         public const string CodeFormatMessage = "Kode terdiri dari 8 huruf dan angka, contoh K7QM-4TRZ.";

@@ -39,7 +39,7 @@ BE-KSK-PO-003 ✅ ────────────────────�
                                                                                 │
                                                                                 └─> BE-KSK-PO-009 ✅
 
-BE-KSK-PO-006 🟡 ─> BE-KSK-PO-007
+BE-KSK-PO-006 🟡 ─> BE-KSK-PO-007 🟡
 
 BE-KSK-PO-009 ✅ ─> BE-KSK-PO-010 ✅
 ```
@@ -182,11 +182,11 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | Risiko/pemilik | Tebak kode di kiosk; ditopang tanggal lahir, hari H, dan rate limit. Pemilik: implementer |
 | DoD | Kriteria terbukti; verifier otorisasi PASS (aturan `KSK-DSN-006`) |
 
-### `BE-KSK-PO-007` — Check-in menjadi kunjungan
+### 🟡 `BE-KSK-PO-007` — Check-in menjadi kunjungan
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-20 — build PASS (0 error, 0 warning baru), QBE Strict PASS (4 berkas, 0 temuan), verifier otorisasi PASS (fallback 68 tetap, 0 endpoint telanjang baru); runtime di 7185 14/14 PASS (`400` `KSK-VAL-PO-047` dari `/admin`, `400` `046` untuk token salah/kosong/id tak dikenal, sumber 7 tanpa check-in `400`, pendaftaran tidak berubah, regresi RJ/kiosk/IGD tanpa field baru `200`); harness jam palsu 44/44 PASS (`046`, `048`, `049`, `052`, `055`, normalisasi sumber 7/appointment/rujukan, kuota tepat penuh oleh pendaftaran sendiri, status 2 + `EncounterId` + token dihapus, consent dengan `SignedAt` asli, 2 dokumen rujukan dengan `StoragePath` sama, `CaptureSource = 3`, riwayat `CHECKED_IN`, tabrakan → konflik, status tetap 1); log bersih. **Belum:** runtime `200` lewat controller (pasien lama, pasien baru, rujukan + berkas, consent), `052`, dan `409` `053`/`054` (AC 13) karena token hanya terbit pada hari kunjungan data uji, 2026-11-21 (`po007_test.py dday`). Delta: `POST ''` adalah alias kiosk, penolakan `047` di `/admin`; kuota memakai pengecualian `BE-KSK-PO-008`, bukan ubah status lebih dulu. Keputusan pemilik terbuka: faskes perujuk non-mitra — [laporan](../task/report/backend/BE-KSK-PO-007.md) |
 | Outcome | `PatientEncounterCreateRequest` + `OnlineRegistrationId`, `OnlineRegistrationCheckInToken`; tolak dari kanal petugas; `PrepareCheckInAsync` sebelum transaksi (token, status, hari H, poli/jadwal/dokter, `IsAppointment`, pasien lama `PatientId`, pasien baru NIK master, pembayaran, kartu, faskes); di dalam transaksi `CompleteCheckInInTransactionAsync` (status Menjadi Kunjungan sebelum validasi kuota kunjungan, `EncounterId`, `RegPatientGeneralConsent` dari consent tampungan dengan `SignedAt` asli, `RegEncounterReferralDocument` menunjuk `StoragePath` yang sama, hapus hash token, riwayat `CHECKED_IN`); `RegistrationSource = 7`, `CaptureSource = 3` |
 | Requirement/decision | `FR-KSK-PO-021`; `KSK-DEC-034`, `036`, `039`, `046`, `048`; `INV-PO-02`, `06`; `KSK-DSN-PO-008`, `010`, `014` |
 | Kontrak | `api-contract.md` *Patient Encounter (diperluas)*; `KSK-VAL-PO-046` s.d. `055`; PO-S.1 baris ketiga |

@@ -38,9 +38,9 @@ BE-KSK-PO-004 ✅ [BE] ─> FE-KSK-PO-001 ✅ ─> FE-KSK-PO-002 ✅ ─┬─> 
                                                                │
 BE-KSK-PO-005 ✅ [BE] ─────────────────────────────────────────┘
 
-BE-KSK-PO-007 [BE] ─> FE-KSK-PO-005 ─┬─> FE-KSK-PO-006
-                                     │
-FE-KSK-PO-004 ✅ ────────────────────┘
+BE-KSK-PO-007 🟡 [BE] ─> FE-KSK-PO-005 ─┬─> FE-KSK-PO-006
+                                        │
+FE-KSK-PO-004 ✅ ───────────────────────┘
 
 BE-KSK-PO-009 ✅ [BE] ─> FE-KSK-PO-007 ✅ ─┬─> FE-KSK-PO-008 ✅
                                            │
