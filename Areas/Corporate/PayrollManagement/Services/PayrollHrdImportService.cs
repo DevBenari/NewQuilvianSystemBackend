@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.DTOs;
@@ -6,8 +7,10 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Servic
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -35,6 +38,7 @@ public sealed class PayrollHrdImportService
     private readonly LeavePayrollIntegrationService _leaveIntegration;
     private readonly OvertimePayrollHandoffQueryService _overtimeQuery;
     private readonly OvertimePayrollHandoffService _overtimeHandoff;
+    private readonly bool _requireApprovedSalary;
 
     public PayrollHrdImportService(
         ApplicationDbContext dbContext,
@@ -42,8 +46,10 @@ public sealed class PayrollHrdImportService
         AttendancePayrollHandoffService attendanceHandoff,
         LeavePayrollIntegrationService leaveIntegration,
         OvertimePayrollHandoffQueryService overtimeQuery,
-        OvertimePayrollHandoffService overtimeHandoff)
+        OvertimePayrollHandoffService overtimeHandoff,
+        IOptions<PayrollPolicyOptions> policyOptions)
     {
+        _requireApprovedSalary = policyOptions.Value.RequireApprovedSalaryAssignment;
         _dbContext = dbContext;
         _loggerService = loggerService;
         _attendanceHandoff = attendanceHandoff;
@@ -88,8 +94,12 @@ public sealed class PayrollHrdImportService
 
         var periodStart = run.PeriodStartDateSnapshot;
         var periodEnd = run.PeriodEndDateSnapshot;
-        var approvedSalary = (await _dbContext.WfpSalaryAssignments.AsNoTracking()
-                .Where(a => !a.IsDelete && a.IsActive && a.IsPrimary && a.ApprovedAt != null
+        // Penetapan yang dihitung sah mengikuti sakelar RequireApprovedSalaryAssignment (bawaan mati: aktif dan utama sudah sah; menyala:
+        // harus disetujui). Sebelum PAY-BE-FIX-008 variabel "approvedSalary" ini tidak menyaring persetujuan sama sekali.
+        var salaryAssignments = _dbContext.WfpSalaryAssignments.AsNoTracking();
+        if (_requireApprovedSalary) salaryAssignments = salaryAssignments.Where(WfpSalaryAssignmentRules.IsApprovedExpression);
+        var approvedSalary = (await salaryAssignments
+                .Where(a => !a.IsDelete && a.IsActive && a.IsPrimary
                     && workforceIds.Contains(a.WorkforceProfileId)
                     && a.EffectiveStartDate <= periodEnd && (a.EffectiveEndDate == null || a.EffectiveEndDate >= periodStart))
                 .Select(a => a.WorkforceProfileId).Distinct().ToListAsync(cancellationToken)).ToHashSet();

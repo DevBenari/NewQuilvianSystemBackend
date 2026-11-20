@@ -2,14 +2,16 @@ using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 
-// Kontrak kebijakan regulasi penggajian berversi (PPh dan iuran BPJS). Seluruh nilai regulasi dimasukkan HRD dan disahkan Finance;
-// tidak ada angka bawaan dari Backend.
+// Kontrak kebijakan regulasi penggajian berversi (tarif PPh). Seluruh nilai regulasi dimasukkan HRD dan disahkan Finance; tidak ada
+// angka bawaan dari Backend. Kebijakan iuran BPJS tidak lagi dikelola (PAY-BE-FIX-007); tabel PrlBpjsPolicy dipertahankan sebagai data historis.
 
 /// <summary>Filter daftar kebijakan.</summary>
 public sealed class PayrollStatutoryPolicyQuery
 {
     public string? Search { get; set; }
     public string? Status { get; set; }
+    public string? TaxArticle { get; set; }
+    public string? CalculationType { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 25;
 }
@@ -43,6 +45,10 @@ public sealed class PayrollStatutoryPolicyListItemResponse
     public Guid Id { get; set; }
     public string PolicyVersion { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
+    public string? TaxArticle { get; set; }
+    public string? CalculationType { get; set; }
+    public string? CategoryLabel { get; set; }
+    public string? EffectiveStatus { get; set; }
     public string LegalBasis { get; set; } = string.Empty;
     public DateTime EffectiveStartDate { get; set; }
     public DateTime? EffectiveEndDate { get; set; }
@@ -94,14 +100,29 @@ public sealed class SavePayrollTaxPolicyRequest
     public string PolicyVersion { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
 
-    /// <summary>Jenis perhitungan kebijakan PPh. Tahap pertama: PERMANENT_EMPLOYEE_TER (PPh 21 Pegawai Tetap).</summary>
+    /// <summary>Pasal PPh: PPH21 atau PPH23.</summary>
+    public string? TaxArticle { get; set; }
+
+    /// <summary>Jenis perhitungan kebijakan PPh 21 atau PPh 23.</summary>
     public string? CalculationType { get; set; }
+
+    /// <summary>Kategori subjek pajak penerima penghasilan.</summary>
+    public string? RecipientTaxCategory { get; set; }
+
+    /// <summary>Objek pemotongan penghasilan (khususnya PPh 23).</summary>
+    public string? IncomeObjectType { get; set; }
+
+    /// <summary>Tarif pemotongan persen tunggal (khususnya PPh 23, mis. 2% atau 15%).</summary>
+    public decimal? RatePercent { get; set; }
+
+    /// <summary>Dasar Pengenaan Pajak (DPP), mis. Jumlah Bruto tidak termasuk PPN.</summary>
+    public string? DppBasis { get; set; }
 
     public string LegalBasis { get; set; } = string.Empty;
     public DateTime EffectiveStartDate { get; set; }
     public DateTime? EffectiveEndDate { get; set; }
 
-    /// <summary>Bawaan true: Backend memuat referensi tarif resmi PPh 21 yang terverifikasi secara server-side.</summary>
+    /// <summary>Bawaan true untuk PPh 21 Pegawai Tetap: Backend memuat referensi tarif resmi PPh 21 secara server-side.</summary>
     public bool UseOfficialReference { get; set; } = true;
 
     public decimal? PositionCostRatePercent { get; set; }
@@ -131,9 +152,15 @@ public sealed class PayrollTaxPolicyDetailResponse
 {
     public PayrollStatutoryPolicyListItemResponse Summary { get; set; } = new();
 
+    public string? TaxArticle { get; set; }
     public string CalculationType { get; set; } = string.Empty;
     public string CalculationTypeLabel { get; set; } = string.Empty;
     public string CalculationMethodLabel { get; set; } = string.Empty;
+    public string? RecipientTaxCategory { get; set; }
+    public string? IncomeObjectType { get; set; }
+    public decimal? RatePercent { get; set; }
+    public string? DppBasis { get; set; }
+    public string? EffectiveStatus { get; set; }
     public string ReferenceVersion { get; set; } = string.Empty;
     public bool ReferenceReady { get; set; }
     public string ReferenceStatusLabel { get; set; } = string.Empty;
@@ -161,64 +188,6 @@ public sealed class PayrollTaxPolicyDetailResponse
     public PayrollStatutoryPolicyActionsResponse Actions { get; set; } = new();
 }
 
-// ---------------- Kebijakan iuran BPJS ----------------
-
-/// <summary>Isi kebijakan iuran BPJS yang disunting HRD (buat dan ubah).</summary>
-public sealed class SavePayrollBpjsPolicyRequest
-{
-    public string PolicyVersion { get; set; } = string.Empty;
-    public string Title { get; set; } = string.Empty;
-    public string LegalBasis { get; set; } = string.Empty;
-    public DateTime EffectiveStartDate { get; set; }
-    public DateTime? EffectiveEndDate { get; set; }
-
-    public int? JkkRiskClass { get; set; }
-    public string? JkkRiskBasis { get; set; }
-
-    public decimal HealthCapAmount { get; set; }
-    public decimal HealthEmployeeRate { get; set; }
-    public decimal HealthEmployerRate { get; set; }
-    public decimal JhtEmployeeRate { get; set; }
-    public decimal JhtEmployerRate { get; set; }
-    public decimal JpCapAmount { get; set; }
-    public decimal JpEmployeeRate { get; set; }
-    public decimal JpEmployerRate { get; set; }
-    public decimal JkkRate { get; set; }
-    public decimal JkmRate { get; set; }
-    public string? Notes { get; set; }
-}
-
-/// <summary>Menyalin nilai Pengaturan Penggajian saat ini menjadi draf kebijakan (nilai itu BELUM resmi sampai diverifikasi dan disahkan).</summary>
-public sealed class CreatePayrollBpjsPolicyFromSettingRequest
-{
-    public string PolicyVersion { get; set; } = string.Empty;
-    public string LegalBasis { get; set; } = string.Empty;
-    public DateTime EffectiveStartDate { get; set; }
-    public DateTime? EffectiveEndDate { get; set; }
-}
-
-public sealed class PayrollBpjsPolicyDetailResponse
-{
-    public PayrollStatutoryPolicyListItemResponse Summary { get; set; } = new();
-
-    public int? JkkRiskClass { get; set; }
-    public string? JkkRiskBasis { get; set; }
-    public decimal HealthCapAmount { get; set; }
-    public decimal HealthEmployeeRate { get; set; }
-    public decimal HealthEmployerRate { get; set; }
-    public decimal JhtEmployeeRate { get; set; }
-    public decimal JhtEmployerRate { get; set; }
-    public decimal JpCapAmount { get; set; }
-    public decimal JpEmployeeRate { get; set; }
-    public decimal JpEmployerRate { get; set; }
-    public decimal JkkRate { get; set; }
-    public decimal JkmRate { get; set; }
-    public string? Notes { get; set; }
-
-    public List<string> CompletenessIssues { get; set; } = new();
-    public PayrollStatutoryPolicyActionsResponse Actions { get; set; } = new();
-}
-
 // ---------------- Metadata dan ketersediaan ----------------
 
 public sealed class PayrollStatutoryPolicyOptionResponse
@@ -231,22 +200,22 @@ public sealed class PayrollStatutoryPolicyOptionResponse
 public sealed class PayrollStatutoryPolicyMetadataResponse
 {
     public List<PayrollStatutoryPolicyOptionResponse> StatusOptions { get; set; } = new();
+    public List<PayrollStatutoryPolicyOptionResponse> TaxArticleOptions { get; set; } = new();
     public List<PayrollStatutoryPolicyOptionResponse> TaxCalculationTypeOptions { get; set; } = new();
+    public List<PayrollStatutoryPolicyOptionResponse> Pph21CategoryOptions { get; set; } = new();
+    public List<PayrollStatutoryPolicyOptionResponse> Pph23ObjectOptions { get; set; } = new();
+    public List<PayrollStatutoryPolicyOptionResponse> TaxEffectiveStatusOptions { get; set; } = new();
     public List<PayrollStatutoryPolicyOptionResponse> TerCategoryOptions { get; set; } = new();
     public List<PayrollStatutoryPolicyOptionResponse> TerPeriodKindOptions { get; set; } = new();
     public List<PayrollStatutoryPolicyOptionResponse> NonEmployeeMethodOptions { get; set; } = new();
     public List<PayrollStatutoryPolicyOptionResponse> ProgramOptions { get; set; } = new();
-    public List<PayrollStatutoryPolicyOptionResponse> JkkRiskClassOptions { get; set; } = new();
     public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50 };
     public PayrollTaxOfficialReferenceResponse? OfficialTaxReference { get; set; }
-    public bool EnableBpjsInPayroll { get; set; } = true;
-    public string? BpjsTestingModeLabel { get; set; }
 }
 
 /// <summary>
-/// Ketersediaan kebijakan yang disahkan pada tanggal tertentu. Status "Menunggu Verifikasi Kebijakan" berarti belum ada kebijakan
-/// APPROVED yang berlaku: PPh otomatis dan iuran BPJS tidak dihitung (penahan, bukan Rp0). Ketika BPJS dinonaktifkan sementara pada
-/// mode pengujian, <see cref="EnableBpjsInPayroll"/> bernilai false dan status BPJS ditandai eksplisit sebagai mode pengujian.
+/// Ketersediaan kebijakan tarif PPh yang disahkan pada tanggal tertentu. Status "Menunggu Verifikasi Kebijakan" berarti belum ada
+/// kebijakan APPROVED yang berlaku: PPh otomatis tidak dihitung (penahan, bukan Rp0).
 /// </summary>
 public sealed class PayrollStatutoryPolicyAvailabilityResponse
 {
@@ -254,13 +223,7 @@ public sealed class PayrollStatutoryPolicyAvailabilityResponse
     public bool TaxPolicyApproved { get; set; }
     public string? TaxPolicyVersion { get; set; }
     public string TaxPolicyStatusLabel { get; set; } = string.Empty;
-    public bool EnableBpjsInPayroll { get; set; } = true;
-    public bool BpjsPolicyApproved { get; set; }
-    public string? BpjsPolicyVersion { get; set; }
-    public string BpjsPolicyStatusLabel { get; set; } = string.Empty;
-    public string? BpjsTestingModeNotice { get; set; }
 
     /// <summary>Jumlah draf/pengajuan kebijakan yang menunggu verifikasi atau pengesahan.</summary>
     public int PendingTaxPolicyCount { get; set; }
-    public int PendingBpjsPolicyCount { get; set; }
 }

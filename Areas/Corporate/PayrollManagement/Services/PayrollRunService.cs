@@ -128,10 +128,16 @@ public sealed class PayrollRunService
         detail.PeriodEndDate = run.PeriodEndDateSnapshot;
         detail.PaymentDate = run.PaymentDateSnapshot;
         detail.PolicyVersion = ReadPolicyVersion(run.PolicySnapshotJson);
-        detail.EnableBpjsInPayroll = _policy.EnableBpjsInPayroll;
-        detail.IsTestingModeWithoutBpjs = run.CalculatedAt.HasValue
-            ? PayrollTaxInsuranceRules.IsTestingModeWithoutBpjs(run.PolicySnapshotJson)
-            : !_policy.EnableBpjsInPayroll;
+        // Penahan Finance Handoff produksi (dipisahkan dari urusan BPJS): run yang belum dihitung dianggap ditahan karena run baru ditandai saat dihitung.
+        detail.FinanceHandoffHoldReason = PayrollFinanceHandoffGuard.ReasonOf(run.PolicySnapshotJson, run.CalculatedAt.HasValue);
+        detail.IsFinanceHandoffHeld = detail.FinanceHandoffHoldReason is not null;
+
+        // Indikator "perlu dihitung ulang": hanya relevan selama run belum disahkan (snapshot run yang disahkan terkunci).
+        if (run.CalculatedAt.HasValue && !run.IsLocked && !PayrollRunStatuses.IsFinalized(run.RunStatus))
+        {
+            detail.RecalculationReasons = await FindChangedCompensationSourcesAsync(run, cancellationToken);
+            detail.NeedsRecalculation = detail.RecalculationReasons.Count > 0;
+        }
 
         var validation = ReadValidation(run.ValidationSummaryJson);
         detail.Blockers = validation.Blockers;
@@ -256,7 +262,7 @@ public sealed class PayrollRunService
         }
         if (!run.IsLocked && !PayrollRunStatuses.IsFinalized(status)
             && !string.Equals(status, PayrollRunStatuses.Cancelled, StringComparison.OrdinalIgnoreCase)) actions.Add("Cancel");
-        if (PayrollRunStatuses.AllowsFinanceHandoff(status) && !detail.IsTestingModeWithoutBpjs) actions.Add("FinanceHandoff");
+        if (PayrollRunStatuses.AllowsFinanceHandoff(status) && !detail.IsFinanceHandoffHeld) actions.Add("FinanceHandoff");
         if (PayrollRunStatuses.AllowsDeductionReversal(status)) actions.Add("RequestReversal");
         if (PayrollRunStatuses.AllowsPayslipGeneration(status)) actions.Add("GeneratePayslips");
         if (string.Equals(status, PayrollRunStatuses.Paid, StringComparison.OrdinalIgnoreCase)) actions.Add("Close");
@@ -732,6 +738,7 @@ public sealed class PayrollRunService
             if (run.RunStatus != PayrollRunStatuses.Calculated)
                 throw new PayrollRunValidationException($"Hanya payroll run berstatus Calculated yang dapat diajukan (saat ini {run.RunStatus}).");
             await EnsureManualInputsSettledAsync(run, cancellationToken);
+            await EnsureCompensationSourcesSettledAsync(run, cancellationToken);
             EnsureReadyToDecide(run);
 
             run.RunStatus = PayrollRunStatuses.Submitted;
@@ -797,6 +804,8 @@ public sealed class PayrollRunService
             if (_policy.RequireDifferentApprover && run.SubmittedByUserId.HasValue && run.SubmittedByUserId.Value == actorUserId)
                 throw new PayrollForbiddenActionException("Pengaju run tidak boleh mengesahkan run yang sama (kebijakan pemisahan kewenangan).");
             EnsureReadyToDecide(run);
+            // Sumber kompensasi bisa berubah antara pengajuan dan pengesahan: hasil yang basi tidak boleh dikunci menjadi snapshot final.
+            await EnsureCompensationSourcesSettledAsync(run, cancellationToken);
 
             var confirmed = await _deductionService.ConfirmRunAsync(run, actorUserId, cancellationToken);
 
@@ -1199,11 +1208,10 @@ public sealed class PayrollRunService
             }
             else
             {
+                // Hanya konfigurasi PPh yang menentukan kelengkapan. Konfigurasi iuran/asuransi (termasuk BPJS pada snapshot lama) tidak
+                // pernah menjadi syarat kelengkapan data payroll.
                 if (taxSnapshot.ConfigurationStatus != PayrollConfigurationStatuses.Configured)
                     taxIssues.AddRange(taxSnapshot.Issues.Count > 0 ? taxSnapshot.Issues : new List<string> { "Konfigurasi PPh belum lengkap." });
-                if (insuranceSnapshot.ConfigurationStatus != PayrollConfigurationStatuses.Configured
-                    && insuranceSnapshot.ConfigurationStatus != PayrollConfigurationStatuses.TestingModeDisabled)
-                    taxIssues.AddRange(insuranceSnapshot.Issues.Count > 0 ? insuranceSnapshot.Issues : new List<string> { "Konfigurasi iuran belum lengkap." });
             }
         }
 
@@ -1393,10 +1401,8 @@ public sealed class PayrollRunService
                 Issues = insuranceSnapshot.Issues,
                 Warnings = insuranceSnapshot.Warnings
             },
-            EnableBpjsInPayroll = _policy.EnableBpjsInPayroll,
-            IsTestingModeWithoutBpjs = run.CalculatedAt.HasValue
-                ? PayrollTaxInsuranceRules.IsTestingModeWithoutBpjs(run.PolicySnapshotJson)
-                : !_policy.EnableBpjsInPayroll,
+            FinanceHandoffHoldReason = PayrollFinanceHandoffGuard.ReasonOf(run.PolicySnapshotJson, run.CalculatedAt.HasValue),
+            IsFinanceHandoffHeld = PayrollFinanceHandoffGuard.ReasonOf(run.PolicySnapshotJson, run.CalculatedAt.HasValue) is not null,
 
             Installments = installments
         };
@@ -1550,6 +1556,73 @@ public sealed class PayrollRunService
             if (changedAfterCalculation)
                 throw new PayrollRunConflictException("Penghasilan variabel berubah setelah perhitungan terakhir. Hitung ulang run dulu.");
         }
+    }
+
+    /// <summary>
+    /// Penjaga pengajuan dan pengesahan run (PAY-BE-FIX-008, UAT-14): bila penetapan gaji, tunjangan struktur, tunjangan khusus, atau tunjangan
+    /// transport milik penerima run ini berubah setelah perhitungan terakhir, hasil run sudah basi dan tidak boleh diajukan atau disahkan
+    /// (409) sampai dihitung ulang. Pola yang sama dengan VI-11 untuk input manual.
+    /// </summary>
+    private async Task EnsureCompensationSourcesSettledAsync(PrlPayrollRun run, CancellationToken cancellationToken)
+    {
+        var reasons = await FindChangedCompensationSourcesAsync(run, cancellationToken);
+        if (reasons.Count > 0)
+            throw new PayrollRunConflictException(
+                "Sumber kompensasi berubah setelah perhitungan terakhir (" + string.Join("; ", reasons) + "). Hitung ulang run dulu.");
+    }
+
+    private async Task<List<string>> FindChangedCompensationSourcesAsync(PrlPayrollRun run, CancellationToken cancellationToken)
+    {
+        var reasons = new List<string>();
+        if (!run.CalculatedAt.HasValue) return reasons;
+        var calculatedAt = run.CalculatedAt.Value;
+
+        var workforceIds = await _dbContext.PrlPayrollRunEmployees.AsNoTracking()
+            .Where(x => x.PayrollRunId == run.Id && !x.IsDelete)
+            .Select(x => x.WorkforceProfileId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        if (workforceIds.Count == 0) return reasons;
+
+        var periodStart = PayrollDateNormalizer.ToUtcDate(run.PeriodStartDateSnapshot);
+        var periodEnd = PayrollDateNormalizer.ToUtcDate(run.PeriodEndDateSnapshot);
+
+        // Penetapan gaji: dibuat, diubah, dihapus, atau disetujui setelah hitung dan masa berlakunya menyentuh periode (baris yang dihapus
+        // atau dinonaktifkan ikut dihitung: ia bisa saja yang tadinya dipakai).
+        if (await _dbContext.WfpSalaryAssignments.AsNoTracking().AnyAsync(a =>
+                workforceIds.Contains(a.WorkforceProfileId)
+                && a.EffectiveStartDate <= periodEnd && (a.EffectiveEndDate == null || a.EffectiveEndDate >= periodStart)
+                && ((a.UpdateDateTime ?? a.CreateDateTime) > calculatedAt || (a.ApprovedAt != null && a.ApprovedAt > calculatedAt)),
+                cancellationToken))
+            reasons.Add("penetapan gaji");
+
+        // Tunjangan struktur: baris milik struktur yang dipakai penerima pada periode ini.
+        var structureIds = await _dbContext.WfpSalaryAssignments.AsNoTracking()
+            .Where(a => !a.IsDelete && workforceIds.Contains(a.WorkforceProfileId)
+                && a.EffectiveStartDate <= periodEnd && (a.EffectiveEndDate == null || a.EffectiveEndDate >= periodStart))
+            .Select(a => a.SalaryStructureId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        if (structureIds.Count > 0 && await _dbContext.MstSalaryStructureAllowances.AsNoTracking().AnyAsync(l =>
+                structureIds.Contains(l.SalaryStructureId) && (l.UpdateDateTime ?? l.CreateDateTime) > calculatedAt, cancellationToken))
+            reasons.Add("tunjangan Struktur Gaji");
+
+        if (await _dbContext.PrlWorkforceAllowances.AsNoTracking().AnyAsync(w =>
+                workforceIds.Contains(w.WorkforceProfileId)
+                && w.EffectiveStartDate <= periodEnd && (w.EffectiveEndDate == null || w.EffectiveEndDate >= periodStart)
+                && ((w.UpdateDateTime ?? w.CreateDateTime) > calculatedAt || (w.DecidedAt != null && w.DecidedAt > calculatedAt)),
+                cancellationToken))
+            reasons.Add("tunjangan khusus pegawai");
+
+        if (await _dbContext.PrlTransportAllowances.AsNoTracking().AnyAsync(t =>
+                workforceIds.Contains(t.WorkforceProfileId)
+                && (t.EffectiveStartDate == null || t.EffectiveStartDate <= periodEnd)
+                && (t.EffectiveEndDate == null || t.EffectiveEndDate >= periodStart)
+                && (t.UpdateDateTime ?? t.CreateDateTime) > calculatedAt,
+                cancellationToken))
+            reasons.Add("tunjangan transportasi");
+
+        return reasons;
     }
 
     /// <summary>Memindahkan status input manual run oleh sistem, di dalam transaksi pemanggil. Mengembalikan jumlah input yang dipindah.</summary>

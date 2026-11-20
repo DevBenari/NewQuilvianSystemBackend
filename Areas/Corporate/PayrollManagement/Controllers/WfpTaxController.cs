@@ -574,7 +574,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
 
             var before = AuditSnapshot(entity, null);
             entity.IsActive = request.IsActive;
-            entity.EffectiveEndDate = request.EffectiveEndDate?.Date;
+            entity.EffectiveEndDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate);
             entity.Description = NormalizeNullableText(request.Description) ?? entity.Description;
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
@@ -993,8 +993,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             entity.PreviousEmployerTaxableIncome = request.PreviousEmployerTaxableIncome;
             entity.PreviousEmployerTaxPaid = request.PreviousEmployerTaxPaid;
             entity.AnnualNonTaxableIncome = request.AnnualNonTaxableIncome;
-            entity.EffectiveStartDate = request.EffectiveStartDate?.Date;
-            entity.EffectiveEndDate = request.EffectiveEndDate?.Date;
+            entity.EffectiveStartDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveStartDate);
+            entity.EffectiveEndDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate);
             entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
         }

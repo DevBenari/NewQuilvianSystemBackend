@@ -4,12 +4,11 @@ using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 namespace QuilvianSystemBackend.Services.Features;
 
 /// <summary>
-/// Satu-satunya pintu status fitur BPJS (BPJS Kesehatan dan BPJS Ketenagakerjaan: iuran, kebijakan, kepesertaan, klaim COB berbasis SEP,
-/// dan klaim JKK). Sumbernya satu saklar yang sudah ada, <c>Payroll:Policy:EnableBpjsInPayroll</c>, sehingga Payroll, HRD, Kesehatan
-/// dan Keselamatan Kerja, serta Frontend (lewat <c>GET api/v1/system/features</c>) tidak pernah berbeda perilaku. Mengaktifkan kembali
-/// fitur cukup dengan mengubah satu nilai konfigurasi; tidak ada data atau struktur database yang dihapus saat dinonaktifkan.
+/// Pintu status fitur BPJS yang tersisa di luar Payroll: HRD Benefit (klaim COB berbasis SEP, nomor kepesertaan BPJS pada benefit) dan
+/// K3 (formulir klaim dan worker JKK). Sumbernya saklar <c>Payroll:Policy:EnableBpjsInPayroll</c>. Payroll TIDAK lagi memakai gerbang
+/// ini (PAY-BE-FIX-007): iuran BPJS di Payroll sudah dihapus dari jalur aktif.
 ///
-/// Saat nonaktif: tidak ada kalkulasi, kebijakan, kepesertaan, nomor klaim, atau formulir BPJS baru. Riwayat tetap dapat dibaca.
+/// Saat nonaktif: tidak ada kepesertaan, nomor klaim, atau formulir BPJS baru di HRD/K3. Riwayat tetap dapat dibaca.
 /// Pendaftaran pasien dengan penjamin BPJS dan antrean BPJS tidak termasuk (aturan dan konfigurasinya milik modul masing-masing).
 /// </summary>
 public interface IBpjsFeatureGate

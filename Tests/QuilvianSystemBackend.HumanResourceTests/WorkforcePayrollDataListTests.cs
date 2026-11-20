@@ -74,7 +74,8 @@ public sealed class WorkforcePayrollDataListTests : IDisposable
     {
         using var ctx = _db.CreateContext();
         ctx.WfpSalaryAssignments.Add(new WfpSalaryAssignment
-        { WorkforceProfileId = wf, SalaryStructureId = _struktur, SalaryGradeId = _grade, BaseSalary = pokok, EffectiveStartDate = mulai, IsPrimary = utama, IsActive = aktif, ApprovedAt = disetujui ? Tgl(2026, 1, 5) : null });
+        // PAY-BE-FIX-008: "disetujui" berarti ApprovedAt DAN ApprovedByUserId terisi (WfpSalaryAssignmentRules.IsApproved).
+        { WorkforceProfileId = wf, SalaryStructureId = _struktur, SalaryGradeId = _grade, BaseSalary = pokok, EffectiveStartDate = mulai, IsPrimary = utama, IsActive = aktif, ApprovedAt = disetujui ? Tgl(2026, 1, 5) : null, ApprovedByUserId = disetujui ? Guid.NewGuid() : null });
         ctx.SaveChanges();
     }
 
@@ -89,8 +90,19 @@ public sealed class WorkforcePayrollDataListTests : IDisposable
         ctx.SaveChanges();
     }
 
+    // Tes ini menilai status disetujui/menunggu, jadi pembaca HRD dibuat dalam mode approval DISYARATKAN (sakelar
+    // Payroll:Policy:RequireApprovedSalaryAssignment menyala). Bawaan produksi mati (keputusan peniadaan approval 19 Nov 2026), dan pada
+    // mode itu setiap penetapan aktif dianggap sah sehingga status menunggu tidak pernah muncul.
+    private static PayrollHrdSourceReader Pembaca(QuilvianSystemBackend.Repositories.ApplicationDbContext ctx) =>
+        new(ctx, Microsoft.Extensions.Options.Options.Create(
+            new QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options.PayrollPolicyOptions { RequireApprovedSalaryAssignment = true }));
+
     // Daftar dan ringkasan tidak menulis log; LoggerService tidak disentuh.
-    private WorkforcePayrollDataService Layanan() => new(_db.CreateContext(), null!);
+    private WorkforcePayrollDataService Layanan()
+    {
+        var ctx = _db.CreateContext();
+        return new(ctx, Pembaca(ctx));
+    }
 
     private async Task<List<WorkforcePayrollDataItemResponse>> Semua(string? jenis = null, string? kelengkapan = null, string? cari = null) =>
         (await Layanan().ListAsync(new WorkforcePayrollDataQuery { PersonType = jenis, Completeness = kelengkapan, Search = cari, PageSize = 100 }, CancellationToken.None)).Items;
@@ -207,7 +219,7 @@ public sealed class WorkforcePayrollDataListTests : IDisposable
 
         var a = rows[andi];
         Assert.Equal((false, true, "Terverifikasi", "****1111", Tgl(2026, 1, 1)), (a.HasApprovedSalaryAssignment, a.HasPendingSalaryAssignment, a.BankStatus, a.AccountNumberMasked, DateTime.SpecifyKind(a.SalaryEffectiveStartDate!.Value, DateTimeKind.Utc)));
-        Assert.Equal(new[] { "Penetapan gaji utama belum disetujui." }, a.Issues);
+        Assert.Equal(new[] { PayrollReadinessEvaluator.PendingSalaryMessage }, a.Issues);
 
         var d = rows[dewi];
         Assert.Equal((false, false, "Belum terverifikasi", "Utama"), (d.HasApprovedSalaryAssignment, d.HasPendingSalaryAssignment, d.BankStatus, d.BankName));
@@ -215,7 +227,7 @@ public sealed class WorkforcePayrollDataListTests : IDisposable
 
         Assert.True(rows[sari].IsComplete);
         Assert.Empty(rows[sari].Issues);
-        Assert.Equal(new[] { "Penetapan gaji utama belum disetujui.", "Rekening payroll belum terverifikasi." }, rows[tono].Issues);
+        Assert.Equal(new[] { PayrollReadinessEvaluator.PendingSalaryMessage, "Rekening payroll belum terverifikasi." }, rows[tono].Issues);
 
         var ringkas = await Layanan().SummaryAsync(CancellationToken.None);
         Assert.Equal((4, 1, 2, 1), (ringkas.TotalPeople, ringkas.WithApprovedSalaryAssignment, ringkas.WithVerifiedBankAccount, ringkas.Complete));
@@ -223,7 +235,7 @@ public sealed class WorkforcePayrollDataListTests : IDisposable
         // Pembanding: Kelengkapan Data Payroll membaca tabel HRD yang sama. Andi punya dua penetapan utama aktif (kasus tepi yang
         // dinilai berbeda: Payroll memakai "ada yang disetujui"), jadi dibandingkan hanya orang dengan satu penetapan utama.
         var ctxPayroll = _db.CreateContext();
-        var payroll = (await new PayrollDataReadinessService(ctxPayroll, new PayrollHrdSourceReader(ctxPayroll))
+        var payroll = (await new PayrollDataReadinessService(ctxPayroll, Pembaca(ctxPayroll))
                 .ListAsync(new PayrollDataReadinessQuery { PageSize = 100 }, CancellationToken.None)).Items
             .ToDictionary(x => x.WorkforceProfileId);
         foreach (var wf in new[] { dewi, sari, tono })

@@ -17,7 +17,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
     [Route("api/v1/corporate/human-resource/payroll/runs")]
     [Route("api/payroll/runs")]
     [Tags("HR Payroll - Runs & Batches")]
-    // Satu jalur kalkulasi: jalur lama tidak boleh menghitung PPh/BPJS, tidak boleh mengubah run yang sudah dihitung mesin Payroll Run
+    // Satu jalur kalkulasi: jalur lama tidak boleh menghitung PPh, tidak boleh mengubah run yang sudah dihitung mesin Payroll Run
     // resmi, dan seluruh aksi tulisnya dapat dimatikan lewat Payroll:Policy:LegacyModernMutationsEnabled.
     [TypeFilter(typeof(LegacyModernPayrollGateFilter))]
     [AccessController(
@@ -34,7 +34,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         private readonly IPayrollRunInitializationService _runInitializationService;
         private readonly IPayrollEarningsCalculationService _earningsCalculationService;
         private readonly IPayrollOvertimeAndShiftIngestionService _overtimeAndShiftService;
-        private readonly IPayrollBpjsCalculationService _bpjsCalculationService;
         private readonly IPayrollTaxCalculationService _taxCalculationService;
         private readonly IPayrollDeductionsIngestionService _deductionsService;
         private readonly IPayrollVarianceGuardService _varianceGuardService;
@@ -49,7 +48,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             IPayrollRunInitializationService runInitializationService,
             IPayrollEarningsCalculationService earningsCalculationService,
             IPayrollOvertimeAndShiftIngestionService overtimeAndShiftService,
-            IPayrollBpjsCalculationService bpjsCalculationService,
             IPayrollTaxCalculationService taxCalculationService,
             IPayrollDeductionsIngestionService deductionsService,
             IPayrollVarianceGuardService varianceGuardService,
@@ -63,7 +61,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             _runInitializationService = runInitializationService ?? throw new ArgumentNullException(nameof(runInitializationService));
             _earningsCalculationService = earningsCalculationService ?? throw new ArgumentNullException(nameof(earningsCalculationService));
             _overtimeAndShiftService = overtimeAndShiftService ?? throw new ArgumentNullException(nameof(overtimeAndShiftService));
-            _bpjsCalculationService = bpjsCalculationService ?? throw new ArgumentNullException(nameof(bpjsCalculationService));
             _taxCalculationService = taxCalculationService ?? throw new ArgumentNullException(nameof(taxCalculationService));
             _deductionsService = deductionsService ?? throw new ArgumentNullException(nameof(deductionsService));
             _varianceGuardService = varianceGuardService ?? throw new ArgumentNullException(nameof(varianceGuardService));
@@ -225,49 +222,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             }
 
             return Ok(ApiResponse<EmployeeVariableEarningSummaryDto>.Ok(result.Data!, result.Message));
-        }
-
-        [HttpPost("{id:guid}/calculate-bpjs")]
-        [AccessAction("CalculateBpjs", "Kalkulasi Iuran BPJS Batch", Description = "Menghitung iuran BPJS Kesehatan dan 4 program BPJS Ketenagakerjaan berplafon seluruh pegawai", AccessType = AccessTypes.Update, SortOrder = 9)]
-        [AccessPermission("PayrollRunModern", "CalculateBpjs")]
-        [ProducesResponseType(typeof(ApiResponse<CalculateBpjsResultDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        public async Task<IActionResult> CalculateBpjs(
-            Guid id,
-            CancellationToken cancellationToken = default)
-        {
-            var actorUserId = GetCurrentUserId();
-            var result = await _bpjsCalculationService.CalculateBpjsContributionsAsync(id, actorUserId, cancellationToken);
-
-            if (!result.Success)
-            {
-                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
-            }
-
-            return Ok(ApiResponse<CalculateBpjsResultDto>.Ok(result.Data!, result.Message));
-        }
-
-        [HttpPost("{id:guid}/employees/{employeeRunId:guid}/calculate-bpjs")]
-        [AccessAction("CalculateEmployeeBpjs", "Kalkulasi Iuran BPJS Pegawai", Description = "Menghitung iuran BPJS Kesehatan dan 4 program BPJS Ketenagakerjaan satu pegawai", AccessType = AccessTypes.Update, SortOrder = 10)]
-        [AccessPermission("PayrollRunModern", "CalculateEmployeeBpjs")]
-        [ProducesResponseType(typeof(ApiResponse<EmployeeBpjsCalculationDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        public async Task<IActionResult> CalculateEmployeeBpjs(
-            Guid id,
-            Guid employeeRunId,
-            CancellationToken cancellationToken = default)
-        {
-            var actorUserId = GetCurrentUserId();
-            var result = await _bpjsCalculationService.CalculateEmployeeBpjsAsync(id, employeeRunId, actorUserId, cancellationToken);
-
-            if (!result.Success)
-            {
-                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
-            }
-
-            return Ok(ApiResponse<EmployeeBpjsCalculationDto>.Ok(result.Data!, result.Message));
         }
 
         [HttpPost("{id:guid}/calculate-pph21")]

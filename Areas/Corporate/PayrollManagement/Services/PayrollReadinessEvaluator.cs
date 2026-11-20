@@ -29,9 +29,9 @@ public sealed record PayrollHrdAssessment(
     List<string> Issues);
 
 /// <summary>
-/// Penilaian profil operasional internal Payroll satu orang, termasuk status konfigurasi PPh dan iuran yang ditetapkan HRD.
-/// <see cref="TaxInsuranceStatus"/> dan <see cref="TaxInsuranceUnset"/> diturunkan dari status konfigurasi eksplisit (PrlTax dan
-/// PrlInsurance), bukan dari perbandingan nominal nol.
+/// Penilaian profil operasional internal Payroll satu orang, termasuk status konfigurasi PPh yang ditetapkan HRD.
+/// <see cref="TaxInsuranceStatus"/> dan <see cref="TaxInsuranceUnset"/> (nama historis; hanya PPh) diturunkan dari status konfigurasi
+/// eksplisit (PrlTax), bukan dari perbandingan nominal nol. Asuransi swasta dan iuran BPJS bukan syarat kelengkapan.
 /// </summary>
 public sealed record PayrollProfileAssessment(
     string ProfileStatus,
@@ -41,9 +41,7 @@ public sealed record PayrollProfileAssessment(
     List<string> Issues,
     List<string> Notes,
     string TaxConfigurationStatus = "",
-    string InsuranceConfigurationStatus = "",
-    List<string>? TaxIssues = null,
-    List<string>? InsuranceIssues = null);
+    List<string>? TaxIssues = null);
 
 /// <summary>
 /// Satu-satunya tempat aturan kelengkapan sumber HRD dan status profil payroll. Dipakai Kelengkapan Data Payroll dan Profil Penggajian
@@ -72,6 +70,7 @@ public static class PayrollReadinessEvaluator
     public const string TaxWaitingProfile = "Menunggu profil";
 
     public const string NoSalaryMessage = "Belum ada penetapan gaji utama di HRD yang berlaku saat ini.";
+    public const string PendingSalaryMessage = "Penetapan gaji utama di HRD belum disetujui; belum dapat dipakai untuk menghitung gaji.";
 
     public static string BankStatusOf(PayrollHrdBank? bank) =>
         bank is null ? BankNone : bank.HasVerified ? BankVerified : BankUnverified;
@@ -90,8 +89,8 @@ public static class PayrollReadinessEvaluator
         var conflict = salary is not null && salary.ApprovedCount > 1;
 
         if (salary is null) issues.Add(string.IsNullOrWhiteSpace(noSalaryMessage) ? NoSalaryMessage : noSalaryMessage);
-        else if (!approved) issues.Add("Penetapan gaji utama belum disetujui HRD.");
-        else if (conflict) issues.Add("Terdapat lebih dari satu penetapan gaji utama yang disetujui HRD dan berlaku bersamaan.");
+        else if (conflict) issues.Add("Terdapat lebih dari satu penetapan gaji utama yang berlaku bersamaan.");
+        else if (!approved) issues.Add(PendingSalaryMessage);
 
         var bankStatus = BankStatusOf(bank);
         if (bank is null) issues.Add("Belum ada rekening payroll di HRD.");
@@ -133,13 +132,13 @@ public static class PayrollReadinessEvaluator
 
     /// <param name="profile">Profil payroll yang belum dihapus; null bila belum ada.</param>
     /// <param name="canAutoPrepare">Penetapan gaji dan rekening payroll sudah ada di HRD, jadi profil dapat disiapkan otomatis.</param>
-    /// <param name="taxInsurance">Kesiapan konfigurasi PPh dan iuran yang ditetapkan HRD (PayrollTaxInsuranceRules.AssessReadiness).
+    /// <param name="taxInsurance">Kesiapan konfigurasi PPh yang ditetapkan HRD (PayrollTaxInsuranceRules.AssessReadiness).
     /// Konfigurasi ini milik HRD dan tidak bergantung pada ada atau tidaknya profil payroll; nol bukan penentu kelengkapan.</param>
     /// <param name="asOf">Tanggal penilaian. Bila diberikan, profil yang belum berlaku atau sudah berakhir pada tanggal itu tidak
     /// operasional. Kosong berarti masa berlaku profil tidak dinilai.</param>
     /// <param name="hasActiveConflict">Ada lebih dari satu profil aktif yang berlaku bersamaan untuk orang ini.</param>
     public static PayrollProfileAssessment AssessProfile(
-        PayrollProfileFacts? profile, bool canAutoPrepare, PayrollTaxInsuranceReadiness taxInsurance, DateTime? asOf = null,
+        PayrollProfileFacts? profile, bool canAutoPrepare, PayrollTaxReadiness taxInsurance, DateTime? asOf = null,
         bool hasActiveConflict = false)
     {
         var issues = new List<string>();
@@ -147,11 +146,10 @@ public static class PayrollReadinessEvaluator
         var taxStatus = taxInsurance.IsComplete ? TaxSet : TaxNotSet;
         var taxUnset = !taxInsurance.IsComplete;
         var taxIssues = taxInsurance.TaxIssues.ToList();
-        var insuranceIssues = taxInsurance.InsuranceIssues.ToList();
 
         PayrollProfileAssessment Build(string resultProfileStatus, bool resultOperational) => new(
             resultProfileStatus, taxStatus, resultOperational, taxUnset, issues, notes,
-            taxInsurance.TaxConfigurationStatus, taxInsurance.InsuranceConfigurationStatus, taxIssues, insuranceIssues);
+            taxInsurance.TaxConfigurationStatus, taxIssues);
 
         if (profile is null)
         {
@@ -198,7 +196,7 @@ public static class PayrollReadinessEvaluator
             notes.Add("Profil tidak diaktifkan otomatis; perlu keputusan Payroll.");
         }
 
-        // Kelengkapan PPh dan iuran dinilai dari konfigurasi eksplisit HRD, bukan dari nominal nol pada profil payroll.
+        // Kelengkapan PPh dinilai dari konfigurasi eksplisit HRD, bukan dari nominal nol pada profil payroll.
         notes.AddRange(taxInsurance.Notes);
         return Build(profileStatus, operational);
     }
