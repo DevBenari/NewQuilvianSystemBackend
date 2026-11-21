@@ -1120,8 +1120,8 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-401` | `S-FIN-M04` · Lintas Submenu | Integrasi aman dengan Menu 06, 09, dan 12 (alias `FIN-HRD-04-BE-015`) | ✅ | `BE-HRD-390` ✅, `BE-HRD-396` ✅, `BE-HRD-399` ✅, `BE-HRD-400` ✅ |
 | `BE-HRD-402` | `S-FIN-M04` · Verifikasi | Gerbang backend Menu 04: build, kontrak, uji negatif izin, dan konkurensi (alias `FIN-HRD-04-BE-016`) | ✅ | `BE-HRD-391` ✅, `BE-HRD-393` ✅, `BE-HRD-394` ✅, `BE-HRD-395` ✅, `BE-HRD-398` ✅, `BE-HRD-401` ✅ |
 | `BE-HRD-403` | `S-FIN-M05` · Unit Kerja | Hierarki unit kerja aman dari siklus dan endpoint pohon hierarki (alias `FIN-HRD-05-BE-001`) | ✅ | — |
-| `BE-HRD-404` | `S-FIN-M05` · Uraian Tugas | Persistence Uraian Tugas berversi per jabatan (alias `FIN-HRD-05-BE-002`) | 🟡 | `{MIG-M05-JD}` ⛔ |
-| `BE-HRD-405` | `S-FIN-M05` · Uraian Tugas | Service, API, dan RBAC Uraian Tugas dengan aktivasi transaksional (alias `FIN-HRD-05-BE-003`) | ✅ | `BE-HRD-404` 🟡 |
+| `BE-HRD-404` | `S-FIN-M05` · Uraian Tugas | Persistence Uraian Tugas berversi per jabatan (alias `FIN-HRD-05-BE-002`) | ✅ | `{MIG-M05-JD}` ✅ |
+| `BE-HRD-405` | `S-FIN-M05` · Uraian Tugas | Service, API, dan RBAC Uraian Tugas dengan aktivasi transaksional (alias `FIN-HRD-05-BE-003`) | ✅ | `BE-HRD-404` ✅ |
 | `BE-HRD-406` | `S-FIN-M05` · Atasan Langsung | Guard Atasan Langsung: Menu 05 hanya membaca `WfpManagerAssignment` (alias `FIN-HRD-05-BE-004`) | ✅ | `BE-HRD-403` ✅, `BE-HRD-405` ✅ |
 | `BE-HRD-407` | `S-FIN-M07` · Perpindahan Unit | Maker-checker dan guard scan SK (alias `FIN-HRD-07-BE-001`) | ✅ | — |
 | `BE-HRD-408` | `S-FIN-M07` · Perpindahan Unit | State machine pembatalan SK; worker tidak mendahului keputusan (alias `FIN-HRD-07-BE-002`) | ✅ | `BE-HRD-407` ✅ |
@@ -1177,6 +1177,8 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 > **Pemutakhiran register 20 November 2026 (`S-C5-SEP`).** `BE-HRD-365`, `BE-HRD-368`, `BE-HRD-372`, `BE-HRD-373` dinaikkan kembali ke ✅ sesudah dikerjakan ulang (signoff per departemen, serah terima per pemilik/atasan, usia pensiun dari pengaturan RS, satu clearance per pemberhentian). Migration `20261120090000_AddHrdRetirementPolicyAge` ditulis, belum dijalankan. Laporan diperbarui pada berkas yang sama.
 
 > **Pemutakhiran register 20 November 2026 (`S-FIN-M04`).** `BE-HRD-387` s.d. `BE-HRD-402` ditandai ✅ sesudah perbaikan source, `dotnet build` 0 error, QBE Strict 20 berkas `PASS`, dan validator registri hak akses `IsValid=True`; uji API di DB dev tetap `NOT RUN`. Laporan: `task/report/backend/BE-HRD-387.md` s.d. `BE-HRD-402.md`.
+
+> **Pemutakhiran register 21 November 2026 (penerapan migration).** Pemilik menjalankan `dotnet ef database update --no-build` terhadap DB dev `QuilvianNewDevHamzah` (keluaran: "No migrations were applied. The database is already up to date."). `dotnet ef migrations list --no-build` menunjukkan 431 migration, tidak satu pun berstatus `Pending`, termasuk empat migration manual 20 November 2026: `20261120090000_AddHrdRetirementPolicyAge`, `20261120091000_AddMstJobDescription`, `20261120092000_AddHrdContractDecisionNoticeEvidence`, `20261120093000_AddHrdAssignmentLetter`. Assembly yang dipakai `--no-build` dibangun sesudah keempat berkas itu ditulis, sehingga keempatnya ikut terbaca. Akibatnya: gerbang `{MIG-M05-JD}` ditutup dan `BE-HRD-404` 🟡 → ✅; catatan "belum dijalankan" pada `BE-HRD-368`, `382`, `383`, `384`, `405`, `413`, `419` diganti "sudah diterapkan" (tanda tetap ✅); `BE-HRD-386` tetap 🟡 karena uji per peran di runtime belum dijalankan, kini tidak lagi tertahan migration. Baris ringkasan `BE-HRD-204`, `229`, `241` yang masih bertulis "menunggu migration" diselaraskan dengan kartunya (migration sudah dijalankan 11 November 2026; tanda 🟡 karena uji `NOT RUN`). Uji API di DB dev untuk task di atas tetap `NOT RUN`.
 
 > **Pemutakhiran register 20 November 2026.** Baris `BE-HRD-374` s.d. `BE-HRD-380` (amandemen `S-D5` v28, bagian 27) ditambahkan dari kartu task (seluruhnya ✅). Tanda `BE-HRD-333` pada register dan Grafik B83 disamakan dengan kartunya (✅ 19 November 2026). Task finishing docs/update kini bernomor `BE-HRD-381` s.d. `BE-HRD-439` sesudah penomoran ulang saat merge amandemen `S-D5`.
 
@@ -4701,7 +4703,7 @@ BE-HRD-204 [B50] ──┘
 | `MVP-40` | `BE-HRD-201` | Gerbang Persetujuan 2-Tier C&B Supervisor & Penegakan Anti-Self-Approval | `BE-HRD-200` | ✅ Selesai (2026-11-09) |
 | `MVP-40` | `BE-HRD-202` | Mesin Rendering Naskah Dinas PDF Berbasis Template Token Dinamis Liquid | `BE-HRD-201`, `BE-HRD-194` | ✅ Selesai (2026-11-09) |
 | `MVP-40` | `BE-HRD-203` | Generator QR Code SHA-256 & Enkripsi 4-Digit PIN Finansial BCrypt | `BE-HRD-202` | ✅ Selesai (2026-11-09) |
-| **`MVP-41`** | `BE-HRD-204` | Endpoint Portal Publik Verifikasi QR `/verify/document/{hash}` & Rate Limiter | `BE-HRD-203` | 🟡 sebagian 10 November 2026 — tabel `HrdPinAttemptRecord` menunggu migration |
+| **`MVP-41`** | `BE-HRD-204` | Endpoint Portal Publik Verifikasi QR `/verify/document/{hash}` & Rate Limiter | `BE-HRD-203` | 🟡 sebagian 10 November 2026 — tabel `HrdPinAttemptRecord` sudah ada (migration dijalankan 11 November 2026); `AT-HRD-HRS-19` `NOT RUN` |
 | `MVP-41` | `BE-HRD-205` | Pengarsipan Abadi E-Dossier (`INT-HR-66`), Revokasi Ber-BAP & Verifikasi DoD S-D4 | `BE-HRD-198`, `BE-HRD-199`, `BE-HRD-204` | ✅ Selesai (2026-11-09) |
 
 ---
@@ -5133,7 +5135,7 @@ BE-HRD-236 [B58] ──┘
 | Gelombang | Task ID | Target Deliverable / Output Utama | Syarat Masuk (Dependencies) |
 | :---: | :--- | :--- | :--- |
 | **`MVP-45`** | `BE-HRD-222`, `BE-HRD-223`, `BE-HRD-224`, `BE-HRD-225`, `BE-HRD-226`, `BE-HRD-227`, `BE-HRD-228` | Entitas EF Core 8 tabel, master katalog indikator 6 pilar ACGME/KARS, siklus evaluasi periode OPPE, adapter ekstraksi data kuantitatif SIMRS/KMKP 60%, instrumen telaah sejawat kualitatif 40%, penegakan *Peer Review Privilege* dengan perekaman *read-audit log*, serta kalkulator komposit 60:40 dan pengesahan rapor OPPE. | ✅ **Selesai (2026-11-09)** |
-| **`MVP-46`** | `BE-HRD-229`, `BE-HRD-230`, `BE-HRD-231`, `BE-HRD-232` | Layanan penangkap feed pemicu kritis FPPE (sentinel, komplikasi bedah > 2 SD, resume EMR kronis), inisiasi penugasan FPPE dokter baru & prosedur baru, logbook kasus proctoring dengan pseudonimisasi pasien, verifikasi kemandirian proctor, serta sidang pleno kesimpulan FPPE. | 🟡 `BE-HRD-229` sebagian 10 November 2026 (tabel feed pemicu menunggu migration); tiga task lain ✅ |
+| **`MVP-46`** | `BE-HRD-229`, `BE-HRD-230`, `BE-HRD-231`, `BE-HRD-232` | Layanan penangkap feed pemicu kritis FPPE (sentinel, komplikasi bedah > 2 SD, resume EMR kronis), inisiasi penugasan FPPE dokter baru & prosedur baru, logbook kasus proctoring dengan pseudonimisasi pasien, verifikasi kemandirian proctor, serta sidang pleno kesimpulan FPPE. | 🟡 `BE-HRD-229` sebagian 10 November 2026 (tabel feed pemicu sudah ada sejak migration 11 November 2026; `AT-HRD-OPP-10` s.d. `12` `NOT RUN`); tiga task lain ✅ |
 | **`MVP-47`** | `BE-HRD-233`, `BE-HRD-234`, `BE-HRD-235`, `BE-HRD-236` | Kalkulator deterministik rapor komposit 3 tahun rekredensialing (25%-35%-40%), klasifikasi otomatis tier kelayakan (Hijau, Kuning, Merah), layanan diskresi penyesuaian tier Ketua Komite, transmisi 4 putusan rekredensialing ke modul EMR SIMRS (`INT-HR-76`), serta background worker pemantau sisa waktu proctoring. | 🟡 `BE-HRD-234`/`BE-HRD-235` sebagian 10 November 2026 (migration dan integrasi SIMRS menunggu); `BE-HRD-233` ✅ dikerjakan ulang; `BE-HRD-236` ✅ |
 | **Verifikasi** | `BE-HRD-237` | Kompilasi .NET bersih 0 error, verifikasi konformansi QBE preflight, verifikasi kontrak API Swagger Kontrak `v19`, dan pengujian penerimaan `AT-HRD-OPP-01` s.d. `AT-HRD-OPP-22`. | 🟡 diturunkan 10 November 2026 — klaim `AT-HRD-OPP-03` dicabut |
 
@@ -5311,7 +5313,7 @@ BE-HRD-252 [B62] ──┘
 | **MVP-48** | BE-HRD-238 | Entity Model EF Core & Migrasi Postgres Diklat | - | 10 Model tabel relasional Postgres, Migration EF Core & DbContext | ✅ **Selesai (2026-11-09)** |
 | **MVP-48** | BE-HRD-239 | Master Aturan Pelatihan Wajib STARKES KPS 8 | BE-HRD-238 | MandatoryTrainingRuleService, Controller, Katalog 5 Diklat Wajib RS | ✅ **Selesai (2026-11-09)** |
 | **MVP-48** | BE-HRD-240 | Engine Radar Kedaluwarsa Bertingkat (H-90/60/30) | BE-HRD-239 | Background Worker Radar, broadcast alert otomatis ke ESS/Email/WA | ✅ 18 November 2026 — siaran ke staf lewat pusat pemberitahuan terbukti di harness (`AT-HRD-TRN-04`) |
-| **MVP-48** | BE-HRD-241 | Safeguard Shift Buddy System & Eskalasi RKK | BE-HRD-240 | Integrasi INT-HR-79 (Sub-06) & INT-HR-77 (Sub-14 downgrade Level 3) | 🟡 sebagian 10 November 2026 — tabel `HrdShiftBuddySafeguard` menunggu migration |
+| **MVP-48** | BE-HRD-241 | Safeguard Shift Buddy System & Eskalasi RKK | BE-HRD-240 | Integrasi INT-HR-79 (Sub-06) & INT-HR-77 (Sub-14 downgrade Level 3) | 🟡 sebagian 10 November 2026 — tabel `HrdShiftBuddySafeguard` sudah ada (migration dijalankan 11 November 2026); `AT-HRD-TRN-06`/`07` `NOT RUN` |
 | **`MVP-49`** | `BE-HRD-242` | Master Rencana Program Tahunan TNA & Approval | `BE-HRD-238` | `AnnualTrainingPlanService`, Controller, workflow pengesahan Direksi | ✅ **Selesai (2026-11-09)** |
 | **`MVP-49`** | `BE-HRD-243` | Penjadwalan Sesi Kelas, Workshop Lab & Webinar | `BE-HRD-238` | `TrainingSessionService`, Controller, batch kalender kelas & kuota | ✅ **Selesai (2026-11-09)** |
 | **`MVP-49`** | `BE-HRD-244` | Pendaftaran Mandiri ESS & Approval Berjenjang | `BE-HRD-243` | `TrainingEnrollmentService`, Controller, alur approval Karu & Diklat | ✅ **Selesai (2026-11-09)** |
@@ -6531,7 +6533,7 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 
 #### ✅ `BE-HRD-335` — Konstanta nilai dan penanda hak akses tanpa endpoint
 * **Slice / MVP**: `A52` / `MVP-66` / `EPIC HRD-109`
-* **Status**: ✅ Selesai (2026-11-12) — konstanta 35.4.4 dan penanda `RosterPeriod : ManageAllUnits` terpasang, terbaca `BuildFromAssembly`; `AttendanceReport : ReadAllUnits` dipindah ke `BE-HRD-349` karena resource-nya belum ada (sesuai Risiko). Startup Development menunggu penerapan migration `BE-HRD-334`. Laporan: [BE-HRD-335](../task/report/backend/BE-HRD-335.md)
+* **Status**: ✅ Selesai (2026-11-12) — konstanta 35.4.4 dan penanda `RosterPeriod : ManageAllUnits` terpasang, terbaca `BuildFromAssembly`; `AttendanceReport : ReadAllUnits` dipindah ke `BE-HRD-349` karena resource-nya belum ada (sesuai Risiko). Startup Development menunggu penerapan migration `BE-HRD-334` (sudah diterapkan 13 November 2026). Laporan: [BE-HRD-335](../task/report/backend/BE-HRD-335.md)
 * **Outcome**: Status, jenis perubahan, kode aturan, dan dua penanda `ManageAllUnits`/`ReadAllUnits` tersedia sebagai satu sumber.
 * **Requirement/decision**: `FR-PK-002`; 35.4.3–35.4.4
 * **Kontrak**: `v26` — `permission-audit-matrix.md` 30.1
@@ -7060,7 +7062,7 @@ BE-HRD-364 ✅ ─> BE-HRD-365 ✅ ─> BE-HRD-366 ✅ ─┬─> BE-HRD-367 ✅
 
 #### ✅ `BE-HRD-368` — Pensiun: policy, approval gate, handoff aman dan nomor sah
 * **Slice / MVP**: `S-C5-SEP` / Pensiun
-* **Status**: ✅ **SELESAI 20 November 2026 (dikerjakan ulang; sebelumnya 🟡 audit 19 November 2026)** — usia pensiun dari `HrdEmploymentLifecycleSetting.NormalRetirementAge` per RS (`409 POLICY_NOT_CONFIGURED` bila kosong, kasus lama tetap terbaca); nomor `RET`/`SEP`/`EXC` dari number series; migration `20261120090000_AddHrdRetirementPolicyAge` ditulis, **belum dijalankan** (wajib sebelum dipakai). `dotnet build` 0 error (608 warning, sama dengan garis dasar); QBE Strict 17 berkas 0 violation; validator registri hak akses `IsValid=True`; uji API di DB dev `NOT RUN` (wewenang tulis DB dev belum diberikan). Bukti: [laporan](../task/report/backend/BE-HRD-368.md)
+* **Status**: ✅ **SELESAI 20 November 2026 (dikerjakan ulang; sebelumnya 🟡 audit 19 November 2026)** — usia pensiun dari `HrdEmploymentLifecycleSetting.NormalRetirementAge` per RS (`409 POLICY_NOT_CONFIGURED` bila kosong, kasus lama tetap terbaca); nomor `RET`/`SEP`/`EXC` dari number series; migration `20261120090000_AddHrdRetirementPolicyAge` ditulis, sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`. `dotnet build` 0 error (608 warning, sama dengan garis dasar); QBE Strict 17 berkas 0 violation; validator registri hak akses `IsValid=True`; uji API di DB dev `NOT RUN` (wewenang tulis DB dev belum diberikan). Bukti: [laporan](../task/report/backend/BE-HRD-368.md)
 * **Outcome**: Pemutakhiran alur pensiun pegawai: penghapusan usia pensiun hardcoded, pembacaan kandidat pensiun dari tanggal lahir master pegawai aktif, validasi status persetujuan sebelum handoff (`HandoffAsync` wajib menolak bila status belum `Approved`), nomor kasus `RET-` dari penomoran unik aman tanpa `new Random()`, serta pembentukan separation yang idempoten.
 * **Dependencies**: `BE-HRD-364` s.d. `BE-HRD-366`
 * **Acceptance Criteria**: Handoff ditolak jika status belum `Approved`; nomor kasus unik; kandidat pensiun dihitung dari master pegawai; persistensi transaksi utuh.
@@ -7345,8 +7347,8 @@ memelihara automated test; bukti verifikasinya build, QBE, kontrak API, dan uji 
 
 | Gerbang | Apa yang belum ada | Task yang tertahan | Siapa yang menyelesaikan | Yang tetap bisa jalan |
 | --- | --- | --- | --- | --- |
-| `{ADM-Q-03}` — ✅ **ditutup 20 November 2026**: pemilik memilih A (satu surat bertabel peserta) dan mengizinkan migration ditulis; migration `20261120093000_AddHrdAssignmentLetter` ditulis, belum dijalankan ([laporan](../task/report/backend/BE-HRD-382.md)) | Keputusan bentuk Surat Tugas multi-pegawai (satu surat bertabel peserta, atau satu surat per pegawai; rekomendasi dokumen update: satu surat) **dan** wewenang menulis migration tabel peserta | `BE-HRD-382`, lalu `BE-HRD-383` s.d. `BE-HRD-386` | Pengguna sebagai pemilik produk dan teknis | `BE-HRD-381` (Surat Keterangan) |
-| `{MIG-M05-JD}` — 🟡 **sebagian ditutup 20 November 2026**: migration `20261120091000_AddMstJobDescription` ditulis atas izin pemilik ([laporan](../task/report/backend/BE-HRD-404.md)); tinggal eksekusi ke DB dev | Eksekusi migration ke database (wewenang terpisah) | `BE-HRD-404` 🟡; `BE-HRD-405`, `406`, `413` ✅ di source tetapi endpoint Uraian Tugas baru berfungsi sesudah migration dijalankan | Pengguna (eksekusi migration) | Seluruh task Menu 05/07 lain |
+| `{ADM-Q-03}` — ✅ **ditutup 20 November 2026**: pemilik memilih A (satu surat bertabel peserta) dan mengizinkan migration ditulis; migration `20261120093000_AddHrdAssignmentLetter` ditulis, sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah` ([laporan](../task/report/backend/BE-HRD-382.md)) | Keputusan bentuk Surat Tugas multi-pegawai (satu surat bertabel peserta, atau satu surat per pegawai; rekomendasi dokumen update: satu surat) **dan** wewenang menulis migration tabel peserta | `BE-HRD-382`, lalu `BE-HRD-383` s.d. `BE-HRD-386` | Pengguna sebagai pemilik produk dan teknis | `BE-HRD-381` (Surat Keterangan) |
+| `{MIG-M05-JD}` — ✅ **ditutup 21 November 2026**: migration `20261120091000_AddMstJobDescription` ditulis atas izin pemilik 20 November 2026 dan sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah` ([laporan](../task/report/backend/BE-HRD-404.md)) | — (semula: eksekusi migration ke database) | Tidak ada lagi — `BE-HRD-404` ✅; endpoint Uraian Tugas (`BE-HRD-405`, `406`, `413`) kini punya tabelnya | Pengguna (eksekusi migration) — selesai | Semua |
 | `ADM-Q-01`, `ADM-Q-02` | Peringatan STR/SIP untuk Surat Tugas klinis; cetak pemberitahuan pencabutan untuk pihak ketiga | Tidak menahan task; menjadi masukan `BE-HRD-383` dan `BE-HRD-381` | Pengguna | Semua |
 | Kontrak co-sign EMR | Kontrak order-scoped dengan pemilik modul klinis untuk co-signature supervisor | Sisa `BE-HRD-434` | Pemilik modul EMR/Health Services | Seluruh task Menu 09 lain |
 | Sinkronisasi `HRD-DEC-089` | Keputusan batas 5 tahun PKWT belum diberi `NEEDS_SYNC` terhadap UU 27/2026 | Tidak lagi menahan task — `BE-HRD-416` ✅ 20 November 2026, selisih terdokumentasi ([laporan](../task/report/backend/BE-HRD-416.md)); tinggal pencatatan ulang keputusan | Pengguna lewat `manage-module-blueprint` | Kode kebijakan PKWT sudah memakai aturan baru |
@@ -7389,7 +7391,7 @@ BE-HRD-381 ✅ ─────────────────────�
 #### ✅ `BE-HRD-382` — Surat Tugas multi-pegawai: rancangan data peserta dan migration
 * **Slice / area**: `S-FIN-ADM` / Surat Tugas
 * **Alias register finishing**: `ST-IMP (data peserta)` · baseline roadmap: `BE-HRD-109` (dinas luar presensi, satu pegawai)
-* **Status**: ✅ **SELESAI 20 November 2026** — `{ADM-Q-03}` = A: aggregate `HrdAssignmentLetter` + tabel peserta `HrdAssignmentLetterParticipant` (snapshot, unik per surat); peserta nonaktif `422`, di luar unit pengaju `403`. Migration `20261120093000_AddHrdAssignmentLetter` ditulis, **belum dijalankan**. `dotnet build` 0 error (himpunan warning sama dengan sebelum perubahan); QBE Strict 18 berkas `PASS`; validator registri hak akses `IsValid=True` (2.660 identitas); uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-382.md)
+* **Status**: ✅ **SELESAI 20 November 2026** — `{ADM-Q-03}` = A: aggregate `HrdAssignmentLetter` + tabel peserta `HrdAssignmentLetterParticipant` (snapshot, unik per surat); peserta nonaktif `422`, di luar unit pengaju `403`. Migration `20261120093000_AddHrdAssignmentLetter` ditulis, sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`. `dotnet build` 0 error (himpunan warning sama dengan sebelum perubahan); QBE Strict 18 berkas `PASS`; validator registri hak akses `IsValid=True` (2.660 identitas); uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-382.md)
 * **Outcome**: Satu Surat Tugas memuat beberapa pegawai lewat tabel peserta yang terhubung ke aggregate Surat Tugas, tanpa mengubah jabatan definitif, gaji, kontrak, atau kewenangan klinis.
 * **Dependencies**: `{ADM-Q-03}` ✅
 * **Acceptance Criteria**: (1) Satu pengajuan menyimpan dua pegawai atau lebih dan tetap utuh setelah dimuat ulang. (2) Peserta nonaktif atau di luar unit pengaju ditolak server. (3) Migration ditulis sesudah keputusan dan baru dijalankan dengan izin terpisah.
@@ -7398,7 +7400,7 @@ BE-HRD-381 ✅ ─────────────────────�
 #### ✅ `BE-HRD-383` — Surat Tugas alur berjenjang: ajukan Kepala Unit, verifikasi HRD, pengesahan pejabat, terbit HRD, selesai atau batal
 * **Slice / area**: `S-FIN-ADM` / Surat Tugas
 * **Alias register finishing**: `ST-IMP (alur)` · baseline roadmap: `BE-HRD-109`, `BE-HRD-194` (penomoran)
-* **Status**: ✅ **SELESAI 20 November 2026** — endpoint `assignment-letters`: Draf → Diajukan → Verifikasi HRD (lulus/revisi/tolak) → Menunggu Pengesahan → Disahkan → Diterbitkan (nomor `ST-RSMMC` allocator) → Dilaksanakan → Selesai, batal berjustifikasi; aktor tiap tahap terpisah, benturan jadwal sebagai peringatan, transisi tidak sah `409`; terbit membuat penugasan presensi per peserta. Migration `20261120093000_AddHrdAssignmentLetter` ditulis, **belum dijalankan**. `dotnet build` 0 error (himpunan warning sama dengan sebelum perubahan); QBE Strict 18 berkas `PASS`; validator registri hak akses `IsValid=True` (2.660 identitas); uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-383.md)
+* **Status**: ✅ **SELESAI 20 November 2026** — endpoint `assignment-letters`: Draf → Diajukan → Verifikasi HRD (lulus/revisi/tolak) → Menunggu Pengesahan → Disahkan → Diterbitkan (nomor `ST-RSMMC` allocator) → Dilaksanakan → Selesai, batal berjustifikasi; aktor tiap tahap terpisah, benturan jadwal sebagai peringatan, transisi tidak sah `409`; terbit membuat penugasan presensi per peserta. Migration `20261120093000_AddHrdAssignmentLetter` ditulis, sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`. `dotnet build` 0 error (himpunan warning sama dengan sebelum perubahan); QBE Strict 18 berkas `PASS`; validator registri hak akses `IsValid=True` (2.660 identitas); uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-383.md)
 * **Outcome**: Alur `Draft → Diajukan → Verifikasi HRD (minta revisi/tolak/lulus) → Menunggu Pengesahan → Disahkan → Diterbitkan → Dilaksanakan → Selesai`, dengan pembatalan berhak dan berjustifikasi.
 * **Dependencies**: `BE-HRD-382` ✅
 * **Acceptance Criteria**: (1) Pengaju, verifikator, pengesah, dan penerbit tercatat terpisah; minta revisi dan tolak wajib alasan. (2) Tidak ada penerbitan dan nomor resmi sebelum disahkan pejabat sesuai matriks kewenangan. (3) Kepala Unit hanya dapat memilih bawahannya; benturan jadwal ditampilkan sebagai peringatan. (4) Status pelaksanaan dan bukti hasil tugas tersimpan; transisi tidak sah ditolak `409`.
@@ -7407,7 +7409,7 @@ BE-HRD-381 ✅ ─────────────────────�
 #### ✅ `BE-HRD-384` — Template naskah SURAT TUGAS dari pengaturan yang memuat daftar peserta
 * **Slice / area**: `S-FIN-ADM` / Surat Tugas
 * **Alias register finishing**: `ST-IMP (template, BUG-HRD-ADM-02)` · baseline roadmap: `BE-HRD-202`, `BE-HRD-203`
-* **Status**: ✅ **SELESAI 20 November 2026** — naskah SURAT TUGAS dirakit server: kop dari Master Lokasi RS, nomor, dasar, tabel peserta, tugas, tujuan, periode, penandatangan (pengesah), QR verifikasi publik; template tugas pada Surat Keterangan berjudul SURAT TUGAS. Migration `20261120093000_AddHrdAssignmentLetter` ditulis, **belum dijalankan**. `dotnet build` 0 error (himpunan warning sama dengan sebelum perubahan); QBE Strict 18 berkas `PASS`; validator registri hak akses `IsValid=True` (2.660 identitas); uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-384.md)
+* **Status**: ✅ **SELESAI 20 November 2026** — naskah SURAT TUGAS dirakit server: kop dari Master Lokasi RS, nomor, dasar, tabel peserta, tugas, tujuan, periode, penandatangan (pengesah), QR verifikasi publik; template tugas pada Surat Keterangan berjudul SURAT TUGAS. Migration `20261120093000_AddHrdAssignmentLetter` ditulis, sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`. `dotnet build` 0 error (himpunan warning sama dengan sebelum perubahan); QBE Strict 18 berkas `PASS`; validator registri hak akses `IsValid=True` (2.660 identitas); uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-384.md)
 * **Outcome**: Naskah berjudul SURAT TUGAS dengan nomor resmi, dasar, daftar peserta, tugas, lokasi, periode, penandatangan, dan QR verifikasi; kop diambil dari pengaturan.
 * **Dependencies**: `BE-HRD-382` ✅
 * **Acceptance Criteria**: (1) Jenis dokumen tugas selalu memakai template SURAT TUGAS, bukan Surat Keterangan. (2) Kop, alamat, dan penandatangan berasal dari pengaturan, bukan teks tertanam. (3) Daftar peserta tercetak sebagai tabel lampiran.
@@ -7425,7 +7427,7 @@ BE-HRD-381 ✅ ─────────────────────�
 #### 🟡 `BE-HRD-386` — Verifikasi backend Administrasi Kepegawaian: matriks akses, kontrak, build, dan regresi SK serta Perubahan Data
 * **Slice / area**: `S-FIN-ADM` / Verifikasi
 * **Alias register finishing**: `REG-IMP` · baseline roadmap: `BE-HRD-024`, `BE-HRD-028`
-* **Status**: 🟡 **SEBAGIAN 20 November 2026** — matriks akses aksi tulis ditelusuri di source, kontrak `hr-service.js` cocok, regresi SK/Perubahan Data terverifikasi di source; build/QBE lulus. Belum: uji per peran berhak/tidak berhak di runtime (butuh migration dijalankan dan wewenang uji DB dev). Bukti: [laporan](../task/report/backend/BE-HRD-386.md)
+* **Status**: 🟡 **SEBAGIAN 20 November 2026** — matriks akses aksi tulis ditelusuri di source, kontrak `hr-service.js` cocok, regresi SK/Perubahan Data terverifikasi di source; build/QBE lulus. Belum: uji per peran berhak/tidak berhak di runtime (butuh wewenang uji DB dev; migration `20261120093000_AddHrdAssignmentLetter` sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`, jadi tidak lagi tertahan migration). Bukti: [laporan](../task/report/backend/BE-HRD-386.md)
 * **Outcome**: Bukti bahwa matriks akses lima peran ditegakkan di backend dan tidak ada regresi pada SK dan Perubahan Data.
 * **Dependencies**: `BE-HRD-384` ✅, `BE-HRD-385` ✅
 * **Acceptance Criteria**: (1) Setiap aksi tulis diuji dengan peran berhak dan tidak berhak. (2) `dotnet build` dan QBE lulus; kontrak API dicocokkan dengan service frontend. (3) SK tidak mengubah master sebelum tanggal efektif; Perubahan Data diterapkan sekali.
@@ -7625,17 +7627,17 @@ Instruksi: [INSTRUKSI_AGENT_HRD_MENU_05_STRUKTUR_ORGANISASI_DAN_JABATAN.md](../d
 
 ```text
 BE-HRD-403 ✅ ─────────────────────────────────────┐
-{MIG-M05-JD ⛔} ─> BE-HRD-404 🟡 ─> BE-HRD-405 ✅ ─┴─> BE-HRD-406 ✅
+{MIG-M05-JD ✅} ─> BE-HRD-404 ✅ ─> BE-HRD-405 ✅ ─┴─> BE-HRD-406 ✅
 ```
 
 #### Tabel gelombang eksekusi `S-FIN-M05`
 
 | Gelombang | Boleh mulai setelah | Task Backend |
 | ---: | --- | --- |
-| **1** | — | `BE-HRD-403` 🟡 |
-| ⛔ | `{MIG-M05-JD}` | `BE-HRD-404` ⛔ |
-| ⛔ | menunggu `BE-HRD-404` ⛔ | `BE-HRD-405` 🟡 |
-| ⛔ | menunggu `BE-HRD-404` ⛔ | `BE-HRD-406` 🟡 |
+| **1** | — | `BE-HRD-403` ✅ |
+| **1** | `{MIG-M05-JD}` ✅ | `BE-HRD-404` ✅ |
+| **2** | `BE-HRD-404` | `BE-HRD-405` ✅ |
+| **3** | `BE-HRD-403`, `BE-HRD-405` | `BE-HRD-406` ✅ |
 
 #### Rincian task `S-FIN-M05`
 
@@ -7648,21 +7650,21 @@ BE-HRD-403 ✅ ─────────────────────�
 * **Acceptance Criteria**: (1) Parent diri sendiri atau turunan ditolak. (2) Pohon hierarki bersumber dari DB dengan filter tanggal efektif. (3) Tidak ada entity unit baru.
 * **Verifikasi**: QBE preflight dan conformance, `dotnet build` project aplikasi, verifikasi kontrak API (method, route, permission, DTO), dan uji API berizin pada DB dev. QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend.
 
-#### 🟡 `BE-HRD-404` — Persistence Uraian Tugas berversi per jabatan
+#### ✅ `BE-HRD-404` — Persistence Uraian Tugas berversi per jabatan
 * **Slice / area**: `S-FIN-M05` / Uraian Tugas
 * **Alias register finishing**: `FIN-HRD-05-BE-002` · baseline roadmap: —
-* **Status**: 🟡 **SEBAGIAN 20 November 2026** — migration manual idempoten `Migrations/20261120091000_AddMstJobDescription.cs` ditulis atas izin pemilik (dua tabel, FK, index dari konfigurasi EF, ditambah index unik parsial satu versi `Active` dan satu `Draft` per jabatan); `dotnet build` 0 error, QBE Strict `PASS`. Belum: kriteria (3) tabel tersedia di DB dev — migration **belum dijalankan** (eksekusi butuh wewenang terpisah). Bukti: [laporan](../task/report/backend/BE-HRD-404.md)
+* **Status**: ✅ **SELESAI 21 November 2026** (sebelumnya 🟡 sebagian 20 November 2026) — migration manual idempoten `Migrations/20261120091000_AddMstJobDescription.cs` ditulis atas izin pemilik (dua tabel, FK, index dari konfigurasi EF, ditambah index unik parsial satu versi `Active` dan satu `Draft` per jabatan); `dotnet build` 0 error, QBE Strict `PASS`. Kriteria (3) terpenuhi: pemilik menjalankan `dotnet ef database update --no-build` dan `dotnet ef migrations list --no-build` menunjukkan migration ini sudah diterapkan di DB dev `QuilvianNewDevHamzah` (tidak ada yang `Pending`). Uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-404.md)
 * **Outcome**: Header versi (jabatan, nomor versi, periode efektif, status, tujuan jabatan) dan butir berurutan per seksi (tugas pokok, tanggung jawab, wewenang, hubungan kerja).
-* **Dependencies**: `{MIG-M05-JD}` ⛔
+* **Dependencies**: `{MIG-M05-JD}` ✅
 * **Acceptance Criteria**: (1) Satu jabatan maksimal satu versi aktif pada satu tanggal. (2) Histori tidak ditimpa. (3) Tabel tersedia di DB dev setelah migration disetujui.
 * **Verifikasi**: QBE preflight dan conformance, `dotnet build` project aplikasi, verifikasi kontrak API (method, route, permission, DTO), dan uji API berizin pada DB dev. QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend.
 
 #### ✅ `BE-HRD-405` — Service, API, dan RBAC Uraian Tugas dengan aktivasi transaksional
 * **Slice / area**: `S-FIN-M05` / Uraian Tugas
 * **Alias register finishing**: `FIN-HRD-05-BE-003` · baseline roadmap: —
-* **Status**: ✅ **SELESAI 20 November 2026** — service, API, RBAC Uraian Tugas terverifikasi; rute aktual terdokumentasi di laporan; aktivasi transaksional + index unik parsial satu versi aktif; berfungsi sesudah migration `20261120091000` dijalankan. `dotnet build` 0 error (608 warning, sama dengan garis dasar); QBE Strict `PASS`; uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-405.md)
+* **Status**: ✅ **SELESAI 20 November 2026** — service, API, RBAC Uraian Tugas terverifikasi; rute aktual terdokumentasi di laporan; aktivasi transaksional + index unik parsial satu versi aktif; migration `20261120091000` sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`. `dotnet build` 0 error (608 warning, sama dengan garis dasar); QBE Strict `PASS`; uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-405.md)
 * **Outcome**: Daftar, ringkasan, detail, versi efektif, riwayat, buat/ubah draft, aktifkan, nonaktifkan, dan hapus draft.
-* **Dependencies**: `BE-HRD-404` 🟡
+* **Dependencies**: `BE-HRD-404` ✅
 * **Acceptance Criteria**: (1) Aktivasi ganda tidak membuat dua versi aktif. (2) `403`/`400`/`404`/`409` sesuai kasus. (3) Aktor audit dari server. (4) Route terdokumentasi sama dengan controller.
 * **Verifikasi**: QBE preflight dan conformance, `dotnet build` project aplikasi, verifikasi kontrak API (method, route, permission, DTO), dan uji API berizin pada DB dev. QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend.
 
@@ -7694,12 +7696,12 @@ BE-HRD-405 ✅ [B94] ─> BE-HRD-413 ✅ ─┴─> BE-HRD-414 ✅ ─┴─> BE
 
 | Gelombang | Boleh mulai setelah | Task Backend |
 | ---: | --- | --- |
-| **1** | — | `BE-HRD-407` 🟡, `BE-HRD-410` 🟡, `BE-HRD-412` 🟡 |
-| **2** | `BE-HRD-407` | `BE-HRD-408` 🟡, `BE-HRD-409` 🟡 |
-| **3** | `BE-HRD-408` | `BE-HRD-411` 🟡 |
-| ⛔ | menunggu `BE-HRD-404` ⛔ | `BE-HRD-413` 🟡 |
-| ⛔ | menunggu `BE-HRD-404` ⛔ | `BE-HRD-414` 🟡 |
-| ⛔ | menunggu `BE-HRD-404` ⛔ | `BE-HRD-415` |
+| **1** | — | `BE-HRD-407` ✅, `BE-HRD-410` ✅, `BE-HRD-412` ✅ |
+| **1** | `BE-HRD-405` ✅ [B94] | `BE-HRD-413` ✅ |
+| **2** | `BE-HRD-407` | `BE-HRD-408` ✅, `BE-HRD-409` ✅ |
+| **2** | `BE-HRD-410`, `BE-HRD-413` | `BE-HRD-414` ✅ |
+| **3** | `BE-HRD-408` | `BE-HRD-411` ✅ |
+| **4** | `BE-HRD-409`, `BE-HRD-411`, `BE-HRD-412`, `BE-HRD-414` | `BE-HRD-415` ✅ |
 
 #### Rincian task `S-FIN-M07`
 
@@ -7760,7 +7762,7 @@ BE-HRD-405 ✅ [B94] ─> BE-HRD-413 ✅ ─┴─> BE-HRD-414 ✅ ─┴─> BE
 #### ✅ `BE-HRD-413` — Uraian tugas pegawai per tanggal acuan
 * **Slice / area**: `S-FIN-M07` / Uraian Tugas
 * **Alias register finishing**: `FIN-HRD-07-BE-007` · baseline roadmap: —
-* **Status**: ✅ **SELESAI 20 November 2026** — uraian tugas per tanggal acuan membaca penempatan efektif (termasuk yang sudah berakhir), sebelum penempatan `positionId=null`; berfungsi sesudah migration `20261120091000` dijalankan. `dotnet build` 0 error (608 warning, sama dengan garis dasar); QBE Strict `PASS`; uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-413.md)
+* **Status**: ✅ **SELESAI 20 November 2026** — uraian tugas per tanggal acuan membaca penempatan efektif (termasuk yang sudah berakhir), sebelum penempatan `positionId=null`; migration `20261120091000` sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`. `dotnet build` 0 error (608 warning, sama dengan garis dasar); QBE Strict `PASS`; uji API di DB dev `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-413.md)
 * **Outcome**: `GET .../employees/{id}/effective-job-description?asOfDate=` membaca penempatan efektif pada tanggal acuan dan versi uraian tugas yang berlaku.
 * **Dependencies**: `BE-HRD-405` ✅
 * **Acceptance Criteria**: (1) Tanggal sebelum penempatan → `positionId=null`. (2) Penempatan lama tetap terbaca walau tidak aktif hari ini.
@@ -7852,7 +7854,7 @@ BE-HRD-421 ✅ [B96] ───────────────────�
 #### ✅ `BE-HRD-419` — Bukti pemberitahuan tertulis H-7
 * **Slice / area**: `S-FIN-M08` / Perpanjangan
 * **Alias register finishing**: `FIN-HRD-08-BE-004` · baseline roadmap: `BE-HRD-080`
-* **Status**: ✅ **SELESAI 20 November 2026** — status H-7 kini dihitung dari artefak bukti (`POST …/decisions/{decisionId}/notice-evidence`, sekali unggah, immutable); catatan teks saja tidak pernah `ON_TIME`; tenggat lewat tanpa artefak → `LATE` + eskalasi scheduler sekali per keputusan; migration `20261120092000_AddHrdContractDecisionNoticeEvidence` ditulis, **belum dijalankan**. `dotnet build` 0 error (608 warning, sama dengan garis dasar); QBE Strict 9 berkas `PASS`; validator registri hak akses `IsValid=True`; uji API di DB dev `NOT RUN` (wewenang tulis DB dev belum diberikan). Bukti: [laporan](../task/report/backend/BE-HRD-419.md)
+* **Status**: ✅ **SELESAI 20 November 2026** — status H-7 kini dihitung dari artefak bukti (`POST …/decisions/{decisionId}/notice-evidence`, sekali unggah, immutable); catatan teks saja tidak pernah `ON_TIME`; tenggat lewat tanpa artefak → `LATE` + eskalasi scheduler sekali per keputusan; migration `20261120092000_AddHrdContractDecisionNoticeEvidence` ditulis, sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`. `dotnet build` 0 error (608 warning, sama dengan garis dasar); QBE Strict 9 berkas `PASS`; validator registri hak akses `IsValid=True`; uji API di DB dev `NOT RUN` (wewenang tulis DB dev belum diberikan). Bukti: [laporan](../task/report/backend/BE-HRD-419.md)
 * **Outcome**: Status `ON_TIME`/`LATE`/`MISSING`/`NOT_APPLICABLE` hanya dari bukti tertulis yang dapat diperiksa.
 * **Dependencies**: `BE-HRD-418` ✅
 * **Acceptance Criteria**: (1) Tanpa artefak bukti tidak pernah `ON_TIME`. (2) Lewat tenggat ditandai dan diekskalasi.
