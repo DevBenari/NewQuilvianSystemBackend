@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `d17aa187` (branch `MHamzah`), belum di-commit |
 | Tanggal | 20 November 2026 |
-| Status | ✅ Selesai — 2/2 acceptance criteria terpetakan ke source; build, QBE, registri lulus; migration `20261120092000_AddHrdContractDecisionNoticeEvidence` ditulis, **belum dijalankan** |
+| Status | ✅ Selesai — 2/2 acceptance criteria terpetakan ke source; build, QBE, registri lulus; migration `20261120092000_AddHrdContractDecisionNoticeEvidence` ditulis, sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah` |
 
 ### Backend Governance Preflight
 
@@ -108,3 +108,8 @@ Status pemberitahuan H-7 dihitung dari catatan teks: mengisi `EvidenceNotes` sem
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Perubahan belum di-commit; tidak ada stage/commit/push |
+
+
+## Pembaruan 21 November 2026 — Status Migration
+
+Migration `20261120092000_AddHrdContractDecisionNoticeEvidence` sudah diterapkan ke database pengembangan `QuilvianNewDevHamzah`: pemilik menjalankan `dotnet ef database update --no-build` ("No migrations were applied. The database is already up to date.") dan `dotnet ef migrations list --no-build` terhadap `QuilvianNewDevHamzah` tidak menunjukkan satu pun migration `Pending`. Pernyataan "migration belum dijalankan" dan "wajib dijalankan sebelum dipakai" pada bagian di atas sudah tidak berlaku untuk DB dev tersebut; database lain (staging/production) tetap wajib menjalankannya sebelum fitur dipakai. Status task tetap ✅. Uji API di DB dev tetap `NOT RUN`.

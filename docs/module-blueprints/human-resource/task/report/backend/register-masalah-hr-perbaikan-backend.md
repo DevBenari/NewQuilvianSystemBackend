@@ -15,7 +15,7 @@
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit backend saat dikerjakan | `90e36dee` (branch `MHamzah`), perubahan belum di-commit |
 | Tanggal | Rabu, 18 November 2026 (putaran 1–2); Kamis, 19 November 2026 (putaran 3) |
-| Status | 🟡 Source selesai untuk 11 masalah (termasuk `MSL-10` di putaran 2, migration ditulis tetapi belum dijalankan) dan lolos build + QBE; 1 masalah ditutup sesuai rancangan (`MSL-08`); `MSL-14` dan tahap 1 `MSL-15` dikerjakan di putaran 2. Uji runtime di browser belum dijalankan (butuh izin menyalakan backend di DB dev bersama). Putaran 3 (19 Nov 2026): tahap 2 `MSL-15` dan `MSL-16` selesai di source, build + QBE lulus, uji live baca `MSL-16` lulus sesudah satu galat `500` diperbaiki (bagian 9) |
+| Status | 🟡 Source selesai untuk 11 masalah (termasuk `MSL-10` di putaran 2, migration ditulis dan sudah diterapkan 21 November 2026) dan lolos build + QBE; 1 masalah ditutup sesuai rancangan (`MSL-08`); `MSL-14` dan tahap 1 `MSL-15` dikerjakan di putaran 2. Uji runtime di browser belum dijalankan (butuh izin menyalakan backend di DB dev bersama). Putaran 3 (19 Nov 2026): tahap 2 `MSL-15` dan `MSL-16` selesai di source, build + QBE lulus, uji live baca `MSL-16` lulus sesudah satu galat `500` diperbaiki (bagian 9) |
 
 ---
 
@@ -460,3 +460,8 @@ Pola ini sama dengan verifikasi publik naskah dinas SDM yang sudah ada (`HrPubli
 | Automated test | `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)` | — |
 
 **Catatan pekerjaan paralel.** Selama putaran ini, berkas kredensial yang sama juga diubah oleh pekerjaan Menu 09 Kompetensi & Kredensial (`FIN-HRD-09-BE-006`/`007`): `SpkRkkIssuanceService.cs`, `CredentialingWorkflowService.cs`, dan `SpkRkkIssuanceController.cs` (endpoint `spk-rkk/{id}/files`, nomor SPK anti-tabrakan, BAP pleno mempertahankan `ReviewerProfiles`). Kedua perubahan berdampingan tanpa rute ganda. Build dan uji live di atas dijalankan pada working tree yang memuat keduanya. Pembacaan `ReviewerProfiles` dan `Decision` di `CredentialingWorklistQueryService` tetap cocok dengan bentuk JSON pleno yang baru.
+
+
+## Pembaruan 21 November 2026 — Status Migration
+
+Migration `20261118100000_AddHrdOvertimeSetting` sudah diterapkan ke database pengembangan `QuilvianNewDevHamzah`: pemilik menjalankan `dotnet ef database update --no-build` ("No migrations were applied. The database is already up to date.") dan `dotnet ef migrations list --no-build` terhadap `QuilvianNewDevHamzah` tidak menunjukkan satu pun migration `Pending`. Pernyataan "migration belum dijalankan" dan "wajib dijalankan sebelum dipakai" pada bagian di atas sudah tidak berlaku untuk DB dev tersebut; database lain (staging/production) tetap wajib menjalankannya sebelum fitur dipakai. `MSL-10` tetap 🟡 karena uji live pengaturan lembur belum dijalankan; jawaban `409` "tabel belum ada" seharusnya tidak lagi muncul di DB dev.

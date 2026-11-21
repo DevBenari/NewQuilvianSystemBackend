@@ -1372,7 +1372,7 @@ BE-HRD-137 [B32] ─┐
 BE-HRD-138 [B33] ─┼─> BE-HRD-145
 BE-HRD-140 [B33] ─┤
 BE-HRD-142 [B34] ─┤
-BE-HRD-144 [B34] ─┘
+BE-HRD-144 [B34] ─┘ 
 ```
 
 #### Tabel Gelombang Eksekusi `S-B3`

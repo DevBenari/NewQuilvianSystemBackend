@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `a7c37c56` (branch `MHamzah`), belum di-commit |
 | Tanggal | 20 November 2026 |
-| Status | ✅ Selesai — 4/4 acceptance criteria terpetakan ke source; build, QBE, registri lulus; Migration `20261120093000_AddHrdAssignmentLetter` ditulis, **belum dijalankan** — endpoint Surat Tugas dan registri baru berfungsi sesudah migration dijalankan |
+| Status | ✅ Selesai — 4/4 acceptance criteria terpetakan ke source; build, QBE, registri lulus; Migration `20261120093000_AddHrdAssignmentLetter` ditulis, sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah` |
 
 ### Backend Governance Preflight
 
@@ -120,3 +120,8 @@
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Perubahan belum di-commit; tidak ada stage/commit/push |
+
+
+## Pembaruan 21 November 2026 — Status Migration
+
+Migration `20261120093000_AddHrdAssignmentLetter` sudah diterapkan ke database pengembangan `QuilvianNewDevHamzah`: pemilik menjalankan `dotnet ef database update --no-build` ("No migrations were applied. The database is already up to date.") dan `dotnet ef migrations list --no-build` terhadap `QuilvianNewDevHamzah` tidak menunjukkan satu pun migration `Pending`. Pernyataan "migration belum dijalankan" dan "wajib dijalankan sebelum dipakai" pada bagian di atas sudah tidak berlaku untuk DB dev tersebut; database lain (staging/production) tetap wajib menjalankannya sebelum fitur dipakai. Status task tetap ✅. Uji API di DB dev tetap `NOT RUN`.

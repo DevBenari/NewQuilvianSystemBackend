@@ -95,3 +95,8 @@ Lihat laporan `BE-HRD-419` dan `BE-HRD-424`.
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Perubahan belum di-commit; tidak ada stage/commit/push |
+
+
+## Pembaruan 21 November 2026 — Status Migration
+
+Migration `20261120092000_AddHrdContractDecisionNoticeEvidence` sudah diterapkan ke database pengembangan `QuilvianNewDevHamzah`: pemilik menjalankan `dotnet ef database update --no-build` ("No migrations were applied. The database is already up to date.") dan `dotnet ef migrations list --no-build` terhadap `QuilvianNewDevHamzah` tidak menunjukkan satu pun migration `Pending`. Pernyataan "migration belum dijalankan" dan "wajib dijalankan sebelum dipakai" pada bagian di atas sudah tidak berlaku untuk DB dev tersebut; database lain (staging/production) tetap wajib menjalankannya sebelum fitur dipakai. Status task tetap ✅; REG/UAT tetap `NOT RUN`.
