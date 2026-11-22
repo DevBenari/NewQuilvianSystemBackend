@@ -6113,7 +6113,7 @@ FE-HRD-306 ⬜ ─┬─> FE-HRD-317 ⬜ (BE-HRD-352)
                ├─> FE-HRD-321 ⬜ (BE-HRD-357)
                └─> FE-HRD-322 ⬜ (BE-HRD-340)
 FE-HRD-317 ⬜ s.d. FE-HRD-322 ⬜ ─> FE-HRD-323 ⬜
-{DSG-Q-01, DSG-Q-02} ─> FE-HRD-324 ⛔
+{DSG-Q-01 ⛔, DSG-Q-02 ✅} ─> FE-HRD-324 ⛔
 ```
 
 ### Tabel gelombang eksekusi frontend `A52`
@@ -6124,7 +6124,7 @@ FE-HRD-317 ⬜ s.d. FE-HRD-322 ⬜ ─> FE-HRD-323 ⬜
 | **MVP-68** | Jadwal Saya; laporan dan ekspor | `FE-HRD-314`, `FE-HRD-315` | Task backend `MVP-68` |
 | **Verifikasi** | Uji browser MVP | `FE-HRD-316` | `FE-HRD-306` s.d. `FE-HRD-315` |
 | **POST-MVP** | Siaga, dispensasi, tugas belajar, gangguan mesin, dashboard, realisasi jadwal | `FE-HRD-317` s.d. `FE-HRD-323` | Task backend `POST-MVP` |
-| — | Grup menu 12 menu | `FE-HRD-324` ⛔ | `DSG-Q-01`, `DSG-Q-02` |
+| — | Grup menu 12 menu | `FE-HRD-324` ⛔ | `DSG-Q-01` (`DSG-Q-02` dijawab 21 November 2026) |
 
 ### Rincian task frontend `A52`
 
@@ -6352,7 +6352,7 @@ Verifikasi lulus; laporan di `task/report/frontend/<ID>.md`.
 #### ⛔ `FE-HRD-324` — Grup menu "Penjadwalan & Kehadiran" (terblokir)
 * **Slice / MVP**: `A52` / tidak dijadwalkan / `EPIC HRD-120`
 * **Outcome**: Sidebar SDM memuat 12 menu dan 58 submenu sesuai `HRD-DEC-214`.
-* **Diblokir oleh**: `DSG-Q-01` (14 submenu jatuh ke layar yang sama atau berupa aksi) dan `DSG-Q-02` (daftar penempatan sementara). Pemilik keputusan: pengguna.
+* **Diblokir oleh**: `DSG-Q-01` (14 submenu jatuh ke layar yang sama atau berupa aksi). `DSG-Q-02` dijawab pengguna 21 November 2026: submenu "Penugasan Tambahan" menuju layar surat perintah personel `/hr/personnel-action-orders`, tanpa endpoint daftar baru (`BE-HRD-359` dibatalkan). Pemilik keputusan: pengguna.
 * **Pekerjaan yang tetap berjalan**: Seluruh layar MVP dapat dijangkau dari sidebar lama; entri sementara untuk layar baru boleh ditambahkan di grup yang ada.
 * **Kontrak**: `v26` — `03-frontend-architecture.md` 31.1
 * **Reuse**: `src/utils/menu-sidebar/menu-items.jsx`

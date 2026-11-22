@@ -352,7 +352,7 @@ Early Leave Permission adalah bagian attendance/permission flow (`S-B1`), bukan 
 | **Frontend Impact** | 19 task `FE-HRD-306` s.d. `FE-HRD-324` (`frontend-roadmap.md` bagian 25) |
 | **Database Impact** | 6 tabel baru, 3 tabel bertambah kolom; satu migration aditif `AddSchedulingAttendanceAmendmentA52` |
 | **Dependency** | `BE-HRD-087` s.d. `BE-HRD-116` (fondasi `S-B4`/`S-B1`), `S-D1` (standar ketenagaan), `BE-HRD-314` (pemberitahuan) |
-| **Blocking Decision** | Tidak ada untuk `MUST HAVE`. `DSG-Q-01`/`DSG-Q-02` hanya memblokir `EPIC HRD-120` (grup menu) |
+| **Blocking Decision** | Tidak ada untuk `MUST HAVE`. `DSG-Q-01` hanya memblokir `EPIC HRD-120` (grup menu); `DSG-Q-02` dijawab 21 November 2026 (submenu Penugasan Tambahan menuju layar surat perintah personel; `BE-HRD-359` dibatalkan) |
 | **QBE Impact** | `NEW CODE` untuk enam tabel `Hrd*`, sembilan controller, dan service baru; `TOUCHED LEGACY` untuk service penjadwalan dan kehadiran yang diperbaiki |
 | **Migration Risk** | Rendah — seluruhnya penambahan; nilai bawaan sama dengan perilaku sekarang |
 | **Acceptance Criteria** | `AT-HRD-PK-01` s.d. `AT-HRD-PK-46`; `UAT-PK-01` s.d. `UAT-PK-15` |

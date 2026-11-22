@@ -267,6 +267,7 @@ contract_versions_s_b5:
 | ✅ | Selesai. Acceptance criteria dan DoD **terbukti**, buktinya ada pada laporan task |
 | 🟡 | Sebagian. Source-nya sudah ada, tetapi acceptance criteria belum terbukti penuh. **Belum selesai** |
 | ⛔ | Terblokir. Prasyaratnya belum terpenuhi (keputusan bisnis, keselamatan klinis, gap desain, atau gerbang otoritas) |
+| 🚫 | Dibatalkan atas keputusan pemilik. Tidak dikerjakan dan tidak dihitung sebagai sisa pekerjaan |
 | tanpa tanda | Belum dikerjakan |
 
 ---
@@ -1079,7 +1080,11 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-356` | `A52` · `POST-MVP` | Kejadian gangguan mesin dan rujukan pada koreksi (`POST-MVP`) | ✅ | `BE-HRD-343` |
 | `BE-HRD-357` | `A52` · `POST-MVP` | Dashboard kehadiran (`POST-MVP`) | ✅ | `BE-HRD-336` |
 | `BE-HRD-358` | `A52` · `POST-MVP` | Verifikasi `POST-MVP` `A52` | ✅ | `BE-HRD-352` s.d. `BE-HRD-357` |
-| `BE-HRD-359` | `A52` · tidak dijadwalkan | Daftar penempatan sementara lintas pegawai (terblokir) | ⛔ | `{DSG-Q-02}` ⛔ |
+| `BE-HRD-359` | `A52` · tidak dijadwalkan | Daftar penempatan sementara lintas pegawai (dibatalkan) | 🚫 | `{DSG-Q-02}` ✅ — dijawab: pakai layar surat perintah personel |
+| `BE-HRD-360` | `S-A8` · `MVP-69` | Layanan daftar dan ringkasan kelengkapan data penggajian (`WorkforcePayrollDataService.ListAsync`, `SummaryAsync`) | ✅ | `BE-HRD-003` [B1]; gerbang G1 |
+| `BE-HRD-361` | `S-A8` · `MVP-69` | Layanan detail isian penggajian satu orang untuk diubah (`WorkforcePayrollDataService.GetDetailAsync`) | ✅ | `BE-HRD-003` [B1]; gerbang G1 |
+| `BE-HRD-362` | `S-A8` · `MVP-69` | Layanan simpan penetapan gaji utama dan rekening payroll satu orang (`WorkforcePayrollDataService.SaveAsync`) | ✅ | `BE-HRD-361` ✅ |
+| `BE-HRD-363` | `S-A8` · Verifikasi | Verifikasi slice S-A8: kontrak v27, hak akses di Akses Role, build, dan QBE | ✅ | `BE-HRD-360` ✅, `BE-HRD-362` ✅ |
 | `BE-HRD-364` | `S-C5-SEP` · Fondasi | Audit-kontrak ringkas + adapter GET/paging data nyata enam Submenu | ✅ | Governance/approved contract |
 | `BE-HRD-365` | `S-C5-SEP` · Keamanan | Actor identity, per-record access, permission dan audit yang tidak dapat dipalsukan | ✅ | `BE-HRD-364` |
 | `BE-HRD-366` | `S-C5-SEP` · Transaksi | One-separation owner, idempotensi, number series, transaction safety | ✅ | `BE-HRD-364`, `BE-HRD-365` |
@@ -1156,6 +1161,9 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-437` | `S-FIN-M09` · Masa Berlaku Kewenangan | Rekredensialing H-60 dan siklus SPK/RKK (alias `FIN-HRD-09-BE-012`) | ✅ | `BE-HRD-433` ✅ |
 | `BE-HRD-438` | `S-FIN-M09` · Masa Berlaku Kewenangan | Kewenangan sementara dan darurat, suspensi, dan pencabutan (alias `FIN-HRD-09-BE-013`) | ✅ | `BE-HRD-437` ✅ |
 | `BE-HRD-439` | `S-FIN-M09` · Verifikasi | Gerbang kualitas backend Menu 09 (alias `FIN-HRD-09-BE-014`) | 🟡 | `BE-HRD-429` ✅, `BE-HRD-434` 🟡, `BE-HRD-435` ✅, `BE-HRD-436` ✅, `BE-HRD-438` ✅ |
+| `BE-HRD-440` | `S-C1-OPPE` · sisa `BE-HRD-225` | Sumber data indikator insiden KMKP dan kepatuhan clinical pathway untuk OPPE (`INT-HR-73`) | ⛔ | `{EXT-KMKP-CP}` ⛔, `BE-HRD-225` 🟡 |
+| `BE-HRD-441` | `S-A7-V2` · sisa `BE-HRD-314` | Kanal notifikasi email, push mobile, dan WhatsApp untuk gateway `WF-B7` (`INT-HR-96`) | ⛔ | `{EXT-NOTIF-CHANNEL}` ⛔, `BE-HRD-314` 🟡 |
+| `BE-HRD-442` | `S-FIN-M09` · sisa `BE-HRD-434` | Catatan co-sign per order pada modul klinis/EMR (`M09-P0-10`) | ⛔ | `{EXT-EMR-COSIGN}` ⛔, `BE-HRD-434` 🟡 |
 
 > **Pemutakhiran register 10 November 2026.** Kolom status `BE-HRD-079` dan `BE-HRD-104` s.d. `BE-HRD-130` yang kosong diisi dari kartu task (seluruhnya ✅); baris `BE-HRD-146` s.d. `BE-HRD-175` yang kolomnya tertukar dirapikan ke urutan kolom tabel (dependency tertulis pada kartu task); 158 baris `BE-HRD-176` s.d. `BE-HRD-333` yang belum tercantum ditambahkan dari kartu task. Tanda 🟡 mengikuti pengerjaan ulang Gelombang 1 (`backend-unfinished-work.md`).
 
@@ -1179,6 +1187,10 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 > **Pemutakhiran register 20 November 2026 (`S-FIN-M04`).** `BE-HRD-387` s.d. `BE-HRD-402` ditandai ✅ sesudah perbaikan source, `dotnet build` 0 error, QBE Strict 20 berkas `PASS`, dan validator registri hak akses `IsValid=True`; uji API di DB dev tetap `NOT RUN`. Laporan: `task/report/backend/BE-HRD-387.md` s.d. `BE-HRD-402.md`.
 
 > **Pemutakhiran register 21 November 2026 (penerapan migration).** Pemilik menjalankan `dotnet ef database update --no-build` terhadap DB dev `QuilvianNewDevHamzah` (keluaran: "No migrations were applied. The database is already up to date."). `dotnet ef migrations list --no-build` menunjukkan 431 migration, tidak satu pun berstatus `Pending`, termasuk empat migration manual 20 November 2026: `20261120090000_AddHrdRetirementPolicyAge`, `20261120091000_AddMstJobDescription`, `20261120092000_AddHrdContractDecisionNoticeEvidence`, `20261120093000_AddHrdAssignmentLetter`. Assembly yang dipakai `--no-build` dibangun sesudah keempat berkas itu ditulis, sehingga keempatnya ikut terbaca. Akibatnya: gerbang `{MIG-M05-JD}` ditutup dan `BE-HRD-404` 🟡 → ✅; catatan "belum dijalankan" pada `BE-HRD-368`, `382`, `383`, `384`, `405`, `413`, `419` diganti "sudah diterapkan" (tanda tetap ✅); `BE-HRD-386` tetap 🟡 karena uji per peran di runtime belum dijalankan, kini tidak lagi tertahan migration. Baris ringkasan `BE-HRD-204`, `229`, `241` yang masih bertulis "menunggu migration" diselaraskan dengan kartunya (migration sudah dijalankan 11 November 2026; tanda 🟡 karena uji `NOT RUN`). Uji API di DB dev untuk task di atas tetap `NOT RUN`.
+
+> **Pemutakhiran register 21 November 2026 (`DSG-Q-02` dan register `S-A8`).** `DSG-Q-02` dijawab pengguna 21 November 2026: submenu "Penugasan Tambahan" menuju layar surat perintah personel `/hr/personnel-action-orders`, tanpa endpoint daftar baru; `BE-HRD-359` ⛔ → 🚫 dibatalkan (tanda 🚫 ditambahkan pada legenda). `FE-HRD-324` tetap ⛔ karena masih menunggu `DSG-Q-01`. Baris `BE-HRD-360` s.d. `BE-HRD-363` (`S-A8`) ditambahkan dari kartu task; tanda ✅ disalin apa adanya dari kartu. Catatan: verifikasi ulang `A52` 19 November 2026 menjalankan proyek uji HR tanpa empat berkas uji `WorkforcePayrollData*Tests` milik `S-A8` karena tidak terkompilasi di branch hasil merge; kompilasi ulang berkas uji itu belum diperiksa. Alasan 🟡 pada kartu `BE-HRD-317` diperbarui (`BE-HRD-316` sudah ✅; penahannya kini `BE-HRD-313` dan `BE-HRD-314`). Artefak kanonik `04-prd-to-mvp.md` (tabel pertanyaan terbuka) dan `03-frontend-architecture.md` 31.1 belum diubah karena ber-hash di `blueprint-manifest.md`; keduanya perlu diselaraskan pada blueprint pass berikutnya.
+
+> **Pemutakhiran register 21 November 2026 (pemecahan dependensi pihak luar).** Atas keputusan pemilik 21 November 2026 (pecah sisa yang bergantung pihak luar ke task baru): `BE-HRD-440` (KMKP/clinical pathway, dari `BE-HRD-225`), `BE-HRD-441` (email/push/WhatsApp, dari `BE-HRD-314`), dan `BE-HRD-442` (co-sign per order di EMR, dari `BE-HRD-434`) ditambahkan dengan tanda ⛔ dan gerbang eksternal masing-masing (bagian 29). Tanda `BE-HRD-225`, `237`, `314`, `317`, `434`, `439` tetap 🟡: bagian sisi HR baru dinaikkan ke ✅ sesudah uji live di DB dev lulus.
 
 > **Pemutakhiran register 20 November 2026.** Baris `BE-HRD-374` s.d. `BE-HRD-380` (amandemen `S-D5` v28, bagian 27) ditambahkan dari kartu task (seluruhnya ✅). Tanda `BE-HRD-333` pada register dan Grafik B83 disamakan dengan kartunya (✅ 19 November 2026). Task finishing docs/update kini bernomor `BE-HRD-381` s.d. `BE-HRD-439` sesudah penomoran ulang saat merge amandemen `S-D5`.
 
@@ -5169,7 +5181,7 @@ BE-HRD-236 [B58] ──┘
 
 #### 🟡 `BE-HRD-225` — Layanan Ekstraksi & Agregasi Otomatis Data Indikator Kuantitatif SIMRS/KMKP 60%
 * **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
-* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — konstanta 120/92,5/0/88 dan fallback 50 dihapus; `SIMRS_VOLUME`, `SIMRS_EMR_COMPLETION`, `SIMRS_FORMULARY`, `SIMRS_SSI` ditarik dari tabel pelayanan aplikasi (kunjungan, visite, resume pulang, resep, surveilans IDO) per dokter per periode; indikator tanpa sumber (`KMKP_INCIDENT`, clinical pathway) dilaporkan tidak tersedia dan tidak dinilai. **Belum**: tabel sumber KMKP/CP tidak ada; `AT-HRD-OPP-03` `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-225.md)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — konstanta 120/92,5/0/88 dan fallback 50 dihapus; `SIMRS_VOLUME`, `SIMRS_EMR_COMPLETION`, `SIMRS_FORMULARY`, `SIMRS_SSI` ditarik dari tabel pelayanan aplikasi (kunjungan, visite, resume pulang, resep, surveilans IDO) per dokter per periode; indikator tanpa sumber (`KMKP_INCIDENT`, clinical pathway) dilaporkan tidak tersedia dan tidak dinilai. **Belum**: tabel sumber KMKP/CP tidak ada; `AT-HRD-OPP-03` `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-225.md). **Pemutakhiran 21 November 2026:** atas keputusan pemilik 21 November 2026 (pecah sisa yang bergantung pihak luar ke task baru), indikator `KMKP_INCIDENT` dan clinical pathway dipindah ke `BE-HRD-440` ⛔. Sisa task ini: `AT-HRD-OPP-03` untuk empat indikator yang sumbernya ada (`SIMRS_VOLUME`, `SIMRS_EMR_COMPLETION`, `SIMRS_FORMULARY`, `SIMRS_SSI`) dan pelaporan jujur dua indikator yang belum bersumber.
 * **Outcome**: Implementasi adapter integrasi `INT-HR-73` (`IOppeSimrsMetricExtractorService`) untuk menarik data indikator kuantitatif dari SIMRS dan modul KMKP (volume tindakan, kepatuhan resume EMR 1x24 jam, kepatuhan Clinical Pathway, kepatuhan formularium RS, tingkat IDO), serta kalkulasi agregasi bobot kuantitatif 60%.
 * **Dependencies**: `BE-HRD-224`
 * **Acceptance Criteria**: Data kuantitatif SIMRS teragregasi secara otomatis; nilai skor tertimbang 60% terhitung presisi; penyimpanan raw JSON payload bukti audit.
@@ -5265,7 +5277,7 @@ BE-HRD-236 [B58] ──┘
 
 #### 🟡 `BE-HRD-237` — Validasi Kompilasi .NET, QBE Conformance & Eksekusi Acceptance Tests `S-C1-OPPE`
 * **Slice / MVP**: `S-C1-OPPE` / Verifikasi
-* **Status**: 🟡 **SEBAGIAN 10 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — klaim lulus `AT-HRD-OPP-03` dicabut karena `BE-HRD-225` masih hard-code; bukti eksekusi 21 skenario lain tidak tersedia pada laporan. `dotnet build` 0 error (606 warning); QBE Strict 58 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-237.md)
+* **Status**: 🟡 **SEBAGIAN 10 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — klaim lulus `AT-HRD-OPP-03` dicabut karena `BE-HRD-225` masih hard-code; bukti eksekusi 21 skenario lain tidak tersedia pada laporan. **Pemutakhiran 21 November 2026:** bagian KMKP/clinical pathway `AT-HRD-OPP-03` mengikuti `BE-HRD-440`; sisa task ini adalah bukti eksekusi `AT-HRD-OPP-01` s.d. `AT-HRD-OPP-22` untuk cakupan sisi HR. `dotnet build` 0 error (606 warning); QBE Strict 58 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-237.md)
 * **Outcome**: Verifikasi kompilasi bersih .NET (`dotnet build`) tanpa error, audit konformansi arsitektur QBE Preflight, validasi kepatuhan 24 endpoint API Swagger Kontrak `v19`, serta eksekusi lengkap 22 skenario pengujian penerimaan `AT-HRD-OPP-01` s.d. `AT-HRD-OPP-22`.
 * **Dependencies**: Seluruh task backend `BE-HRD-222` s.d. `BE-HRD-236`
 * **Acceptance Criteria**: `dotnet build` lulus 0 error 0 warning kritis; seluruh acceptance criteria 16 task terpenuhi; 10 kriteria DoD tercapai.
@@ -6215,7 +6227,7 @@ BE-HRD-302 ✅ s.d. BE-HRD-316 🟡 ───────> BE-HRD-317 🟡
 
 #### 🟡 `BE-HRD-314` — Gateway Notifikasi Multikanal & Worker `DailyApprovalDigestWorker` (`WF-W3`) Pukul 07:00 Pagi (`UnifiedNotificationGatewayService` - `WF-B7`, `INT-HR-96`)
 * **Slice / MVP**: `S-A7-V2` / Verifikasi
-* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — gateway kini mengirim ke pusat pemberitahuan dalam aplikasi (tabel `HrdNotification`, hub SignalR `/hubs/notifications`, endpoint `HrdNotification`); pemohon dan approver diberi tahu saat tiket diajukan, disetujui, ditolak, atau dikembalikan; ringkasan harian dijadwalkan 07:00 WIB dengan anti-duplikat. **Belum**: kanal email/push mobile/WhatsApp tidak tersedia di platform (keputusan Gelombang 2: kanal pertama lonceng aplikasi), migration sudah dijalankan 11 November 2026, `AT-HRD-WF-14`/`AT-HRD-WF-15` `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-314.md)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — gateway kini mengirim ke pusat pemberitahuan dalam aplikasi (tabel `HrdNotification`, hub SignalR `/hubs/notifications`, endpoint `HrdNotification`); pemohon dan approver diberi tahu saat tiket diajukan, disetujui, ditolak, atau dikembalikan; ringkasan harian dijadwalkan 07:00 WIB dengan anti-duplikat. **Belum**: kanal email/push mobile/WhatsApp tidak tersedia di platform (keputusan Gelombang 2: kanal pertama lonceng aplikasi), migration sudah dijalankan 11 November 2026, `AT-HRD-WF-14`/`AT-HRD-WF-15` `NOT RUN`. **Pemutakhiran 21 November 2026:** atas keputusan pemilik 21 November 2026 (pecah sisa yang bergantung pihak luar ke task baru), kanal email, push mobile, dan WhatsApp dipindah ke `BE-HRD-441` ⛔. Sisa task ini: `AT-HRD-WF-14`/`15` untuk kanal lonceng aplikasi (SignalR + `HrdNotification`) dan ringkasan harian 07:00 WIB di kanal yang sama. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-314.md)
 * **Outcome**: Layanan orkestrasi notifikasi multikanal (Web push realtime SignalR, Push Notification mobile, dan Email). Mengirimkan sinyal instan saat tiket diajukan, dikembalikan untuk revisi, atau disetujui/ditolak. Dilengkapi worker `DailyApprovalDigestWorker` (`WF-W3`) yang berjalan setiap pukul 07:00 pagi untuk mengirimkan email ringkasan jumlah tiket pending yang menunggu tindakan atasan.
 * **Dependencies**: `BE-HRD-305`, `BE-HRD-309`
 * **Acceptance Criteria**: Notifikasi instan terkirim < 3 detik ke pemohon dan approver; ringkasan harian terkirim terjadwal tiap 07:00 pagi.
@@ -6239,7 +6251,7 @@ BE-HRD-302 ✅ s.d. BE-HRD-316 🟡 ───────> BE-HRD-317 🟡
 
 #### 🟡 `BE-HRD-317` — Controller API Kontrak v24 5 Tag Swagger, Kunci 24 Permissions & Audit Verifikasi E2E QBE Conformance
 * **Slice / MVP**: `S-A7-V2` / Verifikasi
-* **Status**: 🟡 **SEBAGIAN 10 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — dependensi `BE-HRD-316` berstatus 🟡 (`INT-HR-94` belum ada), sehingga verifikasi ujung-ke-ujung slice belum selesai; tidak ada perubahan kode. `dotnet build` 0 error (606 warning); QBE Strict 58 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-317.md)
+* **Status**: 🟡 **SEBAGIAN 10 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — dependensi `BE-HRD-316` berstatus 🟡 (`INT-HR-94` belum ada), sehingga verifikasi ujung-ke-ujung slice belum selesai; tidak ada perubahan kode. **Pemutakhiran 21 November 2026:** `BE-HRD-316` sudah ✅ sejak 18 November 2026 (`AT-HRD-WF-18`/`19` lewat harness `DownstreamExecutionTests`); yang kini menahan task ini adalah `BE-HRD-313` 🟡 dan `BE-HRD-314` 🟡. `dotnet build` 0 error (606 warning); QBE Strict 58 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-317.md)
 * **Outcome**: Implementasi seluruh 24 endpoint API pada 5 Controller ASP.NET Core beranotasi Swagger `[Tags("Corporate - HRD Workflow ...")]` sesuai Kontrak API `v24`. Mengunci hak akses 24 permissions `Hrd.Workflow.*`, mencatat 14 event audit permanen (`HRD_WF_*`), serta melakukan audit verifikasi menyeluruh kompilasi `dotnet build` 0 warning dan kepatuhan standar arsitektur QBE Conformance.
 * **Dependencies**: Seluruh task backend `BE-HRD-302` s.d. `BE-HRD-316`
 * **Acceptance Criteria**: 24 endpoint API terdaftar rapi pada Swagger UI; seluruh permission dan audit event bekerja akuntabel; `dotnet build` lulus 0 error.
@@ -6435,14 +6447,14 @@ BE-HRD-318 ✅ s.d. BE-HRD-332 ✅ ───────> BE-HRD-333 ✅
 | Field | Nilai |
 | --- | --- |
 | Roadmap revisi | `24` (melanjutkan revisi `23` pada manifest) |
-| Status | MVP dan `POST-MVP` selesai — 25 task ✅ (`BE-HRD-334` s.d. `BE-HRD-358`); `BE-HRD-359` ⛔ menunggu `DSG-Q-02`. Diverifikasi ulang 19 November 2026 pada branch `MHamzah` sesudah merge `QuilvianIntegrationBackEnd` (`afccff58`): `dotnet build -p:RunAnalyzers=False` 0 error; proyek uji HR 258/258 lulus (dijalankan dari salinan tanpa 4 berkas uji `WorkforcePayrollData*Tests` S-A8 yang tidak terkompilasi); migration `20261112043425_AddSchedulingAttendanceAmendmentA52` dan `20261113050000_AddMissingHrdColumnDefaults` terpasang di `QuilvianNewDevHamzah` beserta enam tabel A52 |
+| Status | MVP dan `POST-MVP` selesai — 25 task ✅ (`BE-HRD-334` s.d. `BE-HRD-358`); `BE-HRD-359` 🚫 dibatalkan 21 November 2026 (`DSG-Q-02` dijawab pengguna 21 November 2026: submenu "Penugasan Tambahan" menuju layar surat perintah personel `/hr/personnel-action-orders`, tanpa endpoint daftar baru). Diverifikasi ulang 19 November 2026 pada branch `MHamzah` sesudah merge `QuilvianIntegrationBackEnd` (`afccff58`): `dotnet build -p:RunAnalyzers=False` 0 error; proyek uji HR 258/258 lulus (dijalankan dari salinan tanpa 4 berkas uji `WorkforcePayrollData*Tests` S-A8 yang tidak terkompilasi); migration `20261112043425_AddSchedulingAttendanceAmendmentA52` dan `20261113050000_AddMissingHrdColumnDefaults` terpasang di `QuilvianNewDevHamzah` beserta enam tabel A52 |
 | Dasar approval | Pengguna, pemilik teknis dan produk (`HRD-DEC-015`), 12 November 2026 — desain `A52` disetujui apa adanya |
 | Masukan | `02-backend-architecture.md` bagian 35; kontrak `v26` (`api-contract.md` 32, `permission-audit-matrix.md` 30, `state-transition-matrix.md` 30, `validation-matrix.md` 31, `integration-contract.md` 23); `testing/acceptance-test-matrix.md` 34; `04-prd-to-mvp.md` 40; decision log revision `37` (SHA-256 `df3cf67a…`); capability map revisi `1.4` (SHA-256 `d260d20f…`) |
 | Source SHA | BE `a437ae42` (branch `yoga`); FE `6a5658269` (branch `YogaV2`) |
 | Rentang task | `BE-HRD-334` s.d. `BE-HRD-359` (26 task: 18 MVP + 7 POST-MVP + 1 BLOCKED) |
 | Gelombang | `MVP-66`, `MVP-67`, `MVP-68`, `Verifikasi`, `POST-MVP` |
 
-**Legenda.** `⬜` belum dikerjakan; `⛔` terblokir keputusan; `✅` selesai; `🟡` sebagian.
+**Legenda.** `⬜` belum dikerjakan; `⛔` terblokir keputusan; `✅` selesai; `🟡` sebagian; `🚫` dibatalkan.
 `[B…]` menunjuk task di grafik lain.
 
 **Handoff implementasi.** Setiap task dikerjakan lewat `/build-module-backend` hanya atas
@@ -6496,7 +6508,7 @@ BE-HRD-343 ✅ [B86] ─┬─> BE-HRD-353 ✅ ─> BE-HRD-354 ✅
                      └─> BE-HRD-356 ✅
 BE-HRD-336 ✅ [B84] ─> BE-HRD-357 ✅
 BE-HRD-352 ✅ s.d. BE-HRD-357 ✅ ─> BE-HRD-358 ✅
-{DSG-Q-02} ─> BE-HRD-359 ⛔
+{DSG-Q-02 ✅} ─> BE-HRD-359 🚫 (dibatalkan)
 ```
 
 ### Tabel gelombang eksekusi backend `A52`
@@ -6508,7 +6520,7 @@ BE-HRD-352 ✅ s.d. BE-HRD-357 ✅ ─> BE-HRD-358 ✅
 | **MVP-68** | Jadwal Saya (`EPIC HRD-113`); laporan dan ekspor (`EPIC HRD-114`) | `BE-HRD-348`, `BE-HRD-349`, `BE-HRD-350` | `MVP-67` |
 | **Verifikasi** | Uji penerimaan MVP, regresi kontrak Lab, registri hak akses | `BE-HRD-351` | `BE-HRD-334` s.d. `BE-HRD-350` |
 | **POST-MVP** | Siaga (`EPIC HRD-115`), dispensasi (`116`), tugas belajar (`117`), gangguan mesin (`118`), dashboard (`119`) | `BE-HRD-352` s.d. `BE-HRD-358` | `MVP-67`; dijadwalkan pengguna |
-| — | Daftar penempatan sementara lintas pegawai (`EPIC HRD-120`) | `BE-HRD-359` ⛔ | `DSG-Q-02` |
+| — | Daftar penempatan sementara lintas pegawai (`EPIC HRD-120`) | `BE-HRD-359` 🚫 dibatalkan | `DSG-Q-02` ✅ (21 November 2026) |
 
 ### Rincian task backend `A52` (`BE-HRD-334` s.d. `BE-HRD-359`)
 
@@ -6844,12 +6856,13 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: Laporan task.
 * **Risiko**: —
 
-#### ⛔ `BE-HRD-359` — Daftar penempatan sementara lintas pegawai (terblokir)
+#### 🚫 `BE-HRD-359` — Daftar penempatan sementara lintas pegawai (dibatalkan)
 * **Slice / MVP**: `A52` / tidak dijadwalkan / `EPIC HRD-120`
+* **Status**: 🚫 **DIBATALKAN 21 November 2026** — `DSG-Q-02` dijawab pengguna 21 November 2026: submenu "Penugasan Tambahan" menuju layar surat perintah personel `/hr/personnel-action-orders`, tanpa endpoint daftar baru. Penugasan tambahan tetap dicatat lewat surat perintah personel dan endpoint penempatan per pegawai. Tidak ada source, kontrak, atau migration yang dibuat untuk task ini.
 * **Outcome**: Endpoint baca daftar penempatan `Temporary` lintas pegawai untuk submenu "Penugasan Tambahan".
-* **Diblokir oleh**: `DSG-Q-02` (pengguna). Bila jawabannya "pakai layar surat perintah personel", task ini dibatalkan.
+* **Semula diblokir oleh**: `DSG-Q-02` (pengguna). Bila jawabannya "pakai layar surat perintah personel", task ini dibatalkan — jawaban itulah yang dipilih.
 * **Pekerjaan yang tetap berjalan**: Seluruh task MVP; penugasan tambahan tetap dicatat lewat endpoint penempatan per pegawai.
-* **Kontrak**: belum ada — akan ditambahkan ke kontrak bila `DSG-Q-02` memilih endpoint baru.
+* **Kontrak**: tidak ada — `DSG-Q-02` tidak memilih endpoint baru.
 
 ---
 
@@ -7350,7 +7363,7 @@ memelihara automated test; bukti verifikasinya build, QBE, kontrak API, dan uji 
 | `{ADM-Q-03}` — ✅ **ditutup 20 November 2026**: pemilik memilih A (satu surat bertabel peserta) dan mengizinkan migration ditulis; migration `20261120093000_AddHrdAssignmentLetter` ditulis, sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah` ([laporan](../task/report/backend/BE-HRD-382.md)) | Keputusan bentuk Surat Tugas multi-pegawai (satu surat bertabel peserta, atau satu surat per pegawai; rekomendasi dokumen update: satu surat) **dan** wewenang menulis migration tabel peserta | `BE-HRD-382`, lalu `BE-HRD-383` s.d. `BE-HRD-386` | Pengguna sebagai pemilik produk dan teknis | `BE-HRD-381` (Surat Keterangan) |
 | `{MIG-M05-JD}` — ✅ **ditutup 21 November 2026**: migration `20261120091000_AddMstJobDescription` ditulis atas izin pemilik 20 November 2026 dan sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah` ([laporan](../task/report/backend/BE-HRD-404.md)) | — (semula: eksekusi migration ke database) | Tidak ada lagi — `BE-HRD-404` ✅; endpoint Uraian Tugas (`BE-HRD-405`, `406`, `413`) kini punya tabelnya | Pengguna (eksekusi migration) — selesai | Semua |
 | `ADM-Q-01`, `ADM-Q-02` | Peringatan STR/SIP untuk Surat Tugas klinis; cetak pemberitahuan pencabutan untuk pihak ketiga | Tidak menahan task; menjadi masukan `BE-HRD-383` dan `BE-HRD-381` | Pengguna | Semua |
-| Kontrak co-sign EMR | Kontrak order-scoped dengan pemilik modul klinis untuk co-signature supervisor | Sisa `BE-HRD-434` | Pemilik modul EMR/Health Services | Seluruh task Menu 09 lain |
+| Kontrak co-sign EMR | Kontrak order-scoped dengan pemilik modul klinis untuk co-signature supervisor | `BE-HRD-442` (dipecah dari `BE-HRD-434` pada 21 November 2026) | Pemilik modul EMR/Health Services | Seluruh task Menu 09 lain, termasuk sisi HR `BE-HRD-434` |
 | Sinkronisasi `HRD-DEC-089` | Keputusan batas 5 tahun PKWT belum diberi `NEEDS_SYNC` terhadap UU 27/2026 | Tidak lagi menahan task — `BE-HRD-416` ✅ 20 November 2026, selisih terdokumentasi ([laporan](../task/report/backend/BE-HRD-416.md)); tinggal pencatatan ulang keputusan | Pengguna lewat `manage-module-blueprint` | Kode kebijakan PKWT sudah memakai aturan baru |
 
 ### 28.1 Slice `S-FIN-ADM` — Administrasi Kepegawaian (Surat Keputusan, Surat Tugas, Surat Keterangan, Dokumen Administrasi, Perubahan Data) (`BE-HRD-381` s.d. `BE-HRD-386`)
@@ -8033,7 +8046,7 @@ BE-HRD-436 ✅ [B98] ───────────────────�
 #### 🟡 `BE-HRD-434` — Co-signature terikat order dan emergency override
 * **Slice / area**: `S-FIN-M09` / Masa Berlaku Kewenangan
 * **Alias register finishing**: `FIN-HRD-09-BE-009` · baseline roadmap: `BE-HRD-217`, `BE-HRD-218`
-* **Status**: 🟡 **SEBAGIAN (dikerjakan ulang 20 November 2026)** — sisi HR: co-sign wajib `OrderId`+`EncounterId`, kewenangan harus aktif/berlaku/bersupervisi, hanya supervisor tercatat yang boleh (`403`), co-sign tidak lagi mengganti `SupervisorUserId`, galat bisnis `422` (sebelumnya `500`). Belum: catatan co-sign per order pada tabel milik modul klinis — menunggu kontrak co-sign EMR (gerbang 28.0.1). `dotnet build` 0 error (608 warning); QBE Strict `PASS`. Bukti: [laporan](../task/report/backend/BE-HRD-434.md)
+* **Status**: 🟡 **SEBAGIAN (dikerjakan ulang 20 November 2026)** — sisi HR: co-sign wajib `OrderId`+`EncounterId`, kewenangan harus aktif/berlaku/bersupervisi, hanya supervisor tercatat yang boleh (`403`), co-sign tidak lagi mengganti `SupervisorUserId`, galat bisnis `422` (sebelumnya `500`). Belum: catatan co-sign per order pada tabel milik modul klinis — menunggu kontrak co-sign EMR (gerbang 28.0.1). **Pemutakhiran 21 November 2026:** atas keputusan pemilik 21 November 2026 (pecah sisa yang bergantung pihak luar ke task baru), catatan co-sign per order di modul klinis dipindah ke `BE-HRD-442` ⛔. Sisa task ini: uji API berizin di DB dev untuk kriteria (1) dan (2) sisi HR. `dotnet build` 0 error (608 warning); QBE Strict `PASS`. Bukti: [laporan](../task/report/backend/BE-HRD-434.md)
 * **Outcome**: Co-sign per order/encounter dengan aktor, batas waktu, dan idempotensi pada kontrak owner klinis.
 * **Dependencies**: `BE-HRD-433` ✅
 * **Acceptance Criteria**: (1) Supervisor tidak bisa menyetujui order lain. (2) Override tidak mengubah privilege permanen.
@@ -8078,8 +8091,48 @@ BE-HRD-436 ✅ [B98] ───────────────────�
 #### 🟡 `BE-HRD-439` — Gerbang kualitas backend Menu 09
 * **Slice / area**: `S-FIN-M09` / Verifikasi
 * **Alias register finishing**: `FIN-HRD-09-BE-014` · baseline roadmap: —
-* **Status**: 🟡 **SEBAGIAN (dikerjakan ulang 20 November 2026)** — seluruh endpoint Menu 09 ditelusuri method+URI+permission+DTO (tabel di laporan); P0 `M09-P0-01` s.d. `09` dan `11` tertutup di source. Belum: `M09-P0-10` (`BE-HRD-434`) menunggu kontrak co-sign EMR; 56 UAT `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-439.md)
+* **Status**: 🟡 **SEBAGIAN (dikerjakan ulang 20 November 2026)** — seluruh endpoint Menu 09 ditelusuri method+URI+permission+DTO (tabel di laporan); P0 `M09-P0-01` s.d. `09` dan `11` tertutup di source. Belum: `M09-P0-10` (`BE-HRD-434`) menunggu kontrak co-sign EMR; 56 UAT `NOT RUN`. **Pemutakhiran 21 November 2026:** bagian EMR `M09-P0-10` dipindah ke `BE-HRD-442` ⛔ dan tercatat sebagai P1 berpemilik; sisa task ini: sisi HR `BE-HRD-434` dan 56 UAT. Bukti: [laporan](../task/report/backend/BE-HRD-439.md)
 * **Outcome**: Tidak ada P0 salah izin, status terbalik, atau sukses palsu sebelum frontend dinyatakan selesai.
 * **Dependencies**: `BE-HRD-429` ✅, `BE-HRD-434` 🟡, `BE-HRD-435` ✅, `BE-HRD-436` ✅, `BE-HRD-438` ✅
 * **Acceptance Criteria**: (1) Semua endpoint ditrace method+URI+permission+DTO. (2) P1 sisa punya blocker dan pemilik.
 * **Verifikasi**: QBE preflight dan conformance, `dotnet build` project aplikasi, verifikasi kontrak API (method, route, permission, DTO), dan uji API berizin pada DB dev. QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend.
+
+---
+
+## 29. Sisa Pekerjaan yang Bergantung Pihak Luar (dipecah 21 November 2026)
+
+Atas keputusan pemilik 21 November 2026, bagian task yang hanya dapat diselesaikan bila modul atau platform lain menyediakan sumbernya dipisah dari task asalnya. Task asal tetap memegang bagian sisi HR dan dinaikkan ke ✅ sesudah uji live lulus; task di bawah ini tetap ⛔ sampai gerbang eksternalnya terbuka.
+
+### 29.1 Gerbang eksternal
+
+| Gerbang | Apa yang belum ada | Task yang tertahan | Siapa yang menyelesaikan |
+| --- | --- | --- | --- |
+| `{EXT-KMKP-CP}` | Tabel atau kontrak sumber insiden KMKP dan kepatuhan clinical pathway per dokter per periode | `BE-HRD-440` | Pemilik modul mutu/KMKP dan modul klinis |
+| `{EXT-NOTIF-CHANNEL}` | Layanan kanal email, push mobile, dan WhatsApp pada platform | `BE-HRD-441` | Pemilik platform/infrastruktur |
+| `{EXT-EMR-COSIGN}` | Kontrak co-sign order-scoped dengan pemilik modul klinis/EMR | `BE-HRD-442` | Pemilik modul EMR/Health Services |
+
+### 29.2 Rincian task
+
+#### ⛔ `BE-HRD-440` — Sumber data indikator insiden KMKP dan kepatuhan clinical pathway untuk OPPE (`INT-HR-73`)
+* **Slice / MVP**: `S-C1-OPPE` / dipecah dari `BE-HRD-225`
+* **Status**: ⛔ **TERBLOKIR** — `{EXT-KMKP-CP}`: tabel sumber KMKP/CP tidak ada di aplikasi. Sampai gerbang terbuka, extractor `BE-HRD-225` melaporkan kedua indikator sebagai tidak tersedia dan tidak menilainya.
+* **Outcome**: `IOppeSimrsMetricExtractorService` membaca `KMKP_INCIDENT` dan kepatuhan clinical pathway dari sumber yang disepakati, lalu ikut dalam agregasi bobot kuantitatif 60%.
+* **Dependencies**: `{EXT-KMKP-CP}` ⛔, `BE-HRD-225` 🟡
+* **Acceptance Criteria**: (1) Kontrak sumber disetujui pemilik modul mutu/klinis. (2) Kedua indikator dihitung dari data nyata per dokter per periode, tanpa nilai rekaan atau fallback. (3) Payload mentah tersimpan sebagai bukti audit.
+* **Verifikasi**: `AT-HRD-OPP-03` bagian KMKP/clinical pathway, `dotnet build`, QBE.
+
+#### ⛔ `BE-HRD-441` — Kanal notifikasi email, push mobile, dan WhatsApp untuk gateway `WF-B7` (`INT-HR-96`)
+* **Slice / MVP**: `S-A7-V2` / dipecah dari `BE-HRD-314`
+* **Status**: ⛔ **TERBLOKIR** — `{EXT-NOTIF-CHANNEL}`: platform belum menyediakan layanan email, push mobile, dan WhatsApp. Kanal yang berjalan saat ini: lonceng aplikasi (`BE-HRD-314`).
+* **Outcome**: `UnifiedNotificationGatewayService` meneruskan pemberitahuan tiket dan ringkasan harian 07:00 WIB ke kanal tambahan lewat gateway yang sama.
+* **Dependencies**: `{EXT-NOTIF-CHANNEL}` ⛔, `BE-HRD-314` 🟡
+* **Acceptance Criteria**: (1) Pemberitahuan instan terkirim ke kanal tambahan sesuai preferensi penerima. (2) Ringkasan harian terkirim lewat email tiap 07:00 WIB tanpa duplikat. (3) Kegagalan satu kanal tidak menggagalkan lonceng aplikasi dan tercatat di log.
+* **Verifikasi**: `AT-HRD-WF-14`/`15` bagian kanal tambahan, `dotnet build`, QBE.
+
+#### ⛔ `BE-HRD-442` — Catatan co-sign per order pada modul klinis/EMR (`M09-P0-10`)
+* **Slice / area**: `S-FIN-M09` / dipecah dari `BE-HRD-434`
+* **Status**: ⛔ **TERBLOKIR** — `{EXT-EMR-COSIGN}`: kontrak co-sign order-scoped dengan pemilik modul klinis belum ada. Sisi HR (validasi `OrderId`+`EncounterId`, supervisor tercatat, kewenangan aktif) sudah ada di `BE-HRD-434`.
+* **Outcome**: Co-sign tercatat per order/encounter pada tabel milik modul klinis dengan aktor, batas waktu, dan idempotensi; HR hanya menjadi sumber status kewenangan.
+* **Dependencies**: `{EXT-EMR-COSIGN}` ⛔, `BE-HRD-434` 🟡
+* **Acceptance Criteria**: (1) Supervisor tidak dapat co-sign order lain. (2) Co-sign ganda pada order yang sama idempoten. (3) Override darurat tidak mengubah privilege permanen.
+* **Verifikasi**: Uji API berizin lintas modul pada DB dev, `dotnet build`, QBE.
