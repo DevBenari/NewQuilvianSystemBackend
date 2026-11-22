@@ -4682,3 +4682,161 @@ Mengikuti `contracts/state-transition-matrix.md` bagian 32: `Draft` → `Submitt
 
 Dokumen ini boleh diteruskan ke `/plan-module-delivery` **sesudah** pengguna menyetujui desain
 bagian 36 dan kontrak `v28`.
+
+---
+
+## 42. PRD → MVP Amandemen Paket B — Lima Entry Point Menu SDM (kontrak `v29`)
+
+### 42.1 Identitas dokumen
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | Decision log revision `41` bagian 56 (`HRD-DEC-229` s.d. `HRD-DEC-238`); capability map `1.5` bagian 17; backend 37; frontend 34; kontrak `v29` |
+| Status | `draft` — approval pengguna belum ada |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` (backend 37) |
+
+### 42.2 Ringkasan dan masalah produk
+
+Paket A merapikan menu SDM tetapi menunda lima pintu masuk karena aturannya belum diputuskan. Akibatnya Manajer SDM tidak punya satu halaman ringkasan, Recruiter harus membuka detail tiap pelamar untuk mencari lamaran yang menunggu penapisan, asesor tidak punya daftar uji yang harus dinilai, riwayat kasus disiplin yang selesai tidak punya tempat, dan menu Tindak Disiplin rusak karena memanggil alamat backend yang tidak ada. Paket B menutup kelima pintu itu dengan memakai data yang sudah ada, serta menutup dua celah privasi yang ditemukan impact scan: data disiplin di Employee 360 terbuka bagi atasan langsung, dan asesor dapat melihat serta mengisi evaluasi kandidat unit lain.
+
+### 42.3 Batas MVP
+
+| Titik | Isi |
+| --- | --- |
+| Mulai | Pengguna SDM membuka sidebar Sumber Daya Manusia |
+| Akhir | Kelima pintu dapat dibuka sesuai hak akses, setiap angka dashboard dapat ditelusuri ke nama, dan dua celah privasi tertutup |
+| Di luar MVP | Dashboard per unit (`HRD-ASM-88`); radar SPK/RKK milik modul kredensial; penghapusan endpoint tulis `WfpDisciplinaryAction`; migrasi otomatis catatan disiplin lama (`HRD-DEC-238`) |
+
+### 42.4 Kemampuan `MUST HAVE`
+
+| Kemampuan | ID kapabilitas | Disposisi |
+| --- | --- | --- |
+| Daftar global Tindak Disiplin | `HRD-CAP-92` | `EXISTING / REUSE` (label menunggu `HRD-Q-226`) |
+| Pensiun halaman Tindak Disiplin lama | `HRD-CAP-93` | `EXTEND` (frontend) |
+| Disiplin Employee 360 dari alur resmi + privasi | `HRD-CAP-94` | `EXTEND` |
+| Riwayat Penyelesaian | `HRD-CAP-95` | `EXTEND` |
+| Dashboard SDM lima panel | `HRD-CAP-96` s.d. `HRD-CAP-101` | `EXTEND` + `MISSING / NEW` |
+| Seleksi Administrasi per lamaran | `HRD-CAP-102` | `EXISTING / REUSE` (backend) + `MISSING / NEW` (layar) |
+| Tes/Wawancara dua jalur | `HRD-CAP-103` | `EXTEND` |
+| Pembatasan asesor | `HRD-CAP-104` | `EXTEND` |
+
+### 42.5 Epic dan functional requirement
+
+#### `EPIC HRD-124` — Dashboard SDM (`MUST HAVE`)
+
+| FR | Requirement | Disposisi | Bukti uji |
+| --- | --- | --- | --- |
+| `FR-PKB-01` | `GET /workforce-dashboard/summary` mengembalikan lima panel sesuai api-contract 35.1 | `MISSING / NEW` | `AT-HRD-PKB-01` s.d. `03`, `06` |
+| `FR-PKB-02` | Panel Kontrak Berakhir memakai `ContractRenewalBuckets` bersama layar Kontrak; angka layar Kontrak tidak berubah | `EXTEND` | `AT-HRD-PKB-04`, `05` |
+| `FR-PKB-03` | `GET /workforce-dashboard/drilldown` mengembalikan daftar nama tanpa data sensitif | `MISSING / NEW` | `AT-HRD-PKB-07`, `08` |
+| `FR-PKB-04` | Hak `HrdWorkforceDashboard : Read` menjaga endpoint dan butir menu | `MISSING / NEW` | `AT-HRD-PKB-09` |
+| `FR-PKB-05` | Layar Dashboard SDM dengan drill-down ke Employee 360 dan keadaan gagal yang jujur | `MISSING / NEW` | `AT-HRD-PKB-26` |
+
+#### `EPIC HRD-125` — Seleksi Administrasi per lamaran (`MUST HAVE`)
+
+| FR | Requirement | Disposisi | Bukti uji |
+| --- | --- | --- | --- |
+| `FR-PKB-06` | Halaman daftar penapisan memakai `GET /recruitment/screenings`, bawaan status Menunggu | `MISSING / NEW` (frontend) | `AT-HRD-PKB-16` |
+| `FR-PKB-07` | Tandai Lolos/Gugur lewat formulir existing; gugur otomatis STR tetap tampil | `EXISTING / REUSE` | `AT-HRD-PKB-17` |
+
+#### `EPIC HRD-126` — Tes/Wawancara dan pembatasan asesor (`MUST HAVE`)
+
+| FR | Requirement | Disposisi | Bukti uji |
+| --- | --- | --- | --- |
+| `FR-PKB-08` | Parameter `track` dan `pendingOnly` pada daftar evaluasi | `EXTEND` | `AT-HRD-PKB-22` |
+| `FR-PKB-09` | Tanpa `ViewAll`, daftar dan detail dibatasi menurut `EvaluatorUserId` | `EXTEND` | `AT-HRD-PKB-18` s.d. `20` |
+| `FR-PKB-10` | `submit-clinical` hanya oleh penilai yang ditugaskan | `EXTEND` | `AT-HRD-PKB-21` |
+| `FR-PKB-11` | Halaman daftar Tes/Wawancara dua jalur | `MISSING / NEW` (frontend) | `AT-HRD-PKB-18` |
+
+#### `EPIC HRD-127` — Riwayat Penyelesaian (`MUST HAVE`)
+
+| FR | Requirement | Disposisi | Bukti uji |
+| --- | --- | --- | --- |
+| `FR-PKB-12` | Parameter `statuses` pada daftar sanksi | `EXTEND` | `AT-HRD-PKB-10`, `11` |
+| `FR-PKB-13` | Layar Riwayat Penyelesaian: sanksi selesai + insiden ditutup tanpa sanksi | `MISSING / NEW` (frontend) | `AT-HRD-PKB-12` |
+
+#### `EPIC HRD-128` — Disiplin satu sumber dan privasi Employee 360 (`MUST HAVE`)
+
+| FR | Requirement | Disposisi | Bukti uji |
+| --- | --- | --- | --- |
+| `FR-PKB-14` | Employee 360 membaca sanksi resmi (dua jenis ID) + catatan lama sebagai `LEGACY` | `EXTEND` | `AT-HRD-PKB-13` |
+| `FR-PKB-15` | Bagian disiplin hanya untuk `ViewSanctions`; selain itu `disciplineHidden` | `EXTEND` | `AT-HRD-PKB-14` |
+| `FR-PKB-16` | Catatan lama baca-saja di layar | `EXTEND` | `AT-HRD-PKB-15` |
+| `FR-PKB-17` | Halaman Tindak Disiplin lama dialihkan; service lamanya dihapus | `EXTEND` | `AT-HRD-PKB-24` |
+| `FR-PKB-18` | Layar Sanksi mengirim filter `status` | `EXTEND` | `AT-HRD-PKB-23` |
+
+#### `EPIC HRD-129` — Butir menu Paket B (`MUST HAVE`; satu butir `OPEN DECISION`)
+
+| FR | Requirement | Disposisi | Bukti uji |
+| --- | --- | --- | --- |
+| `FR-PKB-19` | Butir Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian sesuai frontend 34.1 | `MISSING / NEW` | `AT-HRD-PKB-25` |
+| `FR-PKB-20` | Label butir menu disiplin "Tindak Disiplin" menggantikan "Teguran" | `OPEN DECISION` (`HRD-Q-226`) | `AT-HRD-PKB-23` |
+
+`FR-PKB-20` **tidak** masuk gelombang mana pun sampai `HRD-Q-226` dijawab; FR lain dalam epic ini tidak bergantung padanya.
+
+### 42.6 Model status
+
+Tidak ada status baru. Klasifikasi turunan: state-transition 33.
+
+### 42.7 Matriks kewenangan
+
+| Peran (lazim) | Dashboard | Seleksi Adm. | Tes/Wawancara | Tindak Disiplin & Riwayat | Disiplin di 360 |
+| --- | --- | --- | --- | --- | --- |
+| Manajer SDM | Lihat | Lihat | Lihat semua | Lihat | Lihat |
+| Admin HRD | Lihat | — | — | — | — |
+| Recruiter HR | — | Lihat, tandai | Lihat semua, isi wawancara HR | — | — |
+| Kepala Unit / Asesor | — | — | Lihat & isi uji yang ditugaskan | — | Tidak |
+| HR Relations | — | — | — | Lihat | Lihat |
+
+Pemetaan akhir peran → hak dilakukan admin (permission-audit 33.1).
+
+### 42.8 Batas integrasi dan billing
+
+Integrasi baca-saja internal `INT-HR-111` s.d. `114`. Tidak ada dampak billing atau keselamatan klinis; veto klinis `HRD-DEC-077` dan aturan STR `HRD-DEC-076` tidak berubah.
+
+### 42.9 Kebutuhan non-fungsional
+
+| Kebutuhan | Target |
+| --- | --- |
+| Waktu muat `/summary` | ≤ 2 detik untuk ±500 pegawai pada lingkungan staging (usulan desain, diverifikasi saat build) |
+| Konsistensi | Angka kontrak dashboard = layar Kontrak (`AT-HRD-PKB-04`) |
+| Privasi | Tidak ada gaji, NIK, kesehatan, atau disiplin di dashboard; nomor lisensi disamarkan |
+| Kegagalan | Tidak menampilkan angka nol palsu saat gagal |
+
+### 42.10 Skenario UAT
+
+| Epic | Jalur berhasil | Jalur gagal |
+| --- | --- | --- |
+| `HRD-124` | Rina membuka Dashboard SDM, melihat 2 SIP habis, mengklik dan membuka Employee 360 dr. Dodi | Server gagal → pesan gagal + Coba lagi; akun tanpa hak tidak melihat butir menu |
+| `HRD-125` | Dodi melihat lamaran IGD Sari menunggu, menandainya Lolos setelah BTCLS diunggah | Pelamar tanpa STR sudah tampil Gugur; Dodi tanpa hak Evaluate tidak melihat tombol |
+| `HRD-126` | Sari (asesor ICU) melihat 2 uji miliknya dan mengirim nilai | Sari membuka uji milik asesor lain → `403`; mengirim nilai uji orang lain → `403` |
+| `HRD-127` | HR Relations melihat SP 1 Budi berstatus Kedaluwarsa dan 1 insiden ditutup tanpa sanksi | Filter status salah → `400` (uji API) |
+| `HRD-128` | HR Relations membuka 360 Budi: SP resmi + catatan lama berlabel | Atasan langsung membuka 360 Budi: "Data disiplin hanya untuk HR."; tautan lama Tindak Disiplin dialihkan |
+| `HRD-129` | Semua butir tampil sesuai hak, `pathname` unik | Tidak ada butir menuju placeholder |
+
+### 42.11 Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| Seluruh `AT-HRD-PKB-01` s.d. `26` (kecuali bagian label `HRD-Q-226`) lulus | Laporan uji task |
+| Angka layar Kontrak sebelum dan sesudah refactor sama | `AT-HRD-PKB-05` |
+| Hak `HrdWorkforceDashboard : Read` dan `CandidateEvaluation : ViewAll` sudah diberikan ke peran yang dibutuhkan di lingkungan uji | Tangkapan Manajemen Role |
+| Uji browser dengan akun positif dan negatif untuk kelima pintu | Laporan `live-browser-testing` |
+| Tidak ada pemanggilan ke `/v1/hr/workforce-profile/disciplinary-actions` | Pencarian source + uji `AT-HRD-PKB-24` |
+| Build backend dan frontend lulus; uji target lulus | Laporan task |
+
+### 42.12 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi |
+| --- | --- |
+| `MVP-72` | Backend: `HRD-128` (360 privasi), `HRD-126` (pembatasan asesor), `HRD-127` (`statuses`) — menutup celah privasi lebih dulu |
+| `MVP-73` | Backend `HRD-124` (dashboard + `ContractRenewalBuckets`); frontend `HRD-125`, `HRD-126`, `HRD-127`, `HRD-128` |
+| `MVP-74` | Frontend `HRD-124` dan `HRD-129` (`FR-PKB-19`) |
+| `POST-MVP` | Radar SPK/RKK milik modul kredensial; penghapusan endpoint tulis `WfpDisciplinaryAction` |
+| Tidak dijadwalkan | `FR-PKB-20` sampai `HRD-Q-226` dijawab |
+
+| Pertanyaan | Pemilik | Memblokir |
+| --- | --- | --- |
+| `HRD-Q-226` — label butir menu disiplin: ganti "Teguran" menjadi "Tindak Disiplin" (rekomendasi) atau bentuk lain | Pengguna | Hanya `FR-PKB-20` |
+| Kueri baca-saja jumlah `WfpDisciplinaryAction` (`HRD-DEC-238` butir 1) | Pengguna (konfirmasi eksekusi) | Tidak memblokir; menentukan beban input ulang manual HR |

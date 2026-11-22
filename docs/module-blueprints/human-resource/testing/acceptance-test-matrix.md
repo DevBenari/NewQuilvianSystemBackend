@@ -1218,3 +1218,43 @@ Dasar: `HRD-DEC-224` s.d. `HRD-DEC-228`. Bukti backend memakai harness `Tests/Qu
 
 Acceptance Paket A belum boleh ditutup `DONE` sampai `AT-HRD-NAV-09` dan
 `AT-HRD-NAV-10` memiliki bukti runtime yang dapat ditelusuri.
+
+---
+
+## 38. Matriks Uji Penerimaan Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v29`, `draft`)
+
+| Field | Nilai |
+| --- | --- |
+| `last_changed_in` | `v29` — 22 November 2026 |
+| Status | `draft` |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `input_revision` | Decision log revision `41` bagian 56 |
+
+| ID | Skenario | Prasyarat | Hasil yang diharapkan | Jenis | Dasar |
+| --- | --- | --- | --- | --- | --- |
+| `AT-HRD-PKB-01` | Ringkasan dashboard | 3 pegawai aktif (1 masuk bulan ini), 1 nonaktif keluar bulan ini | `activeCount = 3`, `newThisMonthCount = 1`, `leftThisMonthCount = 1`, `inactiveCount = 1` | BE integrasi | `HRD-DEC-235` |
+| `AT-HRD-PKB-02` | Distribusi profesi | 2 perawat, 1 dokter, 1 tanpa profesi (semua aktif) | Tiga baris: Perawat 2, Dokter 1, "Belum diisi" 1 | BE | `HRD-DEC-235` |
+| `AT-HRD-PKB-03` | Skorsing tetap aktif | Pegawai aktif dengan skorsing `Active` | Tetap dihitung `activeCount` | BE | `HRD-ASM-90` |
+| `AT-HRD-PKB-04` | Kontrak sama dengan layar Kontrak | Data kontrak uji | Angka `contractExpiry.*` = `renewal-summary` dan `ExpiringSoonCount` | BE | `HRD-DEC-237` |
+| `AT-HRD-PKB-05` | Regresi refactor kelompok kontrak | Data uji yang sama sebelum dan sesudah refactor | `GET employment-contracts/summary` dan `renewal-summary` tidak berubah | BE regresi | 37.9 |
+| `AT-HRD-PKB-06` | Dokumen kedaluwarsa | SIP lewat 2 hari, STR seumur hidup, SPK `Active` sisa 20 hari, SPK `Revoked` sisa 10 hari, sertifikat sisa 45 hari | `EXPIRED` 1 (SIP), `WITHIN_30` 1 (SPK aktif), `DAYS_31_60` 1 (sertifikat); STR seumur hidup dan SPK `Revoked` tidak dihitung | BE | `HRD-DEC-235` |
+| `AT-HRD-PKB-07` | Drill-down | Klik `DOCUMENT_EXPIRY`/`EXPIRED`/`SIP_STR` | Daftar berisi nama pemilik SIP; nomor lisensi hanya 4 karakter terakhir; tanpa gaji/NIK | BE + FE | Permission 33.2 |
+| `AT-HRD-PKB-08` | Validasi drill-down | `panel=PROFESSION&bucket=EXPIRED` | `400` `VR-PKB-02` | BE | `VR-PKB-02` |
+| `AT-HRD-PKB-09` | Hak dashboard | Akun tanpa `HrdWorkforceDashboard : Read` | API `403`; butir menu Dashboard SDM tidak tampil | BE + FE | `VR-PKB-11` |
+| `AT-HRD-PKB-10` | Riwayat Penyelesaian multi-status | Sanksi `Active`, `Expired`, `RevokedOnAppeal` | `statuses=Expired&statuses=RevokedOnAppeal` → dua baris, tanpa `Active` | BE | `HRD-DEC-234` |
+| `AT-HRD-PKB-11` | Validasi status | `statuses=Closed`; lalu `status=Active&statuses=Expired` | `400` `VR-PKB-04`; `400` `VR-PKB-05` | BE | `VR-PKB-04/05` |
+| `AT-HRD-PKB-12` | Layar Riwayat Penyelesaian | Data seperti PKB-10 + 1 insiden `ResolvedNoSanction` | Layar menampilkan 2 sanksi selesai dan 1 insiden ditutup tanpa sanksi, semua baca-saja | FE | `HRD-DEC-234` |
+| `AT-HRD-PKB-13` | 360 untuk HR Relations | Pegawai dengan SP 1 resmi (`EmployeeId` = `MstEmployee.Id`), SP 2 resmi (`EmployeeId` = `WorkforceProfileId`), 1 catatan lama | `disciplinaryRecords` berisi 2 `OFFICIAL` + 1 `LEGACY`; `disciplineHidden = false` | BE | `HRD-DEC-238` |
+| `AT-HRD-PKB-14` | 360 untuk atasan langsung | Akun dengan `HrdEmployee360 : Read` tanpa `ViewSanctions` | `disciplineHidden = true`; kedua daftar kosong; layar menampilkan "Data disiplin hanya untuk HR." | BE + FE | `VR-PKB-09`, `HRD-ASM-91` |
+| `AT-HRD-PKB-15` | Catatan lama baca-saja | Seperti PKB-13 | Baris `LEGACY` tanpa tombol ubah/terbitkan; diberi label "Catatan lama" | FE | `VR-PKB-10` |
+| `AT-HRD-PKB-16` | Seleksi Administrasi | Pelamar Sari: lamaran ICU `Passed`, IGD `Pending` | Layar bawaan menampilkan lamaran IGD; filter "Semua" menampilkan dua baris | FE | `HRD-DEC-236` |
+| `AT-HRD-PKB-17` | Gugur otomatis STR | Lamaran klinis tanpa STR berlaku | Tampil "Gugur" dengan hasil cek STR, tanpa tindakan Recruiter | FE (data existing) | `HRD-DEC-076` |
+| `AT-HRD-PKB-18` | Recruiter melihat semua | Akun dengan `ViewAll`; evaluasi milik 2 penilai berbeda | Kedua evaluasi tampil | BE + FE | `HRD-DEC-233` |
+| `AT-HRD-PKB-19` | Asesor hanya melihat miliknya | Akun asesor tanpa `ViewAll` | Daftar hanya evaluasi `EvaluatorUserId` miliknya | BE | `VR-PKB-07` |
+| `AT-HRD-PKB-20` | Asesor membuka evaluasi lain | Akun asesor, id evaluasi penilai lain | `403` "Evaluasi ini ditugaskan kepada penilai lain." | BE | `VR-PKB-07` |
+| `AT-HRD-PKB-21` | Kirim nilai oleh bukan penilai | Akun dengan `EvaluateClinical` + `ViewAll`, evaluasi milik penilai lain | `403` `VR-PKB-08`; evaluasi tidak berubah | BE | `HRD-ASM-95` |
+| `AT-HRD-PKB-22` | Jalur evaluasi | Evaluasi `HrInterview`, `ClinicalAssessment`, `UserInterview` | `track=HR` → 1 baris; `track=CLINICAL` → 2 baris; `track=X` → `400` | BE | `HRD-ASM-93`, `VR-PKB-06` |
+| `AT-HRD-PKB-23` | Tindak Disiplin | Akun HR Relations | Butir menu membuka daftar sanksi alur resmi; data sama dengan `GET /hrd/disciplinary/sanctions` | FE | `HRD-DEC-230` |
+| `AT-HRD-PKB-24` | Halaman lama dipensiunkan | Buka `/hr/employee-relations/disciplinary-actions` | Dialihkan ke layar Tindak Disiplin; tidak ada panggilan ke `/v1/hr/workforce-profile/disciplinary-actions` | FE | `HRD-DEC-230` butir 2 |
+| `AT-HRD-PKB-25` | Anti-duplikasi menu | Seluruh menu SDM | Setiap `pathname` dan `key` unik; butir Paket B tampil sesuai hak; tidak ada butir menuju placeholder | FE unit (`hr-master-data-sidebar-grouping.test.mjs`) | `HRD-DEC-231`, frontend 33.3 |
+| `AT-HRD-PKB-26` | Keadaan gagal dashboard | API `/summary` gagal | Pesan "Data dashboard gagal dimuat." dan tombol Coba lagi; tidak ada angka nol palsu | FE | `INT-HR-111` |

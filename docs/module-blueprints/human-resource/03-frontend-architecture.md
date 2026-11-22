@@ -3942,3 +3942,170 @@ kontrak global/per-pegawai diputuskan dan diperbaiki melalui task tersendiri.
 Putusan bagian ini adalah **`PARTIAL / VERIFYING`**. Paket A sudah diimplementasikan dan aman
 untuk dilanjutkan ke uji browser/permission, tetapi belum memenuhi syarat `DONE`. Paket B dan
 konflik Tindak Disiplin tidak termasuk implementasi commit ini.
+
+---
+
+## 34. Arsitektur Frontend Amandemen Paket B — Lima Entry Point Menu SDM (kontrak `v29`, 22 November 2026; `draft`)
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | Decision log revision `41` bagian 56; backend bagian 37; kontrak `v29` |
+| Source acuan | Frontend `573b7429c` (branch `HamzahV2`) |
+| Hierarki wewenang | Privasi/invariant (`HRD-DEC-230`, `238`) → keputusan produk (`HRD-DEC-231`, `233`–`237`) → konvensi Paket A (bagian 33.3) → `DEV_DISCRETION` |
+| Status | `draft` |
+
+Paket B melanjutkan aturan Paket A: satu fungsi, satu pintu sidebar; tidak ada butir yang menuju placeholder.
+
+### 34.1 Peta butir menu
+
+```text
+Sumber Daya Manusia                               (root existing, key corporateHumanResource)
+├── Master Data                                   Sudah ada
+├── Dashboard SDM                    -> /hr/dashboard                          BARU
+├── ...
+├── Rekrutmen & Seleksi                           Sudah ada (corporateRecruitmentGroup)
+│   ├── Permintaan Requisition                    Sudah ada
+│   ├── Lowongan                                  Sudah ada
+│   ├── Pelamar                                   Sudah ada
+│   ├── Seleksi Administrasi         -> /hr/recruitment/screenings             BARU
+│   ├── Tes/Wawancara                -> /hr/recruitment/evaluations            BARU
+│   ├── Surat Penawaran (Offer) … Onboarding      Sudah ada
+├── ...
+└── Hubungan Industrial & Terminasi               Sudah ada (corporateEmployeeRelations)
+    ├── Dasbor Hubungan Industrial & Radar        Sudah ada
+    ├── Teguran / Tindak Disiplin    -> /hrd/relations/sanctions               LABEL MENUNGGU HRD-Q-226
+    ├── Pelanggaran                               Sudah ada
+    ├── Riwayat Penyelesaian         -> /hrd/relations/sanctions/history       BARU
+    └── Skorsing … Exit Clearance                 Sudah ada
+```
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+| --- | :---: | --- | --- | --- | --- | --- |
+| Dashboard SDM | 1 | Sumber Daya Manusia | `/hr/dashboard` | `FE-PKB-01` | `HrdWorkforceDashboard : Read` | Baru |
+| Seleksi Administrasi | 2 | Rekrutmen & Seleksi | `/hr/recruitment/screenings` | `FE-PKB-02` | `CandidateScreening : Read` | Baru |
+| Tes/Wawancara | 2 | Rekrutmen & Seleksi | `/hr/recruitment/evaluations` | `FE-PKB-03` | `CandidateEvaluation : Read` | Baru |
+| Tindak Disiplin (label) | 2 | Hubungan Industrial & Terminasi | `/hrd/relations/sanctions` | Layar Sanksi existing | `EmployeeDisciplinary : ViewSanctions` | **OPEN** — `HRD-Q-226` |
+| Riwayat Penyelesaian | 2 | Hubungan Industrial & Terminasi | `/hrd/relations/sanctions/history` | `FE-PKB-04` | `EmployeeDisciplinary : ViewSanctions` | Baru |
+
+Layar anak tanpa butir menu:
+
+| Layar | Jalan masuk |
+| --- | --- |
+| Detail evaluasi `/hr/recruitment/evaluations/hr/[id]` dan `/clinical/[id]` (sudah ada) | Baris pada Tes/Wawancara |
+| Detail kandidat dan berkas penapisan (sudah ada) | Baris pada Seleksi Administrasi |
+| Employee 360 `/hr/employee-360/...` (sudah ada) | Baris daftar nama Dashboard SDM |
+| `/hr/employee-relations/disciplinary-actions` (dipensiunkan) | Tidak ada; route dialihkan ke `/hrd/relations/sanctions` untuk tautan lama |
+
+**Konflik label `HRD-Q-226`.** Invariant Paket A 33.3 butir 1 melarang dua butir menuju `pathname` yang sama. Butir **Teguran** (Paket A) sudah menuju layar Sanksi, padahal `HRD-DEC-230` meminta **Tindak Disiplin** membuka layar yang sama. Rekomendasi desain: butir yang ada diganti labelnya menjadi **Tindak Disiplin**, dan "Teguran" menjadi filter tingkat sanksi (Teguran Lisan) di dalam layar — cara yang sudah diizinkan planning 5.11 ("label, tab, atau filter"). Karena mengubah label Paket A, ini butuh keputusan pemilik; sampai dijawab, butir tetap berlabel **Teguran** dan tidak ada butir kedua.
+
+Urutan butir dan ikon: `DEV_DISCRETION`. `pathname` di atas mengikat; perubahan nama route wajib memperbarui tabel ini.
+
+### 34.2 Skema fitur per layar
+
+**`FE-PKB-01` Dashboard SDM**
+
+```text
++- Dashboard SDM ----------------------------- per 20 Des 2026 [Muat ulang] -+
+| [Pegawai aktif 326] [Masuk bulan ini 4] [Keluar bulan ini 2]              |
++--------------------------------------+------------------------------------+
+| Distribusi Profesi                   | Aktif / Nonaktif                   |
+| Perawat 142 ▸  Dokter 38 ▸ ...       | Aktif 326 ▸   Nonaktif 41 ▸        |
++--------------------------------------+------------------------------------+
+| Kontrak Berakhir (60 hari) 12        | Dokumen Kedaluwarsa 8              |
+| H-60 5 ▸ H-14 3 ▸ H-7 2 ▸            | Sudah habis 2 ▸ ≤30 hari 3 ▸       |
+| Menunggu keputusan 1 ▸ Lewat 1 ▸     | 31–60 2 ▸ 61–90 1 ▸  [Jenis v]     |
++--------------------------------------+------------------------------------+
+| ▸ = klik membuka panel daftar nama (drill-down)                           |
++---------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Endpoint | Hak akses | Kosong / gagal |
+| --- | --- | --- | --- | --- |
+| Kartu ringkasan | `employeeOverview.*` | `GET /workforce-dashboard/summary` | `HrdWorkforceDashboard : Read` | Gagal: "Data dashboard gagal dimuat." [Coba lagi]; tanpa angka nol palsu |
+| Distribusi profesi | `professionDistribution[]` | Idem | Idem | Kosong: "Belum ada pegawai aktif." |
+| Aktif/Nonaktif | `activeStatus.*` | Idem | Idem | — |
+| Kontrak Berakhir | `contractExpiry.*` | Idem | Idem | Kosong: "Tidak ada kontrak yang berakhir dalam 60 hari." |
+| Dokumen Kedaluwarsa | `documentExpiry.*`, filter jenis dari `byType[]` | Idem | Idem | Kosong: "Tidak ada dokumen yang kedaluwarsa dalam 90 hari." |
+| Daftar nama (drill-down) | `employeeCode`, `employeeName`, `professionName`, `detailLabel`, `referenceDate`, `daysRemaining`; baris membuka Employee 360 | `GET /workforce-dashboard/drilldown` | Idem | Kosong: "Tidak ada pegawai pada kelompok ini."; gagal: "Daftar gagal dimuat." [Coba lagi] |
+
+Bentuk panel daftar nama (drawer, modal, atau halaman): `DEV_DISCRETION`. Data dimuat ulang setiap halaman dibuka (`HRD-ASM-89`); tidak di-cache lintas sesi.
+
+**`FE-PKB-02` Seleksi Administrasi**
+
+```text
++- Seleksi Administrasi ------------------------------------------------------+
+| [cari nama pelamar]  [Lowongan v]  [Status: Menunggu v]  [Hasil STR v]      |
++-----------------------------------------------------------------------------+
+| Pelamar | Lowongan | Tgl lamar | Hasil cek STR | Status (chip) | [Periksa]  |
++-----------------------------------------------------------------------------+
+| kosong -> "Tidak ada lamaran yang menunggu penapisan."   [Lihat semua]      |
+| gagal  -> "Data gagal dimuat."                           [Coba lagi]        |
++-----------------------------------------------------------------------------+
+```
+
+| Wilayah | Endpoint | Hak akses | Catatan |
+| --- | --- | --- | --- |
+| Daftar dan filter | `GET /recruitment/screenings` (`status=Pending` bawaan) | `CandidateScreening : Read` | Satu baris per lamaran (`HRD-DEC-236`) |
+| Periksa → tandai Lolos/Gugur | Formulir penapisan existing, `POST /recruitment/screenings/evaluate` | `CandidateScreening : Evaluate` | Tombol disembunyikan tanpa hak; cegah kirim ganda saat menyimpan |
+
+**`FE-PKB-03` Tes/Wawancara**
+
+```text
++- Tes/Wawancara -------------------------------------------------------------+
+| [Wawancara HR | Uji Klinis/Teknis]  [cari kandidat] [Belum dinilai ☐]        |
++-----------------------------------------------------------------------------+
+| Kandidat | Lowongan | Jadwal | Penilai | Rekomendasi (chip) | [Buka]         |
++-----------------------------------------------------------------------------+
+| kosong (asesor) -> "Belum ada uji yang ditugaskan kepada Anda."             |
+| gagal           -> "Data gagal dimuat."                    [Coba lagi]      |
++-----------------------------------------------------------------------------+
+```
+
+| Wilayah | Endpoint | Hak akses | Catatan |
+| --- | --- | --- | --- |
+| Pemisah jalur | `track=HR` / `track=CLINICAL` | `CandidateEvaluation : Read` | Bentuk pemisah (tab/filter): `DEV_DISCRETION` |
+| Daftar | `GET /recruitment/evaluations` | Idem; cakupan penuh dengan `ViewAll` | Kandidat dengan veto klinis tampil "Gagal Asesmen" |
+| Buka | Route detail existing | Idem | `403` ditampilkan sebagai "Evaluasi ini ditugaskan kepada penilai lain." |
+
+**`FE-PKB-04` Riwayat Penyelesaian**
+
+```text
++- Riwayat Penyelesaian ------------------------------------------------------+
+| [cari pegawai]  [Tingkat v]                                                 |
++- Sanksi selesai ------------------------------------------------------------+
+| No. | Pegawai | Tingkat | Terbit | Berlaku s.d. | Status: Kedaluwarsa/Dicabut |
++- Insiden ditutup tanpa sanksi ----------------------------------------------+
+| Pegawai | Klasifikasi Just Culture | Tanggal | Status                       |
++-----------------------------------------------------------------------------+
+| kosong -> "Belum ada kasus yang selesai."                                   |
++-----------------------------------------------------------------------------+
+```
+
+| Wilayah | Endpoint | Hak akses | Catatan |
+| --- | --- | --- | --- |
+| Sanksi selesai | `GET /hrd/disciplinary/sanctions?statuses=Expired&statuses=RevokedOnAppeal` | `EmployeeDisciplinary : ViewSanctions` | Baca-saja; memakai ulang tabel layar Sanksi |
+| Insiden tanpa sanksi | `GET /hrd/disciplinary/incidents?status=ResolvedNoSanction` | `EmployeeDisciplinary : ViewIncidents` | Disembunyikan bila tanpa hak |
+
+**Perubahan Employee 360 (layar existing)** — bagian disiplin memakai `disciplinaryRecords`: baris `OFFICIAL` menampilkan nomor, tingkat, tanggal terbit, berlaku s.d., status; baris `LEGACY` berlabel "Catatan lama", tanpa tombol. Bila `disciplineHidden = true`: tampilkan "Data disiplin hanya untuk HR." (bukan daftar kosong).
+
+**Layar Sanksi existing** — mulai mengirim parameter `status` dari filter Status yang sudah ada di tabel (`SANCTION_STATUS`), agar Tindak Disiplin dapat difilter Aktif.
+
+### 34.3 Berkas frontend
+
+| Berkas | Status |
+| --- | --- |
+| `src/utils/menu-sidebar/menu-items.jsx` | Diperbarui (4 butir baru; label disiplin menunggu `HRD-Q-226`) |
+| `src/app/hr/dashboard/page.jsx` + view Dashboard SDM | Baru |
+| `src/lib/services/hr/workforce-dashboard-service.js` | Baru |
+| `src/app/hr/recruitment/screenings/page.jsx` + view daftar penapisan | Baru (memakai `recruitment-service.js` existing) |
+| `src/app/hr/recruitment/evaluations/page.jsx` + view daftar evaluasi | Baru |
+| `src/lib/services/hr/recruitment-service.js` | Diperbarui (param `track`, `pendingOnly`) |
+| `src/app/(dashboard)/hrd/relations/sanctions/history/page.jsx` + view | Baru |
+| `src/lib/services/hr/employee-relation-service.js` | Diperbarui (param `statuses`, `status`) |
+| `src/components/view/hrd/relations/relations-sanctions-view.jsx` | Diperbarui (kirim `status`) |
+| `src/components/view/hr/workforce-core/employee-360-view.jsx` | Diperbarui (`disciplinaryRecords`, `disciplineHidden`) |
+| `src/app/hr/employee-relations/disciplinary-actions/page.jsx` | Diperbarui → pengalihan ke `/hrd/relations/sanctions` |
+| `src/components/view/hr/employee-relations/disciplinary-action-view.jsx`, `src/lib/services/hr/employee-relations-service.js` | Dihapus setelah tidak ada pemakai |
+| `tests/unit/hr-master-data-sidebar-grouping.test.mjs` | Diperbarui (`AT-HRD-PKB-25`) |
+
+Semua route baru yang berada di `/hr/...` mengikuti pola App Router dan base component yang dipakai layar HR existing; component library dan rupa: `DEV_DISCRETION`.
