@@ -83,7 +83,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public PayrollComponentDefaultFilterResponse DefaultFilter { get; set; } = new();
-        public List<PayrollMasterStringOptionResponse> ComponentTypeOptions { get; set; } = new();
         public List<PayrollMasterStringOptionResponse> CalculationMethodOptions { get; set; } = new();
         public List<PayrollMasterCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<PayrollMasterSortOptionResponse> SortOptions { get; set; } = new();
@@ -97,7 +96,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public DateTime? EndDate { get; set; }
         public string? CustomPeriod { get; set; }
         public Guid? PayrollComponentCategoryId { get; set; }
-        public string? ComponentType { get; set; }
         public string? CalculationMethod { get; set; }
         public bool? IsRecurring { get; set; }
         public bool? IsTaxable { get; set; }
@@ -115,15 +113,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [Required]
         public Guid PayrollComponentCategoryId { get; set; }
 
+        /// <summary>
+        /// Tidak lagi input pengguna (PAY-BE-FIX-024). Nilai pada request DIABAIKAN: komponen baru tidak membuat relasi komponen dasar, dan
+        /// pada pembaruan relasi yang sudah tersimpan dibiarkan apa adanya. Properti dipertahankan agar klien lama tidak gagal.
+        /// </summary>
         public Guid? BaseComponentId { get; set; }
 
         [Required]
         [MaxLength(150)]
         public string PayrollComponentName { get; set; } = string.Empty;
 
-        [Required]
+        /// <summary>
+        /// Tidak lagi dipilih pengguna (PAY-BE-FIX-023): tipe teknis komponen diturunkan backend dari kategori. Boleh dikirim klien
+        /// lama; bila terisi dan bertentangan dengan tipe hasil turunan, permintaan ditolak (bukan diam-diam ditimpa).
+        /// </summary>
         [MaxLength(50)]
-        public string ComponentType { get; set; } = "Earning";
+        public string? ComponentType { get; set; }
 
         [Required]
         [MaxLength(50)]

@@ -90,6 +90,15 @@ public sealed class PayrollSimulationTaxResponse
     /// <summary>PPh yang ditanggung pemberi kerja (metode Net); tidak mengurangi gaji bersih.</summary>
     public decimal EmployerBorneAmount { get; set; }
 
+    /// <summary>Masa pajak yang disimulasikan dan apakah itu masa pajak terakhir (rekonsiliasi tahunan). Aditif; null pada snapshot yang tidak memuatnya.</summary>
+    public int? TaxYear { get; set; }
+    public int? TaxMonth { get; set; }
+    public bool IsLastTaxPeriod { get; set; }
+
+    /// <summary>
+    /// True hanya pada masa pajak terakhir dan skema kumulatif. False pada TER bulanan: bulan di <see cref="YtdMissingMonths"/> pada keadaan itu hanya
+    /// informasi kesiapan rekonsiliasi akhir tahun dan tidak menahan hasil periode ini.
+    /// </summary>
     public bool YtdRequired { get; set; }
     public List<int> YtdCoveredMonths { get; set; } = new();
     public List<int> YtdMissingMonths { get; set; } = new();

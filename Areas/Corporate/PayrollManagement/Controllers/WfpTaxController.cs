@@ -914,6 +914,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             if (configurationErrors.Count > 0)
                 return (false, string.Join(" ", configurationErrors));
 
+            // PAY-BE-FIX-015: nominal manual adalah pengecualian terkontrol untuk masa pajak tertentu (mis. masa pajak terakhir tanpa riwayat), bukan
+            // tetapan permanen. Tanpa batas masa berlaku, nominal yang sama akan dipakai lagi pada periode berikutnya (mis. Januari tahun depan).
+            if (PayrollTaxInsuranceRules.NormalizeCode(request.CalculationMode) == TaxCalculationModes.ApprovedManualAmount
+                && (!request.EffectiveStartDate.HasValue || !request.EffectiveEndDate.HasValue))
+            {
+                return (false, "Nominal PPh manual wajib dibatasi masa berlakunya: isi tanggal mulai dan tanggal berakhir yang mencakup masa pajak yang dimaksud. Nominal tidak boleh berlaku tanpa batas waktu.");
+            }
+
             var npwpNumber = NormalizeNullableText(request.NpwpNumber);
             if (npwpNumber != null &&
                 await _dbContext.Set<PrlTax>().AnyAsync(

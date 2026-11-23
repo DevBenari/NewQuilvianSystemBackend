@@ -585,18 +585,28 @@ public static class PayrollTaxInsuranceRules
 
         var amount = Round(cfg.ApprovedManualAmount ?? 0m);
         var resultKind = amount > 0m ? PayrollComponentResultStatuses.Calculated : PayrollComponentResultStatuses.ValidZero;
+
+        // PAY-BE-FIX-015: konfigurasi lama yang disetujui tanpa batas masa berlaku tetap dipakai (tidak menahan payroll yang sudah berjalan),
+        // tetapi diberi peringatan: nominal yang sama akan terpakai lagi pada periode berikutnya sampai tanggal berakhir diisi.
+        var manualWarnings = new List<string>();
+        if (!cfg.EffectiveEndDate.HasValue)
+            manualWarnings.Add("Nominal PPh manual ini tidak dibatasi tanggal berakhir, sehingga akan dipakai lagi pada periode berikutnya. Isi tanggal berakhir yang mencakup masa pajak yang dimaksud (perubahan memerlukan persetujuan ulang).");
+
         if (string.Equals(method, TaxMethodKinds.Net, StringComparison.OrdinalIgnoreCase))
         {
+            if (amount > 0m) manualWarnings.Add(NetEmployerBorneWarning);
             return Result(
                 resultKind,
                 amount > 0m ? TaxTreatments.EmployerBorne : TaxTreatments.None,
                 0m,
                 amount,
-                amount > 0m ? new[] { NetEmployerBorneWarning } : null)
+                manualWarnings.Count > 0 ? manualWarnings.ToArray() : null)
                 with { ManualAmountApprovalStatus = cfg.ManualAmountApprovalStatus };
         }
 
-        return Result(resultKind, amount > 0m ? TaxTreatments.EmployeeDeduction : TaxTreatments.None, amount, 0m)
+        return Result(
+            resultKind, amount > 0m ? TaxTreatments.EmployeeDeduction : TaxTreatments.None, amount, 0m,
+            manualWarnings.Count > 0 ? manualWarnings.ToArray() : null)
             with { ManualAmountApprovalStatus = cfg.ManualAmountApprovalStatus };
     }
 

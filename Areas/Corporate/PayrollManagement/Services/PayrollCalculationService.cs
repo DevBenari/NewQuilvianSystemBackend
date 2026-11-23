@@ -58,7 +58,7 @@ public sealed class PayrollCalculationService
     };
 
     /// <summary>Status payroll run yang hasilnya final dan dihitung sebagai akumulasi PPh tahun berjalan (tanpa Reversed dan Cancelled).</summary>
-    private static readonly string[] AccumulatedRunStatuses =
+    internal static readonly string[] AccumulatedRunStatuses =
     {
         PayrollRunStatuses.Approved, PayrollRunStatuses.SentToFinance, PayrollRunStatuses.PartiallyPaid,
         PayrollRunStatuses.Paid, PayrollRunStatuses.Posted, PayrollRunStatuses.Closed
@@ -669,6 +669,15 @@ public sealed class PayrollCalculationService
             workforceAllowances, salarySegments, coveringAssignment, structureTypeIds, employee.CurrencyCode,
             windowStart, windowEnd, totalDays, errors, warnings);
         if (errors.Count > 0) return;
+
+        // Pagar pembayaran ganda (PAY-BE-FIX-022): Transportasi dibayar dari SATU sumber. Bila pegawai punya tunjangan transport bulanan
+        // di jalur lama (PrlTransportAllowance) sekaligus penetapan Transportasi berbasis kebijakan umum, hitungan pegawai ini digagalkan
+        // dengan pesan yang jelas; tidak ada yang dipilih diam-diam dan tidak ada yang dibayar dua kali.
+        if (transportLines.Count > 0 && workforceLines.Any(l => l.IsTransportFromPolicy))
+        {
+            errors.Add("Pegawai punya tunjangan transportasi dari dua sumber (Kelola Transportasi lama dan Tunjangan Pegawai berbasis kebijakan) pada periode yang sama. Nonaktifkan salah satunya.");
+            return;
+        }
         var workforceAmount = workforceLines.Sum(l => l.Amount);
 
         // ---- Kehadiran dan lembur (snapshot HRD) ----
@@ -1195,7 +1204,7 @@ public sealed class PayrollCalculationService
     /// <summary>Satu baris hasil tunjangan khusus pegawai sebelum di-upsert sebagai komponen PAY_WORKFORCE_ALLOWANCE.</summary>
     private sealed record WorkforceAllowanceLine(
         Guid SourceId, Guid AllowanceTypeId, string Name, decimal Amount, decimal MonthlyAmount, bool Taxable, bool Prorated,
-        string Formula, object Detail);
+        string Formula, object Detail, bool IsTransportFromPolicy = false);
 
     /// <summary>
     /// Tunjangan khusus pegawai (PrlWorkforceAllowance, Approved dan berlaku di periode). Nilai sebulan = nominal tetap, atau gaji pokok
@@ -1236,7 +1245,10 @@ public sealed class PayrollCalculationService
                 warnings.Add($"Tunjangan {name} sudah dihitung dari Struktur Gaji, jadi penetapan khusus pegawai tidak dihitung dua kali.");
                 continue;
             }
-            if (string.Equals(type.AllowanceCategory, "Transport", StringComparison.OrdinalIgnoreCase))
+            // Transportasi dari penetapan berbasis Kebijakan Tunjangan umum (PAY-BE-FIX-022) dibayar di sini. Penetapan Transport dari sumber
+            // lain tetap dilewati: jalur lamanya (PrlTransportAllowance) yang membayarnya, sehingga tidak terjadi perhitungan ganda.
+            if (string.Equals(type.AllowanceCategory, "Transport", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(allowance.AssignmentSource, WorkforceAllowanceAssignmentSources.Policy, StringComparison.Ordinal))
             {
                 warnings.Add($"Tunjangan {name} dilewati dari Tunjangan Pegawai karena dikelola melalui Kebijakan Transportasi agar tidak terjadi perhitungan ganda.");
                 continue;
@@ -1338,6 +1350,11 @@ public sealed class PayrollCalculationService
                 Detail: new
                 {
                     source = "PrlWorkforceAllowance",
+                    // Provenance (PAY-BE-FIX-022): dari mana nilai ini berasal. Kosong untuk penetapan langsung (Direct).
+                    assignmentSource = allowance.AssignmentSource,
+                    allowancePolicyId = allowance.AllowancePolicyId,
+                    allowancePolicyGradeRateId = allowance.AllowancePolicyGradeRateId,
+                    salaryGradeId = allowance.SalaryGradeId,
                     allowanceTypeId = allowance.AllowanceTypeId,
                     calculationMethod = allowance.CalculationMethod,
                     percentage = isPercentage ? allowance.Percentage : (decimal?)null,
@@ -1347,7 +1364,8 @@ public sealed class PayrollCalculationService
                     endDate = end,
                     days,
                     totalDays
-                }));
+                },
+                IsTransportFromPolicy: string.Equals(allowance.AllowanceType?.AllowanceCategory, "Transport", StringComparison.OrdinalIgnoreCase)));
         }
 
         return result.OrderBy(l => l.Name, StringComparer.Ordinal).ThenBy(l => l.SourceId).ToList();

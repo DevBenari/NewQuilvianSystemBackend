@@ -35,7 +35,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 /// Penulisan berjalan di transaksi Serializable dengan advisory lock per pegawai, sehingga dua permintaan bersamaan (klik ganda,
 /// dua petugas) tidak dapat sama-sama lolos pemeriksaan tumpang-tindih. Nominal dan persen tidak pernah ditulis ke log.
 /// </summary>
-public sealed class PayrollWorkforceAllowanceService
+public sealed partial class PayrollWorkforceAllowanceService
 {
     private const string LogCategory = "Corporate.PayrollManagement.WorkforceAllowance";
     private const int MaxPageSize = 100;
@@ -93,7 +93,8 @@ public sealed class PayrollWorkforceAllowanceService
         string? Notes,
         bool IsActive,
         DateTime CreateDateTime,
-        DateTime? UpdateDateTime);
+        DateTime? UpdateDateTime,
+        string AssignmentSource);
 
     private sealed record SalaryBasis(
         Guid AssignmentId, Guid SalaryStructureId, decimal BaseSalary, bool Approved, DateTime EffectiveStartDate, DateTime? EffectiveEndDate);
@@ -234,6 +235,9 @@ public sealed class PayrollWorkforceAllowanceService
                 throw new ArgumentException("Jenis tunjangan tidak dapat diganti. Nonaktifkan penetapan ini lalu buat penetapan baru.");
             if (entity.AllowanceStatus == WorkforceAllowanceStatuses.Inactive)
                 throw new PayrollInvalidTransitionException("Penetapan yang sudah dinonaktifkan tidak dapat diubah.");
+            if (entity.AssignmentSource == WorkforceAllowanceAssignmentSources.Policy)
+                throw new PayrollInvalidTransitionException(
+                    "Penetapan dari Kebijakan Tunjangan tidak dapat diubah nilainya. Nonaktifkan lalu tetapkan ulang dari kebijakan.");
             if (await IsUsedInPayrollAsync(entity.Id, cancellationToken))
                 throw new PayrollInvalidTransitionException(
                     "Penetapan ini sudah dipakai payroll run, jadi isinya tidak dapat diubah. Nonaktifkan lalu buat penetapan baru.");
@@ -479,7 +483,8 @@ public sealed class PayrollWorkforceAllowanceService
                 x.Notes,
                 x.IsActive,
                 x.CreateDateTime,
-                x.UpdateDateTime))
+                x.UpdateDateTime,
+                x.AssignmentSource))
             .ToListAsync(cancellationToken);
 
     /// <summary>Penetapan yang pernah menjadi komponen payroll run (apa pun status run-nya): isinya dikunci.</summary>
@@ -652,7 +657,10 @@ public sealed class PayrollWorkforceAllowanceService
         var isPercentage = row.CalculationMethod == SalaryStructureAllowanceCalculationMethods.PercentageOfBaseSalary;
         var approvedBase = salary is { Approved: true } ? (decimal?)salary.BaseSalary : null;
         var inactive = row.Status == WorkforceAllowanceStatuses.Inactive;
-        var editable = !used && !inactive;
+        // Penetapan berbasis kebijakan (PAY-BE-FIX-022) nilainya milik kebijakan dan tarif Grade Gaji; tidak ada jalan mengubah nominalnya
+        // per pegawai. Untuk menggantinya: nonaktifkan, lalu tetapkan ulang dari kebijakan.
+        var fromPolicy = row.AssignmentSource == WorkforceAllowanceAssignmentSources.Policy;
+        var editable = !used && !inactive && !fromPolicy;
 
         // Alasan baris belum/tidak dibayarkan mesin payroll, diturunkan dari data (bukan dikarang): status, tanggal efektif, dan gaji pokok.
         var notPayableReason = row.Status switch
@@ -687,7 +695,7 @@ public sealed class PayrollWorkforceAllowanceService
         {
             Id = row.Id,
             SourceType = WorkforceAllowanceSourceTypes.Individual,
-            SourceLabel = "Khusus Pegawai",
+            SourceLabel = fromPolicy ? "Dari Kebijakan" : "Khusus Pegawai",
             AllowanceTypeId = row.AllowanceTypeId,
             AllowanceTypeCode = row.TypeCode,
             AllowanceTypeName = row.TypeName,
@@ -718,6 +726,7 @@ public sealed class PayrollWorkforceAllowanceService
             NotPayableReason = notPayableReason,
             LockReason = used ? "Sudah dipakai payroll run. Nonaktifkan lalu buat penetapan baru untuk mengubahnya."
                 : inactive ? "Penetapan ini sudah dinonaktifkan."
+                : fromPolicy ? "Nilai penetapan ini mengikuti Kebijakan Tunjangan. Nonaktifkan lalu tetapkan ulang dari kebijakan untuk mengubahnya."
                 : null,
             AvailableActions = actions,
             RowVersion = PayrollVersionToken.From(row.CreateDateTime, row.UpdateDateTime)

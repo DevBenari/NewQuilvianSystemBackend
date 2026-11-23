@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -75,14 +76,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             var result = new PayrollComponentFilterMetadataResponse
             {
                 DefaultFilter = new PayrollComponentDefaultFilterResponse(),
-                ComponentTypeOptions = AllowedComponentTypes
-                    .OrderBy(x => x)
-                    .Select(x => new PayrollMasterStringOptionResponse
-                    {
-                        Value = x,
-                        Label = BuildComponentTypeLabel(x)
-                    })
-                    .ToList(),
                 CalculationMethodOptions = AllowedCalculationMethods
                     .OrderBy(x => x)
                     .Select(x => new PayrollMasterStringOptionResponse
@@ -98,7 +91,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     new() { Value = "payrollComponentCode", Label = "Kode komponen" },
                     new() { Value = "payrollComponentName", Label = "Nama komponen" },
                     new() { Value = "categoryName", Label = "Kategori" },
-                    new() { Value = "componentType", Label = "Tipe komponen" },
                     new() { Value = "sortOrder", Label = "Urutan" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
@@ -418,10 +410,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             {
                 Id = Guid.NewGuid(),
                 PayrollComponentCategoryId = request.PayrollComponentCategoryId,
-                BaseComponentId = NormalizeGuid(request.BaseComponentId),
+                // PAY-BE-FIX-024: komponen baru tidak membuat relasi komponen dasar; request.BaseComponentId diabaikan.
+                BaseComponentId = null,
                 PayrollComponentCode = await GenerateCodeAsync(),
                 PayrollComponentName = request.PayrollComponentName.Trim(),
-                ComponentType = NormalizeComponentType(request.ComponentType),
+                // Tipe teknis berasal dari kategori (PAY-BE-FIX-023), bukan dari klien.
+                ComponentType = validation.ComponentType,
                 CalculationMethod = NormalizeCalculationMethod(request.CalculationMethod),
                 FormulaExpression = NormalizeNullableString(request.FormulaExpression),
                 DefaultAmount = request.DefaultAmount,
@@ -489,7 +483,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     "Payroll component tidak ditemukan."));
             }
 
-            var validation = await ValidateRequestAsync(id, request);
+            var validation = await ValidateRequestAsync(entity, request);
 
             if (!validation.IsValid)
             {
@@ -499,9 +493,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             }
 
             entity.PayrollComponentCategoryId = request.PayrollComponentCategoryId;
-            entity.BaseComponentId = NormalizeGuid(request.BaseComponentId);
+            // PAY-BE-FIX-024: BaseComponentId pada entity TIDAK disentuh; relasi historis dipertahankan walau klien tidak mengirimnya.
             entity.PayrollComponentName = request.PayrollComponentName.Trim();
-            entity.ComponentType = NormalizeComponentType(request.ComponentType);
+            entity.ComponentType = validation.ComponentType;
             entity.CalculationMethod = NormalizeCalculationMethod(request.CalculationMethod);
             entity.FormulaExpression = NormalizeNullableString(request.FormulaExpression);
             entity.DefaultAmount = request.DefaultAmount;
@@ -735,76 +729,117 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             };
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
-            Guid? excludeId,
+        private sealed record ComponentValidationResult(bool IsValid, string? ErrorMessage, string ComponentType)
+        {
+            public static ComponentValidationResult Fail(string message) => new(false, message, string.Empty);
+        }
+
+        private static bool SameText(string? left, string? right) =>
+            string.Equals((left ?? string.Empty).Trim(), (right ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Validasi komponen. <paramref name="existing"/> null pada pembuatan. PAY-BE-FIX-023: ComponentType TIDAK lagi diminta dari
+        /// pengguna; diturunkan dari ComponentGroup kategori. Kombinasi lama yang sudah tidak selaras dipertahankan apa adanya selama
+        /// kategorinya tidak diganti (tidak ada konversi otomatis data legacy).
+        /// </summary>
+        private async Task<ComponentValidationResult> ValidateRequestAsync(
+            MstPayrollComponent? existing,
             CreatePayrollComponentRequest request)
         {
+            var excludeId = existing?.Id;
+
             if (request.PayrollComponentCategoryId == Guid.Empty)
-                return (false, "Payroll component category wajib dipilih.");
+                return ComponentValidationResult.Fail("Payroll component category wajib dipilih.");
 
             if (string.IsNullOrWhiteSpace(request.PayrollComponentName))
-                return (false, "Nama payroll component wajib diisi.");
+                return ComponentValidationResult.Fail("Nama payroll component wajib diisi.");
 
-            if (!AllowedComponentTypes.Contains(request.ComponentType.Trim()))
-                return (false, "ComponentType tidak valid.");
+            if (!string.IsNullOrWhiteSpace(request.ComponentType)
+                && !AllowedComponentTypes.Contains(request.ComponentType.Trim()))
+                return ComponentValidationResult.Fail("ComponentType tidak valid.");
 
             if (!AllowedCalculationMethods.Contains(request.CalculationMethod.Trim()))
-                return (false, "CalculationMethod tidak valid.");
+                return ComponentValidationResult.Fail("CalculationMethod tidak valid.");
 
             if (request.DefaultAmount < 0 || request.DefaultPercentage < 0)
-                return (false, "Default amount dan default percentage tidak boleh negatif.");
+                return ComponentValidationResult.Fail("Default amount dan default percentage tidak boleh negatif.");
 
             if (request.DefaultPercentage > 100)
-                return (false, "Default percentage tidak boleh lebih dari 100.");
+                return ComponentValidationResult.Fail("Default percentage tidak boleh lebih dari 100.");
 
             if (request.CalculationMethod.Equals("Formula", StringComparison.OrdinalIgnoreCase) &&
                 string.IsNullOrWhiteSpace(request.FormulaExpression))
             {
-                return (false, "FormulaExpression wajib diisi untuk calculation method Formula.");
+                return ComponentValidationResult.Fail("FormulaExpression wajib diisi untuk calculation method Formula.");
             }
 
             if (request.EffectiveStartDate.HasValue &&
                 request.EffectiveEndDate.HasValue &&
                 request.EffectiveEndDate.Value.Date < request.EffectiveStartDate.Value.Date)
             {
-                return (false, "EffectiveEndDate tidak boleh lebih kecil dari EffectiveStartDate.");
+                return ComponentValidationResult.Fail("EffectiveEndDate tidak boleh lebih kecil dari EffectiveStartDate.");
             }
 
-            var categoryExists = await _dbContext.Set<MstPayrollComponentCategory>()
+            var category = await _dbContext.Set<MstPayrollComponentCategory>()
                 .AsNoTracking()
-                .AnyAsync(x =>
+                .Where(x =>
                     x.Id == request.PayrollComponentCategoryId &&
                     x.IsActive &&
-                    !x.IsDelete);
+                    !x.IsDelete)
+                .Select(x => new { x.ComponentCategoryName, x.ComponentGroup })
+                .FirstOrDefaultAsync();
 
-            if (!categoryExists)
-                return (false, "Payroll component category tidak ditemukan atau tidak aktif.");
+            if (category == null)
+                return ComponentValidationResult.Fail("Payroll component category tidak ditemukan atau tidak aktif.");
 
-            var baseComponentId = NormalizeGuid(request.BaseComponentId);
+            var categoryChanged = existing == null || existing.PayrollComponentCategoryId != request.PayrollComponentCategoryId;
 
-            if (baseComponentId.HasValue)
+            // Komponen baru (atau yang dipindah kategori) hanya boleh memakai lima kategori operasional. Kategori legacy tetap
+            // dibaca dan tetap dipakai komponen yang sudah ada selama tidak diganti.
+            if (categoryChanged && !PayrollComponentCategoryCatalog.IsOperational(category.ComponentCategoryName, category.ComponentGroup))
             {
-                if (excludeId.HasValue && baseComponentId.Value == excludeId.Value)
-                    return (false, "Payroll component tidak dapat menjadi base component untuk dirinya sendiri.");
+                return ComponentValidationResult.Fail(
+                    $"Kategori {category.ComponentCategoryName} bukan kategori komponen operasional. Pilih Gaji Pokok, Tunjangan, Insentif, Potongan, atau Bonus.");
+            }
 
-                var baseExists = await _dbContext.Set<MstPayrollComponent>()
-                    .AsNoTracking()
-                    .AnyAsync(x =>
-                        x.Id == baseComponentId.Value &&
-                        x.IsActive &&
-                        !x.IsDelete);
+            var categoryGroup = (category.ComponentGroup ?? string.Empty).Trim();
+            var componentType = !categoryChanged && existing != null && !SameText(existing.ComponentType, categoryGroup)
+                ? existing.ComponentType
+                : categoryGroup;
 
-                if (!baseExists)
-                    return (false, "Base component tidak ditemukan atau tidak aktif.");
+            if (!AllowedComponentTypes.Contains(componentType))
+                return ComponentValidationResult.Fail($"Kelompok teknis kategori {category.ComponentCategoryName} tidak dikenali.");
 
-                if (excludeId.HasValue)
+            if (!string.IsNullOrWhiteSpace(request.ComponentType) && !SameText(request.ComponentType, componentType))
+            {
+                return ComponentValidationResult.Fail(
+                    $"Tipe komponen mengikuti kategori {category.ComponentCategoryName} dan tidak dapat ditentukan dari permintaan.");
+            }
+
+            var typeChanged = existing != null && !SameText(existing.ComponentType, componentType);
+
+            if (typeChanged && existing != null)
+            {
+                // Mengganti kategori yang mengubah tipe komponen mengubah makna komponen bagi pihak yang memakainya.
+                var usedByTypes =
+                    await _dbContext.Set<MstAllowanceType>().AsNoTracking()
+                        .AnyAsync(x => x.PayrollComponentId == existing.Id && !x.IsDelete) ||
+                    await _dbContext.Set<MstDeductionType>().AsNoTracking()
+                        .AnyAsync(x => x.PayrollComponentId == existing.Id && !x.IsDelete);
+
+                if (usedByTypes)
                 {
-                    var createsCycle = await CreatesCircularReferenceAsync(
-                        excludeId.Value,
-                        baseComponentId.Value);
+                    return ComponentValidationResult.Fail(
+                        "Kategori tidak dapat diganti ke kategori bertipe berbeda karena komponen sudah dipakai oleh Jenis Tunjangan atau Jenis Potongan.");
+                }
 
-                    if (createsCycle)
-                        return (false, "Base component membentuk relasi berulang.");
+                var conflictingChildren = await _dbContext.Set<MstPayrollComponent>().AsNoTracking()
+                    .AnyAsync(x => x.BaseComponentId == existing.Id && !x.IsDelete && x.ComponentType != componentType);
+
+                if (conflictingChildren)
+                {
+                    return ComponentValidationResult.Fail(
+                        "Kategori tidak dapat diganti ke kategori bertipe berbeda karena masih ada komponen turunan dengan tipe yang berbeda.");
                 }
             }
 
@@ -821,36 +856,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 duplicateQuery = duplicateQuery.Where(x => x.Id != excludeId.Value);
 
             if (await duplicateQuery.AnyAsync())
-                return (false, "Nama payroll component sudah digunakan pada kategori tersebut.");
+                return ComponentValidationResult.Fail("Nama payroll component sudah digunakan pada kategori tersebut.");
 
-            return (true, null);
-        }
-
-        private async Task<bool> CreatesCircularReferenceAsync(
-            Guid currentId,
-            Guid proposedBaseId)
-        {
-            var visited = new HashSet<Guid>();
-            var cursor = proposedBaseId;
-
-            while (cursor != Guid.Empty && visited.Add(cursor))
-            {
-                if (cursor == currentId)
-                    return true;
-
-                var parentId = await _dbContext.Set<MstPayrollComponent>()
-                    .AsNoTracking()
-                    .Where(x => x.Id == cursor && !x.IsDelete)
-                    .Select(x => x.BaseComponentId)
-                    .FirstOrDefaultAsync();
-
-                if (!parentId.HasValue)
-                    return false;
-
-                cursor = parentId.Value;
-            }
-
-            return false;
+            return new ComponentValidationResult(true, null, componentType);
         }
 
         private async Task<string> GenerateCodeAsync()
@@ -875,24 +883,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 : Guid.Empty;
         }
 
-        private static Guid? NormalizeGuid(Guid? value)
-        {
-            return !value.HasValue || value.Value == Guid.Empty
-                ? null
-                : value.Value;
-        }
-
         private static string? NormalizeNullableString(string? value)
         {
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
-        }
-
-        private static string NormalizeComponentType(string value)
-        {
-            return AllowedComponentTypes.First(x =>
-                x.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
         private static string NormalizeCalculationMethod(string value)
@@ -974,18 +969,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 new() { Value = "last7days", Label = "7 hari terakhir" },
                 new() { Value = "thismonth", Label = "Bulan ini" },
                 new() { Value = "lastmonth", Label = "Bulan lalu" }
-            };
-        }
-
-        private static string BuildComponentTypeLabel(string value)
-        {
-            return value switch
-            {
-                "Earning" => "Pendapatan",
-                "Deduction" => "Potongan",
-                "EmployerContribution" => "Kontribusi Pemberi Kerja",
-                "Information" => "Informasi",
-                _ => value
             };
         }
 

@@ -359,6 +359,13 @@ public static class PayrollTaxPolicyEngine
 
         if (!input.IsLastTaxPeriod)
         {
+            // PAY-BE-FIX-015: kesiapan riwayat untuk rekonsiliasi masa pajak terakhir dicatat sebagai INFORMASI. TER bulanan tidak membacanya,
+            // sehingga bulan yang belum tercakup di sini tidak pernah menjadi penahan perhitungan periode ini (ytdRequired = false).
+            detail["ytdCoveredMonths"] = input.Ytd.CoveredMonths;
+            detail["ytdOpeningBalanceMonths"] = input.Ytd.OpeningBalanceMonths;
+            detail["ytdMissingMonths"] = input.Ytd.MissingMonths;
+            detail["ytdOpeningBalanceFeatureAvailable"] = input.Ytd.OpeningBalanceFeatureAvailable;
+
             var rate = LookupTerRate(policy, ptkp.TerCategory, TaxTerPeriodKinds.Monthly, gross);
             if (rate is null)
                 return PayrollTaxComputation.Blocked(
