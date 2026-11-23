@@ -80,7 +80,7 @@ $ rg -n "className=.*(?:bg-|text-|p-|m-|flex|grid)" src/components/view/hrd/rela
 
 | Layar | Screenshot | Catatan perbandingan dengan referensi |
 | --- | --- | --- |
-| `/hrd/relations/sanctions` | `QuilvianSystemFrontendDev/test-results/human-resource-package-b/FE-HRD-395-status-filter.png` | Filter Status menyatu dengan filter Tingkat existing. |
+| `/hrd/relations/sanctions` | `test-with-agy/hr-paket-b-1123/FE-HRD-395-status-filter.png` | Filter Status menyatu dengan filter Tingkat existing. Screenshot dibuat ulang 23 November 2026 saat regresi seluruh spec Paket B (15/15, laporan `FE-HRD-400`); salinan lama di `test-results/` terhapus oleh run Playwright berikutnya. |
 
 ---
 

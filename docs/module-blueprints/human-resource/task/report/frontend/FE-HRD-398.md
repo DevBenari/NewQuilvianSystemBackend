@@ -76,7 +76,7 @@ OK — 1 berkas diperiksa, 0 temuan.
 
 | Layar | Screenshot | Catatan |
 | --- | --- | --- |
-| `/hrd/relations/sanctions/history` | `QuilvianSystemFrontendDev/test-results/human-resource-package-b/FE-HRD-398-riwayat-penyelesaian.png` | Dua panel tanpa kolom aksi. |
+| `/hrd/relations/sanctions/history` | `test-with-agy/hr-paket-b-1123/FE-HRD-398-riwayat-penyelesaian.png` | Dua panel tanpa kolom aksi. Screenshot dibuat ulang 23 November 2026 saat regresi seluruh spec Paket B (15/15, laporan `FE-HRD-400`); salinan lama di `test-results/` terhapus oleh run Playwright berikutnya. |
 
 ---
 

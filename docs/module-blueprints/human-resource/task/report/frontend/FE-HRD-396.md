@@ -80,7 +80,7 @@ OK — 3 berkas diperiksa, 0 temuan.
 
 | Layar | Screenshot | Catatan perbandingan dengan referensi |
 | --- | --- | --- |
-| `/hr/recruitment/screenings` | `QuilvianSystemFrontendDev/test-results/human-resource-package-b/FE-HRD-396-seleksi-administrasi.png` | Komposisi dan token setara halaman daftar Rekrutmen existing. |
+| `/hr/recruitment/screenings` | `test-with-agy/hr-paket-b-1123/FE-HRD-396-seleksi-administrasi.png` | Komposisi dan token setara halaman daftar Rekrutmen existing. Screenshot dibuat ulang 23 November 2026 saat regresi seluruh spec Paket B (15/15, laporan `FE-HRD-400`); salinan lama di `test-results/` terhapus oleh run Playwright berikutnya. |
 
 ---
 
