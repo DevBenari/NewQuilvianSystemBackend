@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Models;
 using QuilvianSystemBackend.Repositories;
@@ -113,6 +115,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 .Where(a => a.BusinessTravelRequestId == travel.Id && a.AdvanceStatus == "Paid")
                 .OrderByDescending(a => a.PaidAt)
                 .FirstOrDefaultAsync();
+
+            // VR-TRV-31 (kontrak v28): settlement hanya untuk SPPD yang sudah disetujui, kecuali SPPD lama yang uang mukanya
+            // sudah dicairkan (HRD-DEC-227) agar kas yang sudah keluar tetap dapat dipertanggungjawabkan.
+            if (!travel.ApprovedAt.HasValue && advance == null)
+            {
+                throw new BusinessTravelRequestException(
+                    StatusCodes.Status409Conflict,
+                    "SPPD belum disetujui sehingga belum dapat dipertanggungjawabkan.");
+            }
 
             var advancePaid = advance?.PaidAmount ?? 0m;
 

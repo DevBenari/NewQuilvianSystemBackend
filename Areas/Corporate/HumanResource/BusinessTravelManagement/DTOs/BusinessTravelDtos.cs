@@ -115,6 +115,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         public string? DocumentPdfUrl { get; set; }
         public string? ApprovalNotes { get; set; }
         public string? CancellationReason { get; set; }
+
+        /// <summary>Instance workflow persetujuan; <c>null</c> sebelum diajukan dan untuk SPPD lama.</summary>
+        public Guid? WorkflowInstanceId { get; set; }
+
+        /// <summary>Urutan tahap persetujuan yang sedang berjalan (0 sebelum diajukan).</summary>
+        public int CurrentApprovalStep { get; set; }
+
+        /// <summary>Waktu diajukan (UTC).</summary>
+        public DateTime? SubmittedAt { get; set; }
+
+        /// <summary>Waktu disetujui final (UTC).</summary>
+        public DateTime? ApprovedAt { get; set; }
+
+        /// <summary>Waktu ditolak (UTC).</summary>
+        public DateTime? RejectedAt { get; set; }
+
+        /// <summary>SPPD sudah disetujui dan tidak dibatalkan/ditolak — syarat uang muka dan settlement.</summary>
+        public bool IsApproved { get; set; }
+
+        /// <summary>Tombol Ajukan boleh tampil: status Draf, Dikembalikan untuk Revisi, atau SPPD lama tanpa workflow.</summary>
+        public bool CanSubmit { get; set; }
     }
     #endregion
 

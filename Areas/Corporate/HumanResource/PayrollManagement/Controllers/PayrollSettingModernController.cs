@@ -21,7 +21,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         displayName: "Payroll Settings",
         AreaName = "Corporate",
         ControllerName = "PayrollSettingModern",
-        Description = "Manajemen parameter konfigurasi master penggajian, batas plafon BPJS, dan ambang batas variansi",
+        Description = "Manajemen parameter konfigurasi master penggajian dan ambang batas variansi",
         SortOrder = 1)]
     public class PayrollSettingModernController : ControllerBase
     {
@@ -33,7 +33,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         }
 
         [HttpGet]
-        [AccessAction("View", "Melihat Pengaturan Payroll", Description = "Melihat konfigurasi tarif BPJS, plafon, cut-off, dan threshold variansi gaji aktif", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("View", "Melihat Pengaturan Payroll", Description = "Melihat konfigurasi cut-off, tanggal bayar, dan threshold variansi gaji aktif", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PayrollSettingModern", "View")]
         [ProducesResponseType(typeof(ApiResponse<HrdPayrollSettingDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetSettings(CancellationToken cancellationToken = default)
@@ -43,7 +43,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         }
 
         [HttpPut]
-        [AccessAction("Update", "Memperbarui Pengaturan Payroll", Description = "Memperbarui konfigurasi tarif BPJS, plafon, cut-off, dan threshold variansi", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessAction("Update", "Memperbarui Pengaturan Payroll", Description = "Memperbarui konfigurasi cut-off, tanggal bayar, dan threshold variansi", AccessType = AccessTypes.Update, SortOrder = 2)]
         [AccessPermission("PayrollSettingModern", "Update")]
         [ProducesResponseType(typeof(ApiResponse<HrdPayrollSettingDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

@@ -53305,6 +53305,107 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("WfpHealthRecord", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.HrdOvertimeSetting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("BiometricDiscrepancyTolerance")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(30);
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("CtoValidityDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(90);
+
+                    b.Property<decimal>("DailyMaxHoursRegular")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(5,2)")
+                        .HasDefaultValue(4m);
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HospitalCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("MinimumThresholdMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(30);
+
+                    b.Property<int>("MonthlyCutoffDay")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(20);
+
+                    b.Property<int>("PostClaimCitoGraceDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("RoundingIntervalMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(30);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("WeeklyMaxHoursRegular")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(5,2)")
+                        .HasDefaultValue(18m);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HospitalCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("HrdOvertimeSetting", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxCompensatoryTimeOff", b =>
                 {
                     b.Property<Guid>("Id")
@@ -74425,6 +74526,12 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<Guid?>("SalaryGradeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SalaryStructureId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
 
@@ -74443,11 +74550,20 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
+                    b.HasIndex("SalaryStructureId")
+                        .HasDatabaseName("IX_PrlTransportAllowancePolicy_SalaryStructureId");
+
                     b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsDelete");
+
+                    b.HasIndex("SalaryGradeId", "SalaryStructureId", "IsActive", "IsDelete")
+                        .HasDatabaseName("IX_PrlTransportAllowancePolicy_SalaryGrade_SalaryStructure");
 
                     b.HasIndex("LegalEntityId", "HospitalSiteId", "EmployeeGradeId", "IsActive", "IsDelete");
 
-                    b.ToTable("PrlTransportAllowancePolicy", "public");
+                    b.ToTable("PrlTransportAllowancePolicy", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_PrlTransportAllowancePolicy_StructureRequiresGrade", "\"SalaryStructureId\" IS NULL OR \"SalaryGradeId\" IS NOT NULL");
+                        });
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowanceTransaction", b =>
@@ -147144,6 +147260,18 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PayrollComponentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstSalaryGrade", "SalaryGrade")
+                        .WithMany()
+                        .HasForeignKey("SalaryGradeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_PrlTransportAllowancePolicy_SalaryGrade");
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstSalaryStructure", "SalaryStructure")
+                        .WithMany()
+                        .HasForeignKey("SalaryStructureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_PrlTransportAllowancePolicy_SalaryStructure");
+
                     b.Navigation("EmployeeGrade");
 
                     b.Navigation("HospitalSite");
@@ -147151,6 +147279,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("LegalEntity");
 
                     b.Navigation("PayrollComponent");
+
+                    b.Navigation("SalaryGrade");
+
+                    b.Navigation("SalaryStructure");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowanceTransaction", b =>

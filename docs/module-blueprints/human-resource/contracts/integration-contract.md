@@ -1905,3 +1905,38 @@ bukan panggilan ke sistem luar.
 ### 24.2 Pilihan Master pada Formulir (Konsumsi, Bukan Integrasi Baru)
 
 Formulir memakai endpoint pilihan yang sudah ada: struktur gaji (`SalaryStructure : Read`) dan bank (`Bank : Read`) (`HRD-DEC-221`). Tidak ada kontrak baru dengan modul Master Data.
+
+---
+
+## 25. Integrasi Amandemen Slice `S-D5`: Persetujuan SPPD lewat Workflow V2 (Kontrak `v28`, approved 19 November 2026)
+
+Dasar: `HRD-DEC-224` s.d. `HRD-DEC-227`; fakta `HRD-TF-075` dan `HRD-TF-077`. Dua integrasi baru, keduanya sinkron di dalam transaksi Workflow V2 yang sedang berjalan.
+
+### 25.1 `INT-HR-109` — SPPD ↔ Workflow V2 (penangan siklus referensi)
+
+| Field | Isi |
+| --- | --- |
+| Arah | Workflow V2 (`S-A7-V2`) → Perjalanan Dinas (`BusinessTravelManagement`) |
+| Mekanisme | `IWorkflowReferenceLifecycleHandler` baru: `BusinessTravelWorkflowLifecycleHandler`, didaftarkan lewat DI seperti `ProcurementWorkflowLifecycleHandler` |
+| `ReferenceType` | `HRD_TRV_REQUEST` (konstanta baru di modul perjalanan dinas); `CanHandle` hanya `true` untuk nilai ini, tanpa menyentuh basis data |
+| `ReferenceId` | `TrxBusinessTravelRequest.Id`; `ReferenceNumber` = `TravelRequestNumber` |
+| Definisi workflow | Kode `BUSINESS_TRAVEL_REQUEST`, nama "Persetujuan Perjalanan Dinas"; satu tahap bawaan `RequesterManager` (Atasan Langsung). Admin HR dapat menambah tahap di Master Workflow tanpa rilis (`HRD-DEC-224`) |
+| Pemicu | Setiap kali Workflow V2 memanggil penyelarasan referensi (aksi setuju, kembalikan, tolak, tarik, batal) |
+| Perilaku | Memetakan status workflow ke status SPPD menurut state-transition matrix bagian 32.3. Untuk status `Approved`/`Completed`: isi `ApprovedAt`, `ApprovedByUserId` (pelaku aksi terakhir), `ApprovedBudgetAmount = EstimatedTotalAmount`, `CurrentApprovalStep`, lalu jalankan `INT-HR-110` |
+| Transaksi | Ikut transaksi dan `ApplicationDbContext` milik Workflow V2; penangan tidak membuka transaksi sendiri. Bila penangan melempar galat, aksi workflow ikut gagal sehingga status workflow dan SPPD tidak pernah berbeda |
+| Idempotensi | Status SPPD yang sudah sama tidak diubah; `ApprovedAt` tidak ditimpa bila sudah terisi; status lanjutan (`AdvancePaid` dst.) tidak pernah diturunkan |
+| Referensi tidak ditemukan | Kembalikan hasil `IsHandled = false` beserta pesan; tidak melempar galat (SPPD terhapus tidak boleh mengunci kotak masuk) |
+| Retry / dead-letter | Tidak ada — sinkron. Rekonsiliasi manual: SPPD `Submitted` dengan workflow sudah final dapat diselaraskan ulang dengan memanggil ulang penyelarasan Workflow V2 |
+| Observability | Log informasi `[TRV-WF] SPPD {nomor}: {statusLama} → {statusBaru} (workflow {instance})`, tanpa data sensitif |
+
+### 25.2 `INT-HR-110` — Persetujuan SPPD → Presensi "Hadir Dinas Luar" dan Gembok Roster
+
+| Field | Isi |
+| --- | --- |
+| Arah | Perjalanan Dinas → Presensi & Roster (`S-B1`/`S-B4`, lewat `TrxTravelAttendanceLink` dan penanda gembok yang sudah ada) |
+| Mekanisme | `BusinessTravelWorkflowLifecycleHandler` memanggil `ITravelAttendanceAndRosterLockService.SyncAttendanceAndLockRosterAsync` yang **sudah ada tetapi belum pernah dipanggil** (`HRD-TF-077`) |
+| Kapan | Hanya saat SPPD berpindah ke `Approved` (`VR-TRV-32`, `HRD-DEC-226`) |
+| Pelepasan | Bila SPPD `Approved` (atau lanjutannya) dibatalkan lewat `PUT /{id}/cancel`, `ReleaseRosterLockAsync` yang sudah ada dipanggil di transaksi pembatalan |
+| Idempotensi | Sudah dijamin service yang ada: satu tautan presensi per tanggal; pemanggilan ulang hanya memperbarui `SyncedAt` |
+| Perubahan pada service | Parameter pelaku (`actorUserId`) ditambahkan agar `CreateBy`/`UpdateBy` tidak lagi `Guid.Empty`; `SaveChangesAsync` di dalamnya tetap aman karena berada di transaksi Workflow V2 |
+| SPPD lama | Tidak disinkronkan surut (`HRD-DEC-227`): sinkron hanya terjadi saat persetujuan baru |

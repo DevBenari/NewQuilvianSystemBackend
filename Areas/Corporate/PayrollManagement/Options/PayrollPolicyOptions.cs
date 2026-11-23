@@ -19,6 +19,16 @@ public sealed class PayrollPolicyOptions
     /// </summary>
     public bool AllowProfileSalaryFallback { get; set; } = false;
 
+    /// <summary>
+    /// NEEDS CONFIRMATION (PAY-BE-FIX-008). Bila true, Payroll hanya memakai penetapan gaji yang DISETUJUI (ApprovedAt dan ApprovedByUserId
+    /// terisi): penetapan aktif yang belum disetujui tidak dibayarkan, tidak dianggap siap, dan menjadi penahan. Bila false (bawaan),
+    /// berlaku keputusan "peniadaan approval" 19 November 2026: penetapan aktif, utama, dan efektif dianggap sah tanpa approval. Bawaan
+    /// sengaja false: belum ada layar persetujuan penetapan gaji di HRD dan data lama belum disetujui, sehingga menyalakannya sekarang
+    /// akan menahan seluruh penerima. Pemilik proses menyalakannya setelah layar persetujuan dan pengisian data lama siap; kode tidak
+    /// mengubah nilai ini diam-diam.
+    /// </summary>
+    public bool RequireApprovedSalaryAssignment { get; set; } = false;
+
     /// <summary>NEEDS CONFIRMATION. Bila true, tunjangan tetap ikut diprorata dengan faktor yang sama seperti gaji pokok.</summary>
     public bool ProrateFixedAllowances { get; set; } = true;
 
@@ -37,7 +47,7 @@ public sealed class PayrollPolicyOptions
     /// memiliki route maupun menu yang dapat dijangkau (diperiksa statis pada kode Frontend), sehingga bawaannya false: seluruh aksi tulis
     /// jalur lama ditolak (HTTP 422), sedangkan pembacaan riwayat tetap berjalan dan tidak ada data historis yang dihapus. Setel true
     /// HANYA bila ada run lama yang masih berjalan di alur persetujuan lama dan perlu diselesaikan; riwayat database wajib diperiksa
-    /// pemilik sebelum saklar dibiarkan mati. Terlepas dari saklar ini: kalkulasi PPh dan BPJS jalur lama SELALU ditolak (tarifnya tertanam
+    /// pemilik sebelum saklar dibiarkan mati. Terlepas dari saklar ini: kalkulasi PPh jalur lama SELALU ditolak (tarifnya tertanam
     /// atau berasal dari nilai bawaan yang belum diverifikasi), dan run yang sudah dihitung mesin resmi tidak pernah dapat diubah jalur
     /// lama (mencegah komponen ganda).
     /// </summary>
@@ -80,14 +90,14 @@ public sealed class PayrollPolicyOptions
     public int SimulationMaxEmployees { get; set; } = 50;
 
     /// <summary>
-    /// Saklar tunggal fitur BPJS Kesehatan dan BPJS Ketenagakerjaan (BE-06), dibaca lewat <c>IBpjsFeatureGate</c>: Payroll (iuran,
-    /// kebijakan, kepesertaan), HRD (klaim COB/SEP, nomor kepesertaan benefit), dan K3 (klaim dan worker JKK) mengikuti nilai yang sama,
-    /// begitu pula Frontend lewat <c>GET api/v1/system/features</c>.
+    /// Saklar fitur BPJS di luar Payroll, dibaca lewat <c>IBpjsFeatureGate</c>: HRD Benefit (klaim COB berbasis SEP, nomor kepesertaan
+    /// BPJS pada benefit) dan K3 (formulir klaim dan worker JKK), serta Frontend lewat <c>GET api/v1/system/features</c>.
     ///
-    /// Bawaan <c>false</c> (BPJS dinonaktifkan sementara, keputusan pemilik 2026-11-18): BPJS tidak dihitung, tidak ada kebijakan,
-    /// kepesertaan, nomor klaim, atau formulir BPJS baru, dan konfigurasinya tidak tampil. Data dan riwayat tidak dihapus. Setel
-    /// <c>true</c> secara eksplisit untuk mengaktifkan kembali. Run yang dihitung saat <c>false</c> ditandai mode pengujian dan
-    /// ditahan dari Finance Handoff produksi sampai ada keputusan bisnis yang sah (pengaman tidak dilemahkan).
+    /// Sejak PAY-BE-FIX-007 saklar ini TIDAK lagi memengaruhi Payroll: iuran BPJS Kesehatan dan BPJS Ketenagakerjaan dihapus dari jalur
+    /// aktif Payroll (kalkulasi, kebijakan, profil iuran, kesiapan data, laporan) dan tidak dapat dinyalakan kembali lewat konfigurasi.
+    /// Nama properti dipertahankan hanya agar konfigurasi lingkungan yang ada tetap terbaca; nilai bawaan <c>false</c>. Keputusan
+    /// lanjutan untuk alur BPJS di HRD Benefit dan K3 (hapus atau pertahankan) menunggu pemilik proses (NEEDS BUSINESS DECISION).
+    /// Penahan Finance Handoff produksi TIDAK bergantung pada saklar ini lagi (lihat <c>PayrollFinanceHandoffGuard</c>).
     /// </summary>
     public bool EnableBpjsInPayroll { get; set; } = false;
 }

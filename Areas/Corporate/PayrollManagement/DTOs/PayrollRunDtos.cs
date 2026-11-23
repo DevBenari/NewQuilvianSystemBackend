@@ -274,16 +274,16 @@ public sealed class PayrollRunInsuranceResultResponse
     public string? ParticipationStatus { get; set; }
     public List<string> Programs { get; set; } = new();
 
-    /// <summary>Nomor versi kebijakan iuran BPJS yang disahkan dan dipakai (PrlBpjsPolicy).</summary>
+    /// <summary>HISTORIS: nomor versi kebijakan iuran BPJS pada snapshot run lama. Kosong pada run baru.</summary>
     public string? PolicyVersion { get; set; }
     public Guid? PolicyId { get; set; }
     public string? PolicyLegalBasis { get; set; }
 
-    /// <summary>Kelompok risiko JKK (1 sampai 5) pada kebijakan yang dipakai.</summary>
+    /// <summary>HISTORIS: kelompok risiko JKK pada kebijakan BPJS snapshot run lama.</summary>
     public int? JkkRiskClass { get; set; }
     public decimal WageBase { get; set; }
 
-    /// <summary>Komponen penghasilan beserta klasifikasinya terhadap dasar upah (masuk, tidak masuk, atau belum diklasifikasikan).</summary>
+    /// <summary>HISTORIS: dasar upah iuran BPJS per komponen pada snapshot run lama. Kosong pada run baru.</summary>
     public List<PayrollRunWageBaseItemResponse> WageBaseItems { get; set; } = new();
     public decimal EmployeeTotal { get; set; }
     public decimal EmployerTotal { get; set; }
@@ -378,14 +378,20 @@ public sealed class PayrollRunEmployeeDetailResponse : PayrollRunEmployeeRespons
     /// <summary>Hasil dan konfigurasi PPh pada saat hitung terakhir (snapshot). Null bila penerima belum dihitung atau dihitung sebelum snapshot ada.</summary>
     public PayrollRunTaxResultResponse? Tax { get; set; }
 
-    /// <summary>Hasil dan konfigurasi iuran pada saat hitung terakhir (snapshot). Sisi pegawai dan pemberi kerja dipisahkan.</summary>
+    /// <summary>
+    /// Hasil dan konfigurasi asuransi pada saat hitung terakhir (snapshot). Sisi pegawai dan pemberi kerja dipisahkan. Snapshot run lama dapat
+    /// memuat baris BPJS historis; snapshot baru hanya memuat asuransi swasta.
+    /// </summary>
     public PayrollRunInsuranceResultResponse? Insurance { get; set; }
 
-    /// <summary>True bila BPJS aktif pada konfigurasi sistem saat ini; false bila mode pengujian tanpa BPJS aktif.</summary>
-    public bool EnableBpjsInPayroll { get; set; } = true;
+    /// <summary>
+    /// True bila run ini ditahan dari Finance Handoff produksi sampai pemilik proses menetapkan aturan pengiriman Payroll tanpa iuran BPJS
+    /// (PayrollFinanceHandoffGuard). Bukan status persetujuan dan tidak mengubah status run.
+    /// </summary>
+    public bool IsFinanceHandoffHeld { get; set; }
 
-    /// <summary>True bila run ini dihitung (atau akan dihitung) pada mode pengujian tanpa BPJS.</summary>
-    public bool IsTestingModeWithoutBpjs { get; set; }
+    /// <summary>Alasan penahan (PENDING_OWNER_DECISION); null bila tidak ditahan.</summary>
+    public string? FinanceHandoffHoldReason { get; set; }
 
     // ---- Cicilan piutang ----
 
@@ -435,6 +441,16 @@ public sealed class PayrollRunStatusHistoryItemResponse
 
 public sealed class PayrollRunDetailResponse : PayrollRunListItemResponse
 {
+    /// <summary>
+    /// True bila ada sumber kompensasi (penetapan gaji, tunjangan struktur, tunjangan khusus, atau tunjangan transport) milik penerima run ini
+    /// yang dibuat, diubah, atau disetujui SETELAH perhitungan terakhir dan sebelum run disahkan. Run perlu dihitung ulang; pengajuan dan
+    /// pengesahan ditolak (409) selama masih true. Selalu false untuk run yang belum dihitung atau sudah disahkan (snapshot terkunci). Aditif.
+    /// </summary>
+    public bool NeedsRecalculation { get; set; }
+
+    /// <summary>Sumber kompensasi yang berubah sesudah perhitungan terakhir (teks siap tampil); kosong bila NeedsRecalculation false. Aditif.</summary>
+    public List<string> RecalculationReasons { get; set; } = new();
+
     public string? Notes { get; set; }
     public DateTime PeriodStartDate { get; set; }
     public DateTime PeriodEndDate { get; set; }
@@ -443,11 +459,14 @@ public sealed class PayrollRunDetailResponse : PayrollRunListItemResponse
     /// <summary>Versi kebijakan yang dipakai hitung terakhir (kosong bila belum dihitung).</summary>
     public string? PolicyVersion { get; set; }
 
-    /// <summary>True bila BPJS aktif pada konfigurasi sistem saat ini; false bila mode pengujian tanpa BPJS aktif.</summary>
-    public bool EnableBpjsInPayroll { get; set; } = true;
+    /// <summary>
+    /// True bila run ini ditahan dari Finance Handoff produksi sampai pemilik proses menetapkan aturan pengiriman Payroll tanpa iuran BPJS
+    /// (PayrollFinanceHandoffGuard). Bukan status persetujuan dan tidak mengubah status run.
+    /// </summary>
+    public bool IsFinanceHandoffHeld { get; set; }
 
-    /// <summary>True bila run ini dihitung (atau akan dihitung) pada mode pengujian tanpa BPJS.</summary>
-    public bool IsTestingModeWithoutBpjs { get; set; }
+    /// <summary>Alasan penahan (PENDING_OWNER_DECISION); null bila tidak ditahan.</summary>
+    public string? FinanceHandoffHoldReason { get; set; }
 
     /// <summary>
     /// Aksi yang sedang boleh dijalankan menurut status run (bantuan tampilan, BUKAN pengaman: setiap aksi memeriksa ulang di backend).

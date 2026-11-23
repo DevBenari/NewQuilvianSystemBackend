@@ -144,6 +144,12 @@ public sealed class WorkforceAllowanceItemResponse
     /// <summary>Alasan baris tidak dapat diubah dari layar ini; null bila dapat diubah.</summary>
     public string? LockReason { get; set; }
 
+    /// <summary>
+    /// Alasan baris belum atau tidak dibayarkan mesin payroll saat ini (belum disetujui, belum berlaku, sudah berakhir, dinonaktifkan,
+    /// atau penetapan gaji pegawai belum disetujui); null bila tidak ada penghalang yang dapat dibuktikan dari data. Aditif.
+    /// </summary>
+    public string? NotPayableReason { get; set; }
+
     /// <summary>Bantuan tampilan, bukan pengaman: Update | Submit | Approve | Reject | Deactivate. Setiap endpoint tetap memeriksa ulang di Backend.</summary>
     public List<string> AvailableActions { get; set; } = new();
 

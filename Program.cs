@@ -437,10 +437,11 @@ try
     builder.Services.Configure<PayrollPolicyOptions>(builder.Configuration.GetSection(PayrollPolicyOptions.SectionName));
     // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run (kini milik modul Payroll).
     builder.Services.AddScoped<PayrollInstallmentDeductionService>();
-    // Kebijakan regulasi penggajian berversi (tarif PPh dan iuran BPJS): pembaca kebijakan yang disahkan, dipakai mesin hitung dan kelengkapan data.
+    // Kebijakan regulasi penggajian berversi (tarif PPh): pembaca kebijakan yang disahkan, dipakai mesin hitung dan kelengkapan data.
     builder.Services.AddScoped<PayrollStatutoryPolicyResolver>();
     builder.Services.AddScoped<PayrollTaxPolicyService>();
-    builder.Services.AddScoped<PayrollBpjsPolicyService>();
+    // Saldo awal PPh historis: tabelnya belum ada (menunggu migrasi terpisah), sumber ini menyatakan dirinya tidak tersedia dan tidak menyimpan apa pun.
+    builder.Services.AddScoped<IPayrollOpeningTaxBalanceSource, UnavailablePayrollOpeningTaxBalanceSource>();
     builder.Services.AddScoped<PayrollCalculationService>();
     // Penyiapan profil payroll otomatis dari data HRD tanpa impor CSV (PAY-BE-24): dipanggil di dalam transaksi buka dan hitung payroll run.
     builder.Services.AddScoped<PayrollHrdSourceReader>();
@@ -493,8 +494,8 @@ try
     builder.Services.AddScoped<CompanyGuarantorCoverageRuleService>();
     builder.Services.AddScoped<WfpCertificationFileStorageService>();
     builder.Services.AddScoped<ApplicationVersionService>();
-    // Gerbang tunggal fitur BPJS (Payroll:Policy:EnableBpjsInPayroll): dipakai Payroll, HRD, K3, dan GET api/v1/system/features sehingga
-    // BE dan FE tidak pernah berbeda perilaku. Singleton: nilainya dari IOptions (tetap selama proses berjalan).
+    // Gerbang fitur BPJS yang tersisa di luar Payroll (Payroll:Policy:EnableBpjsInPayroll): dipakai HRD Benefit, K3, dan GET
+    // api/v1/system/features. Payroll tidak lagi memakainya (PAY-BE-FIX-007). Singleton: nilainya dari IOptions.
     builder.Services.AddSingleton<QuilvianSystemBackend.Services.Features.IBpjsFeatureGate, QuilvianSystemBackend.Services.Features.BpjsFeatureGate>();
     builder.Services.AddScoped<AccessPermissionService>();
     builder.Services.AddScoped<PermissionRegistryValidator>();
@@ -1527,7 +1528,6 @@ try
     builder.Services.AddScoped<IPayrollRunInitializationService, PayrollRunInitializationService>();
     builder.Services.AddScoped<IPayrollEarningsCalculationService, PayrollEarningsCalculationService>();
     builder.Services.AddScoped<IPayrollOvertimeAndShiftIngestionService, PayrollOvertimeAndShiftIngestionService>();
-    builder.Services.AddScoped<IPayrollBpjsCalculationService, PayrollBpjsCalculationService>();
     builder.Services.AddScoped<IPayrollTaxCalculationService, PayrollTaxCalculationService>();
 
     // Slice S-B5 (Payroll Management) - MVP-31
@@ -1726,6 +1726,13 @@ try
     if (runBackgroundJobs) builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelSettlementOverdueWorker>();
     if (runBackgroundJobs) builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelCurrencyRateSyncWorker>();
     if (runBackgroundJobs) builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelRosterLockExpiryWorker>();
+
+    // BE-HRD-376 (kontrak v28, INT-HR-109/110): penangan Workflow V2 untuk SPPD, penyelarasan ulang SPPD yang tertinggal,
+    // dan worker penyelarasan berkala (keputusan pengguna 19 November 2026, pilihan (a)).
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelWorkflowLifecycleHandler>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowReferenceLifecycleHandler>(sp => sp.GetRequiredService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelWorkflowLifecycleHandler>());
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IBusinessTravelWorkflowReconciliationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelWorkflowReconciliationService>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelWorkflowReconciliationWorker>();
 
 
     //billing - master data
@@ -2968,6 +2975,11 @@ try
         // PBJ-BP-001, BE-PBJ-005. Kerangka lima definisi approval Pengadaan pada mesin workflow bersama,
         // dibuat TIDAK AKTIF sampai admin mengisi jabatan penyetuju sesuai SOP (PBJ-OQ-019). Idempoten.
         await RunStartupSeederAsync("ProcurementWorkflowDefinitionSeeder", () => QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Seeders.ProcurementWorkflowDefinitionSeeder.SeedAsync(app.Services));
+
+        // HRD-BP-001, BE-HRD-374 (kontrak v28, HRD-DEC-224). Definisi workflow "Persetujuan Perjalanan Dinas"
+        // dengan satu tahap atasan langsung pemohon, dibuat AKTIF karena tahap itu tidak butuh isian admin
+        // (HRD-Q-222). Idempoten; definisi atau tahap yang diubah/dihapus admin tidak ditimpa.
+        await RunStartupSeederAsync("BusinessTravelWorkflowDefinitionSeeder", () => QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Seeders.BusinessTravelWorkflowDefinitionSeeder.SeedAsync(app.Services));
 
         // MCU-BP-001, BE-MCU-004. Kategori kelayakan dan jenis Pemeriksaan MCU USULAN — bertanda
         // belum diratifikasi pada keterangannya (MCU-OQ-002/003). Idempoten; isian yang sudah

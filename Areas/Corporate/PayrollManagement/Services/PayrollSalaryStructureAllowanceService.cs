@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
@@ -29,12 +30,76 @@ public sealed class PayrollSalaryStructureAllowanceService
     {
         await EnsureStructureExistsAsync(salaryStructureId, requireActive: false, cancellationToken);
 
-        return await Project(_dbContext.MstSalaryStructureAllowances
+        var items = await Project(_dbContext.MstSalaryStructureAllowances
                 .AsNoTracking()
                 .Where(x => x.SalaryStructureId == salaryStructureId && !x.IsDelete))
             .OrderBy(x => x.AllowanceTypeName)
             .ToListAsync(cancellationToken);
+        await ApplyUsageAsync(items, cancellationToken);
+        return items;
     }
+
+    /// <summary>
+    /// Satu baris untuk pemegang izin ViewAmount (endpoint <c>GET {id}/amount</c>): memastikan baris milik struktur ini, lalu mengembalikannya
+    /// dengan nominal. Pemanggil yang menyembunyikan nominal tidak memakai jalur ini.
+    /// </summary>
+    public async Task<SalaryStructureAllowanceResponse> GetAmountAsync(Guid salaryStructureId, Guid id, CancellationToken cancellationToken)
+    {
+        await FindAsync(salaryStructureId, id, cancellationToken);
+        return await GetAsync(id, cancellationToken);
+    }
+
+    /// <summary>
+    /// Menyembunyikan nominal bila pemanggil tidak berwenang ViewAmount: Amount, Percentage, dan MaximumAmount menjadi null (bukan nol) dan
+    /// AmountsVisible false. Dipanggil controller sesudah service membaca atau menulis; nilai asli tidak pernah ditulis ke log.
+    /// </summary>
+    public static T ApplyAmountVisibility<T>(T items, bool canViewAmount) where T : IEnumerable<SalaryStructureAllowanceResponse>
+    {
+        foreach (var item in items) ApplyAmountVisibility(item, canViewAmount);
+        return items;
+    }
+
+    public static SalaryStructureAllowanceResponse ApplyAmountVisibility(SalaryStructureAllowanceResponse item, bool canViewAmount)
+    {
+        item.AmountsVisible = canViewAmount;
+        if (!canViewAmount)
+        {
+            item.Amount = null;
+            item.Percentage = null;
+            item.MaximumAmount = null;
+        }
+        return item;
+    }
+
+    /// <summary>
+    /// Menandai baris yang pernah menjadi komponen payroll run. Baris yang sudah dipakai tidak bisa diberi versi tanggal efektif tanpa
+    /// perubahan skema (dependency terpisah), jadi perubahannya dijaga konfirmasi eksplisit; snapshot run yang disahkan tidak tersentuh.
+    /// </summary>
+    private async Task ApplyUsageAsync(IReadOnlyCollection<SalaryStructureAllowanceResponse> items, CancellationToken cancellationToken)
+    {
+        if (items.Count == 0) return;
+        var ids = items.Select(x => x.Id).ToList();
+        var rows = await _dbContext.PrlPayrollEmployeeComponents.AsNoTracking()
+            .Where(c => !c.IsDelete && c.SourceType == PayrollEngineComponentSources.SalaryStructureAllowance
+                && c.SourceId != null && ids.Contains(c.SourceId.Value))
+            .Select(c => new { Id = c.SourceId!.Value, Final = c.PayrollRunEmployee != null && c.PayrollRunEmployee.IsFinalized })
+            .ToListAsync(cancellationToken);
+        var used = rows.Select(r => r.Id).ToHashSet();
+        var final = rows.Where(r => r.Final).Select(r => r.Id).ToHashSet();
+        foreach (var item in items)
+        {
+            item.IsUsedInPayroll = used.Contains(item.Id);
+            item.IsUsedInFinalPayroll = final.Contains(item.Id);
+        }
+    }
+
+    private Task<bool> IsUsedInPayrollAsync(Guid lineId, CancellationToken cancellationToken) =>
+        _dbContext.PrlPayrollEmployeeComponents.AsNoTracking().AnyAsync(c =>
+            !c.IsDelete && c.SourceType == PayrollEngineComponentSources.SalaryStructureAllowance && c.SourceId == lineId, cancellationToken);
+
+    private static PayrollRunConflictException UsedLineConflict() => new(
+        "Baris tunjangan ini sudah dipakai payroll run. Perubahan berlaku untuk perhitungan berikutnya dan tidak mengubah payroll yang sudah disahkan (snapshot); "
+        + "payroll run yang belum disahkan perlu dihitung ulang. Konfirmasi perubahan ini untuk melanjutkan.");
 
     public async Task<SalaryStructureAllowanceResponse> CreateAsync(
         Guid salaryStructureId,
@@ -96,6 +161,16 @@ public sealed class PayrollSalaryStructureAllowanceService
         await EnsureNotActivityBasedAsync(request.AllowanceTypeId, allowanceTypeName, cancellationToken);
         await EnsureNotDuplicateAsync(salaryStructureId, request.AllowanceTypeId, allowanceTypeName, excludeId: id, cancellationToken);
 
+        // Perubahan hak finansial pada baris yang sudah dipakai payroll butuh konfirmasi eksplisit (PAY-BE-FIX-008, P1-02). Nilai lama
+        // tidak disimpan di baris ini (skema belum berversi), sehingga jejaknya hanya audit dan snapshot komponen payroll.
+        var financialChange = request.AllowanceTypeId != entity.AllowanceTypeId
+            || method != entity.CalculationMethod
+            || amount != entity.Amount
+            || percentage != entity.Percentage
+            || (entity.IsActive && !request.IsActive);
+        var usedInPayroll = financialChange && await IsUsedInPayrollAsync(entity.Id, cancellationToken);
+        if (usedInPayroll && !request.AcknowledgeUsedInPayroll) throw UsedLineConflict();
+
         entity.AllowanceTypeId = request.AllowanceTypeId;
         entity.CalculationMethod = method;
         entity.Amount = amount;
@@ -109,7 +184,12 @@ public sealed class PayrollSalaryStructureAllowanceService
 
         await _loggerService.AuditAsync(LogCategory, "SalaryStructureAllowance.Update",
             "Baris tunjangan struktur diperbarui.",
-            new { EntityId = entity.Id, SalaryStructureId = salaryStructureId, entity.AllowanceTypeId, entity.CalculationMethod, entity.IsActive, Status = "Updated", ActorUserId = actorUserId });
+            new
+            {
+                EntityId = entity.Id, SalaryStructureId = salaryStructureId, entity.AllowanceTypeId, entity.CalculationMethod, entity.IsActive,
+                FinancialChange = financialChange, UsedInPayroll = usedInPayroll, AcknowledgedUsedChange = usedInPayroll && request.AcknowledgeUsedInPayroll,
+                Status = "Updated", ActorUserId = actorUserId
+            });
 
         return await GetAsync(entity.Id, cancellationToken);
     }
@@ -118,11 +198,15 @@ public sealed class PayrollSalaryStructureAllowanceService
         Guid salaryStructureId,
         Guid id,
         string? expectedRowVersion,
+        bool acknowledgeUsedInPayroll,
         Guid actorUserId,
         CancellationToken cancellationToken)
     {
         var entity = await FindAsync(salaryStructureId, id, cancellationToken);
         PayrollVersionToken.EnsureMatches(expectedRowVersion, entity.CreateDateTime, entity.UpdateDateTime, "Baris tunjangan ini");
+
+        var usedInPayroll = await IsUsedInPayrollAsync(entity.Id, cancellationToken);
+        if (usedInPayroll && !acknowledgeUsedInPayroll) throw UsedLineConflict();
 
         var now = DateTime.UtcNow;
         entity.IsDelete = true;
@@ -136,14 +220,18 @@ public sealed class PayrollSalaryStructureAllowanceService
 
         await _loggerService.AuditAsync(LogCategory, "SalaryStructureAllowance.Delete",
             "Baris tunjangan struktur dihapus (ditandai).",
-            new { EntityId = entity.Id, SalaryStructureId = salaryStructureId, entity.AllowanceTypeId, Status = "Deleted", ActorUserId = actorUserId });
+            new { EntityId = entity.Id, SalaryStructureId = salaryStructureId, entity.AllowanceTypeId, UsedInPayroll = usedInPayroll, Status = "Deleted", ActorUserId = actorUserId });
 
         return null;
     }
 
-    private async Task<SalaryStructureAllowanceResponse> GetAsync(Guid id, CancellationToken cancellationToken) =>
-        await Project(_dbContext.MstSalaryStructureAllowances.AsNoTracking().Where(x => x.Id == id))
+    private async Task<SalaryStructureAllowanceResponse> GetAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var item = await Project(_dbContext.MstSalaryStructureAllowances.AsNoTracking().Where(x => x.Id == id))
             .FirstAsync(cancellationToken);
+        await ApplyUsageAsync(new[] { item }, cancellationToken);
+        return item;
+    }
 
     private static IQueryable<SalaryStructureAllowanceResponse> Project(IQueryable<MstSalaryStructureAllowance> query) =>
         query.Select(x => new SalaryStructureAllowanceResponse

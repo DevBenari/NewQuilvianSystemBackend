@@ -9,8 +9,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
 {
     public interface ITravelAttendanceAndRosterLockService
     {
-        Task SyncAttendanceAndLockRosterAsync(Guid travelRequestId);
-        Task ReleaseRosterLockAsync(Guid travelRequestId);
+        /// <summary>Presensi "Hadir Dinas Luar" per hari dinas dan gembok roster; <paramref name="actorUserId"/> dicatat sebagai pembuat/pengubah.</summary>
+        Task SyncAttendanceAndLockRosterAsync(Guid travelRequestId, Guid actorUserId);
+
+        /// <summary>Melepas gembok roster dan membatalkan tautan presensi Dinas Luar.</summary>
+        Task ReleaseRosterLockAsync(Guid travelRequestId, Guid actorUserId);
     }
 
     public class TravelAttendanceAndRosterLockService : ITravelAttendanceAndRosterLockService
@@ -22,7 +25,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             _context = context;
         }
 
-        public async Task SyncAttendanceAndLockRosterAsync(Guid travelRequestId)
+        public async Task SyncAttendanceAndLockRosterAsync(Guid travelRequestId, Guid actorUserId)
         {
             var travel = await _context.TrxBusinessTravelRequests
                 .Include(r => r.AttendanceLinks)
@@ -52,7 +55,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                         SyncedAt = now,
                         SyncMessage = "Otomasi sinkronisasi presensi Hadir Dinas Luar (INT-HR-97)",
                         IsActive = true,
-                        CreateBy = Guid.Empty,
+                        CreateBy = actorUserId,
                         CreateDateTime = now
                     };
                     _context.TrxTravelAttendanceLinks.Add(link);
@@ -62,7 +65,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                     existingLink.AttendanceLinkStatus = "Synced";
                     existingLink.SyncedAt = now;
                     existingLink.SyncMessage = "Diperbarui otomatis Hadir Dinas Luar (INT-HR-97)";
-                    existingLink.UpdateBy = Guid.Empty;
+                    existingLink.UpdateBy = actorUserId;
                     existingLink.UpdateDateTime = now;
                 }
 
@@ -72,13 +75,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             // VR-TRV-06 & HRD-DEC-193: Pasang gembok validasi jadwal (Roster Lock)
             // Memastikan penanda flag conflict di SPPD aktif untuk mencegah roster bangsal
             travel.HasScheduleConflict = true; // Penanda gembok aktif
-            travel.UpdateBy = Guid.Empty;
+            travel.UpdateBy = actorUserId;
             travel.UpdateDateTime = now;
 
             await _context.SaveChangesAsync();
         }
 
-        public async Task ReleaseRosterLockAsync(Guid travelRequestId)
+        public async Task ReleaseRosterLockAsync(Guid travelRequestId, Guid actorUserId)
         {
             var travel = await _context.TrxBusinessTravelRequests
                 .Include(r => r.AttendanceLinks)
@@ -90,12 +93,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             foreach (var link in travel.AttendanceLinks)
             {
                 link.AttendanceLinkStatus = "Cancelled";
-                link.UpdateBy = Guid.Empty;
+                link.UpdateBy = actorUserId;
                 link.UpdateDateTime = now;
             }
 
             travel.HasScheduleConflict = false; // Gembok dilepas
-            travel.UpdateBy = Guid.Empty;
+            travel.UpdateBy = actorUserId;
             travel.UpdateDateTime = now;
 
             await _context.SaveChangesAsync();

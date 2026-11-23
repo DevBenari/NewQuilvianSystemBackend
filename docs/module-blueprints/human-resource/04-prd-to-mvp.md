@@ -4501,3 +4501,184 @@ Cakupan unit diperiksa server (35.9.1); hak di atas tidak memberi akses unit lai
 
 Tidak ada pertanyaan yang memblokir epic `MUST HAVE`. Dokumen ini boleh diteruskan ke
 `/plan-module-delivery` **sesudah** pengguna menyetujui desain bagian 35 dan kontrak `v26`.
+
+---
+
+## 41. PRD → MVP Amandemen `S-D5` — Persetujuan SPPD lewat Workflow Persetujuan Umum (kontrak `v28`)
+
+### 41.1 Identitas dokumen
+
+| Field | Nilai |
+| --- | --- |
+| Produk | Quilvian V2 — Modul Human Resource |
+| Modul / slice | `human-resource` — amandemen `S-D5` Perjalanan Dinas & Manajemen Biaya Operasional |
+| Status | `approved` — pengguna, 19 November 2026 ("setujui kontrak v28, lanjut plan"); `HRD-Q-221` dan `HRD-Q-222` tetap terbuka dan tidak memblokir backend |
+| Repository target | `NewQuilvianSystemBackend` (`d7d4eb3b`, branch `yoga`), `QuilvianSystemFrontendDev` (`e01411158`, branch `YogaV2`) |
+| `input_revision` | `00-interview-decisions.md` revision `39` (SHA-256 `97de7755…`) bagian 55; `02-backend-architecture.md` bagian 36; `03-frontend-architecture.md` bagian 32; kontrak `v28` |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — tanpa konsep klinis atau billing baru; persetujuan memakai Workflow V2 yang sudah ada |
+| Ringkasan cakupan | SPPD dapat disetujui lewat kotak masuk persetujuan umum; uang muka dan settlement hanya untuk SPPD disetujui; jejak audit memuat 12 event bernama matriks |
+
+### 41.2 Ringkasan eksekutif dan masalah produk
+
+Pegawai yang dinas luar butuh SPPD yang benar-benar disahkan atasan sebelum uang muka dicairkan,
+dan auditor akreditasi butuh jejak yang lengkap. Saat ini SPPD tidak pernah dapat disetujui, tetapi
+uang muka tetap dapat diajukan. Amandemen ini menyambungkan SPPD ke workflow persetujuan umum yang
+sudah dipakai modul lain, tanpa membuat layar persetujuan baru.
+
+| Kondisi sekarang | Bukti |
+| --- | --- |
+| SPPD langsung `Submitted` saat dibuat dan tidak pernah berpindah ke `Approved` | `HRD-TF-072`; `BusinessTravelRequestService.cs` baris 198 |
+| Uang muka dapat diajukan untuk SPPD yang belum disahkan | `HRD-TF-074` |
+| Presensi "Hadir Dinas Luar" dan gembok roster tidak pernah terpasang karena service-nya tidak pernah dipanggil | `HRD-TF-077` |
+| 5 dari 12 event audit `HRD_TRV_*` tidak dicatat dan 3 namanya berbeda dari matriks | `HRD-TF-076`, `HRD-TF-078` |
+| Layar SPPD masih memakai data contoh | `HRD-TF-079` |
+
+### 41.3 Batas MVP
+
+| Di dalam | Di luar |
+| --- | --- |
+| Ajukan SPPD lewat Workflow V2; kembalikan, tolak, tarik | Aturan internal engine workflow (`S-A7-V2`) |
+| Status SPPD mengikuti workflow (`NeedRevision` baru) | Alur persetujuan uang muka 2-pintu (`HRD-DEC-189`, tidak berubah) |
+| Gerbang uang muka, settlement, presensi, gembok roster | Klaim pengeluaran non-trip |
+| Presensi Dinas Luar dan gembok roster saat disetujui | Pembekuan hak SPPD karena tunggakan (`HRD-DEC-191`) — event dicatat dari data yang ada |
+| 12 event audit bernama matriks | Isian anggaran disetujui oleh penyetuju |
+| Layar: tombol Ajukan, label status, label kotak masuk | Penyambungan layar SPPD dari data contoh ke API — tergantung `HRD-Q-221` |
+
+### 41.4 Alur bisnis target (`FLOW-TRV-MVP-002`)
+
+1. Pemohon membuat SPPD → **Draf** (dapat diubah, belum ke atasan).
+2. Pemohon menekan **Ajukan** → **Menunggu Persetujuan**; workflow `BUSINESS_TRAVEL_REQUEST` mengirim tugas ke atasan langsung (atau rantai yang diatur Admin HR di Master Workflow).
+3. Atasan membuka Kotak Masuk Persetujuan:
+   - **Setujui** → **Disetujui**; anggaran disetujui = estimasi; presensi Dinas Luar dan gembok roster terpasang.
+   - **Kembalikan** → **Dikembalikan untuk Revisi**; pemohon mengubah lalu kembali ke langkah 2.
+   - **Tolak** → **Ditolak** (final).
+4. Pemohon boleh **Batal** kapan saja sebelum selesai; bila sedang menunggu, pengajuan ke atasan ditarik; bila sudah disetujui, gembok roster dilepas.
+5. Sesudah Disetujui: uang muka (maks 80% anggaran), perjalanan, settlement — mengikuti alur bagian 39.
+
+### 41.5 Epic dan functional requirement
+
+#### `EPIC HRD-121` — Persetujuan SPPD lewat Workflow V2 dan gerbang proses lanjutan (`MUST HAVE`)
+
+Disposisi: `EXTEND` (`BusinessTravelRequestService`, `TravelAdvanceRequestService`,
+`TravelSettlementService`, `TravelAttendanceAndRosterLockService`), `MISSING / NEW`
+(`BusinessTravelWorkflowLifecycleHandler`, `BusinessTravelWorkflowDefinitionSeeder`, endpoint ajukan).
+
+> **FR-TRV-26 — SPPD dibuat sebagai Draf.** `POST /requests` menghasilkan `Draft` dengan anggaran
+> disetujui 0. **Contoh:** Sari menyimpan SPPD Rp 5.000.000 → status Draf, belum ada tugas di kotak
+> masuk atasan.
+
+> **FR-TRV-27 — Ajukan memulai workflow.** `POST /requests/{id}/submit` membuat (atau memakai ulang)
+> instance `BUSINESS_TRAVEL_REQUEST` dan mengirimkannya. **Contoh:** Sari menekan Ajukan → status
+> Menunggu Persetujuan; Kepala Ruang menerima tugas.
+
+> **FR-TRV-28 — Persetujuan final.** Saat workflow disetujui final, SPPD menjadi `Approved`,
+> `ApprovedBudgetAmount = EstimatedTotalAmount`, presensi Dinas Luar per hari dinas dan gembok roster
+> terpasang. **Contoh:** SPPD 1–3 Desember disetujui → tiga tanggal presensi "Hadir Dinas Luar".
+
+> **FR-TRV-29 — Kembalikan dan tolak.** Dikembalikan → `NeedRevision`, dapat diubah dan diajukan
+> ulang; ditolak → `Rejected`, final. **Contoh:** SPPD Rina dikembalikan karena hotel mahal; Rina
+> mengganti hotel dan mengajukan ulang. SPPD Budi ditolak; Ajukan ulang ditolak `409`.
+
+> **FR-TRV-30 — Batal menarik workflow.** Batal pada SPPD yang menunggu menarik workflow lebih dulu;
+> batal pada SPPD disetujui melepas gembok roster. **Contoh:** Sari batal berangkat sebelum disetujui
+> → tugas di kotak masuk Kepala Ruang hilang.
+
+> **FR-TRV-31 — Gerbang uang muka dan settlement.** Uang muka dan settlement ditolak `409` untuk SPPD
+> yang belum disetujui. **Contoh:** SPPD masih menunggu → "SPPD belum disetujui. Ajukan SPPD dan
+> tunggu persetujuan sebelum mengajukan uang muka."
+
+> **FR-TRV-32 — SPPD dan uang muka lama.** SPPD `Submitted` lama tanpa workflow dapat diajukan;
+> uang muka lama yang sudah diajukan atau dicairkan tetap berjalan. **Contoh:** SPPD Oktober yang
+> sudah punya uang muka Paid tetap dapat di-settle.
+
+#### `EPIC HRD-122` — Jejak audit 12 event `HRD_TRV_*` (`MUST HAVE`)
+
+Disposisi: `EXTEND` (`TravelAuditTrailService`).
+
+> **FR-TRV-33 — Event bernama matriks.** Jejak audit memuat 12 event matriks izin & audit bagian
+> 32.2 dari data yang sudah ada, tanpa tabel baru. **Contoh:** auditor membuka jejak SPPD yang
+> settlement-nya menunggak 31 hari dan melihat `HRD_TRV_SPPD_FROZEN_OVERDUE` dan
+> `HRD_TRV_PAYROLL_DEDUCTION_TRIGGERED`.
+
+#### `EPIC HRD-123` — Layar Ajukan dan status SPPD (`MUST HAVE`, cakupan bergantung `HRD-Q-221`)
+
+Disposisi: `EXTEND` (view `unified-travel-*`, `approval-inbox-view.jsx`, `business-travel-service.js`).
+
+> **FR-TRV-34 — Ajukan dan status di layar.** Tombol Ajukan tampil hanya bila `canSubmit`; label
+> status sesuai `03-frontend-architecture.md` 32.3; kotak masuk menampilkan jenis "Perjalanan Dinas".
+> **Contoh:** SPPD Dikembalikan untuk Revisi menampilkan Ubah dan Ajukan; SPPD Ditolak tidak
+> menampilkan tombol apa pun.
+
+### 41.6 Model status
+
+Mengikuti `contracts/state-transition-matrix.md` bagian 32: `Draft` → `Submitted` →
+`Approved` / `NeedRevision` / `Rejected`; `Cancelled` dari `Draft`, `NeedRevision`, `Submitted`, dan
+`Approved` beserta lanjutannya selain `Completed`.
+
+### 41.7 Matriks kewenangan
+
+| Peran | Buat/Ubah Draf | Ajukan | Setujui/Kembalikan/Tolak | Batal |
+| --- | :---: | :---: | :---: | :---: |
+| Pemohon (`BusinessTravelRequest : Create/Update/Cancel`) | Ya (SPPD sendiri) | Ya (SPPD sendiri) | Tidak | Ya (SPPD sendiri) |
+| Atasan langsung / approver yang ditugaskan workflow | — | — | Ya, lewat kotak masuk | — |
+| Kepala Ruangan yang tidak ditugaskan workflow | — | — | **Tidak** | — |
+| Admin HR (Master Workflow) | — | — | Mengatur rantai, bukan menyetujui | — |
+
+### 41.8 Batas integrasi dan billing
+
+| Integrasi | Arah | Kontrak |
+| --- | --- | --- |
+| `INT-HR-109` SPPD ↔ Workflow V2 | Workflow → SPPD | Integration contract 25.1 |
+| `INT-HR-110` Persetujuan → presensi dan gembok roster | SPPD → Presensi/Roster | Integration contract 25.2 |
+| Billing pasien | — | Tidak ada dampak |
+
+### 41.9 Kebutuhan non-fungsional
+
+| Butir | Target |
+| --- | --- |
+| Konsistensi | Status workflow dan SPPD berubah dalam satu transaksi; tidak pernah berbeda |
+| Idempotensi | Penyelarasan berulang tidak menggandakan presensi, gembok, atau event |
+| Migration | Tidak ada |
+| Privasi | Pesan audit tanpa rekening, gaji, atau alasan medis |
+
+### 41.10 Skenario UAT
+
+| ID | Epic | Kondisi awal | Langkah | Hasil yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `UAT-TRV-06` | `HRD-121` | Akun Sari, atasan Kepala Ruang | Buat SPPD, lalu Ajukan | Draf lalu Menunggu Persetujuan; tugas muncul di kotak masuk Kepala Ruang |
+| `UAT-TRV-07` | `HRD-121` | SPPD Sari menunggu | Kepala Ruang menyetujui | Disetujui; presensi Dinas Luar per hari dinas; uang muka maks 80% dapat diajukan |
+| `UAT-TRV-08` | `HRD-121` | SPPD Rina menunggu | Kembalikan, Rina ubah hotel, Ajukan ulang | Dikembalikan lalu Menunggu Persetujuan lagi pada instance yang sama |
+| `UAT-TRV-09` | `HRD-121` (gagal) | SPPD Budi ditolak | Budi menekan Ajukan | Ditolak "SPPD yang ditolak tidak dapat diajukan ulang. Buat SPPD baru." |
+| `UAT-TRV-10` | `HRD-121` (gagal) | SPPD menunggu | Ajukan uang muka | Ditolak "SPPD belum disetujui. …" |
+| `UAT-TRV-11` | `HRD-121` | SPPD menunggu | Pemohon membatalkan | Dibatalkan; tugas hilang dari kotak masuk |
+| `UAT-TRV-12` | `HRD-122` | Satu SPPD sampai settlement ditutup | Buka jejak audit | Event bernama matriks, urut waktu |
+
+### 41.11 Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| SPPD baru Draf; Ajukan memulai workflow | `UAT-TRV-06`, `AT-HRD-TRV-23`, `AT-HRD-TRV-24` |
+| Persetujuan final mengisi status, anggaran, presensi, gembok | `UAT-TRV-07`, `AT-HRD-TRV-26` |
+| Kembalikan/tolak/batal sesuai keputusan | `UAT-TRV-08`, `UAT-TRV-09`, `UAT-TRV-11`, `AT-HRD-TRV-27` s.d. `AT-HRD-TRV-29` |
+| Gerbang uang muka dan settlement | `UAT-TRV-10`, `AT-HRD-TRV-30`, `AT-HRD-TRV-31` |
+| SPPD dan uang muka lama tidak rusak | `AT-HRD-TRV-34`, `AT-HRD-TRV-35` |
+| 12 event audit | `UAT-TRV-12`, `AT-HRD-TRV-36` |
+| Definisi `BUSINESS_TRAVEL_REQUEST` tertanam dan tampil di Master Workflow | Log startup seeder; tangkapan layar Master Workflow |
+| Kontrak v28 lolos uji kontrak dan validator registri | `AT-HRD-TRV-38` |
+
+### 41.12 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Syarat mulai |
+| --- | --- | --- |
+| `MVP-70` | `EPIC HRD-121`, `EPIC HRD-122` (backend) | Desain bagian 36 dan kontrak `v28` disetujui |
+| `MVP-71` | `EPIC HRD-123` (frontend) | `MVP-70` selesai; `HRD-Q-221` dijawab |
+
+**Pertanyaan terbuka sebelum development lock:**
+
+| ID | Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
+| --- | --- | :---: | --- | :---: |
+| `HRD-Q-221` | Layar SPPD masih memakai data contoh (`HRD-TF-079`). Penyambungan daftar dan formulir SPPD ke API dimasukkan ke `EPIC HRD-123`, atau dibuat task frontend tersendiri lebih dulu? | Pengguna | `EPIC HRD-123` tidak dapat diuji ujung-ke-ujung (`AT-HRD-TRV-39`) | Tidak untuk backend; ya untuk `MVP-71` |
+| `HRD-Q-222` | Definisi `BUSINESS_TRAVEL_REQUEST` ditanam **aktif** (usulan desain, karena tahap `RequesterManager` tidak butuh konfigurasi) atau nonaktif sampai Admin HR mengaktifkan? | Pengguna | Bila nonaktif, Ajukan ditolak `VR-TRV-29` sampai diaktifkan | Tidak |
+
+Dokumen ini boleh diteruskan ke `/plan-module-delivery` **sesudah** pengguna menyetujui desain
+bagian 36 dan kontrak `v28`.

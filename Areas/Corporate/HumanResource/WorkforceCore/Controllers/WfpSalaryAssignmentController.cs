@@ -1,23 +1,36 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Npgsql;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Services.Security;
+using System.Globalization;
 using System.Security.Claims;
 
 using SalaryAssignmentPagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs.WfpSalaryAssignmentResponse>;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Controllers
 {
+    /// <summary>
+    /// Penetapan gaji pegawai (HRD). PAY-BE-FIX-008: "disetujui" hanya bila ApprovedAt dan ApprovedByUserId terisi (IsActive tidak pernah
+    /// berarti disetujui); perubahan hak finansial membatalkan persetujuan lama; penetapan yang sudah dipakai payroll yang disahkan tidak
+    /// diubah isinya (hanya ditutup masa berlakunya lalu dibuat penetapan baru); dua penetapan utama aktif tidak boleh beririsan tanggal;
+    /// penulisan berjalan di transaksi Serializable dengan advisory lock per pegawai.
+    /// </summary>
     [ApiController]
     [Authorize]
     [Route("api/v1/corporate/payroll-management/workforce-profiles/{workforceProfileId:guid}/salary-assignments")]
@@ -35,15 +48,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
     public class WfpSalaryAssignmentController : ControllerBase
     {
         private const string LogCategory = "Corporate.HumanResource.WorkforceCore";
+        private const string PrimaryIndexViolationMessage =
+            "Database menolak dua penetapan gaji utama aktif untuk pegawai yang sama (indeks IX_WfpSalaryAssignment_WorkforceProfileId). "
+            + "Muat ulang data pegawai ini lalu ulangi; bila berulang, periksa penetapan utama pegawai ini di HRD.";
         private static readonly string[] PaymentFrequencies = { "Monthly", "Weekly", "Biweekly", "Daily", "Hourly" };
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly AccessPermissionService _accessPermissionService;
+        private readonly PayrollSalaryRangeRuleService _salaryRangeRuleService;
+        private readonly PayrollPolicyOptions _policy;
 
-        public WfpSalaryAssignmentController(ApplicationDbContext dbContext, LoggerService loggerService)
+        public WfpSalaryAssignmentController(
+            ApplicationDbContext dbContext,
+            LoggerService loggerService,
+            AccessPermissionService accessPermissionService,
+            PayrollSalaryRangeRuleService salaryRangeRuleService,
+            IOptions<PayrollPolicyOptions> policyOptions)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _accessPermissionService = accessPermissionService;
+            _salaryRangeRuleService = salaryRangeRuleService;
+            _policy = policyOptions.Value;
         }
+
+        private Task<bool> CanViewAmountAsync() => _accessPermissionService.HasAccessAsync(User, "WfpSalaryAssignment", "ViewAmount");
 
         [HttpGet("filters/metadata")]
         [AccessAction("Read", "Read Workforce Salary Assignment", Description = "Melihat metadata salary assignment", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -89,14 +118,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             var query = _dbContext.Set<WfpSalaryAssignment>().AsNoTracking()
                 .Where(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
+            var approvalRequired = _policy.RequireApprovedSalaryAssignment;
+            var today = DateTime.UtcNow.Date;
             var result = new WfpSalaryAssignmentSummaryResponse
             {
                 TotalData = await query.CountAsync(ct),
                 ActiveData = await query.CountAsync(x => x.IsActive, ct),
                 InactiveData = await query.CountAsync(x => !x.IsActive, ct),
                 PrimaryData = await query.CountAsync(x => x.IsPrimary && x.IsActive, ct),
-                ApprovedData = await query.CountAsync(x => x.ApprovedAt.HasValue && x.ApprovedByUserId.HasValue, ct),
-                PendingApprovalData = await query.CountAsync(x => !x.ApprovedAt.HasValue || !x.ApprovedByUserId.HasValue, ct)
+                // Dua hitungan lama tetap berarti fakta persetujuan manual (kompatibilitas); jangan dibaca sebagai "perlu disetujui".
+                ApprovedData = await query.CountAsync(WfpSalaryAssignmentRules.IsApprovedExpression, ct),
+                PendingApprovalData = await query.CountAsync(WfpSalaryAssignmentRules.IsPendingExpression, ct),
+                // Penambahan PAY-BE-FIX-010: kelayakan Payroll menurut kebijakan, supaya ringkasan tidak bertentangan dengan daftar.
+                ApprovalRequired = approvalRequired,
+                AutoByPolicyData = await query.CountAsync(
+                    WfpSalaryAssignmentRules.AuthorizationStatusExpression(WfpSalaryAuthorizationStatuses.AutoByPolicy, approvalRequired), ct),
+                AwaitingApprovalData = await query.CountAsync(
+                    WfpSalaryAssignmentRules.AuthorizationStatusExpression(WfpSalaryAuthorizationStatuses.PendingApproval, approvalRequired), ct),
+                PayrollUsableData = await query.CountAsync(WfpSalaryAssignmentRules.PayrollUsableExpression(approvalRequired, today), ct)
             };
 
             return Ok(ApiResponse<WfpSalaryAssignmentSummaryResponse>.Ok(result, "Ringkasan salary assignment berhasil diambil."));
@@ -140,8 +179,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             if (isPrimary.HasValue) query = query.Where(x => x.IsPrimary == isPrimary.Value);
             if (isApproved.HasValue)
                 query = isApproved.Value
-                    ? query.Where(x => x.ApprovedAt.HasValue && x.ApprovedByUserId.HasValue)
-                    : query.Where(x => !x.ApprovedAt.HasValue || !x.ApprovedByUserId.HasValue);
+                    ? query.Where(WfpSalaryAssignmentRules.IsApprovedExpression)
+                    : query.Where(WfpSalaryAssignmentRules.IsPendingExpression);
             if (isActive.HasValue) query = query.Where(x => x.IsActive == isActive.Value);
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -157,7 +196,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct);
             var actorNames = await GetActorNamesAsync(entities.SelectMany(x => new[] { x.CreateBy, x.UpdateBy, x.ApprovedByUserId ?? Guid.Empty }), ct);
-            var items = entities.Select(x => MapResponse(x, actorNames)).ToList();
+            var includeAmounts = await CanViewAmountAsync();
+            var usage = await LoadFinalPayrollUsageAsync(entities.Select(x => x.Id).ToList(), ct);
+            var items = entities
+                .Select(x => MapResponse(x, actorNames, includeAmounts, usage.TryGetValue(x.Id, out var lastFinalEnd) ? lastFinalEnd : (DateTime?)null, _policy.RequireApprovedSalaryAssignment))
+                .ToList();
 
             return Ok(ApiResponse<SalaryAssignmentPagedResult>.Ok(new SalaryAssignmentPagedResult
             {
@@ -177,7 +220,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             var entity = await BuildBaseQuery(workforceProfileId).FirstOrDefaultAsync(x => x.Id == id, ct);
             if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
             var actorNames = await GetActorNamesAsync(new[] { entity.CreateBy, entity.UpdateBy, entity.ApprovedByUserId ?? Guid.Empty }, ct);
-            return Ok(ApiResponse<WfpSalaryAssignmentResponse>.Ok(MapResponse(entity, actorNames), "Detail salary assignment berhasil diambil."));
+            var includeAmounts = await CanViewAmountAsync();
+            var lastFinalEnd = await GetLastFinalPayrollPeriodEndAsync(id, ct);
+            return Ok(ApiResponse<WfpSalaryAssignmentResponse>.Ok(MapResponse(entity, actorNames, includeAmounts, lastFinalEnd, _policy.RequireApprovedSalaryAssignment), "Detail salary assignment berhasil diambil."));
         }
 
         [HttpPost]
@@ -186,49 +231,69 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         public async Task<IActionResult> Create(Guid workforceProfileId, [FromBody] CreateWfpSalaryAssignmentRequest request, CancellationToken ct)
         {
             if (!await WorkforceExistsAsync(workforceProfileId, ct)) return WorkforceNotFound();
-            var validation = await ValidateRequestAsync(workforceProfileId, null, request, ct);
-            if (!validation.IsValid) return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage!));
-
-            var now = DateTime.UtcNow;
             var actor = GetCurrentUserId();
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
+
             try
             {
-                if (request.IsPrimary && request.IsActive) await ClearPrimaryAsync(workforceProfileId, null, actor, now, ct);
-
-                var entity = new WfpSalaryAssignment
+                return await PayrollTransactionRunner.RunAsync<IActionResult>(_dbContext, LockKey(workforceProfileId), async () =>
                 {
-                    Id = Guid.NewGuid(),
-                    WorkforceProfileId = workforceProfileId,
-                    SalaryStructureId = request.SalaryStructureId,
-                    SalaryGradeId = request.SalaryGradeId,
-                    EmployeeGradeId = NormalizeGuid(request.EmployeeGradeId),
-                    PayrollPeriodId = NormalizeGuid(request.PayrollPeriodId),
-                    BaseSalary = request.BaseSalary,
-                    CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant(),
-                    PaymentFrequency = NormalizeFrequency(request.PaymentFrequency),
-                    EffectiveStartDate = request.EffectiveStartDate.Date,
-                    EffectiveEndDate = request.EffectiveEndDate?.Date,
-                    IsPrimary = request.IsPrimary,
-                    IsConfidential = request.IsConfidential,
-                    IsActive = request.IsActive,
-                    Description = Normalize(request.Description),
-                    CreateDateTime = now,
-                    CreateBy = actor,
-                    IsDelete = false,
-                    IsCancel = false
-                };
+                    var validation = await ValidateRequestAsync(workforceProfileId, null, request, ct);
+                    if (!validation.IsValid) return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage!));
 
-                _dbContext.Set<WfpSalaryAssignment>().Add(entity);
-                await _dbContext.SaveChangesAsync(ct);
-                await transaction.CommitAsync(ct);
-                await _loggerService.InfoAsync(LogCategory, "WfpSalaryAssignment.Create", "Salary assignment berhasil dibuat.", new { entity.Id, entity.WorkforceProfileId, entity.BaseSalary, entity.IsPrimary });
-                return Ok(ApiResponse<object>.Ok(new { entity.Id }, "Salary assignment berhasil dibuat."));
+                    var now = DateTime.UtcNow;
+                    var demoted = new List<Guid>();
+                    if (request.IsPrimary && request.IsActive)
+                    {
+                        // Dua penetapan utama aktif tidak boleh beririsan tanggal: yang beririsan ditolak, tidak diam-diam diturunkan.
+                        var overlap = await FindOverlappingPrimaryAsync(workforceProfileId, null, request.EffectiveStartDate, request.EffectiveEndDate, ct);
+                        if (overlap != null) return ConflictReply(OverlapMessage(overlap));
+                        demoted = await ClearPrimaryAsync(workforceProfileId, null, actor, now, ct);
+                        if (demoted.Count > 0) await _dbContext.SaveChangesAsync(ct);
+                    }
+
+                    var entity = new WfpSalaryAssignment
+                    {
+                        Id = Guid.NewGuid(),
+                        WorkforceProfileId = workforceProfileId,
+                        SalaryStructureId = request.SalaryStructureId,
+                        SalaryGradeId = request.SalaryGradeId,
+                        EmployeeGradeId = NormalizeGuid(request.EmployeeGradeId),
+                        PayrollPeriodId = NormalizeGuid(request.PayrollPeriodId),
+                        PersonnelActionOrderId = NormalizeGuid(request.PersonnelActionOrderId),
+                        // Gaji Dasar ditentukan server dari master Struktur Gaji (ValidateRequestAsync); nominal dari klien tidak pernah disimpan.
+                        BaseSalary = validation.BaseSalary,
+                        CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant(),
+                        PaymentFrequency = NormalizeFrequency(request.PaymentFrequency),
+                        EffectiveStartDate = request.EffectiveStartDate.Date,
+                        EffectiveEndDate = request.EffectiveEndDate?.Date,
+                        IsPrimary = request.IsPrimary,
+                        IsConfidential = request.IsConfidential,
+                        IsActive = request.IsActive,
+                        // Create tidak pernah mengisi metadata persetujuan manual (tidak ada jalur yang membuatnya "langsung disetujui" oleh
+                        // seseorang). Apakah penetapan baru lalu menunggu persetujuan atau sah otomatis ditentukan kebijakan
+                        // Payroll:Policy:RequireApprovedSalaryAssignment saat dibaca (AuthorizationStatus), bukan oleh kolom ini (PAY-BE-FIX-010).
+                        ApprovedAt = null,
+                        ApprovedByUserId = null,
+                        Description = Normalize(request.Description),
+                        CreateDateTime = now,
+                        CreateBy = actor,
+                        IsDelete = false,
+                        IsCancel = false
+                    };
+
+                    _dbContext.Set<WfpSalaryAssignment>().Add(entity);
+                    await _dbContext.SaveChangesAsync(ct);
+                    await AuditAsync("WfpSalaryAssignment.Create", "Salary assignment berhasil dibuat.", entity, actor,
+                        new { DemotedPrimaryAssignmentIds = demoted });
+                    return Ok(ApiResponse<object>.Ok(new { entity.Id, DemotedPrimaryAssignmentIds = demoted },
+                        _policy.RequireApprovedSalaryAssignment
+                            ? "Salary assignment berhasil dibuat. Penetapan ini menunggu persetujuan dan belum dipakai payroll."
+                            : "Salary assignment berhasil dibuat."));
+                }, ct);
             }
-            catch
+            catch (DbUpdateException ex) when (IsPrimaryIndexViolation(ex))
             {
-                await transaction.RollbackAsync(ct);
-                throw;
+                return ConflictReply(PrimaryIndexViolationMessage);
             }
         }
 
@@ -237,40 +302,107 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         [AccessPermission("WfpSalaryAssignment", "Update")]
         public async Task<IActionResult> Update(Guid workforceProfileId, Guid id, [FromBody] UpdateWfpSalaryAssignmentRequest request, CancellationToken ct)
         {
-            var entity = await FindEntityAsync(workforceProfileId, id, ct);
-            if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
-            var validation = await ValidateRequestAsync(workforceProfileId, id, request, ct);
-            if (!validation.IsValid) return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage!));
-
-            var now = DateTime.UtcNow;
             var actor = GetCurrentUserId();
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
+
             try
             {
-                if (request.IsPrimary && request.IsActive) await ClearPrimaryAsync(workforceProfileId, id, actor, now, ct);
-                entity.SalaryStructureId = request.SalaryStructureId;
-                entity.SalaryGradeId = request.SalaryGradeId;
-                entity.EmployeeGradeId = NormalizeGuid(request.EmployeeGradeId);
-                entity.PayrollPeriodId = NormalizeGuid(request.PayrollPeriodId);
-                entity.BaseSalary = request.BaseSalary;
-                entity.CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant();
-                entity.PaymentFrequency = NormalizeFrequency(request.PaymentFrequency);
-                entity.EffectiveStartDate = request.EffectiveStartDate.Date;
-                entity.EffectiveEndDate = request.EffectiveEndDate?.Date;
-                entity.IsPrimary = request.IsPrimary;
-                entity.IsConfidential = request.IsConfidential;
-                entity.IsActive = request.IsActive;
-                entity.Description = Normalize(request.Description);
-                entity.UpdateDateTime = now;
-                entity.UpdateBy = actor;
-                await _dbContext.SaveChangesAsync(ct);
-                await transaction.CommitAsync(ct);
-                return Ok(ApiResponse<object>.Ok(null, "Salary assignment berhasil diperbarui."));
+                return await PayrollTransactionRunner.RunAsync<IActionResult>(_dbContext, LockKey(workforceProfileId), async () =>
+                {
+                    var entity = await FindEntityAsync(workforceProfileId, id, ct);
+                    if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
+                    // Entity (terlacak, belum diubah) diteruskan supaya nominal tersimpan dipertahankan bila struktur/grade tidak berubah.
+                    var validation = await ValidateRequestAsync(workforceProfileId, entity, request, ct);
+                    if (!validation.IsValid) return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage!));
+
+                    var now = DateTime.UtcNow;
+                    var start = request.EffectiveStartDate.Date;
+                    DateTime? end = request.EffectiveEndDate?.Date;
+                    var currency = request.CurrencyCode.Trim().ToUpperInvariant();
+                    var frequency = NormalizeFrequency(request.PaymentFrequency);
+
+                    // Perubahan finansial dinilai terhadap nominal hasil penentuan server, bukan nominal kiriman klien.
+                    var financialChange = WfpSalaryAssignmentRules.HasFinancialChange(
+                        entity, request.SalaryStructureId, request.SalaryGradeId, validation.BaseSalary, currency, frequency, start, end);
+                    var closureOnly = WfpSalaryAssignmentRules.IsClosureOnly(
+                        entity, request.SalaryStructureId, request.SalaryGradeId, validation.BaseSalary, currency, frequency, start, end);
+                    var wasApproved = WfpSalaryAssignmentRules.IsApproved(entity.ApprovedAt, entity.ApprovedByUserId);
+
+                    // Penetapan yang sudah dipakai payroll yang disahkan tidak boleh ditulis ulang: koreksinya adalah menutup masa berlaku lalu
+                    // membuat penetapan baru yang sah. Snapshot run yang disahkan tidak pernah tersentuh.
+                    var lastFinalEnd = await GetLastFinalPayrollPeriodEndAsync(id, ct);
+                    if (lastFinalEnd.HasValue)
+                    {
+                        if (financialChange && !closureOnly)
+                            return ConflictReply(
+                                "Penetapan ini sudah dipakai payroll yang disahkan, jadi struktur, grade, gaji pokok, mata uang, frekuensi, dan tanggal mulainya tidak dapat diubah. "
+                                + "Tutup masa berlakunya (isi tanggal akhir) lalu buat penetapan gaji baru.");
+                        if (closureOnly && end!.Value < lastFinalEnd.Value.Date)
+                            return ConflictReply(
+                                $"Masa berlaku tidak boleh ditutup sebelum akhir periode payroll terakhir yang sudah disahkan ({Fmt(lastFinalEnd.Value)}).");
+                        if (entity.IsActive && !request.IsActive)
+                            return ConflictReply("Penetapan yang sudah dipakai payroll yang disahkan tidak dapat dinonaktifkan. Tutup masa berlakunya.");
+                    }
+
+                    var demoted = new List<Guid>();
+                    if (request.IsPrimary && request.IsActive)
+                    {
+                        var overlap = await FindOverlappingPrimaryAsync(workforceProfileId, id, start, end, ct);
+                        if (overlap != null) return ConflictReply(OverlapMessage(overlap));
+                        demoted = await ClearPrimaryAsync(workforceProfileId, id, actor, now, ct);
+                        if (demoted.Count > 0) await _dbContext.SaveChangesAsync(ct);
+                    }
+
+                    // Mengubah hak finansial membatalkan persetujuan lama dan butuh persetujuan baru; penutupan masa berlaku tidak.
+                    var approvalReset = financialChange && !closureOnly && wasApproved;
+                    if (approvalReset)
+                    {
+                        entity.ApprovedAt = null;
+                        entity.ApprovedByUserId = null;
+                    }
+
+                    entity.SalaryStructureId = request.SalaryStructureId;
+                    entity.SalaryGradeId = request.SalaryGradeId;
+                    entity.EmployeeGradeId = NormalizeGuid(request.EmployeeGradeId);
+                    if (request.PayrollPeriodId.HasValue && request.PayrollPeriodId.Value != Guid.Empty)
+                    {
+                        entity.PayrollPeriodId = request.PayrollPeriodId.Value;
+                    }
+                    // Nilai historis PayrollPeriodId dan PersonnelActionOrderId dipertahankan jika request tidak menyertakannya.
+                    if (request.PersonnelActionOrderId.HasValue && request.PersonnelActionOrderId.Value != Guid.Empty)
+                    {
+                        entity.PersonnelActionOrderId = request.PersonnelActionOrderId.Value;
+                    }
+                    entity.BaseSalary = validation.BaseSalary;
+                    entity.CurrencyCode = currency;
+                    entity.PaymentFrequency = frequency;
+                    entity.EffectiveStartDate = start;
+                    entity.EffectiveEndDate = end;
+                    entity.IsPrimary = request.IsPrimary;
+                    entity.IsConfidential = request.IsConfidential;
+                    entity.IsActive = request.IsActive;
+                    entity.Description = Normalize(request.Description);
+                    entity.UpdateDateTime = now;
+                    entity.UpdateBy = actor;
+                    await _dbContext.SaveChangesAsync(ct);
+                    await AuditAsync("WfpSalaryAssignment.Update", "Salary assignment diperbarui.", entity, actor,
+                        new { FinancialChange = financialChange, ClosureOnly = closureOnly, ApprovalReset = approvalReset, DemotedPrimaryAssignmentIds = demoted });
+
+                    var message = approvalReset
+                        ? _policy.RequireApprovedSalaryAssignment
+                            ? "Salary assignment berhasil diperbarui. Karena data gaji berubah, persetujuan sebelumnya dibatalkan dan penetapan perlu disetujui ulang sebelum dipakai payroll."
+                            : "Salary assignment berhasil diperbarui. Karena data gaji berubah, persetujuan sebelumnya dibatalkan."
+                        : "Salary assignment berhasil diperbarui.";
+                    return Ok(ApiResponse<object>.Ok(new
+                    {
+                        ApprovalReset = approvalReset,
+                        ApprovalStatus = WfpSalaryAssignmentRules.StatusOf(entity.ApprovedAt, entity.ApprovedByUserId),
+                        DemotedPrimaryAssignmentIds = demoted
+                    }, message));
+                }, ct);
             }
-            catch
+            catch (DbUpdateException ex) when (IsPrimaryIndexViolation(ex))
             {
-                await transaction.RollbackAsync(ct);
-                throw;
+                return ConflictReply(PrimaryIndexViolationMessage);
             }
         }
 
@@ -279,16 +411,61 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         [AccessPermission("WfpSalaryAssignment", "Update")]
         public async Task<IActionResult> Approve(Guid workforceProfileId, Guid id, [FromBody] ApproveWfpSalaryAssignmentRequest request, CancellationToken ct)
         {
-            var entity = await FindEntityAsync(workforceProfileId, id, ct);
-            if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
             var actor = GetCurrentUserId();
-            var now = DateTime.UtcNow;
-            entity.ApprovedByUserId = request.IsApproved ? actor : null;
-            entity.ApprovedAt = request.IsApproved ? now : null;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actor;
-            await _dbContext.SaveChangesAsync(ct);
-            return Ok(ApiResponse<object>.Ok(null, request.IsApproved ? "Salary assignment berhasil disetujui." : "Approval salary assignment berhasil dibatalkan."));
+            if (request.IsApproved && actor == Guid.Empty)
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(403, "Identitas pengguna tidak dapat ditentukan, jadi persetujuan tidak dapat dicatat."));
+
+            return await PayrollTransactionRunner.RunAsync<IActionResult>(_dbContext, LockKey(workforceProfileId), async () =>
+            {
+                var entity = await FindEntityAsync(workforceProfileId, id, ct);
+                if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
+                var wasApproved = WfpSalaryAssignmentRules.IsApproved(entity.ApprovedAt, entity.ApprovedByUserId);
+                var now = DateTime.UtcNow;
+
+                if (request.IsApproved)
+                {
+                    // Idempoten: penetapan yang sudah disetujui tidak ditimpa pengesahnya.
+                    if (wasApproved) return Ok(ApiResponse<object>.Ok(null, "Salary assignment sudah disetujui."));
+                    if (!entity.IsActive)
+                        return ConflictReply("Salary assignment yang tidak aktif tidak dapat disetujui. Aktifkan lebih dulu.");
+
+                    // NEEDS CONFIRMATION (matriks maker-checker kompensasi): pemisahan pembuat dan pengesah baru berlaku bila kebijakan
+                    // Payroll:Policy:RequireDifferentApprover dinyalakan pemilik proses (nilai bawaan false tidak diubah oleh kode).
+                    // Skema belum menyimpan pengaju terpisah; pembuat/pengubah terakhir dipakai sebagai pengaju.
+                    var maker = entity.UpdateDateTime.HasValue && entity.UpdateBy != Guid.Empty ? entity.UpdateBy : entity.CreateBy;
+                    if (_policy.RequireDifferentApprover && maker != Guid.Empty && maker == actor)
+                        return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(403,
+                            "Pembuat atau pengubah terakhir penetapan gaji tidak boleh menyetujui penetapan yang sama (kebijakan pemisahan kewenangan)."));
+
+                    var rangeCheck = await _salaryRangeRuleService.ValidateSalaryAssignmentAsync(entity.SalaryStructureId, entity.SalaryGradeId, entity.BaseSalary, entity.CurrencyCode, ct);
+                    if (!rangeCheck.IsValid) return BadRequest(ApiResponse<object>.Fail(400, rangeCheck.Message!));
+
+                    if (entity.IsPrimary)
+                    {
+                        var overlap = await FindOverlappingPrimaryAsync(workforceProfileId, id, entity.EffectiveStartDate, entity.EffectiveEndDate, ct);
+                        if (overlap != null) return ConflictReply(OverlapMessage(overlap));
+                    }
+
+                    entity.ApprovedByUserId = actor;
+                    entity.ApprovedAt = now;
+                }
+                else
+                {
+                    if (!wasApproved) return Ok(ApiResponse<object>.Ok(null, "Salary assignment memang belum disetujui."));
+                    if (await GetLastFinalPayrollPeriodEndAsync(id, ct) != null)
+                        return ConflictReply("Persetujuan penetapan yang sudah dipakai payroll yang disahkan tidak dapat dibatalkan. Tutup masa berlakunya.");
+
+                    entity.ApprovedByUserId = null;
+                    entity.ApprovedAt = null;
+                }
+
+                entity.UpdateDateTime = now;
+                entity.UpdateBy = actor;
+                await _dbContext.SaveChangesAsync(ct);
+                await AuditAsync(request.IsApproved ? "WfpSalaryAssignment.Approve" : "WfpSalaryAssignment.Unapprove",
+                    request.IsApproved ? "Salary assignment disetujui." : "Approval salary assignment dibatalkan.", entity, actor);
+                return Ok(ApiResponse<object>.Ok(null, request.IsApproved ? "Salary assignment berhasil disetujui." : "Approval salary assignment berhasil dibatalkan."));
+            }, ct);
         }
 
         [HttpPatch("{id:guid}/status")]
@@ -296,14 +473,49 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         [AccessPermission("WfpSalaryAssignment", "Update")]
         public async Task<IActionResult> UpdateStatus(Guid workforceProfileId, Guid id, [FromBody] UpdateWfpSalaryAssignmentStatusRequest request, CancellationToken ct)
         {
-            var entity = await FindEntityAsync(workforceProfileId, id, ct);
-            if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
-            entity.IsActive = request.IsActive;
-            if (!request.IsActive) entity.IsPrimary = false;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
-            await _dbContext.SaveChangesAsync(ct);
-            return Ok(ApiResponse<object>.Ok(null, "Status salary assignment berhasil diperbarui."));
+            var actor = GetCurrentUserId();
+
+            try
+            {
+                return await PayrollTransactionRunner.RunAsync<IActionResult>(_dbContext, LockKey(workforceProfileId), async () =>
+                {
+                    var entity = await FindEntityAsync(workforceProfileId, id, ct);
+                    if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
+                    var now = DateTime.UtcNow;
+                    var demoted = new List<Guid>();
+
+                    if (request.IsActive)
+                    {
+                        var rangeCheck = await _salaryRangeRuleService.ValidateSalaryAssignmentAsync(entity.SalaryStructureId, entity.SalaryGradeId, entity.BaseSalary, entity.CurrencyCode, ct);
+                        if (!rangeCheck.IsValid) return BadRequest(ApiResponse<object>.Fail(400, rangeCheck.Message!));
+
+                        if (entity.IsPrimary && !entity.IsActive)
+                        {
+                            var overlap = await FindOverlappingPrimaryAsync(workforceProfileId, id, entity.EffectiveStartDate, entity.EffectiveEndDate, ct);
+                            if (overlap != null) return ConflictReply(OverlapMessage(overlap));
+                            demoted = await ClearPrimaryAsync(workforceProfileId, id, actor, now, ct);
+                            if (demoted.Count > 0) await _dbContext.SaveChangesAsync(ct);
+                        }
+                    }
+                    else if (entity.IsActive && await GetLastFinalPayrollPeriodEndAsync(id, ct) != null)
+                    {
+                        return ConflictReply("Penetapan yang sudah dipakai payroll yang disahkan tidak dapat dinonaktifkan. Tutup masa berlakunya.");
+                    }
+
+                    entity.IsActive = request.IsActive;
+                    if (!request.IsActive) entity.IsPrimary = false;
+                    entity.UpdateDateTime = now;
+                    entity.UpdateBy = actor;
+                    await _dbContext.SaveChangesAsync(ct);
+                    await AuditAsync("WfpSalaryAssignment.UpdateStatus", "Status salary assignment diperbarui.", entity, actor,
+                        new { DemotedPrimaryAssignmentIds = demoted });
+                    return Ok(ApiResponse<object>.Ok(null, "Status salary assignment berhasil diperbarui."));
+                }, ct);
+            }
+            catch (DbUpdateException ex) when (IsPrimaryIndexViolation(ex))
+            {
+                return ConflictReply(PrimaryIndexViolationMessage);
+            }
         }
 
         [HttpPatch("{id:guid}/primary")]
@@ -311,27 +523,43 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         [AccessPermission("WfpSalaryAssignment", "Update")]
         public async Task<IActionResult> SetPrimary(Guid workforceProfileId, Guid id, [FromBody] SetWfpSalaryAssignmentPrimaryRequest request, CancellationToken ct)
         {
-            var entity = await FindEntityAsync(workforceProfileId, id, ct);
-            if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
-            if (request.IsPrimary && !entity.IsActive) return BadRequest(ApiResponse<object>.Fail(400, "Salary assignment tidak aktif tidak dapat dijadikan primary."));
-
-            var now = DateTime.UtcNow;
             var actor = GetCurrentUserId();
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
+
             try
             {
-                if (request.IsPrimary) await ClearPrimaryAsync(workforceProfileId, id, actor, now, ct);
-                entity.IsPrimary = request.IsPrimary;
-                entity.UpdateDateTime = now;
-                entity.UpdateBy = actor;
-                await _dbContext.SaveChangesAsync(ct);
-                await transaction.CommitAsync(ct);
-                return Ok(ApiResponse<object>.Ok(null, "Primary salary assignment berhasil diperbarui."));
+                return await PayrollTransactionRunner.RunAsync<IActionResult>(_dbContext, LockKey(workforceProfileId), async () =>
+                {
+                    var entity = await FindEntityAsync(workforceProfileId, id, ct);
+                    if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
+                    if (request.IsPrimary && !entity.IsActive) return BadRequest(ApiResponse<object>.Fail(400, "Salary assignment tidak aktif tidak dapat dijadikan primary."));
+
+                    var now = DateTime.UtcNow;
+                    var demoted = new List<Guid>();
+                    if (request.IsPrimary)
+                    {
+                        var rangeCheck = await _salaryRangeRuleService.ValidateSalaryAssignmentAsync(entity.SalaryStructureId, entity.SalaryGradeId, entity.BaseSalary, entity.CurrencyCode, ct);
+                        if (!rangeCheck.IsValid) return BadRequest(ApiResponse<object>.Fail(400, rangeCheck.Message!));
+
+                        // Penetapan utama lain yang beririsan tanggal ditolak (tidak diam-diam diturunkan). Yang tidak beririsan diturunkan
+                        // karena indeks unik database saat ini hanya mengizinkan satu penetapan utama aktif per pegawai (lihat laporan PAY-BE-FIX-008).
+                        var overlap = await FindOverlappingPrimaryAsync(workforceProfileId, id, entity.EffectiveStartDate, entity.EffectiveEndDate, ct);
+                        if (overlap != null) return ConflictReply(OverlapMessage(overlap));
+                        demoted = await ClearPrimaryAsync(workforceProfileId, id, actor, now, ct);
+                        if (demoted.Count > 0) await _dbContext.SaveChangesAsync(ct);
+                    }
+
+                    entity.IsPrimary = request.IsPrimary;
+                    entity.UpdateDateTime = now;
+                    entity.UpdateBy = actor;
+                    await _dbContext.SaveChangesAsync(ct);
+                    await AuditAsync("WfpSalaryAssignment.SetPrimary", "Primary salary assignment diperbarui.", entity, actor,
+                        new { DemotedPrimaryAssignmentIds = demoted });
+                    return Ok(ApiResponse<object>.Ok(new { DemotedPrimaryAssignmentIds = demoted }, "Primary salary assignment berhasil diperbarui."));
+                }, ct);
             }
-            catch
+            catch (DbUpdateException ex) when (IsPrimaryIndexViolation(ex))
             {
-                await transaction.RollbackAsync(ct);
-                throw;
+                return ConflictReply(PrimaryIndexViolationMessage);
             }
         }
 
@@ -340,23 +568,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         [AccessPermission("WfpSalaryAssignment", "Delete")]
         public async Task<IActionResult> Delete(Guid workforceProfileId, Guid id, CancellationToken ct)
         {
-            var entity = await FindEntityAsync(workforceProfileId, id, ct);
-            if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
-            var now = DateTime.UtcNow;
             var actor = GetCurrentUserId();
-            entity.IsDelete = true;
-            entity.IsActive = false;
-            entity.IsPrimary = false;
-            entity.DeleteDateTime = now;
-            entity.DeleteBy = actor;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actor;
-            await _dbContext.SaveChangesAsync(ct);
-            return Ok(ApiResponse<object>.Ok(null, "Salary assignment berhasil dihapus."));
+
+            return await PayrollTransactionRunner.RunAsync<IActionResult>(_dbContext, LockKey(workforceProfileId), async () =>
+            {
+                var entity = await FindEntityAsync(workforceProfileId, id, ct);
+                if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Salary assignment tidak ditemukan."));
+                if (await GetLastFinalPayrollPeriodEndAsync(id, ct) != null)
+                    return ConflictReply("Penetapan yang sudah dipakai payroll yang disahkan tidak dapat dihapus. Tutup masa berlakunya agar riwayat tetap utuh.");
+
+                var now = DateTime.UtcNow;
+                entity.IsDelete = true;
+                entity.IsActive = false;
+                entity.IsPrimary = false;
+                entity.DeleteDateTime = now;
+                entity.DeleteBy = actor;
+                entity.UpdateDateTime = now;
+                entity.UpdateBy = actor;
+                await _dbContext.SaveChangesAsync(ct);
+                await AuditAsync("WfpSalaryAssignment.Delete", "Salary assignment dihapus (ditandai).", entity, actor);
+                return Ok(ApiResponse<object>.Ok(null, "Salary assignment berhasil dihapus."));
+            }, ct);
         }
 
         private IQueryable<WfpSalaryAssignment> BuildBaseQuery(Guid workforceProfileId) =>
-            _dbContext.Set<WfpSalaryAssignment>().AsNoTracking().Include(x => x.WorkforceProfile)
+            _dbContext.Set<WfpSalaryAssignment>().AsNoTracking()
+                .Include(x => x.WorkforceProfile)
+                .Include(x => x.SalaryStructure)
+                .Include(x => x.SalaryGrade)
+                .Include(x => x.EmployeeGrade)
+                .Include(x => x.PayrollPeriod)
+                .Include(x => x.PersonnelActionOrder)
                 .Where(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
         private static IOrderedQueryable<WfpSalaryAssignment> ApplySorting(IQueryable<WfpSalaryAssignment> query, string? sortBy, string? sortDirection)
@@ -374,33 +616,135 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             };
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(Guid workforceProfileId, Guid? excludeId, CreateWfpSalaryAssignmentRequest request, CancellationToken ct)
-        {
-            if (request.SalaryStructureId == Guid.Empty) return (false, "Salary structure wajib dipilih.");
-            if (request.SalaryGradeId == Guid.Empty) return (false, "Salary grade wajib dipilih.");
-            if (request.BaseSalary < 0) return (false, "Base salary tidak boleh negatif.");
-            if (string.IsNullOrWhiteSpace(request.CurrencyCode) || request.CurrencyCode.Trim().Length != 3) return (false, "Currency code wajib terdiri dari 3 karakter.");
-            if (!PaymentFrequencies.Contains(NormalizeFrequency(request.PaymentFrequency), StringComparer.OrdinalIgnoreCase)) return (false, "Payment frequency tidak valid.");
-            if (request.EffectiveStartDate == default) return (false, "Effective start date wajib diisi.");
-            if (request.EffectiveEndDate.HasValue && request.EffectiveEndDate.Value.Date < request.EffectiveStartDate.Date) return (false, "Effective end date tidak boleh lebih kecil dari effective start date.");
-            if (!await ExistsActiveAsync<MstSalaryStructure>(request.SalaryStructureId, ct)) return (false, "Salary structure tidak ditemukan atau tidak aktif.");
-            if (!await ExistsActiveAsync<MstSalaryGrade>(request.SalaryGradeId, ct)) return (false, "Salary grade tidak ditemukan atau tidak aktif.");
-            if (!await ExistsActiveIfProvidedAsync<MstEmployeeGrade>(request.EmployeeGradeId, ct)) return (false, "Employee grade tidak ditemukan atau tidak aktif.");
-            if (!await ExistsActiveIfProvidedAsync<MstPayrollPeriod>(request.PayrollPeriodId, ct)) return (false, "Payroll period tidak ditemukan atau tidak aktif.");
+        private const string DerivedAmountMismatchMessage =
+            "Gaji Dasar ditentukan otomatis dari Struktur Gaji yang dipilih dan tidak dapat diisi atau diubah manual. "
+            + "Nominal pada permintaan tidak sama dengan Gaji Dasar struktur. Muat ulang pilihan Struktur Gaji lalu simpan kembali tanpa mengubah nominal.";
+        private const string StoredAmountMismatchMessage =
+            "Gaji Dasar penetapan yang sudah tersimpan tidak dapat diubah dari formulir ini. "
+            + "Untuk mengubah nominal, tutup masa berlaku penetapan ini lalu buat penetapan baru dengan Struktur Gaji yang sesuai.";
 
+        private static (bool IsValid, string? ErrorMessage, decimal BaseSalary) Reject(string message) => (false, message, 0m);
+
+        /// <summary>
+        /// Validasi permintaan sekaligus MENENTUKAN Gaji Dasar di server (PAY-BE-FIX-011). Nominal dari klien tidak pernah otoritatif:
+        /// penetapan baru atau pergantian struktur/grade memakai MstSalaryStructure.DefaultBaseSalary; bila struktur dan grade tidak berubah,
+        /// nominal tersimpan dipertahankan (histori tidak ditimpa perubahan master). <paramref name="existing"/> null berarti Create.
+        /// </summary>
+        private async Task<(bool IsValid, string? ErrorMessage, decimal BaseSalary)> ValidateRequestAsync(
+            Guid workforceProfileId, WfpSalaryAssignment? existing, CreateWfpSalaryAssignmentRequest request, CancellationToken ct)
+        {
+            var excludeId = existing?.Id;
+            if (request.SalaryStructureId == Guid.Empty) return Reject("Salary structure wajib dipilih.");
+            if (request.SalaryGradeId == Guid.Empty) return Reject("Salary grade wajib dipilih.");
+            if (request.BaseSalary.HasValue && request.BaseSalary.Value < 0) return Reject("Base salary tidak boleh negatif.");
+            if (string.IsNullOrWhiteSpace(request.CurrencyCode) || request.CurrencyCode.Trim().Length != 3) return Reject("Currency code wajib terdiri dari 3 karakter.");
+            if (!PaymentFrequencies.Contains(NormalizeFrequency(request.PaymentFrequency), StringComparer.OrdinalIgnoreCase)) return Reject("Payment frequency tidak valid.");
+            if (request.EffectiveStartDate == default) return Reject("Effective start date wajib diisi.");
+            if (request.EffectiveEndDate.HasValue && request.EffectiveEndDate.Value.Date < request.EffectiveStartDate.Date) return Reject("Effective end date tidak boleh lebih kecil dari effective start date.");
+            if (!await ExistsActiveIfProvidedAsync<MstEmployeeGrade>(request.EmployeeGradeId, ct)) return Reject("Employee grade tidak ditemukan atau tidak aktif.");
+            if (!await ExistsActiveIfProvidedAsync<MstPayrollPeriod>(request.PayrollPeriodId, ct)) return Reject("Payroll period tidak ditemukan atau tidak aktif.");
+
+            // SK yang ditautkan harus milik pegawai yang sama; SK hanya referensi dan tidak pernah mengubah nominal gaji.
+            if (request.PersonnelActionOrderId.HasValue && request.PersonnelActionOrderId.Value != Guid.Empty)
+            {
+                var orderId = request.PersonnelActionOrderId.Value;
+                var orderOk = await _dbContext.Set<HrdPersonnelActionOrder>().AsNoTracking()
+                    .AnyAsync(o => o.Id == orderId && o.WorkforceProfileId == workforceProfileId && !o.IsDelete, ct);
+                if (!orderOk) return Reject("SK Kepegawaian yang ditautkan tidak ditemukan atau bukan milik pegawai ini.");
+            }
+
+            // Penentuan Gaji Dasar. Struktur/grade baru (atau pergantian) memakai DefaultBaseSalary master; tanggal mulai yang berubah pada
+            // struktur yang sama hanya memeriksa keabsahan struktur pada tanggal itu. Selain itu nominal tersimpan tidak disentuh.
+            var structureChanged = existing == null
+                || existing.SalaryStructureId != request.SalaryStructureId
+                || existing.SalaryGradeId != request.SalaryGradeId;
+            var startChanged = existing != null && existing.EffectiveStartDate.Date != request.EffectiveStartDate.Date;
+
+            decimal baseSalary;
+            if (structureChanged || startChanged)
+            {
+                var basis = await _salaryRangeRuleService.ResolveSalaryAssignmentBasisAsync(
+                    request.SalaryStructureId, request.SalaryGradeId, request.EffectiveStartDate, requireDefaultBaseSalary: structureChanged, ct);
+                if (!basis.IsValid) return Reject(basis.Message!);
+                baseSalary = structureChanged ? basis.DefaultBaseSalary : existing!.BaseSalary;
+            }
+            else
+            {
+                baseSalary = existing!.BaseSalary;
+            }
+
+            // Klien lama yang masih mengirim nominal: hanya diterima bila identik dengan hasil penentuan server; selain itu ditolak, bukan disimpan.
+            if (request.BaseSalary.HasValue && Math.Round(request.BaseSalary.Value, 2) != Math.Round(baseSalary, 2))
+                return Reject(structureChanged ? DerivedAmountMismatchMessage : StoredAmountMismatchMessage);
+
+            var rangeCheck = await _salaryRangeRuleService.ValidateSalaryAssignmentAsync(request.SalaryStructureId, request.SalaryGradeId, baseSalary, request.CurrencyCode, ct);
+            if (!rangeCheck.IsValid) return Reject(rangeCheck.Message!);
+
+            // Pemeriksaan lama dipertahankan: struktur dan grade yang sama tidak boleh beririsan (apa pun status utama/aktifnya).
             var overlaps = await _dbContext.Set<WfpSalaryAssignment>().AsNoTracking().AnyAsync(x =>
                 x.WorkforceProfileId == workforceProfileId && x.Id != excludeId && !x.IsDelete &&
                 x.EffectiveStartDate <= (request.EffectiveEndDate ?? DateTime.MaxValue).Date &&
                 (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= request.EffectiveStartDate.Date) &&
                 x.SalaryStructureId == request.SalaryStructureId && x.SalaryGradeId == request.SalaryGradeId, ct);
-            if (overlaps) return (false, "Periode salary assignment dengan struktur dan grade yang sama beririsan.");
-            return (true, null);
+            if (overlaps) return Reject("Periode salary assignment dengan struktur dan grade yang sama beririsan.");
+            return (true, null, baseSalary);
         }
 
-        private async Task ClearPrimaryAsync(Guid workforceProfileId, Guid? excludeId, Guid actor, DateTime now, CancellationToken ct)
+        /// <summary>
+        /// Penetapan utama aktif lain milik pegawai ini yang masa berlakunya beririsan (apa pun status persetujuannya); null bila tidak ada.
+        /// Berlaku untuk SEMUA penetapan utama, bukan hanya kombinasi struktur dan grade yang sama (P1-01).
+        /// </summary>
+        private async Task<WfpSalaryAssignment?> FindOverlappingPrimaryAsync(
+            Guid workforceProfileId, Guid? excludeId, DateTime start, DateTime? end, CancellationToken ct)
+        {
+            var startDate = start.Date;
+            var endBound = (end ?? DateTime.MaxValue).Date;
+            return await _dbContext.Set<WfpSalaryAssignment>().AsNoTracking()
+                .Where(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete && x.IsActive && x.IsPrimary
+                    && (excludeId == null || x.Id != excludeId)
+                    && x.EffectiveStartDate <= endBound
+                    && (x.EffectiveEndDate == null || x.EffectiveEndDate >= startDate))
+                .OrderBy(x => x.EffectiveStartDate)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        private static string OverlapMessage(WfpSalaryAssignment other)
+        {
+            var status = WfpSalaryAssignmentRules.IsApproved(other.ApprovedAt, other.ApprovedByUserId) ? "disetujui" : "menunggu persetujuan";
+            var range = Fmt(other.EffectiveStartDate) + " s.d. " + (other.EffectiveEndDate.HasValue ? Fmt(other.EffectiveEndDate.Value) : "tanpa batas akhir");
+            return $"Sudah ada penetapan gaji utama aktif ({status}) untuk {range} yang beririsan dengan masa berlaku ini. "
+                + "Tutup masa berlakunya lebih dulu (isi tanggal akhir sebelum tanggal mulai yang baru) atau nonaktifkan, supaya tidak ada dua penetapan utama pada tanggal yang sama.";
+        }
+
+        /// <summary>
+        /// Menurunkan penetapan utama aktif lain dari Utama. Dipanggil HANYA setelah <see cref="FindOverlappingPrimaryAsync"/> memastikan tidak ada yang
+        /// beririsan, jadi yang diturunkan adalah penetapan utama yang tidak beririsan tanggal (riwayat atau yang akan datang). Penurunan ini
+        /// dipaksa indeks unik IX_WfpSalaryAssignment_WorkforceProfileId (satu penetapan utama aktif per pegawai); pelonggarannya menunggu
+        /// perubahan skema yang dipisahkan sebagai dependency. Id yang diturunkan dikembalikan dan dicatat di audit supaya tidak diam-diam.
+        /// </summary>
+        private async Task<List<Guid>> ClearPrimaryAsync(Guid workforceProfileId, Guid? excludeId, Guid actor, DateTime now, CancellationToken ct)
         {
             var rows = await _dbContext.Set<WfpSalaryAssignment>().Where(x => x.WorkforceProfileId == workforceProfileId && x.IsPrimary && x.IsActive && !x.IsDelete && x.Id != excludeId).ToListAsync(ct);
             foreach (var row in rows) { row.IsPrimary = false; row.UpdateDateTime = now; row.UpdateBy = actor; }
+            return rows.Select(x => x.Id).ToList();
+        }
+
+        /// <summary>Akhir periode payroll terakhir yang DISAHKAN dan memakai penetapan ini; null bila belum pernah dipakai payroll yang disahkan.</summary>
+        private async Task<DateTime?> GetLastFinalPayrollPeriodEndAsync(Guid assignmentId, CancellationToken ct)
+        {
+            var usage = await LoadFinalPayrollUsageAsync(new List<Guid> { assignmentId }, ct);
+            return usage.TryGetValue(assignmentId, out var end) ? end : null;
+        }
+
+        private async Task<Dictionary<Guid, DateTime>> LoadFinalPayrollUsageAsync(IReadOnlyCollection<Guid> assignmentIds, CancellationToken ct)
+        {
+            if (assignmentIds.Count == 0) return new Dictionary<Guid, DateTime>();
+            var rows = await _dbContext.PrlPayrollRunEmployees.AsNoTracking()
+                .Where(e => !e.IsDelete && e.IsFinalized && e.SalaryAssignmentId != null && assignmentIds.Contains(e.SalaryAssignmentId.Value)
+                    && e.PayrollRun != null && !e.PayrollRun.IsDelete)
+                .Select(e => new { Id = e.SalaryAssignmentId!.Value, End = e.PayrollRun!.PeriodEndDateSnapshot })
+                .ToListAsync(ct);
+            return rows.GroupBy(x => x.Id).ToDictionary(g => g.Key, g => g.Max(x => x.End));
         }
 
         private async Task<bool> WorkforceExistsAsync(Guid id, CancellationToken ct) =>
@@ -411,43 +755,156 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         private async Task<WfpSalaryAssignment?> FindEntityAsync(Guid workforceProfileId, Guid id, CancellationToken ct) =>
             await _dbContext.Set<WfpSalaryAssignment>().FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete, ct);
 
-        private static WfpSalaryAssignmentResponse MapResponse(WfpSalaryAssignment x, IReadOnlyDictionary<Guid, string?> actorNames) => new()
+        private Task AuditAsync(string action, string message, WfpSalaryAssignment entity, Guid actor, object? extra = null) =>
+            // Tanpa gaji pokok: penetapan bersifat rahasia; hanya identitas, status, aktor, dan keterangan perubahan.
+            _loggerService.AuditAsync(LogCategory, action, message, new
+            {
+                EntityId = entity.Id,
+                entity.WorkforceProfileId,
+                entity.SalaryStructureId,
+                entity.SalaryGradeId,
+                entity.IsPrimary,
+                entity.IsActive,
+                ApprovalStatus = WfpSalaryAssignmentRules.StatusOf(entity.ApprovedAt, entity.ApprovedByUserId),
+                ActorUserId = actor,
+                Detail = extra
+            });
+
+        private static string LockKey(Guid workforceProfileId) => $"WFP_SALARY_ASSIGNMENT_{workforceProfileId:N}";
+
+        private IActionResult ConflictReply(string message) => Conflict(ApiResponse<object>.Fail(409, message));
+
+        private static bool IsPrimaryIndexViolation(DbUpdateException ex) =>
+            ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
+
+        private static string Fmt(DateTime value) => value.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+
+        private static WfpSalaryAssignmentResponse MapResponse(
+            WfpSalaryAssignment x, IReadOnlyDictionary<Guid, string?> actorNames, bool includeAmounts = true,
+            DateTime? lastFinalPayrollPeriodEnd = null, bool approvalRequired = false)
         {
-            Id = x.Id,
-            WorkforceProfileId = x.WorkforceProfileId,
-            WorkforceProfileCode = x.WorkforceProfile?.ProfileCode ?? string.Empty,
-            WorkforceDisplayName = x.WorkforceProfile?.DisplayName ?? string.Empty,
-            SalaryStructureId = x.SalaryStructureId,
-            SalaryGradeId = x.SalaryGradeId,
-            EmployeeGradeId = x.EmployeeGradeId,
-            PayrollPeriodId = x.PayrollPeriodId,
-            BaseSalary = x.BaseSalary,
-            CurrencyCode = x.CurrencyCode,
-            PaymentFrequency = x.PaymentFrequency,
-            EffectiveStartDate = x.EffectiveStartDate,
-            EffectiveEndDate = x.EffectiveEndDate,
-            IsPrimary = x.IsPrimary,
-            IsConfidential = x.IsConfidential,
-            IsActive = x.IsActive,
-            ApprovedByUserId = x.ApprovedByUserId,
-            ApprovedByUserName = x.ApprovedByUserId.HasValue ? GetActorName(actorNames, x.ApprovedByUserId.Value) : null,
-            ApprovedAt = x.ApprovedAt,
-            IsApproved = x.ApprovedAt.HasValue && x.ApprovedByUserId.HasValue,
-            Description = x.Description,
-            CreateDateTime = x.CreateDateTime,
-            CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
-            CreateByName = GetActorName(actorNames, x.CreateBy),
-            UpdateDateTime = x.UpdateDateTime,
-            UpdateBy = x.UpdateBy == Guid.Empty ? null : x.UpdateBy,
-            UpdateByName = GetActorName(actorNames, x.UpdateBy)
-        };
+            var today = DateTime.UtcNow.Date;
+            var gradeMin = x.SalaryGrade?.MinimumSalary ?? 0m;
+            var gradeMax = x.SalaryGrade?.MaximumSalary ?? 0m;
+            var structMin = x.SalaryStructure?.MinimumBaseSalary;
+            var structMax = x.SalaryStructure?.MaximumBaseSalary;
+
+            var range = PayrollSalaryRangeRuleService.CalculateEffectiveRange(gradeMin, gradeMax, structMin, structMax);
+            var approved = WfpSalaryAssignmentRules.IsApproved(x.ApprovedAt, x.ApprovedByUserId);
+
+            // PAY-BE-FIX-011: keabsahan master hari ini dan perbandingan nominal tersimpan dengan Gaji Dasar bawaan struktur saat ini.
+            // Hanya informasi untuk ditinjau; penetapan lama tidak pernah diubah otomatis mengikuti master.
+            var validity = PayrollSalaryRangeRuleService.AssessMasterValidity(
+                x.SalaryStructure?.IsActive, x.SalaryStructure?.EffectiveStartDate, x.SalaryStructure?.EffectiveEndDate, x.SalaryGrade?.IsActive, today);
+            bool? differsFromStructureDefault = includeAmounts && x.SalaryStructure != null
+                ? Math.Round(x.BaseSalary, 2) != Math.Round(x.SalaryStructure.DefaultBaseSalary, 2)
+                : null;
+
+            // Satu aturan untuk teks lama dan kode baru (PAY-BE-FIX-010). Teks OperationalStatus dipertahankan persis seperti sebelumnya:
+            // nonaktif, lalu "Menunggu Persetujuan" (hanya bila kebijakan mensyaratkan approval dan belum tercatat), lalu menurut tanggal.
+            var standing = WfpSalaryAssignmentRules.StandingOf(
+                x.IsActive, x.IsPrimary, x.EffectiveStartDate, x.EffectiveEndDate, x.ApprovedAt, x.ApprovedByUserId, approvalRequired, today);
+
+            string statusText;
+            if (standing.OperationalStatus == WfpSalaryOperationalStatuses.Inactive)
+            {
+                statusText = "Nonaktif";
+            }
+            else if (standing.AuthorizationStatus == WfpSalaryAuthorizationStatuses.PendingApproval)
+            {
+                // Payroll mensyaratkan approval (RequireApprovedSalaryAssignment menyala): aktif tetapi belum disetujui bukan "Berlaku",
+                // ia belum dipakai payroll. Bila approval tidak disyaratkan (bawaan), status operasional mengikuti tanggal seperti semula.
+                statusText = "Menunggu Persetujuan";
+            }
+            else if (standing.OperationalStatus == WfpSalaryOperationalStatuses.Scheduled)
+            {
+                statusText = "Terjadwal";
+            }
+            else if (standing.OperationalStatus == WfpSalaryOperationalStatuses.Expired)
+            {
+                statusText = "Berakhir";
+            }
+            else
+            {
+                statusText = "Berlaku";
+            }
+
+            if (x.IsPrimary)
+            {
+                statusText = $"{statusText} · Utama";
+            }
+
+            return new()
+            {
+                Id = x.Id,
+                WorkforceProfileId = x.WorkforceProfileId,
+                WorkforceProfileCode = x.WorkforceProfile?.ProfileCode ?? string.Empty,
+                WorkforceDisplayName = x.WorkforceProfile?.DisplayName ?? string.Empty,
+                SalaryStructureId = x.SalaryStructureId,
+                SalaryStructureCode = x.SalaryStructure?.SalaryStructureCode,
+                SalaryStructureName = x.SalaryStructure?.SalaryStructureName,
+                SalaryGradeId = x.SalaryGradeId,
+                SalaryGradeCode = x.SalaryGrade?.SalaryGradeCode,
+                SalaryGradeName = x.SalaryGrade?.SalaryGradeName,
+                EmployeeGradeId = x.EmployeeGradeId,
+                EmployeeGradeName = x.EmployeeGrade?.GradeName,
+                PayrollPeriodId = x.PayrollPeriodId,
+                PayrollPeriodCode = x.PayrollPeriod?.PayrollPeriodCode,
+                PayrollPeriodName = x.PayrollPeriod?.PayrollPeriodName,
+                // Tanpa ViewAmount nominal null (tersembunyi), tidak pernah 0: nol adalah angka sungguhan dan akan menyesatkan.
+                BaseSalary = includeAmounts ? x.BaseSalary : null,
+                AmountsVisible = includeAmounts,
+                GradeMinimumSalary = includeAmounts ? range.GradeMinimumSalary : null,
+                GradeMaximumSalary = includeAmounts ? range.GradeMaximumSalary : null,
+                StructureMinimumSalary = includeAmounts ? range.StructureMinimumSalary : null,
+                StructureMaximumSalary = includeAmounts ? range.StructureMaximumSalary : null,
+                EffectiveMinimumSalary = includeAmounts ? range.EffectiveMinimumSalary : null,
+                EffectiveMaximumSalary = includeAmounts ? range.EffectiveMaximumSalary : null,
+                SalaryRangeText = includeAmounts ? range.SalaryRangeText : "Terselubung (Memerlukan Wewenang ViewAmount)",
+                OperationalStatus = statusText,
+                CurrencyCode = x.CurrencyCode,
+                PaymentFrequency = x.PaymentFrequency,
+                EffectiveStartDate = x.EffectiveStartDate,
+                EffectiveEndDate = x.EffectiveEndDate,
+                IsPrimary = x.IsPrimary,
+                IsConfidential = x.IsConfidential,
+                IsActive = x.IsActive,
+                ApprovedByUserId = x.ApprovedByUserId,
+                ApprovedByUserName = x.ApprovedByUserId.HasValue ? GetActorName(actorNames, x.ApprovedByUserId.Value) : null,
+                ApprovedAt = x.ApprovedAt,
+                // Satu aturan: IsActive tidak pernah berarti disetujui (P0-02).
+                IsApproved = approved,
+                ApprovalStatus = WfpSalaryAssignmentRules.StatusOf(x.ApprovedAt, x.ApprovedByUserId),
+                ApprovalRequired = approvalRequired,
+                // Kelayakan Payroll, terpisah dari fakta persetujuan di atas. AutoByPolicy tidak mengisi ApprovedAt/ApprovedByUserId.
+                AuthorizationStatus = standing.AuthorizationStatus,
+                OperationalStatusCode = standing.OperationalStatus,
+                IsPayrollUsable = standing.IsPayrollUsable,
+                PersonnelActionOrderId = x.PersonnelActionOrderId,
+                PersonnelActionOrderNumber = x.PersonnelActionOrder?.ActionOrderNumber,
+                IsLockedByFinalPayroll = lastFinalPayrollPeriodEnd.HasValue,
+                LastFinalPayrollPeriodEnd = lastFinalPayrollPeriodEnd,
+                StructureDefaultBaseSalary = includeAmounts ? x.SalaryStructure?.DefaultBaseSalary : null,
+                BaseSalaryDiffersFromStructureDefault = differsFromStructureDefault,
+                MasterValidityStatus = validity.Code,
+                MasterValidityMessage = validity.Message,
+                Description = x.Description,
+                CreateDateTime = x.CreateDateTime,
+                CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
+                CreateByName = GetActorName(actorNames, x.CreateBy),
+                UpdateDateTime = x.UpdateDateTime,
+                UpdateBy = x.UpdateBy == Guid.Empty ? null : x.UpdateBy,
+                UpdateByName = GetActorName(actorNames, x.UpdateBy)
+            };
+        }
 
         private async Task<Dictionary<Guid, string?>> GetActorNamesAsync(IEnumerable<Guid> ids, CancellationToken ct)
         {
             var actorIds = ids.Where(x => x != Guid.Empty).Distinct().ToList();
+            if (!actorIds.Any()) return new Dictionary<Guid, string?>();
             return await _dbContext.Users.AsNoTracking().Where(x => actorIds.Contains(x.Id))
                 .Select(x => new { x.Id, Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode })
-                .ToDictionaryAsync(x => x.Id, x => x.Name, ct);
+                .ToDictionaryAsync(x => x.Id, x => (string?)x.Name, ct);
         }
 
         private static string? GetActorName(IReadOnlyDictionary<Guid, string?> map, Guid id) => id == Guid.Empty ? null : map.TryGetValue(id, out var name) ? name : null;

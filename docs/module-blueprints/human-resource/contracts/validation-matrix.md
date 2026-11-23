@@ -1379,3 +1379,22 @@ Seluruh aturan diperiksa **sebelum** ada yang diubah. Bila satu aturan saja gaga
 **Contoh gabungan:** formulir dikirim dengan gaji pokok 0 dan nomor rekening "---". Respons `400` berbunyi "Gaji pokok harus lebih dari nol. Nomor rekening wajib diisi." dan rekening yang diisi bersamaan juga tidak tersimpan.
 
 **Aturan di layar (bukan pengganti Backend):** bagian gaji atau rekening yang diisi sebagian dianggap belum lengkap (ketiga isiannya wajib); bagian yang dikosongkan seluruhnya tidak dikirim. Gaji pokok menerima `12000000` maupun `12.000.000` dan awalan `Rp`.
+
+---
+
+## 33. Matriks Aturan Validasi Amandemen Slice `S-D5`: Persetujuan SPPD lewat Workflow (Kontrak `v28`, approved 19 November 2026)
+
+Dasar: `HRD-DEC-224` s.d. `HRD-DEC-227`. Aturan `VR-TRV-01` s.d. `VR-TRV-25` (bagian 30) tetap berlaku.
+
+| ID | Aturan | Kapan diperiksa | Kondisi gagal | Respons dan pesan |
+| --- | --- | --- | --- | --- |
+| `VR-TRV-26` | Ajukan hanya dari status yang sah | `POST /requests/{id}/submit` | Status bukan `Draft`, `NeedRevision`, atau `Submitted` tanpa `WorkflowInstanceId` | `409` "SPPD hanya dapat diajukan dari status Draft atau Dikembalikan untuk revisi." |
+| `VR-TRV-27` | Isi SPPD terkunci selama menunggu dan sesudah diputuskan | `PUT /requests/{id}` | Status bukan `Draft`, `NeedRevision`, atau `Submitted` lama tanpa workflow | `409` "SPPD yang sedang menunggu persetujuan atau sudah diputuskan tidak dapat diubah." |
+| `VR-TRV-28` | Penolakan bersifat final | `POST /requests/{id}/submit` | Status `Rejected` | `409` "SPPD yang ditolak tidak dapat diajukan ulang. Buat SPPD baru." |
+| `VR-TRV-29` | Workflow harus dapat dibuat dan dikirim | `POST /requests/{id}/submit` | Definisi `BUSINESS_TRAVEL_REQUEST` tidak aktif, atau penyetuju tidak dapat ditentukan (mis. pemohon tanpa atasan langsung) | `400`/`409` dengan pesan Workflow V2 diteruskan apa adanya; status SPPD tidak berubah |
+| `VR-TRV-30` | Uang muka hanya untuk SPPD disetujui | `POST /advances` | `ApprovedAt` kosong, atau status `Cancelled`/`Rejected` | `409` "SPPD belum disetujui. Ajukan SPPD dan tunggu persetujuan sebelum mengajukan uang muka." |
+| `VR-TRV-31` | Settlement hanya untuk SPPD disetujui | `POST /settlements` | `ApprovedAt` kosong **dan** SPPD tidak punya uang muka berstatus `Paid` (pengecualian untuk uang muka lama yang sudah dicairkan, `HRD-DEC-227`) | `409` "SPPD belum disetujui sehingga belum dapat dipertanggungjawabkan." |
+| `VR-TRV-32` | Presensi Dinas Luar dan gembok roster hanya untuk SPPD disetujui | Penangan workflow saat status `Approved` | — (tidak dipanggil untuk status lain) | Tidak ada respons API; efek hanya terjadi sekali per SPPD |
+| `VR-TRV-33` | Batal saat menunggu menarik workflow | `PUT /requests/{id}/cancel` | Penarikan workflow ditolak Workflow V2 | `409` dengan pesan Workflow V2; SPPD tetap `Submitted` |
+
+Persetujuan susulan sesudah tanggal berangkat **tidak** divalidasi (diizinkan, `HRD-DEC-225`). Anggaran disetujui tidak dapat diisi penyetuju; nilainya selalu sama dengan estimasi (`HRD-DEC-226`).
