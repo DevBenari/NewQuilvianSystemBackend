@@ -3945,14 +3945,14 @@ konflik Tindak Disiplin tidak termasuk implementasi commit ini.
 
 ---
 
-## 34. Arsitektur Frontend Amandemen Paket B — Lima Entry Point Menu SDM (kontrak `v29`, 22 November 2026; `draft`)
+## 34. Arsitektur Frontend Amandemen Paket B — Lima Entry Point Menu SDM (kontrak `v29`, 22 November 2026; approved 23 November 2026)
 
 | Field | Nilai |
 | --- | --- |
-| Dasar | Decision log revision `41` bagian 56; backend bagian 37; kontrak `v29` |
+| Dasar | Decision log revision `42` bagian 56 (`HRD-DEC-239` menjawab `HRD-Q-226`); backend bagian 37; kontrak `v29` |
 | Source acuan | Frontend `573b7429c` (branch `HamzahV2`) |
-| Hierarki wewenang | Privasi/invariant (`HRD-DEC-230`, `238`) → keputusan produk (`HRD-DEC-231`, `233`–`237`) → konvensi Paket A (bagian 33.3) → `DEV_DISCRETION` |
-| Status | `draft` |
+| Hierarki wewenang | Privasi/invariant (`HRD-DEC-230`, `238`) → keputusan produk (`HRD-DEC-231`, `233`–`237`, `239`) → konvensi Paket A (bagian 33.3) → `DEV_DISCRETION` |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-239`). Delivery: roadmap frontend bagian 30 (`FE-HRD-393` s.d. `FE-HRD-401`) |
 
 Paket B melanjutkan aturan Paket A: satu fungsi, satu pintu sidebar; tidak ada butir yang menuju placeholder.
 
@@ -3973,7 +3973,7 @@ Sumber Daya Manusia                               (root existing, key corporateH
 ├── ...
 └── Hubungan Industrial & Terminasi               Sudah ada (corporateEmployeeRelations)
     ├── Dasbor Hubungan Industrial & Radar        Sudah ada
-    ├── Teguran / Tindak Disiplin    -> /hrd/relations/sanctions               LABEL MENUNGGU HRD-Q-226
+    ├── Tindak Disiplin              -> /hrd/relations/sanctions               LABEL DIGANTI (HRD-DEC-239)
     ├── Pelanggaran                               Sudah ada
     ├── Riwayat Penyelesaian         -> /hrd/relations/sanctions/history       BARU
     └── Skorsing … Exit Clearance                 Sudah ada
@@ -3984,7 +3984,7 @@ Sumber Daya Manusia                               (root existing, key corporateH
 | Dashboard SDM | 1 | Sumber Daya Manusia | `/hr/dashboard` | `FE-PKB-01` | `HrdWorkforceDashboard : Read` | Baru |
 | Seleksi Administrasi | 2 | Rekrutmen & Seleksi | `/hr/recruitment/screenings` | `FE-PKB-02` | `CandidateScreening : Read` | Baru |
 | Tes/Wawancara | 2 | Rekrutmen & Seleksi | `/hr/recruitment/evaluations` | `FE-PKB-03` | `CandidateEvaluation : Read` | Baru |
-| Tindak Disiplin (label) | 2 | Hubungan Industrial & Terminasi | `/hrd/relations/sanctions` | Layar Sanksi existing | `EmployeeDisciplinary : ViewSanctions` | **OPEN** — `HRD-Q-226` |
+| Tindak Disiplin (label) | 2 | Hubungan Industrial & Terminasi | `/hrd/relations/sanctions` | Layar Sanksi existing | `EmployeeDisciplinary : ViewSanctions` | Label diganti dari "Teguran" (`HRD-DEC-239`) |
 | Riwayat Penyelesaian | 2 | Hubungan Industrial & Terminasi | `/hrd/relations/sanctions/history` | `FE-PKB-04` | `EmployeeDisciplinary : ViewSanctions` | Baru |
 
 Layar anak tanpa butir menu:
@@ -3996,7 +3996,7 @@ Layar anak tanpa butir menu:
 | Employee 360 `/hr/employee-360/...` (sudah ada) | Baris daftar nama Dashboard SDM |
 | `/hr/employee-relations/disciplinary-actions` (dipensiunkan) | Tidak ada; route dialihkan ke `/hrd/relations/sanctions` untuk tautan lama |
 
-**Konflik label `HRD-Q-226`.** Invariant Paket A 33.3 butir 1 melarang dua butir menuju `pathname` yang sama. Butir **Teguran** (Paket A) sudah menuju layar Sanksi, padahal `HRD-DEC-230` meminta **Tindak Disiplin** membuka layar yang sama. Rekomendasi desain: butir yang ada diganti labelnya menjadi **Tindak Disiplin**, dan "Teguran" menjadi filter tingkat sanksi (Teguran Lisan) di dalam layar — cara yang sudah diizinkan planning 5.11 ("label, tab, atau filter"). Karena mengubah label Paket A, ini butuh keputusan pemilik; sampai dijawab, butir tetap berlabel **Teguran** dan tidak ada butir kedua.
+**Konflik label `HRD-Q-226`.** Invariant Paket A 33.3 butir 1 melarang dua butir menuju `pathname` yang sama. Butir **Teguran** (Paket A) sudah menuju layar Sanksi, padahal `HRD-DEC-230` meminta **Tindak Disiplin** membuka layar yang sama. Rekomendasi desain: butir yang ada diganti labelnya menjadi **Tindak Disiplin**, dan "Teguran" menjadi filter tingkat sanksi (Teguran Lisan) di dalam layar — cara yang sudah diizinkan planning 5.11 ("label, tab, atau filter"). Karena mengubah label Paket A, ini butuh keputusan pemilik. **Diputuskan 23 November 2026 (`HRD-DEC-239`, opsi A):** label butir diganti menjadi **Tindak Disiplin**, tidak ada butir kedua, dan Teguran dicari lewat filter Tingkat "Teguran Lisan" yang sudah ada di layar.
 
 Urutan butir dan ikon: `DEV_DISCRETION`. `pathname` di atas mengikat; perubahan nama route wajib memperbarui tabel ini.
 
@@ -4094,7 +4094,7 @@ Bentuk panel daftar nama (drawer, modal, atau halaman): `DEV_DISCRETION`. Data d
 
 | Berkas | Status |
 | --- | --- |
-| `src/utils/menu-sidebar/menu-items.jsx` | Diperbarui (4 butir baru; label disiplin menunggu `HRD-Q-226`) |
+| `src/utils/menu-sidebar/menu-items.jsx` | Diperbarui (4 butir baru; label "Teguran" menjadi "Tindak Disiplin", `HRD-DEC-239`) |
 | `src/app/hr/dashboard/page.jsx` + view Dashboard SDM | Baru |
 | `src/lib/services/hr/workforce-dashboard-service.js` | Baru |
 | `src/app/hr/recruitment/screenings/page.jsx` + view daftar penapisan | Baru (memakai `recruitment-service.js` existing) |

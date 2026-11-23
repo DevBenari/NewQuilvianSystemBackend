@@ -1401,12 +1401,12 @@ Persetujuan susulan sesudah tanggal berangkat **tidak** divalidasi (diizinkan, `
 
 ---
 
-## 34. Matriks Aturan Validasi Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v29`, `draft`)
+## 34. Matriks Aturan Validasi Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v29`, approved 23 November 2026)
 
 | Field | Nilai |
 | --- | --- |
 | `last_changed_in` | `v29` — 22 November 2026 |
-| Status | `draft` |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-239`) |
 | Owner | Technical owner (`HRD-DEC-015`) |
 | `input_revision` | Decision log revision `41` bagian 56 |
 

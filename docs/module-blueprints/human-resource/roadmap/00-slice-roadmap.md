@@ -776,3 +776,23 @@ dicatat pada [`01-prerequisite-readiness.md`](../01-prerequisite-readiness.md).
 | `S-FIN-M09` | Menu 09 Kompetensi & Kredensial | `BE-HRD-426` s.d. `BE-HRD-439` | `FE-HRD-382` s.d. `FE-HRD-392` | Tidak ada | Kontrak co-sign dengan pemilik EMR | 🟡 (5 task backend ✅) |
 
 > **Pemutakhiran 21 November 2026 (penerapan migration).** Empat migration manual 20 November 2026 (`20261120090000_AddHrdRetirementPolicyAge`, `20261120091000_AddMstJobDescription`, `20261120092000_AddHrdContractDecisionNoticeEvidence`, `20261120093000_AddHrdAssignmentLetter`) sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`: pemilik menjalankan `dotnet ef database update --no-build` ("No migrations were applied. The database is already up to date.") dan `dotnet ef migrations list --no-build` terhadap `QuilvianNewDevHamzah` tidak menunjukkan satu pun migration `Pending`. Gerbang `{MIG-M05-JD}` ditutup; tanda ⛔ pada `S-FIN-ADM` (Surat Tugas) dan `S-FIN-M05` (Uraian Tugas) turun ke 🟡 karena yang tersisa hanya task frontend dan uji runtime. Rincian di `backend-roadmap.md` (pemutakhiran register 21 November 2026).
+
+---
+
+### `S-PKB` — Paket B Navigasi SDM: Lima Entry Point Menu (kontrak `v29`, 23 November 2026)
+
+> **Catatan hitungan:** slice ini ditambahkan 23 November 2026 sesudah kontrak `v29` disetujui dan **belum dihitung** pada ringkasan jumlah slice, fase, dan status di bagian atas dokumen ini.
+
+| Aspek | Isi |
+| --- | --- |
+| **Current State** | Paket A merapikan sidebar SDM tetapi menunda Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, dan Riwayat Penyelesaian; menu Tindak Disiplin lama memanggil alamat backend yang tidak ada. Data disiplin di Employee 360 terbuka bagi atasan langsung, dan asesor dapat melihat serta mengisi evaluasi kandidat milik penilai lain |
+| **Target State** | Kelima pintu dapat dibuka sesuai hak akses; setiap angka Dashboard SDM dapat ditelusuri ke daftar nama; angka kontrak dashboard sama dengan layar Kontrak; butir disiplin berlabel "Tindak Disiplin" (`HRD-DEC-239`); dua celah privasi tertutup |
+| **Backend Impact** | Satu controller dashboard baca-saja baru (2 endpoint), `ContractRenewalBuckets`, filter `statuses` sanksi, isi disiplin Employee 360 menurut hak, pembatasan penilai evaluasi, hak baru `HrdWorkforceDashboard : Read` dan `CandidateEvaluation : ViewAll`. Task `BE-HRD-443` s.d. `BE-HRD-452` |
+| **Frontend Impact** | Empat halaman baru (`/hr/dashboard`, `/hr/recruitment/screenings`, `/hr/recruitment/evaluations`, `/hrd/relations/sanctions/history`), perubahan layar Sanksi dan Employee 360, pensiun halaman Tindak Disiplin lama, empat butir menu baru dan satu label diganti. Task `FE-HRD-393` s.d. `FE-HRD-401` |
+| **Database Impact** | Tidak ada. Hanya membaca tabel yang sudah ada |
+| **Dependency** | `S-D2` (penapisan, evaluasi), `S-C4` (kontrak kerja), `S-C1` (lisensi, SPK/RKK), `S-C2` (radar sertifikat), `S-C5` (sanksi, insiden), Paket A navigasi |
+| **Blocking Decision** | Tidak ada. G1 (kontrak `v29`) dan G2 (`HRD-Q-226`) tertutup 23 November 2026; pemberian dua hak baru hanya menahan rilis |
+| **QBE Impact** | `EXTEND` di `WorkforceCore`, `LifecycleManagement`, `EmployeeRelationManagement`, `RecruitmentManagement`; `NEW CODE` untuk controller, service, DTO, konstanta dashboard dan berkas hak eksplisit `ViewAll`; tanpa entity baru |
+| **Migration Risk** | Tidak ada. Risiko rilis: recruiter kehilangan visibilitas evaluasi bila `ViewAll` belum diberikan; atasan langsung tidak lagi melihat disiplin di Employee 360 (disengaja) |
+| **Acceptance Criteria** | `AT-HRD-PKB-01` s.d. `AT-HRD-PKB-26` lulus; angka layar Kontrak sebelum dan sesudah refactor sama; uji browser akun positif dan negatif untuk kelima pintu |
+| **Release Status** | `PLANNED` — `MVP-72` (backend privasi + filter status), `MVP-73` (backend dashboard + layar worklist), `MVP-74` (layar dashboard + menu); belum ada task yang dikerjakan |

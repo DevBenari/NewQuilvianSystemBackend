@@ -6171,12 +6171,12 @@ Tetap tidak ditulis (`HRD-TF-073`). Riwayat persetujuan per tahap dibaca dari ri
 
 ---
 
-## 30. Kamus Data Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v29`, `draft`)
+## 30. Kamus Data Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v29`, approved 23 November 2026)
 
 | Field | Nilai |
 | --- | --- |
 | `last_changed_in` | `v29` — 22 November 2026 |
-| Status | `draft` |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-239`) |
 | Owner | Technical owner (`HRD-DEC-015`) |
 | `input_revision` | Decision log revision `41` bagian 56; capability map `1.5` bagian 17 |
 

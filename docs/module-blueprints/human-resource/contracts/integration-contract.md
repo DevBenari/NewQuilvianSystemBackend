@@ -1943,12 +1943,12 @@ Dasar: `HRD-DEC-224` s.d. `HRD-DEC-227`; fakta `HRD-TF-075` dan `HRD-TF-077`. Du
 
 ---
 
-## 26. Integrasi Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v29`, `draft`)
+## 26. Integrasi Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v29`, approved 23 November 2026)
 
 | Field | Nilai |
 | --- | --- |
 | `last_changed_in` | `v29` — 22 November 2026 |
-| Status | `draft` |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-239`) |
 | Owner | Technical owner (`HRD-DEC-015`) |
 | `input_revision` | Decision log revision `41` bagian 56 |
 

@@ -3216,9 +3216,9 @@ Persetujuan, pengembalian untuk revisi, dan penolakan dikerjakan lewat endpoint 
 | Lingkup | Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian, Tindak Disiplin (navigasi SDM Paket B) |
 | `contract_version` | `v29` |
 | `last_changed_in` | `v29` — bagian 35 ditambahkan 22 November 2026 |
-| Status | `draft` |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-239`) |
 | Owner | Technical owner (`HRD-DEC-015`) |
-| `approved_by` / `approved_at` | — / — |
+| `approved_by` / `approved_at` | Pengguna (`HRD-DEC-015`) / 23 November 2026 |
 | `input_revision` | `00-interview-decisions.md` revision `41` bagian 56 (`HRD-DEC-229` s.d. `HRD-DEC-238`); capability map revisi `1.5` bagian 17 |
 | Backend SHA | `b164edc1` (branch `MHamzah`) |
 | Frontend SHA | `573b7429c` (branch `HamzahV2`) |

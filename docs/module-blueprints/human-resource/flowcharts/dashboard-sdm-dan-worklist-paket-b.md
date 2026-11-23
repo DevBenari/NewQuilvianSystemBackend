@@ -2,8 +2,8 @@
 
 | Field | Nilai |
 | --- | --- |
-| Dasar | Decision log bagian 56 (`HRD-DEC-229` s.d. `HRD-DEC-238`); backend 37; frontend 34; kontrak `v29` |
-| Status | `draft` |
+| Dasar | Decision log bagian 56 (`HRD-DEC-229` s.d. `HRD-DEC-238`); backend 37; frontend 34; kontrak `v29`; `HRD-DEC-239` |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-239`) |
 | `last_changed_in` | `v29` — 22 November 2026 |
 
 Dokumen ini menggambar urutan kerja petugas pada lima pintu masuk Paket B. Aturan internal penapisan, evaluasi, dan disiplin tetap pada flowchart `rekrutmen-dan-seleksi.md` dan `hubungan-karyawan-dan-disiplin.md`.

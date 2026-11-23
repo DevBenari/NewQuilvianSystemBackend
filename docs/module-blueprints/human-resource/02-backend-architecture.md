@@ -10116,7 +10116,7 @@ Berbeda dari seeder pengadaan (ditanam nonaktif karena tahap jabatannya harus di
 
 ---
 
-## 37. Amandemen Paket B — Lima Entry Point Menu SDM (revision `67`, kontrak `v29`, 22 November 2026; `draft`)
+## 37. Amandemen Paket B — Lima Entry Point Menu SDM (revision `67`, kontrak `v29`, 22 November 2026; approved 23 November 2026)
 
 | Field | Nilai |
 | --- | --- |
@@ -10127,7 +10127,7 @@ Berbeda dari seeder pengadaan (ditanam nonaktif karena tahap jabatannya harus di
 | Requirement completeness gate | Tidak dijalankan. Mengikuti preseden amandemen `A52`, `S-A8`, dan `S-D5`: Paket B tidak menambah konsep bisnis rumah sakit baru, hanya membuka jalan masuk ke kemampuan yang sudah diputuskan (`HRD-DEC-076`, `077`, `146`, `151`, `158`, `170` s.d. `173`) dan menambah agregasi baca-saja. Seluruh keputusan `approved`; tidak ada keputusan `BLOCKING` |
 | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — tidak ada bounded context, aggregate, atau status baru. Data kredensial dan SPK/RKK hanya **dibaca** untuk hitungan dashboard; larangan manifest bagian 6 butir 1 (jangan mengarang bounded context klinis) tidak tersentuh |
 | Migration | **Tidak ada** |
-| Status | `draft` — menunggu persetujuan pengguna |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-239`). Delivery: roadmap backend bagian 30 (`BE-HRD-443` s.d. `BE-HRD-452`) |
 
 Inti perubahan:
 

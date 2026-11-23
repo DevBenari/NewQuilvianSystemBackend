@@ -4,7 +4,7 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `testing/acceptance-test-matrix.md` |
-| `contract_version` | `v6` sebagai baseline; amandemen per bagian mengikuti kontrak sampai `v28`; bagian 37 memakai identitas `NAV-A1` tanpa perubahan kontrak API |
+| `contract_version` | `v6` sebagai baseline; amandemen per bagian mengikuti kontrak sampai `v29` (bagian 38, approved 23 November 2026); bagian 37 memakai identitas `NAV-A1` tanpa perubahan kontrak API |
 | `last_changed_in` | `NAV-A1` — bagian 37 penyesuaian navigasi SDM ditambahkan 20 November 2026 |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`), bersama pemilik proses untuk skenario UAT |
@@ -1221,12 +1221,12 @@ Acceptance Paket A belum boleh ditutup `DONE` sampai `AT-HRD-NAV-09` dan
 
 ---
 
-## 38. Matriks Uji Penerimaan Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v29`, `draft`)
+## 38. Matriks Uji Penerimaan Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v29`, approved 23 November 2026)
 
 | Field | Nilai |
 | --- | --- |
 | `last_changed_in` | `v29` — 22 November 2026 |
-| Status | `draft` |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-239`) |
 | Owner | Technical owner (`HRD-DEC-015`) |
 | `input_revision` | Decision log revision `41` bagian 56 |
 

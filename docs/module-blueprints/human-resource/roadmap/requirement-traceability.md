@@ -6,7 +6,8 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 15
+roadmap_revision: 16
+amendment_package_b_v29: "2026-11-23 — jejak amandemen Paket B kontrak v29 (bagian 1ad): FR-PKB-01 s.d. FR-PKB-20 ke BE-HRD-443 s.d. BE-HRD-452 dan FE-HRD-393 s.d. FE-HRD-401"
 amendment_s_d5_v28: "2026-11-19 — jejak amandemen S-D5 kontrak v28 (bagian 1aa): FR-TRV-26 s.d. FR-TRV-34 ke BE-HRD-374 s.d. BE-HRD-380 dan FE-HRD-337 s.d. FE-HRD-340"
 status: ACTIVE
 status_synced_at: "11 November 2026 — Gelombang 1 perbaikan frontend: FE-HRD-R01 s.d. R13 dikerjakan (bagian 1v); S-D1 dan S-B1 diberi tanda status per task frontend. Sebelumnya: 11 November 2026 — Gelombang 2 audit backend: 7 keputusan diambil sebagai asumsi eksplisit, 19 task dikerjakan ulang (bagian 1u), migration sudah dijalankan, semuanya 🟡 menunggu uji penerimaan. Sebelumnya: 10 November 2026 — Gelombang 1 audit backend: 25 task dikerjakan ulang (bagian 1t), 3 task verifikasi diturunkan ke 🟡. Sebelumnya: 2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡; bukti pengerjaan ulang FE-HRD-022, FE-HRD-024, FE-HRD-025 ditautkan. Sebelumnya (2026-11-02): implementasi end-to-end Slice S-A1"
@@ -2032,3 +2033,43 @@ Sumber: instruksi dan laporan agent di `docs/update/<menu>/`. Task-nya ada di `b
 Validasi pada audit ini: inspeksi source statis pada backend `bdc3ccf9` dan frontend `50e1eb7a9` (keduanya bersih). Tidak ada build, migration, atau uji runtime yang dijalankan dalam audit ini.
 
 > **Pemutakhiran 21 November 2026 (penerapan migration).** Migration `20261118100000_AddHrdOvertimeSetting` dan empat migration 20 November 2026 (`20261120090000_AddHrdRetirementPolicyAge`, `20261120091000_AddMstJobDescription`, `20261120092000_AddHrdContractDecisionNoticeEvidence`, `20261120093000_AddHrdAssignmentLetter`) sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`: pemilik menjalankan `dotnet ef database update --no-build` ("No migrations were applied. The database is already up to date.") dan `dotnet ef migrations list --no-build` terhadap `QuilvianNewDevHamzah` tidak menunjukkan satu pun migration `Pending`. Baris Menu 05 Uraian Tugas turun dari ⛔ ke 🟡 (`BE-HRD-404` ✅; tersisa `FE-HRD-364`). Status baris lain tidak berubah karena masih mengikuti task frontend atau uji runtime yang belum selesai.
+
+### Bagian 1ad: Matriks Keterlacakan Amandemen Paket B — Lima Entry Point Menu SDM (kontrak `v29`, 23 November 2026)
+
+Dasar: decision log revision `42` bagian 56 (`HRD-DEC-229` s.d. `HRD-DEC-239`), kontrak `v29` **approved** 23 November 2026 ("1. ya setujui 2. A"), manifest revision `68`, backend `b164edc1` (HEAD perencanaan `7e4c3774`, hanya dokumen), frontend `573b7429c`. Task: `backend-roadmap.md` bagian 30 (`BE-HRD-443` s.d. `BE-HRD-452`) dan `frontend-roadmap.md` bagian 30 (`FE-HRD-393` s.d. `FE-HRD-401`). Status baris mengikuti tanda terendah task penyusunnya; seluruhnya belum dikerjakan.
+
+| Requirement | Keputusan | Kontrak `v29` | Task backend | Task frontend | Uji penerimaan | UAT | Status |
+| --- | --- | --- | --- | --- | --- | --- | :---: |
+| `FR-PKB-01` `/summary` lima panel | `HRD-DEC-235`, `HRD-ASM-89`, `HRD-ASM-90` | API 35.1; State 33.1 | `BE-HRD-448`, `BE-HRD-449`, `BE-HRD-450` | `FE-HRD-399` | `AT-HRD-PKB-01` s.d. `03`, `06` | `HRD-124` | ⬜ |
+| `FR-PKB-02` Kontrak Berakhir = layar Kontrak | `HRD-DEC-237` | State 33.1; `INT-HR-111` | `BE-HRD-447`, `BE-HRD-449` | `FE-HRD-399` | `AT-HRD-PKB-04`, `05` | `HRD-124` | ⬜ |
+| `FR-PKB-03` Daftar nama drill-down | `HRD-DEC-235`; Permission 33.2 | API 35.1; `VR-PKB-01` s.d. `03` | `BE-HRD-451` | `FE-HRD-399` | `AT-HRD-PKB-07`, `08` | `HRD-124` | ⬜ |
+| `FR-PKB-04` Hak `HrdWorkforceDashboard : Read` | `HRD-DEC-231`, `HRD-ASM-88` | Permission 33.1; `VR-PKB-11` | `BE-HRD-448`, `BE-HRD-452` | `FE-HRD-400` | `AT-HRD-PKB-09` | `HRD-124` | ⬜ |
+| `FR-PKB-05` Layar Dashboard SDM | `HRD-DEC-235`, `HRD-ASM-89` | API 35.1; `INT-HR-111` | — | `FE-HRD-399` | `AT-HRD-PKB-26` | `HRD-124` | ⬜ |
+| `FR-PKB-06` Daftar penapisan per lamaran | `HRD-DEC-236` | API 35.5; State 33.4 | — (endpoint ada) | `FE-HRD-396` | `AT-HRD-PKB-16` | `HRD-125` | ⬜ |
+| `FR-PKB-07` Tandai Lolos/Gugur; gugur otomatis STR | `HRD-DEC-076` | API 35.5 | — (endpoint ada) | `FE-HRD-396` | `AT-HRD-PKB-17` | `HRD-125` | ⬜ |
+| `FR-PKB-08` `track` dan `pendingOnly` | `HRD-DEC-233`, `HRD-ASM-93` | API 35.4; State 33.3; `VR-PKB-06` | `BE-HRD-445` | `FE-HRD-397` | `AT-HRD-PKB-22` | `HRD-126` | ⬜ |
+| `FR-PKB-09` Daftar/detail dibatasi penilai | `HRD-DEC-233` | API 35.4; `VR-PKB-07` | `BE-HRD-444` | `FE-HRD-397` | `AT-HRD-PKB-18` s.d. `20` | `HRD-126` | ⬜ |
+| `FR-PKB-10` `submit-clinical` hanya penilai | `HRD-ASM-95`, `HRD-DEC-077` | API 35.4; `VR-PKB-08` | `BE-HRD-444` | — | `AT-HRD-PKB-21` | `HRD-126` | ⬜ |
+| `FR-PKB-11` Layar Tes/Wawancara | `HRD-DEC-233` | API 35.4, 35.6 | — | `FE-HRD-397` | `AT-HRD-PKB-18` | `HRD-126` | ⬜ |
+| `FR-PKB-12` Parameter `statuses` | `HRD-DEC-234`, `HRD-ASM-94` | API 35.2; `VR-PKB-04`, `05` | `BE-HRD-446` | `FE-HRD-395`, `FE-HRD-398` | `AT-HRD-PKB-10`, `11` | `HRD-127` | ⬜ |
+| `FR-PKB-13` Layar Riwayat Penyelesaian | `HRD-DEC-234` | API 35.2; State 33.2 | — | `FE-HRD-398` | `AT-HRD-PKB-12` | `HRD-127` | ⬜ |
+| `FR-PKB-14` 360: sanksi resmi + catatan lama | `HRD-DEC-238` | API 35.3; `INT-HR-114` | `BE-HRD-443` | `FE-HRD-393` | `AT-HRD-PKB-13` | `HRD-128` | ⬜ |
+| `FR-PKB-15` 360: disiplin hanya `ViewSanctions` | `HRD-DEC-238` butir 4, `HRD-ASM-91` | `VR-PKB-09` | `BE-HRD-443` | `FE-HRD-393` | `AT-HRD-PKB-14` | `HRD-128` | ⬜ |
+| `FR-PKB-16` Catatan lama baca-saja | `HRD-DEC-230` butir 3 | `VR-PKB-10` | — | `FE-HRD-393` | `AT-HRD-PKB-15` | `HRD-128` | ⬜ |
+| `FR-PKB-17` Halaman Tindak Disiplin lama dipensiunkan | `HRD-DEC-230` butir 2, `HRD-ASM-92` | Frontend 34.1 | — | `FE-HRD-394` | `AT-HRD-PKB-24` | `HRD-128` | ⬜ |
+| `FR-PKB-18` Layar Sanksi mengirim `status` | `HRD-DEC-230` | API 35.2 | — | `FE-HRD-395` | `AT-HRD-PKB-23` | `HRD-128` | ⬜ |
+| `FR-PKB-19` Butir menu Paket B | `HRD-DEC-231` | Frontend 34.1; `VR-PKB-11` | — | `FE-HRD-400` | `AT-HRD-PKB-25` | `HRD-129` | ⬜ |
+| `FR-PKB-20` Label "Tindak Disiplin" | `HRD-DEC-239` | Frontend 34.1 | — | `FE-HRD-400` | `AT-HRD-PKB-23` | `HRD-129` | ⬜ |
+| Kepatuhan kontrak `v29`, hak baru, catatan rilis | — | Seluruh bagian | `BE-HRD-452` | `FE-HRD-401` | DoD 42.11 | `HRD-124` s.d. `HRD-129` | ⬜ |
+
+**Celah cakupan (coverage gap):**
+
+| Celah | Sebab | Tindak lanjut |
+| --- | --- | --- |
+| `FR-PKB-10` tanpa task frontend khusus | Formulir uji klinis sudah ada; perubahan hanya aturan server | Pesan `403` `VR-PKB-08` diperiksa lewat halaman detail di `FE-HRD-401`; bila halaman detail belum menampilkannya, ditangani di `FE-HRD-397` |
+| `AT-HRD-PKB-05` (regresi angka kontrak) bergantung data kontrak di DB dev | Belum dipastikan ada kontrak yang mendekati akhir masa berlaku | `BE-HRD-447` mencatat keterbatasan bukti bila datanya tidak ada |
+| Target waktu muat ≤ 2 detik untuk ±500 pegawai | DB dev kemungkinan jauh lebih kecil | `BE-HRD-452` mencatat angka nyata dan batas buktinya |
+| Batas kelompok radar sertifikat berbeda dari radar lisensi (hari-H dan tanggal UTC) | Perilaku radar milik `S-C2` | Diikuti apa adanya sesuai kamus data 30.2 dan dicatat di `BE-HRD-450`; perbaikan radar memerlukan keputusan terpisah |
+| Uji multi-peran butuh lima akun berbeda | Akun uji belum tersedia | Gerbang G4 frontend; diminta saat `FE-HRD-401` |
+
+Pertanyaan yang tetap terbuka tanpa memblokir: kueri baca-saja jumlah `WfpDisciplinaryAction` (`HRD-DEC-238` butir 1, butuh konfirmasi saat eksekusi) dan akses atasan ke sanksi bawahan (`HRD-ASM-91`).

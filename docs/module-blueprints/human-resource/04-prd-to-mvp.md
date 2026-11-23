@@ -4692,7 +4692,7 @@ bagian 36 dan kontrak `v28`.
 | Field | Nilai |
 | --- | --- |
 | Dasar | Decision log revision `41` bagian 56 (`HRD-DEC-229` s.d. `HRD-DEC-238`); capability map `1.5` bagian 17; backend 37; frontend 34; kontrak `v29` |
-| Status | `draft` — approval pengguna belum ada |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-239`) |
 | Owner | Pengguna (`HRD-DEC-015`) |
 | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` (backend 37) |
 
@@ -4712,7 +4712,7 @@ Paket A merapikan menu SDM tetapi menunda lima pintu masuk karena aturannya belu
 
 | Kemampuan | ID kapabilitas | Disposisi |
 | --- | --- | --- |
-| Daftar global Tindak Disiplin | `HRD-CAP-92` | `EXISTING / REUSE` (label menunggu `HRD-Q-226`) |
+| Daftar global Tindak Disiplin | `HRD-CAP-92` | `EXISTING / REUSE` (label "Tindak Disiplin", `HRD-DEC-239`) |
 | Pensiun halaman Tindak Disiplin lama | `HRD-CAP-93` | `EXTEND` (frontend) |
 | Disiplin Employee 360 dari alur resmi + privasi | `HRD-CAP-94` | `EXTEND` |
 | Riwayat Penyelesaian | `HRD-CAP-95` | `EXTEND` |
@@ -4766,14 +4766,14 @@ Paket A merapikan menu SDM tetapi menunda lima pintu masuk karena aturannya belu
 | `FR-PKB-17` | Halaman Tindak Disiplin lama dialihkan; service lamanya dihapus | `EXTEND` | `AT-HRD-PKB-24` |
 | `FR-PKB-18` | Layar Sanksi mengirim filter `status` | `EXTEND` | `AT-HRD-PKB-23` |
 
-#### `EPIC HRD-129` — Butir menu Paket B (`MUST HAVE`; satu butir `OPEN DECISION`)
+#### `EPIC HRD-129` — Butir menu Paket B (`MUST HAVE`)
 
 | FR | Requirement | Disposisi | Bukti uji |
 | --- | --- | --- | --- |
 | `FR-PKB-19` | Butir Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian sesuai frontend 34.1 | `MISSING / NEW` | `AT-HRD-PKB-25` |
-| `FR-PKB-20` | Label butir menu disiplin "Tindak Disiplin" menggantikan "Teguran" | `OPEN DECISION` (`HRD-Q-226`) | `AT-HRD-PKB-23` |
+| `FR-PKB-20` | Label butir menu disiplin "Tindak Disiplin" menggantikan "Teguran" | `EXTEND` — diputuskan `HRD-DEC-239` (menjawab `HRD-Q-226`) | `AT-HRD-PKB-23` |
 
-`FR-PKB-20` **tidak** masuk gelombang mana pun sampai `HRD-Q-226` dijawab; FR lain dalam epic ini tidak bergantung padanya.
+`FR-PKB-20` semula tertahan `HRD-Q-226`; sejak `HRD-DEC-239` (23 November 2026) dijadwalkan pada `MVP-74` bersama `FR-PKB-19`.
 
 ### 42.6 Model status
 
@@ -4819,7 +4819,7 @@ Integrasi baca-saja internal `INT-HR-111` s.d. `114`. Tidak ada dampak billing a
 
 | Butir | Bukti |
 | --- | --- |
-| Seluruh `AT-HRD-PKB-01` s.d. `26` (kecuali bagian label `HRD-Q-226`) lulus | Laporan uji task |
+| Seluruh `AT-HRD-PKB-01` s.d. `26` lulus | Laporan uji task |
 | Angka layar Kontrak sebelum dan sesudah refactor sama | `AT-HRD-PKB-05` |
 | Hak `HrdWorkforceDashboard : Read` dan `CandidateEvaluation : ViewAll` sudah diberikan ke peran yang dibutuhkan di lingkungan uji | Tangkapan Manajemen Role |
 | Uji browser dengan akun positif dan negatif untuk kelima pintu | Laporan `live-browser-testing` |
@@ -4832,11 +4832,10 @@ Integrasi baca-saja internal `INT-HR-111` s.d. `114`. Tidak ada dampak billing a
 | --- | --- |
 | `MVP-72` | Backend: `HRD-128` (360 privasi), `HRD-126` (pembatasan asesor), `HRD-127` (`statuses`) — menutup celah privasi lebih dulu |
 | `MVP-73` | Backend `HRD-124` (dashboard + `ContractRenewalBuckets`); frontend `HRD-125`, `HRD-126`, `HRD-127`, `HRD-128` |
-| `MVP-74` | Frontend `HRD-124` dan `HRD-129` (`FR-PKB-19`) |
+| `MVP-74` | Frontend `HRD-124` dan `HRD-129` (`FR-PKB-19`, `FR-PKB-20`) |
 | `POST-MVP` | Radar SPK/RKK milik modul kredensial; penghapusan endpoint tulis `WfpDisciplinaryAction` |
-| Tidak dijadwalkan | `FR-PKB-20` sampai `HRD-Q-226` dijawab |
 
 | Pertanyaan | Pemilik | Memblokir |
 | --- | --- | --- |
-| `HRD-Q-226` — label butir menu disiplin: ganti "Teguran" menjadi "Tindak Disiplin" (rekomendasi) atau bentuk lain | Pengguna | Hanya `FR-PKB-20` |
+| ~~`HRD-Q-226` — label butir menu disiplin~~ **Dijawab 23 November 2026** lewat `HRD-DEC-239`: ganti "Teguran" menjadi "Tindak Disiplin" | Pengguna | Tidak lagi memblokir |
 | Kueri baca-saja jumlah `WfpDisciplinaryAction` (`HRD-DEC-238` butir 1) | Pengguna (konfirmasi eksekusi) | Tidak memblokir; menentukan beban input ulang manual HR |
