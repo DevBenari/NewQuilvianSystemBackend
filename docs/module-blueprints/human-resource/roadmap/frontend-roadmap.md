@@ -7454,15 +7454,15 @@ Empat layar `MVP-73` yang tidak menunggu backend (`FE-HRD-394`, `FE-HRD-395`, `F
 ```text
 BE-HRD-443 ✅ [BE] ─> FE-HRD-393 ─────────────────────────────┐
                                                               │
-FE-HRD-394 ───────────────────────────────────────────────────┴──┐
+FE-HRD-394 ✅ ─────────────────────────────────────────────────┴──┐
                                                                  │
-FE-HRD-396 ─────────────────────────┐                            │
+FE-HRD-396 ✅ ───────────────────────┐                            │
                                     │                            │
-BE-HRD-445 ✅ [BE] ─> FE-HRD-397 ───┴──┐                         │
+BE-HRD-445 ✅ [BE] ─> FE-HRD-397 ✅ ─┴──┐                         │
                                        │                         │
-FE-HRD-395 ─────────┐                  │                         │
+FE-HRD-395 ✅ ───────┐                  │                         │
                     │                  │                         │
-BE-HRD-446 ✅ [BE] ─┴─> FE-HRD-398 ────┴──┐                      │
+BE-HRD-446 ✅ [BE] ─┴─> FE-HRD-398 ✅ ──┴──┐                      │
                                           │                      │
 BE-HRD-451 ✅ [BE] ─> FE-HRD-399 ─────────┴─> FE-HRD-400 ────────┴──┐
                                                                     │
@@ -7521,9 +7521,9 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 * **Risiko / pemilik**: UI Lead HR.
 * **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-393.md`, tanda status roadmap diperbarui.
 
-#### `FE-HRD-394` — Pensiun halaman Tindak Disiplin lama
+#### ✅ `FE-HRD-394` — Pensiun halaman Tindak Disiplin lama
 * **Slice / MVP**: `S-PKB` / `MVP-73` · `EPIC HRD-128`
-* **Status**: Belum dikerjakan
+* **Status**: ✅ **SELESAI 23 November 2026** — route lama dialihkan ke `/hrd/relations/sanctions`; view dan service usang dihapus; lint dan build lulus; Playwright Chromium headed membuktikan redirect dan heading tujuan. Bukti: [laporan](../task/report/frontend/FE-HRD-394.md).
 * **Outcome**: `/hr/employee-relations/disciplinary-actions` dialihkan ke `/hrd/relations/sanctions` untuk tautan lama. `src/components/view/hr/employee-relations/disciplinary-action-view.jsx` dan `src/lib/services/hr/employee-relations-service.js` dihapus setelah dipastikan tidak ada pemakai lain. Tidak ada lagi panggilan ke `/v1/hr/workforce-profile/disciplinary-actions`.
 * **Requirement / keputusan**: `FR-PKB-17`; `HRD-DEC-230` butir 2, `HRD-ASM-92`; fakta `HRD-TF-082`
 * **Kontrak**: `v29` — Acceptance `AT-HRD-PKB-24`; frontend 34.1 (layar anak tanpa butir menu)
@@ -7538,9 +7538,9 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 * **Risiko / pemilik**: dua nama berkas service yang mirip — penghapusan hanya untuk `employee-relations-service.js`. UI Lead HR.
 * **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-394.md`.
 
-#### `FE-HRD-395` — Layar Sanksi: filter Status dan label status lengkap
+#### ✅ `FE-HRD-395` — Layar Sanksi: filter Status dan label status lengkap
 * **Slice / MVP**: `S-PKB` / `MVP-73` · `EPIC HRD-128`
-* **Status**: Belum dikerjakan
+* **Status**: ✅ **SELESAI 23 November 2026** — filter Status mengirim `status`, tiga label status lengkap, dan `statuses` diserialisasi berulang tanpa `[]`; unit test 2/2, lint, build, CSS checker, dan Playwright Chromium headed lulus. Bukti: [laporan](../task/report/frontend/FE-HRD-395.md).
 * **Outcome**: `relations-sanctions-view.jsx` mendapat filter Status (Berlaku, Kedaluwarsa, Dicabut lewat Banding) yang dikirim sebagai parameter `status`; `SANCTION_STATUS` di `relations-constants.js` dilengkapi `Expired` dan `RevokedOnAppeal`; `employee-relation-service.js` meneruskan `status` dan `statuses`.
 * **Requirement / keputusan**: `FR-PKB-18`; `HRD-DEC-230`, `HRD-DEC-234`
 * **Kontrak**: `v29` — API 35.2; State 33.2
@@ -7556,9 +7556,9 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 * **Risiko / pemilik**: Axios bawaan menulis larik sebagai `statuses[]=…`, yang tidak diikat backend sebagai `List<string>`; pakai serialisasi berulang. UI Lead HR.
 * **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-395.md`.
 
-#### `FE-HRD-396` — Layar Seleksi Administrasi
+#### ✅ `FE-HRD-396` — Layar Seleksi Administrasi
 * **Slice / MVP**: `S-PKB` / `MVP-73` · `EPIC HRD-125`
-* **Status**: Belum dikerjakan
+* **Status**: ✅ **SELESAI 23 November 2026** — worklist per lamaran, default Menunggu, empat filter, status STR/Gugur, form reusable, gate hak Evaluate, empty/failure recovery, dan pencegahan kirim ganda tersedia; lint, build, CSS checker, dan Playwright Chromium headed lulus. Bukti: [laporan](../task/report/frontend/FE-HRD-396.md).
 * **Outcome**: Halaman `/hr/recruitment/screenings` menampilkan daftar penapisan per lamaran dari `GET /recruitment/screenings` (bawaan status Menunggu; filter lowongan, status, hasil cek STR, dan cari nama pelamar). Aksi Periksa membuka formulir penapisan yang sudah ada (`POST /recruitment/screenings/evaluate`) hanya bagi pemegang `CandidateScreening : Evaluate`, dengan pencegahan kirim ganda.
 * **Requirement / keputusan**: `FR-PKB-06`, `FR-PKB-07`; `HRD-DEC-236`, `HRD-DEC-076`
 * **Kontrak**: `v29` — API 35.5; State 33.4
@@ -7574,9 +7574,9 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 * **Risiko / pemilik**: formulir penapisan existing mungkin hanya terpasang di detail kandidat — bila perlu dipindah, tetap memakai komponen yang sama, bukan salinan. UI Lead HR.
 * **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-396.md`.
 
-#### `FE-HRD-397` — Layar Tes/Wawancara dua jalur
+#### ✅ `FE-HRD-397` — Layar Tes/Wawancara dua jalur
 * **Slice / MVP**: `S-PKB` / `MVP-73` · `EPIC HRD-126`
-* **Status**: Belum dikerjakan
+* **Status**: ✅ **SELESAI 23 November 2026** — worklist jalur HR/klinis, pending-only, pembatasan hak, label veto "Gagal Asesmen", dan pengambilan detail dengan pesan 403 khusus tersedia; lint, build, CSS checker, dan Playwright headed lulus. Bukti: [laporan](../task/report/frontend/FE-HRD-397.md).
 * **Outcome**: Halaman `/hr/recruitment/evaluations` dengan pemisah jalur Wawancara HR dan Uji Klinis/Teknis (`track`), pilihan "Belum dinilai" (`pendingOnly`), dan cari kandidat. Baris membuka route detail yang sudah ada (`/hr/recruitment/evaluations/hr/[id]` atau `/clinical/[id]`). Respons `403` tampil sebagai "Evaluasi ini ditugaskan kepada penilai lain."; kandidat dengan veto klinis tampil "Gagal Asesmen".
 * **Requirement / keputusan**: `FR-PKB-11`; `HRD-DEC-233`, `HRD-DEC-077`, `HRD-ASM-93`
 * **Kontrak**: `v29` — API 35.4, 35.6; State 33.3
@@ -7592,9 +7592,9 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 * **Risiko / pemilik**: halaman detail existing mungkin belum menangani `403` — bila ya, penanganannya masuk task ini karena pesannya diikat kontrak 35.6. UI Lead HR.
 * **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-397.md`.
 
-#### `FE-HRD-398` — Layar Riwayat Penyelesaian
+#### ✅ `FE-HRD-398` — Layar Riwayat Penyelesaian
 * **Slice / MVP**: `S-PKB` / `MVP-73` · `EPIC HRD-127`
-* **Status**: Belum dikerjakan
+* **Status**: ✅ **SELESAI 23 November 2026** — dua panel baca-saja, multi-status berulang, label lengkap, permission gate insiden, pagination dan state kosong tersedia; lint, build, CSS checker, serta 2 Playwright headed lulus. Bukti: [laporan](../task/report/frontend/FE-HRD-398.md).
 * **Outcome**: Halaman `/hrd/relations/sanctions/history` dengan dua bagian baca-saja: sanksi selesai (`GET /hrd/disciplinary/sanctions?statuses=Expired&statuses=RevokedOnAppeal`, memakai kolom tabel layar Sanksi) dan insiden ditutup tanpa sanksi (`GET /hrd/disciplinary/incidents?status=ResolvedNoSanction`, disembunyikan bila pengguna tidak memegang `EmployeeDisciplinary : ViewIncidents`); filter cari pegawai dan Tingkat.
 * **Requirement / keputusan**: `FR-PKB-13`; `HRD-DEC-234`, `HRD-ASM-94`
 * **Kontrak**: `v29` — API 35.2; State 33.2; Permission 33.1
