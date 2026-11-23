@@ -168,10 +168,14 @@ public sealed class StockTakeMatchingService
         return Count(categories);
     }
 
-    public async Task<PagedResult<StockTakeResultResponse>> GetResultsAsync(Guid sessionId, StockTakeItemQuery request, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<StockTakeResultResponse>> GetResultsAsync(Guid sessionId, StockTakeItemQuery request, CancellationToken cancellationToken = default, Guid? resultId = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         var query = _context.AstStockTakeResults.AsNoTracking().Where(x => x.SessionId == sessionId && !x.IsDelete);
+        if (resultId is { } onlyResult)
+        {
+            query = query.Where(x => x.Id == onlyResult);
+        }
 
         var categories = (request.Category ?? []).Distinct().ToList();
         if (categories.Count > 0)

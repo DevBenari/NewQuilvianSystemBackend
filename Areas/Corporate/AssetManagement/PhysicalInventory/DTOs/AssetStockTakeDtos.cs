@@ -231,6 +231,7 @@ public sealed class StockTakeResultResponse
     public string? ScannedByName { get; set; }
     public DateTime? ScannedAt { get; set; }
     public string? TeamNote { get; set; }
+    public List<StockTakeFollowUpBriefResponse> FollowUps { get; set; } = [];
 }
 
 public sealed class StockTakeResultCountsResponse
@@ -255,4 +256,99 @@ public sealed class StockTakeSessionSummaryResponse
     public int Verified { get; set; }
     public int Cancelled { get; set; }
     public int Mine { get; set; }
+}
+
+public sealed class StockTakeResultNoteRequest
+{
+    public string? TeamNote { get; set; }
+}
+
+public sealed class StockTakeVerifyRequest
+{
+    public bool Approve { get; set; }
+    public string? Reason { get; set; }
+    public Guid? RowVersion { get; set; }
+}
+
+public sealed class StockTakeFollowUpQuery
+{
+    public string? Search { get; set; }
+    public Guid? SessionId { get; set; }
+    public List<StockTakeFollowUpStatus>? Status { get; set; }
+    public List<StockTakeFollowUpType>? Type { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 25;
+}
+
+public sealed class StockTakeFollowUpProcessRequest
+{
+    public string? Notes { get; set; }
+    public Guid? TargetCustodianEmployeeId { get; set; }
+    public StockTakeFindingDraftRequest? Draft { get; set; }
+}
+
+public sealed class StockTakeFindingDraftRequest
+{
+    public string? AssetName { get; set; }
+    public Guid? AssetGroupId { get; set; }
+    public Guid? OwnershipTypeId { get; set; }
+    public string? Brand { get; set; }
+    public string? ModelType { get; set; }
+    public string? SerialNumber { get; set; }
+    public AssetAcquisitionType? AcquisitionType { get; set; }
+    public DateOnly? AcquisitionDate { get; set; }
+    public DateOnly? ReadyForUseDate { get; set; }
+    public decimal RegisteredAcquisitionCost { get; set; }
+}
+
+public sealed class StockTakeFollowUpBriefResponse
+{
+    public Guid Id { get; set; }
+    public StockTakeFollowUpType Type { get; set; }
+    public string TypeName { get; set; } = string.Empty;
+    public StockTakeFollowUpStatus Status { get; set; }
+    public string StatusName { get; set; } = string.Empty;
+    public string? TargetDocumentType { get; set; }
+    public Guid? TargetDocumentId { get; set; }
+    public string? TargetDocumentNumber { get; set; }
+}
+
+public sealed class StockTakeFollowUpResponse
+{
+    public Guid Id { get; set; }
+    public Guid SessionId { get; set; }
+    public string? SessionNumber { get; set; }
+    public Guid OrganizationUnitId { get; set; }
+    public string? OrganizationUnitName { get; set; }
+    public Guid ResultId { get; set; }
+    public StockTakeResultCategory Category { get; set; }
+    public string CategoryName { get; set; } = string.Empty;
+    public StockTakeFollowUpType Type { get; set; }
+    public string TypeName { get; set; } = string.Empty;
+    public StockTakeFollowUpStatus Status { get; set; }
+    public string StatusName { get; set; } = string.Empty;
+    public Guid? AssetId { get; set; }
+    public string? InventoryNumber { get; set; }
+    public string? AssetName { get; set; }
+    public bool IsForeignAsset { get; set; }
+    public string? ExpectedLocationName { get; set; }
+    public Guid? FoundLocationId { get; set; }
+    public string? FoundLocationName { get; set; }
+    public string? FoundOrganizationUnitName { get; set; }
+    public AssetCondition? ExpectedCondition { get; set; }
+    public string? ExpectedConditionName { get; set; }
+    public AssetCondition? ObservedCondition { get; set; }
+    public string? ObservedConditionName { get; set; }
+    public string? TeamNote { get; set; }
+    public string? FindingDescription { get; set; }
+    public string? ScannedCode { get; set; }
+    public Guid? PhotoAttachmentId { get; set; }
+    public string? ProposedAction { get; set; }
+    public string? TargetDocumentType { get; set; }
+    public Guid? TargetDocumentId { get; set; }
+    public string? TargetDocumentNumber { get; set; }
+    public StockTakeActorResponse? Processed { get; set; }
+    public StockTakeActorResponse? Dismissed { get; set; }
+    public string? DismissReason { get; set; }
+    public List<string> AvailableActions { get; set; } = [];
 }

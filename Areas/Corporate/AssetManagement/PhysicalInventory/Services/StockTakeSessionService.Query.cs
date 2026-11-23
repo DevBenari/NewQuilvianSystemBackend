@@ -16,6 +16,10 @@ public sealed partial class StockTakeSessionService
     public const string ActionScan = "scan";
     public const string ActionCloseCounting = "closeCounting";
     public const string ActionReopenCounting = "reopenCounting";
+    public const string ActionEditNote = "editNote";
+    public const string ActionSubmit = "submit";
+    public const string ActionVerify = "verify";
+    public const string ActionDocument = "document";
 
     public static AssetMasterFilterMetadataResponse GetMetadata() => new()
     {
@@ -107,7 +111,14 @@ public sealed partial class StockTakeSessionService
     public async Task<PagedResult<StockTakeResultResponse>> GetResultsAsync(Guid id, StockTakeItemQuery request, CancellationToken cancellationToken = default)
     {
         await GetSessionAsync(id, cancellationToken);
-        return await _matchingService.GetResultsAsync(id, request, cancellationToken);
+        var page = await _matchingService.GetResultsAsync(id, request, cancellationToken);
+        var briefs = await _followUpService.BriefsForResultsAsync(page.Items.Select(x => x.Id).ToList(), cancellationToken);
+        foreach (var item in page.Items)
+        {
+            item.FollowUps = briefs.GetValueOrDefault(item.Id) ?? [];
+        }
+
+        return page;
     }
 
     private IQueryable<AstStockTakeSession> Filtered(StockTakePagedQuery request, AssetActor actor)
@@ -240,6 +251,8 @@ public sealed partial class StockTakeSessionService
         var canCancel = await HasPermissionAsync(CancelAction);
         var canScan = await HasPermissionAsync(ScanAction);
         var canClose = await HasPermissionAsync(CloseAction);
+        var canSubmit = await HasPermissionAsync(SubmitAction);
+        var canVerify = await HasPermissionAsync(VerifyAction);
         var today = AssetRegisterSettingReader.Today();
 
         foreach (var session in sessions)
@@ -288,6 +301,22 @@ public sealed partial class StockTakeSessionService
             if (session.Status == StockTakeStatus.Pencocokan && countingActor)
             {
                 actions.Add(ActionReopenCounting);
+                actions.Add(ActionEditNote);
+            }
+
+            if (session.Status == StockTakeStatus.Pencocokan && canSubmit && CanStart(actor, session.OrganizationUnitId, session.LeaderEmployeeId, canCreate))
+            {
+                actions.Add(ActionSubmit);
+            }
+
+            if (session.Status == StockTakeStatus.MenungguVerifikasi && canVerify && !session.IsTeamMember && actor.CanAccessUnit(session.OrganizationUnitId))
+            {
+                actions.Add(ActionVerify);
+            }
+
+            if (session.Status == StockTakeStatus.Diverifikasi)
+            {
+                actions.Add(ActionDocument);
             }
 
             if (canCancel && CancellableStatuses.Contains(session.Status))

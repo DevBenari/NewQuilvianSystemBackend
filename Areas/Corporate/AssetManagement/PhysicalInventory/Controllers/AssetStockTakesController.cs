@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Controlle
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.PhysicalInventory.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.PhysicalInventory.Services;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
@@ -47,6 +48,46 @@ public sealed class AssetStockTakesController : AssetMasterControllerBase
     [ProducesResponseType(typeof(ApiResponse<PagedResult<StockTakeResultResponse>>), StatusCodes.Status200OK)]
     public Task<IActionResult> GetResults(Guid id, [FromQuery] StockTakeItemQuery request, CancellationToken cancellationToken) =>
         ExecuteAsync(() => _service.GetResultsAsync(id, request, cancellationToken), "Hasil pencocokan berhasil diambil.");
+
+    [HttpGet("{id:guid}/document")]
+    [AccessAction("Read", "Read Asset Stock Take", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("AssetStockTake", "Read")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK, "application/pdf")]
+    public async Task<IActionResult> GetDocument(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var document = await _service.GetDocumentAsync(id, cancellationToken);
+            return File(document.Content, "application/pdf", document.FileName);
+        }
+        catch (AssetManagementException exception)
+        {
+            return StatusCode(exception.StatusCode, ApiResponse<object>.Fail(exception.StatusCode, exception.Message, new { code = exception.Code }));
+        }
+    }
+
+    [HttpPut("{id:guid}/results/{resultId:guid}")]
+    [AccessAction("Close", "Close Asset Stock Take Counting", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission("AssetStockTake", "Close")]
+    [ProducesResponseType(typeof(ApiResponse<StockTakeResultResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> UpdateResultNote(Guid id, Guid resultId, [FromBody] StockTakeResultNoteRequest request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _service.UpdateResultNoteAsync(id, resultId, request, cancellationToken), "Catatan tim tersimpan.");
+
+    [HttpPost("{id:guid}/submit")]
+    [AccessAction("Submit", "Submit Asset Stock Take", AccessType = AccessTypes.Update, SortOrder = 6)]
+    [AccessPermission("AssetStockTake", "Submit")]
+    [ProducesResponseType(typeof(ApiResponse<StockTakeSessionResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> Submit(Guid id, [FromBody] StockTakeVersionRequest request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _service.SubmitAsync(id, request, cancellationToken), "Sesi inventarisasi diajukan untuk verifikasi.");
+
+    [HttpPost("{id:guid}/verify")]
+    [AccessAction("Verify", "Verify Asset Stock Take", AccessType = AccessTypes.Update, SortOrder = 7)]
+    [AccessPermission("AssetStockTake", "Verify")]
+    [ProducesResponseType(typeof(ApiResponse<StockTakeSessionResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> Verify(Guid id, [FromBody] StockTakeVerifyRequest request, CancellationToken cancellationToken) =>
+        ExecuteAsync(
+            () => _service.VerifyAsync(id, request, cancellationToken),
+            request.Approve ? "Sesi inventarisasi diverifikasi; usulan tindak lanjut sudah dibuat." : "Sesi inventarisasi dikembalikan ke pencocokan.");
 
     [HttpGet("{id:guid}/lookup")]
     [AccessAction("Scan", "Scan Asset Stock Take", AccessType = AccessTypes.Create, SortOrder = 4)]

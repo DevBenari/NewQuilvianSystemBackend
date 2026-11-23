@@ -24,6 +24,8 @@ public sealed partial class StockTakeSessionService
     public const string CancelAction = "Cancel";
     public const string ScanAction = "Scan";
     public const string CloseAction = "Close";
+    public const string SubmitAction = "Submit";
+    public const string VerifyAction = "Verify";
     public const string ActivePerUnitIndexName = "IX_AstStockTakeSession_ActivePerUnit";
     private const string LogCategory = "Corporate.AssetManagement.PhysicalInventory";
     private const int MaxTeamSize = 30;
@@ -44,6 +46,9 @@ public sealed partial class StockTakeSessionService
     private readonly MovementQueryService _movementQueryService;
     private readonly AssetPlacementService _placementService;
     private readonly StockTakeMatchingService _matchingService;
+    private readonly StockTakeFollowUpService _followUpService;
+    private readonly StockTakeDocumentService _documentService;
+    private readonly AssetHistoryService _historyService;
     private readonly AccessPermissionService _accessPermissionService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly LoggerService _loggerService;
@@ -57,6 +62,9 @@ public sealed partial class StockTakeSessionService
         MovementQueryService movementQueryService,
         AssetPlacementService placementService,
         StockTakeMatchingService matchingService,
+        StockTakeFollowUpService followUpService,
+        StockTakeDocumentService documentService,
+        AssetHistoryService historyService,
         AccessPermissionService accessPermissionService,
         IHttpContextAccessor httpContextAccessor,
         LoggerService loggerService)
@@ -68,6 +76,9 @@ public sealed partial class StockTakeSessionService
         _movementQueryService = movementQueryService ?? throw new ArgumentNullException(nameof(movementQueryService));
         _placementService = placementService ?? throw new ArgumentNullException(nameof(placementService));
         _matchingService = matchingService ?? throw new ArgumentNullException(nameof(matchingService));
+        _followUpService = followUpService ?? throw new ArgumentNullException(nameof(followUpService));
+        _documentService = documentService ?? throw new ArgumentNullException(nameof(documentService));
+        _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
         _accessPermissionService = accessPermissionService ?? throw new ArgumentNullException(nameof(accessPermissionService));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _loggerService = loggerService ?? throw new ArgumentNullException(nameof(loggerService));

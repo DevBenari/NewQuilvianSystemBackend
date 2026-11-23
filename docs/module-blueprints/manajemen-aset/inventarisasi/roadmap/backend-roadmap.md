@@ -30,7 +30,7 @@ BE-AST-004 [REG] ─> BE-AST-020 ✅ ──────┴─┴─┴─> BE-AS
 ```
 
 ```text
-BE-AST-008 [REG] ─┬─> BE-AST-022 ✅ ─> BE-AST-023 ─> BE-AST-024
+BE-AST-008 [REG] ─┬─> BE-AST-022 ✅ ─> BE-AST-023 ✅ ─> BE-AST-024
                   │
    BE-AST-021 ✅ ─┘
 ```
@@ -80,11 +80,11 @@ Pasangan prasyarat→task: **9** (sama dengan kolom `Dependency`).
 | **Status** | ✅ **SELESAI 23 November 2026.** `StockTakeScanService` (lookup, pindai, temuan, daftar diharapkan, riwayat), `StockTakeMatchingService` (enam kategori, catatan tim terbawa saat tutup ulang), tutup/buka kembali di `StockTakeSessionService.Counting`; 8 endpoint baru, resource `AssetStockTake` 6 aksi. QBE Strict 9 berkas `PASS`; nol baris komentar; build Rizki DLL 14:40:09. Runtime **37/37**: `AT-INV-04`, `05`, `06`, `32`, `33`, `AST-DES-028`, validasi `010..016`, `020`; ketua tim tanpa `Create` memulai dan menutup sesi. DB: 9 pindaian (1 digantikan), 46 hasil aktif + 46 lama terhapus lunak, 2 foto `StockTakeScan`. Delta: +`GET /{id}/lookup`; `PUT results/{id}` dan izin unduh foto menyusul `BE-AST-023` — [`BE-AST-022.md`](../task/report/backend/BE-AST-022.md) |
 | Acceptance criteria | 1. Hanya anggota tim saat `Berjalan`. 2. Pindai ulang menggantikan (`IsLatest`). 3. Temuan wajib keterangan + foto. 4. Tutup menghitung enam kategori; buka kembali dengan alasan. 5. Aset unit lain yang ditemukan → `BedaLokasi` (`AST-DES-028`) |
 
-### `BE-AST-023` — Verifikasi, berita acara, tindak lanjut
+### ✅ `BE-AST-023` — Verifikasi, berita acara, tindak lanjut
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 23 November 2026.** `StockTakeSessionService.Verification` (catatan tim, ajukan, verifikasi/kembalikan, PDF), `StockTakeFollowUpService` (usulan per selisih saat verifikasi; proses klaim → dokumen tujuan → isi target; abaikan), `StockTakeDocumentService` (QuestPDF), controller `AssetStockTakeFollowUps` (`Read`/`Process`/`Dismiss`); register + `AssetPlacementService.CreateStockTakeCorrectionAsync` dan izin unduh foto `StockTakeScan`. QBE Strict 14 berkas `PASS`; nol baris komentar; build Rizki DLL 15:26:45. Runtime **40/40** (putaran 1 39/40 = skrip memilih aset yang sudah terkunci pemanfaatan lama): `AT-INV-07`, `08`, `09`, `10`, `12`, `34`, `35`, `36`, `37`, `AST-DEC-019`, validasi `020..023`, `030`, `031`; PDF berita acara 2 halaman dibaca langsung. Delta: +`GET /follow-ups/{id}`, `draft` pada proses temuan, `followUps[]` per hasil, dokumen hanya saat `Diverifikasi` — [`BE-AST-023.md`](../task/report/backend/BE-AST-023.md) |
 | Acceptance criteria | 1. Ajukan mewajibkan catatan selisih. 2. Verifikator Kepala Bagian Aset bukan anggota tim. 3. Verifikasi membuat usulan tanpa mengubah aset; linimasa `Diopname`. 4. Proses usulan membuat dokumen tujuan sesuai jenis (`AST-DES-007`); abaikan dengan alasan. 5. PDF berita acara (`AST-DEC-046`) |
 
 ### `BE-AST-024` — Dashboard 1.5 dan laporan inventaris
