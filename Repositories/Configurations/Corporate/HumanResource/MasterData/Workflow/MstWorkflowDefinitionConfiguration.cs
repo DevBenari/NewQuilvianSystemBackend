@@ -25,6 +25,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.AllowStepSkip).HasDefaultValue(false);
             entity.Property(x => x.StopOnRejection).HasDefaultValue(true);
             entity.Property(x => x.IsDefault).HasDefaultValue(false);
+            entity.Property(x => x.AllowBulkApproval).HasDefaultValue(false);
             entity.Property(x => x.Description).HasMaxLength(1000);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 

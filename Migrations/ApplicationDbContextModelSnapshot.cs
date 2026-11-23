@@ -49696,6 +49696,11 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("AllowBulkApproval")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("AllowParallelApproval")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -63841,6 +63846,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("DueAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("EscalatedFromAssignmentId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -63898,6 +63906,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ApprovalMatrixId");
+
+                    b.HasIndex("EscalatedFromAssignmentId");
 
                     b.HasIndex("OriginalApproverUserId");
 
@@ -143629,6 +143639,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("AssignedApproverWorkforceProfileId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models.TrxWorkflowApproverAssignment", "EscalatedFromAssignment")
+                        .WithMany()
+                        .HasForeignKey("EscalatedFromAssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "OriginalApproverUser")
                         .WithMany()
                         .HasForeignKey("OriginalApproverUserId")
@@ -143658,6 +143673,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("AssignedApproverUser");
 
                     b.Navigation("AssignedApproverWorkforceProfile");
+
+                    b.Navigation("EscalatedFromAssignment");
 
                     b.Navigation("OriginalApproverUser");
 

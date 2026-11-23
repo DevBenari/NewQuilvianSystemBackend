@@ -10113,3 +10113,211 @@ Berbeda dari seeder pengadaan (ditanam nonaktif karena tahap jabatannya harus di
 | Sinkron surut presensi/gembok untuk SPPD lama | `HRD-DEC-227` |
 | Menghapus kolom `ManagerApprovedAt` dan seterusnya | Butuh migration; manfaat kecil — dibiarkan sebagai utang teknis |
 | Tabel audit perjalanan dinas baru | Jejak audit tetap diturunkan dari cap waktu (`HRD-TF-076`); semua sumber data 12 event sudah ada |
+
+---
+
+## 37. Amandemen `S-A7-V2` — Kotak Masuk Persetujuan Terpadu di atas Engine Workflow (revision `66`, kontrak `v29`, 20 November 2026; approved 20 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | Decision log revision `40` bagian 56: `HRD-DEC-229` s.d. `HRD-DEC-236`; fakta `HRD-TF-080` s.d. `HRD-TF-087`; asumsi `HRD-ASM-88` s.d. `HRD-ASM-90` |
+| Kontrak | API bagian 35, state bagian 33, validasi bagian 34, integrasi bagian 26, izin & audit bagian 33, uji penerimaan bagian 37, kamus data bagian 30 |
+| Source as-is | Backend `815ce085` (branch `yoga`), frontend `564365595` (branch `YogaV2`) |
+| Status | `approved` — pengguna, 20 November 2026 ("setujui kontrak v29, lanjut plan") |
+| Gerbang domain rumah sakit | Tidak berlaku: ini kemampuan platform workflow internal HR (bukan alur klinis, billing, atau keselamatan pasien). `requirement-completeness-gate`/`hospital-domain-architect` tidak dijalankan, sama seperti amandemen `v28` |
+
+### 37.1 Ringkasan perubahan
+
+Sekarang ada dua engine persetujuan yang berjalan berdampingan:
+- Engine `WorkflowService` dipakai delapan modul HR.
+- Engine "V2 lama" (`WorkflowApprovalActionService`, `WorkflowInstanceCreationService`, worker SLA) hanya dipakai Kotak Masuk Terpadu dan endpoint generik.
+
+Amandemen ini **tidak menulis engine ketiga** dan tidak membuang kotak terpadu. Lapisan layanan kotak terpadu diubah menjadi **adapter** atas `WorkflowService`:
+
+1. Pembacaan antrean, ringkasan, dan detail memakai penugasan engine, termasuk delegasi aktif.
+2. Aksi Setujui, Tolak, Kembalikan, dan Massal diteruskan ke metode engine.
+3. Eskalasi SLA bekerja pada penugasan engine dengan menambahkan penugasan atasan.
+4. Otorisasi engine diperluas ke Plh aktif untuk penugasan yang sudah ada.
+5. Endpoint generik yang melewati modul dihentikan untuk permohonan modul.
+
+### 37.2 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai amandemen ini | Dibuat ulang? |
+| --- | --- | --- | --- |
+| Instance, tahap, penugasan workflow (`TrxWorkflowInstance`, `TrxWorkflowStepInstance`, `TrxWorkflowApproverAssignment`) | Workflow (`S-A7`/`S-A7-V2`, engine `WorkflowService`) | Ya — dibaca adapter; satu kolom baru `EscalatedFromAssignmentId` | Tidak |
+| Riwayat aksi (`TrxApprovalAction`) | Workflow (engine) | Ya — ditulis engine; nilai `ActionType` baru `Escalate` | Tidak |
+| Delegasi (`TrxApprovalDelegation`) | Workflow | Ya — dibaca antrean dan otorisasi engine | Tidak |
+| Definisi workflow (`MstWorkflowDefinition`) | Master Data Workflow | Ya — kolom baru `AllowBulkApproval` | Tidak |
+| Alasan penolakan (`MstRejectionReason`) | Master Data Workflow | Ya — dibaca untuk `myAction.rejectionReasons` dan validasi engine | Tidak |
+| Atasan langsung (`WfpManagerAssignment`) | WorkforceCore | Ya — dibaca resolver atasan eskalasi | Tidak |
+| Data permohonan modul (SPPD, cuti, lembur, …) | Modul masing-masing | Tidak diubah; status diubah oleh penangan modul lewat engine | Tidak |
+| Notifikasi | Workflow (`UnifiedNotificationGatewayService`) | Ya — notifikasi eskalasi | Tidak |
+
+### 37.3 Class diagram — konteks Workflow (perubahan)
+
+```mermaid
+classDiagram
+    class WorkflowInboxAndInstancesController {
+      +GetInbox()
+      +GetInboxSummary()
+      +GetInstanceDetail(id)
+      +CreateInstance() 409
+      +CancelInstance(id)
+      +GetMyRequests()
+    }
+    class WorkflowApprovalActionsController {
+      +Approve(stepInstanceId)
+      +Reject(stepInstanceId)
+      +ReturnForRevision(stepInstanceId)
+      +BulkApprove()
+      +Resubmit(id)
+    }
+    class ApprovalInboxQueryService {
+      +GetInboxAsync(userId, filter)
+      +GetInboxSummaryAsync(userId)
+      +GetMyActionAsync(instanceId, userId)
+    }
+    class WorkflowApprovalActionService {
+      +ApproveAsync(stepInstanceId, dto, userId)
+      +RejectAsync(stepInstanceId, dto, userId)
+      +ReturnForRevisionAsync(stepInstanceId, dto, userId)
+      -ResolveActionableAssignmentAsync()
+    }
+    class BulkApprovalService {
+      +ExecuteBulkApprovalAsync(dto, userId)
+    }
+    class WorkflowSlaEnforcementService {
+      +ScanAndEscalateOverdueTicketsAsync()
+      +ManualEscalateAsync(id, dto, userId)
+      +GetOverdueTicketsAsync()
+    }
+    class WorkflowService {
+      +ApproveAsync(instanceId, assignmentId, req)
+      +RejectAsync(instanceId, assignmentId, req)
+      +RequestRevisionAsync(instanceId, assignmentId, req)
+      +AddEscalationAssignmentAsync(assignmentId, approverUserId, reason, isSystem)
+      -CanActOnAssignment(assignment, actor)
+      -IsApprovalRequirementSatisfied(step)
+    }
+    class TrxWorkflowApproverAssignment {
+      +Guid AssignedApproverUserId
+      +Guid? EscalatedFromAssignmentId
+      +bool IsRequired
+      +DateTime? DueAt
+    }
+    WorkflowInboxAndInstancesController --> ApprovalInboxQueryService
+    WorkflowApprovalActionsController --> WorkflowApprovalActionService
+    WorkflowApprovalActionsController --> BulkApprovalService
+    WorkflowApprovalActionService --> WorkflowService
+    BulkApprovalService --> WorkflowService
+    WorkflowSlaEnforcementService --> WorkflowService
+    WorkflowService --> TrxWorkflowApproverAssignment
+```
+
+### 37.4 Penjelasan class
+
+| Class | Status | Lokasi file | Perubahan | Dipanggil oleh | Membuka transaksi |
+| --- | --- | --- | --- | --- | --- |
+| `WorkflowService` | Diperbarui | `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowService.cs`, `WorkflowService.ActionsV2.cs` | (1) `CanActOnAssignment`: pemegang penugasan **atau** Plh aktif dari pemegang penugasan (`VR-WF-30`), bukan pemohon; aksi oleh Plh mengisi `IsDelegated`, `ApprovalDelegationId`, `DelegatedFromUserId` pada `TrxApprovalAction`. (2) Metode baru `AddEscalationAssignmentAsync` (membuat penugasan atasan, `IsRequired = false`, `EscalatedFromAssignmentId`, `DueAt` baru, aksi `Escalate`). (3) `IsApprovalRequirementSatisfied`: penugasan wajib dihitung disetujui bila ia atau turunan eskalasinya `Approved` (state 33.3). (4) Saat satu dari pasangan asal/eskalasi memutuskan, kembarannya `Skipped`. (5) Tidak lagi mengisi `DigitalSignatureHash` | Adapter kotak terpadu, kotak lama, modul | Ya (Serializable, as-is) |
+| `WorkflowApprovalActionService` | Diperbarui | `…/Services/WorkflowApprovalActionService.cs` | Menjadi adapter: `ResolveActionableAssignmentAsync(stepInstanceId, userId)` (penugasan sendiri → penugasan via delegasi aktif → `403`), lalu memanggil engine. Logika ubah status langsung, `ComputeSignatureHash`, dan pemanggilan `IdempotentDownstreamExecutionService` dihapus dari jalur engine. Signature publik memakai `userId` (akun), bukan `employeeId` | `WorkflowApprovalActionsController` | Tidak |
+| `ApprovalInboxQueryService` | Diperbarui | `…/Services/ApprovalInboxQueryService.cs` | Kueri penugasan engine terbuka milik pengguna + delegasi aktif; kecualikan penugasan dengan `ApproverEmployeeId` terisi; isi `assignmentId`, `referenceNumber`, `canBulkApprove`; metode baru `GetMyActionAsync` untuk blok `myAction` (memakai ulang pembentuk alasan dari `ApprovalInboxService`) | `WorkflowInboxAndInstancesController` | Tidak |
+| `BulkApprovalService` | Diperbarui | `…/Services/BulkApprovalService.cs` | Hapus syarat PIN; kelayakan `VR-WF-32` (termasuk `AllowBulkApproval`); per butir memanggil `WorkflowApprovalActionService.ApproveAsync` (adapter → engine) | `WorkflowApprovalActionsController` | Tidak (engine per butir) |
+| `WorkflowSlaEnforcementService` | Diperbarui | `…/Services/WorkflowSlaEnforcementService.cs` | Pindai penugasan engine (`DueAt` lewat, wajib, terbuka, belum dieskalasi); atasan dari `ResolveManagerApproverAsync`; panggil `AddEscalationAssignmentAsync`; peringatan dini, daftar overdue, eskalasi manual, dan laporan kepatuhan membaca penugasan engine | `WorkflowSlaEscalationWorker`, `WorkflowSlaEarlyWarningWorker`, `WorkflowSlaAndMatrixController` | Ya, satu per penugasan (lewat engine) |
+| `WorkflowInstanceCreationService` | Diperbarui | `…/Services/WorkflowInstanceCreationService.cs` | `CreateInstanceAsync` → `409` (`VR-WF-29`); `CancelInstanceAsync` → `409` untuk instance engine; `GetMyRequestsAsync` cocokkan `RequestedByUserId` atau `RequestedByEmployeeId`, isi `isModuleManaged`; `GetInstanceDetailAsync` menambah `myAction` | `WorkflowInboxAndInstancesController` | Tidak |
+| `WorkflowResubmitService` | Diperbarui | `…/Services/WorkflowResubmitService.cs` | `ResubmitAsync` → `409` untuk instance engine | `WorkflowApprovalActionsController` | Tidak |
+| `WorkflowApprovalActionsController` | Diperbarui | `…/Controllers/WorkflowApprovalActionsController.cs` | Meneruskan `userId` (akun) ke adapter; memetakan `WorkflowServiceResult` engine ke `400/403/404/409`; atribut akses tidak berubah | — | — |
+| `WorkflowInboxAndInstancesController` | Diperbarui | `…/Controllers/WorkflowInboxAndInstancesController.cs` | Meneruskan `userId`; `POST /instances` → `409` | — | — |
+| `WorkflowSlaAndMatrixController` | Sudah ada | `…/Controllers/WorkflowSlaAndMatrixController.cs` | Tidak berubah; perilaku dari service | — | — |
+| `WorkflowDefinitionController` + `WorkflowDefinitionDtos` | Diperbarui | `Areas/Corporate/HumanResource/MasterData/Workflow/Controllers/WorkflowDefinitionController.cs`, `…/DTOs/WorkflowDefinitionDtos.cs` | Ruas `AllowBulkApproval` pada DTO buat/ubah/respons definisi | Layar Master Workflow | As-is |
+| `ApprovalDelegationV2Service` | Sudah ada | `…/Services/ApprovalDelegationV2Service.cs` | Tidak berubah (sudah mengisi kedua kunci sejak `815ce085`) | — | — |
+| `IdempotentDownstreamExecutionService` | Sudah ada (tidak dipakai untuk engine) | `…/Services/IdempotentDownstreamExecutionService.cs` | Tidak lagi dipanggil untuk instance engine; dipertahankan sampai tidak ada instance engine lama | — | — |
+| `WorkflowValueConstants.ActionType` | Diperbarui | `…/Models/WorkflowValueConstants.cs` | Konstanta `Escalate` | Engine | — |
+| `TrxWorkflowApproverAssignment` | Diperbarui | `…/Models/TrxWorkflowApproverAssignment.cs` + `Repositories/Configurations/Corporate/HumanResource/WorkflowManagement/TrxWorkflowApproverAssignmentConfiguration.cs` | Kolom `EscalatedFromAssignmentId` + navigasi `EscalatedFromAssignment`, FK diri sendiri `Restrict`, index | — | — |
+| `MstWorkflowDefinition` | Diperbarui | `Areas/Corporate/HumanResource/MasterData/Workflow/Models/MstWorkflowDefinition.cs` + konfigurasinya | Kolom `AllowBulkApproval` bawaan `false` | — | — |
+
+DTO yang berubah (`…/DTOs/WorkflowV2Dtos.cs`):
+
+| DTO | Jenis | Perubahan |
+| --- | --- | --- |
+| `ApproveActionRequestDto` | Status | Hapus `PinSignature` |
+| `RejectActionRequestDto` | Status | Ganti `RejectReason` → `RejectionReasonId` (Guid, wajib) + `Comment` (string?, maks 1000); hapus `PinSignature` |
+| `ReturnForRevisionRequestDto` | Status | Tetap (`RevisionNotes` wajib, maks 1000) |
+| `BulkApproveRequestDto` | Status | Hapus `PinSignature` |
+| `ApprovalInboxItemV2ResponseDto` | Response | Tambah `AssignmentId`, `ReferenceNumber`, `CanBulkApprove` |
+| `WorkflowInstanceDetailV2ResponseDto` | Response | Tambah `MyAction` (`WorkflowMyActionDto` baru: `AssignmentId`, `StepInstanceId`, `IsDelegated`, `OnBehalfOfName`, `AvailableActions`, `RejectionReasons`) |
+| `WorkflowInstanceV2ResponseDto` | Response | Tambah `IsModuleManaged` |
+
+### 37.5 Arsitektur folder (yang tersentuh)
+
+```text
+Areas/Corporate/HumanResource/
+├── WorkflowManagement/
+│   ├── Controllers/
+│   │   ├── WorkflowApprovalActionsController.cs      (Diperbarui)
+│   │   ├── WorkflowInboxAndInstancesController.cs    (Diperbarui)
+│   │   └── ApprovalInboxController.cs                (Sudah ada — dipensiunkan kemudian, HRD-DEC-231)
+│   ├── DTOs/WorkflowV2Dtos.cs                        (Diperbarui)
+│   ├── Models/
+│   │   ├── TrxWorkflowApproverAssignment.cs          (Diperbarui)
+│   │   └── WorkflowValueConstants.cs                 (Diperbarui)
+│   ├── Services/
+│   │   ├── WorkflowService.cs / .ActionsV2.cs        (Diperbarui)
+│   │   ├── WorkflowApprovalActionService.cs          (Diperbarui — adapter)
+│   │   ├── ApprovalInboxQueryService.cs              (Diperbarui)
+│   │   ├── BulkApprovalService.cs                    (Diperbarui)
+│   │   ├── WorkflowSlaEnforcementService.cs          (Diperbarui)
+│   │   ├── WorkflowInstanceCreationService.cs        (Diperbarui)
+│   │   └── WorkflowResubmitService.cs                (Diperbarui)
+│   └── Workers/WorkflowV2Workers.cs                  (Sudah ada — perilaku dari service)
+└── MasterData/Workflow/
+    ├── Controllers/WorkflowDefinitionController.cs   (Diperbarui)
+    ├── DTOs/WorkflowDefinitionDtos.cs                (Diperbarui)
+    └── Models/MstWorkflowDefinition.cs               (Diperbarui)
+Repositories/Configurations/Corporate/HumanResource/
+├── WorkflowManagement/TrxWorkflowApproverAssignmentConfiguration.cs (Diperbarui)
+└── MasterData/Workflow/MstWorkflowDefinitionConfiguration.cs        (Diperbarui)
+```
+
+Utang teknis yang **tidak** dirapikan: `WorkflowDefinitionController` memakai `DbContext` langsung (tanpa service), dan `WorkflowService` terbagi dua berkas parsial. Keduanya as-is.
+
+### 37.6 Status model dan dampak migration
+
+| Model | Status | Kolom yang berubah | Migration |
+| --- | --- | --- | --- |
+| `MstWorkflowDefinition` | Diperbarui | `AllowBulkApproval` `boolean NOT NULL DEFAULT false` | Ya |
+| `TrxWorkflowApproverAssignment` | Diperbarui | `EscalatedFromAssignmentId uuid NULL` + FK `Restrict` ke diri sendiri + index | Ya |
+| `TrxApprovalAction`, `TrxApprovalDelegation`, `TrxWorkflowInstance`, `TrxWorkflowStepInstance` | Sudah ada | — | Tidak |
+
+### 37.7 Rencana migration dan data
+
+| Urutan | Langkah | Tanpa downtime? | Cara mundur |
+| --- | --- | --- | --- |
+| 1 | Migration `AddWorkflowBulkFlagAndEscalationLink`: tambah `AllowBulkApproval` (bawaan `false`) dan `EscalatedFromAssignmentId` + FK + index | Ya — kolom baru, null/berbawaan; tidak mengunci tabel lama lama | `Down`: hapus FK, index, dan kedua kolom |
+| 2 | Skrip data (izin eksekusi terpisah): `AllowBulkApproval = true` untuk definisi lembur rutin dan cuti tahunan (`HRD-ASM-90`); kode definisi dipastikan saat implementasi dari Master Workflow | Ya | Set kembali `false` |
+| 3 | Skrip data (izin eksekusi terpisah): lengkapi `PrincipalEmployeeId`/`DelegateEmployeeId` delegasi lama dari akun (`DelegatorUserId`/`DelegateUserId` → pegawai akun) bila kosong | Ya | Kosongkan kembali kolom yang diisi skrip (daftar id disimpan) |
+| 4 | Pemeriksaan pra-rilis `VR-WF-33` (baca-saja): jumlah penugasan terbuka dengan `ApproverEmployeeId` terisi = 0 | — | Bila > 0, rilis ditahan (`HRD-DEC-236`) |
+
+Migration dibuat dan dijalankan hanya atas izin eksplisit pengguna.
+
+### 37.8 Data master awal
+
+| Tabel | Isi minimum |
+| --- | --- |
+| `MstWorkflowDefinition.AllowBulkApproval` | `true` untuk lembur rutin dan cuti tahunan; `false` untuk sisanya, termasuk `BUSINESS_TRAVEL_REQUEST` |
+| `MstRejectionReason` | Sekurang-kurangnya satu alasan aktif per jenis permohonan yang dapat ditolak. Ini konfigurasi Admin HR (di luar scope); tanpa alasan, Tolak tidak dapat dikirim (`VR-WF-26`). devYoga saat ini hanya punya `UJI_376_TOLAK` untuk SPPD |
+
+### 37.9 Strategi uji
+
+Harness `HumanResourceTests` (SQLite) untuk `AT-HRD-WF-23` s.d. `AT-HRD-WF-37`, masing-masing dengan kontrol negatif. `AT-HRD-WF-38`/`39` lewat browser. Regresi penuh HR sekali di akhir gelombang backend. Uji SPPD `TravelSubmitTests`/`TravelWorkflowLifecycleTests` wajib tetap hijau (perilaku kotak lama tidak berubah).
+
+### 37.10 Yang sengaja tidak dibuat
+
+| Dipertimbangkan | Alasan ditolak |
+| --- | --- |
+| Engine baru atau penggabungan kode kedua engine menjadi satu kelas | Tidak perlu: engine `WorkflowService` sudah lengkap; cukup adapter (`HRD-DEC-229`) |
+| Mengubah path aksi menjadi `{assignmentId}` | Path `{stepInstanceId}` dipertahankan agar layar dan klien lain tidak putus; penugasan ditentukan server |
+| Tabel PIN / tanda tangan elektronik | Dihapus (`HRD-DEC-230`); bila perlu kelak lewat amandemen tersendiri |
+| Memindahkan penugasan ke atasan saat eskalasi | Ditolak pengguna (`HRD-DEC-232`): atasan ditambahkan, bukan pengganti |
+| Migrasi tiket engine lama | Ditolak (`HRD-DEC-236`); diganti pemeriksaan pra-rilis |
+| Endpoint kirim ulang generik untuk permohonan modul | Ditolak (`HRD-DEC-235`); kirim ulang dari layar modul |
+| Menghapus `ApprovalInboxController` sekarang | Ditunda sampai kotak terpadu terbukti dan pemanggil nol (`HRD-DEC-231`) |

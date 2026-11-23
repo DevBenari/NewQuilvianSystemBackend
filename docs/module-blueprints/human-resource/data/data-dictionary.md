@@ -6168,3 +6168,48 @@ Tetap tidak ditulis (`HRD-TF-073`). Riwayat persetujuan per tahap dibaca dari ri
 | `Rejected` | Ditolak | Final |
 | `Cancelled` | Dibatalkan | Final |
 | `AdvancePaid`, `SettlementSubmitted`, `SettlementVerified`, `Completed` | Tidak berubah | Mengikuti bagian 26 kamus data |
+
+---
+
+## 30. Kamus Data Amandemen Slice `S-A7-V2`: Kotak Masuk Terpadu di atas Engine Workflow (Kontrak `v29`, approved 20 November 2026)
+
+Dua kolom baru, satu konstanta jenis aksi baru, tanpa tabel baru. Sepuluh kolom warisan `IdentityModel` tidak diulang. Tidak ada kolom sensitif di bagian ini.
+
+### 30.1 `public.MstWorkflowDefinition` (status tabel: `Diperbarui`)
+
+Model: `Areas/Corporate/HumanResource/MasterData/Workflow/Models/MstWorkflowDefinition.cs`; konfigurasi: `Repositories/Configurations/Corporate/HumanResource/MasterData/Workflow/MstWorkflowDefinitionConfiguration.cs`.
+
+| Kolom | Tipe | Wajib | Bawaan | Validasi | Sensitif | Keterangan |
+| --- | --- | --- | --- | --- | --- | --- |
+| `AllowBulkApproval` | `boolean` | Ya | `false` | — | Tidak | **Baru**. `true` berarti permohonan dari definisi ini boleh masuk Setujui Massal (`HRD-DEC-233`, `VR-WF-32`). Diatur Admin HR di Master Workflow. Nilai awal: `true` hanya untuk definisi lembur rutin dan cuti tahunan (`HRD-ASM-90`) |
+
+Index dan unique constraint: tidak ada yang baru. Perilaku hapus: tidak berubah.
+
+### 30.2 `public.TrxWorkflowApproverAssignment` (status tabel: `Diperbarui`)
+
+Model: `Areas/Corporate/HumanResource/WorkflowManagement/Models/TrxWorkflowApproverAssignment.cs`; konfigurasi: `Repositories/Configurations/Corporate/HumanResource/WorkflowManagement/TrxWorkflowApproverAssignmentConfiguration.cs`.
+
+| Kolom | Tipe | Wajib | Bawaan | Validasi | Sensitif | Keterangan |
+| --- | --- | --- | --- | --- | --- | --- |
+| `EscalatedFromAssignmentId` | `uuid` | Tidak | `null` | Harus menunjuk penugasan pada **tahap yang sama** | Tidak | **Baru**. FK ke `TrxWorkflowApproverAssignment.Id` (diri sendiri), `DeleteBehavior.Restrict`. Terisi pada penugasan hasil eskalasi (`HRD-DEC-232`); dipakai menghitung syarat tahap (state 33.3) dan mencegah eskalasi ganda (`VR-WF-31`) |
+
+Index baru: `IX_TrxWorkflowApproverAssignment_EscalatedFromAssignmentId` (non-unik).
+
+Kolom yang sudah ada dan dipakai aturan amandemen ini (tidak berubah):
+
+| Kolom | Dipakai untuk |
+| --- | --- |
+| `AssignedApproverUserId` (`uuid`, wajib) | Pemilik penugasan engine; dasar antrean dan otorisasi (`VR-WF-30`) |
+| `ApproverEmployeeId` (`uuid` null) | **Penanda penugasan engine V2 lama** (engine tidak pernah mengisinya, `HRD-TF-081`); dipakai pemeriksaan pra-rilis (`VR-WF-33`) dan `VR-WF-29` |
+| `AssignmentStatus` (`varchar`) | Himpunan terbuka `Pending`, `Available`, `InProgress`, `Delegated`; `Skipped` untuk kembaran eskalasi yang ditutup |
+| `IsRequired` (`bool`, bawaan `true`) | Penugasan hasil eskalasi `false` |
+| `DueAt` (`timestamptz` null) | Batas eskalasi; penugasan eskalasi mendapat `DueAt` baru |
+| `IsDelegated`, `ApprovalDelegationId`, `OriginalApproverUserId` | Penugasan yang dialihkan ke Plh saat dibuat (as-is) |
+
+### 30.3 `public.TrxApprovalDelegation` (status tabel: `Sudah ada`)
+
+Tidak ada perubahan skema. Kolom kunci: `DelegatorUserId`, `DelegateUserId` (wajib; dipakai engine), `PrincipalEmployeeId`, `DelegateEmployeeId` (null; dipakai layar Delegasi V2), `DelegationStatus`, `EffectiveStartAt`, `EffectiveEndAt`, `AppliesToAllWorkflows`, `WorkflowDefinitionId`, `WorkflowStepId`. Rencana data: delegasi lama yang `PrincipalEmployeeId`/`DelegateEmployeeId`-nya kosong dilengkapi dari akun pengguna (37.7 arsitektur backend).
+
+### 30.4 `public.TrxApprovalAction` (status tabel: `Sudah ada`)
+
+Tidak ada perubahan skema. `ActionType` mendapat nilai baru `Escalate` (konstanta, tanpa CHECK constraint, tanpa migration). `DigitalSignatureHash` tidak lagi diisi untuk aksi baru (`HRD-DEC-230`).
