@@ -8224,9 +8224,9 @@ SLA (`/sla/overdue`, `/sla/escalate/{id}`, `/sla/compliance-report`) dan Master 
 * **Risiko / pemilik**: kinerja kueri delegasi — satu kueri berhalaman; Technical Owner HR.
 * **DoD**: AC terbukti, laporan `BE-HRD-443.md`.
 
-#### ⬜ `BE-HRD-444` — Aksi Setujui/Tolak/Kembalikan diteruskan ke engine; PIN dihapus
+#### ✅ `BE-HRD-444` — Aksi Setujui/Tolak/Kembalikan diteruskan ke engine; PIN dihapus
 * **Slice / MVP**: `S-A7-V2` amandemen / `MVP-72` · `EPIC HRD-124`
-* **Status**: ⬜ Belum dikerjakan
+* **Status**: ✅ Selesai (2026-11-23). 4/4 acceptance criteria terpenuhi: harness `WorkflowApprovalActionAdapterTests` 12/12 lewat controller dengan engine nyata + penangan SPPD (12/12 mutasi tertangkap), regresi HR 416/416, QBE Strict bersih dengan probe kontrol. Adapter memilih penugasan lewat `FindActionableAssignmentAsync` (aturan sama dengan antrean/`myAction` `BE-HRD-443`), memvalidasi alasan/catatan dengan pesan §35.7, lalu meneruskan ke `WorkflowService`; status, PIN, hash, dan eksekusi hilir lama dihapus. Delta: satu method baru di `ApprovalInboxQueryService`; `BulkApprovalService` hanya disesuaikan agar terkompilasi (isi tetap untuk `BE-HRD-445`). Uji API lokal akun dr. Bima tertahan: sandi yang diberikan ditolak (`401`). Laporan: [BE-HRD-444](../task/report/backend/BE-HRD-444.md)
 * **Outcome**: `WorkflowApprovalActionService` menjadi adapter: menentukan penugasan dari `stepInstanceId` + pengguna (helper `BE-HRD-441`), lalu memanggil `ApproveAsync`/`RejectAsync`/`RequestRevisionAsync` engine. `RejectActionRequestDto` memakai `rejectionReasonId` + `comment`; `pinSignature` dihapus dari ketiga DTO; logika ubah status langsung, `ComputeSignatureHash`, dan pemanggilan `IdempotentDownstreamExecutionService` dihapus dari jalur ini. Controller memetakan hasil engine ke `400/403/404/409`
 * **Requirement / keputusan**: `FR-WF-27`, `FR-WF-28`; `HRD-DEC-229`, `HRD-DEC-230`
 * **Kontrak**: `v29` — API 35.2, 35.7; Validation `VR-WF-26` s.d. `VR-WF-28`, `VR-WF-30`; State 33.1

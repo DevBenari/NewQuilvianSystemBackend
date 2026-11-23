@@ -6082,32 +6082,32 @@ status diambil dari `filters/metadata`. Uji 403 wajib memakai akun non-superadmi
 #### Grafik F82 — Klien API dan perubahan roster (`MVP-67`)
 
 ```text
-BE-HRD-336 [B84] ─> FE-HRD-306 ⬜ ─┬─> FE-HRD-307 ⬜ (butuh BE-HRD-338, BE-HRD-340)
-                                   └─> FE-HRD-308 ⬜ (butuh BE-HRD-340)
+BE-HRD-336 [B84] ─> FE-HRD-306 ✅ ─┬─> FE-HRD-307 ✅ (butuh BE-HRD-338, BE-HRD-340)
+                                   └─> FE-HRD-308 ✅ (butuh BE-HRD-340)
 ```
 
 #### Grafik F83 — Kehadiran, tutup periode, mesin, hari libur (`MVP-67`)
 
 ```text
-FE-HRD-306 ⬜ ─┬─> FE-HRD-309 ⬜ (butuh BE-HRD-342)
-               ├─> FE-HRD-310 ⬜ (butuh BE-HRD-343)
-               ├─> FE-HRD-311 ⬜ (butuh BE-HRD-344)
-               ├─> FE-HRD-312 ⬜ (butuh BE-HRD-346)
+FE-HRD-306 ✅ ─┬─> FE-HRD-309 ✅ (butuh BE-HRD-342)
+               ├─> FE-HRD-310 ✅ (butuh BE-HRD-343)
+               ├─> FE-HRD-311 ✅ (butuh BE-HRD-344)
+               ├─> FE-HRD-312 ✅ (butuh BE-HRD-346)
                └─> FE-HRD-313 ⬜ (butuh BE-HRD-347)
 ```
 
 #### Grafik F84 — Jadwal Saya, laporan, verifikasi (`MVP-68`, `Verifikasi`)
 
 ```text
-FE-HRD-306 ⬜ ─┬─> FE-HRD-314 ⬜ (butuh BE-HRD-348)
+FE-HRD-306 ✅ ─┬─> FE-HRD-314 ⬜ (butuh BE-HRD-348)
                └─> FE-HRD-315 ⬜ (butuh BE-HRD-349, BE-HRD-350)
-FE-HRD-306 ⬜ s.d. FE-HRD-315 ⬜ ─> FE-HRD-316 ⬜
+FE-HRD-306 ✅ s.d. FE-HRD-315 ⬜ ─> FE-HRD-316 ⬜
 ```
 
 #### Grafik F85 — `POST-MVP` dan task terblokir
 
 ```text
-FE-HRD-306 ⬜ ─┬─> FE-HRD-317 ⬜ (BE-HRD-352)
+FE-HRD-306 ✅ ─┬─> FE-HRD-317 ⬜ (BE-HRD-352)
                ├─> FE-HRD-318 ⬜ (BE-HRD-353, BE-HRD-354)
                ├─> FE-HRD-319 ⬜ (BE-HRD-355)
                ├─> FE-HRD-320 ⬜ (BE-HRD-356)
@@ -6134,8 +6134,9 @@ ada; tombol kirim nonaktif saat mengirim; 403 menampilkan pesan "tidak berwenang
 (`node --import ./tests/helpers/register.mjs --test tests/unit/`) dan uji browser pada kolom
 Verifikasi lulus; laporan di `task/report/frontend/<ID>.md`.
 
-#### ⬜ `FE-HRD-306` — Klien API dan state untuk endpoint `A52`
+#### ✅ `FE-HRD-306` — Klien API dan state untuk endpoint `A52`
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-109`
+* **Status**: ✅ Selesai (2026-11-23). 2/2 acceptance criteria terpenuhi: uji unit `hr-a52-api-client.test.mjs` 12/12 (URL dan metode per fungsi; daftar putih URL kontrak `v26` atas 26 pemanggilan; 403/409/422 diteruskan dengan pesan server, kode status, dan rincian `B*`/`W*`), 7/7 mutasi kontrol tertangkap, `lint:errors` dan `npm run build` lulus. Ganti Petugas/koreksi mundur pindah ke path kontrak `shift-replacements`; slice baru hari libur, mesin absen (factory master data), dan laporan; fungsi Jadwal Saya. Laporan: [FE-HRD-306](../task/report/frontend/FE-HRD-306.md)
 * **Outcome**: Satu lapisan service Axios + slice Redux untuk seluruh endpoint kontrak `v26` yang dipakai MVP.
 * **Requirement/decision**: `FR-PK-002`; `03-frontend-architecture.md` 31.2–31.3
 * **Kontrak**: `v26` — `api-contract.md` 32
@@ -6146,8 +6147,9 @@ Verifikasi lulus; laporan di `task/report/frontend/<ID>.md`.
 * **Verifikasi**: Uji unit service (URL dan metode per fungsi).
 * **Risiko**: Rendah.
 
-#### ⬜ `FE-HRD-307` — Matriks roster: Ganti Petugas, tambah dan hapus shift pada roster terbit
+#### ✅ `FE-HRD-307` — Matriks roster: Ganti Petugas, tambah dan hapus shift pada roster terbit
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-110`
+* **Status**: ✅ Selesai (2026-11-23). 3/3 acceptance criteria terpenuhi di browser: uji layar `hr-roster-published-change.spec.mjs` 10/10 (build produksi, API tiruan; meniru `UAT-PK-03` s.d. `-06`, peringatan W2 dengan alasan, 409 Muat Ulang Roster, klik ganda, tiga kombinasi hak), uji unit utilitas 4/4 (4/4 mutasi tertangkap), `lint:errors` dan build lulus. Ganti Petugas mengirim `expectedWorkforceProfileId`/`warningReasons`; modal baru Hapus Shift; tambah shift pada roster terbit sudah benar sejak MSL-32. UAT dengan data nyata devYoga belum dijalankan. Laporan: [FE-HRD-307](../task/report/frontend/FE-HRD-307.md)
 * **Outcome**: Modal Ganti Petugas mengirim `ExpectedWorkforceProfileId` dan alasan peringatan; aksi hapus shift; tambah shift tidak lagi memperingatkan "roster kembali ke draft".
 * **Requirement/decision**: `FR-PK-003` s.d. `FR-PK-006`; `HRD-DEC-195`
 * **Kontrak**: `v26` — `replace`, `assignments`, `shifts/{id}/remove`
@@ -6158,8 +6160,9 @@ Verifikasi lulus; laporan di `task/report/frontend/<ID>.md`.
 * **Verifikasi**: `UAT-PK-03`, `UAT-PK-04`, `UAT-PK-05`, `UAT-PK-06` di browser.
 * **Risiko**: Pengguna Kepala Bidang melihat tombol ubah — sembunyikan bila tidak berhak, server tetap memeriksa.
 
-#### ⬜ `FE-HRD-308` — Layar Riwayat Revisi
+#### ✅ `FE-HRD-308` — Layar Riwayat Revisi
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-110`
+* **Status**: ✅ Selesai (2026-11-23). 3/3 acceptance criteria terpenuhi di browser: uji layar `hr-roster-revision-history.spec.mjs` 8/8 (build produksi, API tiruan; bagian riwayat `UAT-PK-03`/`-06`, filter tanggal/pegawai/jenis digabung dan diatur ulang, rentang terbalik tanpa permintaan, catatan per baris, 403, tanpa hak, tautan dari kisi), regresi `FE-HRD-307` 10/10, uji unit 7/7 (6/6 mutasi tertangkap), `lint:errors` dan build lulus. Rute `/hr/scheduling/revisions`, menu Penjadwalan, tombol di Kisi Roster. Keputusan pengguna: catatan alasan untuk semua pembaca roster dalam cakupan unit, dibuka per baris. UAT data nyata devYoga belum dijalankan. Laporan: [FE-HRD-308](../task/report/frontend/FE-HRD-308.md)
 * **Outcome**: Kepala Unit, Kepala Bidang, dan HRD menelusuri perubahan roster terbit.
 * **Requirement/decision**: `FR-PK-004`; `HRD-DEC-195`, `217`
 * **Kontrak**: `v26` — `GET roster-periods/{id}/revisions`
@@ -6170,8 +6173,9 @@ Verifikasi lulus; laporan di `task/report/frontend/<ID>.md`.
 * **Verifikasi**: `UAT-PK-03`, `UAT-PK-06` (bagian riwayat).
 * **Risiko**: Rendah.
 
-#### ⬜ `FE-HRD-309` — Setelan kehadiran: jendela scan, tanpa pilihan konversi
+#### ✅ `FE-HRD-309` — Setelan kehadiran: jendela scan, tanpa pilihan konversi
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-111`
+* **Status**: ✅ Selesai (2026-11-23). Acceptance criteria terpenuhi di browser: uji layar `hr-attendance-settings.spec.mjs` 9/9 (build produksi, API tiruan; `UAT-PK-08` 10 → 15 menit, nilai tepi 60/720/960/30, nilai di atas batas dibatasi base component, ruas kosong ditolak, galat 400, hak baca saja, tanpa hak, Coba Lagi), uji unit aturan 6/6 (6/6 mutasi tertangkap), `lint:errors` dan build lulus. Ruas jendela scan masuk/pulang dengan padanan jam dan contoh shift Pagi; toleransi 0–60 (sebelumnya 0–30); sakelar konversi dihapus (`HRD-DEC-216`). Perhitungan `UAT-PK-08` dengan data nyata devYoga belum dijalankan. Laporan: [FE-HRD-309](../task/report/frontend/FE-HRD-309.md)
 * **Outcome**: Admin HRD mengubah toleransi dan jendela scan; pilihan konversi hilang.
 * **Requirement/decision**: `FR-PK-010`; `HRD-DEC-211`, `215`, `216`
 * **Kontrak**: `v26` — Settings `GET`/`PUT`; `VR-PK-23`
@@ -6182,8 +6186,9 @@ Verifikasi lulus; laporan di `task/report/frontend/<ID>.md`.
 * **Verifikasi**: `UAT-PK-08`.
 * **Risiko**: Rendah.
 
-#### ⬜ `FE-HRD-310` — Monitoring harian: status baru dan pengecualian jendela scan
+#### ✅ `FE-HRD-310` — Monitoring harian: status baru dan pengecualian jendela scan
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-111`
+* **Status**: ✅ Selesai (2026-11-23). Acceptance criteria terpenuhi di browser: uji layar `hr-attendance-daily-status.spec.mjs` 4/4 (build produksi, API tiruan; `UAT-PK-07`/`-11` tanpa Alfa walau baris berflag `hasMissingPunch`, pengecualian scan di luar jendela di baris dan laci, filter status berlabel server, metadata gagal), uji unit 7/7 (6/6 mutasi tertangkap), `lint:errors` dan build lulus. Label kini dari `attendanceStatus` + `filters/metadata` (sebelumnya dari flag sehingga hari tanpa scan tampil "1 Punch - Perlu Koreksi"). Temuan backend: metadata belum memuat `IncompletePunch`; layar memakai cadangan "Belum Lengkap" (31.3). Data nyata devYoga belum dijalankan. Laporan: [FE-HRD-310](../task/report/frontend/FE-HRD-310.md)
 * **Outcome**: Rekap harian menampilkan "Belum Hadir", "Tidak Ada Scan", "Belum Lengkap", dan pengecualian scan di luar jendela.
 * **Requirement/decision**: `FR-PK-008`, `FR-PK-009`, `FR-PK-011`
 * **Kontrak**: `v26` — `attendance/dailies` (status baru lewat `filters/metadata`)
@@ -6194,8 +6199,9 @@ Verifikasi lulus; laporan di `task/report/frontend/<ID>.md`.
 * **Verifikasi**: `UAT-PK-07`, `UAT-PK-11`.
 * **Risiko**: Rendah.
 
-#### ⬜ `FE-HRD-311` — Tutup periode: pratinjau berisi daftar dan jumlah scan tertahan
+#### ✅ `FE-HRD-311` — Tutup periode: pratinjau berisi daftar dan jumlah scan tertahan
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-111`
+* **Status**: ✅ Selesai (2026-11-23). 2/2 acceptance criteria terpenuhi di browser: uji layar `hr-attendance-period-close.spec.mjs` 5/5 (build produksi, API tiruan; `UAT-PK-09` dengan daftar Rina/Budi dan 3 scan tertahan, galat 409 tanpa perubahan status, periode terblokir, daftar terpotong, pratinjau gagal), uji unit 5/5 (6/6 mutasi tertangkap), `lint:errors` dan build lulus. Dialog Tutup baru di `/hr/attendance/periods` memakai `conversionCandidateCount` (sebelumnya `incompletePunchDailyCount` berkode mentah). Menggantikan cakupan pratinjau `FE-HRD-092`/`093`. Data nyata devYoga belum dijalankan. Laporan: [FE-HRD-311](../task/report/frontend/FE-HRD-311.md)
 * **Outcome**: HRD meninjau daftar yang akan menjadi `Absent` sebelum menutup.
 * **Requirement/decision**: `FR-PK-012`; `HRD-DEC-197`, `216`, `HRD-ASM-81`
 * **Kontrak**: `v26` — `close-preview`, `close`
@@ -6206,8 +6212,9 @@ Verifikasi lulus; laporan di `task/report/frontend/<ID>.md`.
 * **Verifikasi**: `UAT-PK-09`.
 * **Risiko**: Tumpang tindih dengan `FE-HRD-092` yang belum dikerjakan — task ini menggantikan cakupan pratinjau `FE-HRD-092`/`093`; catat di laporan.
 
-#### ⬜ `FE-HRD-312` — Layar mesin absen
+#### ✅ `FE-HRD-312` — Layar mesin absen
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-112`
+* **Status**: ✅ Selesai (2026-11-23). Acceptance criteria terpenuhi di browser: uji layar `hr-attendance-devices.spec.mjs` 8/8 (build produksi, API tiruan berkeadaan; `UAT-PK-10` daftarkan GDB-01 dari mesin tak dikenal dengan identitas otomatis dan 12 scan dilepas, aktifkan identitas mesin nonaktif, ubah 409, hapus 409, validasi, filter, hak baca/tanpa hak), uji unit 6/6 (6/6 mutasi tertangkap), `lint:errors` dan build lulus. Rute `/hr/attendance/devices`, menu Mesin Absen. Delta kontrak: `attendance-devices/filters/metadata` dipakai untuk jenis mesin (perlu penyegaran `api-contract.md` §32). Data nyata devYoga belum dijalankan. Laporan: [FE-HRD-312](../task/report/frontend/FE-HRD-312.md)
 * **Outcome**: Petugas IT mendaftarkan mesin dan melihat mesin tak dikenal beserta jumlah scan tertahan.
 * **Requirement/decision**: `FR-PK-013`, `FR-PK-014`
 * **Kontrak**: `v26` — `master-data/attendance-devices`

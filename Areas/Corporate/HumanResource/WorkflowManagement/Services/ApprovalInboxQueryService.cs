@@ -18,6 +18,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         Task<ApprovalInboxSummaryV2ResponseDto> GetInboxSummaryAsync(Guid userId);
 
         Task<WorkflowMyActionDto?> GetMyActionAsync(Guid workflowInstanceId, Guid userId, CancellationToken cancellationToken = default);
+
+        Task<WorkflowActionableAssignment?> FindActionableAssignmentAsync(Guid stepInstanceId, Guid userId, CancellationToken cancellationToken = default);
+    }
+
+    /// <summary>
+    /// BE-HRD-444 (kontrak v29 §35.2): penugasan engine terbuka pada satu tahap yang boleh dijalankan pengguna login,
+    /// dipilih dengan aturan yang sama dengan antrean dan <c>myAction</c>.
+    /// </summary>
+    public sealed class WorkflowActionableAssignment
+    {
+        public Guid AssignmentId { get; init; }
+        public Guid StepInstanceId { get; init; }
+        public Guid WorkflowInstanceId { get; init; }
+        public Guid WorkflowDefinitionId { get; init; }
+        public Guid WorkflowStepId { get; init; }
+        public string? DefinitionRequestType { get; init; }
+        public string? StepType { get; init; }
+        public string RequestNumber { get; init; } = string.Empty;
+        public string ReferenceType { get; init; } = string.Empty;
+        public Guid RequestedByUserId { get; init; }
+        public bool IsDelegated { get; init; }
     }
 
     /// <summary>
@@ -143,6 +164,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             };
         }
 
+        public async Task<WorkflowActionableAssignment?> FindActionableAssignmentAsync(
+            Guid stepInstanceId,
+            Guid userId,
+            CancellationToken cancellationToken = default)
+        {
+            if (stepInstanceId == Guid.Empty)
+            {
+                return null;
+            }
+
+            var row = (await LoadOpenRowsAsync(userId, null, null, DateTime.UtcNow, cancellationToken, stepInstanceId))
+                .FirstOrDefault();
+
+            return row == null
+                ? null
+                : new WorkflowActionableAssignment
+                {
+                    AssignmentId = row.AssignmentId,
+                    StepInstanceId = row.StepInstanceId,
+                    WorkflowInstanceId = row.WorkflowInstanceId,
+                    WorkflowDefinitionId = row.WorkflowDefinitionId,
+                    WorkflowStepId = row.WorkflowStepId,
+                    DefinitionRequestType = row.DefinitionRequestType,
+                    StepType = row.StepType,
+                    RequestNumber = row.RequestNumber,
+                    ReferenceType = row.ReferenceType,
+                    RequestedByUserId = row.RequestedByUserId,
+                    IsDelegated = IsDelegatedRow(row)
+                };
+        }
+
         /// <summary>
         /// BE-HRD-443 (kontrak v29 §35.5, VR-WF-32): alasan sebuah butir dilewati Setujui Massal, atau <c>null</c> bila layak.
         /// Syarat "pengguna memegang penugasan" sudah dipenuhi oleh himpunan antrean, dan hasil engine dinilai saat aksi.
@@ -173,7 +225,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             Guid? workflowInstanceId,
             string? requestType,
             DateTime now,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            Guid? stepInstanceId = null)
         {
             if (userId == Guid.Empty)
             {
@@ -223,6 +276,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             if (workflowInstanceId.HasValue)
             {
                 query = query.Where(a => a.WorkflowInstanceId == workflowInstanceId.Value);
+            }
+
+            if (stepInstanceId.HasValue)
+            {
+                query = query.Where(a => a.WorkflowStepInstanceId == stepInstanceId.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(requestType))

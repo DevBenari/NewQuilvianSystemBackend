@@ -183,33 +183,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
     // DTOs untuk Tag 2: Corporate - HRD Workflow Approval Actions
     // =========================================================================
 
+    // BE-HRD-444 (kontrak v29 §35.2, HRD-DEC-230): PIN tidak lagi diminta. Ruas pinSignature yang masih dikirim klien lama diabaikan.
     public class ApproveActionRequestDto
     {
+        /// <summary>Catatan persetujuan (opsional).</summary>
         [MaxLength(1000)]
         public string? Note { get; set; }
-
-        [Required(ErrorMessage = "PIN otorisasi atau digital signature wajib disertakan")]
-        [MinLength(6, ErrorMessage = "PIN otorisasi minimal 6 digit")]
-        public string PinSignature { get; set; } = string.Empty;
     }
 
+    // BE-HRD-444 (kontrak v29 §35.2, VR-WF-26, VR-WF-27): Tolak memakai alasan berkode engine; catatan wajib bila alasan menuntutnya.
     public class RejectActionRequestDto
     {
-        [Required(ErrorMessage = "Alasan penolakan wajib diisi (VR-WF-05)")]
-        [MinLength(15, ErrorMessage = "Alasan penolakan wajib minimal 15 karakter")]
-        [MaxLength(2000)]
-        public string RejectReason { get; set; } = string.Empty;
+        /// <summary>Alasan penolakan aktif untuk jenis permohonan dan tahap ini (daftar dari <c>myAction.rejectionReasons</c>).</summary>
+        public Guid? RejectionReasonId { get; set; }
 
-        [Required(ErrorMessage = "PIN otorisasi wajib disertakan")]
-        public string PinSignature { get; set; } = string.Empty;
+        /// <summary>Catatan penolakan; wajib bila alasan bertanda <c>isCommentRequired</c>.</summary>
+        [MaxLength(1000)]
+        public string? Comment { get; set; }
     }
 
+    // BE-HRD-444 (kontrak v29 §35.2, VR-WF-28): catatan revisi wajib, diteruskan ke engine sebagai komentar.
     public class ReturnForRevisionRequestDto
     {
-        [Required(ErrorMessage = "Catatan revisi wajib diisi (HRD-DEC-186)")]
-        [MinLength(10, ErrorMessage = "Catatan revisi minimal 10 karakter")]
-        [MaxLength(2000)]
-        public string RevisionNotes { get; set; } = string.Empty;
+        /// <summary>Catatan revisi untuk pemohon (wajib).</summary>
+        [MaxLength(1000)]
+        public string? RevisionNotes { get; set; }
     }
 
     public class BulkApproveRequestDto
