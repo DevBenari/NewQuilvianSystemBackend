@@ -26,7 +26,7 @@ Kolom **Status** diisi task builder sesudah laporan task ada (`✅`, `🟡`, `�
 | AC 8 — sebelum hari H, tanggal lahir salah | `KSK-DEC-033` | `KSK-VAL-PO-041`, `042` | `BE-KSK-PO-006` | `FE-KSK-PO-005` | PO-T.2 baris AC 8 | 🟡 `BE-KSK-PO-006` 🟡 2026-11-20 (`409` sebelum hari H dan `404` tanggal lahir salah terbukti di runtime; [laporan](../task/report/backend/BE-KSK-PO-006.md)); menunggu `FE-KSK-PO-005` |
 | AC 9 — pasien baru: master setelah pindai; NIK lama memakai No. RM lama | `KSK-DEC-032`, `039` | PO.4.6 | `BE-KSK-PO-007` | `FE-KSK-PO-006` | PO-T.2 baris AC 9 | 🟡 `BE-KSK-PO-007` 🟡 2026-11-20 (pasien baru lewat NIK master, `PatientId` diisi saat check-in; harness, runtime 2026-11-21; [laporan](../task/report/backend/BE-KSK-PO-007.md)); menunggu `FE-KSK-PO-006` |
 | AC 10 — Lupa Kode | `KSK-DEC-040` | `KSK-VAL-PO-041`, `043` | `BE-KSK-PO-006` | `FE-KSK-PO-005` | PO-T.2 baris AC 10 | 🟡 `BE-KSK-PO-006` 🟡 2026-11-20 (pencarian Lupa Kode terbukti di runtime, `200` hari H baru di harness, runtime 2026-11-21; [laporan](../task/report/backend/BE-KSK-PO-006.md)); menunggu `FE-KSK-PO-005` |
-| AC 11 — Tidak Datang 23.59, idempoten | `KSK-DEC-037` | PO.4.7 | `BE-KSK-PO-008` | — | PO-T.3 baris AC 11 | 🟡 `BE-KSK-PO-008` 🟡 2026-11-20 (harness: Tidak Datang, idempoten, hari tertinggal; runtime dengan data bertanggal lewat menunggu 2026-11-22; [laporan](../task/report/backend/BE-KSK-PO-008.md)) |
+| AC 11 — Tidak Datang 23.59, idempoten | `KSK-DEC-037` | PO.4.7 | `BE-KSK-PO-008` | — | PO-T.3 baris AC 11 | ✅ 2026-11-23 — `BE-KSK-PO-008` (harness: Tidak Datang, idempoten, hari tertinggal; runtime 2026-11-23: 3 pendaftaran 21 Nov status 4, satu riwayat `NO_SHOW` Sistem, kode `404`, kuota 0, menyala ulang tidak menambah riwayat; [laporan](../task/report/backend/BE-KSK-PO-008.md)) |
 | AC 12 — Didaftarkan lewat Jalur Lain | `KSK-DEC-045` | PO.4.7 | `BE-KSK-PO-008` | — | PO-T.3 baris AC 12 | ✅ 2026-11-20 — `BE-KSK-PO-008` (runtime: pasien lama dan pasien baru lewat NIK master status 3, kode mati, kuota tidak ganda; [laporan](../task/report/backend/BE-KSK-PO-008.md)) |
 | AC 13 — jadwal tidak berlaku, arahkan ke loket | `KSK-DEC-046` | `KSK-VAL-PO-053` | `BE-KSK-PO-007` | `FE-KSK-PO-005` | PO-T.2 baris AC 13 | 🟡 `BE-KSK-PO-007` 🟡 2026-11-20 (pemetaan `409` `KSK-VAL-PO-053`/`054` ada di jalur kunjungan, belum terbukti; runtime 2026-11-21; [laporan](../task/report/backend/BE-KSK-PO-007.md)); menunggu `FE-KSK-PO-005` |
 | AC 14 — consent online tersimpan dan melekat saat check-in | `KSK-DEC-034` | PO.4.6 | `BE-KSK-PO-005`, `007` | `FE-KSK-PO-003` | PO-T.1 dan PO-T.2 baris AC 14 | 🟡 `BE-KSK-PO-005` ✅ 2026-11-20 (consent tersimpan di pendaftaran, tanpa `RegPatientGeneralConsent`; [laporan](../task/report/backend/BE-KSK-PO-005.md)); `FE-KSK-PO-003` ✅ 2026-11-20 (consent ditandatangani di HP dan tersimpan: `hasConsent`, `consentSignedAt`; [laporan](../task/report/frontend/FE-KSK-PO-003.md)); `BE-KSK-PO-007` 🟡 2026-11-20 (`RegPatientGeneralConsent` dengan `SignedAt` asli di harness; runtime 2026-11-21; [laporan](../task/report/backend/BE-KSK-PO-007.md)) |
@@ -43,7 +43,7 @@ Kolom **Status** diisi task builder sesudah laporan task ada (`✅`, `🟡`, `�
 | --- | --- |
 | `FR-KSK-PO-001` | `BE-KSK-PO-001` ✅ 2026-11-19 ([laporan](../task/report/backend/BE-KSK-PO-001.md)) |
 | `FR-KSK-PO-002` | `BE-KSK-PO-002` ✅ 2026-11-20 ([laporan](../task/report/backend/BE-KSK-PO-002.md)); AC 2 runtime terbukti lewat `BE-KSK-PO-005` |
-| `FR-KSK-PO-003`, `004` | `BE-KSK-PO-008` 🟡 2026-11-20 ([laporan](../task/report/backend/BE-KSK-PO-008.md)); Tidak Datang runtime menunggu 2026-11-22 |
+| `FR-KSK-PO-003`, `004` | `BE-KSK-PO-008` ✅ 2026-11-23 ([laporan](../task/report/backend/BE-KSK-PO-008.md)) |
 | `FR-KSK-PO-010`, `011`, `014` | `BE-KSK-PO-004` ✅ 2026-11-19 ([laporan](../task/report/backend/BE-KSK-PO-004.md)) |
 | `FR-KSK-PO-012` | `BE-KSK-PO-005` ✅ 2026-11-20 ([laporan](../task/report/backend/BE-KSK-PO-005.md)) |
 | `FR-KSK-PO-013` | `BE-KSK-PO-003` ✅ 2026-11-19 ([laporan](../task/report/backend/BE-KSK-PO-003.md)) |
@@ -69,7 +69,7 @@ Kolom **Status** diisi task builder sesudah laporan task ada (`✅`, `🟡`, `�
 | `KSK-DSN-PO-006`, `007` | `BE-KSK-PO-003` |
 | `KSK-DSN-PO-008`, `010` | `BE-KSK-PO-006` 🟡 2026-11-20, `007` 🟡 2026-11-20 ([laporan](../task/report/backend/BE-KSK-PO-007.md)) |
 | `KSK-DSN-PO-009` | `BE-KSK-PO-002` ✅ 2026-11-20 |
-| `KSK-DSN-PO-015` | `BE-KSK-PO-008` 🟡 2026-11-20 |
+| `KSK-DSN-PO-015` | `BE-KSK-PO-008` ✅ 2026-11-23 |
 | `KSK-DSN-PO-016` | `BE-KSK-PO-010` ✅ 2026-11-20, `FE-KSK-PO-008` ✅ 2026-11-20 (pilihan jadwal hanya poli yang sama; [laporan](../task/report/frontend/FE-KSK-PO-008.md)) |
 | `KSK-DSN-PO-017` | `BE-KSK-PO-009` ✅ 2026-11-20, `FE-KSK-PO-007` ✅ 2026-11-20 ([laporan](../task/report/frontend/FE-KSK-PO-007.md)) |
 | `KSK-PO-FE-005` (letak menu) | `FE-KSK-PO-007` ✅ 2026-11-20 (butir "Pendaftaran Online" tepat di bawah "Reservasi Prioritas"; [laporan](../task/report/frontend/FE-KSK-PO-007.md)) |

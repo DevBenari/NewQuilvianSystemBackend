@@ -35,7 +35,7 @@
 ```text
 BE-KSK-PO-001 ✅ ─> BE-KSK-PO-002 ✅ ─┬─> BE-KSK-PO-004 ✅ ─> BE-KSK-PO-005 ✅ ─┬─> BE-KSK-PO-006 🟡
                                       │                                         │
-BE-KSK-PO-003 ✅ ─────────────────────┘                                         ├─> BE-KSK-PO-008 🟡
+BE-KSK-PO-003 ✅ ─────────────────────┘                                         ├─> BE-KSK-PO-008 ✅
                                                                                 │
                                                                                 └─> BE-KSK-PO-009 ✅
 
@@ -198,11 +198,11 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | Risiko/pemilik | Jalur bersama kunjungan. Pemilik: implementer + Sukma Giri Pratama |
 | DoD | Kriteria terbukti; regresi kunjungan RJ/kiosk/IGD dibuktikan dengan satu kunjungan per kanal |
 
-### 🟡 `BE-KSK-PO-008` — Penutupan Jalur Lain dan Tidak Datang
+### ✅ `BE-KSK-PO-008` — Penutupan Jalur Lain dan Tidak Datang
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 2026-11-20 — build PASS, QBE Strict PASS (10 berkas, 0 temuan), verifier otorisasi PASS (fallback 68 tetap); runtime di 7185 8/8 PASS untuk Jalur Lain (pasien lama di jadwal berkuota 1 yang penuh oleh pendaftarannya sendiri tetap diterima dan pendaftaran status 3 + nomor kunjungan; kuota tidak ganda; kode ditolak kiosk `404`; pasien lain ditolak kuota penuh; pasien baru lewat NIK master status 3; pendaftaran lain tidak tersentuh); harness jam palsu 11/11 PASS untuk Tidak Datang (2 hari tertinggal, idempoten, kuota kembali, berjalan saat start) dan aturan pencocokan; layanan harian tercatat berjalan saat start di runtime. **Belum:** AC 11 runtime dengan pendaftaran bertanggal lewat, paling cepat 2026-11-22 — [laporan](../task/report/backend/BE-KSK-PO-008.md) |
+| Status | ✅ 2026-11-23 — build PASS, QBE Strict PASS (10 berkas, 0 temuan), verifier otorisasi PASS (fallback 68 tetap); runtime di 7185 8/8 PASS untuk Jalur Lain (pasien lama di jadwal berkuota 1 yang penuh oleh pendaftarannya sendiri tetap diterima dan pendaftaran status 3 + nomor kunjungan; kuota tidak ganda; kode ditolak kiosk `404`; pasien lain ditolak kuota penuh; pasien baru lewat NIK master status 3; pendaftaran lain tidak tersentuh); harness jam palsu 11/11 PASS untuk Tidak Datang (2 hari tertinggal, idempoten, kuota kembali, berjalan saat start) dan aturan pencocokan; layanan harian tercatat berjalan saat start di runtime. 2026-11-23: runtime Tidak Datang 5/5 PASS dengan data nyata (3 pendaftaran uji 21 Nov ditutup saat backend menyala untuk hari 22 Nov yang terlewat: status 4, tepat satu riwayat `NO_SHOW` sumber Sistem 1→4, `closedAt` terisi, aksi petugas tertutup; 0 Menunggu Check-in bertanggal lewat; 6 kode 21 Nov ditolak kiosk `404` seragam; kuota jadwal 21 Nov 0; backend uji kedua menyala → 0 ditutup, riwayat tetap satu). Tanpa perubahan source — [laporan](../task/report/backend/BE-KSK-PO-008.md) |
 | Outcome | `OnlineRegistrationService.CloseForEncounterAsync` dipanggil di samping penutupan Reservasi Prioritas untuk kunjungan RJ berpoli tanpa `OnlineRegistrationId` (pasien lama lewat `PatientId`, pasien baru lewat NIK master); `CloseExpiredAsync` + `OnlineRegistrationClosureHostedService` (00:05 WIB, mengejar hari tertinggal, idempoten) |
 | Requirement/decision | `FR-KSK-PO-003`, `004`; `KSK-DEC-037`, `045`; `GATE-PO-04`; `KSK-DSN-PO-015` |
 | Kontrak | PO-S.1 baris keempat dan kelima; PO-I.3 |

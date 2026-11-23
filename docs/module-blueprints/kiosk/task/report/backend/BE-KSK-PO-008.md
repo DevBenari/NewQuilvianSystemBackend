@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` |
 | Target tulis | `Areas/HealthServices/RegistrationManagement/{Controllers,Services}`, `Program.cs` |
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
-| Commit backend saat dikerjakan | `93f0fa1b` (`sukmagp`) |
-| Tanggal | 2026-11-20 |
-| Status | 🟡 Sebagian — Jalur Lain terbukti di runtime; Tidak Datang terbukti di harness dan layanan harian terbukti berjalan saat aplikasi menyala, tetapi belum ada pendaftaran bertanggal lewat di runtime sampai 2026-11-22 |
+| Commit backend saat dikerjakan | `93f0fa1b` (`sukmagp`); verifikasi runtime Tidak Datang pada `a30d9f68` |
+| Tanggal | 2026-11-20; runtime Tidak Datang 2026-11-23 |
+| Status | ✅ Selesai — Jalur Lain dan Tidak Datang terbukti di runtime (Tidak Datang pada 2026-11-23 dengan pendaftaran uji 21 Nov) |
 
 **Backend Governance Preflight**
 
@@ -105,27 +105,32 @@ Tidak ada endpoint baru. Konfigurasi:
 | J6 | Pendaftaran pasien lain pada jadwal dan tanggal yang sama (`PO-20261120-0002`) tidak berubah (status dan versi) | `PASS` | `po008_test.py` |
 | Sesudah kunjungan uji dibatalkan | Kedua pendaftaran tetap status 3 (PO-S.2) | `PASS` | Pembersihan |
 | Log | Kontak uji tidak ada di log; satu-satunya `ERR` adalah scheduler absensi HR yang tidak terkait | `PASS` | `be7185-po008.log` |
-| AC 11 runtime dengan pendaftaran bertanggal lewat | Belum dapat dijalankan: pendaftaran online paling cepat H+1, sehingga data uji pertama yang lewat tanggal adalah milik 2026-11-21 | `NOT RUN` | Jalankan aplikasi pada/atau sesudah 2026-11-22, lalu periksa status pendaftaran 21 Nov yang tidak di-check-in |
+| N1 AC 11 runtime 2026-11-23: sisa Menunggu Check-in bertanggal lewat | Daftar petugas 1–22 Nov dengan status 1 → 0 pendaftaran. Tanggal lewat berisi 3 Tidak Datang dan 1 Dibatalkan (semua 21 Nov) | `PASS` | `po008_noshow.py`, `po008-noshow-run.log` |
+| N2–N3 AC 11: status dan riwayat | `PO-20261120-0001`, `0005`, `0006` (kunjungan 21 Nov, tidak di-check-in) berstatus 4. Masing-masing punya tepat satu riwayat `NO_SHOW` 1→4, sumber Sistem, tanpa pengguna (`ActorUserId` kosong, ditampilkan "Sistem"); `closedAt` terisi; `canChangeSchedule`, `canChangeContact`, `canCancel` false. Ketiganya ditutup bersamaan pukul 02:19 UTC (09:19 WIB) 23 Nov, yaitu saat backend menyala. Pada 22 Nov 00.05 WIB tidak ada backend yang menyala, jadi ini jalur "hari yang terlewat diproses saat menyala" | `PASS` | `po008-noshow-run.log` |
+| N4 AC 11: kode mati | 6 kode pendaftaran 21 Nov dari `BE-KSK-PO-005` (Tidak Datang dan Dibatalkan) → kiosk `404` dengan pesan seragam | `PASS` | `po008-noshow-run.log` (run pertama dalam menit yang sama terkena `429` batas laju 10/menit per akun; dijalankan ulang setelah jendela bersih) |
+| N5 AC 11: kuota kembali | Kuota jadwal 21 Nov (`9bdd924e…`) `usedTotal` 0 dan `usedAppointment` 0, padahal 3 pendaftaran Tidak Datang ada di jadwal itu | `PASS` | `po008-noshow-run.log` |
+| Idempoten di runtime | Backend uji 7185 menyala pukul 09:51 WIB sesudah penutupan 09:19 → log "Penutupan pendaftaran online selesai: 0 pendaftaran ditutup sebagai Tidak Datang."; riwayat `NO_SHOW` tetap satu per pendaftaran | `PASS` | `be7185-po008b.log`, N3 |
+| Log 7185 hari ini | 289 baris, 0 `ERR`/`FTL`, tanpa NIK atau nomor telepon | `PASS` | `be7185-po008b.log` |
 | `dotnet test` | — | `NOT RUN` | Tidak ada project test (pola Bank Darah) |
 
 ## 6. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| AC 11: pendaftaran kemarin belum check-in → status 4, riwayat `NO_SHOW`, kuota kembali | **Sebagian** | Harness H1, H1c; runtime menunggu 2026-11-22 |
-| AC 11: dijalankan dua kali → riwayat tidak bertambah | Terpenuhi lewat harness | H2 |
-| AC 11: server mati dua hari → kedua hari diproses saat menyala | Terpenuhi lewat harness; layanan berjalan saat start di runtime | H1, H3; log runtime |
+| AC 11: pendaftaran kemarin belum check-in → status 4, riwayat `NO_SHOW`, kuota kembali | Terpenuhi | Harness H1, H1c; runtime N1–N5 (2026-11-23) |
+| AC 11: dijalankan dua kali → riwayat tidak bertambah | Terpenuhi | Harness H2; runtime: backend kedua menyala → 0 ditutup, riwayat tetap satu |
+| AC 11: server mati dua hari → kedua hari diproses saat menyala | Terpenuhi | Harness H1, H3; runtime: tidak ada backend yang menyala pada 22 Nov 00.05, dan pendaftaran 21 Nov tertutup saat backend menyala 23 Nov |
 | AC 12: pasien lama dengan pendaftaran hari itu lalu didaftarkan lewat jalur lain → status 3, `EncounterId` terisi, kode ditolak kiosk | Terpenuhi | J1–J3 (jalur petugas; jalur kiosk Pasien Lama memakai transaksi yang sama `CreateEncounterCoreAsync`) |
 | AC 12: pasien baru online lalu didaftarkan di loket dengan NIK sama → status 3 | Terpenuhi | J5 |
-| DoD: menjalankan ulang tidak menambah riwayat | Terpenuhi lewat harness | H2 |
+| DoD: menjalankan ulang tidak menambah riwayat | Terpenuhi | H2; runtime N3 |
 
 ## 7. Catatan penutup
 
 | Hal | Isi |
 | --- | --- |
-| Yang belum | Runtime Tidak Datang dengan data nyata. Pada 2026-11-22 sesudah 00.05 WIB (atau saat backend uji dinyalakan hari itu), pendaftaran uji 21 Nov yang tidak di-check-in harus berstatus 4. Sesudah terbukti, task ini dapat ditandai ✅ |
+| Yang belum | Tidak ada. Runtime Tidak Datang terbukti 2026-11-23 tanpa perubahan source |
 | Risiko tersisa | Pasien baru yang NIK-nya berbeda dari NIK master (salah ketik online) tidak tertutup Jalur Lain; pendaftarannya akan menjadi Tidak Datang pada malam harinya dan kuotanya tetap terpakai sampai saat itu |
-| Data uji | Jadwal S2 dan S4 dinonaktifkan; dua kunjungan uji tanggal 23 Nov dibatalkan; dua pendaftaran uji tanggal 23 Nov berstatus 3 |
+| Data uji | Jadwal S2 dan S4 dinonaktifkan; dua kunjungan uji tanggal 23 Nov dibatalkan; dua pendaftaran uji tanggal 23 Nov berstatus 3. Pendaftaran uji 21 Nov `PO-20261120-0001`, `0005`, `0006` kini berstatus 4. Akibatnya, runtime `200` `BE-KSK-PO-006` dan `BE-KSK-PO-007` butuh data baru |
 | Perubahan sampingan | `NONE` di repository. Harness, skrip uji, dan log di scratchpad |
-| Status Git | Milik task ini: 2 berkas baru (`OnlineRegistrationService.Closure.cs`, `OnlineRegistrationClosureHostedService.cs`) dan perubahan pada `PatientEncounterController.cs` serta `Program.cs`; ditambah perubahan `BE-KSK-PO-010` yang belum di-commit. Tidak ada commit |
-| Langkah berikutnya | 2026-11-21: runtime `200` `BE-KSK-PO-006`, lalu `BE-KSK-PO-007` (check-in menjadi kunjungan, memakai hook penutupan di sini sebagai cabang "kunjungan dari check-in"). 2026-11-22: runtime Tidak Datang untuk task ini |
+| Status Git | Source task ini sudah di-commit oleh pemilik (terakhir `a30d9f68`). Verifikasi 2026-11-23 hanya mengubah laporan ini, roadmap, traceability, dan `MODULE-STATUS.md`. Agent tidak membuat commit |
+| Langkah berikutnya | Buat data uji bertanggal 2026-11-24 pada 2026-11-23. Pada 2026-11-24, jalankan runtime `200` `BE-KSK-PO-006`, lalu `BE-KSK-PO-007` (check-in menjadi kunjungan, memakai hook penutupan di sini sebagai cabang "kunjungan dari check-in") |
