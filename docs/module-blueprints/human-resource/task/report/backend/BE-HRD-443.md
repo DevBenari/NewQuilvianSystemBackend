@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `7e4c3774` (branch `MHamzah`); source task ini sudah di-commit pengguna di `9062bd61` |
 | Tanggal | 23 November 2026 |
-| Status | ✅ Selesai — 4/4 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`, registri hak `IsValid=True`; uji API DB dev `NOT RUN` |
+| Status | ✅ Selesai — 4/4 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`, registri hak `IsValid=True`; uji API runtime 23 November 2026 `PASS` (bentuk respons; DB dev belum punya data sanksi) |
 
 ### Backend Governance Preflight
 
@@ -93,10 +93,11 @@ Contoh: Budi menerima SP 1 lewat alur resmi pada 1 Oktober 2026. Staf administra
 | Validator registri hak akses (skrip `dotnet fsi` atas assembly hasil build) | `IsValid=True`, 2.662 identitas, 0 endpoint tak terdaftar | `PASS` | Keluaran skrip |
 | Penelusuran: pegawai dengan sanksi resmi berkunci `MstEmployee.Id` dan `WorkforceProfileId` + catatan lama | Kedua kunci masuk `subjectIds`; catatan lama dibaca per `WorkforceProfileId` | `PASS` | `GetDisciplinaryHistoryAsync` |
 | Penelusuran: mode HR tanpa `ViewSanctions` | `DisciplineHidden = true`, kedua daftar kosong | `PASS` | Blok pengisian `ConfidentialPersonalAndDisciplineDto` |
-| Uji API di DB dev dengan akun HR Relations dan akun tanpa `ViewSanctions` | Belum dijalankan | `NOT RUN` | Menyalakan backend pada DB dev bersama butuh izin pengguna (worker latar ikut berjalan) |
-| Kueri baca-saja jumlah `WfpDisciplinaryAction` (`HRD-DEC-238` butir 1) | Belum dijalankan | `NOT RUN` | Butuh konfirmasi eksekusi terpisah |
+| Uji API runtime di DB dev (`QuilvianNewDevHamzah`), 23 November 2026 — backend `9062bd61` di port lokal 5199, akun superadmin + akun non-admin: Employee 360 profil aktif oleh superadmin (mode HR, memegang `ViewSanctions`) | `200`, `viewMode = HR`, `disciplineHidden = false`, `disciplinaryRecords = []` (bentuk sesuai kontrak; DB dev: 34 pegawai aktif; 0 kontrak, 0 lisensi, 0 SPK/RKK, 0 sanksi, 0 evaluasi kandidat) | `PASS` | Skrip uji API (27 skenario: 26 `PASS`, 1 gagal karena login akun uji atasan ditolak `401` — masalah akun, bukan kode) |
+| Uji API akun mode HR **tanpa** `ViewSanctions` | Tidak ada akun uji dengan kombinasi hak itu | `NOT RUN` | Dibuktikan lewat source (`DisciplineHidden = !canViewSanctions`) |
+| Kueri baca-saja jumlah `WfpDisciplinaryAction` (`HRD-DEC-238` butir 1; izin pengguna 23 November 2026) | **0 baris** (tidak ada yang aktif maupun terhapus) — HR tidak perlu memasukkan ulang catatan lama ke alur resmi | `PASS` | Kueri `SELECT` baca-saja (`readonly` session) |
 
-Uji manual: `NOT FEASIBLE` (menunggu izin menyalakan backend).
+Uji manual: `PASS` sebatas data dev (lihat tabel).
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
@@ -120,4 +121,4 @@ Uji manual: `NOT FEASIBLE` (menunggu izin menyalakan backend).
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE`. Pengguna meng-commit source di tengah sesi (`9062bd61`); isinya sama dengan hasil task |
 | Status Git | `git status --short` sesudah source: bersih untuk `Areas/` dan `Program.cs` (sudah di-commit pengguna); hanya dokumen blueprint yang berubah |
-| Langkah berikutnya | `FE-HRD-393` (tampilan `disciplinaryRecords`); uji API DB dev bila diizinkan |
+| Langkah berikutnya | `FE-HRD-393` (tampilan `disciplinaryRecords`) |

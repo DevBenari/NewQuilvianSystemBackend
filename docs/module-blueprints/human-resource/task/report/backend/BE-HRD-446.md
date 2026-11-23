@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `7e4c3774` (branch `MHamzah`); source sudah di-commit pengguna di `9062bd61` |
 | Tanggal | 23 November 2026 |
-| Status | ✅ Selesai — 3/3 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`; uji API DB dev `NOT RUN` |
+| Status | ✅ Selesai — 3/3 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`; uji API runtime 23 November 2026 `PASS` |
 
 ### Backend Governance Preflight
 
@@ -82,7 +82,7 @@ Daftar sanksi hanya menerima satu status. Riwayat Penyelesaian butuh sanksi yang
 | Penelusuran: `statuses=Closed` | `UnknownSanctionStatusMessage` → `400` | `PASS` | `ValidateSanctionStatusFilter` |
 | Penelusuran: `status=Active&statuses=Expired` | `StatusAndStatusesMessage` → `400` | `PASS` | `ValidateSanctionStatusFilter` |
 | Penelusuran: tanpa `statuses` | Validasi `null`, kueri sama seperti sebelumnya | `PASS` | Diff service |
-| Uji API di DB dev | Belum dijalankan | `NOT RUN` | Butuh izin menyalakan backend |
+| Uji API runtime di DB dev (`QuilvianNewDevHamzah`), 23 November 2026 — backend `9062bd61` di port lokal 5199, akun superadmin + akun non-admin | `statuses=Expired&statuses=RevokedOnAppeal` → `200` (0 baris, DB dev belum punya sanksi); `statuses=Closed` → `400` "Status sanksi tidak dikenal."; `status=Active&statuses=Expired` → `400` "Gunakan salah satu: status atau statuses."; `statuses=expired` → `200`; tanpa filter → `200` | `PASS` | Skrip uji API (27 skenario: 26 `PASS`, 1 gagal karena login akun uji atasan ditolak `401` — masalah akun, bukan kode) |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 

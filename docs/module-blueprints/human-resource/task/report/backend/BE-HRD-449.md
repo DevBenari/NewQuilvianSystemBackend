@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `7e4c3774` (branch `MHamzah`); source sudah di-commit pengguna di `9062bd61` |
 | Tanggal | 23 November 2026 |
-| Status | ✅ Selesai — 2/2 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`; uji API DB dev `NOT RUN` |
+| Status | ✅ Selesai — 2/2 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`; uji API runtime 23 November 2026 `PASS` (`AT-HRD-PKB-04`) |
 
 ### Backend Governance Preflight
 
@@ -79,7 +79,7 @@ Dashboard SDM perlu menampilkan kontrak yang segera berakhir dengan angka yang s
 | `dotnet build` penuh Paket B | 0 error; tanpa warning di berkas task | `PASS` | Log build 23 November 2026 |
 | QBE Strict (19 berkas) | `PASS` | `PASS` | Keluaran checker |
 | Penelusuran kesamaan dengan layar Kontrak | Predikat dan tanggal acuan identik; layar Kontrak tanpa filter lokasi = dashboard | `PASS` | `GetContractExpiryAsync` vs `HrdEmploymentContractService` |
-| Uji API `/summary` vs `renewal-summary` di DB dev (`AT-HRD-PKB-04`) | Belum dijalankan | `NOT RUN` | Butuh izin menyalakan backend |
+| Uji API runtime di DB dev (`QuilvianNewDevHamzah`), 23 November 2026 — backend `9062bd61` di port lokal 5199, akun superadmin + akun non-admin: `contractExpiry` vs `employment-contracts/summary` dan `renewal-summary` (`AT-HRD-PKB-04`) | Identik (seluruhnya 0; DB dev: 34 pegawai aktif; 0 kontrak, 0 lisensi, 0 SPK/RKK, 0 sanksi, 0 evaluasi kandidat) | `PASS` | Skrip uji API (27 skenario: 26 `PASS`, 1 gagal karena login akun uji atasan ditolak `401` — masalah akun, bukan kode) |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 

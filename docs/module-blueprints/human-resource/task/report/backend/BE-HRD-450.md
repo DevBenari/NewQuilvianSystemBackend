@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `7e4c3774` (branch `MHamzah`); source sudah di-commit pengguna di `9062bd61` |
 | Tanggal | 23 November 2026 |
-| Status | ✅ Selesai — 4/4 acceptance criteria terpetakan ke source; batas kelompok tiap sumber diverifikasi dari source dan dicatat; build 0 error, QBE Strict `PASS`; uji API DB dev `NOT RUN` |
+| Status | ✅ Selesai — 4/4 acceptance criteria terpetakan ke source; batas kelompok tiap sumber diverifikasi dari source dan dicatat; build 0 error, QBE Strict `PASS`; uji API runtime 23 November 2026 `PASS` (bentuk; data dokumen dev kosong) |
 
 ### Backend Governance Preflight
 
@@ -94,7 +94,7 @@ Sesuai kamus data 30.2, angka mengikuti radar sumber apa adanya. Perbedaan hari-
 | Penelusuran: radar lisensi baca-saja | Hanya kueri + pemetaan, tanpa `SaveChanges` | `PASS` | `GetLicenseExpiringRadarListAsync` |
 | Penelusuran: radar sertifikat baca-saja | Hanya kueri + pemetaan | `PASS` | `GetExpiringRadarSummaryAsync` |
 | Penelusuran: `byType` = total | Total dan per jenis dihitung dari daftar baris yang sama | `PASS` | `BuildDocumentExpiry` |
-| Uji API `/summary` dibanding endpoint radar di DB dev | Belum dijalankan | `NOT RUN` | Butuh izin menyalakan backend |
+| Uji API runtime di DB dev (`QuilvianNewDevHamzah`), 23 November 2026 — backend `9062bd61` di port lokal 5199, akun superadmin + akun non-admin: `documentExpiry` | `200`; empat kelompok dan `byType[]` (`SIP_STR`, `SPK_RKK`, `MANDATORY_CERTIFICATE`) lengkap, seluruhnya 0 sesuai data (DB dev: 34 pegawai aktif; 0 kontrak, 0 lisensi, 0 SPK/RKK, 0 sanksi, 0 evaluasi kandidat); jumlah daftar per jenis/kelompok = angka panel | `PASS` | Skrip uji API (27 skenario: 26 `PASS`, 1 gagal karena login akun uji atasan ditolak `401` — masalah akun, bukan kode) |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 

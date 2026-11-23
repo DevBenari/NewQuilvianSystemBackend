@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `7e4c3774` (branch `MHamzah`); source sudah di-commit pengguna di `9062bd61` |
 | Tanggal | 23 November 2026 |
-| Status | ✅ Selesai — 4/4 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`, registri `IsValid=True`; uji API DB dev `NOT RUN` |
+| Status | ✅ Selesai — 4/4 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`, registri `IsValid=True`; uji API runtime 23 November 2026 `PASS` |
 
 ### Backend Governance Preflight
 
@@ -92,7 +92,9 @@ Angka di dashboard tidak berguna bila HR tidak tahu **siapa** di balik angka itu
 | Penelusuran: `panel=PROFESSION&bucket=EXPIRED` | `IsValidBucket` gagal → `400` "Panel atau kelompok dashboard tidak dikenal." | `PASS` | `GetDrilldownAsync` |
 | Penelusuran: `pageSize=101` / `search` 101 karakter | `400` "Parameter halaman atau pencarian melebihi batas." | `PASS` | `GetDrilldownAsync` |
 | Penelusuran: jumlah daftar = angka panel | Predikat yang sama (pegawai, `ContractRenewalBuckets`, baris dokumen yang sama) | `PASS` | Diff service |
-| Uji API per panel di DB dev | Belum dijalankan | `NOT RUN` | Butuh izin menyalakan backend |
+| Uji API runtime di DB dev (`QuilvianNewDevHamzah`), 23 November 2026 — backend `9062bd61` di port lokal 5199, akun superadmin + akun non-admin: jumlah daftar vs angka panel | 29 kombinasi panel/kelompok (termasuk tiap profesi dan tiap jenis dokumen) — seluruhnya sama | `PASS` | Skrip uji API (27 skenario: 26 `PASS`, 1 gagal karena login akun uji atasan ditolak `401` — masalah akun, bukan kode) |
+| Validasi runtime | `PROFESSION&EXPIRED`, panel `XYZ`, `documentType` pada panel pegawai → `400` "Panel atau kelompok dashboard tidak dikenal."; `pageSize=101`, `search` 101 karakter → `400` "Parameter halaman atau pencarian melebihi batas." | `PASS` | Skrip uji API |
+| Isi baris | Baris memuat `workforceProfileId`, nomor dan nama pegawai, tanpa gaji/NIK; penyamaran nomor lisensi belum teruji runtime karena 0 lisensi di DB dev (dibuktikan lewat source `MaskReferenceNumber`) | `PASS` | Skrip uji API |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 

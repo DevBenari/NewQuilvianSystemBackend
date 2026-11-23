@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `7e4c3774` (branch `MHamzah`); source sudah di-commit pengguna di `9062bd61` |
 | Tanggal | 23 November 2026 |
-| Status | ✅ Selesai — 3/3 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`; uji API DB dev `NOT RUN` |
+| Status | ✅ Selesai — 3/3 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`; uji API runtime 23 November 2026 `PASS` |
 
 ### Backend Governance Preflight
 
@@ -81,7 +81,7 @@ Daftar evaluasi hanya bisa disaring per satu jenis evaluasi. Layar Tes/Wawancara
 | QBE Strict (19 berkas) | `PASS` | `PASS` | Keluaran checker |
 | Penelusuran: `track=X` | `Fail("Jalur evaluasi tidak dikenal.")` = `400` sebelum kueri | `PASS` | `GetPagedAsync` |
 | Penelusuran: `track=CLINICAL` | `ClinicalAssessment` atau `UserInterview` | `PASS` | `GetPagedAsync` |
-| Uji API di DB dev | Belum dijalankan | `NOT RUN` | Butuh izin menyalakan backend |
+| Uji API runtime di DB dev (`QuilvianNewDevHamzah`), 23 November 2026 — backend `9062bd61` di port lokal 5199, akun superadmin + akun non-admin | `track=HR`, `CLINICAL`, `clinical` → `200`; `track=X` → `400` "Jalur evaluasi tidak dikenal."; `pendingOnly=true` → `200` (0 baris; DB dev: 34 pegawai aktif; 0 kontrak, 0 lisensi, 0 SPK/RKK, 0 sanksi, 0 evaluasi kandidat) | `PASS` | Skrip uji API (27 skenario: 26 `PASS`, 1 gagal karena login akun uji atasan ditolak `401` — masalah akun, bukan kode) |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 

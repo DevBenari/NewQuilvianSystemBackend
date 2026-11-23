@@ -1175,16 +1175,18 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-444` | `S-PKB` · `MVP-72` | Pembatasan asesor pada evaluasi kandidat dan hak `CandidateEvaluation : ViewAll` | ✅ | — |
 | `BE-HRD-445` | `S-PKB` · `MVP-72` | Filter `track` dan `pendingOnly` pada daftar evaluasi | ✅ | `BE-HRD-444` ✅ |
 | `BE-HRD-446` | `S-PKB` · `MVP-72` | Filter `statuses` pada daftar sanksi (Riwayat Penyelesaian) | ✅ | — |
-| `BE-HRD-447` | `S-PKB` · `MVP-73` | `ContractRenewalBuckets` tanpa mengubah angka layar Kontrak | 🟡 | — |
+| `BE-HRD-447` | `S-PKB` · `MVP-73` | `ContractRenewalBuckets` tanpa mengubah angka layar Kontrak | ✅ | — |
 | `BE-HRD-448` | `S-PKB` · `MVP-73` | Kerangka Dashboard SDM, hak `HrdWorkforceDashboard : Read`, panel ringkasan pegawai | ✅ | — |
 | `BE-HRD-449` | `S-PKB` · `MVP-73` | Panel Kontrak Berakhir memakai `ContractRenewalBuckets` | ✅ | `BE-HRD-447` 🟡, `BE-HRD-448` ✅ |
 | `BE-HRD-450` | `S-PKB` · `MVP-73` | Panel Dokumen Kedaluwarsa: SIP/STR, SPK/RKK, sertifikat pelatihan wajib | ✅ | `BE-HRD-448` ✅ |
 | `BE-HRD-451` | `S-PKB` · `MVP-73` | Daftar nama `GET /drilldown` dengan nomor lisensi tersamar | ✅ | `BE-HRD-449` ✅, `BE-HRD-450` ✅ |
-| `BE-HRD-452` | `S-PKB` · Verifikasi | Verifikasi backend Paket B: kontrak `v29`, registri hak, build, QBE, waktu muat, catatan rilis | 🟡 | `BE-HRD-443` ✅, `BE-HRD-445` ✅, `BE-HRD-446` ✅, `BE-HRD-451` ✅ |
+| `BE-HRD-452` | `S-PKB` · Verifikasi | Verifikasi backend Paket B: kontrak `v29`, registri hak, build, QBE, waktu muat, catatan rilis | ✅ | `BE-HRD-443` ✅, `BE-HRD-445` ✅, `BE-HRD-446` ✅, `BE-HRD-451` ✅ |
 
 > **Pemutakhiran register 23 November 2026 (Paket B, kontrak `v29`).** Baris `BE-HRD-443` s.d. `BE-HRD-452` (bagian 30, Grafik B100) ditambahkan; seluruhnya belum dikerjakan sehingga kolom status kosong.
 
 > **Pemutakhiran register 23 November 2026 (build Paket B).** `BE-HRD-443` s.d. `BE-HRD-446` dan `BE-HRD-448` s.d. `BE-HRD-451` ✅; `BE-HRD-447` dan `BE-HRD-452` 🟡 (perbandingan respons layar Kontrak dan waktu muat `/summary` menunggu izin uji di DB dev). `dotnet build` 0 error, QBE Strict 19 berkas `PASS`, registri `IsValid=True` (2.662). Tanpa migration. Hak baru yang wajib dicentang admin: `HrdWorkforceDashboard : Read`, `CandidateEvaluation : ViewAll`. Source di-commit pengguna pada `9062bd61`.
+
+> **Pemutakhiran register 23 November 2026 (uji runtime Paket B).** Atas izin pengguna, backend `9062bd61` dijalankan di DB dev: 26/27 skenario API `PASS` (1 gagal login akun uji atasan, `401`); respons layar Kontrak build sebelum dan sesudah refactor identik; median `/summary` 226 ms. `BE-HRD-447` dan `BE-HRD-452` naik ke ✅. Kueri `HRD-DEC-238` butir 1: `WfpDisciplinaryAction` 0 baris.
 
 > **Pemutakhiran register 10 November 2026.** Kolom status `BE-HRD-079` dan `BE-HRD-104` s.d. `BE-HRD-130` yang kosong diisi dari kartu task (seluruhnya ✅); baris `BE-HRD-146` s.d. `BE-HRD-175` yang kolomnya tertukar dirapikan ke urutan kolom tabel (dependency tertulis pada kartu task); 158 baris `BE-HRD-176` s.d. `BE-HRD-333` yang belum tercantum ditambahkan dari kartu task. Tanda 🟡 mengikuti pengerjaan ulang Gelombang 1 (`backend-unfinished-work.md`).
 
@@ -8162,7 +8164,7 @@ Atas keputusan pemilik 21 November 2026, bagian task yang hanya dapat diselesaik
 
 ## 30. Amandemen Paket B — Lima Entry Point Menu SDM (roadmap revisi `18`, kontrak `v29`)
 
-> **Status slice: kontrak `v29` APPROVED 23 November 2026** oleh Pengguna (`HRD-DEC-015`), jawaban: "1. ya setujui 2. A". Task di bawah boleh dikirim ke `build-module-backend` satu per satu sesuai urutan dependency. **Pemutakhiran 23 November 2026:** seluruh 10 task dikerjakan — 8 ✅, `BE-HRD-447` dan `BE-HRD-452` 🟡 (menunggu uji di DB dev); source di-commit pengguna pada `9062bd61`.
+> **Status slice: kontrak `v29` APPROVED 23 November 2026** oleh Pengguna (`HRD-DEC-015`), jawaban: "1. ya setujui 2. A". Task di bawah boleh dikirim ke `build-module-backend` satu per satu sesuai urutan dependency. **Pemutakhiran 23 November 2026:** seluruh 10 task dikerjakan — 8 ✅, `BE-HRD-447` dan `BE-HRD-452` ✅ (menunggu uji di DB dev); source di-commit pengguna pada `9062bd61`.
 
 | Field | Nilai |
 | --- | --- |
@@ -8248,11 +8250,11 @@ BE-HRD-444 ✅ ─> BE-HRD-445 ✅ ───────────────
                                                               │
 BE-HRD-446 ✅ ────────────────────────────────────────────────┴──┐
                                                                  │
-BE-HRD-447 🟡 ─────────────┐                                     │
+BE-HRD-447 ✅ ─────────────┐                                     │
                            │                                     │
 BE-HRD-448 ✅ ─┬───────────┴─> BE-HRD-449 ✅ ─┐                  │
                │                              │                  │
-               └─> BE-HRD-450 ✅ ─────────────┴─> BE-HRD-451 ✅ ─┴─> BE-HRD-452 🟡
+               └─> BE-HRD-450 ✅ ─────────────┴─> BE-HRD-451 ✅ ─┴─> BE-HRD-452 ✅
 ```
 
 Grafik memuat 10 pasangan prasyarat→task, sama dengan isi kolom `Dependency` pada tabel task di bawah. Gerbang G1 dan G2 sudah tertutup sehingga tidak digambar.
@@ -8276,18 +8278,18 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 | `BE-HRD-444` ✅ | Asesor hanya melihat dan mengirim nilai evaluasi miliknya; hak `CandidateEvaluation : ViewAll` | `FR-PKB-09`, `FR-PKB-10`; `HRD-DEC-233`, `HRD-ASM-95` | API 35.4; `VR-PKB-07`, `VR-PKB-08` | — | `MVP-72` |
 | `BE-HRD-445` ✅ | Filter `track` dan `pendingOnly` pada daftar evaluasi | `FR-PKB-08`; `HRD-ASM-93` | API 35.4; State 33.3; `VR-PKB-06` | `BE-HRD-444` | `MVP-72` |
 | `BE-HRD-446` ✅ | Filter `statuses` pada daftar sanksi | `FR-PKB-12`; `HRD-DEC-234` | API 35.2; `VR-PKB-04`, `VR-PKB-05` | — | `MVP-72` |
-| `BE-HRD-447` 🟡 | `ContractRenewalBuckets` tanpa mengubah angka layar Kontrak | `FR-PKB-02`; `HRD-DEC-237` | State 33.1; `INT-HR-111` | — | `MVP-73` |
+| `BE-HRD-447` ✅ | `ContractRenewalBuckets` tanpa mengubah angka layar Kontrak | `FR-PKB-02`; `HRD-DEC-237` | State 33.1; `INT-HR-111` | — | `MVP-73` |
 | `BE-HRD-448` ✅ | Kerangka Dashboard SDM, hak `HrdWorkforceDashboard : Read`, panel 1–3 | `FR-PKB-01`, `FR-PKB-04`; `HRD-DEC-235` | API 35.1; State 33.1; Permission 33.1 | — | `MVP-73` |
 | `BE-HRD-449` ✅ | Panel Kontrak Berakhir | `FR-PKB-02`; `HRD-DEC-237` | API 35.1; `INT-HR-111` | `BE-HRD-447`, `BE-HRD-448` | `MVP-73` |
 | `BE-HRD-450` ✅ | Panel Dokumen Kedaluwarsa | `FR-PKB-01`; `HRD-DEC-235` | API 35.1; Data 30.2; `INT-HR-112`, `INT-HR-113` | `BE-HRD-448` | `MVP-73` |
 | `BE-HRD-451` ✅ | Daftar nama `GET /drilldown` dengan nomor lisensi tersamar | `FR-PKB-03`; Permission 33.2 | API 35.1; `VR-PKB-01` s.d. `VR-PKB-03` | `BE-HRD-449`, `BE-HRD-450` | `MVP-73` |
-| `BE-HRD-452` 🟡 | Verifikasi backend Paket B dan catatan rilis | Seluruh FR backend Paket B; DoD 42.11 | Seluruh `v29` | `BE-HRD-443`, `BE-HRD-445`, `BE-HRD-446`, `BE-HRD-451` | Verifikasi |
+| `BE-HRD-452` ✅ | Verifikasi backend Paket B dan catatan rilis | Seluruh FR backend Paket B; DoD 42.11 | Seluruh `v29` | `BE-HRD-443`, `BE-HRD-445`, `BE-HRD-446`, `BE-HRD-451` | Verifikasi |
 
 ### Rincian 10 task backend (`BE-HRD-443` s.d. `BE-HRD-452`)
 
 #### ✅ `BE-HRD-443` — Employee 360: bagian disiplin dari sanksi resmi dan catatan lama, hanya untuk pemegang `ViewSanctions`
 * **Slice / MVP**: `S-PKB` / `MVP-72` · `EPIC HRD-128`
-* **Status**: ✅ Selesai (2026-11-23) — 4/4 acceptance criteria terpetakan ke source: `GetDisciplinaryHistoryAsync` (sanksi resmi dengan dua jenis ID + catatan lama `LEGACY`) dan `DisciplineHidden` menurut `EmployeeDisciplinary : ViewSanctions`. `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`, registri `IsValid=True` (2.662). Uji API DB dev `NOT RUN` (izin menyalakan backend pada DB dev bersama belum diberikan). Fakta source: atasan langsung sejak awal tidak menerima bagian rahasia Employee 360; yang terdampak adalah mode HR tanpa `ViewSanctions`. Laporan: [BE-HRD-443](../task/report/backend/BE-HRD-443.md)
+* **Status**: ✅ Selesai (2026-11-23) — 4/4 acceptance criteria terpetakan ke source: `GetDisciplinaryHistoryAsync` (sanksi resmi dengan dua jenis ID + catatan lama `LEGACY`) dan `DisciplineHidden` menurut `EmployeeDisciplinary : ViewSanctions`. `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`, registri `IsValid=True` (2.662). Uji API runtime DB dev 23 November 2026 `PASS` (data dev terbatas: 34 pegawai, 0 kontrak/lisensi/SPK/sanksi/evaluasi). Fakta source: atasan langsung sejak awal tidak menerima bagian rahasia Employee 360; yang terdampak adalah mode HR tanpa `ViewSanctions`. Laporan: [BE-HRD-443](../task/report/backend/BE-HRD-443.md)
 * **Outcome**: `GET .../workforce-profiles/{workforceProfileId}/employee-360` mengisi `confidentialPersonalAndDiscipline.disciplinaryRecords` hanya bila pemanggil memegang `EmployeeDisciplinary : ViewSanctions`: sanksi `HrdDisciplinarySanction` dengan `EmployeeId` = `MstEmployee.Id` **atau** `workforceProfileId` sebagai `OFFICIAL`, dan `WfpDisciplinaryAction` sebagai `LEGACY`, urut tanggal terbit terbaru. Tanpa hak itu, `disciplineHidden = true` dan kedua daftar kosong. `disciplinarySanctions` (usang) tetap diisi dari sumber yang sama untuk kompatibilitas.
 * **Requirement / keputusan**: `FR-PKB-14`, `FR-PKB-15`; `HRD-DEC-230`, `HRD-DEC-238` butir 2 dan 4, `HRD-ASM-91`
 * **Kontrak**: `v29` — API 35.3; Validation `VR-PKB-09`; Integration `INT-HR-114`; Permission 33.1–33.2; Data 30.1, 30.3
@@ -8305,7 +8307,7 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 
 #### ✅ `BE-HRD-444` — Pembatasan asesor pada evaluasi kandidat dan hak `CandidateEvaluation : ViewAll`
 * **Slice / MVP**: `S-PKB` / `MVP-72` · `EPIC HRD-126`
-* **Status**: ✅ Selesai (2026-11-23) — 5/5 acceptance criteria: daftar tersaring `EvaluatorUserId` tanpa `ViewAll`, detail milik penilai lain `403`, `submit-clinical` hanya oleh penilai yang ditugaskan; penanda `CandidateEvaluation : ViewAll` terdaftar (registri `IsValid=True`). `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Uji API DB dev `NOT RUN` (izin menyalakan backend pada DB dev bersama belum diberikan). Laporan: [BE-HRD-444](../task/report/backend/BE-HRD-444.md)
+* **Status**: ✅ Selesai (2026-11-23) — 5/5 acceptance criteria: daftar tersaring `EvaluatorUserId` tanpa `ViewAll`, detail milik penilai lain `403`, `submit-clinical` hanya oleh penilai yang ditugaskan; penanda `CandidateEvaluation : ViewAll` terdaftar (registri `IsValid=True`). `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Uji API runtime DB dev 23 November 2026 `PASS` (data dev terbatas: 34 pegawai, 0 kontrak/lisensi/SPK/sanksi/evaluasi). Laporan: [BE-HRD-444](../task/report/backend/BE-HRD-444.md)
 * **Outcome**: Controller menghitung `canViewAll = HasAccessAsync(User, "CandidateEvaluation", "ViewAll")` dan `actorId = User.GetUserId()` lalu meneruskannya ke service. Tanpa `ViewAll`, `GET /` hanya mengembalikan evaluasi dengan `EvaluatorUserId == actorId` dan `GET /{id}` milik penilai lain ditolak `403`. `POST /{id}/submit-clinical` ditolak `403` bila pengirim bukan `EvaluatorUserId` evaluasi itu, termasuk bagi pemegang `ViewAll`. Hak `CandidateEvaluation : ViewAll` terdaftar lewat `[assembly: AccessExplicitPermission]`.
 * **Requirement / keputusan**: `FR-PKB-09`, `FR-PKB-10`; `HRD-DEC-233`, `HRD-ASM-95`; veto klinis `HRD-DEC-077` tidak berubah
 * **Kontrak**: `v29` — API 35.4, 35.6; Validation `VR-PKB-07`, `VR-PKB-08`; Permission 33.1, 33.3
@@ -8324,7 +8326,7 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 
 #### ✅ `BE-HRD-445` — Filter jalur dan "belum dinilai" pada daftar evaluasi
 * **Slice / MVP**: `S-PKB` / `MVP-72` · `EPIC HRD-126`
-* **Status**: ✅ Selesai (2026-11-23) — 3/3 acceptance criteria: `track` `HR`/`CLINICAL` (`400` selain itu), `pendingOnly` = nilai belum pernah dikirim (`UpdateDateTime` kosong, karena penjadwalan mengisi rekomendasi bawaan `Considered`). `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Uji API DB dev `NOT RUN` (izin menyalakan backend pada DB dev bersama belum diberikan). Laporan: [BE-HRD-445](../task/report/backend/BE-HRD-445.md)
+* **Status**: ✅ Selesai (2026-11-23) — 3/3 acceptance criteria: `track` `HR`/`CLINICAL` (`400` selain itu), `pendingOnly` = nilai belum pernah dikirim (`UpdateDateTime` kosong, karena penjadwalan mengisi rekomendasi bawaan `Considered`). `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Uji API runtime DB dev 23 November 2026 `PASS` (data dev terbatas: 34 pegawai, 0 kontrak/lisensi/SPK/sanksi/evaluasi). Laporan: [BE-HRD-445](../task/report/backend/BE-HRD-445.md)
 * **Outcome**: `CandidateEvaluationQuery` menerima `track` (`HR` = `HrInterview`; `CLINICAL` = `ClinicalAssessment` + `UserInterview`) dan `pendingOnly` (evaluasi yang belum punya rekomendasi). Nilai `track` lain ditolak `400`. Filter bekerja bersama pembatasan penilai dari `BE-HRD-444`.
 * **Requirement / keputusan**: `FR-PKB-08`; `HRD-DEC-233`, `HRD-ASM-93`
 * **Kontrak**: `v29` — API 35.4, 35.6; State 33.3; Validation `VR-PKB-06`
@@ -8341,7 +8343,7 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 
 #### ✅ `BE-HRD-446` — Filter beberapa status pada daftar sanksi (Riwayat Penyelesaian)
 * **Slice / MVP**: `S-PKB` / `MVP-72` · `EPIC HRD-127`
-* **Status**: ✅ Selesai (2026-11-23) — 3/3 acceptance criteria: `statuses` berulang; `400` untuk nilai tak dikenal dan bila dikirim bersama `status`; jalur lama tidak berubah. `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Uji API DB dev `NOT RUN` (izin menyalakan backend pada DB dev bersama belum diberikan). Laporan: [BE-HRD-446](../task/report/backend/BE-HRD-446.md)
+* **Status**: ✅ Selesai (2026-11-23) — 3/3 acceptance criteria: `statuses` berulang; `400` untuk nilai tak dikenal dan bila dikirim bersama `status`; jalur lama tidak berubah. `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Uji API runtime DB dev 23 November 2026 `PASS` (data dev terbatas: 34 pegawai, 0 kontrak/lisensi/SPK/sanksi/evaluasi). Laporan: [BE-HRD-446](../task/report/backend/BE-HRD-446.md)
 * **Outcome**: `GET /hrd/disciplinary/sanctions` menerima `statuses` berulang. Setiap nilai wajib `Active`, `Expired`, atau `RevokedOnAppeal`; `status` dan `statuses` tidak boleh dikirim bersamaan; perilaku `status` lama tidak berubah.
 * **Requirement / keputusan**: `FR-PKB-12`; `HRD-DEC-234`, `HRD-ASM-94`
 * **Kontrak**: `v29` — API 35.2, 35.6; State 33.2; Validation `VR-PKB-04`, `VR-PKB-05`
@@ -8356,9 +8358,9 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 * **Risiko / pemilik**: status sanksi masih string bebas (utang teknis desain 37.4) — validasi daftar nilai hanya di jalur baca ini. Technical Owner HR.
 * **DoD**: AC terbukti, laporan `task/report/backend/BE-HRD-446.md`.
 
-#### 🟡 `BE-HRD-447` — `ContractRenewalBuckets`: satu definisi tahapan perpanjangan kontrak
+#### ✅ `BE-HRD-447` — `ContractRenewalBuckets`: satu definisi tahapan perpanjangan kontrak
 * **Slice / MVP**: `S-PKB` / `MVP-73` · `EPIC HRD-124`
-* **Status**: 🟡 Sebagian (2026-11-23) — `ContractRenewalBuckets` dibuat dan dipakai `summary`/`renewal-summary`; kesetaraan predikat sebelum/sesudah dibuktikan baris per baris (AC 2 dan 3 terpenuhi). **Belum terpenuhi:** AC 1 — perbandingan respons di DB dev `NOT RUN`. Temuan: `HrdLifecycleWorklistService` punya aturan 60 hari sendiri (arti berbeda, tidak disentuh). `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Laporan: [BE-HRD-447](../task/report/backend/BE-HRD-447.md)
+* **Status**: ✅ Selesai (2026-11-23) — 3/3 acceptance criteria: `ContractRenewalBuckets` dipakai `summary`/`renewal-summary`; respons build sebelum refactor (`7e4c3774`) dan sesudah (`9062bd61`) **identik** pada DB dev yang sama (batas bukti: 0 kontrak di DB dev, kesetaraan untuk data berisi dibuktikan lewat predikat baris per baris). Temuan: `HrdLifecycleWorklistService` punya aturan 60 hari sendiri (arti berbeda, tidak disentuh). `dotnet build` 0 error, QBE Strict 19 berkas `PASS`. Laporan: [BE-HRD-447](../task/report/backend/BE-HRD-447.md)
 * **Outcome**: Definisi kelompok `H60`, `H14`, `H7`, `PENDING_DECISION`, `OVERDUE` dan batas 60 hari dipindah dari `HrdEmploymentContractService` ke kelas statis `ContractRenewalBuckets` (`Classify`, `Predicate`). `GetContractSummaryAsync` (`ExpiringSoonCount`) dan `GetRenewalSummaryAsync` memakainya **tanpa perubahan hasil**.
 * **Requirement / keputusan**: `FR-PKB-02`; `HRD-DEC-237`
 * **Kontrak**: `v29` — State 33.1 (`CONTRACT_EXPIRY`); Integration `INT-HR-111`; Acceptance `AT-HRD-PKB-05`
@@ -8375,7 +8377,7 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 
 #### ✅ `BE-HRD-448` — Kerangka Dashboard SDM, hak akses, dan panel ringkasan pegawai
 * **Slice / MVP**: `S-PKB` / `MVP-73` · `EPIC HRD-124`
-* **Status**: ✅ Selesai (2026-11-23) — 5/5 acceptance criteria: controller `HrdWorkforceDashboard` dengan hak `HrdWorkforceDashboard : Read` (registri `IsValid=True`), panel 1–3 dari `MstEmployee` (skorsing tetap aktif), registrasi DI di `Program.cs`. `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Uji API DB dev `NOT RUN` (izin menyalakan backend pada DB dev bersama belum diberikan). Laporan: [BE-HRD-448](../task/report/backend/BE-HRD-448.md)
+* **Status**: ✅ Selesai (2026-11-23) — 5/5 acceptance criteria: controller `HrdWorkforceDashboard` dengan hak `HrdWorkforceDashboard : Read` (registri `IsValid=True`), panel 1–3 dari `MstEmployee` (skorsing tetap aktif), registrasi DI di `Program.cs`. `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Uji API runtime DB dev 23 November 2026 `PASS` (data dev terbatas: 34 pegawai, 0 kontrak/lisensi/SPK/sanksi/evaluasi). Laporan: [BE-HRD-448](../task/report/backend/BE-HRD-448.md)
 * **Outcome**: `HrdWorkforceDashboardController` (`[Route("api/v1/corporate/human-resource/workforce-dashboard")]`, `[AccessController(moduleCode: "HUMAN_RESOURCE_WORKFORCE_CORE", …, ControllerName = "HrdWorkforceDashboard")]`, tag Swagger sesuai kontrak) dengan `GET /summary` dan hak `HrdWorkforceDashboard : Read`. `HrdWorkforceDashboardService` membaca dengan `AsNoTracking` dan tanggal operasional `AppDateTimeHelper.OperationalDate()`, lalu mengisi `operationalDate`, `generatedAt`, `employeeOverview`, `professionDistribution`, dan `activeStatus`. Konstanta `WorkforceDashboardPanels`, DTO (`WorkforceDashboardSummaryResponse`, `WorkforceDashboardDrilldownQuery`, `WorkforceDashboardDrilldownItem`), dan pendaftaran DI di `Program.cs`. Ruas panel 4–5 sudah ada di DTO dan diisi `BE-HRD-449`/`BE-HRD-450`.
 * **Requirement / keputusan**: `FR-PKB-01` (panel 1–3), `FR-PKB-04`; `HRD-DEC-235`, `HRD-ASM-88`, `HRD-ASM-89`, `HRD-ASM-90`
 * **Kontrak**: `v29` — API 35.1; State 33.1 (`EMPLOYEE_OVERVIEW`, `PROFESSION`, `ACTIVE_STATUS`); Permission 33.1–33.2
@@ -8394,7 +8396,7 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 
 #### ✅ `BE-HRD-449` — Panel Kontrak Berakhir memakai `ContractRenewalBuckets`
 * **Slice / MVP**: `S-PKB` / `MVP-73` · `EPIC HRD-124`
-* **Status**: ✅ Selesai (2026-11-23) — 2/2 acceptance criteria: panel memakai predikat dan tanggal acuan `ContractRenewalBuckets` yang sama dengan layar Kontrak; kegagalan kueri menggagalkan seluruh `/summary`. `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Uji API DB dev `NOT RUN` (izin menyalakan backend pada DB dev bersama belum diberikan). Laporan: [BE-HRD-449](../task/report/backend/BE-HRD-449.md)
+* **Status**: ✅ Selesai (2026-11-23) — 2/2 acceptance criteria: panel memakai predikat dan tanggal acuan `ContractRenewalBuckets` yang sama dengan layar Kontrak; kegagalan kueri menggagalkan seluruh `/summary`. `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Uji API runtime DB dev 23 November 2026 `PASS` (data dev terbatas: 34 pegawai, 0 kontrak/lisensi/SPK/sanksi/evaluasi). Laporan: [BE-HRD-449](../task/report/backend/BE-HRD-449.md)
 * **Outcome**: `contractExpiry.totalWithin60Days`, `h60Count`, `h14Count`, `h7Count`, `pendingDecisionCount`, dan `overdueCount` pada `/summary` dihitung lewat `ContractRenewalBuckets`.
 * **Requirement / keputusan**: `FR-PKB-02`; `HRD-DEC-237`
 * **Kontrak**: `v29` — API 35.1 (`contractExpiry`); State 33.1; Integration `INT-HR-111`
@@ -8410,7 +8412,7 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 
 #### ✅ `BE-HRD-450` — Panel Dokumen Kedaluwarsa: SIP/STR, SPK/RKK, dan sertifikat pelatihan wajib
 * **Slice / MVP**: `S-PKB` / `MVP-73` · `EPIC HRD-124`
-* **Status**: ✅ Selesai (2026-11-23) — 4/4 acceptance criteria: radar lisensi, radar sertifikat, dan SPK/RKK aktif; batas kelompok tiap sumber diverifikasi dari source (radar sertifikat menghitung hari-H sebagai ≤ 30 hari dan memakai tanggal UTC — diikuti apa adanya sesuai kamus data 30.2). `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Uji API DB dev `NOT RUN` (izin menyalakan backend pada DB dev bersama belum diberikan). Laporan: [BE-HRD-450](../task/report/backend/BE-HRD-450.md)
+* **Status**: ✅ Selesai (2026-11-23) — 4/4 acceptance criteria: radar lisensi, radar sertifikat, dan SPK/RKK aktif; batas kelompok tiap sumber diverifikasi dari source (radar sertifikat menghitung hari-H sebagai ≤ 30 hari dan memakai tanggal UTC — diikuti apa adanya sesuai kamus data 30.2). `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Uji API runtime DB dev 23 November 2026 `PASS` (data dev terbatas: 34 pegawai, 0 kontrak/lisensi/SPK/sanksi/evaluasi). Laporan: [BE-HRD-450](../task/report/backend/BE-HRD-450.md)
 * **Outcome**: `documentExpiry` (total per kelompok dan `byType[]` untuk `SIP_STR`, `SPK_RKK`, `MANDATORY_CERTIFICATE`) dihitung dari radar lisensi `ICredentialVerificationService.GetLicenseExpiringRadarListAsync` (STR seumur hidup sudah dikecualikan), radar sertifikat `ITrainingExpiryRadarService.GetExpiringRadarSummaryAsync`, dan kueri baca `TrxSpkRkkIssuance` (`IssuanceStatus = Active`, `ValidUntil` ≤ hari ini + 90 hari). Tingkat radar dipetakan sesuai kamus data 30.2.
 * **Requirement / keputusan**: `FR-PKB-01` (panel 5); `HRD-DEC-235`; usulan desain butir 3 yang ikut disetujui (`HRD-DEC-239` bagian persetujuan)
 * **Kontrak**: `v29` — API 35.1 (`documentExpiry`); State 33.1 (`DOCUMENT_EXPIRY`); Data 30.2; Integration `INT-HR-112`, `INT-HR-113`
@@ -8428,7 +8430,7 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 
 #### ✅ `BE-HRD-451` — Daftar nama di balik angka dashboard (`GET /drilldown`)
 * **Slice / MVP**: `S-PKB` / `MVP-73` · `EPIC HRD-124`
-* **Status**: ✅ Selesai (2026-11-23) — 4/4 acceptance criteria: `GET /drilldown` lima panel dengan aturan kelompok yang sama dengan `/summary`, validasi `VR-PKB-01` s.d. `VR-PKB-03`, nomor lisensi/SPK hanya 4 karakter terakhir. `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Uji API DB dev `NOT RUN` (izin menyalakan backend pada DB dev bersama belum diberikan). Laporan: [BE-HRD-451](../task/report/backend/BE-HRD-451.md)
+* **Status**: ✅ Selesai (2026-11-23) — 4/4 acceptance criteria: `GET /drilldown` lima panel dengan aturan kelompok yang sama dengan `/summary`, validasi `VR-PKB-01` s.d. `VR-PKB-03`, nomor lisensi/SPK hanya 4 karakter terakhir. `dotnet build` 0 error (611 warning, tanpa warning baru), QBE Strict 19 berkas `PASS`. Uji API runtime DB dev 23 November 2026 `PASS` (data dev terbatas: 34 pegawai, 0 kontrak/lisensi/SPK/sanksi/evaluasi). Laporan: [BE-HRD-451](../task/report/backend/BE-HRD-451.md)
 * **Outcome**: `GET /workforce-dashboard/drilldown` mengembalikan daftar berhalaman per `panel`/`bucket` (ditambah `professionId`, `documentType`, `search`) dengan definisi kelompok yang sama persis dengan `/summary`. `detailLabel` hanya menyebut jenis dokumen dan 4 karakter terakhir nomor lisensi. Validasi `VR-PKB-01` s.d. `VR-PKB-03`.
 * **Requirement / keputusan**: `FR-PKB-03`; `HRD-DEC-235`, `HRD-DEC-237`; Permission 33.2; usulan desain butir 1 (nomor lisensi tersamar)
 * **Kontrak**: `v29` — API 35.1, 35.6; State 33.1; Validation `VR-PKB-01`, `VR-PKB-02`, `VR-PKB-03`
@@ -8444,9 +8446,9 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 * **Risiko / pemilik**: pemegang hak dashboard melihat nama pemilik dokumen kedaluwarsa walau tidak memegang `ProfessionalLicense : Read` — disengaja (Permission 33.2). Technical Owner HR.
 * **DoD**: AC terbukti, laporan `task/report/backend/BE-HRD-451.md`.
 
-#### 🟡 `BE-HRD-452` — Verifikasi backend Paket B: kontrak `v29`, registri hak, build, QBE, waktu muat, dan catatan rilis
+#### ✅ `BE-HRD-452` — Verifikasi backend Paket B: kontrak `v29`, registri hak, build, QBE, waktu muat, dan catatan rilis
 * **Slice / MVP**: `S-PKB` / Verifikasi (`MVP-72`, `MVP-73`)
-* **Status**: 🟡 Sebagian (2026-11-23) — AC 1, 2, 3, 5 terpenuhi: endpoint dan tujuh pesan galat sesuai kontrak `v29`; `dotnet build` 0 error (611 warning); QBE Strict 19 berkas `PASS`; registri `IsValid=True` (2.662 = 2.660 + 2 hak baru); tanpa migration; catatan rilis ditulis. **Belum terpenuhi:** AC 4 — waktu muat `/summary` di DB dev `NOT RUN` (izin menyalakan backend pada DB dev bersama belum diberikan). Laporan: [BE-HRD-452](../task/report/backend/BE-HRD-452.md)
+* **Status**: ✅ Selesai (2026-11-23) — 5/5 acceptance criteria: endpoint dan tujuh pesan galat sesuai kontrak `v29`; `dotnet build` 0 error (611 warning); QBE Strict 19 berkas `PASS`; registri `IsValid=True` (2.662) di build dan saat startup; tanpa migration; waktu muat `/summary` median 226 ms (batas bukti: 34 pegawai di DB dev); uji API runtime 27 skenario, 26 `PASS` + 1 gagal login akun uji atasan (`401`, masalah akun); catatan rilis ditulis. Laporan: [BE-HRD-452](../task/report/backend/BE-HRD-452.md)
 * **Outcome**: Bukti bahwa endpoint baru dan yang diubah sesuai kontrak `v29` (route, method, atribut akses, kode status, pesan Indonesia), dua hak baru tampil di Akses Role, `dotnet build` 0 galat, QBE tanpa pelanggaran baru, waktu muat `/summary` terukur, dan catatan rilis memuat langkah pemberian hak serta perubahan perilaku.
 * **Requirement / keputusan**: `FR-PKB-01` s.d. `FR-PKB-04`, `FR-PKB-08` s.d. `FR-PKB-10`, `FR-PKB-12`, `FR-PKB-14`, `FR-PKB-15`; DoD PRD 42.11; kebutuhan non-fungsional 42.9
 * **Kontrak**: `v29` seluruh bagian

@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `7e4c3774` (branch `MHamzah`); source sudah di-commit pengguna di `9062bd61` |
 | Tanggal | 23 November 2026 |
-| Status | ✅ Selesai — 5/5 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`, registri `IsValid=True` dengan `HrdWorkforceDashboard.Read`; uji API DB dev `NOT RUN` |
+| Status | ✅ Selesai — 5/5 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`, registri `IsValid=True` dengan `HrdWorkforceDashboard.Read`; uji API runtime 23 November 2026 `PASS` |
 
 ### Backend Governance Preflight
 
@@ -91,7 +91,9 @@ Manajer SDM tidak punya satu halaman ringkasan tenaga kerja. Untuk mengetahui ju
 | QBE Strict (19 berkas) | `PASS` | `PASS` | Keluaran checker |
 | Validator registri hak akses | `IsValid=True`, 2.662 identitas; `HrdWorkforceDashboard.Read (Read)` terdaftar; 0 endpoint tanpa hak | `PASS` | Skrip `dotnet fsi` |
 | Penelusuran: skorsing | `ItAccessRevocationSyncWorker` menonaktifkan `ApplicationUser`, bukan `MstEmployee` → tetap dihitung aktif | `PASS` | `EmployeeRelationWorkers.cs` baris 376–450 |
-| Uji API `/summary` di DB dev | Belum dijalankan | `NOT RUN` | Butuh izin menyalakan backend |
+| Uji API runtime di DB dev (`QuilvianNewDevHamzah`), 23 November 2026 — backend `9062bd61` di port lokal 5199, akun superadmin + akun non-admin: `GET /summary` superadmin | `200`; `activeCount = 34`, `inactiveCount = 0`, distribusi profesi terisi; ruas respons hanya `operationalDate`, `generatedAt`, lima panel (tanpa gaji/NIK/disiplin) | `PASS` | Skrip uji API (27 skenario: 26 `PASS`, 1 gagal karena login akun uji atasan ditolak `401` — masalah akun, bukan kode) |
+| `GET /summary` dan `/drilldown` akun non-admin tanpa `HrdWorkforceDashboard : Read` (`AT-HRD-PKB-09` bagian backend) | `403` | `PASS` | Skrip uji API (27 skenario: 26 `PASS`, 1 gagal karena login akun uji atasan ditolak `401` — masalah akun, bukan kode) |
+| Startup aplikasi | Log: "Permission registry valid. 2662 identitas kanonik dari 2662 kemampuan terdaftar."; Swagger `corporate` `200` | `PASS` | Log runtime |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 

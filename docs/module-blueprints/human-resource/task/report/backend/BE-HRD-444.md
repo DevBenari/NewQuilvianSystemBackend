@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `7e4c3774` (branch `MHamzah`); source sudah di-commit pengguna di `9062bd61` |
 | Tanggal | 23 November 2026 |
-| Status | ✅ Selesai — 5/5 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`, registri `IsValid=True` dengan `CandidateEvaluation.ViewAll`; uji API DB dev `NOT RUN` |
+| Status | ✅ Selesai — 5/5 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`, registri `IsValid=True` dengan `CandidateEvaluation.ViewAll`; uji API runtime 23 November 2026 `PASS` untuk jalur yang tersedia datanya |
 
 ### Backend Governance Preflight
 
@@ -90,9 +90,10 @@ Contoh: Sari (asesor ICU) dapat membuka nilai wawancara kandidat IGD milik aseso
 | Penelusuran: asesor tanpa `ViewAll` | `dbQuery.Where(e => e.EvaluatorUserId == actorUserId)`; ID kosong → `401` (tidak pernah mencocokkan evaluasi tanpa penilai) | `PASS` | `GetPagedAsync` |
 | Penelusuran: detail milik penilai lain | `Fail(..., 403)` dengan pesan kontrak | `PASS` | `GetByIdAsync` |
 | Penelusuran: `submit-clinical` oleh pemegang `ViewAll` bukan penilai | Ditolak `403` sebelum nilai diubah dan sebelum `SaveChangesAsync` | `PASS` | `SubmitClinicalEvaluationAsync` |
-| Uji API dua akun (recruiter dan asesor) di DB dev | Belum dijalankan | `NOT RUN` | Butuh izin menyalakan backend pada DB dev bersama |
+| Uji API runtime di DB dev (`QuilvianNewDevHamzah`), 23 November 2026 — backend `9062bd61` di port lokal 5199, akun superadmin + akun non-admin: `GET evaluations` superadmin (`track=HR`, `CLINICAL`, `pendingOnly`) dan akun non-admin | Superadmin `200` (0 baris); akun non-admin tanpa `CandidateEvaluation : Read` `403` | `PASS` | Skrip uji API (27 skenario: 26 `PASS`, 1 gagal karena login akun uji atasan ditolak `401` — masalah akun, bukan kode) |
+| `submit-clinical` oleh bukan penilai (`AT-HRD-PKB-21`) dan penyaringan asesor tanpa `ViewAll` | DB dev: 34 pegawai aktif; 0 kontrak, 0 lisensi, 0 SPK/RKK, 0 sanksi, 0 evaluasi kandidat; tidak ada akun asesor | `NOT RUN` | Dibuktikan lewat source; diuji ulang saat data rekrutmen tersedia |
 
-Uji manual: `NOT FEASIBLE` (menunggu izin).
+Uji manual: `PASS` sebatas data dev (lihat tabel).
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 

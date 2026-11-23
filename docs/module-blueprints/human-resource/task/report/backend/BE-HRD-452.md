@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `9062bd61` (branch `MHamzah`, berisi seluruh source Paket B) |
 | Tanggal | 23 November 2026 |
-| Status | 🟡 Sebagian — AC 1, 2, 3, 5 terpenuhi; AC 4 (waktu muat `/summary` di DB dev) `NOT RUN` karena menyalakan backend pada DB dev bersama belum diizinkan |
+| Status | ✅ Selesai — 5/5 acceptance criteria: endpoint dan pesan sesuai kontrak `v29`; build 0 error; QBE Strict `PASS`; registri valid (build dan startup); tanpa migration; waktu muat `/summary` median 226 ms (batas bukti: 34 pegawai di DB dev); catatan rilis ditulis |
 
 ### Backend Governance Preflight
 
@@ -107,8 +107,8 @@ Seluruh 18 berkas source Paket B (`git show --stat 9062bd61`), kontrak `v29` bag
 | QBE `Invoke-QbeConformanceCheck.ps1 -Mode Strict -Path` (19 berkas: 18 source + `Program.cs`) | 0 VIOLATION, 0 REVIEW, 0 INFO, `PASS` | `PASS` | Keluaran checker |
 | Validator registri hak akses (assembly hasil build, skrip `dotnet fsi`) | `IsValid=True`, 2.662 identitas (sebelumnya 2.660 + `HrdWorkforceDashboard.Read` + `CandidateEvaluation.ViewAll`); 0 endpoint tak terdaftar, 0 identitas ganda, 0 `AccessType` tidak sah | `PASS` | Keluaran skrip |
 | Migration | Tidak ada migration yang dibuat atau diperlukan | `PASS` | `git show --stat 9062bd61` (tanpa `Migrations/`) |
-| Waktu muat `/summary` di DB dev (target ≤ 2 detik untuk ±500 pegawai) | Belum diukur | `NOT RUN` | Menyalakan backend menjalankan ±50 worker latar pada DB dev bersama; butuh izin pengguna |
-| Uji API ringkas per endpoint di DB dev | Belum dijalankan | `NOT RUN` | Alasan sama |
+| Waktu muat `/summary` di DB dev (target ≤ 2 detik untuk ±500 pegawai; izin pengguna 23 November 2026) | Panggilan pertama 599 ms; tiga panggilan berikutnya 226, 330, 207 ms (median 226 ms). Batas bukti: DB dev hanya 34 pegawai dan belum punya kontrak/lisensi/SPK | `PASS` | Skrip uji API |
+| Uji API runtime di DB dev (`QuilvianNewDevHamzah`), 23 November 2026 — backend `9062bd61` di port lokal 5199, akun superadmin + akun non-admin — seluruh endpoint Paket B | 27 skenario: 26 `PASS`; 1 gagal pada login akun uji atasan (`401`, sandi akun uji tidak lagi cocok) — `EXISTING / ENVIRONMENT ISSUE`, bukan kode Paket B. Startup: "Permission registry valid. 2662 identitas"; Swagger `corporate` `200`. Jalur yang butuh data sanksi/evaluasi hanya teruji bentuk dan validasinya (DB dev: 34 pegawai aktif; 0 kontrak, 0 lisensi, 0 SPK/RKK, 0 sanksi, 0 evaluasi kandidat) | `PASS` | Skrip uji API (27 skenario: 26 `PASS`, 1 gagal karena login akun uji atasan ditolak `401` — masalah akun, bukan kode) |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
@@ -119,7 +119,7 @@ Seluruh 18 berkas source Paket B (`git show --stat 9062bd61`), kontrak `v29` bag
 | 1. Seluruh endpoint 35.1–35.4 diperiksa terhadap source: route, method, atribut akses, kode status, pesan 35.6 | Terpenuhi | Tabel 5.1 |
 | 2. Validator registri bersih; dua hak baru tampil di Akses Role | Terpenuhi | `IsValid=True`; kedua identitas ada di snapshot (muncul di layar Akses Role saat aplikasi dijalankan) |
 | 3. `dotnet build` 0 galat; QBE tanpa pelanggaran baru; laporan menyatakan tanpa migration | Terpenuhi | Tabel 5.2 |
-| 4. Waktu muat `/summary` dicatat terhadap target ≤ 2 detik | **Belum terpenuhi** | `NOT RUN` — menunggu izin menyalakan backend pada DB dev |
+| 4. Waktu muat `/summary` dicatat terhadap target ≤ 2 detik | Terpenuhi | Median 226 ms; dicatat sebagai batas bukti karena DB dev hanya 34 pegawai |
 | 5. Catatan rilis memuat pemberian dua hak dan perubahan perilaku | Terpenuhi | Bagian "Catatan rilis" di bawah |
 | DoD: backend `MVP-72`/`MVP-73` siap dipakai frontend | Terpenuhi untuk pengembangan frontend; rilis menunggu AC 4 dan pemberian hak | — |
 
@@ -136,9 +136,9 @@ Seluruh 18 berkas source Paket B (`git show --stat 9062bd61`), kontrak `v29` bag
 | Hal | Isi |
 | --- | --- |
 | Peringatan | Tidak ada warning baru |
-| Masalah yang diketahui | `BE-HRD-447` AC 1 (perbandingan respons layar Kontrak) juga menunggu uji DB dev; temuan di luar scope: aksi `HrdEmployee360 : ReadFull` dipakai service tetapi tidak terdaftar; worklist siklus hidup memakai aturan 60 hari tersendiri; radar sertifikat menghitung hari-H sebagai ≤ 30 hari |
+| Masalah yang diketahui | Temuan di luar scope: aksi `HrdEmployee360 : ReadFull` dipakai service tetapi tidak terdaftar; worklist siklus hidup memakai aturan 60 hari tersendiri; radar sertifikat menghitung hari-H sebagai ≤ 30 hari |
 | Risiko tersisa | Rilis tanpa langkah catatan rilis 1–2 membuat dashboard tidak dapat dibuka dan recruiter kehilangan visibilitas evaluasi |
 | Perubahan sampingan | `NONE` |
 | Interupsi | Pengguna meng-commit source dan dokumen blueprint di tengah sesi (`1be0a12a`, `9062bd61`); tidak ada konflik |
 | Status Git | Source bersih (sudah di-commit); dokumen blueprint (laporan, roadmap, traceability) berubah dan belum di-commit |
-| Langkah berikutnya | Izin menyalakan backend di DB dev untuk AC 4 dan uji API Paket B; lalu `FE-HRD-393` s.d. `FE-HRD-401` |
+| Langkah berikutnya | `FE-HRD-393`, `FE-HRD-399` s.d. `FE-HRD-401`; uji ulang jalur sanksi/evaluasi ketika DB dev punya datanya |

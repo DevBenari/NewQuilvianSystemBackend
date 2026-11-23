@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `7e4c3774` (branch `MHamzah`); source sudah di-commit pengguna di `9062bd61` |
 | Tanggal | 23 November 2026 |
-| Status | 🟡 Sebagian — AC 2 dan 3 terpenuhi; AC 1 dibuktikan lewat kesetaraan predikat baris per baris, tetapi bukti yang diminta (respons sebelum/sesudah di DB dev) `NOT RUN`. Build 0 error, QBE Strict `PASS` |
+| Status | ✅ Selesai — 3/3 acceptance criteria: respons `summary`/`renewal-summary` build sebelum refactor (`7e4c3774`) dan sesudah (`9062bd61`) identik pada DB dev yang sama (23 November 2026); kesetaraan predikat dibuktikan baris per baris; build 0 error, QBE Strict `PASS` |
 
 ### Backend Governance Preflight
 
@@ -95,7 +95,7 @@ Filter lokasi (`hospitalSiteId`) tetap diterapkan pada basis kueri seperti sebel
 | `dotnet build` penuh Paket B | 0 error; tanpa warning di berkas task | `PASS` | Log build 23 November 2026 |
 | QBE Strict (19 berkas) | `PASS` | `PASS` | Keluaran checker |
 | Pencarian salinan aturan tahapan | Tidak ada lagi di `HrdEmploymentContractService`. Ditemukan aturan 60 hari tersendiri di `HrdLifecycleWorklistService.BuildWorklistItemsAsync` (hanya status `Signed`, tanpa `IsCurrent`) — arti berbeda, milik worklist siklus hidup, tidak disentuh | `PASS` (dengan temuan) | grep 23 November 2026 |
-| Perbandingan respons `summary`/`renewal-summary` sebelum dan sesudah di DB dev (`AT-HRD-PKB-05`) | Belum dijalankan | `NOT RUN` | Butuh izin menyalakan backend pada DB dev bersama |
+| Perbandingan respons `summary`/`renewal-summary` sebelum dan sesudah di DB dev (`AT-HRD-PKB-05`; izin pengguna 23 November 2026) | Build `7e4c3774` (worktree sementara, port 5198) dan build `9062bd61` (port 5199) dijalankan bergantian terhadap DB dev yang sama: kedua respons **identik**. Batas bukti: DB dev belum punya kontrak (0 baris), sehingga seluruh angka 0; kesetaraan untuk data berisi bertumpu pada pembuktian predikat di tabel 3.3 | `PASS` | `contract-before.json` vs `contract-after.json` (scratchpad sesi) |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
@@ -103,7 +103,7 @@ Filter lokasi (`hospitalSiteId`) tetap diterapkan pada basis kueri seperti sebel
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| 1. `summary` dan `renewal-summary` mengembalikan angka yang sama sebelum dan sesudah refactor; bukti respons sebelum/sesudah di DB dev (`AT-HRD-PKB-05`) | **Belum terpenuhi penuh** | Kesetaraan predikat terbukti di tabel 3.3; perbandingan respons DB dev `NOT RUN` |
+| 1. `summary` dan `renewal-summary` mengembalikan angka yang sama sebelum dan sesudah refactor; bukti respons sebelum/sesudah di DB dev (`AT-HRD-PKB-05`) | Terpenuhi | Respons identik pada DB dev (batas: 0 kontrak); kesetaraan predikat di tabel 3.3 |
 | 2. Tidak ada salinan aturan tahapan di luar `ContractRenewalBuckets` | Terpenuhi untuk layar Kontrak | Temuan worklist siklus hidup dicatat (arti berbeda, butuh keputusan bila ingin disatukan) |
 | 3. Kontrak API kontrak kerja tidak berubah | Terpenuhi | DTO dan route tidak disentuh |
 | DoD: laporan tracked, tanda status roadmap | Terpenuhi | Berkas ini |
@@ -114,8 +114,8 @@ Filter lokasi (`hospitalSiteId`) tetap diterapkan pada basis kueri seperti sebel
 | --- | --- |
 | Peringatan | Tidak ada |
 | Masalah yang diketahui | Worklist siklus hidup (`HrdLifecycleWorklistService`) menghitung kontrak "segera berakhir" dengan aturan lain (status `Signed`, tanpa `IsCurrent`). Angkanya bisa berbeda dari layar Kontrak dan dashboard; menyatukannya mengubah perilaku worklist sehingga butuh keputusan terpisah |
-| Risiko tersisa | Rendah — perubahan murni pemindahan predikat; dipastikan lewat AC 1 begitu uji DB dev diizinkan |
+| Risiko tersisa | Rendah — pemindahan predikat murni; perbandingan runtime baru berisi angka 0 |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Source sudah di-commit pengguna (`9062bd61`) |
-| Langkah berikutnya | Jalankan perbandingan respons di DB dev (butuh izin) lalu naikkan ke ✅; `BE-HRD-449` |
+| Langkah berikutnya | Uji ulang perbandingan begitu DB dev punya data kontrak; `BE-HRD-449` |
