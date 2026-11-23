@@ -10,7 +10,7 @@ Bukti backend = `V-BE`; tidak adanya automated test bukan gap (`rules/backend/TE
 
 | Requirement | Decision / aturan | Desain | Task BE | Task FE | Verifikasi | Bukti | Status |
 |---|---|---|---|---|---|---|---|
-| `CAP-07.1` jadwal | `AST-DEC-018`; `AST-RULE-030` | state §1 | `BE-AST-020` 🟡, `021` | `FE-AST-015` | `AT-INV-01`, `31` | `BE-AST-020`: 6 tabel opname, unik parsial sesi aktif per unit dan satu ketua per sesi di source, QBE Strict PASS — [`BE-AST-020.md`](../task/report/backend/BE-AST-020.md) | 🟡 2026-11-23 — model `BE-AST-020` ada, migration menunggu Rizki; `BE-AST-021` dan `FE-AST-015` belum |
+| `CAP-07.1` jadwal | `AST-DEC-018`; `AST-RULE-030` | state §1 | `BE-AST-020` ✅, `021` | `FE-AST-015` | `AT-INV-01`, `31` | `BE-AST-020`: 6 tabel opname, unik parsial sesi aktif per unit dan satu ketua per sesi, migration `AddAssetPhysicalInventory` diterapkan dan diperiksa di DB — [`BE-AST-020.md`](../task/report/backend/BE-AST-020.md) | 🟡 2026-11-23 — tabel `BE-AST-020` ✅; `BE-AST-021` dan `FE-AST-015` belum |
 | Penahanan unit saat opname | `AST-RULE-023`; `AST-DES-008`, `031` | `INT-INV-04` | `BE-AST-021` | — | `AT-INV-03`, `30`; `UAT-INV-02`, `03` | — | belum |
 | `CAP-07.2` pemeriksaan fisik | `AST-DEC-010`, `018`; `AST-FE-003`; `AST-DES-027`, `029` | flowchart 01 | `BE-AST-022` | `FE-AST-016` | `AT-INV-04..06`, `13`, `32`, `33`, `38`; `UAT-INV-06` | — | belum |
 | `CAP-07.3` pencocokan | `AST-RULE-031`; `AST-DES-028` | state §2 | `BE-AST-022` | `FE-AST-017` | `AT-INV-04` | — | belum |

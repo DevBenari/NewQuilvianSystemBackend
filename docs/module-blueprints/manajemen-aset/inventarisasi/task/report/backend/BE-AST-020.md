@@ -15,9 +15,9 @@
 | Task mode | `BACKEND`, diminta Rizki 2026-11-23 ("lanjut modul aset") |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/AssetManagement/PhysicalInventory/**`, `Repositories/Configurations/Corporate/AssetManagement/PhysicalInventory/**`, `ApplicationDbContext.cs` (6 DbSet); migration dibuat Rizki |
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
-| Commit backend saat dikerjakan | `c80d1e3c` (branch `rizkiG`), source belum di-commit |
+| Commit backend saat dikerjakan | Source `5e810439` (Rizki); merge integration `2d76f11b`; migration `20261123032511_AddAssetPhysicalInventory` belum di-commit saat laporan ditulis |
 | Tanggal | 23 November 2026 |
-| Status | 🟡 SEBAGIAN 23 November 2026 — kriteria 1 dan 2 sudah ada di source (QBE Strict PASS); kriteria 3 menunggu Rizki merge integration, build, lalu `migrations add` + `database update` |
+| Status | ✅ SELESAI 23 November 2026 — ketiga kriteria terpetakan ke source dan dibuktikan di berkas migration serta DB dev; migration hanya berisi 6 tabel opname |
 
 **Backend Governance Preflight**
 
@@ -53,6 +53,7 @@ satu sesi hanya punya satu ketua.
 | `PhysicalInventory/Models/AstStockTakeFollowUp.cs` | Baru — jenis, status bawaan `Usulan`, dokumen tujuan, pelaku proses/abaikan |
 | `Repositories/Configurations/Corporate/AssetManagement/PhysicalInventory/*.cs` | Baru — 6 configuration; enum `HasConversion<int>()`; semua FK `Restrict`; `RowVersion` `IsConcurrencyToken()`; check `CK_AstStockTakeSession_Dates` |
 | `Repositories/ApplicationDbContext.cs` | + region `PHYSICAL INVENTORY` 6 DbSet, + 1 `using` |
+| `Migrations/20261123032511_AddAssetPhysicalInventory.cs` (+ Designer, snapshot) | Dibuat dan diterapkan Rizki sesudah merge integration |
 
 Tidak ada baris komentar pada berkas baru. Configuration dipasang lewat `ApplyConfigurationsFromAssembly`, jadi tidak
 ada pendaftaran tambahan.
@@ -71,21 +72,28 @@ ada pendaftaran tambahan.
 
 ---
 
-## 3. Isi migration yang diharapkan
+## 3. Isi migration dan bukti database
 
-Bagian ini dipakai Rizki untuk mencocokkan hasil `dotnet ef migrations add AddAssetPhysicalInventory`:
+Harapan ditulis sebelum migration dibuat, lalu dicocokkan dengan berkas
+`Migrations/20261123032511_AddAssetPhysicalInventory.cs` dan DB dev (`QuilvianNewDevRizki`). Koneksi DB baca-saja
+(`default_transaction_read_only=on`, skrip `test-with-agy/asset-management/be-ast-020-20261123/cek-db.fsx` di repo
+frontend):
 
-| Pemeriksaan | Harapan |
-| --- | --- |
-| `Up()` | Tepat **6 `CreateTable`** + **27 `CreateIndex`**; tidak ada `AddColumn`/`AlterColumn`/`DropColumn`/`CreateTable` tabel lain |
-| `Down()` | 6 `DropTable` |
-| Kolom | `AstStockTakeSession` 32, `AstStockTakeTeamMember` 14, `AstStockTakeExpectedItem` 17, `AstStockTakeScan` 24, `AstStockTakeResult` 23, `AstStockTakeFollowUp` 23 — total 133 (termasuk 10 kolom audit `IdentityModel` per tabel) |
-| FK | 21, seluruhnya `ON DELETE RESTRICT`: sesi 2, tim 2, snapshot 5, pindaian 5, hasil 5, usulan 2 |
-| Check constraint | `CK_AstStockTakeSession_Dates` (`"PlannedEndDate" >= "PlannedStartDate"`) |
-| Snapshot | Bertambah tepat 6 entity `AstStockTake*` |
+| Pemeriksaan | Harapan | Berkas migration | DB dev |
+| --- | --- | --- | --- |
+| `Up()` | 6 `CreateTable` + 27 `CreateIndex`, tanpa operasi tabel lain | 6 `CreateTable`, 27 `CreateIndex`, tidak ada operasi lain | — |
+| `Down()` | 6 `DropTable` | 6 `DropTable` | — |
+| Kolom | Sesi 32, tim 14, snapshot 17, pindaian 24, hasil 23, usulan 23 = 133 | 133, sama per tabel | Sama per tabel (`information_schema.columns`) |
+| FK | 21, semua `Restrict`: sesi 2, tim 2, snapshot 5, pindaian 5, hasil 5, usulan 2 | 21 `ForeignKey`, 21 `ReferentialAction.Restrict` | 21, `confdeltype = r`, sebaran per tabel sama |
+| Check constraint | `CK_AstStockTakeSession_Dates` | Ada | `CHECK (("PlannedEndDate" >= "PlannedStartDate"))` |
+| Index non-PK | Sesi 5, tim 3, snapshot 5, pindaian 5, hasil 5, usulan 4 | 27 | Sama per tabel (`pg_indexes`) |
+| Unik parsial sesi aktif | `("OrganizationUnitId") WHERE Status IN (2,3,4) AND IsDelete = false` | `filter` sesuai | `IX_AstStockTakeSession_ActivePerUnit ... WHERE (("Status" = ANY (ARRAY[2, 3, 4])) AND ("IsDelete" = false))` |
+| Unik parsial ketua | `("SessionId") WHERE IsLeader AND IsDelete = false` | `filter` sesuai | `IX_AstStockTakeTeamMember_LeaderPerSession ... WHERE (("IsLeader" = true) AND ("IsDelete" = false))` |
+| Snapshot | Bertambah tepat 6 entity `AstStockTake*` | +786 baris, 0 baris dihapus, semua blok `AstStockTake*` | — |
+| `__EFMigrationsHistory` | Tercatat | — | `20261123032511_AddAssetPhysicalInventory` (EF 9.0.18) teratas; di bawahnya migration Payroll integration `20261120081927_...TransportAllowancePolicy` sudah diterapkan; total 429 |
 
-Index per tabel: sesi 5, tim 3, snapshot 5, pindaian 5, hasil 5, usulan 4. Index FK yang sudah tertutup index unik atau
-komposit tidak dibuat ulang oleh EF, seperti pada `IX_AstLoanExtension_OpenPerLoan` di `AddAssetMovement`.
+Index FK yang sudah tertutup index unik atau komposit tidak dibuat ulang oleh EF, seperti pada
+`IX_AstLoanExtension_OpenPerLoan` di `AddAssetMovement`. Tabel baru masih kosong (`AstStockTakeSession` 0 baris).
 
 ---
 
@@ -95,12 +103,12 @@ komposit tidak dibuat ulang oleh EF, seperti pada `IX_AstLoanExtension_OpenPerLo
 | --- | --- | --- |
 | QBE `-Mode Strict` (ExplicitFiles: 13 berkas baru + `ApplicationDbContext.cs`) | `Files evaluated: 14`, `VIOLATION: 0`, `REVIEW: 0`, `INFO: 0`, `Final result: PASS` | `PASS` |
 | Bentrok nama | Tidak ada kelas `AstStockTake*` atau enum `StockTake*` lain di source; satu-satunya rujukan lama adalah `AstTransfer.SourceStockTakeResultId` (tanpa FK, sesuai kamus data pergerakan) dan `AssetStockTakeGate` | `PASS` |
-| Model vs snapshot (statis: DbSet + `IEntityTypeConfiguration<>` vs `modelBuilder.Entity(...)` di snapshot) | `rizkiG`: 6 tabel task **+ `HrdOvertimeSetting`** (bagian 5.1). `origin/QuilvianIntegrationBackend` (`ab340bc7`): model dan snapshot selaras | `REVIEW` — selesai lewat merge integration |
-| Build | Belum: dijalankan Rizki | `NOT RUN` |
-| Migration dibuat dan diterapkan | Belum: wewenang Rizki | `NOT RUN` |
+| Model vs snapshot (statis: DbSet + `IEntityTypeConfiguration<>` vs `modelBuilder.Entity(...)` di snapshot) | Sebelum merge, `rizkiG` punya selisih 6 tabel task **+ `HrdOvertimeSetting`** (bagian 5.1), sementara `origin/QuilvianIntegrationBackend` (`ab340bc7`) selaras. Sesudah merge `2d76f11b`, migration hanya memuat 6 tabel task | `PASS` |
+| Build | DLL 2026-11-23 10:27:27 (Rizki, sesudah merge) | `PASS` |
+| Migration dibuat dan diterapkan | Lihat bagian 3 | `PASS` |
 
-Cek statis membandingkan daftar entity, bukan kolom. Perubahan kolom pada tabel lama baru terlihat di isi `Up()`
-hasil `migrations add`, jadi isi itu tetap diperiksa terhadap bagian 3.
+Cek statis hanya membandingkan daftar entity, bukan kolom. Karena itu isi `Up()` juga diperiksa: tidak ada operasi pada
+tabel lama.
 
 ---
 
@@ -110,8 +118,10 @@ hasil `migrations add`, jadi isi itu tetap diperiksa terhadap bagian 3.
 
 Model `HrdOvertimeSetting` (OvertimeManagement, MHamzah1, `e750883d` 2026-11-19) dibuat lewat migration SQL mentah
 `20261118100000_AddHrdOvertimeSetting`, yang tidak memperbarui snapshot di `rizkiG`. Snapshot integration sudah memuat
-entity ini. Kalau `migrations add` dijalankan di `rizkiG` sekarang, migration aset ikut membuat `HrdOvertimeSetting`,
-kasus yang sama dengan `MstJobDescription` pada `AddAssetMovement` (19 Nov).
+entity ini. Kalau `migrations add` dijalankan di `rizkiG` sebelum merge, migration aset akan ikut membuat
+`HrdOvertimeSetting`, kasus yang sama dengan `MstJobDescription` pada `AddAssetMovement` (19 Nov). **Selesai:** Rizki
+merge integration dulu (`2d76f11b`), jadi migration hanya berisi 6 tabel opname. Tabel `HrdOvertimeSetting` sudah ada di
+DB dev dari migration Hamzah.
 
 ### 5.2 Cabang tertinggal dari integration
 
@@ -136,27 +146,21 @@ dan mencegah snapshot bercabang; urutan ini sama dengan `BE-AST-004` (16 Nov) da
 
 | Kriteria | Source | Bukti | Status |
 |---|---|---|---|
-| 1. Enam tabel sesuai data dict | 6 model + 6 configuration | QBE PASS; bukti DB menyusul migration | 🟡 source ada |
-| 2. Unik parsial satu sesi aktif per unit; satu ketua per sesi | `IX_AstStockTakeSession_ActivePerUnit`, `IX_AstStockTakeTeamMember_LeaderPerSession` | Configuration; bukti DB menyusul | 🟡 source ada |
-| 3. Migration hanya menambah enam tabel | — | Menunggu Rizki; harapan di bagian 3 | belum |
+| 1. Enam tabel sesuai data dict | 6 model + 6 configuration | DB: 6 tabel, 133 kolom, 21 FK Restrict, check tanggal | ✅ |
+| 2. Unik parsial satu sesi aktif per unit; satu ketua per sesi | `IX_AstStockTakeSession_ActivePerUnit`, `IX_AstStockTakeTeamMember_LeaderPerSession` | Definisi index di DB (bagian 3) | ✅ |
+| 3. Migration hanya menambah enam tabel | `20261123032511_AddAssetPhysicalInventory` | 6 `CreateTable` + 27 `CreateIndex`, `Down()` 6 `DropTable`, snapshot hanya bertambah | ✅ |
 
 | DoD | Status |
 |---|---|
-| `V-BE` QBE | Terpenuhi |
-| Build, migration diterapkan, isi DB diperiksa | Belum, menunggu Rizki |
+| `V-BE` QBE, build, migration diterapkan, isi DB diperiksa | Terpenuhi |
 | Laporan, roadmap, traceability | Ditulis |
-| Commit | Belum |
+| Commit | Source `5e810439`; migration, snapshot, dan pembaruan laporan belum di-commit |
 
 ---
 
 ## 7. Langkah berikutnya
 
-1. Rizki: merge `origin/QuilvianIntegrationBackend` ke `rizkiG`, lalu `dotnet build -p:RunAnalyzers=false`.
-2. Agent: ulangi cek model↔snapshot. Harapannya selisih tinggal 6 entity `AstStockTake*`.
-3. Rizki: `dotnet ef migrations add AddAssetPhysicalInventory --no-build`, lalu `dotnet ef database update` (sekaligus
-   menerapkan migration Payroll dari integration bila belum ada di DB).
-4. Agent: periksa isi `Up()`/`Down()` terhadap bagian 3 dan DB baca-saja, lalu naikkan status ke ✅.
-5. Task berikutnya: `BE-AST-021` (sesi jadwal/mulai/batal dan gerbang penahanan) bersama `FE-AST-015`.
-
-Selama migration belum diterapkan, model EF lebih maju daripada skema. Tidak ada endpoint yang membaca tabel baru,
-jadi tidak ada endpoint yang terdampak.
+- Commit migration (`20261123032511_AddAssetPhysicalInventory.cs`, Designer, snapshot) bersama pembaruan laporan,
+  roadmap, dan traceability ini.
+- Task berikutnya: `BE-AST-021` (sesi jadwal/mulai/batal dan gerbang penahanan `AssetStockTakeGate`) bersama
+  `FE-AST-015`.
