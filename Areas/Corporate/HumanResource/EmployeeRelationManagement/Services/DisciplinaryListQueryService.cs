@@ -21,6 +21,41 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
 
     public class DisciplinaryListQueryService : IDisciplinaryListQueryService
     {
+        /// <summary>Status sanksi yang sah untuk filter <c>statuses</c> (state-transition v29 bagian 33.2, <c>VR-PKB-04</c>).</summary>
+        public static readonly IReadOnlyList<string> SanctionStatusValues = new[] { "Active", "Expired", "RevokedOnAppeal" };
+
+        public const string UnknownSanctionStatusMessage = "Status sanksi tidak dikenal.";
+        public const string StatusAndStatusesMessage = "Gunakan salah satu: status atau statuses.";
+
+        /// <summary>
+        /// Validasi filter status daftar sanksi (<c>VR-PKB-04</c>, <c>VR-PKB-05</c>). Mengembalikan pesan galat, atau
+        /// <c>null</c> bila filter sah.
+        /// </summary>
+        public static string? ValidateSanctionStatusFilter(DisciplinaryListQuery q)
+        {
+            var requested = (q.Statuses ?? new List<string>()).Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
+            if (requested.Count == 0)
+            {
+                return null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(q.Status))
+            {
+                return StatusAndStatusesMessage;
+            }
+
+            return requested.All(v => SanctionStatusValues.Any(a => string.Equals(a, v.Trim(), StringComparison.OrdinalIgnoreCase)))
+                ? null
+                : UnknownSanctionStatusMessage;
+        }
+
+        private static List<string> NormalizeSanctionStatuses(IEnumerable<string>? values) =>
+            (values ?? Enumerable.Empty<string>())
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Select(v => SanctionStatusValues.First(a => string.Equals(a, v.Trim(), StringComparison.OrdinalIgnoreCase)))
+                .Distinct()
+                .ToList();
+
         private readonly ApplicationDbContext _context;
 
         public DisciplinaryListQueryService(ApplicationDbContext context)
@@ -47,6 +82,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 };
 
             if (!string.IsNullOrWhiteSpace(q.Status)) query = query.Where(x => x.s.Status == q.Status);
+            var statuses = NormalizeSanctionStatuses(q.Statuses);
+            if (statuses.Count > 0) query = query.Where(x => statuses.Contains(x.s.Status));
             if (!string.IsNullOrWhiteSpace(q.Level)) query = query.Where(x => x.s.SanctionLevel == q.Level);
             if (q.ActiveOnly == true)
             {

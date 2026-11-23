@@ -1580,8 +1580,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             Guid? hospitalSiteId,
             CancellationToken cancellationToken = default)
         {
-            var today = DateTime.UtcNow.Date;
-            var sixtyDaysFromNow = today.AddDays(60);
+            // BE-HRD-447: tanggal acuan dan jendela 60 hari berasal dari ContractRenewalBuckets (HRD-DEC-237).
+            var today = ContractRenewalBuckets.ReferenceDate();
 
             var query = _dbContext.WfpContractHistories.AsNoTracking().Where(c => !c.IsDelete);
 
@@ -1598,7 +1598,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
             var activeCount = await query.CountAsync(c => c.IsCurrent && (c.ContractStatus == "Active" || c.ContractStatus == EmploymentLifecycleValueConstants.ContractStatusSigned), cancellationToken);
             var pendingSignedCount = await query.CountAsync(c => c.ContractStatus == EmploymentLifecycleValueConstants.ContractStatusDraft, cancellationToken);
-            var expiringSoonCount = await query.CountAsync(c => c.IsCurrent && c.EndDate.HasValue && c.EndDate.Value >= today && c.EndDate.Value <= sixtyDaysFromNow, cancellationToken);
+            var expiringSoonCount = await query.CountAsync(ContractRenewalBuckets.ExpiringWithinWindow(today), cancellationToken);
             var needsReviewCount = await query.CountAsync(c => c.ContractStatus == "LapsedWithoutDecision" || (c.EndDate.HasValue && c.EndDate.Value < today && (c.ContractStatus == "Active" || c.ContractStatus == EmploymentLifecycleValueConstants.ContractStatusSigned)), cancellationToken);
 
             return RecruitmentResult<EmploymentContractSummaryResponse>.Ok(new EmploymentContractSummaryResponse
@@ -1614,10 +1614,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             Guid? hospitalSiteId,
             CancellationToken cancellationToken = default)
         {
-            var today = DateTime.UtcNow.Date;
-            var h60Date = today.AddDays(60);
-            var h14Date = today.AddDays(14);
-            var h7Date = today.AddDays(7);
+            // BE-HRD-447: definisi tahapan berasal dari ContractRenewalBuckets agar Dashboard SDM memakai aturan yang sama (HRD-DEC-237).
+            var today = ContractRenewalBuckets.ReferenceDate();
 
             var query = _dbContext.WfpContractHistories
                 .AsNoTracking()
@@ -1625,12 +1623,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
             var decisionQuery = _dbContext.HrdContractDecisions
                 .AsNoTracking()
-                .Where(d => !d.IsDelete && d.DecisionType == ContractDecisionType.Extend && d.DecisionStatus == ContractDecisionStatus.Submitted);
+                .Where(ContractRenewalBuckets.PendingDecisionPredicate());
 
             var overdueQuery = _dbContext.WfpContractHistories
                 .AsNoTracking()
-                .Where(c => !c.IsDelete && c.EndDate.HasValue && c.EndDate.Value < today &&
-                            (c.ContractStatus == "Active" || c.ContractStatus == EmploymentLifecycleValueConstants.ContractStatusSigned));
+                .Where(ContractRenewalBuckets.OverduePredicate(today));
 
             if (hospitalSiteId.HasValue && hospitalSiteId.Value != Guid.Empty)
             {
@@ -1645,9 +1642,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 overdueQuery = overdueQuery.Where(c => siteProfileIds.Contains(c.WorkforceProfileId));
             }
 
-            var reminderH60Count = await query.CountAsync(c => c.EndDate.Value <= h60Date && c.EndDate.Value > h14Date, cancellationToken);
-            var escalationH14Count = await query.CountAsync(c => c.EndDate.Value <= h14Date && c.EndDate.Value > h7Date, cancellationToken);
-            var noticeDueH7Count = await query.CountAsync(c => c.EndDate.Value <= h7Date, cancellationToken);
+            var reminderH60Count = await query.CountAsync(ContractRenewalBuckets.Stage(ContractRenewalBuckets.H60, today), cancellationToken);
+            var escalationH14Count = await query.CountAsync(ContractRenewalBuckets.Stage(ContractRenewalBuckets.H14, today), cancellationToken);
+            var noticeDueH7Count = await query.CountAsync(ContractRenewalBuckets.Stage(ContractRenewalBuckets.H7, today), cancellationToken);
             var pendingDecisionCount = await decisionQuery.CountAsync(cancellationToken);
             var overdueCount = await overdueQuery.CountAsync(cancellationToken);
 

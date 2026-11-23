@@ -5,6 +5,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
     {
         public string? Search { get; set; }
         public string? Status { get; set; }
+        /// <summary>
+        /// Beberapa status sekaligus, hanya untuk daftar sanksi (kontrak v29 bagian 35.2, Riwayat Penyelesaian):
+        /// <c>?statuses=Expired&amp;statuses=RevokedOnAppeal</c>. Nilai sah <c>Active</c>, <c>Expired</c>,
+        /// <c>RevokedOnAppeal</c>; tidak boleh dikirim bersama <see cref="Status"/>.
+        /// </summary>
+        public List<string>? Statuses { get; set; }
         /// <summary>Tingkat sanksi, misalnya SP1, SP2, SP3 (hanya untuk daftar sanksi).</summary>
         public string? Level { get; set; }
         /// <summary>Sanksi: masih berlaku hari ini. Skorsing: belum diakhiri.</summary>

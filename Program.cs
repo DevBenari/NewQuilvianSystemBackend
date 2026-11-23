@@ -1159,6 +1159,7 @@ try
     // Workforce Core - Unified SK Kepegawaian, Employee 360, & Initial Batch Placement (BE-HRD-024..027)
     builder.Services.AddScoped<IHrdPersonnelActionOrderService, HrdPersonnelActionOrderService>();
     builder.Services.AddScoped<IHrdEmployee360Service, HrdEmployee360Service>();
+    builder.Services.AddScoped<IHrdWorkforceDashboardService, HrdWorkforceDashboardService>(); // Paket B BE-HRD-448: Dashboard SDM
     builder.Services.AddScoped<IHrdInitialPlacementBatchService, HrdInitialPlacementBatchService>();
     // MSL-13 (register-masalah-hr.md, 18 Nov 2026): worker penjadwal SDM hanya berjalan pada Runtime:Role All/Worker.
     // Pada Blue-Green (BLUE/GREEN = Web, satu container Worker) pendaftaran tanpa gerbang membuat setiap worker berjalan tiga kali.

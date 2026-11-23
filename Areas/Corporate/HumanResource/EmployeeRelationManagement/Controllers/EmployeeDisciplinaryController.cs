@@ -280,11 +280,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         [AccessAction("ViewSanctions", "Melihat Daftar Sanksi Seluruh Pegawai", AccessType = AccessTypes.Read, SortOrder = 20)]
         [AccessPermission("EmployeeDisciplinary", "ViewSanctions")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<SanctionListItemDto>>), 200)]
+        [ProducesResponseType(typeof(ApiResponse<object>), 400)]
         public async Task<IActionResult> GetSanctionList(
             [FromQuery] DisciplinaryListQuery query,
             [FromServices] IDisciplinaryListQueryService listService,
             CancellationToken cancellationToken = default)
         {
+            // BE-HRD-446: filter beberapa status untuk Riwayat Penyelesaian (VR-PKB-04, VR-PKB-05).
+            var filterError = DisciplinaryListQueryService.ValidateSanctionStatusFilter(query);
+            if (filterError != null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(400, filterError));
+            }
+
             var result = await listService.GetSanctionsAsync(query, cancellationToken);
             return Ok(ApiResponse<PagedResult<SanctionListItemDto>>.Ok(result, "Daftar berhasil diambil."));
         }

@@ -99,5 +99,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public EvaluationRecommendation? Recommendation { get; set; }
         public bool? IsClinicalVetoApplied { get; set; }
         public string? Search { get; set; }
+
+        /// <summary>
+        /// Jalur Tes/Wawancara (kontrak v29 bagian 35.4, state 33.3): <c>HR</c> = <c>HrInterview</c>;
+        /// <c>CLINICAL</c> = <c>ClinicalAssessment</c> dan <c>UserInterview</c> (<c>HRD-ASM-93</c>). Kosong = semua jalur.
+        /// </summary>
+        public string? Track { get; set; }
+
+        /// <summary><c>true</c> = hanya evaluasi yang belum dinilai (belum pernah dikirim nilainya).</summary>
+        public bool? PendingOnly { get; set; }
+    }
+
+    /// <summary>Nilai sah parameter <see cref="CandidateEvaluationQuery.Track"/>.</summary>
+    public static class CandidateEvaluationTracks
+    {
+        public const string Hr = "HR";
+        public const string Clinical = "CLINICAL";
     }
 }

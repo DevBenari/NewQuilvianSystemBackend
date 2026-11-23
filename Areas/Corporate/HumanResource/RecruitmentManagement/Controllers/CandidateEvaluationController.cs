@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Services.Security;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Controllers
 {
@@ -29,21 +30,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     public sealed class CandidateEvaluationController : ControllerBase
     {
         private readonly ICandidateEvaluationService _service;
+        private readonly AccessPermissionService _permissionService;
 
-        public CandidateEvaluationController(ICandidateEvaluationService service)
+        public CandidateEvaluationController(
+            ICandidateEvaluationService service,
+            AccessPermissionService permissionService)
         {
             _service = service;
+            _permissionService = permissionService;
         }
 
         [HttpGet]
         [AccessAction("Read", "Melihat Evaluasi Kandidat", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("CandidateEvaluation", "Read")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<CandidateEvaluationListItemResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetPaged(
             [FromQuery] CandidateEvaluationQuery query,
             CancellationToken cancellationToken)
         {
-            var result = await _service.GetPagedAsync(query, cancellationToken);
+            var canViewAll = await CanViewAllEvaluationsAsync();
+            var result = await _service.GetPagedAsync(query, User, canViewAll, cancellationToken);
             return ToActionResult(result);
         }
 
@@ -51,12 +58,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         [AccessAction("Read", "Melihat Evaluasi Kandidat", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("CandidateEvaluation", "Read")]
         [ProducesResponseType(typeof(ApiResponse<CandidateEvaluationResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(
             [FromRoute] Guid id,
             CancellationToken cancellationToken)
         {
-            var result = await _service.GetByIdAsync(id, cancellationToken);
+            var canViewAll = await CanViewAllEvaluationsAsync();
+            var result = await _service.GetByIdAsync(id, User, canViewAll, cancellationToken);
             return ToActionResult(result);
         }
 
@@ -107,6 +116,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         [AccessPermission("CandidateEvaluation", "EvaluateClinical")]
         [ProducesResponseType(typeof(ApiResponse<CandidateEvaluationResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         public async Task<IActionResult> SubmitClinical(
@@ -122,6 +132,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var result = await _service.SubmitClinicalEvaluationAsync(id, request, User, cancellationToken);
             return ToActionResult(result);
         }
+
+        /// <summary>
+        /// Penanda <c>CandidateEvaluation : ViewAll</c> (BE-HRD-444, <c>HRD-DEC-233</c>): tanpa penanda ini daftar dan detail
+        /// Tes/Wawancara dibatasi pada evaluasi yang ditugaskan kepada pengguna yang login.
+        /// </summary>
+        private Task<bool> CanViewAllEvaluationsAsync() =>
+            _permissionService.HasAccessAsync(User, RecruitmentEvaluationPermissions.Resource, RecruitmentEvaluationPermissions.ViewAll);
 
         private IActionResult ToActionResult<T>(RecruitmentResult<T> result)
         {
