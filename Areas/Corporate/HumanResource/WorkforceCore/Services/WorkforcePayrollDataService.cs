@@ -30,11 +30,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
         private const string CompleteFilter = "Lengkap";
         private const string IncompleteFilter = "Belum lengkap";
 
-        private const string SalaryApprovedLabel = "Disetujui";
+        private const string SalaryApprovedLabel = "Berlaku";
         private const string SalaryPendingApproval = "Menunggu Persetujuan HRD";
         private const string SalaryConflictLabel = "Konflik Penetapan Gaji";
-        private const string SalaryNotYetEffective = "Belum Berlaku";
-        private const string SalaryExpiredLabel = "Sudah Berakhir";
+        private const string SalaryNotYetEffective = "Terjadwal";
+        private const string SalaryExpiredLabel = "Berakhir";
         private const string SalaryNoneLabel = "Belum Ada";
 
         private const string BankNotYetEffective = "Belum berlaku";
@@ -75,6 +75,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             string? SalaryGradeName,
             decimal GradeMinimum,
             decimal GradeMaximum,
+            decimal? StructureMinimum,
+            decimal? StructureMaximum,
             decimal BaseSalary,
             string CurrencyCode,
             string PaymentFrequency,
@@ -220,25 +222,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 Issues = evaluated.Issues,
                 Salary = salaryRow is null
                     ? null
-                    : new WorkforcePayrollSalaryDetail
-                    {
-                        Id = salaryRow.Id,
-                        SalaryStructureId = salaryRow.SalaryStructureId,
-                        SalaryStructureCode = salaryRow.SalaryStructureCode,
-                        SalaryStructureName = salaryRow.SalaryStructureName,
-                        SalaryGradeId = salaryRow.SalaryGradeId,
-                        SalaryGradeCode = salaryRow.SalaryGradeCode,
-                        SalaryGradeName = salaryRow.SalaryGradeName,
-                        GradeMinimum = includeAmounts ? salaryRow.GradeMinimum : null,
-                        GradeMaximum = includeAmounts ? salaryRow.GradeMaximum : null,
-                        BaseSalary = includeAmounts ? salaryRow.BaseSalary : null,
-                        CurrencyCode = salaryRow.CurrencyCode,
-                        PaymentFrequency = salaryRow.PaymentFrequency,
-                        EffectiveStartDate = salaryRow.EffectiveStartDate,
-                        EffectiveEndDate = salaryRow.EffectiveEndDate,
-                        IsApproved = salaryRow.ApprovedAt.HasValue,
-                        ApprovedAt = salaryRow.ApprovedAt
-                    },
+                    : BuildSalaryDetail(salaryRow, includeAmounts),
                 BankAccount = bankRow is null
                     ? null
                     : new WorkforcePayrollBankDetail
@@ -343,6 +327,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     AmountsVisible = includeAmounts,
                     // Nominal hanya dari WfpSalaryAssignment yang berlaku saat ini; null bila tanpa ViewAmount atau belum tersedia.
                     BaseSalary = includeAmounts && salaryRow is not null ? salaryRow.BaseSalary : null,
+                    SalaryRangeText = includeAmounts && salaryRow is not null
+                        ? PayrollSalaryRangeRuleService.CalculateEffectiveRange(salaryRow.GradeMinimum, salaryRow.GradeMaximum, salaryRow.StructureMinimum, salaryRow.StructureMaximum).SalaryRangeText
+                        : null,
                     CurrencyCode = salaryRow?.CurrencyCode,
                     PaymentFrequency = salaryRow?.PaymentFrequency,
                     SalaryStatus = evaluated.SalaryStatus,
@@ -443,6 +430,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     GradeName = x.SalaryGrade != null ? x.SalaryGrade.SalaryGradeName : null,
                     GradeMinimum = x.SalaryGrade != null ? x.SalaryGrade.MinimumSalary : 0m,
                     GradeMaximum = x.SalaryGrade != null ? x.SalaryGrade.MaximumSalary : 0m,
+                    StructureMinimum = x.SalaryStructure != null ? x.SalaryStructure.MinimumBaseSalary : null,
+                    StructureMaximum = x.SalaryStructure != null ? x.SalaryStructure.MaximumBaseSalary : null,
                     x.BaseSalary,
                     x.CurrencyCode,
                     x.PaymentFrequency,
@@ -464,6 +453,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     x.GradeName,
                     x.GradeMinimum,
                     x.GradeMaximum,
+                    x.StructureMinimum,
+                    x.StructureMaximum,
                     x.BaseSalary,
                     x.CurrencyCode,
                     x.PaymentFrequency,
@@ -552,6 +543,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             bool IsComplete,
             List<string> Issues);
 
+        private static WorkforcePayrollSalaryDetail BuildSalaryDetail(SalaryProjection salaryRow, bool includeAmounts)
+        {
+            var range = PayrollSalaryRangeRuleService.CalculateEffectiveRange(
+                salaryRow.GradeMinimum, salaryRow.GradeMaximum, salaryRow.StructureMinimum, salaryRow.StructureMaximum);
+
+            return new WorkforcePayrollSalaryDetail
+            {
+                Id = salaryRow.Id,
+                SalaryStructureId = salaryRow.SalaryStructureId,
+                SalaryStructureCode = salaryRow.SalaryStructureCode,
+                SalaryStructureName = salaryRow.SalaryStructureName,
+                SalaryGradeId = salaryRow.SalaryGradeId,
+                SalaryGradeCode = salaryRow.SalaryGradeCode,
+                SalaryGradeName = salaryRow.SalaryGradeName,
+                GradeMinimum = includeAmounts ? range.GradeMinimumSalary : null,
+                GradeMaximum = includeAmounts ? range.GradeMaximumSalary : null,
+                StructureMinimum = includeAmounts ? range.StructureMinimumSalary : null,
+                StructureMaximum = includeAmounts ? range.StructureMaximumSalary : null,
+                EffectiveMinimum = includeAmounts ? range.EffectiveMinimumSalary : null,
+                EffectiveMaximum = includeAmounts ? range.EffectiveMaximumSalary : null,
+                SalaryRangeText = includeAmounts ? range.SalaryRangeText : "Terselubung (Memerlukan Wewenang ViewAmount)",
+                BaseSalary = includeAmounts ? salaryRow.BaseSalary : null,
+                CurrencyCode = salaryRow.CurrencyCode,
+                PaymentFrequency = salaryRow.PaymentFrequency,
+                EffectiveStartDate = salaryRow.EffectiveStartDate,
+                EffectiveEndDate = salaryRow.EffectiveEndDate,
+                IsApproved = salaryRow.ApprovedAt.HasValue,
+                ApprovedAt = salaryRow.ApprovedAt
+            };
+        }
+
         private static HrdEvaluation EvaluateHrd(
             PayrollHrdSalary? salary,
             PayrollHrdBank? bank,
@@ -566,13 +588,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             {
                 salaryStatus = missingSalary?.Status ?? SalaryNoneLabel;
             }
-            else if (!assessment.SalaryApproved)
-            {
-                salaryStatus = SalaryPendingApproval;
-            }
             else
             {
-                salaryStatus = assessment.SalaryConflict ? SalaryConflictLabel : SalaryApprovedLabel;
+                salaryStatus = assessment.SalaryConflict
+                    ? SalaryConflictLabel
+                    : assessment.SalaryApproved ? SalaryApprovedLabel : SalaryPendingApproval;
             }
 
             string bankStatus;

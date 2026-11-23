@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
 {
@@ -18,6 +19,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
         public Guid? LegalEntityId { get; set; }
         public Guid? HospitalSiteId { get; set; }
         public Guid? EmployeeGradeId { get; set; }
+
+        /// <summary>Grade Gaji (penggajian), BUKAN grade kepegawaian (<see cref="EmployeeGradeId"/>). Null pada kebijakan lama. Aditif (PAY-BE-FIX-014).</summary>
+        public Guid? SalaryGradeId { get; set; }
+        public string? SalaryGradeName { get; set; }
+
+        /// <summary>Struktur Gaji yang milik <see cref="SalaryGradeId"/>. Null = seluruh struktur grade itu, atau data lama. Aditif (PAY-BE-FIX-014).</summary>
+        public Guid? SalaryStructureId { get; set; }
+        public string? SalaryStructureName { get; set; }
+
+        /// <summary>Scoped | GradeScoped | LegacyUnscoped | Invalid (TransportPolicyScopeStatuses), diturunkan saat dibaca. Aditif (PAY-BE-FIX-014).</summary>
+        public string ScopeStatus { get; set; } = TransportPolicyScopeStatuses.LegacyUnscoped;
+
         public Guid? PayrollComponentId { get; set; }
         public string? PayrollComponentCode { get; set; }
         public string? PayrollComponentName { get; set; }
@@ -33,11 +46,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
         public bool IsProrated { get; set; }
         public bool IsTaxable { get; set; }
 
-        /// <summary>Klasifikasi tunjangan tetap; terpisah dari IsTaxable. Transportasi berbasis kehadiran/per hari tidak pernah tunjangan tetap. Null = belum diklasifikasikan.</summary>
-        public bool? IsFixedAllowance { get; set; }
-
-        /// <summary>Masuk dasar upah iuran BPJS; hanya boleh true bila IsFixedAllowance true.</summary>
-        public bool? IncludeInBpjsWageBase { get; set; }
         public bool IsIncludedInPayroll { get; set; }
         public bool IncludeBusinessTravelDay { get; set; }
         public bool IncludePaidLeaveDay { get; set; }
@@ -67,6 +75,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
         public string CalculationMethod { get; set; } = string.Empty;
         public decimal FixedMonthlyAmount { get; set; }
         public decimal PerAttendanceAmount { get; set; }
+        public decimal MonthlyLimitAmount { get; set; }
+        public Guid? EmployeeGradeId { get; set; }
+        public string? EmployeeGradeName { get; set; }
+
+        /// <summary>Aditif (PAY-BE-FIX-014): cakupan tersimpan agar pemilih tidak mengira kebijakan ini sah untuk semua grade/struktur.</summary>
+        public Guid? SalaryGradeId { get; set; }
+        public string? SalaryGradeName { get; set; }
+        public Guid? SalaryStructureId { get; set; }
+        public string? SalaryStructureName { get; set; }
+        public string ScopeStatus { get; set; } = TransportPolicyScopeStatuses.LegacyUnscoped;
+
+        public Guid? PayrollComponentId { get; set; }
     }
 
     public class WfpTransportAllowancePolicyOptionPagedResponse
@@ -92,6 +112,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
         public Guid? LegalEntityId { get; set; }
         public Guid? HospitalSiteId { get; set; }
         public Guid? EmployeeGradeId { get; set; }
+        public Guid? SalaryGradeId { get; set; }
+        public Guid? SalaryStructureId { get; set; }
         public Guid? PayrollComponentId { get; set; }
         public string? CalculationMethod { get; set; }
         public bool? IsAttendanceBased { get; set; }
@@ -121,6 +143,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
         public Guid? LegalEntityId { get; set; }
         public Guid? HospitalSiteId { get; set; }
         public Guid? EmployeeGradeId { get; set; }
+
+        /// <summary>Grade Gaji. Opsional demi kompatibilitas klien lama. Aditif (PAY-BE-FIX-014).</summary>
+        public Guid? SalaryGradeId { get; set; }
+
+        /// <summary>Struktur Gaji; wajib milik <see cref="SalaryGradeId"/> yang sama. Aditif (PAY-BE-FIX-014).</summary>
+        public Guid? SalaryStructureId { get; set; }
+
         public Guid? PayrollComponentId { get; set; }
 
         [Required]
@@ -150,11 +179,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs
         public bool IsProrated { get; set; } = true;
         public bool IsTaxable { get; set; } = true;
 
-        /// <summary>Klasifikasi tunjangan tetap; terpisah dari IsTaxable. Kosong = belum diklasifikasikan.</summary>
-        public bool? IsFixedAllowance { get; set; }
-
-        /// <summary>Masuk dasar upah iuran BPJS; hanya boleh true bila IsFixedAllowance true.</summary>
-        public bool? IncludeInBpjsWageBase { get; set; }
         public bool IsIncludedInPayroll { get; set; } = true;
         public bool IncludeBusinessTravelDay { get; set; }
         public bool IncludePaidLeaveDay { get; set; }

@@ -8,8 +8,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public int ActiveData { get; set; }
         public int InactiveData { get; set; }
         public int PrimaryData { get; set; }
+        /// <summary>Persetujuan manual tercatat (ApprovedAt dan ApprovedByUserId terisi). Bukan "sah dipakai Payroll": lihat PayrollUsableData.</summary>
         public int ApprovedData { get; set; }
+
+        /// <summary>
+        /// Belum ada persetujuan manual. Bila ApprovalRequired false, ini BUKAN antrean yang perlu disetujui: penetapan itu sah menurut
+        /// kebijakan (lihat AutoByPolicyData). Maknanya tidak diubah demi kompatibilitas.
+        /// </summary>
         public int PendingApprovalData { get; set; }
+
+        /// <summary>True bila Payroll mensyaratkan persetujuan manual (Payroll:Policy:RequireApprovedSalaryAssignment). Aditif.</summary>
+        public bool ApprovalRequired { get; set; }
+
+        /// <summary>Belum ada persetujuan manual dan kebijakan tidak mensyaratkannya: sah menurut kebijakan. Selalu 0 bila ApprovalRequired true. Aditif.</summary>
+        public int AutoByPolicyData { get; set; }
+
+        /// <summary>Menunggu persetujuan yang disyaratkan kebijakan. Selalu 0 bila ApprovalRequired false. Aditif.</summary>
+        public int AwaitingApprovalData { get; set; }
+
+        /// <summary>Jumlah penetapan yang saat ini berlaku sebagai penetapan utama dan boleh dipakai Payroll (IsPayrollUsable). Aditif.</summary>
+        public int PayrollUsableData { get; set; }
     }
 
     public class WfpSalaryAssignmentResponse
@@ -19,10 +37,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public string WorkforceProfileCode { get; set; } = string.Empty;
         public string WorkforceDisplayName { get; set; } = string.Empty;
         public Guid SalaryStructureId { get; set; }
+        public string? SalaryStructureCode { get; set; }
+        public string? SalaryStructureName { get; set; }
         public Guid SalaryGradeId { get; set; }
+        public string? SalaryGradeCode { get; set; }
+        public string? SalaryGradeName { get; set; }
         public Guid? EmployeeGradeId { get; set; }
+        public string? EmployeeGradeName { get; set; }
         public Guid? PayrollPeriodId { get; set; }
-        public decimal BaseSalary { get; set; }
+        public string? PayrollPeriodCode { get; set; }
+        public string? PayrollPeriodName { get; set; }
+        /// <summary>Null (bukan 0) bila pemanggil tidak memiliki izin ViewAmount; gunakan <see cref="AmountsVisible"/> untuk membedakannya dari nilai nol sungguhan.</summary>
+        public decimal? BaseSalary { get; set; }
+        public decimal? GradeMinimumSalary { get; set; }
+        public decimal? GradeMaximumSalary { get; set; }
+        public decimal? StructureMinimumSalary { get; set; }
+        public decimal? StructureMaximumSalary { get; set; }
+        public decimal? EffectiveMinimumSalary { get; set; }
+        public decimal? EffectiveMaximumSalary { get; set; }
+        public string? SalaryRangeText { get; set; }
+        public string? OperationalStatus { get; set; }
+        public bool AmountsVisible { get; set; } = true;
         public string CurrencyCode { get; set; } = "IDR";
         public string PaymentFrequency { get; set; } = "Monthly";
         public DateTime EffectiveStartDate { get; set; }
@@ -33,7 +68,66 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public Guid? ApprovedByUserId { get; set; }
         public string? ApprovedByUserName { get; set; }
         public DateTime? ApprovedAt { get; set; }
+
+        /// <summary>Benar hanya bila ApprovedAt dan ApprovedByUserId terisi. IsActive tidak pernah berarti disetujui (PAY-BE-FIX-008).</summary>
         public bool IsApproved { get; set; }
+
+        /// <summary>Approved | PendingApproval (WfpSalaryAssignmentRules). Skema belum memisahkan Draft dari PendingApproval. Aditif.</summary>
+        public string ApprovalStatus { get; set; } = "PendingApproval";
+
+        /// <summary>
+        /// True bila Payroll saat ini mensyaratkan penetapan disetujui (Payroll:Policy:RequireApprovedSalaryAssignment). False (bawaan): penetapan
+        /// aktif dipakai payroll walaupun PendingApproval, sehingga status itu bersifat informasi. Aditif.
+        /// </summary>
+        public bool ApprovalRequired { get; set; }
+
+        /// <summary>
+        /// Asal wewenang untuk Payroll: ManualApproved | AutoByPolicy | PendingApproval (WfpSalaryAuthorizationStatuses). AutoByPolicy berarti sah
+        /// menurut kebijakan tanpa persetujuan manual; ApprovedAt/ApprovedByUserId tetap kosong. Aditif (PAY-BE-FIX-010).
+        /// </summary>
+        public string AuthorizationStatus { get; set; } = string.Empty;
+
+        /// <summary>Current | Scheduled | Expired | Inactive | NotPrimary (WfpSalaryOperationalStatuses), terpisah dari asal persetujuan. Aditif (PAY-BE-FIX-010).</summary>
+        public string OperationalStatusCode { get; set; } = string.Empty;
+
+        /// <summary>True bila penetapan ini sedang berlaku sebagai penetapan utama dan boleh dipakai Payroll menurut kebijakan. Aditif (PAY-BE-FIX-010).</summary>
+        public bool IsPayrollUsable { get; set; }
+
+        /// <summary>SK Kepegawaian (HrdPersonnelActionOrder) yang menjadi dasar penetapan ini; null bila tidak ditautkan. Aditif.</summary>
+        public Guid? PersonnelActionOrderId { get; set; }
+        public string? PersonnelActionOrderNumber { get; set; }
+
+        /// <summary>
+        /// Penetapan ini sudah dipakai payroll run yang disahkan: struktur, grade, gaji pokok, mata uang, dan tanggal mulainya tidak lagi
+        /// dapat diubah (hanya penutupan masa berlaku dan penetapan baru). Aditif.
+        /// </summary>
+        public bool IsLockedByFinalPayroll { get; set; }
+
+        /// <summary>Akhir periode payroll terakhir yang disahkan dan memakai penetapan ini; null bila belum dipakai. Aditif.</summary>
+        public DateTime? LastFinalPayrollPeriodEnd { get; set; }
+
+        /// <summary>
+        /// Gaji Dasar bawaan Struktur Gaji (MstSalaryStructure.DefaultBaseSalary) SAAT INI. Bukan nominal tersimpan: penetapan menyimpan
+        /// <see cref="BaseSalary"/> miliknya sendiri sebagai histori. Null tanpa izin ViewAmount. Aditif (PAY-BE-FIX-011).
+        /// </summary>
+        public decimal? StructureDefaultBaseSalary { get; set; }
+
+        /// <summary>
+        /// True bila nominal tersimpan berbeda dari Gaji Dasar bawaan struktur saat ini (master berubah setelah penetapan dibuat, atau data
+        /// lama). Hanya penanda untuk ditinjau: tidak ada yang diubah otomatis. Null tanpa izin ViewAmount atau tanpa struktur. Aditif.
+        /// </summary>
+        public bool? BaseSalaryDiffersFromStructureDefault { get; set; }
+
+        /// <summary>
+        /// Keabsahan master pada hari ini: Valid | StructureInactive | GradeInactive | StructureNotYetEffective | StructureExpired
+        /// (PayrollSalaryMasterValidity). Penetapan lama tetap tersimpan apa adanya; status ini hanya menjelaskan mengapa struktur itu tidak
+        /// lagi dapat dipilih untuk penetapan baru. Aditif (PAY-BE-FIX-011).
+        /// </summary>
+        public string MasterValidityStatus { get; set; } = "Valid";
+
+        /// <summary>Alasan yang dapat dibaca pengguna untuk <see cref="MasterValidityStatus"/>; null bila Valid. Aditif.</summary>
+        public string? MasterValidityMessage { get; set; }
+
         public string? Description { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }
@@ -92,8 +186,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public Guid? EmployeeGradeId { get; set; }
         public Guid? PayrollPeriodId { get; set; }
 
+        /// <summary>
+        /// SK Kepegawaian (promosi/mutasi) yang menjadi dasar penetapan ini. Opsional dan aditif: SK tidak pernah mengubah gaji langsung;
+        /// ini hanya tautan agar HRD dan approver dapat menelusuri penetapan ke SK-nya. Harus milik pegawai yang sama.
+        /// </summary>
+        public Guid? PersonnelActionOrderId { get; set; }
+
+        /// <summary>
+        /// TIDAK OTORITATIF (PAY-BE-FIX-011). Gaji Dasar ditentukan server: untuk penetapan baru atau pergantian struktur/grade dari
+        /// MstSalaryStructure.DefaultBaseSalary; untuk penetapan yang struktur dan gradenya tidak berubah, nominal tersimpan dipertahankan.
+        /// Boleh dikosongkan. Klien lama yang masih mengirimnya diterima HANYA bila sama dengan nominal hasil penentuan server; nilai
+        /// berbeda ditolak (400), tidak pernah disimpan.
+        /// </summary>
         [Range(0, double.MaxValue)]
-        public decimal BaseSalary { get; set; }
+        public decimal? BaseSalary { get; set; }
 
         [Required, StringLength(3, MinimumLength = 3)]
         public string CurrencyCode { get; set; } = "IDR";

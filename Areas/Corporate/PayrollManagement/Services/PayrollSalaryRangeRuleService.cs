@@ -105,10 +105,353 @@ public sealed class PayrollSalaryRangeRuleService
             $"Rentang baru membuat {outOfRangeCodes.Count} struktur aktif keluar batas: {listed}. Sesuaikan struktur dulu.");
     }
 
+    /// <summary>
+    /// Menghitung rentang gaji efektif gabungan antara Grade Gaji dan Struktur Gaji.
+    /// EffectiveMinimum = MAX(Grade.MinimumSalary, Structure.MinimumBaseSalary)
+    /// EffectiveMaximum = MIN(Grade.MaximumSalary, Structure.MaximumBaseSalary)
+    /// </summary>
+    public static EffectiveSalaryRange CalculateEffectiveRange(
+        decimal gradeMin,
+        decimal gradeMax,
+        decimal? structMin,
+        decimal? structMax)
+    {
+        var lower = gradeMin;
+        if (structMin.HasValue && structMin.Value > 0m)
+        {
+            lower = Math.Max(lower, structMin.Value);
+        }
+
+        decimal upper = 0m;
+        var hasGradeMax = gradeMax > 0m;
+        var hasStructMax = structMax.HasValue && structMax.Value > 0m;
+
+        if (hasGradeMax && hasStructMax)
+        {
+            upper = Math.Min(gradeMax, structMax.Value);
+        }
+        else if (hasGradeMax)
+        {
+            upper = gradeMax;
+        }
+        else if (hasStructMax)
+        {
+            upper = structMax.Value;
+        }
+
+        var hasRange = lower > 0m || upper > 0m;
+        string rangeText;
+
+        if (lower > 0m && upper > 0m)
+        {
+            rangeText = lower == upper
+                ? $"{Rupiah(lower)} (Pasti)"
+                : $"{Rupiah(lower)} – {Rupiah(upper)}";
+        }
+        else if (lower > 0m && upper <= 0m)
+        {
+            rangeText = $"{Rupiah(lower)} – Belum Dikonfigurasi";
+        }
+        else if (lower <= 0m && upper > 0m)
+        {
+            rangeText = $"Hingga {Rupiah(upper)}";
+        }
+        else
+        {
+            rangeText = "Belum Dikonfigurasi";
+        }
+
+        return new EffectiveSalaryRange(
+            GradeMinimumSalary: gradeMin,
+            GradeMaximumSalary: gradeMax,
+            StructureMinimumSalary: structMin,
+            StructureMaximumSalary: structMax,
+            EffectiveMinimumSalary: lower,
+            EffectiveMaximumSalary: upper,
+            HasRange: hasRange,
+            SalaryRangeText: rangeText);
+    }
+
+    /// <summary>
+    /// Validasi penetapan gaji karyawan/dokter: memeriksa keaktifan struktur & grade, kesesuaian relasi
+    /// struktur terhadap grade, kesesuaian mata uang, dan memastikan nominal gaji pokok berada dalam rentang efektif grade dan struktur.
+    /// </summary>
+    public Task<PayrollSalaryRangeCheck> ValidateSalaryAssignmentAsync(
+        Guid salaryStructureId,
+        Guid salaryGradeId,
+        decimal baseSalary,
+        CancellationToken cancellationToken) =>
+        ValidateSalaryAssignmentAsync(salaryStructureId, salaryGradeId, baseSalary, null, cancellationToken);
+
+    public async Task<PayrollSalaryRangeCheck> ValidateSalaryAssignmentAsync(
+        Guid salaryStructureId,
+        Guid salaryGradeId,
+        decimal baseSalary,
+        string? currencyCode,
+        CancellationToken cancellationToken)
+    {
+        if (baseSalary <= 0m)
+        {
+            return PayrollSalaryRangeCheck.Invalid(400, "Gaji pokok harus lebih besar dari 0.");
+        }
+
+        var structure = await _dbContext.MstSalaryStructures
+            .AsNoTracking()
+            .Where(x => x.Id == salaryStructureId && !x.IsDelete)
+            .Select(x => new
+            {
+                x.SalaryStructureCode,
+                x.SalaryStructureName,
+                x.SalaryGradeId,
+                x.CurrencyCode,
+                x.MinimumBaseSalary,
+                x.MaximumBaseSalary,
+                x.IsActive
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (structure == null || !structure.IsActive)
+        {
+            return PayrollSalaryRangeCheck.Invalid(400, "Struktur Gaji tidak ditemukan atau tidak aktif.");
+        }
+
+        if (structure.SalaryGradeId != salaryGradeId)
+        {
+            return PayrollSalaryRangeCheck.Invalid(400, "Struktur Gaji yang dipilih tidak sesuai dengan Grade Gaji yang dipilih.");
+        }
+
+        var grade = await _dbContext.MstSalaryGrades
+            .AsNoTracking()
+            .Where(x => x.Id == salaryGradeId && !x.IsDelete)
+            .Select(x => new
+            {
+                x.SalaryGradeCode,
+                x.SalaryGradeName,
+                x.CurrencyCode,
+                x.MinimumSalary,
+                x.MaximumSalary,
+                x.IsActive
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (grade == null || !grade.IsActive)
+        {
+            return PayrollSalaryRangeCheck.Invalid(400, "Grade Gaji tidak ditemukan atau tidak aktif.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(structure.CurrencyCode) &&
+            !string.IsNullOrWhiteSpace(grade.CurrencyCode) &&
+            !string.Equals(structure.CurrencyCode, grade.CurrencyCode, StringComparison.OrdinalIgnoreCase))
+        {
+            return PayrollSalaryRangeCheck.Invalid(400,
+                $"Mata uang Struktur Gaji ({structure.CurrencyCode}) tidak sesuai dengan Grade Gaji ({grade.CurrencyCode}).");
+        }
+
+        if (!string.IsNullOrWhiteSpace(currencyCode))
+        {
+            if (!string.IsNullOrWhiteSpace(structure.CurrencyCode) &&
+                !string.Equals(structure.CurrencyCode, currencyCode.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return PayrollSalaryRangeCheck.Invalid(400,
+                    $"Mata uang ({currencyCode.Trim().ToUpperInvariant()}) tidak sesuai dengan Struktur Gaji ({structure.CurrencyCode}).");
+            }
+
+            if (!string.IsNullOrWhiteSpace(grade.CurrencyCode) &&
+                !string.Equals(grade.CurrencyCode, currencyCode.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return PayrollSalaryRangeCheck.Invalid(400,
+                    $"Mata uang ({currencyCode.Trim().ToUpperInvariant()}) tidak sesuai dengan Grade Gaji ({grade.CurrencyCode}).");
+            }
+        }
+
+        var range = CalculateEffectiveRange(grade.MinimumSalary, grade.MaximumSalary, structure.MinimumBaseSalary, structure.MaximumBaseSalary);
+
+        if (range.EffectiveMaximumSalary > 0m && range.EffectiveMaximumSalary < range.EffectiveMinimumSalary)
+        {
+            return PayrollSalaryRangeCheck.Invalid(400,
+                $"Konfigurasi rentang gaji tidak valid: batas atas ({Rupiah(range.EffectiveMaximumSalary)}) lebih kecil dari batas bawah ({Rupiah(range.EffectiveMinimumSalary)}).");
+        }
+
+        if (range.EffectiveMinimumSalary > 0m && baseSalary < range.EffectiveMinimumSalary)
+        {
+            return PayrollSalaryRangeCheck.Invalid(400,
+                $"Gaji pokok kurang dari batas minimum grade yang dipilih (tidak boleh lebih rendah dari batas minimum grade) ({Rupiah(range.EffectiveMinimumSalary)}). Gaji pokok harus berada dalam rentang {range.SalaryRangeText}.");
+        }
+
+        if (range.EffectiveMaximumSalary > 0m && baseSalary > range.EffectiveMaximumSalary)
+        {
+            return PayrollSalaryRangeCheck.Invalid(400,
+                $"Gaji pokok melebihi batas maksimum grade ({Rupiah(range.EffectiveMaximumSalary)}). Gaji pokok harus berada dalam rentang {range.SalaryRangeText}.");
+        }
+
+        return PayrollSalaryRangeCheck.Valid;
+    }
+
+    /// <summary>
+    /// PAY-BE-FIX-011: dasar penetapan gaji yang ditentukan SERVER dari master. Memeriksa bahwa Struktur Gaji ada, aktif, milik Grade Gaji
+    /// yang dipilih, Grade Gaji aktif, dan Struktur Gaji berlaku pada <paramref name="effectiveDate"/> (tanggal mulai penetapan); bila
+    /// <paramref name="requireDefaultBaseSalary"/> maka <c>DefaultBaseSalary</c> struktur juga wajib terkonfigurasi (&gt; 0). Nominal yang
+    /// dikembalikan adalah satu-satunya Gaji Dasar yang boleh disimpan untuk penetapan BARU atau penetapan yang struktur/gradenya diganti;
+    /// nominal dari permintaan klien tidak pernah otoritatif. Kecocokan mata uang dan rentang tetap diperiksa
+    /// <see cref="ValidateSalaryAssignmentAsync(Guid, Guid, decimal, string?, CancellationToken)"/> terhadap nominal hasil penentuan ini.
+    /// Hanya membaca.
+    /// </summary>
+    public async Task<PayrollSalaryAssignmentBasis> ResolveSalaryAssignmentBasisAsync(
+        Guid salaryStructureId,
+        Guid salaryGradeId,
+        DateTime effectiveDate,
+        bool requireDefaultBaseSalary,
+        CancellationToken cancellationToken)
+    {
+        var structure = await _dbContext.MstSalaryStructures
+            .AsNoTracking()
+            .Where(x => x.Id == salaryStructureId && !x.IsDelete)
+            .Select(x => new
+            {
+                x.SalaryGradeId,
+                x.CurrencyCode,
+                x.PaymentFrequency,
+                x.DefaultBaseSalary,
+                x.MinimumBaseSalary,
+                x.MaximumBaseSalary,
+                x.EffectiveStartDate,
+                x.EffectiveEndDate,
+                x.IsActive
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (structure == null || !structure.IsActive)
+        {
+            return PayrollSalaryAssignmentBasis.Invalid(400, "Struktur Gaji tidak ditemukan atau tidak aktif.");
+        }
+
+        if (structure.SalaryGradeId != salaryGradeId)
+        {
+            return PayrollSalaryAssignmentBasis.Invalid(400, "Struktur Gaji yang dipilih tidak sesuai dengan Grade Gaji yang dipilih.");
+        }
+
+        var gradeActive = await _dbContext.MstSalaryGrades
+            .AsNoTracking()
+            .AnyAsync(x => x.Id == salaryGradeId && !x.IsDelete && x.IsActive, cancellationToken);
+
+        if (!gradeActive)
+        {
+            return PayrollSalaryAssignmentBasis.Invalid(400, "Grade Gaji tidak ditemukan atau tidak aktif.");
+        }
+
+        var validity = AssessMasterValidity(true, structure.EffectiveStartDate, structure.EffectiveEndDate, true, effectiveDate);
+        if (validity.Code != PayrollSalaryMasterValidity.Valid)
+        {
+            return PayrollSalaryAssignmentBasis.Invalid(400, validity.Message!);
+        }
+
+        if (requireDefaultBaseSalary && structure.DefaultBaseSalary <= 0m)
+        {
+            return PayrollSalaryAssignmentBasis.Invalid(400, DefaultBaseSalaryNotConfiguredMessage);
+        }
+
+        return new PayrollSalaryAssignmentBasis(
+            true,
+            200,
+            null,
+            structure.DefaultBaseSalary,
+            structure.CurrencyCode,
+            structure.PaymentFrequency,
+            structure.MinimumBaseSalary,
+            structure.MaximumBaseSalary);
+    }
+
+    /// <summary>Pesan baku bila Struktur Gaji belum punya Gaji Dasar bawaan yang valid; pengguna tidak diminta mengisi nominal manual.</summary>
+    public const string DefaultBaseSalaryNotConfiguredMessage =
+        "Gaji Dasar belum dikonfigurasi pada Struktur Gaji. Lengkapi master Struktur Gaji terlebih dahulu.";
+
+    /// <summary>
+    /// Keabsahan master (struktur dan grade) pada <paramref name="asOf"/>: aktif, dan struktur berlaku pada tanggal itu. Murni dan statis
+    /// supaya validasi tulis dan pembacaan layar memakai satu aturan. Grade Gaji tidak punya masa berlaku sendiri pada skema saat ini.
+    /// </summary>
+    public static PayrollSalaryMasterValidityResult AssessMasterValidity(
+        bool? structureActive,
+        DateTime? structureEffectiveStart,
+        DateTime? structureEffectiveEnd,
+        bool? gradeActive,
+        DateTime asOf)
+    {
+        if (structureActive != true)
+        {
+            return new(PayrollSalaryMasterValidity.StructureInactive, "Struktur Gaji tidak aktif.");
+        }
+
+        if (gradeActive != true)
+        {
+            return new(PayrollSalaryMasterValidity.GradeInactive, "Grade Gaji tidak aktif.");
+        }
+
+        var day = asOf.Date;
+        if (structureEffectiveStart.HasValue && structureEffectiveStart.Value.Date > day)
+        {
+            return new(
+                PayrollSalaryMasterValidity.StructureNotYetEffective,
+                $"Struktur Gaji belum berlaku pada tanggal mulai penetapan (berlaku mulai {structureEffectiveStart.Value:dd/MM/yyyy}).");
+        }
+
+        if (structureEffectiveEnd.HasValue && structureEffectiveEnd.Value.Date < day)
+        {
+            return new(
+                PayrollSalaryMasterValidity.StructureExpired,
+                $"Struktur Gaji sudah berakhir sebelum tanggal mulai penetapan (berakhir {structureEffectiveEnd.Value:dd/MM/yyyy}).");
+        }
+
+        return new(PayrollSalaryMasterValidity.Valid, null);
+    }
+
+    public static string FormatRupiah(decimal amount) => Rupiah(amount);
+
     private static bool HasRange(decimal maximumSalary) => maximumSalary > 0m;
 
     private static string Rupiah(decimal amount) => "Rp " + amount.ToString("N0", Indonesian);
 }
+
+/// <summary>Rentang gaji efektif hasil kombinasi master Grade dan Struktur.</summary>
+public sealed record EffectiveSalaryRange(
+    decimal GradeMinimumSalary,
+    decimal GradeMaximumSalary,
+    decimal? StructureMinimumSalary,
+    decimal? StructureMaximumSalary,
+    decimal EffectiveMinimumSalary,
+    decimal EffectiveMaximumSalary,
+    bool HasRange,
+    string SalaryRangeText);
+
+/// <summary>
+/// Dasar penetapan gaji hasil penentuan server (PAY-BE-FIX-011). <see cref="DefaultBaseSalary"/> adalah nominal master Struktur Gaji saat
+/// ini dan hanya bermakna bila penentuan diminta dengan <c>requireDefaultBaseSalary</c>.
+/// </summary>
+public sealed record PayrollSalaryAssignmentBasis(
+    bool IsValid,
+    int StatusCode,
+    string? Message,
+    decimal DefaultBaseSalary,
+    string CurrencyCode,
+    string PaymentFrequency,
+    decimal? MinimumBaseSalary,
+    decimal? MaximumBaseSalary)
+{
+    public static PayrollSalaryAssignmentBasis Invalid(int statusCode, string message) =>
+        new(false, statusCode, message, 0m, string.Empty, string.Empty, null, null);
+}
+
+/// <summary>Kunci baku keabsahan master penetapan gaji yang dibaca Frontend; jangan diterjemahkan.</summary>
+public static class PayrollSalaryMasterValidity
+{
+    public const string Valid = "Valid";
+    public const string StructureInactive = "StructureInactive";
+    public const string GradeInactive = "GradeInactive";
+    public const string StructureNotYetEffective = "StructureNotYetEffective";
+    public const string StructureExpired = "StructureExpired";
+}
+
+/// <summary>Hasil <see cref="PayrollSalaryRangeRuleService.AssessMasterValidity"/>: kunci baku dan alasan yang dapat dibaca pengguna (null bila valid).</summary>
+public sealed record PayrollSalaryMasterValidityResult(string Code, string? Message);
 
 /// <summary>Hasil pemeriksaan batas gaji. <see cref="StatusCode"/> 400 untuk SR-01..SR-03, 409 untuk SR-04.</summary>
 public sealed record PayrollSalaryRangeCheck(bool IsValid, int StatusCode, string? Message)

@@ -331,8 +331,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 {
                     deductions.Add(new PayslipItemLineDto
                     {
-                        ComponentCode = "BPJS_CONTRIBUTION",
-                        ComponentName = "Iuran Karyawan (BPJS/asuransi)",
+                        ComponentCode = "INSURANCE_CONTRIBUTION",
+                        ComponentName = "Iuran Karyawan (asuransi)",
                         ComponentCategory = "Deduction",
                         Amount = emp.TotalEmployeeInsuranceContribution
                     });
@@ -501,7 +501,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 ("Gaji pokok", Rupiah(slip.BaseSalary), false),
                 ("Tunjangan dan lembur", Rupiah(allowances), false),
                 ("Total penghasilan bruto", Rupiah(slip.GrossPay), true),
-                ("Potongan iuran BPJS pegawai", Rupiah(insurance), false),
+                ("Potongan iuran pegawai (asuransi)", Rupiah(insurance), false),
                 (taxLabel, Rupiah(slip.TotalTax), false),
                 ("Total potongan", Rupiah(slip.TotalDeduction), true),
                 ("Gaji bersih (take home pay)", Rupiah(slip.NetPay), true)

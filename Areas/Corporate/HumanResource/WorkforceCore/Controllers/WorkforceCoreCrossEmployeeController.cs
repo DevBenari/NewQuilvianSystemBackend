@@ -185,11 +185,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25,
+            [FromQuery] string? authorizationStatus = null,
+            [FromQuery] string? operationalStatus = null,
             CancellationToken ct = default)
         {
+            // PAY-BE-FIX-010: filter status otorisasi (ManualApproved | AutoByPolicy | PendingApproval) dan status operasional
+            // (Current | Scheduled | Expired | Inactive | NotPrimary). Keduanya terpisah dari isApproved, yang tetap berarti persetujuan manual.
+            if (!string.IsNullOrWhiteSpace(authorizationStatus) && WfpSalaryAssignmentRules.NormalizeAuthorizationStatus(authorizationStatus) is null)
+                return BadRequest(ApiResponse<object>.Fail(400,
+                    $"Filter authorizationStatus tidak dikenal. Nilai yang sah: {string.Join(", ", WfpSalaryAuthorizationStatuses.All)}."));
+            if (!string.IsNullOrWhiteSpace(operationalStatus) && WfpSalaryAssignmentRules.NormalizeOperationalStatus(operationalStatus) is null)
+                return BadRequest(ApiResponse<object>.Fail(400,
+                    $"Filter operationalStatus tidak dikenal. Nilai yang sah: {string.Join(", ", WfpSalaryOperationalStatuses.All)}."));
+
             var result = await _queryService.GetSalaryAssignmentsAsync(
                 startDate, endDate, customPeriod, workforceProfileId, salaryStructureId, salaryGradeId,
-                paymentFrequency, currencyCode, isPrimary, isApproved, isActive, search, sortBy, sortDirection, pageNumber, pageSize, ct);
+                paymentFrequency, currencyCode, isPrimary, isApproved, isActive, search, sortBy, sortDirection, pageNumber, pageSize,
+                authorizationStatus, operationalStatus, ct);
 
             return Ok(ApiResponse<PagedResult<WfpSalaryAssignmentCrossEmployeeResponse>>.Ok(result, "Data rekapitulasi penetapan gaji berhasil diambil."));
         }

@@ -50,61 +50,32 @@ public sealed record PayrollTaxRunContext(
     decimal EmployeePension,
     PayrollTaxYtd Ytd);
 
-/// <summary>Fakta konfigurasi iuran satu orang (PrlInsurance). Tarif per pegawai pada profil tidak dipakai mesin; hanya penandanya.</summary>
+/// <summary>
+/// Fakta konfigurasi asuransi swasta satu orang (PrlInsurance). Kolom BPJS pada PrlInsurance (IsBpjsKesehatanEnabled, IsBpjsKetenagakerjaanEnabled,
+/// BpjsEmploymentPrograms, tarif BPJS per pegawai) dipertahankan sebagai data historis dan sengaja TIDAK dibaca di sini.
+/// </summary>
 public sealed record PayrollInsuranceConfigFacts(
     Guid Id,
     bool IsActive,
     string? ParticipationStatus,
     string? ParticipationBasis,
-    bool HealthEnabled,
-    bool EmploymentEnabled,
-    string? EmploymentPrograms,
     bool PrivateEnabled,
     decimal PrivateEmployeeContribution,
     decimal PrivateEmployerContribution,
-    bool HasPerEmployeeRates,
     DateTime? EffectiveStartDate,
     DateTime? EffectiveEndDate)
 {
     public static PayrollInsuranceConfigFacts From(PrlInsurance x) => new(
-        x.Id, x.IsActive, x.ParticipationStatus, x.ParticipationBasis, x.IsBpjsKesehatanEnabled, x.IsBpjsKetenagakerjaanEnabled,
-        x.BpjsEmploymentPrograms, x.IsPrivateInsuranceEnabled, x.PrivateInsuranceEmployeeContribution,
-        x.PrivateInsuranceEmployerContribution,
-        x.BpjsHealthEmployeeRate > 0m || x.BpjsHealthEmployerRate > 0m || x.BpjsEmploymentEmployeeRate > 0m || x.BpjsEmploymentEmployerRate > 0m,
+        x.Id, x.IsActive, x.ParticipationStatus, x.ParticipationBasis, x.IsPrivateInsuranceEnabled,
+        x.PrivateInsuranceEmployeeContribution, x.PrivateInsuranceEmployerContribution,
         x.EffectiveStartDate, x.EffectiveEndDate);
 }
 
 /// <summary>
-/// Parameter iuran BPJS yang berlaku pada satu payroll run: kebijakan iuran BPJS berstatus APPROVED (PrlBpjsPolicy) yang berlaku pada
-/// periode. Tidak ada tarif yang ditanam di kode, dan nilai bawaan Pengaturan Penggajian tidak pernah dipakai langsung.
+/// Ketersediaan kebijakan tarif PPh yang disahkan pada satu tanggal. Dipakai kelengkapan data untuk menyatakan "Menunggu Verifikasi
+/// Kebijakan" sebagai keadaan terpisah dari konfigurasi per orang.
 /// </summary>
-public sealed record PayrollInsurancePolicy(
-    string Version,
-    decimal HealthCap, decimal HealthEmployeeRate, decimal HealthEmployerRate,
-    decimal JpCap, decimal JpEmployeeRate, decimal JpEmployerRate,
-    decimal JhtEmployeeRate, decimal JhtEmployerRate,
-    decimal JkkRate, decimal JkmRate,
-    Guid? PolicyId = null, string? LegalBasis = null, int? JkkRiskClass = null)
-{
-    public static PayrollInsurancePolicy FromEntity(PrlBpjsPolicy e) => new(
-        e.PolicyVersion,
-        e.HealthCapAmount, e.HealthEmployeeRate, e.HealthEmployerRate,
-        e.JpCapAmount, e.JpEmployeeRate, e.JpEmployerRate,
-        e.JhtEmployeeRate, e.JhtEmployerRate,
-        e.JkkRate, e.JkmRate,
-        e.Id, e.LegalBasis, e.JkkRiskClass);
-}
-
-/// <summary>
-/// Ketersediaan kebijakan yang disahkan pada satu tanggal. Dipakai kelengkapan data untuk menyatakan "Menunggu Verifikasi Kebijakan"
-/// sebagai keadaan terpisah dari konfigurasi per orang, sekaligus menandai mode pengujian ketika BPJS dinonaktifkan sementara.
-/// </summary>
-public sealed record PayrollPolicyAvailability(
-    bool TaxApproved,
-    string? TaxVersion,
-    bool BpjsApproved,
-    string? BpjsVersion,
-    bool EnableBpjsInPayroll = true);
+public sealed record PayrollPolicyAvailability(bool TaxApproved, string? TaxVersion);
 
 public sealed record PayrollInsuranceLine(string Code, string Name, string Program, bool EmployeePaid, decimal BaseAmount, decimal Rate, decimal Amount);
 
@@ -171,41 +142,30 @@ public sealed record PayrollTaxAssessment(
     };
 }
 
-/// <summary>Hasil penilaian iuran satu penerima pada satu periode.</summary>
+/// <summary>
+/// Hasil penilaian asuransi swasta satu penerima pada satu periode. Tidak memuat komponen BPJS: iuran BPJS tidak lagi dihitung.
+/// Tidak pernah menahan payroll run (asuransi swasta opsional), sehingga tidak ada penahan atau isu konfigurasi.
+/// </summary>
 public sealed record PayrollInsuranceAssessment(
     string ConfigurationStatus,
     string ResultStatus,
     string Source,
     string? ParticipationStatus,
-    IReadOnlyList<string> Programs,
-    string? PolicyVersion,
-    decimal WageBase,
     decimal EmployeeTotal,
     decimal EmployerTotal,
     IReadOnlyList<PayrollInsuranceLine> Lines,
-    bool IsBlocking,
-    IReadOnlyList<string> Issues,
     IReadOnlyList<string> Warnings,
     Guid? ConfigId)
 {
-    public bool IsConfigured => ConfigurationStatus == PayrollConfigurationStatuses.Configured;
-
-    public Guid? PolicyId { get; init; }
-    public string? PolicyLegalBasis { get; init; }
-    public int? JkkRiskClass { get; init; }
-    public IReadOnlyList<PayrollWageBaseItem>? WageBaseItems { get; init; }
-
+    /// <summary>
+    /// Bentuk snapshot disimpan pada PrlPayrollRunEmployee.InsuranceSnapshotJson. Kolom khusus BPJS pada snapshot (program, versi
+    /// kebijakan, dasar upah, kelompok risiko JKK) dibiarkan kosong pada snapshot baru; snapshot lama tetap terbaca karena tipenya dipertahankan.
+    /// </summary>
     public PayrollInsuranceSnapshot ToSnapshot() => new(
-        Source, ConfigurationStatus, ResultStatus, ParticipationStatus, Programs.ToList(), PolicyVersion, WageBase, EmployeeTotal,
+        Source, ConfigurationStatus, ResultStatus, ParticipationStatus, new List<string>(), null, 0m, EmployeeTotal,
         EmployerTotal,
         Lines.Select(l => new PayrollInsuranceSnapshotLine(l.Code, l.Program, l.EmployeePaid ? "Employee" : "Employer", l.BaseAmount, l.Rate, l.Amount)).ToList(),
-        Issues.ToList(), Warnings.ToList(), IsBlocking, ConfigId)
-    {
-        PolicyId = PolicyId,
-        PolicyLegalBasis = PolicyLegalBasis,
-        JkkRiskClass = JkkRiskClass,
-        WageBaseItems = WageBaseItems?.ToList()
-    };
+        new List<string>(), Warnings.ToList(), false, ConfigId);
 }
 
 /// <summary>Snapshot PPh yang disimpan pada PrlPayrollRunEmployee.TaxSnapshotJson. Tidak memuat NPWP atau data pribadi lain.</summary>
@@ -248,12 +208,19 @@ public sealed record PayrollTaxSnapshot(
     public Dictionary<string, object?>? Detail { get; init; }
 }
 
-/// <summary>Satu komponen penghasilan beserta klasifikasinya terhadap dasar upah iuran BPJS (traceability dasar upah).</summary>
+/// <summary>
+/// DATA HISTORIS (LEGACY_PERSISTED): satu komponen penghasilan beserta klasifikasinya terhadap dasar upah iuran BPJS pada snapshot run lama.
+/// Tipe dipertahankan hanya supaya snapshot lama tetap terbaca; mesin hitung tidak lagi mengisinya.
+/// </summary>
 public sealed record PayrollWageBaseItem(string Source, string Name, decimal Amount, string Classification, string? Reason);
 
 public sealed record PayrollInsuranceSnapshotLine(string Code, string Program, string PaidBy, decimal BaseAmount, decimal Rate, decimal Amount);
 
-/// <summary>Snapshot iuran yang disimpan pada PrlPayrollRunEmployee.InsuranceSnapshotJson.</summary>
+/// <summary>
+/// Snapshot asuransi yang disimpan pada PrlPayrollRunEmployee.InsuranceSnapshotJson. Snapshot run lama dapat memuat baris BPJS, program,
+/// versi kebijakan, dasar upah, dan kelompok risiko JKK; tipe ini dipertahankan agar snapshot lama tetap terbaca (akumulasi PPh tahun berjalan
+/// dan laporan historis). Snapshot baru hanya memuat baris asuransi swasta.
+/// </summary>
 public sealed record PayrollInsuranceSnapshot(
     string Source,
     string ConfigurationStatus,
@@ -270,33 +237,28 @@ public sealed record PayrollInsuranceSnapshot(
     bool IsBlocking,
     Guid? ConfigId)
 {
-    /// <summary>Kebijakan iuran BPJS yang dipakai: id, dasar penetapan, dan kelompok risiko JKK. Versinya ada pada PolicyVersion.</summary>
+    /// <summary>Historis: kebijakan iuran BPJS yang dipakai pada snapshot lama (id, dasar penetapan, kelompok risiko JKK). Tidak diisi snapshot baru.</summary>
     public Guid? PolicyId { get; init; }
     public string? PolicyLegalBasis { get; init; }
     public int? JkkRiskClass { get; init; }
 
-    /// <summary>Dasar upah per komponen beserta klasifikasinya (masuk, tidak masuk, atau belum diklasifikasikan).</summary>
+    /// <summary>Historis: dasar upah iuran BPJS per komponen pada snapshot lama. Tidak diisi snapshot baru.</summary>
     public List<PayrollWageBaseItem>? WageBaseItems { get; init; }
 }
 
-/// <summary>Kesiapan konfigurasi PPh dan iuran satu orang untuk layar kelengkapan data (tanpa periode run).</summary>
-public sealed record PayrollTaxInsuranceReadiness(
+/// <summary>Kesiapan konfigurasi PPh satu orang untuk layar kelengkapan data (tanpa periode run). Asuransi swasta dan iuran BPJS tidak menjadi syarat.</summary>
+public sealed record PayrollTaxReadiness(
     string TaxConfigurationStatus,
-    string InsuranceConfigurationStatus,
     IReadOnlyList<string> TaxIssues,
-    IReadOnlyList<string> InsuranceIssues,
     IReadOnlyList<string> Notes)
 {
-    public bool IsComplete =>
-        TaxConfigurationStatus == PayrollConfigurationStatuses.Configured
-        && (InsuranceConfigurationStatus == PayrollConfigurationStatuses.Configured
-            || InsuranceConfigurationStatus == PayrollConfigurationStatuses.TestingModeDisabled);
+    public bool IsComplete => TaxConfigurationStatus == PayrollConfigurationStatuses.Configured;
 }
 
 /// <summary>
-/// Satu-satunya tempat aturan konfigurasi PPh dan iuran yang dikelola HRD (PrlTax, PrlInsurance): validasi tulis (dipakai controller),
-/// penilaian per periode (dipakai mesin payroll run), dan kesiapan (dipakai kelengkapan data dan Profil Penggajian). Murni, tanpa akses
-/// data.
+/// Satu-satunya tempat aturan konfigurasi PPh dan asuransi swasta yang dikelola HRD (PrlTax, PrlInsurance): validasi tulis (dipakai
+/// controller), penilaian per periode (dipakai mesin payroll run), dan kesiapan PPh (dipakai kelengkapan data dan Profil Penggajian).
+/// Murni, tanpa akses data.
 ///
 /// Prinsip yang dijaga:
 /// - Jenis PPh, kategori penerima, metode pajak, dan skema hitung adalah konsep terpisah; semuanya eksplisit dari HRD.
@@ -306,10 +268,10 @@ public sealed record PayrollTaxInsuranceReadiness(
 ///   berversi yang disahkan (PrlTaxPolicy); tanpa kebijakan yang berlaku atau untuk kombinasi tanpa formula yang sah (pegawai tidak
 ///   tetap, GrossUp) ia menghasilkan blocker, bukan Rp0. Nominal manual hanya dipakai bila sudah disetujui pengguna lain; pengecualian
 ///   wajib berdasar.
-/// - Iuran BPJS memakai tarif dan plafon dari kebijakan iuran BPJS berversi yang disahkan (PrlBpjsPolicy), bukan dari nilai bawaan
-///   Pengaturan Penggajian dan bukan tarif per pegawai. Dasar upah mengikuti klasifikasi tunjangan HRD.
-/// - Data profil payroll lama (PrlPayroll.TaxAmount/InsuranceAmount) hanya cadangan bila HRD belum mengonfigurasi; ditandai sebagai
-///   belum dikonfigurasi dan tidak pernah mengalahkan konfigurasi HRD.
+/// - Iuran BPJS Kesehatan dan BPJS Ketenagakerjaan TIDAK dihitung, tidak divalidasi, dan tidak menjadi syarat kelengkapan (PAY-BE-FIX-007).
+///   Asuransi swasta tetap dihitung dari profil HRD dan bersifat opsional.
+/// - Tetapan PPh lama pada profil payroll (PrlPayroll.TaxAmount) hanya cadangan bila HRD belum mengonfigurasi; ditandai sebagai belum
+///   dikonfigurasi dan tidak pernah mengalahkan konfigurasi HRD. Tetapan iuran lama (PrlPayroll.InsuranceAmount) tidak dipakai.
 /// </summary>
 public static class PayrollTaxInsuranceRules
 {
@@ -322,15 +284,24 @@ public static class PayrollTaxInsuranceRules
         + "Gunakan skema Nominal Manual Disetujui atau Tidak Berlaku dengan dasar yang sah.";
 
     public const string AutoPolicyMissing =
-        "Belum ada kebijakan tarif PPh berversi yang disahkan dan berlaku pada periode ini (Menunggu Verifikasi Kebijakan). "
-        + "HRD menyusun dan memverifikasi kebijakan, lalu Finance mengesahkannya.";
+        "Belum ada kebijakan tarif PPh berversi yang aktif dan berlaku pada periode ini. "
+        + "Penggajian memerlukan kebijakan tarif PPh yang berlaku sesuai tanggal periode.";
 
     public const string GrossUpUnavailable =
         "Metode GrossUp belum memiliki formula yang sah; gunakan metode Gross atau Net.";
 
     public const string LegacyTaxInsuranceBlockedMessage =
-        "Kalkulasi PPh dan iuran BPJS pada jalur lama dinonaktifkan: tarifnya tertanam atau berasal dari nilai bawaan yang belum diverifikasi. "
-        + "Gunakan Payroll > Hitung Payroll Run, yang memakai kebijakan tarif PPh dan iuran BPJS berversi yang sudah disahkan.";
+        "Kalkulasi PPh pada jalur lama dinonaktifkan: tarifnya tertanam atau berasal dari nilai bawaan yang belum diverifikasi. "
+        + "Gunakan Payroll > Hitung Payroll Run, yang memakai kebijakan tarif PPh berversi yang sudah disahkan.";
+
+    /// <summary>
+    /// Peringatan metode Net: PPh yang ditanggung pemberi kerja pada dasarnya penghasilan tambahan bagi pegawai (tunjangan pajak) kecuali
+    /// ada ketentuan yang mengecualikan (mis. PPh DTP). Mesin ini TIDAK menambahkannya ke bruto kena pajak (itu butuh perhitungan berulang
+    /// seperti Gross-Up yang belum didukung), sehingga hasil Net belum dapat dinyatakan sesuai regulasi tanpa keputusan pemilik pajak.
+    /// </summary>
+    public const string NetEmployerBorneWarning =
+        "PPh ditanggung pemberi kerja (metode Net); tidak mengurangi gaji bersih pegawai. Perlakuan PPh yang ditanggung sebagai penghasilan kena pajak "
+        + "pegawai (tunjangan pajak) atau PPh DTP belum diverifikasi dan tidak ditambahkan ke bruto kena pajak; tetapkan perlakuannya sebelum payroll disahkan.";
 
     public const string LegacyPathDisabledMessage =
         "Jalur perhitungan payroll lama dinonaktifkan. Payroll Run resmi (Payroll > Payroll Run) adalah satu-satunya pemilik hasil gaji.";
@@ -344,7 +315,7 @@ public static class PayrollTaxInsuranceRules
 
     /// <summary>
     /// True bila run sudah dihitung oleh mesin Payroll Run resmi (snapshot kebijakan memuat versi mesinnya). Jalur lama (modul "Modern":
-    /// PayrollTaxCalculationService dan PayrollBpjsCalculationService) menimpa total pegawai dan membuat komponen pajak/iuran sendiri,
+    /// PayrollTaxCalculationService dan layanan kalkulasi lama lainnya) menimpa total pegawai dan membuat komponen pajak/iuran sendiri,
     /// sehingga tidak boleh berjalan pada run itu: satu mesin aktif, tanpa komponen ganda.
     /// </summary>
     public static bool IsCalculatedByOfficialEngine(string? policySnapshotJson)
@@ -357,31 +328,6 @@ public static class PayrollTaxInsuranceRules
                 && document.RootElement.TryGetProperty("engine", out var engine)
                 && engine.ValueKind == JsonValueKind.String
                 && string.Equals(engine.GetString(), PayrollCalculationService.EngineVersion, StringComparison.Ordinal);
-        }
-        catch (JsonException)
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// True bila snapshot kebijakan run menandai bahwa run dihitung dalam mode pengujian tanpa BPJS
-    /// (<c>Payroll:Policy:EnableBpjsInPayroll = false</c>). Dipakai untuk menandai banner UI dan menahan Finance Handoff produksi.
-    /// </summary>
-    public static bool IsTestingModeWithoutBpjs(string? policySnapshotJson)
-    {
-        if (string.IsNullOrWhiteSpace(policySnapshotJson)) return false;
-        try
-        {
-            using var document = JsonDocument.Parse(policySnapshotJson);
-            if (document.RootElement.ValueKind != JsonValueKind.Object) return false;
-            if (document.RootElement.TryGetProperty("testingModeWithoutBpjs", out var testingProp)
-                && testingProp.ValueKind == JsonValueKind.True)
-                return true;
-            if (document.RootElement.TryGetProperty("enableBpjsInPayroll", out var enableProp)
-                && enableProp.ValueKind == JsonValueKind.False)
-                return true;
-            return false;
         }
         catch (JsonException)
         {
@@ -562,15 +508,16 @@ public static class PayrollTaxInsuranceRules
 
         if (mode == TaxCalculationModes.AutoRegulatory)
         {
+            if (IsPtkpRelevant(article, category) && string.IsNullOrWhiteSpace(ptkp))
+                return TaxBlocked(
+                    cfg,
+                    PayrollConfigurationStatuses.NotConfigured,
+                    PayrollComponentResultStatuses.NotConfigured,
+                    new[] { "Status PTKP pegawai belum ditetapkan di HRD; wajib diisi agar PPh 21 otomatis dapat dihitung." });
+
             // Kesiapan/ringkasan tanpa periode: yang dinilai hanya konfigurasi orangnya; ketersediaan kebijakan dilaporkan terpisah.
             if (run is null)
             {
-                if (IsPtkpRelevant(article, category) && string.IsNullOrWhiteSpace(ptkp))
-                    return TaxBlocked(
-                        cfg,
-                        PayrollConfigurationStatuses.NotConfigured,
-                        PayrollComponentResultStatuses.NotConfigured,
-                        new[] { "Status PTKP pegawai belum ditetapkan di HRD; wajib diisi agar PPh 21 otomatis dapat dihitung." });
                 return Result(PayrollComponentResultStatuses.Calculated, TaxTreatments.EmployeeDeduction, 0m, 0m);
             }
 
@@ -606,6 +553,7 @@ public static class PayrollTaxInsuranceRules
 
             var autoAmount = Round(computation.Amount);
             var autoKind = autoAmount > 0m ? PayrollComponentResultStatuses.Calculated : PayrollComponentResultStatuses.ValidZero;
+            var engineWarnings = ExtractEngineWarnings(computation.Detail);
             if (string.Equals(method, TaxMethodKinds.Net, StringComparison.OrdinalIgnoreCase))
             {
                 return WithTrace(Result(
@@ -613,10 +561,11 @@ public static class PayrollTaxInsuranceRules
                     autoAmount > 0m ? TaxTreatments.EmployerBorne : TaxTreatments.None,
                     0m,
                     autoAmount,
-                    autoAmount > 0m ? new[] { "PPh ditanggung pemberi kerja (metode Net); tidak mengurangi gaji bersih pegawai." } : null));
+                    autoAmount > 0m ? engineWarnings.Append(NetEmployerBorneWarning).ToArray() : engineWarnings));
             }
 
-            return WithTrace(Result(autoKind, autoAmount > 0m ? TaxTreatments.EmployeeDeduction : TaxTreatments.None, autoAmount, 0m));
+            return WithTrace(Result(
+                autoKind, autoAmount > 0m ? TaxTreatments.EmployeeDeduction : TaxTreatments.None, autoAmount, 0m, engineWarnings));
         }
 
         // APPROVED_MANUAL_AMOUNT: dipakai hanya bila sudah disetujui pengguna lain (persetujuan tersendiri, bukan izin menetapkan nominal).
@@ -643,13 +592,19 @@ public static class PayrollTaxInsuranceRules
                 amount > 0m ? TaxTreatments.EmployerBorne : TaxTreatments.None,
                 0m,
                 amount,
-                amount > 0m ? new[] { "PPh ditanggung pemberi kerja (metode Net); tidak mengurangi gaji bersih pegawai." } : null)
+                amount > 0m ? new[] { NetEmployerBorneWarning } : null)
                 with { ManualAmountApprovalStatus = cfg.ManualAmountApprovalStatus };
         }
 
         return Result(resultKind, amount > 0m ? TaxTreatments.EmployeeDeduction : TaxTreatments.None, amount, 0m)
             with { ManualAmountApprovalStatus = cfg.ManualAmountApprovalStatus };
     }
+
+    /// <summary>Peringatan tidak menahan yang dicatat mesin pada rincian hitung (kunci "warnings"); kosong bila tidak ada.</summary>
+    private static string[] ExtractEngineWarnings(IReadOnlyDictionary<string, object?> detail) =>
+        detail.TryGetValue("warnings", out var value) && value is IEnumerable<string> list
+            ? list.Where(x => !string.IsNullOrWhiteSpace(x)).ToArray()
+            : Array.Empty<string>();
 
     private static PayrollTaxAssessment TaxUnconfigured(PayrollTaxConfigFacts? cfg, IReadOnlyList<string> issues, decimal legacyAmount)
     {
@@ -680,24 +635,13 @@ public static class PayrollTaxInsuranceRules
     // Iuran: validasi tulis
     // ------------------------------------------------------------------------------------------------------------------------
 
-    /// <summary>Daftar program BPJS Ketenagakerjaan dari teks dipisah koma; kosong berarti semua program. Token tidak dikenal diabaikan.</summary>
-    public static List<string> ParsePrograms(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return InsurancePrograms.All.ToList();
-        return value.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(x => x.ToUpperInvariant())
-            .Where(x => InsurancePrograms.All.Contains(x))
-            .Distinct()
-            .ToList();
-    }
-
     /// <summary>
-    /// Validasi konfigurasi iuran pada saat HRD menyimpan. Status kepesertaan kosong berarti belum dikonfigurasi dan diterima
-    /// (kompatibel dengan klien lama). Semua flag false bukan bukti tidak wajib: tidak ikut serta harus eksplisit dan berdasar.
+    /// Validasi konfigurasi asuransi swasta pada saat HRD menyimpan (PrlInsurance). Status kepesertaan kosong berarti belum dikonfigurasi dan
+    /// diterima (kompatibel dengan klien lama). Iuran BPJS tidak lagi dikelola di sini: kolom BPJS pada PrlInsurance hanya data historis
+    /// dan tidak divalidasi, dibaca, maupun diubah oleh jalur Payroll.
     /// </summary>
     public static List<string> ValidateInsuranceConfiguration(
-        string? status, string? basis, bool healthEnabled, bool employmentEnabled, string? programs,
-        bool privateEnabled, decimal privateEmployee, decimal privateEmployer)
+        string? status, string? basis, bool privateEnabled, decimal privateEmployee, decimal privateEmployer)
     {
         var errors = new List<string>();
 
@@ -705,165 +649,106 @@ public static class PayrollTaxInsuranceRules
         if (!privateEnabled && (privateEmployee > 0m || privateEmployer > 0m))
             errors.Add("Kontribusi asuransi swasta hanya boleh diisi bila asuransi swasta aktif.");
 
-        if (!string.IsNullOrWhiteSpace(programs))
-        {
-            var tokens = programs.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (tokens.Any(t => !InsurancePrograms.All.Contains(t.ToUpperInvariant())))
-                errors.Add("Program BPJS Ketenagakerjaan tidak valid. Gunakan JHT, JP, JKK, dan/atau JKM.");
-            if (!employmentEnabled) errors.Add("Program BPJS Ketenagakerjaan hanya boleh diisi bila BPJS Ketenagakerjaan aktif.");
-        }
-
         if (status is null) return errors;
 
         if (!InsuranceParticipationStatuses.All.Contains(status))
         {
-            errors.Add("Status kepesertaan iuran tidak valid.");
+            errors.Add("Status kepesertaan asuransi tidak valid.");
             return errors;
         }
 
         if (status == InsuranceParticipationStatuses.Active)
         {
-            if (!healthEnabled && !employmentEnabled && !privateEnabled)
-                errors.Add("Peserta aktif harus memilih sedikitnya satu program iuran (BPJS Kesehatan, BPJS Ketenagakerjaan, atau asuransi swasta).");
+            if (!privateEnabled)
+                errors.Add("Peserta aktif harus mengaktifkan asuransi swasta. Bila tidak ada asuransi swasta, pilih status tidak ikut serta atau tidak berlaku beserta dasarnya.");
         }
         else
         {
             if (string.IsNullOrWhiteSpace(basis))
-                errors.Add("Dasar wajib diisi bila tidak mengikuti program iuran atau tidak berlaku untuk jenis penerima.");
-            if (healthEnabled || employmentEnabled || privateEnabled)
-                errors.Add("Program iuran tidak boleh aktif bila status kepesertaan bukan peserta aktif.");
+                errors.Add("Dasar wajib diisi bila tidak mengikuti asuransi swasta atau tidak berlaku untuk jenis penerima.");
+            if (privateEnabled)
+                errors.Add("Asuransi swasta tidak boleh aktif bila status kepesertaan bukan peserta aktif.");
         }
 
         return errors;
     }
 
-    // ------------------------------------------------------------------------------------------------------------------------
-    // Iuran: penilaian per periode
-    // ------------------------------------------------------------------------------------------------------------------------
-
     /// <summary>
-    /// Menilai konfigurasi iuran satu orang dan, bila <paramref name="calculate"/>, menghitung kontribusi dari parameter iuran run.
-    /// <paramref name="wageBase"/> adalah dasar upah (gaji pokok + tunjangan tetap) yang ditentukan pemanggil. Kontribusi pemberi kerja
-    /// dipisahkan dan tidak pernah dimasukkan ke total pegawai. <paramref name="legacyAmount"/> adalah tetapan lama
-    /// PrlPayroll.InsuranceAmount: cadangan bertanda bila HRD belum mengonfigurasi dan nilainya &gt; 0.
-    /// Bila <paramref name="enableBpjs"/> bernilai false (mode pengujian), BPJS tidak dihitung dan tidak memblokir payroll run,
-    /// dengan status eksplisit <see cref="PayrollComponentResultStatuses.TestingModeDisabled"/> (bukan NOT_APPLICABLE dan bukan VALID_ZERO).
+    /// Status konfigurasi profil asuransi swasta untuk layar HRD (Profil Asuransi), tanpa menghitung nominal dan tanpa memengaruhi
+    /// kelengkapan Payroll. NOT_CONFIGURED | CONFIGURED | NOT_EFFECTIVE | ERROR beserta alasannya.
     /// </summary>
-    public static PayrollInsuranceAssessment AssessInsurance(
-        PayrollInsuranceConfigFacts? cfg, decimal legacyAmount, PayrollInsurancePolicy? policy, decimal wageBase,
-        DateTime periodStart, DateTime periodEnd, bool calculate = true, bool enableBpjs = true)
+    public static (string ConfigurationStatus, IReadOnlyList<string> Issues) AssessInsuranceConfiguration(
+        PayrollInsuranceConfigFacts cfg, DateTime asOf)
     {
-        if (!enableBpjs) return AssessWithoutBpjs(cfg, wageBase, periodStart, periodEnd, calculate);
+        if (!cfg.IsActive)
+            return (PayrollConfigurationStatuses.NotConfigured, new[] { "Profil asuransi HRD tidak aktif." });
 
-        legacyAmount = Round(legacyAmount);
-
-        if (cfg is null) return InsuranceUnconfigured(null, new[] { "Profil iuran belum dikonfigurasi HRD." }, legacyAmount, wageBase);
-        if (!cfg.IsActive) return InsuranceUnconfigured(cfg, new[] { "Profil iuran HRD tidak aktif." }, legacyAmount, wageBase);
-
-        if (!OverlapsPeriod(cfg.EffectiveStartDate, cfg.EffectiveEndDate, periodStart, periodEnd))
+        if (!OverlapsPeriod(cfg.EffectiveStartDate, cfg.EffectiveEndDate, asOf, asOf))
         {
-            var message = cfg.EffectiveStartDate.HasValue && cfg.EffectiveStartDate.Value.Date > periodEnd.Date
-                ? $"Profil iuran tersedia tetapi baru berlaku mulai {Format(cfg.EffectiveStartDate)}; belum berlaku pada periode ini."
-                : $"Profil iuran sudah berakhir pada {Format(cfg.EffectiveEndDate)}; tidak berlaku pada periode ini.";
-            return InsuranceBlocked(cfg, PayrollConfigurationStatuses.NotEffective, PayrollComponentResultStatuses.NotConfigured, new[] { message }, wageBase);
+            var message = cfg.EffectiveStartDate.HasValue && cfg.EffectiveStartDate.Value.Date > asOf.Date
+                ? $"Profil asuransi tersedia tetapi baru berlaku mulai {Format(cfg.EffectiveStartDate)}; belum berlaku pada periode ini."
+                : $"Profil asuransi sudah berakhir pada {Format(cfg.EffectiveEndDate)}; tidak berlaku pada periode ini.";
+            return (PayrollConfigurationStatuses.NotEffective, new[] { message });
         }
 
         var status = NormalizeCode(cfg.ParticipationStatus);
         if (status is null)
-            return InsuranceUnconfigured(cfg, new[] { "Status kepesertaan iuran belum ditentukan HRD." }, legacyAmount, wageBase);
+            return (PayrollConfigurationStatuses.NotConfigured, new[] { "Status kepesertaan asuransi belum ditentukan HRD." });
 
         var errors = ValidateInsuranceConfiguration(
-            status, cfg.ParticipationBasis, cfg.HealthEnabled, cfg.EmploymentEnabled, cfg.EmploymentPrograms, cfg.PrivateEnabled,
-            cfg.PrivateEmployeeContribution, cfg.PrivateEmployerContribution);
-        if (errors.Count > 0)
-            return InsuranceBlocked(cfg, PayrollConfigurationStatuses.Error, PayrollComponentResultStatuses.Error, errors, wageBase);
+            status, cfg.ParticipationBasis, cfg.PrivateEnabled, cfg.PrivateEmployeeContribution, cfg.PrivateEmployerContribution);
+        return errors.Count > 0
+            ? (PayrollConfigurationStatuses.Error, errors)
+            : (PayrollConfigurationStatuses.Configured, Array.Empty<string>());
+    }
 
-        var warnings = new List<string>();
-        if (cfg.HasPerEmployeeRates)
-            warnings.Add("Tarif iuran per pegawai pada profil diabaikan; perhitungan memakai tarif dan plafon dari kebijakan iuran BPJS yang disahkan dan berlaku pada periode.");
+    // ------------------------------------------------------------------------------------------------------------------------
+    // Asuransi swasta: penilaian per periode
+    // ------------------------------------------------------------------------------------------------------------------------
 
-        if (status != InsuranceParticipationStatuses.Active)
-        {
-            return new PayrollInsuranceAssessment(
-                PayrollConfigurationStatuses.Configured, PayrollComponentResultStatuses.NotApplicable, PayrollTaxInsuranceSources.HrdProfile,
-                status, Array.Empty<string>(), policy?.Version, wageBase, 0m, 0m, Array.Empty<PayrollInsuranceLine>(), false,
-                Array.Empty<string>(), warnings, cfg.Id);
-        }
-
-        var programs = cfg.EmploymentEnabled ? ParsePrograms(cfg.EmploymentPrograms) : new List<string>();
-        if (!calculate)
-        {
-            return new PayrollInsuranceAssessment(
-                PayrollConfigurationStatuses.Configured, PayrollComponentResultStatuses.Calculated, PayrollTaxInsuranceSources.HrdProfile,
-                status, programs, policy?.Version, wageBase, 0m, 0m, Array.Empty<PayrollInsuranceLine>(), false, Array.Empty<string>(),
-                warnings, cfg.Id);
-        }
-
-        var policyIssues = new List<string>();
-        var needsPolicy = cfg.HealthEnabled || cfg.EmploymentEnabled;
-        if (needsPolicy && policy is null)
-            policyIssues.Add(
-                "Belum ada kebijakan iuran BPJS berversi yang disahkan dan berlaku pada periode ini (Menunggu Verifikasi Kebijakan). "
-                + "Nilai bawaan Pengaturan Penggajian tidak dipakai sebelum diverifikasi HRD dan disahkan Finance.");
-        if (policy is not null)
-        {
-            if (cfg.HealthEnabled && policy.HealthCap <= 0m)
-                policyIssues.Add($"Plafon upah BPJS Kesehatan pada kebijakan {policy.Version} belum diisi.");
-            if (cfg.EmploymentEnabled && programs.Contains(InsurancePrograms.Jp) && policy.JpCap <= 0m)
-                policyIssues.Add($"Plafon upah BPJS JP pada kebijakan {policy.Version} belum diisi.");
-        }
-
-        if (policyIssues.Count > 0)
-            return InsuranceBlocked(cfg, PayrollConfigurationStatuses.Configured, PayrollComponentResultStatuses.Error, policyIssues, wageBase);
-
+    /// <summary>
+    /// Menilai asuransi swasta satu orang pada periode. Satu-satunya sumber nominal adalah profil asuransi swasta HRD (peserta ACTIVE,
+    /// program swasta aktif, berlaku pada periode). Kontribusi pemberi kerja dipisahkan dan tidak pernah dimasukkan ke total pegawai.
+    ///
+    /// Tidak ada kalkulasi iuran BPJS, tidak ada kebijakan tarif BPJS, dan tidak ada dasar upah iuran: kolom BPJS pada PrlInsurance
+    /// adalah data historis yang tidak dibaca. Asuransi swasta bukan syarat kelengkapan: ketiadaannya adalah NOT_APPLICABLE yang sah dan
+    /// tidak pernah menahan payroll run. Tetapan lama PrlPayroll.InsuranceAmount tidak dipakai (perilaku sama dengan saat BPJS
+    /// dinonaktifkan sementara).
+    /// </summary>
+    public static PayrollInsuranceAssessment AssessInsurance(PayrollInsuranceConfigFacts? cfg, DateTime periodStart, DateTime periodEnd)
+    {
         var lines = new List<PayrollInsuranceLine>();
-        void Add(string code, string name, string program, bool employeePaid, decimal baseAmount, decimal rate)
+        var privateApplies = cfg is { IsActive: true, PrivateEnabled: true }
+            && NormalizeCode(cfg.ParticipationStatus) == InsuranceParticipationStatuses.Active
+            && OverlapsPeriod(cfg.EffectiveStartDate, cfg.EffectiveEndDate, periodStart, periodEnd);
+        if (privateApplies) AddPrivateInsuranceLines(cfg!, lines);
+
+        if (lines.Count == 0)
         {
-            var amount = Round(baseAmount * rate / 100m);
-            lines.Add(new PayrollInsuranceLine(code, name, program, employeePaid, baseAmount, rate, amount));
+            return new PayrollInsuranceAssessment(
+                PayrollConfigurationStatuses.NotRequired,
+                PayrollComponentResultStatuses.NotApplicable,
+                PayrollTaxInsuranceSources.None,
+                cfg?.ParticipationStatus,
+                0m,
+                0m,
+                Array.Empty<PayrollInsuranceLine>(),
+                Array.Empty<string>(),
+                cfg?.Id);
         }
-
-        if (cfg.HealthEnabled && policy is not null)
-        {
-            var healthBase = Math.Min(wageBase, policy.HealthCap);
-            Add(PayrollInsuranceComponentCodes.BpjsHealthEmployee, "Iuran BPJS Kesehatan (Pegawai)", "KES", true, healthBase, policy.HealthEmployeeRate);
-            Add(PayrollInsuranceComponentCodes.BpjsHealthEmployer, "Kontribusi BPJS Kesehatan (Pemberi Kerja)", "KES", false, healthBase, policy.HealthEmployerRate);
-        }
-
-        if (cfg.EmploymentEnabled && policy is not null)
-        {
-            if (programs.Contains(InsurancePrograms.Jht))
-            {
-                Add(PayrollInsuranceComponentCodes.BpjsJhtEmployee, "Iuran BPJS TK JHT (Pegawai)", InsurancePrograms.Jht, true, wageBase, policy.JhtEmployeeRate);
-                Add(PayrollInsuranceComponentCodes.BpjsJhtEmployer, "Kontribusi BPJS TK JHT (Pemberi Kerja)", InsurancePrograms.Jht, false, wageBase, policy.JhtEmployerRate);
-            }
-
-            if (programs.Contains(InsurancePrograms.Jp))
-            {
-                var jpBase = Math.Min(wageBase, policy.JpCap);
-                Add(PayrollInsuranceComponentCodes.BpjsJpEmployee, "Iuran BPJS TK JP (Pegawai)", InsurancePrograms.Jp, true, jpBase, policy.JpEmployeeRate);
-                Add(PayrollInsuranceComponentCodes.BpjsJpEmployer, "Kontribusi BPJS TK JP (Pemberi Kerja)", InsurancePrograms.Jp, false, jpBase, policy.JpEmployerRate);
-            }
-
-            if (programs.Contains(InsurancePrograms.Jkk))
-                Add(PayrollInsuranceComponentCodes.BpjsJkkEmployer, "Kontribusi BPJS TK JKK (Pemberi Kerja)", InsurancePrograms.Jkk, false, wageBase, policy.JkkRate);
-            if (programs.Contains(InsurancePrograms.Jkm))
-                Add(PayrollInsuranceComponentCodes.BpjsJkmEmployer, "Kontribusi BPJS TK JKM (Pemberi Kerja)", InsurancePrograms.Jkm, false, wageBase, policy.JkmRate);
-        }
-
-        AddPrivateInsuranceLines(cfg, lines);
 
         var employeeTotal = Round(lines.Where(l => l.EmployeePaid).Sum(l => l.Amount));
         var employerTotal = Round(lines.Where(l => !l.EmployeePaid).Sum(l => l.Amount));
-        var resultStatus = employeeTotal + employerTotal > 0m ? PayrollComponentResultStatuses.Calculated : PayrollComponentResultStatuses.ValidZero;
         return new PayrollInsuranceAssessment(
-            PayrollConfigurationStatuses.Configured, resultStatus, PayrollTaxInsuranceSources.HrdProfile, status, programs, policy?.Version,
-            wageBase, employeeTotal, employerTotal, lines, false, Array.Empty<string>(), warnings, cfg.Id)
-        {
-            PolicyId = policy?.PolicyId,
-            PolicyLegalBasis = policy?.LegalBasis,
-            JkkRiskClass = policy?.JkkRiskClass
-        };
+            PayrollConfigurationStatuses.Configured,
+            PayrollComponentResultStatuses.Calculated,
+            PayrollTaxInsuranceSources.HrdProfile,
+            cfg!.ParticipationStatus,
+            employeeTotal,
+            employerTotal,
+            lines,
+            Array.Empty<string>(),
+            cfg.Id);
     }
 
     private static void AddPrivateInsuranceLines(PayrollInsuranceConfigFacts cfg, List<PayrollInsuranceLine> lines)
@@ -875,127 +760,32 @@ public static class PayrollTaxInsuranceRules
             lines.Add(new PayrollInsuranceLine(PayrollInsuranceComponentCodes.PrivateEmployer, "Kontribusi Asuransi Swasta (Pemberi Kerja)", "PRIVATE", false, 0m, 0m, Round(cfg.PrivateEmployerContribution)));
     }
 
-    /// <summary>
-    /// Penilaian iuran saat fitur BPJS nonaktif. BPJS Kesehatan dan BPJS Ketenagakerjaan TIDAK dihitung dan tidak memblokir payroll run
-    /// (status eksplisit TESTING_MODE_DISABLED, berbeda dari NOT_APPLICABLE, VALID_ZERO, dan belum dikonfigurasi). Asuransi swasta BUKAN
-    /// BPJS dan tetap dihitung persis seperti biasa bila HRD menetapkannya (peserta aktif, program swasta aktif, berlaku pada periode):
-    /// menonaktifkan BPJS tidak boleh menghilangkan potongan atau kontribusi asuransi swasta.
-    /// </summary>
-    private static PayrollInsuranceAssessment AssessWithoutBpjs(
-        PayrollInsuranceConfigFacts? cfg, decimal wageBase, DateTime periodStart, DateTime periodEnd, bool calculate)
-    {
-        const string notice = "Mode pengujian aktif: kalkulasi BPJS Kesehatan dan BPJS Ketenagakerjaan dinonaktifkan sementara (belum dihitung).";
-
-        var lines = new List<PayrollInsuranceLine>();
-        var privateApplies = calculate
-            && cfg is { IsActive: true, PrivateEnabled: true }
-            && NormalizeCode(cfg.ParticipationStatus) == InsuranceParticipationStatuses.Active
-            && OverlapsPeriod(cfg.EffectiveStartDate, cfg.EffectiveEndDate, periodStart, periodEnd);
-        if (privateApplies) AddPrivateInsuranceLines(cfg!, lines);
-
-        if (lines.Count == 0)
-        {
-            return new PayrollInsuranceAssessment(
-                PayrollConfigurationStatuses.TestingModeDisabled,
-                PayrollComponentResultStatuses.TestingModeDisabled,
-                PayrollTaxInsuranceSources.TestingModeDisabled,
-                cfg?.ParticipationStatus,
-                Array.Empty<string>(),
-                null,
-                wageBase,
-                0m,
-                0m,
-                Array.Empty<PayrollInsuranceLine>(),
-                false,
-                Array.Empty<string>(),
-                new[] { notice },
-                cfg?.Id);
-        }
-
-        var employeeTotal = Round(lines.Where(l => l.EmployeePaid).Sum(l => l.Amount));
-        var employerTotal = Round(lines.Where(l => !l.EmployeePaid).Sum(l => l.Amount));
-        return new PayrollInsuranceAssessment(
-            PayrollConfigurationStatuses.TestingModeDisabled,
-            PayrollComponentResultStatuses.Calculated,
-            PayrollTaxInsuranceSources.HrdProfile,
-            cfg!.ParticipationStatus,
-            Array.Empty<string>(),
-            null,
-            wageBase,
-            employeeTotal,
-            employerTotal,
-            lines,
-            false,
-            Array.Empty<string>(),
-            new[] { notice, "Asuransi swasta tetap dihitung; hanya komponen BPJS yang tidak dihitung." },
-            cfg.Id);
-    }
-
-    private static PayrollInsuranceAssessment InsuranceUnconfigured(
-        PayrollInsuranceConfigFacts? cfg, IReadOnlyList<string> issues, decimal legacyAmount, decimal wageBase)
-    {
-        if (legacyAmount > 0m)
-        {
-            var legacyLine = new PayrollInsuranceLine(PayrollEngineComponentCodes.InsuranceEmployee, "Iuran Karyawan (tetapan lama profil payroll)", "LEGACY", true, 0m, 0m, legacyAmount);
-            return new PayrollInsuranceAssessment(
-                PayrollConfigurationStatuses.NotConfigured, PayrollComponentResultStatuses.Calculated,
-                PayrollTaxInsuranceSources.LegacyProfileAmount, cfg?.ParticipationStatus, Array.Empty<string>(), null, wageBase,
-                legacyAmount, 0m, new[] { legacyLine }, false, issues,
-                new[] { "Konfigurasi iuran HRD belum lengkap; nominal iuran memakai tetapan lama pada profil payroll. Lengkapi Konfigurasi Iuran di HRD." },
-                cfg?.Id);
-        }
-
-        return new PayrollInsuranceAssessment(
-            PayrollConfigurationStatuses.NotConfigured, PayrollComponentResultStatuses.NotConfigured, PayrollTaxInsuranceSources.None,
-            cfg?.ParticipationStatus, Array.Empty<string>(), null, wageBase, 0m, 0m, Array.Empty<PayrollInsuranceLine>(), true, issues,
-            Array.Empty<string>(), cfg?.Id);
-    }
-
-    private static PayrollInsuranceAssessment InsuranceBlocked(
-        PayrollInsuranceConfigFacts cfg, string configurationStatus, string resultStatus, IReadOnlyList<string> issues, decimal wageBase) =>
-        new(configurationStatus, resultStatus, PayrollTaxInsuranceSources.None, cfg.ParticipationStatus, Array.Empty<string>(), null,
-            wageBase, 0m, 0m, Array.Empty<PayrollInsuranceLine>(), true, issues, Array.Empty<string>(), cfg.Id);
-
     // ------------------------------------------------------------------------------------------------------------------------
     // Kesiapan (kelengkapan data dan Profil Penggajian)
     // ------------------------------------------------------------------------------------------------------------------------
 
     /// <summary>
-    /// Kesiapan konfigurasi PPh dan iuran pada tanggal penilaian. Tidak melihat nominal hasil: yang dinilai hanya apakah HRD sudah
-    /// menetapkan konfigurasi yang sah dan berlaku. Nol bukan penanda kelengkapan.
+    /// Kesiapan konfigurasi PPh pada tanggal penilaian. Tidak melihat nominal hasil: yang dinilai hanya apakah HRD sudah menetapkan
+    /// konfigurasi yang sah dan berlaku. Nol bukan penanda kelengkapan. Asuransi swasta dan iuran BPJS tidak menjadi syarat kelengkapan.
     /// </summary>
-    public static PayrollTaxInsuranceReadiness AssessReadiness(
-        PayrollTaxConfigFacts? tax, PayrollInsuranceConfigFacts? insurance, decimal legacyTax, decimal legacyInsurance, DateTime asOf,
-        PayrollPolicyAvailability? availability = null)
+    public static PayrollTaxReadiness AssessReadiness(
+        PayrollTaxConfigFacts? tax, decimal legacyTax, DateTime asOf, PayrollPolicyAvailability? availability = null)
     {
-        // Tanpa informasi ketersediaan kebijakan, BPJS dianggap nonaktif (gagal-tertutup): konfigurasi BPJS tidak boleh dinilai/ditampilkan
-        // seolah aktif hanya karena penilai tidak diberi tahu keadaan saklar.
-        var enableBpjs = availability?.EnableBpjsInPayroll ?? false;
         var taxResult = AssessTax(tax, legacyTax, asOf, asOf);
-        var insuranceResult = AssessInsurance(insurance, legacyInsurance, null, 0m, asOf, asOf, calculate: false, enableBpjs: enableBpjs);
 
         var notes = new List<string>();
 
         // Ketersediaan kebijakan berversi adalah keadaan terpisah dari konfigurasi per orang: konfigurasi lengkap tetap menahan
         // perhitungan bila kebijakan yang dibutuhkannya belum disahkan.
-        if (availability is not null)
-        {
-            if (taxResult.IsConfigured && taxResult.CalculationMode == TaxCalculationModes.AutoRegulatory && !availability.TaxApproved)
-                notes.Add($"{StatutoryPolicyLabels.AwaitingVerification}: belum ada kebijakan tarif PPh yang disahkan dan berlaku; PPh otomatis menahan payroll run.");
-            if (enableBpjs && insuranceResult.IsConfigured && insuranceResult.Programs.Count + (insurance?.HealthEnabled == true ? 1 : 0) > 0 && !availability.BpjsApproved
-                && insuranceResult.ParticipationStatus == InsuranceParticipationStatuses.Active)
-                notes.Add($"{StatutoryPolicyLabels.AwaitingVerification}: belum ada kebijakan iuran BPJS yang disahkan dan berlaku; iuran menahan payroll run.");
-        }
+        if (availability is not null
+            && taxResult.IsConfigured && taxResult.CalculationMode == TaxCalculationModes.AutoRegulatory && !availability.TaxApproved)
+            notes.Add("Belum ada kebijakan tarif PPh yang berlaku; PPh otomatis menahan payroll run.");
 
         if (taxResult.Source == PayrollTaxInsuranceSources.LegacyProfileAmount)
             notes.Add("PPh masih memakai tetapan lama pada profil payroll; konfigurasi HRD belum lengkap.");
-        if (enableBpjs && insuranceResult.Source == PayrollTaxInsuranceSources.LegacyProfileAmount)
-            notes.Add("Iuran masih memakai tetapan lama pada profil payroll; konfigurasi HRD belum lengkap.");
-        notes.AddRange(insuranceResult.Warnings.Where(w => !w.Contains("tetapan lama", StringComparison.Ordinal)));
-        if (taxResult.IsConfigured && insuranceResult.IsConfigured && notes.Count == 0)
-            notes.Add("Konfigurasi pajak dan iuran lengkap.");
+        if (taxResult.IsConfigured && notes.Count == 0)
+            notes.Add("Konfigurasi PPh lengkap.");
 
-        return new PayrollTaxInsuranceReadiness(
-            taxResult.ConfigurationStatus, insuranceResult.ConfigurationStatus, taxResult.Issues, insuranceResult.Issues, notes);
+        return new PayrollTaxReadiness(taxResult.ConfigurationStatus, taxResult.Issues, notes);
     }
 }

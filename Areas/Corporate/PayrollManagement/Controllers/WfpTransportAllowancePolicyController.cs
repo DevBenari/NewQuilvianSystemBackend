@@ -11,7 +11,6 @@ using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
-using QuilvianSystemBackend.Services.Features;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 
@@ -49,17 +48,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
-        private readonly IBpjsFeatureGate _bpjsGate;
 
         public WfpTransportAllowancePolicyController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService,
-            IBpjsFeatureGate bpjsGate)
+            LoggerService loggerService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
-            _bpjsGate = bpjsGate;
         }
+
+        // Klasifikasi dasar upah iuran BPJS (IsFixedAllowance, IncludeInBpjsWageBase) tidak lagi dikelola (PAY-BE-FIX-007): kolom dipertahankan sebagai data historis dan tidak dibaca, ditulis, maupun dikembalikan oleh kontrak ini.
 
         [HttpGet("filters/metadata")]
         [AccessAction("Read", "Read Transport Allowance Policy", Description = "Melihat metadata filter transport allowance policy", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -134,12 +132,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25,
+            [FromQuery] Guid? salaryGradeId = null,
+            [FromQuery] Guid? salaryStructureId = null,
             CancellationToken cancellationToken = default)
         {
             var paging = NormalizePaging(pageNumber, pageSize);
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            // PAY-BE-FIX-014: pada daftar, salaryGradeId dan salaryStructureId menyaring cakupan TERSIMPAN pada kebijakan (berbeda dari
+            // opsi, yang menjawab "kebijakan mana yang cocok untuk pegawai ini").
             var query = ApplyFilter(
                 BuildBaseQuery(),
                 legalEntityId,
@@ -150,7 +152,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 isAttendanceBased,
                 isIncludedInPayroll,
                 isActive,
-                search);
+                search,
+                salaryGradeId,
+                salaryStructureId);
 
             var totalData = await query.CountAsync(cancellationToken);
 
@@ -182,21 +186,69 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             [FromQuery] Guid? legalEntityId,
             [FromQuery] Guid? hospitalSiteId,
             [FromQuery] Guid? employeeGradeId,
+            [FromQuery] Guid? salaryGradeId = null,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25,
+            [FromQuery] Guid? salaryStructureId = null,
             CancellationToken cancellationToken = default)
         {
             var paging = NormalizePaging(pageNumber, pageSize);
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            // PAY-BE-FIX-014. Struktur menentukan grade (struktur milik tepat satu grade gaji); bila keduanya dikirim, harus cocok.
+            var structureSpecified = salaryStructureId.HasValue && salaryStructureId.Value != Guid.Empty;
+            Guid? scopeGradeId = salaryGradeId.HasValue && salaryGradeId.Value != Guid.Empty ? salaryGradeId : null;
+            var requestedStructureId = structureSpecified ? salaryStructureId!.Value : Guid.Empty;
+            if (structureSpecified)
+            {
+                var structureGradeId = await _dbContext.Set<MstSalaryStructure>()
+                    .AsNoTracking()
+                    .Where(s => s.Id == requestedStructureId && !s.IsDelete)
+                    .Select(s => (Guid?)s.SalaryGradeId)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (!structureGradeId.HasValue)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Struktur Gaji tidak ditemukan."));
+                }
+
+                if (scopeGradeId.HasValue && scopeGradeId.Value != structureGradeId.Value)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Struktur Gaji yang dipilih bukan milik Grade Gaji yang dipilih."));
+                }
+
+                scopeGradeId = structureGradeId;
+            }
+
+            // Perilaku lama dipertahankan untuk konsumen existing: salaryGradeId diterjemahkan menjadi grade kepegawaian yang terhubung dan
+            // menyaring kebijakan berdasarkan EmployeeGradeId (kebijakan tanpa grade pegawai tetap lolos). Saringan ini tetap berlaku bagi
+            // kebijakan ber-cakupan karena EmployeeGradeId adalah cakupan tambahan yang harus ikut cocok.
+            if (!employeeGradeId.HasValue && scopeGradeId.HasValue)
+            {
+                var resolvedGradeId = await _dbContext.Set<MstSalaryGrade>()
+                    .AsNoTracking()
+                    .Where(g => g.Id == scopeGradeId.Value && !g.IsDelete)
+                    .Select(g => g.EmployeeGradeId)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (resolvedGradeId.HasValue)
+                {
+                    employeeGradeId = resolvedGradeId;
+                }
+            }
+
             var query = ApplyFilter(
                 BuildBaseQuery(),
                 legalEntityId,
                 hospitalSiteId,
-                employeeGradeId,
+                null,
                 null,
                 null,
                 null,
@@ -204,10 +256,48 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 onlyActive ? true : null,
                 search);
 
+            if (employeeGradeId.HasValue && employeeGradeId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.EmployeeGradeId == employeeGradeId.Value || x.EmployeeGradeId == null);
+            }
+
+            // PAY-BE-FIX-014: saringan cakupan TERSIMPAN. Kebijakan lama tanpa grade dan struktur tetap lolos (perilaku existing, kini ditandai
+            // ScopeStatus = LegacyUnscoped); kebijakan ber-cakupan hanya muncul untuk grade yang sama, dan bila struktur ditentukan hanya
+            // untuk struktur itu atau untuk seluruh struktur grade tersebut. Kebijakan struktur lain tidak pernah lolos karena nominalnya mirip.
+            if (scopeGradeId.HasValue)
+            {
+                var gradeScope = scopeGradeId.Value;
+                query = structureSpecified
+                    ? query.Where(x =>
+                        (x.SalaryGradeId == null && x.SalaryStructureId == null)
+                        || (x.SalaryGradeId == gradeScope
+                            && (x.SalaryStructureId == null || x.SalaryStructureId == requestedStructureId)))
+                    : query.Where(x =>
+                        (x.SalaryGradeId == null && x.SalaryStructureId == null)
+                        || x.SalaryGradeId == gradeScope);
+            }
+
             var totalData = await query.CountAsync(cancellationToken);
 
-            var items = await query
-                .OrderBy(x => x.PolicyName)
+            IOrderedQueryable<PrlTransportAllowancePolicy> orderedQuery;
+            if (scopeGradeId.HasValue)
+            {
+                // Cakupan paling spesifik didahulukan, supaya kebijakan yang dibuat khusus untuk struktur itu tidak tenggelam.
+                orderedQuery = query
+                    .OrderByDescending(x => x.SalaryStructureId != null)
+                    .ThenByDescending(x => x.SalaryGradeId != null);
+                orderedQuery = employeeGradeId.HasValue && employeeGradeId.Value != Guid.Empty
+                    ? orderedQuery.ThenByDescending(x => x.EmployeeGradeId == employeeGradeId.Value).ThenBy(x => x.PolicyName)
+                    : orderedQuery.ThenBy(x => x.PolicyName);
+            }
+            else
+            {
+                orderedQuery = employeeGradeId.HasValue && employeeGradeId.Value != Guid.Empty
+                    ? query.OrderByDescending(x => x.EmployeeGradeId == employeeGradeId.Value).ThenBy(x => x.PolicyName)
+                    : query.OrderBy(x => x.PolicyName);
+            }
+
+            var items = await orderedQuery
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(x => new WfpTransportAllowancePolicyOptionResponse
@@ -217,9 +307,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     PolicyName = x.PolicyName,
                     CalculationMethod = x.CalculationMethod,
                     FixedMonthlyAmount = x.FixedMonthlyAmount,
-                    PerAttendanceAmount = x.PerAttendanceAmount
+                    PerAttendanceAmount = x.PerAttendanceAmount,
+                    MonthlyLimitAmount = x.MonthlyLimitAmount,
+                    EmployeeGradeId = x.EmployeeGradeId,
+                    EmployeeGradeName = x.EmployeeGrade != null ? x.EmployeeGrade.GradeName : null,
+                    SalaryGradeId = x.SalaryGradeId,
+                    SalaryGradeName = x.SalaryGrade != null ? x.SalaryGrade.SalaryGradeName : null,
+                    SalaryStructureId = x.SalaryStructureId,
+                    SalaryStructureName = x.SalaryStructure != null ? x.SalaryStructure.SalaryStructureName : null,
+                    PayrollComponentId = x.PayrollComponentId
                 })
                 .ToListAsync(cancellationToken);
+
+            // Status cakupan diturunkan oleh satu aturan bersama (tidak diterjemahkan ke SQL).
+            foreach (var item in items)
+            {
+                item.ScopeStatus = TransportAllowancePolicyScopeRules.ScopeStatusOf(item.SalaryGradeId, item.SalaryStructureId);
+            }
 
             var result = new WfpTransportAllowancePolicyOptionPagedResponse
             {
@@ -273,7 +377,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     "Data transport allowance policy wajib diisi."));
             }
 
-            var validation = await ValidateRequestAsync(null, request, cancellationToken);
+            var validation = await ValidateRequestAsync(null, request, willBeActive: true, existing: null, cancellationToken);
 
             if (!validation.IsValid)
             {
@@ -292,6 +396,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 LegalEntityId = NormalizeGuid(request.LegalEntityId),
                 HospitalSiteId = NormalizeGuid(request.HospitalSiteId),
                 EmployeeGradeId = NormalizeGuid(request.EmployeeGradeId),
+                SalaryGradeId = NormalizeGuid(request.SalaryGradeId),
+                SalaryStructureId = NormalizeGuid(request.SalaryStructureId),
                 PayrollComponentId = NormalizeGuid(request.PayrollComponentId),
                 PolicyName = request.PolicyName.Trim(),
                 CalculationMethod = NormalizeCalculationMethod(request.CalculationMethod),
@@ -303,9 +409,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 IsAttendanceBased = request.IsAttendanceBased,
                 IsProrated = request.IsProrated,
                 IsTaxable = request.IsTaxable,
-                // Kebijakan baru saat BPJS nonaktif: belum diklasifikasikan (null), bukan false.
-                IsFixedAllowance = _bpjsGate.IsEnabled ? request.IsFixedAllowance : null,
-                IncludeInBpjsWageBase = _bpjsGate.IsEnabled ? request.IncludeInBpjsWageBase : null,
                 IsIncludedInPayroll = request.IsIncludedInPayroll,
                 IncludeBusinessTravelDay = request.IncludeBusinessTravelDay,
                 IncludePaidLeaveDay = request.IncludePaidLeaveDay,
@@ -390,7 +493,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     "Transport allowance policy tidak ditemukan."));
             }
 
-            var validation = await ValidateRequestAsync(id, request, cancellationToken);
+            var validation = await ValidateRequestAsync(id, request, request.IsActive, entity, cancellationToken);
 
             if (!validation.IsValid)
             {
@@ -399,9 +502,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     validation.ErrorMessage ?? "Data transport allowance policy tidak valid.");
             }
 
+            // PAY-BE-FIX-014: perubahan cakupan Grade Gaji / Struktur Gaji. Dua aturan keselamatan yang konservatif:
+            //  1. cakupan yang sudah ditetapkan tidak dapat dikosongkan lewat PUT. Mengosongkannya akan mengubah kebijakan menjadi "tanpa
+            //     cakupan" (seperti data lama) secara diam-diam, dan melindungi klien lama yang tidak mengirim kedua field baru;
+            //  2. cakupan tidak boleh berubah bila kebijakan sudah dirujuk penetapan transport pegawai, karena kelayakan penetapan itu
+            //     akan ikut berubah tanpa ada yang meninjaunya. Buat kebijakan baru untuk cakupan yang berbeda.
+            var requestedGradeId = NormalizeGuid(request.SalaryGradeId);
+            var requestedStructureId = NormalizeGuid(request.SalaryStructureId);
+            if (entity.SalaryGradeId != requestedGradeId || entity.SalaryStructureId != requestedStructureId)
+            {
+                if (entity.SalaryGradeId.HasValue && !requestedGradeId.HasValue)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Grade Gaji yang sudah ditetapkan pada kebijakan tidak dapat dikosongkan. Pilih Grade Gaji dan Struktur Gaji, atau buat kebijakan baru."));
+                }
+
+                if (await _dbContext.Set<PrlTransportAllowance>()
+                        .AnyAsync(x => x.TransportAllowancePolicyId == id && !x.IsDelete, cancellationToken))
+                {
+                    return Conflict(ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Cakupan Grade Gaji dan Struktur Gaji tidak dapat diubah karena kebijakan ini sudah dipakai penetapan transport pegawai. Buat kebijakan baru untuk cakupan yang berbeda."));
+                }
+            }
+
             entity.LegalEntityId = NormalizeGuid(request.LegalEntityId);
             entity.HospitalSiteId = NormalizeGuid(request.HospitalSiteId);
             entity.EmployeeGradeId = NormalizeGuid(request.EmployeeGradeId);
+            entity.SalaryGradeId = requestedGradeId;
+            entity.SalaryStructureId = requestedStructureId;
             entity.PayrollComponentId = NormalizeGuid(request.PayrollComponentId);
             entity.PolicyName = request.PolicyName.Trim();
             entity.CalculationMethod = NormalizeCalculationMethod(request.CalculationMethod);
@@ -413,12 +543,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             entity.IsAttendanceBased = request.IsAttendanceBased;
             entity.IsProrated = request.IsProrated;
             entity.IsTaxable = request.IsTaxable;
-            // Saat BPJS nonaktif klasifikasi tersimpan dipertahankan (isian tidak ditampilkan dan tidak dikirim Frontend).
-            if (_bpjsGate.IsEnabled)
-            {
-                entity.IsFixedAllowance = request.IsFixedAllowance;
-                entity.IncludeInBpjsWageBase = request.IncludeInBpjsWageBase;
-            }
             entity.IsIncludedInPayroll = request.IsIncludedInPayroll;
             entity.IncludeBusinessTravelDay = request.IncludeBusinessTravelDay;
             entity.IncludePaidLeaveDay = request.IncludePaidLeaveDay;
@@ -482,6 +606,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     "Transport allowance policy tidak ditemukan."));
             }
 
+            // PAY-BE-FIX-014: kebijakan ber-cakupan tidak boleh diaktifkan kembali bila relasinya sudah tidak valid (grade atau struktur
+            // dinonaktifkan, masa berlakunya lewat, atau pasangannya tidak cocok), dan tidak boleh menimbulkan irisan dengan kebijakan aktif
+            // lain yang cakupannya persis sama. Kebijakan lama tanpa cakupan dan penonaktifan tidak terpengaruh.
+            if (request.IsActive && !entity.IsActive && entity.SalaryGradeId.HasValue)
+            {
+                var activation = await ValidateScopeAndOverlapAsync(
+                    entity.Id,
+                    entity.SalaryGradeId,
+                    entity.SalaryStructureId,
+                    entity.LegalEntityId,
+                    entity.HospitalSiteId,
+                    entity.EmployeeGradeId,
+                    entity.EffectiveStartDate,
+                    entity.EffectiveEndDate,
+                    cancellationToken);
+
+                if (!activation.IsValid)
+                {
+                    return BuildValidationErrorResult(
+                        activation.StatusCode,
+                        activation.ErrorMessage ?? "Kebijakan tidak dapat diaktifkan karena cakupannya tidak valid.");
+                }
+            }
+
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
@@ -539,6 +687,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
         {
             return _dbContext.Set<PrlTransportAllowancePolicy>()
                 .AsNoTracking()
+                .Include(x => x.EmployeeGrade)
+                .Include(x => x.SalaryGrade)
+                .Include(x => x.SalaryStructure)
                 .Include(x => x.PayrollComponent)
                 .Include(x => x.TransportAllowances)
                 .Where(x => !x.IsDelete);
@@ -554,8 +705,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             bool? isAttendanceBased,
             bool? isIncludedInPayroll,
             bool? isActive,
-            string? search)
+            string? search,
+            Guid? salaryGradeId = null,
+            Guid? salaryStructureId = null)
         {
+            // PAY-BE-FIX-014: menyaring cakupan TERSIMPAN (bukan terjemahan ke grade pegawai seperti pada opsi).
+            if (salaryGradeId.HasValue && salaryGradeId.Value != Guid.Empty)
+                query = query.Where(x => x.SalaryGradeId == salaryGradeId.Value);
+
+            if (salaryStructureId.HasValue && salaryStructureId.Value != Guid.Empty)
+                query = query.Where(x => x.SalaryStructureId == salaryStructureId.Value);
+
             if (legalEntityId.HasValue && legalEntityId.Value != Guid.Empty)
                 query = query.Where(x => x.LegalEntityId == legalEntityId.Value);
 
@@ -631,6 +791,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 LegalEntityId = entity.LegalEntityId,
                 HospitalSiteId = entity.HospitalSiteId,
                 EmployeeGradeId = entity.EmployeeGradeId,
+                SalaryGradeId = entity.SalaryGradeId,
+                SalaryGradeName = entity.SalaryGrade?.SalaryGradeName,
+                SalaryStructureId = entity.SalaryStructureId,
+                SalaryStructureName = entity.SalaryStructure?.SalaryStructureName,
+                ScopeStatus = TransportAllowancePolicyScopeRules.ScopeStatusOf(entity.SalaryGradeId, entity.SalaryStructureId),
                 PayrollComponentId = entity.PayrollComponentId,
                 PayrollComponentCode = entity.PayrollComponent?.PayrollComponentCode,
                 PayrollComponentName = entity.PayrollComponent?.PayrollComponentName,
@@ -645,8 +810,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 IsAttendanceBased = entity.IsAttendanceBased,
                 IsProrated = entity.IsProrated,
                 IsTaxable = entity.IsTaxable,
-                IsFixedAllowance = entity.IsFixedAllowance,
-                IncludeInBpjsWageBase = entity.IncludeInBpjsWageBase,
                 IsIncludedInPayroll = entity.IsIncludedInPayroll,
                 IncludeBusinessTravelDay = entity.IncludeBusinessTravelDay,
                 IncludePaidLeaveDay = entity.IncludePaidLeaveDay,
@@ -673,6 +836,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 LegalEntityId = response.LegalEntityId,
                 HospitalSiteId = response.HospitalSiteId,
                 EmployeeGradeId = response.EmployeeGradeId,
+                SalaryGradeId = response.SalaryGradeId,
+                SalaryGradeName = response.SalaryGradeName,
+                SalaryStructureId = response.SalaryStructureId,
+                SalaryStructureName = response.SalaryStructureName,
+                ScopeStatus = response.ScopeStatus,
                 PayrollComponentId = response.PayrollComponentId,
                 PayrollComponentCode = response.PayrollComponentCode,
                 PayrollComponentName = response.PayrollComponentName,
@@ -687,8 +855,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 IsAttendanceBased = response.IsAttendanceBased,
                 IsProrated = response.IsProrated,
                 IsTaxable = response.IsTaxable,
-                IsFixedAllowance = response.IsFixedAllowance,
-                IncludeInBpjsWageBase = response.IncludeInBpjsWageBase,
                 IsIncludedInPayroll = response.IsIncludedInPayroll,
                 IncludeBusinessTravelDay = response.IncludeBusinessTravelDay,
                 IncludePaidLeaveDay = response.IncludePaidLeaveDay,
@@ -707,9 +873,96 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             };
         }
 
+        /// <summary>
+        /// Memvalidasi cakupan Grade Gaji dan Struktur Gaji, lalu irisan dengan kebijakan aktif lain yang cakupannya persis sama
+        /// (PAY-BE-FIX-014). Kebijakan lama tanpa grade dan struktur tidak dievaluasi di sini, jadi perilaku existing tidak berubah. Irisan
+        /// hanya diperiksa bila kebijakan akan berstatus aktif. Cakupan yang saling melingkupi (grade saja versus grade dan struktur) sengaja
+        /// TIDAK ditolak dan tidak diberi prioritas otomatis; aturan prioritas menunggu keputusan pemilik proses.
+        /// </summary>
+        private async Task<(bool IsValid, int StatusCode, string? ErrorMessage)> ValidateScopeAndOverlapAsync(
+            Guid? excludeId,
+            Guid? salaryGradeId,
+            Guid? salaryStructureId,
+            Guid? legalEntityId,
+            Guid? hospitalSiteId,
+            Guid? employeeGradeId,
+            DateTime? effectiveStartDate,
+            DateTime? effectiveEndDate,
+            CancellationToken cancellationToken,
+            bool checkOverlap = true)
+        {
+            if (!salaryGradeId.HasValue && !salaryStructureId.HasValue)
+                return (true, StatusCodes.Status200OK, null);
+
+            TransportPolicyGradeFacts? grade = null;
+            if (salaryGradeId.HasValue)
+            {
+                var gradeId = salaryGradeId.Value;
+                grade = await _dbContext.Set<MstSalaryGrade>()
+                    .AsNoTracking()
+                    .Where(g => g.Id == gradeId && !g.IsDelete)
+                    .Select(g => new TransportPolicyGradeFacts(g.Id, g.IsActive, g.EffectiveStartDate, g.EffectiveEndDate))
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            TransportPolicyStructureFacts? structure = null;
+            if (salaryStructureId.HasValue)
+            {
+                var structureId = salaryStructureId.Value;
+                structure = await _dbContext.Set<MstSalaryStructure>()
+                    .AsNoTracking()
+                    .Where(s => s.Id == structureId && !s.IsDelete)
+                    .Select(s => new TransportPolicyStructureFacts(
+                        s.Id, s.SalaryGradeId, s.IsActive, s.EffectiveStartDate, s.EffectiveEndDate, s.LegalEntityId, s.HospitalSiteId))
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            var scopeMessage = TransportAllowancePolicyScopeRules.ValidateScope(
+                salaryGradeId, salaryStructureId, grade, structure, legalEntityId, hospitalSiteId, effectiveStartDate, effectiveEndDate);
+            if (scopeMessage is not null)
+                return (false, StatusCodes.Status400BadRequest, scopeMessage);
+
+            if (checkOverlap && salaryGradeId.HasValue)
+            {
+                var overlapQuery = _dbContext.Set<PrlTransportAllowancePolicy>()
+                    .AsNoTracking()
+                    .Where(x => !x.IsDelete
+                        && x.IsActive
+                        && x.LegalEntityId == legalEntityId
+                        && x.HospitalSiteId == hospitalSiteId
+                        && x.EmployeeGradeId == employeeGradeId
+                        && x.SalaryGradeId == salaryGradeId
+                        && x.SalaryStructureId == salaryStructureId);
+
+                if (excludeId.HasValue)
+                    overlapQuery = overlapQuery.Where(x => x.Id != excludeId.Value);
+
+                // Tanggal kosong berarti tanpa batas pada sisi itu.
+                if (effectiveEndDate.HasValue)
+                    overlapQuery = overlapQuery.Where(x => x.EffectiveStartDate == null || x.EffectiveStartDate <= effectiveEndDate.Value);
+                if (effectiveStartDate.HasValue)
+                    overlapQuery = overlapQuery.Where(x => x.EffectiveEndDate == null || x.EffectiveEndDate >= effectiveStartDate.Value);
+
+                var conflicting = await overlapQuery
+                    .Select(x => new { x.PolicyCode, x.PolicyName })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (conflicting is not null)
+                {
+                    return (false, StatusCodes.Status409Conflict,
+                        $"Sudah ada kebijakan aktif ({conflicting.PolicyCode} - {conflicting.PolicyName}) dengan cakupan yang sama dan masa berlaku yang beririsan. "
+                        + "Ubah masa berlaku atau nonaktifkan kebijakan tersebut lebih dulu.");
+                }
+            }
+
+            return (true, StatusCodes.Status200OK, null);
+        }
+
         private async Task<(bool IsValid, int StatusCode, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
             CreateWfpTransportAllowancePolicyRequest request,
+            bool willBeActive,
+            PrlTransportAllowancePolicy? existing,
             CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request.PolicyName))
@@ -730,21 +983,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 request.MinimumAttendanceMinutes < 0)
             {
                 return (false, StatusCodes.Status400BadRequest, "Nilai nominal, batas, dan minimum menit kehadiran tidak boleh bernilai negatif.");
-            }
-
-            // Klasifikasi dasar upah BPJS: kedua isian ditetapkan bersamaan; hanya tunjangan tetap yang boleh masuk dasar upah; transportasi
-            // berbasis kehadiran atau per hari tidak pernah tunjangan tetap.
-            if (_bpjsGate.IsEnabled)
-            {
-                if (request.IsFixedAllowance.HasValue != request.IncludeInBpjsWageBase.HasValue)
-                    return (false, StatusCodes.Status400BadRequest, "Klasifikasi tunjangan tetap dan dasar upah BPJS harus diisi bersamaan (atau dikosongkan bersamaan).");
-                if (request.IncludeInBpjsWageBase == true && request.IsFixedAllowance != true)
-                    return (false, StatusCodes.Status400BadRequest, "Hanya tunjangan tetap yang boleh masuk dasar upah BPJS.");
-                if (request.IsFixedAllowance == true &&
-                    (request.IsAttendanceBased || !string.Equals(calculationMethod, "FixedMonthly", StringComparison.OrdinalIgnoreCase)))
-                {
-                    return (false, StatusCodes.Status400BadRequest, "Transportasi berbasis kehadiran atau per hari bukan tunjangan tetap; hanya metode FixedMonthly tanpa dasar kehadiran yang dapat diklasifikasikan sebagai tunjangan tetap.");
-                }
             }
 
             var effectiveStartDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveStartDate);
@@ -799,6 +1037,34 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     cancellationToken))
             {
                 return (false, StatusCodes.Status400BadRequest, "Payroll component tidak ditemukan atau tidak aktif.");
+            }
+
+            // PAY-BE-FIX-014: relasi Grade Gaji dan Struktur Gaji divalidasi pada Create DAN Update, sehingga permintaan yang dimanipulasi
+            // lewat API tidak lolos meskipun dropdown frontend benar.
+            // Kebijakan nonaktif yang cakupannya TIDAK diubah boleh tetap disunting (mis. keterangan) walau grade atau strukturnya sudah
+            // nonaktif: itu data historis. Kebijakan aktif, atau cakupan yang diubah, selalu divalidasi penuh.
+            var requestedGradeId = NormalizeGuid(request.SalaryGradeId);
+            var requestedStructureId = NormalizeGuid(request.SalaryStructureId);
+            var scopeUnchanged = existing is not null
+                && existing.SalaryGradeId == requestedGradeId
+                && existing.SalaryStructureId == requestedStructureId;
+
+            if (willBeActive || !scopeUnchanged)
+            {
+                var scopeCheck = await ValidateScopeAndOverlapAsync(
+                    excludeId,
+                    requestedGradeId,
+                    requestedStructureId,
+                    NormalizeGuid(request.LegalEntityId),
+                    NormalizeGuid(request.HospitalSiteId),
+                    NormalizeGuid(request.EmployeeGradeId),
+                    effectiveStartDate,
+                    effectiveEndDate,
+                    cancellationToken,
+                    checkOverlap: willBeActive);
+
+                if (!scopeCheck.IsValid)
+                    return scopeCheck;
             }
 
             var normalizedName = request.PolicyName.Trim().ToLower();
@@ -861,6 +1127,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 "23503" => BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     "Referensi data terkait pada transport allowance policy tidak valid atau tidak ditemukan.")),
+                "23514" => BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Cakupan Grade Gaji dan Struktur Gaji pada transport allowance policy tidak memenuhi ketentuan.")),
                 "22001" or "22003" or "22007" or "23502" => BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     "Format atau panjang nilai pada data transport allowance policy tidak memenuhi ketentuan.")),
@@ -909,6 +1178,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 LegalEntityId = entity.LegalEntityId,
                 HospitalSiteId = entity.HospitalSiteId,
                 EmployeeGradeId = entity.EmployeeGradeId,
+                SalaryGradeId = entity.SalaryGradeId,
+                SalaryGradeName = entity.SalaryGrade?.SalaryGradeName,
+                SalaryStructureId = entity.SalaryStructureId,
+                SalaryStructureName = entity.SalaryStructure?.SalaryStructureName,
+                ScopeStatus = TransportAllowancePolicyScopeRules.ScopeStatusOf(entity.SalaryGradeId, entity.SalaryStructureId),
                 PayrollComponentId = entity.PayrollComponentId,
                 PayrollComponentCode = entity.PayrollComponent?.PayrollComponentCode,
                 PayrollComponentName = entity.PayrollComponent?.PayrollComponentName,
@@ -923,8 +1197,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 IsAttendanceBased = entity.IsAttendanceBased,
                 IsProrated = entity.IsProrated,
                 IsTaxable = entity.IsTaxable,
-                IsFixedAllowance = entity.IsFixedAllowance,
-                IncludeInBpjsWageBase = entity.IncludeInBpjsWageBase,
                 IsIncludedInPayroll = entity.IsIncludedInPayroll,
                 IncludeBusinessTravelDay = entity.IncludeBusinessTravelDay,
                 IncludePaidLeaveDay = entity.IncludePaidLeaveDay,

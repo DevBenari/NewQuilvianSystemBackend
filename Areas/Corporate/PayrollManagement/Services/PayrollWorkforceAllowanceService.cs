@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -23,8 +25,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 /// - tanggal berlaku harus berada dalam masa berlaku master; tidak boleh beririsan dengan penetapan hidup (Draft/PendingApproval/Approved)
 ///   jenis yang sama pada pegawai yang sama; tidak boleh menduplikasi tunjangan yang sudah ada di Struktur Gaji pegawai;
 /// - RequiresApproval master menentukan status awal: butuh persetujuan -> PendingApproval, tidak butuh -> Approved otomatis. Hanya
-///   Approved yang dibayarkan mesin payroll (PayrollCalculationService). Persetujuan memakai izin Approve sendiri; pengaju boleh
-///   menyetujui sendiri, sama dengan penghasilan variabel manual (PAY-BE-20);
+///   Approved yang dibayarkan mesin payroll (PayrollCalculationService). Persetujuan memakai izin Approve sendiri. Selama
+///   Payroll:Policy:RequireDifferentApprover bernilai false (nilai bawaan; keputusan pemisahan pengaju dan pengesah belum disahkan),
+///   pengaju boleh menyetujui sendiri, sama dengan penghasilan variabel manual (PAY-BE-20). Bila pemilik proses menyalakannya,
+///   pengaju ditolak (403) menyetujui penetapannya sendiri; nilai bawaan tidak diubah oleh kode (PAY-BE-FIX-008);
 /// - penetapan yang sudah pernah menjadi komponen payroll run tidak lagi boleh diubah isinya (riwayat tidak dihapus dan snapshot run
 ///   final tidak tersentuh); koreksinya adalah menonaktifkan lalu membuat penetapan baru.
 ///
@@ -38,11 +42,14 @@ public sealed class PayrollWorkforceAllowanceService
 
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
+    private readonly PayrollPolicyOptions _policy;
 
-    public PayrollWorkforceAllowanceService(ApplicationDbContext dbContext, LoggerService loggerService)
+    public PayrollWorkforceAllowanceService(
+        ApplicationDbContext dbContext, LoggerService loggerService, IOptions<PayrollPolicyOptions> policyOptions)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
+        _policy = policyOptions.Value;
     }
 
     private sealed record TypeFacts(
@@ -293,6 +300,10 @@ public sealed class PayrollWorkforceAllowanceService
             {
                 if (entity.AllowanceStatus != WorkforceAllowanceStatuses.PendingApproval)
                     throw new PayrollInvalidTransitionException("Hanya penetapan berstatus Menunggu Persetujuan yang dapat disetujui.");
+                // NEEDS CONFIRMATION (matriks maker-checker kompensasi): pemisahan baru berlaku bila kebijakan menyalakannya.
+                if (_policy.RequireDifferentApprover && entity.SubmittedByUserId.HasValue && entity.SubmittedByUserId.Value == actorUserId)
+                    throw new PayrollForbiddenActionException(
+                        "Pengaju penetapan tunjangan tidak boleh menyetujui penetapan yang sama (kebijakan pemisahan kewenangan).");
 
                 entity.AllowanceStatus = WorkforceAllowanceStatuses.Approved;
                 entity.IsActive = true;
@@ -424,14 +435,23 @@ public sealed class PayrollWorkforceAllowanceService
         return ToIndividualItem(row, used.Contains(id), caller, today, salary);
     }
 
-    private async Task<SalaryBasis?> LoadSalaryBasisAsync(Guid workforceProfileId, DateTime today, CancellationToken cancellationToken) =>
-        await _dbContext.WfpSalaryAssignments.AsNoTracking()
+    private async Task<SalaryBasis?> LoadSalaryBasisAsync(Guid workforceProfileId, DateTime today, CancellationToken cancellationToken)
+    {
+        // "Approved" pada SalaryBasis berarti "sah dipakai payroll": mengikuti sakelar RequireApprovedSalaryAssignment (PAY-BE-FIX-008).
+        // Mati (bawaan): penetapan aktif dan efektif sudah sah. Menyala: harus disetujui (ApprovedAt dan ApprovedByUserId terisi).
+        // "Aktif" tidak pernah dianggap sama dengan "disetujui" bila approval disyaratkan.
+        var requireApproval = _policy.RequireApprovedSalaryAssignment;
+        return await _dbContext.WfpSalaryAssignments.AsNoTracking()
             .Where(a => !a.IsDelete && a.IsActive && a.IsPrimary && a.WorkforceProfileId == workforceProfileId
                 && a.EffectiveStartDate <= today && (a.EffectiveEndDate == null || a.EffectiveEndDate >= today))
-            .OrderByDescending(a => a.ApprovedAt != null)
+            // Yang disetujui didahulukan bila ada lebih dari satu kandidat.
+            .OrderByDescending(a => a.ApprovedAt != null && a.ApprovedByUserId != null)
             .ThenByDescending(a => a.EffectiveStartDate)
-            .Select(a => new SalaryBasis(a.Id, a.SalaryStructureId, a.BaseSalary, a.ApprovedAt != null, a.EffectiveStartDate, a.EffectiveEndDate))
+            .Select(a => new SalaryBasis(
+                a.Id, a.SalaryStructureId, a.BaseSalary, !requireApproval || (a.ApprovedAt != null && a.ApprovedByUserId != null),
+                a.EffectiveStartDate, a.EffectiveEndDate))
             .FirstOrDefaultAsync(cancellationToken);
+    }
 
     private async Task<List<IndividualRow>> LoadIndividualRowsAsync(Guid workforceProfileId, Guid? id, CancellationToken cancellationToken) =>
         await _dbContext.PrlWorkforceAllowances.AsNoTracking()
@@ -512,7 +532,14 @@ public sealed class PayrollWorkforceAllowanceService
         return rows.Select(x =>
         {
             var isPercentage = x.CalculationMethod == SalaryStructureAllowanceCalculationMethods.PercentageOfBaseSalary;
-            var effective = x.IsActive && salary.EffectiveStartDate <= today && (salary.EffectiveEndDate == null || salary.EffectiveEndDate >= today);
+            // Hak dari Struktur Gaji hanya berlaku bila penetapan gaji yang memberinya disetujui; baris yang sekadar aktif tidak dibayarkan.
+            var effective = x.IsActive && salary.Approved
+                && salary.EffectiveStartDate <= today && (salary.EffectiveEndDate == null || salary.EffectiveEndDate >= today);
+            var notPayableReason = !x.IsActive
+                ? "Baris tunjangan ini dinonaktifkan pada Struktur Gaji."
+                : !salary.Approved
+                    ? "Penetapan gaji pegawai belum disetujui HRD, jadi tunjangan dari Struktur Gaji belum dibayarkan."
+                    : null;
 
             return new WorkforceAllowanceItemResponse
             {
@@ -539,6 +566,7 @@ public sealed class PayrollWorkforceAllowanceService
                 EffectiveEndDate = salary.EffectiveEndDate,
                 Notes = x.Notes,
                 IsEditable = false,
+                NotPayableReason = notPayableReason,
                 LockReason = "Tunjangan ini berlaku untuk semua pemilik Struktur Gaji yang sama. Ubah di pengelolaan Struktur Gaji.",
                 ManagementTarget = WorkforceAllowanceManagementTargets.SalaryStructure,
                 ManagementReferenceId = salary.SalaryStructureId,
@@ -626,6 +654,24 @@ public sealed class PayrollWorkforceAllowanceService
         var inactive = row.Status == WorkforceAllowanceStatuses.Inactive;
         var editable = !used && !inactive;
 
+        // Alasan baris belum/tidak dibayarkan mesin payroll, diturunkan dari data (bukan dikarang): status, tanggal efektif, dan gaji pokok.
+        var notPayableReason = row.Status switch
+        {
+            WorkforceAllowanceStatuses.Approved when !row.IsActive => "Penetapan ini dinonaktifkan.",
+            WorkforceAllowanceStatuses.Approved when row.EffectiveStartDate > today =>
+                "Belum berlaku; mulai " + row.EffectiveStartDate.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) + ".",
+            WorkforceAllowanceStatuses.Approved when row.EffectiveEndDate.HasValue && row.EffectiveEndDate.Value < today =>
+                "Masa berlakunya sudah berakhir.",
+            WorkforceAllowanceStatuses.Approved when isPercentage && approvedBase is null =>
+                "Persentase gaji pokok belum dapat dihitung karena penetapan gaji pegawai belum disetujui HRD.",
+            WorkforceAllowanceStatuses.Approved => null,
+            WorkforceAllowanceStatuses.PendingApproval => "Menunggu persetujuan; belum dibayarkan.",
+            WorkforceAllowanceStatuses.Draft => "Masih draft dan belum diajukan; belum dibayarkan.",
+            WorkforceAllowanceStatuses.Rejected => "Ditolak; tidak dibayarkan.",
+            WorkforceAllowanceStatuses.Inactive => "Dinonaktifkan; tidak dibayarkan.",
+            _ => null
+        };
+
         var actions = new List<string>();
         if (editable && caller.CanUpdate) actions.Add("Update");
         if (row.RequiresApproval && row.Status is WorkforceAllowanceStatuses.Draft or WorkforceAllowanceStatuses.Rejected && caller.CanSubmit)
@@ -669,6 +715,7 @@ public sealed class PayrollWorkforceAllowanceService
             Notes = row.Notes,
             UsedInPayroll = used,
             IsEditable = editable,
+            NotPayableReason = notPayableReason,
             LockReason = used ? "Sudah dipakai payroll run. Nonaktifkan lalu buat penetapan baru untuk mengubahnya."
                 : inactive ? "Penetapan ini sudah dinonaktifkan."
                 : null,

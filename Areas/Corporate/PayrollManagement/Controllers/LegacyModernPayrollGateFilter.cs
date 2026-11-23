@@ -15,17 +15,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers;
 /// Run resmi. Berlaku hanya untuk aksi tulis (POST, PUT, PATCH, DELETE); pembacaan riwayat tidak disentuh dan tidak ada data historis
 /// yang dihapus.
 ///
-/// 1. Kalkulasi PPh dan BPJS jalur lama SELALU ditolak: tarifnya tertanam atau berasal dari nilai bawaan yang belum diverifikasi.
-///    Tarif resmi hanya dari kebijakan berversi yang disahkan dan dibaca mesin Payroll Run.
+/// 1. Kalkulasi PPh jalur lama SELALU ditolak: tarifnya tertanam atau berasal dari nilai bawaan yang belum diverifikasi.
+///    Tarif resmi hanya dari kebijakan berversi yang disahkan dan dibaca mesin Payroll Run. (Endpoint kalkulasi BPJS jalur lama sudah
+///    dihapus bersama layanannya pada PAY-BE-FIX-007.)
 /// 2. Run yang sudah dihitung mesin Payroll Run resmi tidak dapat diubah jalur lama (mencegah komponen dan potongan ganda).
 /// 3. Bila saklar <c>Payroll:Policy:LegacyModernMutationsEnabled</c> dimatikan, seluruh aksi tulis jalur lama ditolak.
 /// </summary>
 public sealed class LegacyModernPayrollGateFilter : IAsyncActionFilter
 {
-    /// <summary>Aksi kalkulasi pajak/iuran jalur lama: selalu diblokir.</summary>
+    /// <summary>Aksi kalkulasi pajak jalur lama: selalu diblokir.</summary>
     private static readonly HashSet<string> AlwaysBlockedActions = new(StringComparer.Ordinal)
     {
-        "CalculatePph21", "CalculateEmployeePph21", "CalculateBpjs", "CalculateEmployeeBpjs"
+        "CalculatePph21", "CalculateEmployeePph21"
     };
 
     private readonly ApplicationDbContext _dbContext;
