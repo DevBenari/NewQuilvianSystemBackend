@@ -18,7 +18,7 @@
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit frontend saat dikerjakan | `0658715f5` (branch `RizkiV2`) |
 | Tanggal | 23 November 2026 |
-| Status | 🟡 SEBAGIAN 23 November 2026 — kelima kriteria terpetakan ke source dan teruji di layar (Playwright **16/16**, viewport tablet + kamera tiruan); `npm run build` (`BUILD_ID` 14:34:59) dibuat **sebelum** perbaikan `qr-scanner.jsx` (bagian 5.1), jadi build produksi perlu diulang |
+| Status | ✅ SELESAI 23 November 2026 — kelima kriteria terpetakan ke source dan teruji di layar (Playwright **16/16**, viewport tablet + kamera tiruan); `npm run build` ulang Rizki `BUILD_ID` 15:02:39 memuat perbaikan `qr-scanner.jsx` (bagian 5.1, commit `7baebf2f4`) |
 
 ---
 
@@ -85,7 +85,7 @@ Pustaka pemindai (`DEV_DISCRETION`):
 | Pemeriksaan | Hasil |
 | --- | --- |
 | ESLint berkas task | 0 galat, 0 peringatan (termasuk sesudah perbaikan 5.1) |
-| `npm run build` (Rizki) | Berhasil, `BUILD_ID` 2026-11-23 14:34:59; manifest memuat `/stock-take/scan`. **Belum mencakup perbaikan 5.1** |
+| `npm run build` (Rizki) | Berhasil, `BUILD_ID` 2026-11-23 14:34:59 (manifest memuat `/stock-take/scan`), lalu diulang `BUILD_ID` 15:02:39 sesudah perbaikan 5.1; bundel memuat `qrArea` |
 | Grep anti-regresi | CSS baru tanpa warna literal, ukuran huruf hanya token, tanpa `!important`; tanpa `<button>`/`<table>` mentah |
 
 **MANUAL TEST (Playwright, Edge, Dimas sebagai anggota tim, viewport 768×1024 + sentuhan): 16/16** —
@@ -126,7 +126,7 @@ Data uji dirapikan: sesi `AST-OPN-000011..000016` dibatalkan.
 | DoD | Status |
 |---|---|
 | `V-FE` lint, uji layar | Terpenuhi |
-| `V-FE` build produksi | **Belum** untuk perbaikan 5.1 — ulangi `npm run build` |
+| `V-FE` build produksi | Terpenuhi (`BUILD_ID` 15:02:39) |
 | `UAT-INV-06`, tablet sungguhan | Milik tim UAT |
 | Laporan, roadmap, traceability | Ditulis |
 
@@ -156,5 +156,4 @@ di dalam tabel (perilaku bawaan `DataTable`). Menu aksi tetap terjangkau.
 
 ## 6. Langkah berikutnya
 
-- Rizki: `npm run build` ulang untuk menyertakan perbaikan 5.1, lalu status task ini dinaikkan ke ✅.
 - `BE-AST-023` + `FE-AST-017` (pencocokan, selisih, verifikasi, berita acara, tindak lanjut).

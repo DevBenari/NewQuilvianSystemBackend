@@ -22,7 +22,7 @@ Dipotong menjadi dua blok karena lebar; `FE-AST-017` muncul lagi sebagai sambung
 ```text
                 BE-AST-021 [BE] ✅ ─┐    BE-AST-022 [BE] ✅ ─┐ BE-AST-023 [BE] ─┐
                                     │                     │                     │
-FE-AST-001 [FE-REG] ────────────────┴─> FE-AST-015 ✅ ────┴─> FE-AST-016 🟡 ────┴─> FE-AST-017
+FE-AST-001 [FE-REG] ────────────────┴─> FE-AST-015 ✅ ────┴─> FE-AST-016 ✅ ────┴─> FE-AST-017
 ```
 
 ```text
@@ -63,11 +63,11 @@ Pasangan prasyarat→task: **9** (sama dengan kolom `Dependency`).
 | **Status** | ✅ **SELESAI 23 November 2026.** Route `stock-take/schedules` (daftar, jadwalkan, detail, ubah), penyusun tim dari base component (`UI GATE` REUSE 9, COMPOSE 1, NEW 0), peringatan proses penahan sebelum dan sesudah mulai ditolak, grup menu "Inventaris & Pemeriksaan Fisik" + "Jadwal Inventaris". ESLint 19 berkas 0/0; build Rizki `BUILD_ID` 11:25:04; Playwright **16/16** (SuperAdmin + LOKET). `UAT-INV-02` milik tim UAT — [`FE-AST-015.md`](../task/report/frontend/FE-AST-015.md) |
 | Acceptance criteria | 1. Jadwalkan dengan unit, ruangan opsional, tanggal, tim dan ketua. 2. Mulai menampilkan daftar proses yang menahan bila ditolak. 3. Grup menu "Inventaris & Pemeriksaan Fisik" dan butir "Jadwal Inventaris" terdaftar |
 
-### 🟡 `FE-AST-016` — Pemindaian QR
+### ✅ `FE-AST-016` — Pemindaian QR
 
 | Field | Isi |
 |---|---|
-| **Status** | 🟡 **Sebagian, 23 November 2026.** Kelima kriteria terpetakan ke source dan teruji: Playwright **16/16** di PC (viewport tablet 768×1024 + sentuhan, kamera tiruan Edge berisi QR nomor aset nyata; `AT-INV-13`, `38`, temuan, kirim ulang, menu). ESLint 0/0. Belum: `npm run build` ulang — `BUILD_ID` 14:34:59 dibuat sebelum perbaikan `qr-scanner.jsx` (React 19 mengabaikan `defaultProps` pustaka pemindai). Tablet sungguhan dan `UAT-INV-06` milik tim UAT — [`FE-AST-016.md`](../task/report/frontend/FE-AST-016.md) |
+| **Status** | ✅ **SELESAI 23 November 2026.** Kelima kriteria terpetakan ke source dan teruji: Playwright **16/16** di PC (viewport tablet 768×1024 + sentuhan, kamera tiruan Edge berisi QR nomor aset nyata; `AT-INV-13`, `38`, temuan, kirim ulang, menu). ESLint 0/0; build Rizki `BUILD_ID` 15:02:39 memuat perbaikan `qr-scanner.jsx` (React 19 mengabaikan `defaultProps` pustaka pemindai). Tablet sungguhan dan `UAT-INV-06` milik tim UAT — [`FE-AST-016.md`](../task/report/frontend/FE-AST-016.md) |
 | Acceptance criteria | 1. Skema §3.1; nyaman dipakai di tablet ±768 px (`AST-FE-007`; semula HP 360 px). 2. Kamera ditolak → input nomor manual tetap bekerja. 3. Nomor tak dikenal → formulir temuan. 4. Pindaian gagal kirim tetap terlihat dengan tombol kirim ulang. 5. Butir menu "Pemeriksaan Fisik" |
 
 ### `FE-AST-017` — Pencocokan sampai tindak lanjut
