@@ -26,7 +26,7 @@ Dipotong menjadi dua blok karena lebar; `BE-AST-021` muncul lagi sebagai sambung
                                           │ │
                       BE-AST-017 [MOV] ─┐ │ │
                                         │ │ │
-BE-AST-004 [REG] ─> BE-AST-020 ─────────┴─┴─┴─> BE-AST-021
+BE-AST-004 [REG] ─> BE-AST-020 🟡 ──────┴─┴─┴─> BE-AST-021
 ```
 
 ```text
@@ -59,11 +59,11 @@ Pasangan prasyarat→task: **9** (sama dengan kolom `Dependency`).
 
 ## Kartu task
 
-### `BE-AST-020` — Tabel opname dan migration `AddAssetPhysicalInventory`
+### 🟡 `BE-AST-020` — Tabel opname dan migration `AddAssetPhysicalInventory`
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 Sebagian, 2026-11-23: 6 model, 4 enum, 6 configuration, 6 DbSet ditulis; QBE Strict 14 berkas PASS (0 violation, 0 review). Kriteria 1–2 sudah ada di source, bukti DB menyusul. Kriteria 3 belum: menunggu Rizki merge integration (snapshot `rizkiG` belum memuat `HrdOvertimeSetting`), build, `migrations add AddAssetPhysicalInventory`, `database update`. DoD belum: build, migration, cek DB, commit — [`BE-AST-020.md`](../task/report/backend/BE-AST-020.md) |
 | Acceptance criteria | 1. Enam tabel sesuai data dict. 2. Unik parsial satu sesi aktif per unit; satu ketua per sesi. 3. Migration hanya menambah enam tabel |
 
 ### `BE-AST-021` — Sesi opname dan gerbang penahanan
