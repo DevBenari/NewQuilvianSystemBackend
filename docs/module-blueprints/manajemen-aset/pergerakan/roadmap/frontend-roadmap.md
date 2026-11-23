@@ -20,11 +20,11 @@
                                        │
 FE-AST-004 [FE-REG] ✅ ─┬─────────────────┴─> FE-AST-012 ✅ ───────────────────┐
                      │                                                   │
-                     │                                BE-AST-019 [BE] ─┐ │
+                     │                                BE-AST-019 [BE] ✅ ─┐ │
                      │                                                 │ │
                      │                BE-AST-018 [BE] ✅ ─┐               │ │
                      │                                 │               │ │
-                     └─────────────────────────────────┴─> FE-AST-013 ✅ ─┴─┴─┬─> FE-AST-014
+                     └─────────────────────────────────┴─> FE-AST-013 ✅ ─┴─┴─┬─> FE-AST-014 ✅
                                                                            │
                                                      FE-AST-010 [FE-REG] ──┘
 ```
@@ -63,9 +63,9 @@ Pasangan prasyarat→task: **8** (sama dengan kolom `Dependency`).
 | **Status** | ✅ **SELESAI 20 November 2026.** Peminjaman Sementara (kartu, tab Menunggu Anda/Terlambat/status, + Ajukan Pinjaman), formulir dengan pemilih aset `loanable-assets` unit pemilik, Pengembalian Aset (`status=Dipinjam&status=MenungguKonfirmasiKembali`, tab Terlambat), rincian dengan tabel aset dan perpanjangan, tombol dari `availableActions`, modal Minta Perpanjangan (tanggal harus maju + alasan), modal Konfirmasi Kembali (kondisi per aset wajib, tanpa Hilang), cetak berita acara; 4 route, 2 butir menu. ESLint 19 berkas `0 errors, 0 warnings`. Playwright di `next dev` **32/34 + cek ulang 6/6** (dua FAIL awal = harapan skrip peka huruf pada badge; dibuktikan ulang lewat `textContent`); 0 galat halaman, 0 respons 5xx. Keempat kriteria terbukti. `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-20 11:18:04, manifest memuat 4 route `movement/loan*`); source di commit `9e205e827`. Laporan: [`FE-AST-013.md`](../task/report/frontend/FE-AST-013.md) |
 | Acceptance criteria | 1. Tanda Terlambat dari `isOverdue`. 2. Konfirmasi kembali mewajibkan kondisi per aset. 3. Perpanjangan dan keputusannya. 4. Dua butir menu terdaftar |
 
-### `FE-AST-014` — Kartu dashboard 1.4 dan laporan mutasi
+### ✅ `FE-AST-014` — Kartu dashboard 1.4 dan laporan mutasi
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 23 November 2026.** Bagian **Mutasi & Peminjaman Berjalan** disisipkan ke Dashboard Aset sesudah Kondisi Aset (hanya bila `AssetTransfer : Read`; kartu pinjaman bila `canReadLoans`), kartu menaut ke tab daftar lewat `?tab=`; Laporan Mutasi `/reports/transfers` (varian daftar mutasi, tab status, Ekspor Excel); butir menu Laporan Mutasi. ESLint 14 berkas `0 errors, 0 warnings`. Playwright **20/22 + cek ulang 2/2** (dua FAIL awal = harapan skrip peka huruf pada label kartu/toast); 0 galat halaman, 0 respons 5xx; kartu register tetap, akun tanpa `AssetTransfer : Read` tidak melihat bagian 1.4 dan tidak memanggil API-nya, Excel dari layar sama dengan baris tab. `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-23 08:59:19). Laporan: [`FE-AST-014.md`](../task/report/frontend/FE-AST-014.md) |
 | Acceptance criteria | 1. Kartu disisipkan ke dashboard `FE-AST-010` tanpa mengubah kartu lain; tersembunyi tanpa `AssetTransfer : Read`. 2. Laporan dan ekspor. 3. Butir menu "Laporan Mutasi" |
