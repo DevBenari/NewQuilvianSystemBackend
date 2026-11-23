@@ -95,7 +95,7 @@ public sealed partial class AssetLoanService
                 throw AssetManagementException.Forbidden(AssetMovementErrorCodes.OutsideScope, AssetMovementMessages.LoanCreateScope);
             }
 
-            await _stockTakeGate.EnsureUnitsNotInStockTakeAsync([ownerUnitId, borrowerUnitId], cancellationToken);
+            await AssetMovementStockTake.EnsureNotHeldAsync(_stockTakeGate, [ownerUnitId, borrowerUnitId], cancellationToken);
 
             var now = DateTime.UtcNow;
             var autoApproval = actor.IsHeadOfUnit(ownerUnitId);

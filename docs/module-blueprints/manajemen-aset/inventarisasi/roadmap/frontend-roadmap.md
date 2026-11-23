@@ -19,9 +19,9 @@ pemindaian diuji pada HP lewat HTTPS.
 Dipotong menjadi dua blok karena lebar; `FE-AST-017` muncul lagi sebagai sambungan blok kedua.
 
 ```text
-                   BE-AST-021 [BE] ─┐    BE-AST-022 [BE] ─┐    BE-AST-023 [BE] ─┐
+                BE-AST-021 [BE] ✅ ─┐    BE-AST-022 [BE] ─┐    BE-AST-023 [BE] ─┐
                                     │                     │                     │
-FE-AST-001 [FE-REG] ────────────────┴─> FE-AST-015 ───────┴─> FE-AST-016 ───────┴─> FE-AST-017
+FE-AST-001 [FE-REG] ────────────────┴─> FE-AST-015 ✅ ────┴─> FE-AST-016 ───────┴─> FE-AST-017
 ```
 
 ```text
@@ -55,11 +55,11 @@ Pasangan prasyarat→task: **9** (sama dengan kolom `Dependency`).
 
 ## Kartu task
 
-### `FE-AST-015` — Jadwal dan detail sesi
+### ✅ `FE-AST-015` — Jadwal dan detail sesi
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 23 November 2026.** Route `stock-take/schedules` (daftar, jadwalkan, detail, ubah), penyusun tim dari base component (`UI GATE` REUSE 9, COMPOSE 1, NEW 0), peringatan proses penahan sebelum dan sesudah mulai ditolak, grup menu "Inventaris & Pemeriksaan Fisik" + "Jadwal Inventaris". ESLint 19 berkas 0/0; build Rizki `BUILD_ID` 11:25:04; Playwright **16/16** (SuperAdmin + LOKET). `UAT-INV-02` milik tim UAT — [`FE-AST-015.md`](../task/report/frontend/FE-AST-015.md) |
 | Acceptance criteria | 1. Jadwalkan dengan unit, ruangan opsional, tanggal, tim dan ketua. 2. Mulai menampilkan daftar proses yang menahan bila ditolak. 3. Grup menu "Inventaris & Pemeriksaan Fisik" dan butir "Jadwal Inventaris" terdaftar |
 
 ### `FE-AST-016` — Pemindaian QR

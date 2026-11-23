@@ -26,13 +26,13 @@ Dipotong menjadi dua blok karena lebar; `BE-AST-021` muncul lagi sebagai sambung
                                           │ │
                       BE-AST-017 [MOV] ─┐ │ │
                                         │ │ │
-BE-AST-004 [REG] ─> BE-AST-020 ✅ ──────┴─┴─┴─> BE-AST-021
+BE-AST-004 [REG] ─> BE-AST-020 ✅ ──────┴─┴─┴─> BE-AST-021 ✅
 ```
 
 ```text
 BE-AST-008 [REG] ─┬─> BE-AST-022 ─> BE-AST-023 ─> BE-AST-024
                   │
-      BE-AST-021 ─┘
+   BE-AST-021 ✅ ─┘
 ```
 
 `[REG]` = task backend sub-modul `register` · `[MOV]` = task backend sub-modul `pergerakan`. Cermin baca-saja.
@@ -66,11 +66,11 @@ Pasangan prasyarat→task: **9** (sama dengan kolom `Dependency`).
 | **Status** | ✅ Selesai, 2026-11-23: 6 model, 4 enum, 6 configuration, 6 DbSet (source `5e810439`); QBE Strict 14 berkas PASS; migration `20261123032511_AddAssetPhysicalInventory` dibuat dan diterapkan Rizki sesudah merge integration `2d76f11b`, berisi 6 `CreateTable` + 27 `CreateIndex` saja. DB dev: 133 kolom, 21 FK Restrict, check tanggal, unik parsial sesi aktif per unit dan ketua per sesi. Migration belum di-commit — [`BE-AST-020.md`](../task/report/backend/BE-AST-020.md) |
 | Acceptance criteria | 1. Enam tabel sesuai data dict. 2. Unik parsial satu sesi aktif per unit; satu ketua per sesi. 3. Migration hanya menambah enam tabel |
 
-### `BE-AST-021` — Sesi opname dan gerbang penahanan
+### ✅ `BE-AST-021` — Sesi opname dan gerbang penahanan
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 23 November 2026.** `StockTakeSessionService` (+`.Query`), `AssetStockTakesController` (8 operasi, resource `AssetStockTake` aksi `Read`/`Create`/`Start`/`Cancel`), gerbang `AssetStockTakeGate` diisi, mutasi/pinjaman kini `AST-VAL-MOV-006` + nama unit, deret `AST-OPN`. QBE Strict 13 berkas `PASS`; nol baris komentar; build Rizki DLL 12:06:17. Runtime **45/45** (putaran 1 39/44 = skrip membandingkan status sebagai teks): `AT-INV-01`, `02`, `03`, `30`, `31`, `AT-MOV-24`, `AT-REG-38` lulus; DB: snapshot 44 baris = `ExpectedCount`, aset dipinjam keluar tercatat unit peminjamnya. Pinjaman `Dipinjam` tidak menahan mulai (tafsiran `AST-DES-027`). Delta: +`filters/metadata`, +`summary`, `startBlockers`, body `{ rowVersion }` pada mulai — [`BE-AST-021.md`](../task/report/backend/BE-AST-021.md) |
 | Acceptance criteria | 1. Jadwal dengan tim tepat satu ketua. 2. Mulai menolak bila ada penyerahan/mutasi/pinjaman berjalan di unit, dan menyebut nomornya. 3. Snapshot aset diharapkan dibekukan, termasuk aset dipinjam keluar. 4. `IsUnitUnderStockTake` dipanggil pengajuan mutasi, pinjaman, dan penyerahan (`AST-VAL-MOV-006`, `AST-VAL-REG-026`). 5. Batal hanya Kepala Bagian Aset |
 
 ### `BE-AST-022` — Pemindaian dan pencocokan

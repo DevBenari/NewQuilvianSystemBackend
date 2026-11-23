@@ -28,6 +28,9 @@ public sealed class MovementQueryService
     private static readonly LoanStatus[] InFlightLoanStatuses =
         [LoanStatus.Diajukan, LoanStatus.Disetujui, LoanStatus.Dipinjam, LoanStatus.MenungguKonfirmasiKembali];
 
+    private static readonly LoanStatus[] StockTakeBlockingLoanStatuses =
+        [LoanStatus.Diajukan, LoanStatus.Disetujui, LoanStatus.MenungguKonfirmasiKembali];
+
     private readonly ApplicationDbContext _context;
     private readonly AssetActorResolver _actorResolver;
     private readonly AssetTransferService _transferService;
@@ -192,7 +195,7 @@ public sealed class MovementQueryService
                  (x.SourceOrganizationUnitId == organizationUnitId || x.TargetOrganizationUnitId == organizationUnitId),
             cancellationToken);
         return transfer || await _context.AstLoans.AsNoTracking().AnyAsync(
-            x => !x.IsDelete && InFlightLoanStatuses.Contains(x.Status) &&
+            x => !x.IsDelete && StockTakeBlockingLoanStatuses.Contains(x.Status) &&
                  (x.OwnerOrganizationUnitId == organizationUnitId || x.BorrowerOrganizationUnitId == organizationUnitId),
             cancellationToken);
     }
@@ -212,13 +215,31 @@ public sealed class MovementQueryService
             .Take(MaxInFlightNumbers)
             .ToListAsync(cancellationToken);
         var loans = await _context.AstLoans.AsNoTracking()
-            .Where(x => !x.IsDelete && InFlightLoanStatuses.Contains(x.Status) &&
+            .Where(x => !x.IsDelete && StockTakeBlockingLoanStatuses.Contains(x.Status) &&
                         (x.OwnerOrganizationUnitId == organizationUnitId || x.BorrowerOrganizationUnitId == organizationUnitId))
             .OrderBy(x => x.RequestedAt)
             .Select(x => x.LoanNumber)
             .Take(MaxInFlightNumbers)
             .ToListAsync(cancellationToken);
         return new AssetMovementInFlightResult(transfers, loans);
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, Guid>> FindLoanedOutAssetsAsync(Guid ownerOrganizationUnitId, CancellationToken cancellationToken = default)
+    {
+        if (ownerOrganizationUnitId == Guid.Empty)
+        {
+            return new Dictionary<Guid, Guid>();
+        }
+
+        var rows = await _context.AstLoanItems.AsNoTracking()
+            .Where(x => !x.IsDelete && !x.Loan!.IsDelete &&
+                        x.Loan.Status == LoanStatus.Dipinjam &&
+                        x.Loan.OwnerOrganizationUnitId == ownerOrganizationUnitId)
+            .Select(x => new { x.AssetId, x.Loan!.BorrowerOrganizationUnitId })
+            .ToListAsync(cancellationToken);
+        return rows
+            .GroupBy(x => x.AssetId)
+            .ToDictionary(x => x.Key, x => x.First().BorrowerOrganizationUnitId);
     }
 
     private async Task<string> FilterDescriptionAsync(AssetTransferPagedQuery request, CancellationToken cancellationToken)
