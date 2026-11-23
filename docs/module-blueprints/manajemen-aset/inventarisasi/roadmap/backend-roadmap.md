@@ -30,7 +30,7 @@ BE-AST-004 [REG] ─> BE-AST-020 ✅ ──────┴─┴─┴─> BE-AS
 ```
 
 ```text
-BE-AST-008 [REG] ─┬─> BE-AST-022 ─> BE-AST-023 ─> BE-AST-024
+BE-AST-008 [REG] ─┬─> BE-AST-022 ✅ ─> BE-AST-023 ─> BE-AST-024
                   │
    BE-AST-021 ✅ ─┘
 ```
@@ -73,11 +73,11 @@ Pasangan prasyarat→task: **9** (sama dengan kolom `Dependency`).
 | **Status** | ✅ **SELESAI 23 November 2026.** `StockTakeSessionService` (+`.Query`), `AssetStockTakesController` (8 operasi, resource `AssetStockTake` aksi `Read`/`Create`/`Start`/`Cancel`), gerbang `AssetStockTakeGate` diisi, mutasi/pinjaman kini `AST-VAL-MOV-006` + nama unit, deret `AST-OPN`. QBE Strict 13 berkas `PASS`; nol baris komentar; build Rizki DLL 12:06:17. Runtime **45/45** (putaran 1 39/44 = skrip membandingkan status sebagai teks): `AT-INV-01`, `02`, `03`, `30`, `31`, `AT-MOV-24`, `AT-REG-38` lulus; DB: snapshot 44 baris = `ExpectedCount`, aset dipinjam keluar tercatat unit peminjamnya. Pinjaman `Dipinjam` tidak menahan mulai (tafsiran `AST-DES-027`). Delta: +`filters/metadata`, +`summary`, `startBlockers`, body `{ rowVersion }` pada mulai — [`BE-AST-021.md`](../task/report/backend/BE-AST-021.md) |
 | Acceptance criteria | 1. Jadwal dengan tim tepat satu ketua. 2. Mulai menolak bila ada penyerahan/mutasi/pinjaman berjalan di unit, dan menyebut nomornya. 3. Snapshot aset diharapkan dibekukan, termasuk aset dipinjam keluar. 4. `IsUnitUnderStockTake` dipanggil pengajuan mutasi, pinjaman, dan penyerahan (`AST-VAL-MOV-006`, `AST-VAL-REG-026`). 5. Batal hanya Kepala Bagian Aset |
 
-### `BE-AST-022` — Pemindaian dan pencocokan
+### ✅ `BE-AST-022` — Pemindaian dan pencocokan
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 23 November 2026.** `StockTakeScanService` (lookup, pindai, temuan, daftar diharapkan, riwayat), `StockTakeMatchingService` (enam kategori, catatan tim terbawa saat tutup ulang), tutup/buka kembali di `StockTakeSessionService.Counting`; 8 endpoint baru, resource `AssetStockTake` 6 aksi. QBE Strict 9 berkas `PASS`; nol baris komentar; build Rizki DLL 14:40:09. Runtime **37/37**: `AT-INV-04`, `05`, `06`, `32`, `33`, `AST-DES-028`, validasi `010..016`, `020`; ketua tim tanpa `Create` memulai dan menutup sesi. DB: 9 pindaian (1 digantikan), 46 hasil aktif + 46 lama terhapus lunak, 2 foto `StockTakeScan`. Delta: +`GET /{id}/lookup`; `PUT results/{id}` dan izin unduh foto menyusul `BE-AST-023` — [`BE-AST-022.md`](../task/report/backend/BE-AST-022.md) |
 | Acceptance criteria | 1. Hanya anggota tim saat `Berjalan`. 2. Pindai ulang menggantikan (`IsLatest`). 3. Temuan wajib keterangan + foto. 4. Tutup menghitung enam kategori; buka kembali dengan alasan. 5. Aset unit lain yang ditemukan → `BedaLokasi` (`AST-DES-028`) |
 
 ### `BE-AST-023` — Verifikasi, berita acara, tindak lanjut

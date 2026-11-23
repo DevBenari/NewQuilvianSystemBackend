@@ -13,6 +13,9 @@ public sealed partial class StockTakeSessionService
     public const string ActionEdit = "edit";
     public const string ActionStart = "start";
     public const string ActionCancel = "cancel";
+    public const string ActionScan = "scan";
+    public const string ActionCloseCounting = "closeCounting";
+    public const string ActionReopenCounting = "reopenCounting";
 
     public static AssetMasterFilterMetadataResponse GetMetadata() => new()
     {
@@ -99,6 +102,12 @@ public sealed partial class StockTakeSessionService
         }
 
         return session;
+    }
+
+    public async Task<PagedResult<StockTakeResultResponse>> GetResultsAsync(Guid id, StockTakeItemQuery request, CancellationToken cancellationToken = default)
+    {
+        await GetSessionAsync(id, cancellationToken);
+        return await _matchingService.GetResultsAsync(id, request, cancellationToken);
     }
 
     private IQueryable<AstStockTakeSession> Filtered(StockTakePagedQuery request, AssetActor actor)
@@ -229,6 +238,8 @@ public sealed partial class StockTakeSessionService
         var canCreate = await HasPermissionAsync(CreateAction);
         var canStart = await HasPermissionAsync(StartAction);
         var canCancel = await HasPermissionAsync(CancelAction);
+        var canScan = await HasPermissionAsync(ScanAction);
+        var canClose = await HasPermissionAsync(CloseAction);
         var today = AssetRegisterSettingReader.Today();
 
         foreach (var session in sessions)
@@ -260,6 +271,25 @@ public sealed partial class StockTakeSessionService
                 }
             }
 
+            var countingActor = canClose && CanStart(actor, session.OrganizationUnitId, session.LeaderEmployeeId, canCreate);
+            if (session.Status == StockTakeStatus.Berjalan)
+            {
+                if (canScan && session.IsTeamMember)
+                {
+                    actions.Add(ActionScan);
+                }
+
+                if (countingActor)
+                {
+                    actions.Add(ActionCloseCounting);
+                }
+            }
+
+            if (session.Status == StockTakeStatus.Pencocokan && countingActor)
+            {
+                actions.Add(ActionReopenCounting);
+            }
+
             if (canCancel && CancellableStatuses.Contains(session.Status))
             {
                 actions.Add(ActionCancel);
@@ -271,6 +301,17 @@ public sealed partial class StockTakeSessionService
         if (!withDetail)
         {
             return;
+        }
+
+        foreach (var session in sessions.Where(x => x.Started != null))
+        {
+            session.FindingCount = await _context.AstStockTakeScans
+                .AsNoTracking()
+                .CountAsync(x => x.SessionId == session.Id && !x.IsDelete && x.IsLatest && x.IsUnregisteredFinding, cancellationToken);
+            if (session.CountingClosed != null || session.Status is StockTakeStatus.MenungguVerifikasi or StockTakeStatus.Diverifikasi)
+            {
+                session.ResultCounts = await _matchingService.GetCountsAsync(session.Id, cancellationToken);
+            }
         }
 
         foreach (var session in sessions.Where(x => x.Status == StockTakeStatus.Dijadwalkan))

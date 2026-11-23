@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Http;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.PhysicalInventory.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Enums;
 
 namespace QuilvianSystemBackend.Areas.Corporate.AssetManagement.PhysicalInventory.DTOs;
 
@@ -101,7 +103,146 @@ public sealed class StockTakeSessionResponse
     public List<string> AvailableActions { get; set; } = [];
     public List<StockTakeTeamMemberResponse> TeamMembers { get; set; } = [];
     public StockTakeStartBlockersResponse? StartBlockers { get; set; }
+    public int FindingCount { get; set; }
+    public StockTakeResultCountsResponse? ResultCounts { get; set; }
     public Guid RowVersion { get; set; }
+}
+
+public sealed class StockTakeScanRequest
+{
+    public string? Code { get; set; }
+    public Guid? FoundLocationId { get; set; }
+    public AssetCondition? ObservedCondition { get; set; }
+    public bool IsManualEntry { get; set; }
+    public string? Notes { get; set; }
+    public IFormFile? Photo { get; set; }
+}
+
+public sealed class StockTakeUnregisteredFindingRequest
+{
+    public string? Code { get; set; }
+    public string? Description { get; set; }
+    public Guid? FoundLocationId { get; set; }
+    public AssetCondition? ObservedCondition { get; set; }
+    public string? Notes { get; set; }
+    public IFormFile? Photo { get; set; }
+}
+
+public sealed class StockTakeItemQuery
+{
+    public string? Search { get; set; }
+    public bool? Scanned { get; set; }
+    public List<StockTakeResultCategory>? Category { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 25;
+}
+
+public sealed class StockTakeLookupResponse
+{
+    public Guid AssetId { get; set; }
+    public string? InventoryNumber { get; set; }
+    public string AssetName { get; set; } = string.Empty;
+    public string? GroupName { get; set; }
+    public AssetCondition CurrentCondition { get; set; }
+    public string CurrentConditionName { get; set; } = string.Empty;
+    public Guid? CurrentOrganizationUnitId { get; set; }
+    public string? CurrentOrganizationUnitName { get; set; }
+    public bool IsExpected { get; set; }
+    public Guid? ExpectedLocationId { get; set; }
+    public string? ExpectedLocationName { get; set; }
+    public AssetCondition? ExpectedCondition { get; set; }
+    public string? ExpectedConditionName { get; set; }
+    public Guid? LoanBorrowerOrganizationUnitId { get; set; }
+    public string? LoanBorrowerOrganizationUnitName { get; set; }
+    public StockTakeScanResponse? LastScan { get; set; }
+}
+
+public sealed class StockTakeScanResponse
+{
+    public Guid Id { get; set; }
+    public Guid? AssetId { get; set; }
+    public string? InventoryNumber { get; set; }
+    public string? AssetName { get; set; }
+    public string? ScannedCode { get; set; }
+    public bool IsManualEntry { get; set; }
+    public bool IsUnregisteredFinding { get; set; }
+    public string? FindingDescription { get; set; }
+    public Guid FoundLocationId { get; set; }
+    public string? FoundLocationName { get; set; }
+    public AssetCondition ObservedCondition { get; set; }
+    public string ObservedConditionName { get; set; } = string.Empty;
+    public Guid? PhotoAttachmentId { get; set; }
+    public string? Notes { get; set; }
+    public Guid ScannedByEmployeeId { get; set; }
+    public string? ScannedByName { get; set; }
+    public DateTime ScannedAt { get; set; }
+    public bool IsLatest { get; set; }
+    public bool IsExpected { get; set; }
+    public int ScannedCount { get; set; }
+    public int ExpectedCount { get; set; }
+}
+
+public sealed class StockTakeExpectedItemResponse
+{
+    public Guid Id { get; set; }
+    public Guid AssetId { get; set; }
+    public string? InventoryNumber { get; set; }
+    public string AssetName { get; set; } = string.Empty;
+    public string? GroupName { get; set; }
+    public Guid ExpectedLocationId { get; set; }
+    public string? ExpectedLocationName { get; set; }
+    public string? ExpectedCustodianName { get; set; }
+    public AssetCondition ExpectedCondition { get; set; }
+    public string ExpectedConditionName { get; set; } = string.Empty;
+    public Guid? LoanBorrowerOrganizationUnitId { get; set; }
+    public string? LoanBorrowerOrganizationUnitName { get; set; }
+    public bool IsScanned { get; set; }
+    public string? FoundLocationName { get; set; }
+    public AssetCondition? ObservedCondition { get; set; }
+    public string? ObservedConditionName { get; set; }
+    public DateTime? ScannedAt { get; set; }
+}
+
+public sealed class StockTakeResultResponse
+{
+    public Guid Id { get; set; }
+    public StockTakeResultCategory Category { get; set; }
+    public string CategoryName { get; set; } = string.Empty;
+    public Guid? AssetId { get; set; }
+    public string? InventoryNumber { get; set; }
+    public string? AssetName { get; set; }
+    public string? GroupName { get; set; }
+    public bool IsLocationMismatch { get; set; }
+    public bool IsConditionMismatch { get; set; }
+    public bool IsForeignAsset { get; set; }
+    public string? OwnerOrganizationUnitName { get; set; }
+    public Guid? ExpectedLocationId { get; set; }
+    public string? ExpectedLocationName { get; set; }
+    public Guid? FoundLocationId { get; set; }
+    public string? FoundLocationName { get; set; }
+    public AssetCondition? ExpectedCondition { get; set; }
+    public string? ExpectedConditionName { get; set; }
+    public AssetCondition? ObservedCondition { get; set; }
+    public string? ObservedConditionName { get; set; }
+    public Guid? ScanId { get; set; }
+    public string? ScannedCode { get; set; }
+    public string? FindingDescription { get; set; }
+    public Guid? PhotoAttachmentId { get; set; }
+    public string? ScannedByName { get; set; }
+    public DateTime? ScannedAt { get; set; }
+    public string? TeamNote { get; set; }
+}
+
+public sealed class StockTakeResultCountsResponse
+{
+    public int Total { get; set; }
+    public int Sesuai { get; set; }
+    public int SesuaiSedangDipinjam { get; set; }
+    public int TidakDitemukan { get; set; }
+    public int BedaLokasi { get; set; }
+    public int BedaKondisi { get; set; }
+    public int TidakTerdaftar { get; set; }
+    public int Discrepancies { get; set; }
 }
 
 public sealed class StockTakeSessionSummaryResponse

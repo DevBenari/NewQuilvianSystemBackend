@@ -19,11 +19,71 @@ namespace QuilvianSystemBackend.Areas.Corporate.AssetManagement.PhysicalInventor
 public sealed class AssetStockTakesController : AssetMasterControllerBase
 {
     private readonly StockTakeSessionService _service;
+    private readonly StockTakeScanService _scanService;
 
-    public AssetStockTakesController(StockTakeSessionService service)
+    public AssetStockTakesController(StockTakeSessionService service, StockTakeScanService scanService)
     {
         _service = service;
+        _scanService = scanService;
     }
+
+    [HttpGet("{id:guid}/expected-items")]
+    [AccessAction("Read", "Read Asset Stock Take", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("AssetStockTake", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<StockTakeExpectedItemResponse>>), StatusCodes.Status200OK)]
+    public Task<IActionResult> GetExpectedItems(Guid id, [FromQuery] StockTakeItemQuery request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _scanService.GetExpectedItemsAsync(id, request, cancellationToken), "Daftar aset diharapkan berhasil diambil.");
+
+    [HttpGet("{id:guid}/scans")]
+    [AccessAction("Read", "Read Asset Stock Take", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("AssetStockTake", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<StockTakeScanResponse>>), StatusCodes.Status200OK)]
+    public Task<IActionResult> GetScans(Guid id, [FromQuery] StockTakeItemQuery request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _scanService.GetScansAsync(id, request, cancellationToken), "Riwayat pindaian berhasil diambil.");
+
+    [HttpGet("{id:guid}/results")]
+    [AccessAction("Read", "Read Asset Stock Take", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("AssetStockTake", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<StockTakeResultResponse>>), StatusCodes.Status200OK)]
+    public Task<IActionResult> GetResults(Guid id, [FromQuery] StockTakeItemQuery request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _service.GetResultsAsync(id, request, cancellationToken), "Hasil pencocokan berhasil diambil.");
+
+    [HttpGet("{id:guid}/lookup")]
+    [AccessAction("Scan", "Scan Asset Stock Take", AccessType = AccessTypes.Create, SortOrder = 4)]
+    [AccessPermission("AssetStockTake", "Scan")]
+    [ProducesResponseType(typeof(ApiResponse<StockTakeLookupResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> Lookup(Guid id, [FromQuery] string? code, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _scanService.LookupAsync(id, code, cancellationToken), "Aset ditemukan.");
+
+    [HttpPost("{id:guid}/scans")]
+    [Consumes("multipart/form-data")]
+    [AccessAction("Scan", "Scan Asset Stock Take", AccessType = AccessTypes.Create, SortOrder = 4)]
+    [AccessPermission("AssetStockTake", "Scan")]
+    [ProducesResponseType(typeof(ApiResponse<StockTakeScanResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> Scan(Guid id, [FromForm] StockTakeScanRequest request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _scanService.ScanAsync(id, request, cancellationToken), "Pindaian tersimpan.");
+
+    [HttpPost("{id:guid}/findings")]
+    [Consumes("multipart/form-data")]
+    [AccessAction("Scan", "Scan Asset Stock Take", AccessType = AccessTypes.Create, SortOrder = 4)]
+    [AccessPermission("AssetStockTake", "Scan")]
+    [ProducesResponseType(typeof(ApiResponse<StockTakeScanResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> RecordFinding(Guid id, [FromForm] StockTakeUnregisteredFindingRequest request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _scanService.RecordFindingAsync(id, request, cancellationToken), "Temuan tidak terdaftar tersimpan.");
+
+    [HttpPost("{id:guid}/close-counting")]
+    [AccessAction("Close", "Close Asset Stock Take Counting", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission("AssetStockTake", "Close")]
+    [ProducesResponseType(typeof(ApiResponse<StockTakeSessionResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> CloseCounting(Guid id, [FromBody] StockTakeVersionRequest request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _service.CloseCountingAsync(id, request, cancellationToken), "Pemindaian ditutup; hasil pencocokan sudah dihitung.");
+
+    [HttpPost("{id:guid}/reopen-counting")]
+    [AccessAction("Close", "Close Asset Stock Take Counting", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission("AssetStockTake", "Close")]
+    [ProducesResponseType(typeof(ApiResponse<StockTakeSessionResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> ReopenCounting(Guid id, [FromBody] StockTakeDecisionRequest request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _service.ReopenCountingAsync(id, request, cancellationToken), "Pemindaian dibuka kembali.");
 
     [HttpGet("filters/metadata")]
     [AccessAction("Read", "Read Asset Stock Take", AccessType = AccessTypes.Read, SortOrder = 1)]

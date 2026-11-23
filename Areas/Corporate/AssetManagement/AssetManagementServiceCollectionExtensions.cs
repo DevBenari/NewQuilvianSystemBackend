@@ -51,7 +51,9 @@ public static class AssetManagementServiceCollectionExtensions
         services.AddScoped<AssetTransferService>();
         services.AddScoped<AssetLoanService>();
         services.AddScoped<MovementQueryService>();
+        services.AddScoped<StockTakeMatchingService>();
         services.AddScoped<StockTakeSessionService>();
+        services.AddScoped<StockTakeScanService>();
         services.Configure<AssetDailyStatusWorkerOptions>(configuration.GetSection(AssetDailyStatusWorkerOptions.SectionName));
         services.AddHostedService<AssetDailyStatusWorker>();
 
