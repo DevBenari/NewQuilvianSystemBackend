@@ -12,7 +12,8 @@
 **Legenda tanda status:** ✅ selesai · 🟡 sebagian · ⛔ terblokir · tanpa tanda = belum dikerjakan.
 
 `V-FE` dan `DoD-FE` sama dengan `../../register/roadmap/frontend-roadmap.md`; tambahan untuk `FE-AST-016`:
-pemindaian diuji pada HP lewat HTTPS.
+pemindaian diuji di PC kantor dengan Playwright (viewport tablet, sentuhan, kamera tiruan berisi QR di `localhost`);
+tablet sungguhan lewat HTTPS menjadi bagian UAT (`AST-FE-007`, 2026-11-23).
 
 ## Grafik Urutan Dependency
 
@@ -67,7 +68,7 @@ Pasangan prasyarat→task: **9** (sama dengan kolom `Dependency`).
 | Field | Isi |
 |---|---|
 | **Status** | Belum dikerjakan |
-| Acceptance criteria | 1. Skema §3.1; dapat dipakai satu tangan di HP 360 px. 2. Kamera ditolak → input nomor manual tetap bekerja. 3. Nomor tak dikenal → formulir temuan. 4. Pindaian gagal kirim tetap terlihat dengan tombol kirim ulang. 5. Butir menu "Pemeriksaan Fisik" |
+| Acceptance criteria | 1. Skema §3.1; nyaman dipakai di tablet ±768 px (`AST-FE-007`; semula HP 360 px). 2. Kamera ditolak → input nomor manual tetap bekerja. 3. Nomor tak dikenal → formulir temuan. 4. Pindaian gagal kirim tetap terlihat dengan tombol kirim ulang. 5. Butir menu "Pemeriksaan Fisik" |
 
 ### `FE-AST-017` — Pencocokan sampai tindak lanjut
 
