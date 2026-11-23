@@ -2040,27 +2040,27 @@ Dasar: decision log revision `42` bagian 56 (`HRD-DEC-229` s.d. `HRD-DEC-239`), 
 
 | Requirement | Keputusan | Kontrak `v29` | Task backend | Task frontend | Uji penerimaan | UAT | Status |
 | --- | --- | --- | --- | --- | --- | --- | :---: |
-| `FR-PKB-01` `/summary` lima panel | `HRD-DEC-235`, `HRD-ASM-89`, `HRD-ASM-90` | API 35.1; State 33.1 | `BE-HRD-448`, `BE-HRD-449`, `BE-HRD-450` | `FE-HRD-399` | `AT-HRD-PKB-01` s.d. `03`, `06` | `HRD-124` | ⬜ |
-| `FR-PKB-02` Kontrak Berakhir = layar Kontrak | `HRD-DEC-237` | State 33.1; `INT-HR-111` | `BE-HRD-447`, `BE-HRD-449` | `FE-HRD-399` | `AT-HRD-PKB-04`, `05` | `HRD-124` | ⬜ |
-| `FR-PKB-03` Daftar nama drill-down | `HRD-DEC-235`; Permission 33.2 | API 35.1; `VR-PKB-01` s.d. `03` | `BE-HRD-451` | `FE-HRD-399` | `AT-HRD-PKB-07`, `08` | `HRD-124` | ⬜ |
-| `FR-PKB-04` Hak `HrdWorkforceDashboard : Read` | `HRD-DEC-231`, `HRD-ASM-88` | Permission 33.1; `VR-PKB-11` | `BE-HRD-448`, `BE-HRD-452` | `FE-HRD-400` | `AT-HRD-PKB-09` | `HRD-124` | ⬜ |
+| `FR-PKB-01` `/summary` lima panel | `HRD-DEC-235`, `HRD-ASM-89`, `HRD-ASM-90` | API 35.1; State 33.1 | `BE-HRD-448` ✅ ([laporan](../task/report/backend/BE-HRD-448.md)), `BE-HRD-449` ✅ ([laporan](../task/report/backend/BE-HRD-449.md)), `BE-HRD-450` ✅ ([laporan](../task/report/backend/BE-HRD-450.md)) | `FE-HRD-399` | `AT-HRD-PKB-01` s.d. `03`, `06` | `HRD-124` | 🟡 |
+| `FR-PKB-02` Kontrak Berakhir = layar Kontrak | `HRD-DEC-237` | State 33.1; `INT-HR-111` | `BE-HRD-447` 🟡 ([laporan](../task/report/backend/BE-HRD-447.md)), `BE-HRD-449` ✅ ([laporan](../task/report/backend/BE-HRD-449.md)) | `FE-HRD-399` | `AT-HRD-PKB-04`, `05` | `HRD-124` | 🟡 |
+| `FR-PKB-03` Daftar nama drill-down | `HRD-DEC-235`; Permission 33.2 | API 35.1; `VR-PKB-01` s.d. `03` | `BE-HRD-451` ✅ ([laporan](../task/report/backend/BE-HRD-451.md)) | `FE-HRD-399` | `AT-HRD-PKB-07`, `08` | `HRD-124` | 🟡 |
+| `FR-PKB-04` Hak `HrdWorkforceDashboard : Read` | `HRD-DEC-231`, `HRD-ASM-88` | Permission 33.1; `VR-PKB-11` | `BE-HRD-448` ✅ ([laporan](../task/report/backend/BE-HRD-448.md)), `BE-HRD-452` 🟡 ([laporan](../task/report/backend/BE-HRD-452.md)) | `FE-HRD-400` | `AT-HRD-PKB-09` | `HRD-124` | 🟡 |
 | `FR-PKB-05` Layar Dashboard SDM | `HRD-DEC-235`, `HRD-ASM-89` | API 35.1; `INT-HR-111` | — | `FE-HRD-399` | `AT-HRD-PKB-26` | `HRD-124` | ⬜ |
 | `FR-PKB-06` Daftar penapisan per lamaran | `HRD-DEC-236` | API 35.5; State 33.4 | — (endpoint ada) | `FE-HRD-396` | `AT-HRD-PKB-16` | `HRD-125` | ⬜ |
 | `FR-PKB-07` Tandai Lolos/Gugur; gugur otomatis STR | `HRD-DEC-076` | API 35.5 | — (endpoint ada) | `FE-HRD-396` | `AT-HRD-PKB-17` | `HRD-125` | ⬜ |
-| `FR-PKB-08` `track` dan `pendingOnly` | `HRD-DEC-233`, `HRD-ASM-93` | API 35.4; State 33.3; `VR-PKB-06` | `BE-HRD-445` | `FE-HRD-397` | `AT-HRD-PKB-22` | `HRD-126` | ⬜ |
-| `FR-PKB-09` Daftar/detail dibatasi penilai | `HRD-DEC-233` | API 35.4; `VR-PKB-07` | `BE-HRD-444` | `FE-HRD-397` | `AT-HRD-PKB-18` s.d. `20` | `HRD-126` | ⬜ |
-| `FR-PKB-10` `submit-clinical` hanya penilai | `HRD-ASM-95`, `HRD-DEC-077` | API 35.4; `VR-PKB-08` | `BE-HRD-444` | — | `AT-HRD-PKB-21` | `HRD-126` | ⬜ |
+| `FR-PKB-08` `track` dan `pendingOnly` | `HRD-DEC-233`, `HRD-ASM-93` | API 35.4; State 33.3; `VR-PKB-06` | `BE-HRD-445` ✅ ([laporan](../task/report/backend/BE-HRD-445.md)) | `FE-HRD-397` | `AT-HRD-PKB-22` | `HRD-126` | 🟡 |
+| `FR-PKB-09` Daftar/detail dibatasi penilai | `HRD-DEC-233` | API 35.4; `VR-PKB-07` | `BE-HRD-444` ✅ ([laporan](../task/report/backend/BE-HRD-444.md)) | `FE-HRD-397` | `AT-HRD-PKB-18` s.d. `20` | `HRD-126` | 🟡 |
+| `FR-PKB-10` `submit-clinical` hanya penilai | `HRD-ASM-95`, `HRD-DEC-077` | API 35.4; `VR-PKB-08` | `BE-HRD-444` ✅ ([laporan](../task/report/backend/BE-HRD-444.md)) | — | `AT-HRD-PKB-21` | `HRD-126` | ✅ |
 | `FR-PKB-11` Layar Tes/Wawancara | `HRD-DEC-233` | API 35.4, 35.6 | — | `FE-HRD-397` | `AT-HRD-PKB-18` | `HRD-126` | ⬜ |
-| `FR-PKB-12` Parameter `statuses` | `HRD-DEC-234`, `HRD-ASM-94` | API 35.2; `VR-PKB-04`, `05` | `BE-HRD-446` | `FE-HRD-395`, `FE-HRD-398` | `AT-HRD-PKB-10`, `11` | `HRD-127` | ⬜ |
+| `FR-PKB-12` Parameter `statuses` | `HRD-DEC-234`, `HRD-ASM-94` | API 35.2; `VR-PKB-04`, `05` | `BE-HRD-446` ✅ ([laporan](../task/report/backend/BE-HRD-446.md)) | `FE-HRD-395`, `FE-HRD-398` | `AT-HRD-PKB-10`, `11` | `HRD-127` | 🟡 |
 | `FR-PKB-13` Layar Riwayat Penyelesaian | `HRD-DEC-234` | API 35.2; State 33.2 | — | `FE-HRD-398` | `AT-HRD-PKB-12` | `HRD-127` | ⬜ |
-| `FR-PKB-14` 360: sanksi resmi + catatan lama | `HRD-DEC-238` | API 35.3; `INT-HR-114` | `BE-HRD-443` | `FE-HRD-393` | `AT-HRD-PKB-13` | `HRD-128` | ⬜ |
-| `FR-PKB-15` 360: disiplin hanya `ViewSanctions` | `HRD-DEC-238` butir 4, `HRD-ASM-91` | `VR-PKB-09` | `BE-HRD-443` | `FE-HRD-393` | `AT-HRD-PKB-14` | `HRD-128` | ⬜ |
+| `FR-PKB-14` 360: sanksi resmi + catatan lama | `HRD-DEC-238` | API 35.3; `INT-HR-114` | `BE-HRD-443` ✅ ([laporan](../task/report/backend/BE-HRD-443.md)) | `FE-HRD-393` | `AT-HRD-PKB-13` | `HRD-128` | 🟡 |
+| `FR-PKB-15` 360: disiplin hanya `ViewSanctions` | `HRD-DEC-238` butir 4, `HRD-ASM-91` | `VR-PKB-09` | `BE-HRD-443` ✅ ([laporan](../task/report/backend/BE-HRD-443.md)) | `FE-HRD-393` | `AT-HRD-PKB-14` | `HRD-128` | 🟡 |
 | `FR-PKB-16` Catatan lama baca-saja | `HRD-DEC-230` butir 3 | `VR-PKB-10` | — | `FE-HRD-393` | `AT-HRD-PKB-15` | `HRD-128` | ⬜ |
 | `FR-PKB-17` Halaman Tindak Disiplin lama dipensiunkan | `HRD-DEC-230` butir 2, `HRD-ASM-92` | Frontend 34.1 | — | `FE-HRD-394` | `AT-HRD-PKB-24` | `HRD-128` | ⬜ |
 | `FR-PKB-18` Layar Sanksi mengirim `status` | `HRD-DEC-230` | API 35.2 | — | `FE-HRD-395` | `AT-HRD-PKB-23` | `HRD-128` | ⬜ |
 | `FR-PKB-19` Butir menu Paket B | `HRD-DEC-231` | Frontend 34.1; `VR-PKB-11` | — | `FE-HRD-400` | `AT-HRD-PKB-25` | `HRD-129` | ⬜ |
 | `FR-PKB-20` Label "Tindak Disiplin" | `HRD-DEC-239` | Frontend 34.1 | — | `FE-HRD-400` | `AT-HRD-PKB-23` | `HRD-129` | ⬜ |
-| Kepatuhan kontrak `v29`, hak baru, catatan rilis | — | Seluruh bagian | `BE-HRD-452` | `FE-HRD-401` | DoD 42.11 | `HRD-124` s.d. `HRD-129` | ⬜ |
+| Kepatuhan kontrak `v29`, hak baru, catatan rilis | — | Seluruh bagian | `BE-HRD-452` 🟡 ([laporan](../task/report/backend/BE-HRD-452.md)) | `FE-HRD-401` | DoD 42.11 | `HRD-124` s.d. `HRD-129` | 🟡 |
 
 **Celah cakupan (coverage gap):**
 
@@ -2073,3 +2073,5 @@ Dasar: decision log revision `42` bagian 56 (`HRD-DEC-229` s.d. `HRD-DEC-239`), 
 | Uji multi-peran butuh lima akun berbeda | Akun uji belum tersedia | Gerbang G4 frontend; diminta saat `FE-HRD-401` |
 
 Pertanyaan yang tetap terbuka tanpa memblokir: kueri baca-saja jumlah `WfpDisciplinaryAction` (`HRD-DEC-238` butir 1, butuh konfirmasi saat eksekusi) dan akses atasan ke sanksi bawahan (`HRD-ASM-91`).
+
+> **Pemutakhiran 23 November 2026 (build backend Paket B).** Seluruh 10 task backend dikerjakan: 8 ✅, `BE-HRD-447` dan `BE-HRD-452` 🟡 (perbandingan respons layar Kontrak dan waktu muat `/summary` menunggu izin uji di DB dev). `dotnet build` 0 error, QBE Strict `PASS`, registri hak `IsValid=True`; tanpa migration. Status baris mengikuti task frontend yang belum dikerjakan (🟡 bila backend sudah ada); `FR-PKB-10` tidak punya task frontend sehingga ✅. Koreksi catatan rilis: yang kehilangan riwayat disiplin di Employee 360 adalah pengguna mode HR tanpa `ViewSanctions`, bukan atasan langsung ([BE-HRD-452](../task/report/backend/BE-HRD-452.md)).

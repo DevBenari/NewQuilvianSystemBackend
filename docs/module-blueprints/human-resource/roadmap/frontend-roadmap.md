@@ -7452,21 +7452,21 @@ Empat layar `MVP-73` yang tidak menunggu backend (`FE-HRD-394`, `FE-HRD-395`, `F
 ### Grafik F97 — Layar dan menu Paket B (`FE-HRD-393` s.d. `FE-HRD-401`)
 
 ```text
-BE-HRD-443 [BE] ─> FE-HRD-393 ────────────────────────────────┐
+BE-HRD-443 ✅ [BE] ─> FE-HRD-393 ─────────────────────────────┐
                                                               │
 FE-HRD-394 ───────────────────────────────────────────────────┴──┐
                                                                  │
 FE-HRD-396 ─────────────────────────┐                            │
                                     │                            │
-BE-HRD-445 [BE] ─> FE-HRD-397 ──────┴──┐                         │
+BE-HRD-445 ✅ [BE] ─> FE-HRD-397 ───┴──┐                         │
                                        │                         │
 FE-HRD-395 ─────────┐                  │                         │
                     │                  │                         │
-BE-HRD-446 [BE] ────┴─> FE-HRD-398 ────┴──┐                      │
+BE-HRD-446 ✅ [BE] ─┴─> FE-HRD-398 ────┴──┐                      │
                                           │                      │
-BE-HRD-451 [BE] ─> FE-HRD-399 ────────────┴─> FE-HRD-400 ────────┴──┐
+BE-HRD-451 ✅ [BE] ─> FE-HRD-399 ─────────┴─> FE-HRD-400 ────────┴──┐
                                                                     │
-BE-HRD-452 [BE] ────────────────────────────────────────────────────┴─> FE-HRD-401
+BE-HRD-452 🟡 [BE] ─────────────────────────────────────────────────┴─> FE-HRD-401
 ```
 
 `[BE]` = task backend pada `backend-roadmap.md` bagian 30, cermin baca-saja; tandanya disalin dari sana. `BE-HRD-445` sudah memuat `BE-HRD-444` dan `BE-HRD-451` sudah memuat `BE-HRD-447` s.d. `BE-HRD-450` lewat Grafik B100, sehingga tidak digambar ulang.
