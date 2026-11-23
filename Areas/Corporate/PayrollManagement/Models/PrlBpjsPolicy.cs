@@ -6,7 +6,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models
 {
     /// <summary>
-    /// Kebijakan tarif dan batas upah iuran BPJS berversi (DEC-PRL-BPJS-001): sumber tarif iuran yang dipakai mesin payroll. Nilai
+    /// LEGACY_PERSISTED / BLOCKED_BY_SCHEMA (PAY-BE-FIX-007): tidak ada consumer aktif. Tabel, mapping, DbSet, dan baris historisnya
+    /// dipertahankan karena penghapusan butuh migration (DROP TABLE) yang di luar wewenang task; tidak ada layanan, controller, atau
+    /// mesin hitung yang membaca atau menulisnya lagi. Pekerjaan database terpisah diperlukan untuk benar-benar menghapusnya.
+    ///
+    /// Dahulu: kebijakan tarif dan batas upah iuran BPJS berversi (DEC-PRL-BPJS-001): sumber tarif iuran yang dipakai mesin payroll. Nilai
     /// bawaan Pengaturan Penggajian (HrdPayrollSetting) bukan kebijakan resmi dan berstatus "Menunggu Verifikasi Kebijakan" sampai
     /// HRD memverifikasi dan Finance mengesahkannya menjadi versi di sini. Memuat klasifikasi risiko JKK beserta dasarnya, tarif JHT,
     /// JP, JKM, BPJS Kesehatan, plafon upah, dan masa berlaku.

@@ -53,7 +53,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
         /// <summary>
         /// Klasifikasi tunjangan tetap menurut perjanjian kerja dan kebijakan HRD: dibayar teratur dan tidak dikaitkan dengan kehadiran
-        /// atau pencapaian. Terpisah dari <see cref="IsTaxable"/>. Null = belum diklasifikasikan HRD (menahan dasar upah iuran BPJS).
+        /// atau pencapaian. Terpisah dari <see cref="IsTaxable"/>. Null = belum diklasifikasikan. LEGACY_PERSISTED: klasifikasi untuk dasar upah iuran BPJS yang tidak lagi dipakai (PAY-BE-FIX-007); kolom dipertahankan.
         /// </summary>
         public bool? IsFixedAllowance { get; set; }
 

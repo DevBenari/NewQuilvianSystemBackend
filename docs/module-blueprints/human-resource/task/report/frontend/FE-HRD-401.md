@@ -5,127 +5,167 @@
 | Field | Nilai |
 | --- | --- |
 | Task ID | `FE-HRD-401` |
-| Judul | Verifikasi browser lima pintu Paket B |
-| Slice | `S-PKB` / Verifikasi |
-| Roadmap | `roadmap/frontend-roadmap.md` bagian 30 |
-| Trace | UAT PRD 42.10 (`HRD-124` s.d. `HRD-129`); DoD PRD 42.11; seluruh kontrak `v29` |
-| Contract version | `v29`, disetujui 23 November 2026 |
-| Dependency | `FE-HRD-393` ✅, `FE-HRD-394` ✅, `FE-HRD-400` 🟡, `BE-HRD-452` ✅ |
-| Klasifikasi | `VERIFY` — tanpa perubahan source aplikasi |
-| Task mode | `CROSS-REPO` (uji di frontend; laporan di repository backend) |
-| Izin pemilik | 23 November 2026: "buatkan semua akun dan sandi ya dan lakukan testing" — akun uji dan data uji di DB dev bersama, lewat API resmi |
-| Model | Claude Opus 5.5 |
-| Commit frontend | `6c1d4e368` (memuat `FE-HRD-393`, `399`, `400`); build yang diuji dibuat dari isi yang sama |
-| Commit backend | `a9c1af31`; backend yang diuji adalah proses milik pengguna (`bin/Debug/net9.0`, `https://localhost:7184`) |
+| Nomor lama | `FE-HRD-393` — dinomori ulang saat merge `QuilvianIntegrationBackend` 23 November 2026; nomor lama kini milik amandemen `S-A7-V2` (lihat `blueprint-manifest.md` revisi `69`) |
+| Judul | Bagian disiplin Employee 360 dari `disciplinaryRecords` |
+| Slice | `S-PKB` / `MVP-75` · `EPIC HRD-129` |
+| Roadmap | `roadmap/frontend-roadmap.md` bagian 31 |
+| Trace | `FR-PKB-14`, `FR-PKB-15`, `FR-PKB-16`; `HRD-DEC-238` butir 3, `HRD-DEC-246`; API 36.3; `VR-PKB-09`, `VR-PKB-10` |
+| Contract version | `v30`, disetujui 23 November 2026 |
+| Wewenang UI | Bagian existing Employee 360; komposisi base component existing (frontend 35.2) |
+| Dependency | `BE-HRD-453` ✅ |
+| Klasifikasi | `STANDARD` — satu view existing, tanpa endpoint baru |
+| Task mode | `CROSS-REPO` (source frontend; laporan dan tanda status di repository backend) |
+| Target tulis | `employee-360-view.jsx`, spec Playwright Paket B; laporan, roadmap, traceability HRD |
+| Model | Claude Opus 5.5 (melanjutkan sesi Codex GPT-5 yang terhenti karena batas pemakaian) |
+| Commit frontend saat dikerjakan | `6c05df212` (branch `HamzahV2`); perbaikan sesi ini di-commit pengguna sebagai `6c1d4e368` |
+| Commit backend yang dijadikan rujukan | `a9c1af31` (branch `MHamzah`) |
 | Tanggal | 23 November 2026 |
-| Status | 🟡 Sebagian — AC1 belum penuh karena keterbatasan data dan backend (bagian 7) |
+| Status | ✅ Selesai |
 
 ---
 
-## 1. Persiapan
+## 1. Keadaan yang ditemukan di awal
 
-### 1.1 Gerbang G3 dan G4
+Sesi sebelumnya sudah mengubah `employee-360-view.jsx` lalu terhenti saat uji browser headed berjalan. Pengguna meng-commit perubahan itu bersama layar Paket B lain sebagai `6c05df212`, sehingga sesi ini mulai dari source yang sudah memakai `disciplinaryRecords`, tanpa bukti build dan browser.
 
-Kelima akun uji dibuat lewat API resmi aplikasi, bukan SQL langsung:
-
-- `POST master-data/organization/positions` untuk membuat jabatan uji;
-- `POST master-data/employees` dengan `CreateLoginAccount = true` untuk membuat pegawai beserta akunnya;
-- `PUT self-services/profile/password` untuk mengganti sandi awal;
-- `POST administrator/setting/role-access/policies` untuk menyimpan policy hak.
-
-Hak di aplikasi ini melekat pada pasangan Departemen × Jabatan. Karena itu setiap akun diberi **jabatan uji baru** agar policy-nya tidak mengubah hak 21 akun nyata di "Human Resource / Manajer HR" dan "Staff HR".
-
-| Peran | Email | Departemen / jabatan uji | Hak yang diberikan |
-| --- | --- | --- | --- |
-| HR Relations | `uat.pkb.relations@rsmmc.local` | Human Resource / UAT Paket B - HR Relations | `EmployeeDisciplinary` (ViewSanctions, ViewIncidents, CreateIncident, ConductInvestigation, IssueSanction, AppealSanction), `HrdEmployee360 : Read`, `HrdPersonnelActionOrder : Read`, `Employee : Read` |
-| Recruiter | `uat.pkb.recruiter@rsmmc.local` | Human Resource / UAT Paket B - Recruiter | `CandidateScreening` (Read, Evaluate), `CandidateEvaluation` (Read, **ViewAll**, Evaluate), `JobVacancy`, `Candidate`, `JobRequisition` : Read |
-| Asesor klinis | `uat.pkb.asesor@rsmmc.local` | Keperawatan / UAT Paket B - Asesor Klinis | `CandidateEvaluation` (Read, EvaluateClinical) |
-| Atasan langsung | `uat.pkb.atasan@rsmmc.local` | Keperawatan / UAT Paket B - Atasan Langsung | `HrdEmployee360 : Read` + relasi atasan langsung atas pegawai uji "UAT PKB Tono Bawahan" |
-| Manajer SDM | `uat.pkb.manajer@rsmmc.local` | Human Resource / UAT Paket B - Manajer SDM | **`HrdWorkforceDashboard : Read`**, `HrdEmployee360 : Read`, `HrdPersonnelActionOrder : Read` |
-
-Setiap akun juga mendapat `Profile : Read/Update`, hak dasar yang diperlukan untuk mengganti sandi awal. Sandi disimpan di `QuilvianSystemFrontendDev/test-with-agy/scripts/pkb-1123-data.json` (folder di-ignore Git) dan tidak ditulis di dokumen ini. Kelima akun login normal tanpa paksaan ganti sandi; `GET /auth/permissions` setiap akun berisi persis hak di atas.
-
-### 1.2 Data uji
-
-| Data | Endpoint |
-| --- | --- |
-| 6 pegawai "UAT PKB …" (5 berakun, 1 bawahan tanpa akun) | `POST master-data/employees` |
-| Relasi atasan langsung bawahan → atasan uji | `POST workforce-profiles/{id}/manager-assignments` |
-| Insiden A → BAP → temuan SP1 → `SP1/HRD/11/2026/0001` | `POST /hrd/disciplinary/incidents`, `/investigations`, `PUT …/findings`, `POST /sanctions` |
-| Insiden B (Human Error) → BAP → temuan Coaching → `ResolvedNoSanction` | idem tanpa sanksi |
-| Teguran Lisan `VerbalWarning/HRD/11/2026/0002` (terbit 4 Mei 2026) | `POST /hrd/disciplinary/sanctions` |
-| Catatan disiplin lama (LEGACY) | `POST workforce-profiles/{id}/disciplinary-actions` |
-
-Data rekrutmen **tidak** dibuat. Database dev tidak memiliki pengajuan headcount, permintaan rekrutmen, lowongan, kandidat, atau lamaran, dan pembuatan lowongan mensyaratkan pengajuan headcount yang disetujui melalui workflow Perencanaan SDM bertahap.
-
-### 1.3 Lingkungan
-
-Port 3000 semula dipakai proyek lain milik pengguna; pengguna menghentikannya. Frontend dijalankan dari build produksi terakhir (`node .next/standalone/server.js`, port 3000, origin yang diizinkan CORS backend), dengan `SESSION_SIGNING_SECRET` khusus uji di environment proses karena `.env` tidak memuatnya. Tidak ada berkas pengguna yang diubah.
+Saat uji headed diulang, skenario atasan gagal: halaman berpindah ke `/login`. Trace Playwright menunjukkan `GET /api/v1/system/features` dan `GET /api/v1/auth/permissions` tidak dimock sehingga diteruskan ke backend lokal yang sedang menyala (`https://localhost:7184`), dijawab `401`, lalu `POST /auth/refresh` gagal dan sesi uji dikeluarkan. Ini cacat skenario uji, bukan cacat layar; skenario Paket B sebelumnya lolos karena saat itu backend lokal tidak menyala.
 
 ---
 
-## 2. Hasil verifikasi
+## 2. Proses bisnis dari sisi pengguna
 
-Chromium headed (Playwright, `slowMo` 450 ms), login lewat form aplikasi per akun. Skrip: `QuilvianSystemFrontendDev/test-with-agy/scripts/pkb-1123-1*.mjs`; hasil mentah: `test-with-agy/screenshots/fe-hrd-401/hasil-<akun>.json`.
+Petugas HR Relations membuka Employee 360 dr. Dodi, lalu tab **Pribadi & Disiplin (Rahasia)**. Tabel menampilkan dua surat peringatan alur resmi (nomor, tingkat, tanggal terbit, berlaku sampai, status) dan satu catatan profil lama berlabel "Catatan lama" tanpa tombol apa pun.
 
-| Akun | Skenario | Lulus | Panggilan alamat usang | Galat halaman |
-| --- | ---: | ---: | ---: | ---: |
-| Manajer SDM | 8 | 8 | 0 | 0 |
-| Recruiter | 7 | 7 | 0 | 0 |
-| Asesor | 4 | 4 | 0 | 0 |
-| HR Relations | 9 | 9 | 0 | 0 |
-| Atasan langsung | 4 | 4 | 0 | 0 |
-| **Jumlah** | **32** | **32** | **0** | **0** |
+Atasan langsung yang membuka tab yang sama melihat "Data disiplin hanya untuk HR." di tempat tabel. Pengguna HR tanpa hak `EmployeeDisciplinary : ViewSanctions` (backend mengirim `disciplineHidden = true`) melihat pesan yang sama, bukan daftar kosong.
 
-Satu skenario atasan (T03) sempat gagal karena skrip membaca elemen `<main>` yang tidak ada di layar Employee 360. Layarnya sendiri benar menampilkan pesan akses ditolak; skrip diperbaiki dan dijalankan ulang (lulus).
+---
 
-Tangkapan Manajemen Role (superadmin, baca-saja): `fe-hrd-401/superadmin-01-akses-role-manajer-sdm.png` (Hrd Workforce Dashboard : Read tercentang) dan `fe-hrd-401/superadmin-02-akses-role-recruiter.png` (Candidate Evaluation 3 hak terpilih).
+## 3. Perubahan yang dikerjakan
 
-Laporan uji per menu (`testing/test-by-agy/`):
+### 3.1 Berkas yang diperiksa
 
-| Menu | Laporan | Hasil |
+- `src/components/view/hr/workforce-core/employee-360-view.jsx` (diff `6c05df212`)
+- DTO backend `Employee360DisciplinaryItemDto` dan `Employee360ConfidentialDto` (`Areas/Corporate/HumanResource/WorkforceCore/DTOs/Employee360Dtos.cs`)
+- Kontrak `v30` API 36.3 dan frontend 35.2
+- `src/components/features/base-features/data-table.jsx` (tanda tangan `rowKey(item, index)`)
+
+### 3.2 Berkas yang berubah
+
+| Berkas | Perubahan | Status Git |
 | --- | --- | --- |
-| Dashboard SDM | [laporan](../../../testing/test-by-agy/laporan-live-testing-dashboard-sdm.md) | 10/10 |
-| Seleksi Administrasi | [laporan](../../../testing/test-by-agy/laporan-live-testing-seleksi-administrasi.md) | 5/5 |
-| Tes/Wawancara | [laporan](../../../testing/test-by-agy/laporan-live-testing-tes-wawancara.md) | 5/5 |
-| Tindak Disiplin | [laporan](../../../testing/test-by-agy/laporan-live-testing-tindak-disiplin.md) | 7/7, 1 temuan P5 |
-| Riwayat Penyelesaian | [laporan](../../../testing/test-by-agy/laporan-live-testing-riwayat-penyelesaian.md) | 2/2, 1 temuan backend P1 |
-| Employee 360 — disiplin | [laporan](../../../testing/test-by-agy/laporan-live-testing-employee-360-disiplin.md) | 5/5 |
+| `src/components/view/hr/workforce-core/employee-360-view.jsx` | Kolom tabel disiplin dari `disciplinaryRecords`; baris `LEGACY` berlabel "Catatan lama" dan "Arsip" tanpa aksi; pesan "Data disiplin hanya untuk HR." bila `disciplineHidden` atau mode Atasan Langsung; ruas usang `disciplinarySanctions` tidak dibaca lagi. | Di-commit `6c05df212` |
+| `src/components/view/hr/workforce-core/employee-360-view.jsx` | `rowKey` memakai indeks baris agar dua catatan lama berjudul sama tidak bentrok. | Di-commit `6c1d4e368` |
+| `tests/e2e/human-resource-package-b.spec.mjs` | `beforeEach`: route cadangan tingkat context untuk `**/api/v1/**` agar panggilan yang tidak dimock tidak jatuh ke backend asli; dua skenario `FE-HRD-401` diberi mock `/auth/permissions`; skenario ketiga untuk `disciplineHidden = true`; screenshot untuk ketiganya; NIK dikosongkan dari data mock. | Di-commit `6c1d4e368` |
 
-`npm run lint:errors` (exit 0) dan `npm run build` (exit 0, 894 halaman) dijalankan pada sesi yang sama; sesudahnya tidak ada perubahan source aplikasi, hanya skrip uji di folder yang di-ignore Git.
+Route cadangan di `beforeEach` berlaku untuk seluruh skenario di berkas spec. Route tingkat page milik skenario selalu didahulukan Playwright, sehingga skenario lain tidak berubah perilakunya.
+
+### 3.3 Kepatuhan arsitektur frontend
+
+Tidak ada service, hook, Redux, atau CSS baru. Data tetap dari satu panggilan `Employee360Service.getEmployee360`, sehingga keadaan memuat dan galat bagian disiplin mengikuti `BaseDetailView` yang sama dengan bagian lain.
+
+### 3.4 Gerbang tampilan
+
+**Modul referensi visual:** bagian Riwayat SK pada layar Employee 360 yang sama (tabel `DataTable` di dalam `BaseDetailSection`).
+
+| Elemen | Sumber | Keputusan | Alasan |
+| --- | --- | --- | --- |
+| Tabel riwayat disiplin | `DataTable` + `tableStyles.regionDataTable` | `REUSE` | Pola tabel Riwayat SK di layar yang sama. |
+| Tingkat dan status sanksi | `HrStatusBadge` + `SANCTION_LEVEL`, `SANCTION_STATUS` | `REUSE` | Peta label yang sama dengan layar Sanksi (`FE-HRD-403`). |
+| Penanda "Catatan lama" dan "Arsip" | `StatusBadge` (`status="info"`, `status="inactive"`) | `REUSE` | Nilai prop sah menurut katalog. |
+| Pesan disembunyikan | `InformationAlert` `variant="warning"` | `REUSE` | Sama dengan pesan akses terbatas di bagian lain Employee 360. |
+
+`UI GATE: PASS — 4 REUSE, 0 EXTEND, 0 COMPOSE, 0 NEW.`
+
+```text
+$ node <rules>/frontend/tools/check-css-usage.mjs src/components/view/hr/workforce-core/employee-360-view.jsx
+OK — 1 berkas diperiksa, 0 temuan.
+```
+
+Grep anti-regresi (`ui-consistency-checklist.md` bagian G) pada `employee-360-view.jsx`:
+
+```text
+<button / btn-*            : 0
+<table                     : 0
+fw-* / fs-*                : 0
+class Tailwind             : 0
+fixed inset-0              : 0
+<input|select|textarea>/UUID: 1 — baris 3, komentar lama "tanpa UUID yang tampil" (bukan elemen)
+variant tidak sah          : 0
+```
+
+| Layar | Screenshot | Catatan |
+| --- | --- | --- |
+| Employee 360 — akun HR | `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/FE-HRD-393-employee-360-discipline.png` | SP-001 Kedaluwarsa, SP-002 Dicabut Lewat Banding, satu baris Catatan Lama; tanpa NIK. |
+| Employee 360 — Atasan Langsung | `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/FE-HRD-393-employee-360-atasan.png` | "Data disiplin hanya untuk HR." di tempat tabel. |
+| Employee 360 — HR tanpa `ViewSanctions` | `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/FE-HRD-393-employee-360-hr-tanpa-hak.png` | Pesan yang sama; teks "Tidak ada catatan disiplin." tidak muncul. |
+
+Folder `QuilvianSystemFrontendDev/test-with-agy/` di-ignore Git (aturan skill `live-browser-testing`). Screenshot tidak disimpan di `test-results/` karena Playwright mengosongkan folder itu setiap kali dijalankan.
 
 ---
 
-## 3. Acceptance criteria dan Definition of Done
+## 4. State yang ditangani di layar
+
+| State | Yang dilihat pengguna |
+| --- | --- |
+| Memuat / galat | Mengikuti `BaseDetailView` Employee 360 (satu panggilan untuk seluruh bagian). |
+| Ada catatan | Tabel; baris `OFFICIAL` dengan nomor, tingkat, terbit, berlaku s.d., status. |
+| Catatan lama | Lencana "Catatan lama", judul catatan, status "Arsip", tanpa tombol. |
+| Kosong (HR berhak) | "Tidak ada catatan disiplin." |
+| `disciplineHidden = true` | "Data disiplin hanya untuk HR." |
+| Mode Atasan Langsung | Pesan akses terbatas bagian pribadi + "Data disiplin hanya untuk HR." |
+
+---
+
+## 5. Endpoint yang dikonsumsi
+
+#### Corporate / Human Resource / Workforce Core / Employee 360
+
+| Method | Path | Dipakai untuk | Hak akses |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/employee-360` | `confidentialPersonalAndDiscipline.disciplinaryRecords`, `disciplineHidden` | `HrdEmployee360 : Read`; isi disiplin bergantung `EmployeeDisciplinary : ViewSanctions` |
+
+---
+
+## 6. Verifikasi
+
+| Skenario/perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `npm run build` (sesudah perbaikan `rowKey`) | Exit code `0`; 893 halaman statis | `PASS` | Production build |
+| `npm run lint:errors` | Exit code `0` | `PASS` | ESLint seluruh repository |
+| Pemeriksa CSS | 1 berkas, 0 temuan | `PASS` | Bagian 3.4 |
+| Playwright Chromium headed, run pertama | 1 lulus, 1 gagal (dialihkan ke `/login`) | `FAIL` — cacat skenario | Bagian 1 |
+| Playwright Chromium headed, sesudah perbaikan skenario | 3/3 lulus | `PASS` | HR, Atasan Langsung, HR tanpa `ViewSanctions` |
+
+`AUTOMATED TEST: npx playwright test tests/e2e/human-resource-package-b.spec.mjs --grep "FE-HRD-393" --headed --workers=1 — PASS (3/3)`
+
+`AUTOMATED TEST: SKIPPED (opsional) — test unit util pemetaan tidak ditulis karena tidak ada util; pemetaan kolom ada di definisi kolom view.`
+
+`MANUAL TEST: PASS` lewat Chromium headed terotomasi; screenshot diperiksa satu per satu.
+
+**Tidak dijalankan:** akun nyata per peran dan DB dev. Response dimock mengikuti DTO backend dan kontrak 36.3; uji dengan akun nyata adalah cakupan `FE-HRD-409` (gerbang G3 dan G4).
+
+---
+
+## 7. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| AC1 — Jalur berhasil dan gagal UAT `HRD-124` s.d. `HRD-129` lulus di layar | **Sebagian** | `HRD-124`, `HRD-128`, `HRD-129` penuh. `HRD-127`: insiden ditutup tanpa sanksi lulus; sanksi selesai belum ada di DB (RP-01, RP-02). `HRD-125`/`HRD-126`: jalur hak dan keadaan kosong lulus; jalur dengan lamaran/evaluasi belum dapat diuji karena DB dev tanpa data rekrutmen. |
-| AC2 — `HrdWorkforceDashboard : Read` dan `CandidateEvaluation : ViewAll` terbukti diberikan ke peran uji | Terpenuhi | Tangkapan Manajemen Role dan `GET /auth/permissions` |
-| AC3 — Tidak ada panggilan ke `/v1/hr/workforce-profile/disciplinary-actions` (`AT-HRD-PKB-24`) | Terpenuhi | Pencatat request di 32 skenario: 0 |
-| AC4 — `npm run lint:errors` dan `npm run build` lulus | Terpenuhi | Exit 0 / exit 0 |
-| Tangkapan layar tanpa NIK | Terpenuhi | Bagian disiplin difoto per elemen; layar lain tidak memuat NIK |
-| Desktop dan ponsel | Terpenuhi | Dashboard SDM, Seleksi Administrasi, Tindak Disiplin pada 390 px tanpa gulir mendatar |
+| AC1 — HR Relations: 2 `OFFICIAL` + 1 `LEGACY`; `LEGACY` berlabel "Catatan lama" tanpa tombol | Terpenuhi | Skenario headed 1; `legacyRow.getByRole("button")` = 0; screenshot |
+| AC2 — Atasan langsung: "Data disiplin hanya untuk HR." di tempat daftar | Terpenuhi | Skenario headed 2; skenario 3 untuk `disciplineHidden` |
+| AC3 — Layar tidak lagi membaca `disciplinarySanctions` | Terpenuhi | Pencarian `src`: tidak ada rujukan `disciplinarySanctions` |
+| AC4 — Memuat dan galat mengikuti bagian lain Employee 360 | Terpenuhi | Satu sumber data dan `BaseDetailView` yang sama (3.3) |
+| Lint, build, uji browser, laporan, roadmap, traceability | Terpenuhi | Bagian 6 dan dokumen terkait |
 
 ---
 
-## 4. Temuan
-
-| ID | Prioritas | Temuan | Pemilik |
-| --- | --- | --- | --- |
-| RP-01 | P1 | Tidak ada kode backend yang menetapkan status sanksi `RevokedOnAppeal`; banding hanya dicatat. "Dicabut lewat Banding" tidak pernah muncul. | Backend / pemilik produk |
-| RP-02 | Info | Status `Expired` hanya diisi worker EMP-W1 tiap 6 jam; sanksi yang lewat masa berlaku masih "Berlaku" sampai worker berjalan. | Backend |
-| TD-01 | P5 | Layar Tindak Disiplin tanpa hak `ViewSanctions` tampil kosong tanpa pesan hak (data tidak bocor). | Frontend, task terpisah |
-| TD-02 | Info | Nomor surat teguran lisan memakai kode Inggris `VerbalWarning/…`. | Backend / pemilik produk |
-| DATA-01 | — | DB dev tanpa rantai rekrutmen (headcount → permintaan → lowongan → kandidat → lamaran). | Pemilik data uji |
-
----
-
-## 5. Catatan penutup
+## 8. Catatan penutup
 
 | Hal | Isi |
 | --- | --- |
-| Belum terpenuhi | AC1 untuk jalur rekrutmen berisi data (`HRD-125`, `HRD-126`) dan bagian sanksi selesai (`HRD-127`). Ketiganya sudah dibuktikan dengan response tiruan di `FE-HRD-396`/`397`/`398`. |
-| Data uji yang tertinggal di DB dev | 5 jabatan "UAT Paket B - …", 6 pegawai "UAT PKB …" (5 berakun), 5 policy hak, 1 relasi atasan, 2 insiden, 2 BAP, 2 sanksi, 1 catatan disiplin lama. Angka Dashboard SDM kini termasuk 6 pegawai uji. Boleh dinonaktifkan sesudah verifikasi; ID tercatat di `pkb-1123-data.json`. |
-| Server uji | Frontend standalone di port 3000 dijalankan sesi ini dan masih menyala untuk dicoba pengguna. |
-| Langkah berikutnya | Uji ulang `HRD-125`/`HRD-126` setelah satu lowongan uji tersedia. Verifikasi bagian sanksi selesai setelah worker EMP-W1 berjalan. Putuskan RP-01. |
+| Peringatan | Mode Atasan Langsung menampilkan dua peringatan bertumpuk (akses terbatas bagian pribadi, lalu pesan disiplin). Keduanya benar; bila dianggap terlalu ramai, pesan pertama dapat dihapus pada task lain. |
+| Masalah yang diketahui | Screenshot `FE-HRD-402` s.d. `FE-HRD-406` yang dahulu dicatat di `test-results/human-resource-package-b/` terhapus oleh run Playwright berikutnya. Seluruh spec Paket B dijalankan ulang (15/15 lulus) dan screenshot-nya disalin ke `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/`; tautan di kelima laporan itu sudah diganti. |
+| Dependency backend | `BE-HRD-453` ✅ |
+| Perubahan sampingan | `NONE` |
+| Interupsi | Sesi sebelumnya terhenti karena batas pemakaian; dilanjutkan dari `6c05df212` tanpa mengulang pekerjaan yang sudah ada. |
+| Status Git | Di-commit pengguna sebagai `6c1d4e368` (23 November 2026, 15.17 WIB). |
+| Langkah berikutnya | `FE-HRD-407`, `FE-HRD-408`, lalu `FE-HRD-409`. |

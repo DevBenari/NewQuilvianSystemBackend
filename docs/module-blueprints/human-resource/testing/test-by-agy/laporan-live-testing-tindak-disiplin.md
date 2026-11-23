@@ -4,7 +4,7 @@
 | --- | --- |
 | Menu | Hubungan Industrial & Terminasi → **Tindak Disiplin** (`/hrd/relations/sanctions`; dahulu berlabel "Teguran") |
 | Pemilik menu | HR Relations |
-| Task | `FE-HRD-401`, layar `FE-HRD-395`, pensiun halaman lama `FE-HRD-394`, label `FE-HRD-400` |
+| Task | `FE-HRD-409`, layar `FE-HRD-403`, pensiun halaman lama `FE-HRD-402`, label `FE-HRD-408` |
 | Tanggal uji | 23 November 2026 |
 | Lingkungan | Frontend build produksi `http://localhost:3000`; backend lokal `https://localhost:7184`; database dev `QuilvianNewDevHamzah` |
 | Peramban | Chromium headed, `slowMo` 450 ms, desktop dan ponsel 390 px |
@@ -35,13 +35,13 @@ Contoh: Bu Rina (HR Relations) memeriksa teguran lisan yang masih berlaku.
 
 | ID | Prioritas | UAT | Skenario | Harapan | Hasil | Status | Bukti |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| L01 | P1 | HRD-129 | Label menu dan pencarian "Teguran" | Tindak Disiplin → `/hrd/relations/sanctions`; cari "Teguran" kosong (`AT-HRD-PKB-23`) | Sesuai; 0 hasil | ✅ PASS | — |
-| L02 | P0 | HRD-128 | Daftar sanksi alur resmi | Dua SP uji tampil | Sesuai | ✅ PASS | `fe-hrd-401/relations-01-tindak-disiplin.png` |
-| L03 | P2 | HRD-128 | Filter Status Berlaku | Request `status=Active` 200 | HTTP 200 | ✅ PASS | — |
-| L04 | P2 | HRD-128 | Filter Tingkat Teguran Lisan | Hanya baris teguran lisan | Sesuai; SP 1 tersembunyi | ✅ PASS | `fe-hrd-401/relations-02-filter-teguran-lisan.png` |
-| L07 | P1 | HRD-128 | Alamat lama | Dialihkan ke `/hrd/relations/sanctions` (`AT-HRD-PKB-24`) | Sesuai | ✅ PASS | — |
-| L09 | P4 | HRD-128 | Tampilan ponsel | Tanpa gulir mendatar | 0 px | ✅ PASS | `fe-hrd-401/relations-05-tindak-disiplin-ponsel.png` |
-| A04 | P1 | HRD-128 | Asesor membuka alamat langsung | Data sanksi tidak tampil | Tidak ada data; lihat temuan TD-01 | ✅ PASS | `fe-hrd-401/asesor-03-tindak-disiplin-tanpa-hak.png` |
+| L01 | P1 | HRD-130 | Label menu dan pencarian "Teguran" | Tindak Disiplin → `/hrd/relations/sanctions`; cari "Teguran" kosong (`AT-HRD-PKB-23`) | Sesuai; 0 hasil | ✅ PASS | — |
+| L02 | P0 | HRD-129 | Daftar sanksi alur resmi | Dua SP uji tampil | Sesuai | ✅ PASS | `fe-hrd-401/relations-01-tindak-disiplin.png` |
+| L03 | P2 | HRD-129 | Filter Status Berlaku | Request `status=Active` 200 | HTTP 200 | ✅ PASS | — |
+| L04 | P2 | HRD-129 | Filter Tingkat Teguran Lisan | Hanya baris teguran lisan | Sesuai; SP 1 tersembunyi | ✅ PASS | `fe-hrd-401/relations-02-filter-teguran-lisan.png` |
+| L07 | P1 | HRD-129 | Alamat lama | Dialihkan ke `/hrd/relations/sanctions` (`AT-HRD-PKB-24`) | Sesuai | ✅ PASS | — |
+| L09 | P4 | HRD-129 | Tampilan ponsel | Tanpa gulir mendatar | 0 px | ✅ PASS | `fe-hrd-401/relations-05-tindak-disiplin-ponsel.png` |
+| A04 | P1 | HRD-129 | Asesor membuka alamat langsung | Data sanksi tidak tampil | Tidak ada data; lihat temuan TD-01 | ✅ PASS | `fe-hrd-401/asesor-03-tindak-disiplin-tanpa-hak.png` |
 
 ## 5. Endpoint yang diuji
 

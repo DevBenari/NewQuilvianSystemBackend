@@ -56,6 +56,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         /// <summary>Nominal gaji pokok dari penetapan gaji utama yang berlaku; null bila tanpa izin ViewAmount atau belum tersedia.</summary>
         public decimal? BaseSalary { get; set; }
 
+        public decimal? GradeMinimum { get; set; }
+        public decimal? GradeMaximum { get; set; }
+        public decimal? StructureMinimum { get; set; }
+        public decimal? StructureMaximum { get; set; }
+        public decimal? EffectiveMinimum { get; set; }
+        public decimal? EffectiveMaximum { get; set; }
+        public string? SalaryRangeText { get; set; }
+
         public string? CurrencyCode { get; set; }
         public string? PaymentFrequency { get; set; }
 
@@ -130,6 +138,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
 
         /// <summary>Null bila pemanggil tidak berwenang ViewAmount.</summary>
         public decimal? GradeMaximum { get; set; }
+
+        public decimal? StructureMinimum { get; set; }
+        public decimal? StructureMaximum { get; set; }
+        public decimal? EffectiveMinimum { get; set; }
+        public decimal? EffectiveMaximum { get; set; }
+        public string? SalaryRangeText { get; set; }
 
         /// <summary>Nominal gaji pokok dari WfpSalaryAssignment; null bila pemanggil tidak berwenang ViewAmount.</summary>
         public decimal? BaseSalary { get; set; }

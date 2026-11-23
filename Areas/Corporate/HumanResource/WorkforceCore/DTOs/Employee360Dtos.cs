@@ -106,10 +106,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public List<string> FamilyMembersSummary { get; set; } = new();
 
         /// <summary>
-        /// Usang (kontrak v29 bagian 35.3). Tetap diisi dari sumber yang sama dengan <see cref="DisciplinaryRecords"/>
+        /// Usang (kontrak v30 bagian 36.3). Tetap diisi dari sumber yang sama dengan <see cref="DisciplinaryRecords"/>
         /// untuk kompatibilitas pemanggil lama; layar baru memakai <see cref="DisciplinaryRecords"/>.
         /// </summary>
-        [Obsolete("Gunakan DisciplinaryRecords (kontrak v29 bagian 35.3).")]
+        [Obsolete("Gunakan DisciplinaryRecords (kontrak v30 bagian 36.3).")]
         public List<string> DisciplinarySanctions { get; set; } = new();
 
         /// <summary>
@@ -120,13 +120,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
 
         /// <summary>
         /// <c>true</c> bila pemanggil tidak memegang <c>EmployeeDisciplinary : ViewSanctions</c>
-        /// (<c>HRD-DEC-238</c> butir 4, <c>VR-PKB-09</c>); kedua daftar disiplin kemudian dikirim kosong.
+        /// (<c>HRD-DEC-246</c> butir 4, <c>VR-PKB-09</c>); kedua daftar disiplin kemudian dikirim kosong.
         /// </summary>
         public bool DisciplineHidden { get; set; }
     }
 
     /// <summary>
-    /// Satu baris riwayat disiplin pada Employee 360 (kontrak v29 bagian 35.3, kamus data 30.3).
+    /// Satu baris riwayat disiplin pada Employee 360 (kontrak v30 bagian 36.3, kamus data 31.3).
     /// </summary>
     public class Employee360DisciplinaryItemDto
     {

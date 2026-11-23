@@ -50,7 +50,11 @@ public sealed record PayrollTaxPolicy(
         PayrollTaxPolicyEngine.ParseTable<TaxBracketEntry>(e.BracketsJson));
 }
 
-/// <summary>Akumulasi penghasilan dan PPh tahun berjalan sebelum periode ini, dibaca dari snapshot payroll run yang sudah disahkan.</summary>
+/// <summary>
+/// Akumulasi penghasilan dan PPh tahun berjalan sebelum periode ini: gabungan snapshot payroll run yang sudah disahkan dan saldo awal
+/// (Opening Tax Balance) yang sudah disetujui. <see cref="PriorPeriodCount"/> adalah jumlah MASA PAJAK yang tercakup (bukan jumlah
+/// baris sumber). Hanya diperlukan pada masa pajak terakhir dan skema kumulatif bukan pegawai; TER bulanan tidak memerlukannya.
+/// </summary>
 public sealed record PayrollTaxYtd(
     int PriorPeriodCount,
     decimal PriorTaxableGross,
@@ -61,6 +65,18 @@ public sealed record PayrollTaxYtd(
     IReadOnlyList<string> Issues)
 {
     public static PayrollTaxYtd Empty { get; } = new(0, 0m, 0m, 0m, 0m, true, Array.Empty<string>());
+
+    /// <summary>Bulan (1..12) yang tercakup, dari snapshot run disahkan dan saldo awal. Kosong pada keadaan tanpa penelusuran.</summary>
+    public IReadOnlyList<int> CoveredMonths { get; init; } = Array.Empty<int>();
+
+    /// <summary>Bulan yang tercakup oleh saldo awal yang disetujui (bagian dari <see cref="CoveredMonths"/>).</summary>
+    public IReadOnlyList<int> OpeningBalanceMonths { get; init; } = Array.Empty<int>();
+
+    /// <summary>Bulan yang seharusnya ada (sejak mulai bekerja sampai sebelum masa pajak ini) tetapi belum tercakup sumber mana pun.</summary>
+    public IReadOnlyList<int> MissingMonths { get; init; } = Array.Empty<int>();
+
+    /// <summary>False bila penyimpanan saldo awal belum tersedia: ketiadaan saldo awal bukan berarti saldo nol yang terverifikasi.</summary>
+    public bool OpeningBalanceFeatureAvailable { get; init; }
 }
 
 /// <summary>Masukan perhitungan PPh satu penerima pada satu masa pajak. Semua nominal berasal dari komponen payroll dan snapshot, bukan layar.</summary>
@@ -328,7 +344,9 @@ public static class PayrollTaxPolicyEngine
             ["employerPremium"] = input.EmployerPremium,
             ["gross"] = gross,
             ["employeePension"] = input.EmployeePension,
-            ["hasNpwp"] = input.HasNpwp
+            ["hasNpwp"] = input.HasNpwp,
+            // TER bulanan hanya memakai penghasilan bulan berjalan; akumulasi tahun berjalan hanya dibutuhkan pada masa pajak terakhir.
+            ["ytdRequired"] = input.IsLastTaxPeriod
         };
 
         var ptkp = policy.Ptkp.FirstOrDefault(x => string.Equals(x.Status, input.PtkpStatus, StringComparison.OrdinalIgnoreCase));
@@ -353,6 +371,11 @@ public static class PayrollTaxPolicyEngine
         }
 
         // Masa pajak terakhir: perhitungan tahunan Pasal 17 dikurangi PPh yang sudah dipotong pada masa pajak sebelumnya.
+        // Cakupan akumulasi dicatat pada detail agar penyebab blocker (bulan yang hilang, saldo awal) terlihat dan dapat ditelusuri.
+        detail["ytdCoveredMonths"] = input.Ytd.CoveredMonths;
+        detail["ytdOpeningBalanceMonths"] = input.Ytd.OpeningBalanceMonths;
+        detail["ytdMissingMonths"] = input.Ytd.MissingMonths;
+        detail["ytdOpeningBalanceFeatureAvailable"] = input.Ytd.OpeningBalanceFeatureAvailable;
         var issues = new List<string>();
         if (input.HasPreviousEmployer)
             issues.Add("Masa pajak terakhir untuk pegawai yang punya pemberi kerja sebelumnya belum didukung mesin (perlu bukti 1721-A1 dan masa kerja sebelumnya); gunakan Nominal Manual Disetujui dengan dasar yang sah.");
@@ -382,10 +405,30 @@ public static class PayrollTaxPolicyEngine
         detail["priorTaxWithheld"] = ytd.PriorTaxWithheld;
         detail["noNpwpSurchargePercent"] = input.HasNpwp ? 0m : policy.NoNpwpSurchargePercent;
 
-        if (due < 0m)
-            return PayrollTaxComputation.Blocked(
-                $"Masa pajak terakhir menghasilkan selisih negatif {Rupiah(due)} (PPh yang sudah dipotong lebih besar dari PPh setahun); pengembalian atau kompensasi kelebihan potong memerlukan keputusan manual.", detail);
+        // Masa kerja kurang dari 12 bulan (mulai di tengah tahun atau berhenti sebelum Desember): mesin memakai penghasilan yang benar-benar
+        // diterima dan PTKP setahun penuh tanpa penyetahunan. Perlakuan itu BELUM diverifikasi terhadap ketentuan resmi (PMK 168/2023),
+        // sehingga hasilnya ditandai peringatan, bukan dinyatakan sesuai regulasi.
+        if (months < 12)
+        {
+            detail["warnings"] = new[]
+            {
+                $"Masa kerja pada tahun pajak ini {months} bulan (kurang dari 12): perlakuan PTKP dan penghasilan untuk masa kerja parsial belum diverifikasi terhadap ketentuan resmi; periksa dasar perhitungan sebelum disahkan."
+            };
+        }
 
+        if (due < 0m)
+        {
+            detail["reconciliationOutcome"] = "OVERWITHHELD";
+            detail["overwithholdingAmount"] = -due;
+            detail["resolutionPath"] = "OVERWITHHOLDING_ADJUSTMENT_REQUIRED";
+            return PayrollTaxComputation.Blocked(
+                $"Masa pajak terakhir menghasilkan kelebihan potong {Rupiah(-due)}: PPh yang sudah dipotong {Rupiah(ytd.PriorTaxWithheld)} lebih besar dari PPh terutang setahun {Rupiah(annualTax)}. "
+                + "Nilai ini tidak diubah menjadi Rp0 dan tidak dikembalikan otomatis. Pastikan akumulasi dan saldo awal benar; bila benar, proses pengembalian atau kompensasi lewat mekanisme penyesuaian kelebihan potong yang disetujui "
+                + "(belum tersedia pada versi ini) dan gunakan Nominal Manual Disetujui dengan dasar tertulis untuk masa pajak ini. Bukti perhitungan tersimpan pada rincian pajak.", detail);
+        }
+
+        detail["reconciliationOutcome"] = due > 0m ? "UNDERWITHHELD_CATCH_UP" : "EXACT";
+        detail["shortfallAmount"] = due;
         return new PayrollTaxComputation(due, Array.Empty<string>(), detail);
     }
 
@@ -416,6 +459,9 @@ public static class PayrollTaxPolicyEngine
                 RoundTax(policy, ApplyNpwpSurcharge(policy, input.HasNpwp, Progressive(policy, currentBasis))), Array.Empty<string>(), detail);
 
         // CUMULATIVE: tarif progresif atas dasar pengenaan kumulatif tahun berjalan dikurangi PPh yang sudah dipotong.
+        detail["ytdRequired"] = true;
+        detail["ytdCoveredMonths"] = input.Ytd.CoveredMonths;
+        detail["ytdMissingMonths"] = input.Ytd.MissingMonths;
         if (!input.Ytd.IsComplete) return PayrollTaxComputation.Blocked(input.Ytd.Issues, detail);
 
         var cumulativeBasis = input.Ytd.PriorTaxableGross * basisPercent / 100m + currentBasis;

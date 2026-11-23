@@ -21,7 +21,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
 
     public class DisciplinaryListQueryService : IDisciplinaryListQueryService
     {
-        /// <summary>Status sanksi yang sah untuk filter <c>statuses</c> (state-transition v29 bagian 33.2, <c>VR-PKB-04</c>).</summary>
+        /// <summary>Status sanksi yang sah untuk filter <c>statuses</c> (state-transition v30 bagian 34.2, <c>VR-PKB-04</c>).</summary>
         public static readonly IReadOnlyList<string> SanctionStatusValues = new[] { "Active", "Expired", "RevokedOnAppeal" };
 
         public const string UnknownSanctionStatusMessage = "Status sanksi tidak dikenal.";

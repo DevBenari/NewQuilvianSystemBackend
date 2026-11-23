@@ -3,7 +3,7 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Capability-map revision | `1.5` — **revisi `1.5` (22 November 2026) menambah bagian 17: impact scan Paket B penyesuaian menu SDM (Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian, Tindak Disiplin) untuk decision log bagian 56 (`HRD-DEC-229` s.d. `HRD-DEC-235`), pada BE `b164edc1` / FE `573b7429c`; baris baru `HRD-CAP-92` s.d. `HRD-CAP-104`, pertanyaan penutup `HRD-CQ-05` s.d. `HRD-CQ-07`.** Revisi `1.4` — **revisi `1.4` (12 November 2026) menambah bagian 16: impact scan Penjadwalan (`S-B4`) dan Kehadiran (`S-B1`) untuk 12 menu `PRD-HRD-PK-001` dan keputusan `HRD-DEC-194` s.d. `HRD-DEC-214`, pada BE `a437ae42` / FE `6a5658269`; baris baru `HRD-CAP-67` s.d. `HRD-CAP-91`, pertanyaan penutup `HRD-CQ-01` s.d. `HRD-CQ-04`.** Revisi `1.3` — **revisi `1.3` (3 November 2026) menambah bagian 15: impact scan HR di luar Workforce Core dan Perencanaan Tenaga Kerja (`S-D1`) pada BE `26066c76` / FE `66b7e5600`.** Revisi `1.2` — **revisi `1.2` (2 November 2026) menambah bagian 14: impact scan terbatas Workforce Core & Employee 360 pada BE `396c8363` / FE `9c4000724`.** Revisi `1.1` — revisi `1.0` 27 Agustus 2026; revisi `1.1` hari yang sama **menarik `HRD-TF-001`** yang terbukti temuan palsu, dan menaikkan `HRD-CAP-26` dari `REPAIR` menjadi `READY TO REUSE` |
+| Capability-map revision | `1.5` — **revisi `1.5` (22 November 2026) menambah bagian 17: impact scan Paket B penyesuaian menu SDM (Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian, Tindak Disiplin) untuk decision log bagian 57 (`HRD-DEC-237` s.d. `HRD-DEC-243`), pada BE `b164edc1` / FE `573b7429c`; baris baru `HRD-CAP-92` s.d. `HRD-CAP-104`, pertanyaan penutup `HRD-CQ-05` s.d. `HRD-CQ-07`.** Revisi `1.4` — **revisi `1.4` (12 November 2026) menambah bagian 16: impact scan Penjadwalan (`S-B4`) dan Kehadiran (`S-B1`) untuk 12 menu `PRD-HRD-PK-001` dan keputusan `HRD-DEC-194` s.d. `HRD-DEC-214`, pada BE `a437ae42` / FE `6a5658269`; baris baru `HRD-CAP-67` s.d. `HRD-CAP-91`, pertanyaan penutup `HRD-CQ-01` s.d. `HRD-CQ-04`.** Revisi `1.3` — **revisi `1.3` (3 November 2026) menambah bagian 15: impact scan HR di luar Workforce Core dan Perencanaan Tenaga Kerja (`S-D1`) pada BE `26066c76` / FE `66b7e5600`.** Revisi `1.2` — **revisi `1.2` (2 November 2026) menambah bagian 14: impact scan terbatas Workforce Core & Employee 360 pada BE `396c8363` / FE `9c4000724`.** Revisi `1.1` — revisi `1.0` 27 Agustus 2026; revisi `1.1` hari yang sama **menarik `HRD-TF-001`** yang terbukti temuan palsu, dan menaikkan `HRD-CAP-26` dari `REPAIR` menjadi `READY TO REUSE` |
 | Status | `source-audited`. **Untuk entry point Paket B, bacaan yang berlaku adalah bagian 17 (revisi `1.5`, BE `b164edc1` / FE `573b7429c`).** **Untuk area 12 menu Penjadwalan & Kehadiran, bacaan yang berlaku adalah bagian 16 (revisi `1.4`, BE `a437ae42` / FE `6a5658269`).** **Sejak revisi `1.3`, keadaan bukti setiap baris `HRD-CAP-01` s.d. `HRD-CAP-27` tercatat pada bagian 15.3** (14 `CURRENT`, 13 `STALE`); bagian 14 diperiksa ulang terbatas pada bagian 15.4; `S-D1` diaudit mendalam pada bagian 15.5 pada HEAD 3 November 2026. Dokumen ini **belum** menyatakan modul siap dibangun dan **belum** menyatakan siap produksi |
 | Tanggal audit | 27 Agustus 2026 (`Asia/Jakarta`) |
 | Masukan bisnis | [`00-interview-decisions.md`](./00-interview-decisions.md), revision `0`, status `draft`, SHA-256 `f3e2a1633449210d69d1cd1e10cc11972670a2818563c5f53269caf33f005067` |
@@ -1382,7 +1382,7 @@ Pertanyaan berikut tidak dijawab di sini. Semuanya menunggu keputusan pengguna.
 
 | Field | Nilai |
 | --- | --- |
-| Pemicu | Amendment Pass decision log bagian 56 (revisi `40`): `HRD-DEC-229` s.d. `HRD-DEC-235`, pertanyaan `HRD-Q-223` s.d. `HRD-Q-225` |
+| Pemicu | Amendment Pass decision log bagian 57 (revisi `41`): `HRD-DEC-237` s.d. `HRD-DEC-243`, pertanyaan `HRD-Q-231` s.d. `HRD-Q-233` |
 | Backend | `NewQuilvianSystemBackend` `b164edc12790d92e55e2a8f102cc5791ba39d440` (branch `MHamzah`) |
 | Frontend | `QuilvianSystemFrontendDev` `573b7429c967a3229fc651437a902c33eac3708f` (branch `HamzahV2`) |
 | Batas audit | Klaster Workflow/Status dan Authorization untuk disiplin (`EmployeeRelationManagement`), Actor/Workforce untuk ringkasan pegawai (`MasterData/Workforce`, `WorkforceCore`, `LifecycleManagement`, `CredentialingManagement`, `LearningAndDevelopment`), dan Workflow/Status rekrutmen (`RecruitmentManagement`); konsumen frontend pada service, view, dan `menu-items.jsx` yang terkait |
@@ -1404,7 +1404,7 @@ Pertanyaan berikut tidak dijawab di sini. Semuanya menunggu keputusan pengguna.
 
 ### 17.2 Fakta ringkasan pegawai (Dashboard SDM)
 
-| Kebutuhan `HRD-DEC-235` | Yang ada | Bukti |
+| Kebutuhan `HRD-DEC-243` | Yang ada | Bukti |
 | --- | --- | --- |
 | Aktif/nonaktif | `GET api/v1/corporate/human-resource/master-data/employees/summary` → `TotalEmployee`, `ActiveEmployee`, `InactiveEmployee` (plus angka tunjangan transport). Hak `Employee.Read` | `EmployeeController.cs` baris 387–420; `EmployeeDtos.cs` baris 6–18 |
 | Pegawai baru/keluar bulan berjalan | Tidak ada agregat | Pencarian `summary`/`GroupBy` HR |
@@ -1427,35 +1427,35 @@ Pertanyaan berikut tidak dijawab di sini. Semuanya menunggu keputusan pengguna.
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 | --- | --- | --- | --- | --- | --- | --- |
-| `HRD-CAP-92` | Daftar global Tindak Disiplin dari alur resmi (`HRD-DEC-230` butir 1, 4) | `EmployeeRelationManagement` | 17.1 butir 1, 4 | Reuse with adapter | Menu "Tindak Disiplin" diarahkan ke layar Sanksi existing dengan izin `ViewSanctions` | Rendah |
-| `HRD-CAP-93` | Pensiun halaman `/hr/employee-relations/disciplinary-actions` (`HRD-DEC-230` butir 2) | Frontend HR | `HRD-TF-082` | Repair | Hapus/alihkan route dan service `employee-relations-service.js` | Rendah |
-| `HRD-CAP-94` | Tab disiplin Employee 360 membaca alur resmi; catatan profil baca-saja (`HRD-DEC-230` butir 3) | `WorkforceCore` + `EmployeeRelationManagement` | 17.1 butir 2, 3 | Extend | `HrdEmployee360Service` perlu membaca `HrdDisciplinarySanction` lewat pemetaan `WorkforceProfileId` → `EmployeeId`, di samping catatan profil sebagai riwayat; DTO saat ini hanya daftar teks | Sedang — tab 360 saat ini dapat menampilkan data disiplin kepada siapa pun yang boleh membuka 360, bukan hanya `ViewSanctions` |
-| `HRD-CAP-95` | Riwayat Penyelesaian: sanksi `Expired`/`RevokedOnAppeal` + insiden `ResolvedNoSanction` (`HRD-DEC-234`) | `EmployeeRelationManagement` | 17.1 butir 1, 4 | Extend | Filter `status` hanya satu nilai; "Selesai" butuh beberapa status sekaligus (multi-nilai di backend atau dua permintaan di frontend); insiden tanpa sanksi berada di daftar terpisah; layar Sanksi belum mengirim `status` | Rendah |
-| `HRD-CAP-96` | Panel Aktif/Nonaktif dan total pegawai (`HRD-DEC-235` panel 1, 3) | `MasterData/Workforce` | 17.2 | Reuse with adapter | Definisi aktif mengikuti `MstEmployee`; skorsing tetap aktif perlu dipastikan saat desain | Rendah |
-| `HRD-CAP-97` | Pegawai baru/keluar bulan berjalan dan Distribusi Profesi (`HRD-DEC-235` panel 1, 2) | `MasterData/Workforce` / `WorkforceCore` | 17.2 | Missing | Agregat baru | Rendah |
-| `HRD-CAP-98` | Kontrak berakhir ≤30/31–60/61–90 hari (`HRD-DEC-235` panel 4) | `LifecycleManagement` | 17.2 | Conflict | Agregat existing memakai 60 hari dan kelompok H-60/H-14/H-7, tidak sama dengan 30/60/90 yang diputuskan; lihat `HRD-CQ-06` | Sedang — dua angka "kontrak berakhir" yang berbeda di dua layar |
-| `HRD-CAP-99` | Dokumen kedaluwarsa: SIP/STR dan sertifikat wajib (`HRD-DEC-235` panel 5) | `CredentialingManagement`, `LearningAndDevelopment` | 17.2 | Reuse with adapter | Kelompok H90/H60/H30/H7/H0 dapat dipetakan ke ≤30/31–60/61–90/kedaluwarsa; perlu dipastikan radar lisensi mengecualikan STR seumur hidup | Rendah |
-| `HRD-CAP-100` | Dokumen kedaluwarsa: SPK/RKK (`HRD-DEC-235` panel 5) | `CredentialingManagement` | 17.2 | Missing | Radar/agregat SPK/RKK baru | Rendah |
-| `HRD-CAP-101` | Endpoint dan halaman Dashboard SDM terpadu (`HRD-DEC-235`) | HR (baru) | 17.2 | Missing | Satu endpoint agregat (menggabungkan `HRD-CAP-96` s.d. `100`) dengan izin baca dashboard sendiri; halaman frontend baru | Sedang — tanpa endpoint terpadu, frontend memanggil 4–5 endpoint dengan izin berbeda |
-| `HRD-CAP-102` | Seleksi Administrasi (`HRD-DEC-232`) | `RecruitmentManagement` | 17.3 butir 1, 2 | Conflict | Backend sudah punya daftar screening lintas lowongan yang lebih tepat daripada Bank Pelamar berfilter, karena status kandidat tidak memuat tahap penapisan; lihat `HRD-CQ-05` | Sedang — filter di Bank Pelamar tidak dapat dibuat tanpa mengubah arti status kandidat |
-| `HRD-CAP-103` | Daftar Tes/Wawancara dua jalur (`HRD-DEC-233`) | `RecruitmentManagement` | 17.3 butir 3, 5 | Reuse with adapter | Backend daftar dan filter `EvaluationType` ada; halaman daftar frontend baru; `UserInterview` masuk jalur Uji Klinis/Teknis (diterima `submit-clinical`) | Rendah |
-| `HRD-CAP-104` | Asesor hanya melihat dan mengisi uji yang ditugaskan (`HRD-DEC-233`) | `RecruitmentManagement` | 17.3 butir 4 | Extend | Filter/cakupan menurut `EvaluatorUserId` dan pemeriksaan penilai pada `submit-clinical` belum ada | Sedang — asesor dapat melihat dan mengisi evaluasi kandidat unit lain |
+| `HRD-CAP-92` | Daftar global Tindak Disiplin dari alur resmi (`HRD-DEC-238` butir 1, 4) | `EmployeeRelationManagement` | 17.1 butir 1, 4 | Reuse with adapter | Menu "Tindak Disiplin" diarahkan ke layar Sanksi existing dengan izin `ViewSanctions` | Rendah |
+| `HRD-CAP-93` | Pensiun halaman `/hr/employee-relations/disciplinary-actions` (`HRD-DEC-238` butir 2) | Frontend HR | `HRD-TF-090` | Repair | Hapus/alihkan route dan service `employee-relations-service.js` | Rendah |
+| `HRD-CAP-94` | Tab disiplin Employee 360 membaca alur resmi; catatan profil baca-saja (`HRD-DEC-238` butir 3) | `WorkforceCore` + `EmployeeRelationManagement` | 17.1 butir 2, 3 | Extend | `HrdEmployee360Service` perlu membaca `HrdDisciplinarySanction` lewat pemetaan `WorkforceProfileId` → `EmployeeId`, di samping catatan profil sebagai riwayat; DTO saat ini hanya daftar teks | Sedang — tab 360 saat ini dapat menampilkan data disiplin kepada siapa pun yang boleh membuka 360, bukan hanya `ViewSanctions` |
+| `HRD-CAP-95` | Riwayat Penyelesaian: sanksi `Expired`/`RevokedOnAppeal` + insiden `ResolvedNoSanction` (`HRD-DEC-242`) | `EmployeeRelationManagement` | 17.1 butir 1, 4 | Extend | Filter `status` hanya satu nilai; "Selesai" butuh beberapa status sekaligus (multi-nilai di backend atau dua permintaan di frontend); insiden tanpa sanksi berada di daftar terpisah; layar Sanksi belum mengirim `status` | Rendah |
+| `HRD-CAP-96` | Panel Aktif/Nonaktif dan total pegawai (`HRD-DEC-243` panel 1, 3) | `MasterData/Workforce` | 17.2 | Reuse with adapter | Definisi aktif mengikuti `MstEmployee`; skorsing tetap aktif perlu dipastikan saat desain | Rendah |
+| `HRD-CAP-97` | Pegawai baru/keluar bulan berjalan dan Distribusi Profesi (`HRD-DEC-243` panel 1, 2) | `MasterData/Workforce` / `WorkforceCore` | 17.2 | Missing | Agregat baru | Rendah |
+| `HRD-CAP-98` | Kontrak berakhir ≤30/31–60/61–90 hari (`HRD-DEC-243` panel 4) | `LifecycleManagement` | 17.2 | Conflict | Agregat existing memakai 60 hari dan kelompok H-60/H-14/H-7, tidak sama dengan 30/60/90 yang diputuskan; lihat `HRD-CQ-06` | Sedang — dua angka "kontrak berakhir" yang berbeda di dua layar |
+| `HRD-CAP-99` | Dokumen kedaluwarsa: SIP/STR dan sertifikat wajib (`HRD-DEC-243` panel 5) | `CredentialingManagement`, `LearningAndDevelopment` | 17.2 | Reuse with adapter | Kelompok H90/H60/H30/H7/H0 dapat dipetakan ke ≤30/31–60/61–90/kedaluwarsa; perlu dipastikan radar lisensi mengecualikan STR seumur hidup | Rendah |
+| `HRD-CAP-100` | Dokumen kedaluwarsa: SPK/RKK (`HRD-DEC-243` panel 5) | `CredentialingManagement` | 17.2 | Missing | Radar/agregat SPK/RKK baru | Rendah |
+| `HRD-CAP-101` | Endpoint dan halaman Dashboard SDM terpadu (`HRD-DEC-243`) | HR (baru) | 17.2 | Missing | Satu endpoint agregat (menggabungkan `HRD-CAP-96` s.d. `100`) dengan izin baca dashboard sendiri; halaman frontend baru | Sedang — tanpa endpoint terpadu, frontend memanggil 4–5 endpoint dengan izin berbeda |
+| `HRD-CAP-102` | Seleksi Administrasi (`HRD-DEC-240`) | `RecruitmentManagement` | 17.3 butir 1, 2 | Conflict | Backend sudah punya daftar screening lintas lowongan yang lebih tepat daripada Bank Pelamar berfilter, karena status kandidat tidak memuat tahap penapisan; lihat `HRD-CQ-05` | Sedang — filter di Bank Pelamar tidak dapat dibuat tanpa mengubah arti status kandidat |
+| `HRD-CAP-103` | Daftar Tes/Wawancara dua jalur (`HRD-DEC-241`) | `RecruitmentManagement` | 17.3 butir 3, 5 | Reuse with adapter | Backend daftar dan filter `EvaluationType` ada; halaman daftar frontend baru; `UserInterview` masuk jalur Uji Klinis/Teknis (diterima `submit-clinical`) | Rendah |
+| `HRD-CAP-104` | Asesor hanya melihat dan mengisi uji yang ditugaskan (`HRD-DEC-241`) | `RecruitmentManagement` | 17.3 butir 4 | Extend | Filter/cakupan menurut `EvaluatorUserId` dan pemeriksaan penilai pada `submit-clinical` belum ada | Sedang — asesor dapat melihat dan mengisi evaluasi kandidat unit lain |
 
 ### 17.5 Jawaban pertanyaan decision log
 
 | Pertanyaan | Jawaban |
 | --- | --- |
-| `HRD-Q-223` | **Sebagian.** Tabel `WfpDisciplinaryAction` ada di migration dan menjadi satu-satunya sumber tab disiplin Employee 360. Ada atau tidaknya baris data **`Unknown`**: perlu kueri baca-saja ke database lingkungan (lihat `HRD-CQ-07`) |
-| `HRD-Q-224` | **Terjawab.** Aktif/nonaktif, radar SIP/STR, dan radar sertifikat dapat dipakai ulang; kontrak berakhir ada tetapi kelompoknya berbeda (`HRD-CQ-06`); pegawai baru/keluar, distribusi profesi, dan radar SPK/RKK belum ada. Endpoint terpadu belum ada |
-| `HRD-Q-225` | **Terjawab.** Daftar kandidat tidak punya filter tahap penapisan, tetapi ada daftar screening tersendiri (`HRD-CQ-05`). Daftar evaluasi lintas kandidat ada dengan filter jenis; cakupan per penilai belum ada |
+| `HRD-Q-231` | **Sebagian.** Tabel `WfpDisciplinaryAction` ada di migration dan menjadi satu-satunya sumber tab disiplin Employee 360. Ada atau tidaknya baris data **`Unknown`**: perlu kueri baca-saja ke database lingkungan (lihat `HRD-CQ-07`) |
+| `HRD-Q-232` | **Terjawab.** Aktif/nonaktif, radar SIP/STR, dan radar sertifikat dapat dipakai ulang; kontrak berakhir ada tetapi kelompoknya berbeda (`HRD-CQ-06`); pegawai baru/keluar, distribusi profesi, dan radar SPK/RKK belum ada. Endpoint terpadu belum ada |
+| `HRD-Q-233` | **Terjawab.** Daftar kandidat tidak punya filter tahap penapisan, tetapi ada daftar screening tersendiri (`HRD-CQ-05`). Daftar evaluasi lintas kandidat ada dengan filter jenis; cakupan per penilai belum ada |
 
 ### 17.6 Pertanyaan penutup untuk `/grill-me`
 
 | ID | Pertanyaan | Mengapa perlu diputuskan | Memblokir |
 | --- | --- | --- | --- |
-| `HRD-CQ-05` | `HRD-DEC-232` menetapkan Seleksi Administrasi sebagai Bank Pelamar berfilter. Source menunjukkan tahap penapisan disimpan pada resource screening sendiri (`GET recruitment/screenings`, status `Pending/Passed/Rejected`). Apakah menu Seleksi Administrasi diubah menjadi halaman daftar screening (rekomendasi agen), atau tetap Bank Pelamar dengan kolom/ filter turunan? | Bank Pelamar berfilter memerlukan perubahan arti status kandidat atau join baru | `DESIGN` Seleksi Administrasi |
-| `HRD-CQ-06` | Kontrak berakhir: Dashboard SDM memakai kelompok 30/60/90 hari (`HRD-DEC-235`) sedangkan layar Kontrak memakai 60 hari dan H-60/H-14/H-7. Apakah dashboard mengikuti kelompok layar Kontrak agar angkanya sama, atau layar Kontrak tetap dan dashboard punya kelompok sendiri? | Dua angka "kontrak berakhir" yang berbeda membingungkan HR | `DESIGN` panel Kontrak Berakhir |
-| `HRD-CQ-07` | Bolehkah agen menjalankan kueri baca-saja jumlah baris `WfpDisciplinaryAction` (dan contoh `ActionType`) di database lingkungan pengembangan? | Menutup `Unknown` `HRD-Q-223` sebelum memutuskan perlakuan data lama | `IMPLEMENTATION` tab Employee 360 |
+| `HRD-CQ-05` | `HRD-DEC-240` menetapkan Seleksi Administrasi sebagai Bank Pelamar berfilter. Source menunjukkan tahap penapisan disimpan pada resource screening sendiri (`GET recruitment/screenings`, status `Pending/Passed/Rejected`). Apakah menu Seleksi Administrasi diubah menjadi halaman daftar screening (rekomendasi agen), atau tetap Bank Pelamar dengan kolom/ filter turunan? | Bank Pelamar berfilter memerlukan perubahan arti status kandidat atau join baru | `DESIGN` Seleksi Administrasi |
+| `HRD-CQ-06` | Kontrak berakhir: Dashboard SDM memakai kelompok 30/60/90 hari (`HRD-DEC-243`) sedangkan layar Kontrak memakai 60 hari dan H-60/H-14/H-7. Apakah dashboard mengikuti kelompok layar Kontrak agar angkanya sama, atau layar Kontrak tetap dan dashboard punya kelompok sendiri? | Dua angka "kontrak berakhir" yang berbeda membingungkan HR | `DESIGN` panel Kontrak Berakhir |
+| `HRD-CQ-07` | Bolehkah agen menjalankan kueri baca-saja jumlah baris `WfpDisciplinaryAction` (dan contoh `ActionType`) di database lingkungan pengembangan? | Menutup `Unknown` `HRD-Q-231` sebelum memutuskan perlakuan data lama | `IMPLEMENTATION` tab Employee 360 |
 
 ### 17.7 Pemicu impact scan berikutnya
 
@@ -1474,6 +1474,6 @@ Pertanyaan berikut tidak dijawab di sini. Semuanya menunggu keputusan pengguna.
 
 | ID | Status | Ditutup oleh |
 | --- | --- | --- |
-| `HRD-CQ-05` | Tertutup | `HRD-DEC-236` (decision log 56.8) |
-| `HRD-CQ-06` | Tertutup | `HRD-DEC-237` |
-| `HRD-CQ-07` | Tertutup pada tingkat keputusan; kueri belum dijalankan | `HRD-DEC-238` |
+| `HRD-CQ-05` | Tertutup | `HRD-DEC-244` (decision log 57.8) |
+| `HRD-CQ-06` | Tertutup | `HRD-DEC-245` |
+| `HRD-CQ-07` | Tertutup pada tingkat keputusan; kueri belum dijalankan | `HRD-DEC-246` |

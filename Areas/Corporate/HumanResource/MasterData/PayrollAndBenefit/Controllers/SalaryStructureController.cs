@@ -204,6 +204,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     CurrencyCode = x.CurrencyCode,
                     PaymentFrequency = x.PaymentFrequency,
                     DefaultBaseSalary = x.DefaultBaseSalary,
+                    MinimumBaseSalary = x.MinimumBaseSalary,
+                    MaximumBaseSalary = x.MaximumBaseSalary,
                     IsDefault = x.IsDefault
                 })
                 .ToListAsync(cancellationToken);

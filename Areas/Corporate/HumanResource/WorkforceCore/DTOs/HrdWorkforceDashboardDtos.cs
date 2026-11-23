@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
 {
     /// <summary>
-    /// Lima panel Dashboard SDM (kontrak v29 bagian 35.1). Dihitung saat dipanggil, tanpa snapshot (<c>HRD-ASM-89</c>).
+    /// Lima panel Dashboard SDM (kontrak v30 bagian 36.1). Dihitung saat dipanggil, tanpa snapshot (<c>HRD-ASM-92</c>).
     /// Tidak memuat gaji, nomor identitas, data disiplin, maupun data kesehatan.
     /// </summary>
     public class WorkforceDashboardSummaryResponse
@@ -43,7 +43,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public int InactiveCount { get; set; }
     }
 
-    /// <summary>Panel Kontrak Berakhir — sama persis dengan layar Kontrak (<c>HRD-DEC-237</c>).</summary>
+    /// <summary>Panel Kontrak Berakhir — sama persis dengan layar Kontrak (<c>HRD-DEC-245</c>).</summary>
     public class WorkforceDashboardContractExpiryDto
     {
         /// <summary>Sama dengan <c>ExpiringSoonCount</c> pada <c>GET employment-contracts/summary</c>.</summary>
@@ -74,7 +74,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public int Days61To90Count { get; set; }
     }
 
-    /// <summary>Parameter daftar nama di balik satu angka panel (kontrak v29 bagian 35.1).</summary>
+    /// <summary>Parameter daftar nama di balik satu angka panel (kontrak v30 bagian 36.1).</summary>
     public class WorkforceDashboardDrilldownQuery
     {
         public string? Panel { get; set; }

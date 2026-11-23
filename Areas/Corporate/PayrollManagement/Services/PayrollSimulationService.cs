@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
@@ -55,6 +56,81 @@ public sealed class PayrollSimulationService
 
     private sealed record Candidate(PrlPayroll Profile, Guid? EmployeeId, string Number, string Name);
 
+    private static readonly JsonSerializerOptions SnapshotJsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    // ---- Pembaca rincian pajak dari snapshot (nilai detail terbaca sebagai JsonElement setelah deserialisasi) ----
+
+    private static JsonElement? DetailValue(IReadOnlyDictionary<string, object?>? detail, string key) =>
+        detail is not null && detail.TryGetValue(key, out var value) && value is JsonElement element ? element : null;
+
+    private static string? DetailString(IReadOnlyDictionary<string, object?>? detail, string key) =>
+        DetailValue(detail, key) is { ValueKind: JsonValueKind.String } element ? element.GetString() : null;
+
+    private static decimal? DetailDecimal(IReadOnlyDictionary<string, object?>? detail, string key) =>
+        DetailValue(detail, key) is { ValueKind: JsonValueKind.Number } element && element.TryGetDecimal(out var number) ? number : null;
+
+    private static bool DetailBool(IReadOnlyDictionary<string, object?>? detail, string key) =>
+        DetailValue(detail, key) is { ValueKind: JsonValueKind.True };
+
+    private static List<int> DetailInts(IReadOnlyDictionary<string, object?>? detail, string key) =>
+        DetailValue(detail, key) is { ValueKind: JsonValueKind.Array } element
+            ? element.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.Number && x.TryGetInt32(out _)).Select(x => x.GetInt32()).ToList()
+            : new List<int>();
+
+    private static List<string> DetailStrings(IReadOnlyDictionary<string, object?>? detail, string key) =>
+        DetailValue(detail, key) is { ValueKind: JsonValueKind.Array } element
+            ? element.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString() ?? string.Empty).Where(x => x.Length > 0).ToList()
+            : new List<string>();
+
+    /// <summary>Memetakan snapshot pajak (hasil mesin Payroll Run) menjadi rincian simulasi; null bila snapshot tidak ada atau tidak terbaca.</summary>
+    private static PayrollSimulationTaxResponse? MapTax(string? taxSnapshotJson)
+    {
+        if (string.IsNullOrWhiteSpace(taxSnapshotJson)) return null;
+        PayrollTaxSnapshot? snapshot;
+        try
+        {
+            snapshot = JsonSerializer.Deserialize<PayrollTaxSnapshot>(taxSnapshotJson, SnapshotJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        if (snapshot is null) return null;
+        var detail = snapshot.Detail;
+        return new PayrollSimulationTaxResponse
+        {
+            ConfigurationStatus = snapshot.ConfigurationStatus,
+            ResultStatus = snapshot.ResultStatus,
+            Article = snapshot.Article ?? string.Empty,
+            RecipientCategory = snapshot.RecipientCategory ?? string.Empty,
+            CalculationMode = snapshot.CalculationMode ?? string.Empty,
+            TaxMethod = snapshot.TaxMethod ?? string.Empty,
+            PtkpStatus = snapshot.PtkpStatus,
+            PolicyVersion = snapshot.PolicyVersion,
+            Treatment = snapshot.Treatment,
+            CalculationBasis = DetailString(detail, "method"),
+            TerCategory = DetailString(detail, "terCategory"),
+            TerRatePercent = DetailDecimal(detail, "terRatePercent"),
+            TaxableGross = snapshot.TaxableGross ?? 0m,
+            EmployeeAmount = snapshot.EmployeeAmount,
+            EmployerBorneAmount = snapshot.EmployerBorneAmount,
+            YtdRequired = DetailBool(detail, "ytdRequired"),
+            YtdCoveredMonths = DetailInts(detail, "ytdCoveredMonths"),
+            YtdMissingMonths = DetailInts(detail, "ytdMissingMonths"),
+            OpeningBalanceMonths = DetailInts(detail, "ytdOpeningBalanceMonths"),
+            OpeningBalanceFeatureAvailable = DetailBool(detail, "ytdOpeningBalanceFeatureAvailable"),
+            ReconciliationOutcome = DetailString(detail, "reconciliationOutcome"),
+            AnnualTax = DetailDecimal(detail, "annualTax"),
+            PriorTaxWithheld = DetailDecimal(detail, "priorTaxWithheld"),
+            OverwithholdingAmount = DetailDecimal(detail, "overwithholdingAmount"),
+            IsBlocking = snapshot.IsBlocking,
+            Issues = snapshot.Issues ?? new List<string>(),
+            Warnings = snapshot.Warnings ?? new List<string>(),
+            Limitations = DetailStrings(detail, "limitations")
+        };
+    }
+
     public async Task<PayrollSimulationResponse> SimulateAsync(
         PayrollSimulationRequest request, Guid actorUserId, CancellationToken cancellationToken)
     {
@@ -75,10 +151,6 @@ public sealed class PayrollSimulationService
             "Simulasi tidak memuat penghasilan variabel dan potongan cicilan piutang; potongan yang tampil adalah potongan sebelum cicilan.",
             "Hasil simulasi tidak disimpan."
         };
-        if (!_policy.EnableBpjsInPayroll)
-        {
-            notes.Add("Mode pengujian aktif: kalkulasi BPJS Kesehatan dan BPJS Ketenagakerjaan dinonaktifkan sementara (belum dihitung).");
-        }
 
         var candidates = await LoadCandidatesAsync(period, requestedIds, notes, maxEmployees, cancellationToken);
 
@@ -106,8 +178,24 @@ public sealed class PayrollSimulationService
 
         response.PeriodCode = period.PayrollPeriodCode;
         response.PolicyVersion = _policy.PolicyVersion;
-        response.EnableBpjsInPayroll = _policy.EnableBpjsInPayroll;
         response.Notes.AddRange(notes);
+
+        // Cakupan simulasi dinyatakan eksplisit: mesin yang sama dengan Payroll Run resmi, tetapi hanya pada sumber yang diimpor di bawah.
+        response.IncludedSources.AddRange(new[]
+        {
+            "Gaji pokok dari penetapan gaji yang berlaku",
+            "Tunjangan struktur, tunjangan pegawai, dan tunjangan transport bulanan",
+            "PPh 21/26 dari konfigurasi pajak HRD dan kebijakan tarif PPh yang disahkan (mesin yang sama dengan Payroll Run)",
+            "Asuransi swasta dari profil asuransi HRD"
+        });
+        response.ExcludedSources.AddRange(new[]
+        {
+            "Kehadiran, lembur, dan cuti dari HR (tidak diimpor)",
+            "Penghasilan dan potongan variabel/manual (tidak diimpor)",
+            "Potongan cicilan piutang dan sinkronisasi Finance",
+            "Iuran BPJS (tidak dihitung di Payroll): premi BPJS pemberi kerja dan iuran pensiun BPJS tidak ikut dalam dasar PPh",
+            "Pembayaran, Finance Handoff, dan persetujuan payroll (tidak pernah dijalankan oleh simulasi)"
+        });
 
         await _loggerService.AuditAsync(LogCategory, "PayrollRun.Simulate",
             "Simulasi payroll dijalankan (transaksi dibatalkan, tidak ada data tersimpan).",
@@ -200,7 +288,7 @@ public sealed class PayrollSimulationService
             VariableInputCutoffDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.VariableInputCutoffDate),
             PaymentDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.PaymentDate),
             Notes = "Simulasi — transaksi selalu dibatalkan.",
-            // Snapshot Pengaturan Penggajian untuk parameter operasional (variansi, batas potongan). Tarif PPh dan iuran BPJS TIDAK dari sini:
+            // Snapshot Pengaturan Penggajian untuk parameter operasional (variansi, batas potongan). Tarif PPh TIDAK dari sini:
             // mesin yang sama dengan run resmi membaca kebijakan berversi yang disahkan, sehingga simulasi menahan perhitungan yang sama
             // (Menunggu Verifikasi Kebijakan) alih-alih menghitung nol. Seluruhnya di dalam transaksi simulasi yang selalu dibatalkan.
             ConfigurationSnapshotJson = await _settingService.GetSettingSnapshotJsonAsync(cancellationToken),
@@ -251,6 +339,7 @@ public sealed class PayrollSimulationService
                 x.GrossPay,
                 x.TotalDeduction,
                 x.NetPay,
+                x.TaxSnapshotJson,
                 Components = x.Components
                     .Where(c => !c.IsDelete)
                     .OrderBy(c => c.SortOrder)
@@ -284,7 +373,8 @@ public sealed class PayrollSimulationService
                 NetPay = row.NetPay,
                 Components = row.Components,
                 Warnings = warnings ?? new List<string>(),
-                Errors = errors ?? new List<string>()
+                Errors = errors ?? new List<string>(),
+                Tax = MapTax(row.TaxSnapshotJson)
             });
 
             if (row.EmployeePayrollStatus == EmployeeCalculated)

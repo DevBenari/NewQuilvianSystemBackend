@@ -8,8 +8,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services
 {
     /// <summary>
-    /// Satu-satunya definisi tahapan perpanjangan kontrak kerja (BE-HRD-447, <c>HRD-DEC-237</c>, state-transition v29
-    /// bagian 33.1). Dipakai layar Kontrak (<c>GET employment-contracts/summary</c> dan <c>renewal-summary</c>) dan
+    /// Satu-satunya definisi tahapan perpanjangan kontrak kerja (BE-HRD-457, <c>HRD-DEC-245</c>, state-transition v30
+    /// bagian 34.1). Dipakai layar Kontrak (<c>GET employment-contracts/summary</c> dan <c>renewal-summary</c>) dan
     /// Dashboard SDM, sehingga kedua layar selalu menunjukkan angka yang sama.
     /// </summary>
     /// <remarks>

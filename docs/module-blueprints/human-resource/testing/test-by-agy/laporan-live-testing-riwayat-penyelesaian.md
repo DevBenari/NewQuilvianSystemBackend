@@ -4,7 +4,7 @@
 | --- | --- |
 | Menu | Hubungan Industrial & Terminasi → **Riwayat Penyelesaian** (`/hrd/relations/sanctions/history`) |
 | Pemilik menu | HR Relations |
-| Task | `FE-HRD-401`, layar `FE-HRD-398`, menu `FE-HRD-400` |
+| Task | `FE-HRD-409`, layar `FE-HRD-406`, menu `FE-HRD-408` |
 | Tanggal uji | 23 November 2026 |
 | Lingkungan | Frontend build produksi `http://localhost:3000`; backend lokal `https://localhost:7184`; database dev `QuilvianNewDevHamzah` |
 | Peramban | Chromium headed, `slowMo` 450 ms |
@@ -27,8 +27,8 @@ Contoh: Bu Rina (HR Relations) meninjau kasus yang sudah tuntas bulan ini.
 
 | ID | Prioritas | UAT | Skenario | Harapan | Hasil | Status | Bukti |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| L05 | P0 | HRD-127 | Dua sumber data | `statuses` berulang dan `status=ResolvedNoSanction`, keduanya 200 | Sanksi 200; insiden 200 (1 baris) | ✅ PASS | — |
-| L06 | P1 | HRD-127 | Insiden baca-saja | ≥ 1 baris insiden; tanpa kolom Aksi | 1 baris; 0 kolom Aksi; bagian sanksi kosong | ✅ PASS | `fe-hrd-401/relations-03-riwayat-penyelesaian.png` |
+| L05 | P0 | HRD-128 | Dua sumber data | `statuses` berulang dan `status=ResolvedNoSanction`, keduanya 200 | Sanksi 200; insiden 200 (1 baris) | ✅ PASS | — |
+| L06 | P1 | HRD-128 | Insiden baca-saja | ≥ 1 baris insiden; tanpa kolom Aksi | 1 baris; 0 kolom Aksi; bagian sanksi kosong | ✅ PASS | `fe-hrd-401/relations-03-riwayat-penyelesaian.png` |
 
 ## 4. Endpoint yang diuji
 
@@ -48,4 +48,4 @@ Contoh: Bu Rina (HR Relations) meninjau kasus yang sudah tuntas bulan ini.
 
 ## 6. Batasan
 
-Bagian Sanksi Selesai belum dapat diuji dengan data nyata pada sesi ini karena RP-01 dan RP-02. Perilaku dengan data (dua sanksi selesai berlabel Kedaluwarsa dan Dicabut lewat Banding) dibuktikan lewat uji Playwright dengan response tiruan pada `FE-HRD-398`.
+Bagian Sanksi Selesai belum dapat diuji dengan data nyata pada sesi ini karena RP-01 dan RP-02. Perilaku dengan data (dua sanksi selesai berlabel Kedaluwarsa dan Dicabut lewat Banding) dibuktikan lewat uji Playwright dengan response tiruan pada `FE-HRD-406`.

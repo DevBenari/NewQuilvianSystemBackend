@@ -4,7 +4,7 @@
 | --- | --- |
 | Menu | Administrasi Kepegawaian → **Employee 360** (`/hr/employee-360/{id}`), tab Pribadi & Disiplin (Rahasia) |
 | Pemilik menu | HR (Administrasi Kepegawaian) |
-| Task | `FE-HRD-401`, layar `FE-HRD-393` |
+| Task | `FE-HRD-409`, layar `FE-HRD-401` |
 | Tanggal uji | 23 November 2026 |
 | Lingkungan | Frontend build produksi `http://localhost:3000`; backend lokal `https://localhost:7184`; database dev `QuilvianNewDevHamzah` |
 | Peramban | Chromium headed, `slowMo` 450 ms; screenshot bagian disiplin diambil per elemen sehingga NIK tidak ikut terekam |
@@ -44,11 +44,11 @@ Contoh: Perawat Tono baru menerima SP 1. Pak Budi adalah atasan langsungnya.
 
 | ID | Prioritas | UAT | Skenario | Harapan | Hasil | Status | Bukti |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| L08 | P0 | HRD-128 | HR + `ViewSanctions` | 2 baris `OFFICIAL` + 1 "Catatan lama" tanpa tombol (`AT-HRD-PKB-13`, `15`) | 2 + 1; 0 tombol | ✅ PASS | `fe-hrd-401/relations-04-employee360-disiplin.png` |
-| M07 | P1 | HRD-128 | HR tanpa `ViewSanctions` | "Data disiplin hanya untuk HR." (`VR-PKB-09`) | Sesuai | ✅ PASS | `fe-hrd-401/manajer-03-employee360-disiplin-tersembunyi.png` |
-| T01 | P1 | HRD-129 | Menu atasan | Tanpa butir Paket B | Sesuai | ✅ PASS | — |
-| T02 | P1 | HRD-128 | Atasan langsung | Pesan disembunyikan; nomor SP tidak tampil (`AT-HRD-PKB-14`) | Sesuai | ✅ PASS | `fe-hrd-401/atasan-01-employee360-atasan.png` |
-| T03 | P1 | HRD-128 | Bukan atasan | Pesan akses ditolak | Sesuai | ✅ PASS | `fe-hrd-401/atasan-02-employee360-bukan-bawahan.png` |
+| L08 | P0 | HRD-129 | HR + `ViewSanctions` | 2 baris `OFFICIAL` + 1 "Catatan lama" tanpa tombol (`AT-HRD-PKB-13`, `15`) | 2 + 1; 0 tombol | ✅ PASS | `fe-hrd-401/relations-04-employee360-disiplin.png` |
+| M07 | P1 | HRD-129 | HR tanpa `ViewSanctions` | "Data disiplin hanya untuk HR." (`VR-PKB-09`) | Sesuai | ✅ PASS | `fe-hrd-401/manajer-03-employee360-disiplin-tersembunyi.png` |
+| T01 | P1 | HRD-130 | Menu atasan | Tanpa butir Paket B | Sesuai | ✅ PASS | — |
+| T02 | P1 | HRD-129 | Atasan langsung | Pesan disembunyikan; nomor SP tidak tampil (`AT-HRD-PKB-14`) | Sesuai | ✅ PASS | `fe-hrd-401/atasan-01-employee360-atasan.png` |
+| T03 | P1 | HRD-129 | Bukan atasan | Pesan akses ditolak | Sesuai | ✅ PASS | `fe-hrd-401/atasan-02-employee360-bukan-bawahan.png` |
 
 ## 5. Endpoint yang diuji
 

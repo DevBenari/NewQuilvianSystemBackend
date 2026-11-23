@@ -62,7 +62,7 @@ public sealed class PayrollTaxPoliciesController : ControllerBase
     [AccessPermission("PayrollTaxPolicy", "Read")]
     public IActionResult GetMetadata() =>
         Ok(ApiResponse<PayrollStatutoryPolicyMetadataResponse>.Ok(
-            PayrollStatutoryPolicyMetadataFactory.Build(_resolver.IsBpjsEnabled), "Metadata kebijakan tarif PPh berhasil dimuat."));
+            PayrollStatutoryPolicyMetadataFactory.Build(), "Metadata kebijakan tarif PPh berhasil dimuat."));
 
     /// <summary>Ketersediaan kebijakan yang disahkan pada tanggal tertentu (bawaan hari ini): "Menunggu Verifikasi Kebijakan" bila belum ada.</summary>
     [HttpGet("availability")]
@@ -168,9 +168,100 @@ public sealed class PayrollTaxPoliciesController : ControllerBase
 /// <summary>Opsi metadata kebijakan regulasi (kosakata kode dan status referensi tarif PPh 21 resmi yang dikelola Backend).</summary>
 internal static class PayrollStatutoryPolicyMetadataFactory
 {
-    public static PayrollStatutoryPolicyMetadataResponse Build(bool enableBpjsInPayroll = true)
+    public static PayrollStatutoryPolicyMetadataResponse Build()
     {
         var officialRef = PayrollTaxOfficialReferenceProvider.GetStatus();
+
+        var pph21Options = new List<PayrollStatutoryPolicyOptionResponse>
+        {
+            new()
+            {
+                Value = TaxPolicyCalculationTypes.PermanentEmployeeTer,
+                Label = "PPh 21 Pegawai Tetap",
+                Note = "TER bulanan (PP 58/2023) dan rekonsiliasi tahunan Pasal 17 (PMK 168/2023 & UU HPP) otomatis dari referensi resmi Backend."
+            },
+            new()
+            {
+                Value = TaxPolicyCalculationTypes.ContractEmployeeTer,
+                Label = "PPh 21 Pegawai Kontrak Kriteria Tetap",
+                Note = "Pegawai kontrak dengan kriteria pegawai tetap (TER bulanan dan rekonsiliasi Pasal 17)."
+            },
+            new()
+            {
+                Value = TaxPolicyCalculationTypes.NonPermanentMonthly,
+                Label = "PPh 21 Pegawai Tidak Tetap Bulanan",
+                Note = "Pegawai tidak tetap / tenaga kerja lepas yang dibayarkan secara bulanan."
+            },
+            new()
+            {
+                Value = TaxPolicyCalculationTypes.NonPermanentDaily,
+                Label = "PPh 21 Pegawai Tidak Tetap Harian/Satuan",
+                Note = "Pegawai tidak tetap yang dibayarkan harian, mingguan, atau satuan borongan."
+            },
+            new()
+            {
+                Value = TaxPolicyCalculationTypes.NonEmployeeHonorarium,
+                Label = "PPh 21 Bukan Pegawai (Honorarium / Jasa)",
+                Note = "Imbalan kepada bukan pegawai atas penyerahan jasa per kegiatan."
+            },
+            new()
+            {
+                Value = TaxPolicyCalculationTypes.NonEmployeeExpert,
+                Label = "PPh 21 Tenaga Ahli (Dokter / Konsultan)",
+                Note = "DPP 50% dari penghasilan bruto x tarif progresif Pasal 17."
+            },
+            new()
+            {
+                Value = TaxPolicyCalculationTypes.Pph21Pasal17,
+                Label = "PPh 21 Tarif Progresif Umum Pasal 17",
+                Note = "Tarif progresif Pasal 17 UU HPP (5% s.d. 35%)."
+            }
+        };
+
+        var pph23Options = new List<PayrollStatutoryPolicyOptionResponse>
+        {
+            new()
+            {
+                Value = TaxPolicyCalculationTypes.Pph23OutsourcingServices,
+                Label = "PPh 23 Jasa Outsourcing Badan Usaha",
+                Note = "Tarif 2% dari jumlah bruto imbalan jasa tidak termasuk PPN dan penggantian material."
+            },
+            new()
+            {
+                Value = TaxPolicyCalculationTypes.Pph23ManagementConsulting,
+                Label = "PPh 23 Jasa Manajemen & Konsultasi",
+                Note = "Tarif 2% dari imbalan bruto atas jasa manajemen dan konsultasi."
+            },
+            new()
+            {
+                Value = TaxPolicyCalculationTypes.Pph23TechnicalServices,
+                Label = "PPh 23 Jasa Teknik & Pemeliharaan",
+                Note = "Tarif 2% dari imbalan bruto atas jasa teknik dan instalasi."
+            },
+            new()
+            {
+                Value = TaxPolicyCalculationTypes.Pph23OtherServicesPmk141,
+                Label = "PPh 23 Jasa Lainnya (PMK 141/2015)",
+                Note = "Jasa kebersihan, keamanan, katering, dan jasa lain sesuai PMK 141/2015 (tarif 2%)."
+            },
+            new()
+            {
+                Value = TaxPolicyCalculationTypes.Pph23RentAsset,
+                Label = "PPh 23 Sewa & Penggunaan Harta (Selain Tanah/Bangunan)",
+                Note = "Tarif 2% dari jumlah sewa alat medis, kendaraan, atau perlengkapan operasional."
+            },
+            new()
+            {
+                Value = TaxPolicyCalculationTypes.Pph23RoyaltyInterest,
+                Label = "PPh 23 Royalti & Bunga Pinjaman Badan",
+                Note = "Tarif 15% dari jumlah bruto royalti hak cipta/lisensi atau bunga pinjaman."
+            }
+        };
+
+        var allCalcTypes = new List<PayrollStatutoryPolicyOptionResponse>();
+        allCalcTypes.AddRange(pph21Options);
+        allCalcTypes.AddRange(pph23Options);
+
         return new PayrollStatutoryPolicyMetadataResponse
         {
             StatusOptions = new List<PayrollStatutoryPolicyOptionResponse>
@@ -181,14 +272,20 @@ internal static class PayrollStatutoryPolicyMetadataFactory
                 new() { Value = StatutoryPolicyStatuses.Rejected, Label = "Ditolak" },
                 new() { Value = StatutoryPolicyStatuses.Retired, Label = "Dipensiunkan" }
             },
-            TaxCalculationTypeOptions = new List<PayrollStatutoryPolicyOptionResponse>
+            TaxArticleOptions = new List<PayrollStatutoryPolicyOptionResponse>
             {
-                new()
-                {
-                    Value = TaxPolicyCalculationTypes.PermanentEmployeeTer,
-                    Label = "PPh 21 Pegawai Tetap",
-                    Note = "TER bulanan (PP 58/2023) dan rekonsiliasi tahunan Pasal 17 (PMK 168/2023 & UU HPP) otomatis dari referensi resmi Backend."
-                }
+                new() { Value = TaxArticles.Pph21, Label = "PPh 21 (Orang Pribadi & Tenaga Kerja)", Note = "Pemotongan pajak penghasilan atas pekerjaan, jasa, atau kegiatan orang pribadi." },
+                new() { Value = TaxArticles.Pph23, Label = "PPh 23 (Badan Usaha, Sewa, Royalti & Jasa)", Note = "Pemotongan pajak atas penghasilan modal, penyerahan jasa, sewa, atau royalti badan usaha." }
+            },
+            TaxCalculationTypeOptions = allCalcTypes,
+            Pph21CategoryOptions = pph21Options,
+            Pph23ObjectOptions = pph23Options,
+            TaxEffectiveStatusOptions = new List<PayrollStatutoryPolicyOptionResponse>
+            {
+                new() { Value = TaxPolicyEffectiveStatuses.Active, Label = "Berlaku", Note = "Kebijakan aktif yang berlaku pada hari ini." },
+                new() { Value = TaxPolicyEffectiveStatuses.Scheduled, Label = "Terjadwal", Note = "Kebijakan dengan tanggal mulai di masa depan." },
+                new() { Value = TaxPolicyEffectiveStatuses.Expired, Label = "Berakhir", Note = "Kebijakan dengan tanggal akhir yang telah terlewati." },
+                new() { Value = TaxPolicyEffectiveStatuses.Inactive, Label = "Nonaktif", Note = "Kebijakan yang telah dipensiunkan atau dinonaktifkan." }
             },
             TerCategoryOptions = new List<PayrollStatutoryPolicyOptionResponse>
             {
@@ -215,14 +312,6 @@ internal static class PayrollStatutoryPolicyMetadataFactory
                 new() { Value = "JKM", Label = "JKM" },
                 new() { Value = "PRIVATE", Label = "Asuransi swasta" }
             },
-            JkkRiskClassOptions = new List<PayrollStatutoryPolicyOptionResponse>
-            {
-                new() { Value = "1", Label = "Kelompok risiko 1" },
-                new() { Value = "2", Label = "Kelompok risiko 2" },
-                new() { Value = "3", Label = "Kelompok risiko 3" },
-                new() { Value = "4", Label = "Kelompok risiko 4" },
-                new() { Value = "5", Label = "Kelompok risiko 5" }
-            },
             OfficialTaxReference = new PayrollTaxOfficialReferenceResponse
             {
                 ReferenceCode = officialRef.ReferenceCode,
@@ -237,9 +326,7 @@ internal static class PayrollStatutoryPolicyMetadataFactory
                 TerRateCount = officialRef.TerRateCount,
                 BracketCount = officialRef.BracketCount,
                 Issues = officialRef.Issues.ToList()
-            },
-            EnableBpjsInPayroll = enableBpjsInPayroll,
-            BpjsTestingModeLabel = enableBpjsInPayroll ? null : StatutoryPolicyLabels.BpjsTestingModeDisabled
+            }
         };
     }
 }

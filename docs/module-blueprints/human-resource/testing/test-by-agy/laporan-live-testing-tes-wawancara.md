@@ -4,7 +4,7 @@
 | --- | --- |
 | Menu | Rekrutmen & Seleksi → **Tes/Wawancara** (`/hr/recruitment/evaluations`) |
 | Pemilik menu | Recruiter; asesor klinis sebagai penilai |
-| Task | `FE-HRD-401`, layar `FE-HRD-397`, menu `FE-HRD-400` |
+| Task | `FE-HRD-409`, layar `FE-HRD-405`, menu `FE-HRD-408` |
 | Tanggal uji | 23 November 2026 |
 | Lingkungan | Frontend build produksi `http://localhost:3000`; backend lokal `https://localhost:7184`; database dev `QuilvianNewDevHamzah` |
 | Peramban | Chromium headed, `slowMo` 450 ms |
@@ -28,11 +28,11 @@ Contoh Recruiter: Pak Dodi membuka layar yang sama, lalu mengganti pemisah jalur
 
 | ID | Prioritas | UAT | Skenario | Harapan | Hasil | Status | Bukti |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| R04 | P0 | HRD-126 | Recruiter membuka jalur HR | `GET evaluations?track=HR` 200; daftar kosong tanpa galat | HTTP 200 | ✅ PASS | `fe-hrd-401/recruiter-02-tes-wawancara-hr.png` |
-| R05 | P2 | HRD-126 | Ganti jalur ke klinis | Request `track=CLINICAL` 200 | HTTP 200 | ✅ PASS | — |
-| A01 | P1 | HRD-129 | Menu asesor | Hanya Tes/Wawancara dari pintu Paket B | Sesuai | ✅ PASS | — |
-| A02 | P0 | HRD-126 | Asesor tanpa uji | "Belum ada uji yang ditugaskan kepada Anda." | Sesuai, HTTP 200 | ✅ PASS | `fe-hrd-401/asesor-01-tes-wawancara-asesor.png` |
-| SA-02 | P1 | DoD 42.11 | Hak di Manajemen Role | Posisi "UAT Paket B - Recruiter" memegang hak Candidate Evaluation termasuk `ViewAll` | 3 hak terpilih (Read, Evaluate, ViewAll) | ✅ PASS | `fe-hrd-401/superadmin-02-akses-role-recruiter.png` |
+| R04 | P0 | HRD-127 | Recruiter membuka jalur HR | `GET evaluations?track=HR` 200; daftar kosong tanpa galat | HTTP 200 | ✅ PASS | `fe-hrd-401/recruiter-02-tes-wawancara-hr.png` |
+| R05 | P2 | HRD-127 | Ganti jalur ke klinis | Request `track=CLINICAL` 200 | HTTP 200 | ✅ PASS | — |
+| A01 | P1 | HRD-130 | Menu asesor | Hanya Tes/Wawancara dari pintu Paket B | Sesuai | ✅ PASS | — |
+| A02 | P0 | HRD-127 | Asesor tanpa uji | "Belum ada uji yang ditugaskan kepada Anda." | Sesuai, HTTP 200 | ✅ PASS | `fe-hrd-401/asesor-01-tes-wawancara-asesor.png` |
+| SA-02 | P1 | DoD 43.11 | Hak di Manajemen Role | Posisi "UAT Paket B - Recruiter" memegang hak Candidate Evaluation termasuk `ViewAll` | 3 hak terpilih (Read, Evaluate, ViewAll) | ✅ PASS | `fe-hrd-401/superadmin-02-akses-role-recruiter.png` |
 
 ## 4. Endpoint yang diuji
 
@@ -54,4 +54,4 @@ Tiga perilaku belum dapat diuji dengan data nyata karena database dev tidak memi
 - pesan 403 "Evaluasi ini ditugaskan kepada penilai lain.";
 - label veto "Gagal Asesmen".
 
-Ketiganya dibuktikan lewat uji Playwright dengan response tiruan pada `FE-HRD-397`.
+Ketiganya dibuktikan lewat uji Playwright dengan response tiruan pada `FE-HRD-405`.

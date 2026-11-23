@@ -462,6 +462,6 @@ sesuatu dirancang. Keduanya berdampingan dan tidak saling menggantikan.
 | Tindak Disiplin | `CONFLICT` | Selaraskan base URL frontend dengan kontrak global/per-pegawai backend dan permission; jangan publikasikan link sebelum selesai |
 | Verifikasi Paket A | `READY` | Jalankan live browser dan permission regression; setelah buktinya lulus, status Paket A dapat dinaikkan menjadi `DONE` |
 
-Dokumen canonical terkait: `03-frontend-architecture.md` bagian 33,
-`testing/acceptance-test-matrix.md` bagian 37, dan
+Dokumen canonical terkait: `03-frontend-architecture.md` bagian 34,
+`testing/acceptance-test-matrix.md` bagian 38, dan
 `docs/PLANNING_PENYESUAIAN_MENU_SDM_BERDASARKAN_ANALISIS_BISNIS.md` bagian 15.

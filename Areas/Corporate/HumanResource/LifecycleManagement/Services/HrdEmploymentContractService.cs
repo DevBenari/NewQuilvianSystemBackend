@@ -1580,7 +1580,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             Guid? hospitalSiteId,
             CancellationToken cancellationToken = default)
         {
-            // BE-HRD-447: tanggal acuan dan jendela 60 hari berasal dari ContractRenewalBuckets (HRD-DEC-237).
+            // BE-HRD-457: tanggal acuan dan jendela 60 hari berasal dari ContractRenewalBuckets (HRD-DEC-245).
             var today = ContractRenewalBuckets.ReferenceDate();
 
             var query = _dbContext.WfpContractHistories.AsNoTracking().Where(c => !c.IsDelete);
@@ -1614,7 +1614,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             Guid? hospitalSiteId,
             CancellationToken cancellationToken = default)
         {
-            // BE-HRD-447: definisi tahapan berasal dari ContractRenewalBuckets agar Dashboard SDM memakai aturan yang sama (HRD-DEC-237).
+            // BE-HRD-457: definisi tahapan berasal dari ContractRenewalBuckets agar Dashboard SDM memakai aturan yang sama (HRD-DEC-245).
             var today = ContractRenewalBuckets.ReferenceDate();
 
             var query = _dbContext.WfpContractHistories

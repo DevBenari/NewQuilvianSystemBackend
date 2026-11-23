@@ -30,6 +30,20 @@ public static class WorkforceAllowanceEligibilityRules
         "Shift", "OnCall", "Hazard", "Transport", "Variable"
     };
 
+    public static bool IsPolicyCategory(string? category) =>
+        !string.IsNullOrWhiteSpace(category) && PolicyCategories.Contains(category.Trim());
+
+    public static bool IsDirectlyAssignable(
+        string? method,
+        string? category,
+        bool isActive,
+        bool isRecurring,
+        bool hasActivePolicy = false,
+        bool hasInvalidPayrollComponent = false)
+    {
+        return EvaluateIneligibilityReason(string.Empty, category ?? string.Empty, method ?? string.Empty, isActive, isRecurring, hasActivePolicy, hasInvalidPayrollComponent) == null;
+    }
+
     /// <summary>
     /// Menyaring <see cref="MstAllowanceType"/> di level query database SEBELUM pagination sehingga seluruh halaman opsi
     /// hanya memuat jenis tunjangan yang sah ditetapkan langsung kepada pegawai (aktif, belum dihapus, recurring, metode

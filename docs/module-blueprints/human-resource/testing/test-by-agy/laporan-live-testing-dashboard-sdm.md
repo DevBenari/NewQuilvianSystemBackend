@@ -4,7 +4,7 @@
 | --- | --- |
 | Menu | Sumber Daya Manusia → **Dashboard SDM** (`/hr/dashboard`) |
 | Pemilik menu | Manajer SDM |
-| Task | `FE-HRD-401` (verifikasi Paket B), layar `FE-HRD-399`, menu `FE-HRD-400` |
+| Task | `FE-HRD-409` (verifikasi Paket B), layar `FE-HRD-407`, menu `FE-HRD-408` |
 | Tanggal uji | 23 November 2026 |
 | Lingkungan | Frontend build produksi di `http://localhost:3000`; backend lokal `https://localhost:7184`; database dev bersama `QuilvianNewDevHamzah` |
 | Peramban | Chromium headed (Playwright), `slowMo` 450 ms, desktop 1440 × 900 dan ponsel 390 × 844 |
@@ -38,16 +38,16 @@ Jalur gagal: Pak Dodi (Recruiter) tidak memegang hak dashboard. Butir Dashboard 
 
 | ID | Prioritas | UAT | Skenario | Harapan | Hasil | Status | Bukti |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| M01 | P1 | HRD-129 | Menu Manajer SDM | Ada Dashboard SDM; tidak ada pintu Paket B lain | Sesuai | ✅ PASS | — |
-| M02 | P0 | HRD-124 | Ringkasan nyata dari `/summary` | Pegawai Aktif > 0, empat panel tampil | Pegawai Aktif 40; panel tampil | ✅ PASS | `fe-hrd-401/manajer-01-dashboard-desktop.png` |
-| M03 | P2 | HRD-124 | Panel kontrak dan dokumen tanpa data | Pesan kosong, bukan angka nol palsu | "Tidak ada kontrak yang berakhir dalam 60 hari." dan "Tidak ada dokumen yang kedaluwarsa dalam 90 hari." | ✅ PASS | idem |
-| M04 | P0 | HRD-124 | Klik Pegawai Aktif | `drilldown?panel=EMPLOYEE_OVERVIEW&bucket=ACTIVE` 200, daftar tampil | HTTP 200, 40 baris | ✅ PASS | `fe-hrd-401/manajer-02-drilldown-pegawai-aktif.png` |
-| M05 | P2 | HRD-124 | Cari di daftar nama | `search` terkirim, sisa pegawai uji | HTTP 200, 1 baris | ✅ PASS | — |
-| M06 | P0 | HRD-124 | Klik baris | Pindah ke `/hr/employee-360/{id}` | Sesuai | ✅ PASS | — |
-| M08 | P4 | HRD-124 | Tampilan ponsel | Tanpa gulir mendatar | Kelebihan lebar 0 px | ✅ PASS | `fe-hrd-401/manajer-04-dashboard-ponsel.png` |
-| R06 | P1 | HRD-124 | Recruiter membuka alamat langsung | Pesan hak; `/summary` tidak dipanggil | Pesan tampil; 0 panggilan | ✅ PASS | `fe-hrd-401/recruiter-03-dashboard-tanpa-hak.png` |
-| T04 | P1 | HRD-124 | Atasan membuka alamat langsung | Pesan hak | Pesan tampil | ✅ PASS | — |
-| SA-01 | P1 | DoD 42.11 | Hak di Manajemen Role | Posisi "UAT Paket B - Manajer SDM" memegang `Hrd Workforce Dashboard : Read` | Tercentang | ✅ PASS | `fe-hrd-401/superadmin-01-akses-role-manajer-sdm.png` |
+| M01 | P1 | HRD-130 | Menu Manajer SDM | Ada Dashboard SDM; tidak ada pintu Paket B lain | Sesuai | ✅ PASS | — |
+| M02 | P0 | HRD-125 | Ringkasan nyata dari `/summary` | Pegawai Aktif > 0, empat panel tampil | Pegawai Aktif 40; panel tampil | ✅ PASS | `fe-hrd-401/manajer-01-dashboard-desktop.png` |
+| M03 | P2 | HRD-125 | Panel kontrak dan dokumen tanpa data | Pesan kosong, bukan angka nol palsu | "Tidak ada kontrak yang berakhir dalam 60 hari." dan "Tidak ada dokumen yang kedaluwarsa dalam 90 hari." | ✅ PASS | idem |
+| M04 | P0 | HRD-125 | Klik Pegawai Aktif | `drilldown?panel=EMPLOYEE_OVERVIEW&bucket=ACTIVE` 200, daftar tampil | HTTP 200, 40 baris | ✅ PASS | `fe-hrd-401/manajer-02-drilldown-pegawai-aktif.png` |
+| M05 | P2 | HRD-125 | Cari di daftar nama | `search` terkirim, sisa pegawai uji | HTTP 200, 1 baris | ✅ PASS | — |
+| M06 | P0 | HRD-125 | Klik baris | Pindah ke `/hr/employee-360/{id}` | Sesuai | ✅ PASS | — |
+| M08 | P4 | HRD-125 | Tampilan ponsel | Tanpa gulir mendatar | Kelebihan lebar 0 px | ✅ PASS | `fe-hrd-401/manajer-04-dashboard-ponsel.png` |
+| R06 | P1 | HRD-125 | Recruiter membuka alamat langsung | Pesan hak; `/summary` tidak dipanggil | Pesan tampil; 0 panggilan | ✅ PASS | `fe-hrd-401/recruiter-03-dashboard-tanpa-hak.png` |
+| T04 | P1 | HRD-125 | Atasan membuka alamat langsung | Pesan hak | Pesan tampil | ✅ PASS | — |
+| SA-01 | P1 | DoD 43.11 | Hak di Manajemen Role | Posisi "UAT Paket B - Manajer SDM" memegang `Hrd Workforce Dashboard : Read` | Tercentang | ✅ PASS | `fe-hrd-401/superadmin-01-akses-role-manajer-sdm.png` |
 
 Seluruh screenshot berada di `QuilvianSystemFrontendDev/test-with-agy/screenshots/`.
 
@@ -66,4 +66,4 @@ Tidak ada temuan pada menu ini.
 
 ## 7. Batasan
 
-Klik angka kontrak dan dokumen dengan data nyata tidak dapat diuji karena database dev tidak memiliki kontrak, lisensi, SPK, atau sertifikat. Perilaku dengan data terisi (contoh "SIP/STR Sudah Habis 2" → dr. Dodi dan Sari) dibuktikan lewat uji Playwright dengan response tiruan pada `FE-HRD-399`.
+Klik angka kontrak dan dokumen dengan data nyata tidak dapat diuji karena database dev tidak memiliki kontrak, lisensi, SPK, atau sertifikat. Perilaku dengan data terisi (contoh "SIP/STR Sudah Habis 2" → dr. Dodi dan Sari) dibuktikan lewat uji Playwright dengan response tiruan pada `FE-HRD-407`.

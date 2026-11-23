@@ -46,7 +46,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     .ThenInclude(a => a!.Candidate)
                 .Where(e => !e.IsDelete);
 
-            // VR-PKB-07 (HRD-DEC-233): tanpa CandidateEvaluation : ViewAll hanya evaluasi milik penilai yang login.
+            // VR-PKB-07 (HRD-DEC-241): tanpa CandidateEvaluation : ViewAll hanya evaluasi milik penilai yang login.
             if (!canViewAll)
             {
                 var actorUserId = user.GetUserId();
@@ -157,7 +157,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<CandidateEvaluationResponse>.NotFound("Data evaluasi tidak ditemukan.");
             }
 
-            // VR-PKB-07 (HRD-DEC-233): tanpa CandidateEvaluation : ViewAll, detail milik penilai lain ditolak.
+            // VR-PKB-07 (HRD-DEC-241): tanpa CandidateEvaluation : ViewAll, detail milik penilai lain ditolak.
             if (!canViewAll)
             {
                 var actorUserId = user.GetUserId();
@@ -306,7 +306,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<CandidateEvaluationResponse>.NotFound("Data evaluasi tidak ditemukan.");
             }
 
-            // VR-PKB-08 (HRD-ASM-95, HRD-DEC-233): hanya penilai yang ditugaskan, termasuk bagi pemegang ViewAll.
+            // VR-PKB-08 (HRD-ASM-98, HRD-DEC-241): hanya penilai yang ditugaskan, termasuk bagi pemegang ViewAll.
             var actorUserId = user.GetUserId();
             if (actorUserId == Guid.Empty || evaluation.EvaluatorUserId != actorUserId)
             {

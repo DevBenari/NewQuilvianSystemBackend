@@ -5,117 +5,75 @@
 | Field | Nilai |
 | --- | --- |
 | Task ID | `BE-HRD-447` |
-| Judul | `ContractRenewalBuckets`: satu definisi tahapan perpanjangan kontrak |
-| Slice | `S-PKB` — Paket B Navigasi SDM / `MVP-73` · `EPIC HRD-124` |
-| Roadmap | `roadmap/backend-roadmap.md` bagian 30, kartu `BE-HRD-447` |
-| Trace | `FR-PKB-02`; `HRD-DEC-237`; state-transition 33.1 (`CONTRACT_EXPIRY`); `INT-HR-111`; `AT-HRD-PKB-05` |
-| Contract version | `v29` — **approved** 23 November 2026 |
-| Dependency | — |
-| Klasifikasi | `MEDIUM` — refactor perhitungan yang dipakai layar Kontrak; risiko regresi angka |
-| Task mode | `BACKEND` — instruksi pengguna 23 November 2026 |
-| Target tulis | `Areas/Corporate/HumanResource/LifecycleManagement/Services/**`; laporan, roadmap, traceability |
+| Judul | Endpoint generik menolak permohonan modul; "Permohonan Saya" untuk permohonan engine |
+| Slice | `S-A7-V2` amandemen / `MVP-72` gelombang 2 · `EPIC HRD-124` |
+| Roadmap | `roadmap/backend-roadmap.md` bagian 29, kartu `BE-HRD-447` |
+| Trace | `FR-WF-32`; `HRD-DEC-229`, `HRD-DEC-235` |
+| Contract version | `v29` — API 35.1, 35.2, 35.6; Validation `VR-WF-29`; Integration `INT-HR-114` — approved 20 November 2026 |
+| Dependency | `BE-HRD-440` ✅ (urutan gelombang) |
+| Klasifikasi | `STANDARD` — service dan controller kotak terpadu; uji lewat controller |
+| Task mode | `BACKEND` (instruksi pengguna 20 November 2026: "lanjut") |
 | Model | Claude Opus 5.5 |
-| Commit backend saat dikerjakan | `7e4c3774` (branch `MHamzah`); source sudah di-commit pengguna di `9062bd61` |
-| Tanggal | 23 November 2026 |
-| Status | ✅ Selesai — 3/3 acceptance criteria: respons `summary`/`renewal-summary` build sebelum refactor (`7e4c3774`) dan sesudah (`9062bd61`) identik pada DB dev yang sama (23 November 2026); kesetaraan predikat dibuktikan baris per baris; build 0 error, QBE Strict `PASS` |
+| Source acuan | Backend `815ce085` (branch `yoga`) + working tree `BE-HRD-440`–`442` dan task ini |
+| Tanggal | 20 November 2026 |
+| Status | ✅ Selesai — 2/2 acceptance criteria terpenuhi |
 
 ### Backend Governance Preflight
 
 | Field | Nilai |
 | --- | --- |
-| Area / Module / Submodule | `Corporate` / `HumanResource` / `LifecycleManagement` |
-| Keberlakuan | `TOUCHED LEGACY` (service) + `NEW CODE` (kelas statis tanpa persistence) |
-| QBE yang berlaku | `QBE-SVC-001`, `QBE-CODE-001` |
-| Sumber governance | `AGENTS.md`; `docs/engineering/*`; `rules/backend/*` suite Skill 1.22.0 |
+| Area / Module / Submodule | `Corporate` / `HumanResource` / `WorkflowManagement` (registry: `SHARED PLATFORM CAPABILITY`, prefix `Wfl`, `ACTIVE / LEGACY`) |
+| Keberlakuan | `TOUCHED LEGACY` — `WorkflowInstanceCreationService`, `WorkflowResubmitService`, dua controller, DTO V2; `NEW CODE` — `WorkflowInstanceOwnership` (penanda kepemilikan + exception `409`) |
+| QBE yang berlaku | `QBE-SVC-001` (aturan di service; controller hanya memetakan exception ke `409`), `QBE-API-001` (`ApiResponse` dan kode status pola yang ada), `QBE-PERM-001` (atribut akses tidak berubah). Tanpa `<summary>` XML baru pada action controller |
+| Sumber governance | `AGENTS.md`; `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`; `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; `rules/backend/TASK_RULES.md`, `API_RULES.md` (suite Skill) |
+| Wewenang terpisah | Implementasi source ✅; migration ✖; eksekusi database ✖; deployment ✖ |
 
 ---
 
-## 1. Masalah yang diperbaiki
+## 1. Perubahan
 
-Aturan tahapan perpanjangan kontrak (H-60, H-14, H-7, menunggu keputusan, lewat jatuh tempo) tertanam langsung di dua metode layar Kontrak. Dashboard SDM wajib menampilkan angka yang **sama persis** dengan layar Kontrak (`HRD-DEC-237`). Bila aturan disalin ke dashboard, kedua angka bisa berbeda begitu salah satunya diubah.
-
-## 2. Proses bisnis
-
-Aturan tahapan (tanggal acuan = tanggal UTC hari ini, sama dengan sebelumnya):
-
-| Tahapan | Aturan | Contoh pada 20 Desember 2026 |
-| --- | --- | --- |
-| Segera berakhir (`ALL`, `ExpiringSoonCount`) | Kontrak berjalan, berakhir hari ini s.d. 60 hari ke depan | Berakhir 18 Februari 2027 termasuk; 19 Februari tidak |
-| `H60` | Berakhir 15–60 hari lagi | Berakhir 10 Februari 2027 |
-| `H14` | Berakhir 8–14 hari lagi | Berakhir 1 Januari 2027 |
-| `H7` | Berakhir 0–7 hari lagi | Berakhir 25 Desember 2026 |
-| `PENDING_DECISION` | Usulan perpanjangan berstatus diajukan | Usulan perpanjangan Sari menunggu Rina |
-| `OVERDUE` | Kontrak aktif/ditandatangani yang tanggal akhirnya sudah lewat | Kontrak Budi berakhir 15 Desember, belum diputuskan |
-
-Layar Kontrak dan Dashboard SDM kini membaca aturan di atas dari satu kelas.
-
-## 3. Perubahan yang dikerjakan
-
-### 3.1 Berkas yang diperiksa
-
-`LifecycleManagement/Services/HrdEmploymentContractService.cs` (`GetContractSummaryAsync`, `GetRenewalSummaryAsync`), `Constants/EmploymentLifecycleValueConstants.cs`, `Enums/ContractDecisionType.cs`, `Enums/ContractDecisionStatus.cs`, `Models/HrdContractDecision.cs`, `WorkforceCore/Models/WfpContractHistory.cs`; pencarian aturan 60/14/7 hari di seluruh `Areas/Corporate/HumanResource`.
-
-### 3.2 Berkas yang berubah
-
-| Berkas | Perubahan |
+| Berkas | Isi |
 | --- | --- |
-| `Areas/Corporate/HumanResource/LifecycleManagement/Services/ContractRenewalBuckets.cs` (baru) | Kode tahapan, `ReferenceDate()`, predikat `ExpiringWithinWindow`, `Stage(H60/H14/H7)`, `OverduePredicate`, `PendingDecisionPredicate`, dan `Classify` untuk kontrak yang sudah dimuat |
-| `Areas/Corporate/HumanResource/LifecycleManagement/Services/HrdEmploymentContractService.cs` | `GetContractSummaryAsync` (`ExpiringSoonCount`) dan `GetRenewalSummaryAsync` memakai `ContractRenewalBuckets`; variabel tanggal lokal dihapus |
+| `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowInstanceOwnership.cs` (baru) | Penanda permohonan milik modul: `WorkflowDefinitionId` terisi **dan** tidak ada penugasan berisi `ApproverEmployeeId` (instance engine V2 lama dibuat tanpa definisi dan selalu mengisi `ApproverEmployeeId`). `IsModuleManagedExpression`, `IsModuleManagedAsync`, tiga pesan kontrak, dan `WorkflowModuleManagedException` |
+| `…/Services/WorkflowInstanceCreationService.cs` | `CreateInstanceAsync` → `WorkflowModuleManagedException` (penanda `GenericCreationEnabled = false`; implementasi lama dipertahankan sampai endpoint dihapus, desain 37.10). `CancelInstanceAsync` menolak permohonan modul. `GetMyRequestsAsync(userId, employeeId, …)` mencocokkan `RequestedByUserId` **atau** `RequestedByEmployeeId`, tanpa keduanya mengembalikan halaman kosong, dan mengisi `IsModuleManaged`. `GetInstanceDetailAsync` mengisi `IsModuleManaged` |
+| `…/Services/WorkflowResubmitService.cs` | `ResubmitAsync` menolak permohonan modul sebelum aturan revisi lain |
+| `…/Controllers/WorkflowInboxAndInstancesController.cs` | `POST /instances` dan `PUT /instances/{id}/cancel`: `WorkflowModuleManagedException` → `409` (+ `ProducesResponseType 409`). `GET /my-requests` meneruskan akun lewat `User.GetUserId()` (klaim `user_id` lalu `NameIdentifier`) dan pegawai lewat `ResolveEmployeeId` |
+| `…/Controllers/WorkflowApprovalActionsController.cs` | `POST /instances/{id}/resubmit`: `409` (+ `ProducesResponseType 409`) |
+| `…/DTOs/WorkflowV2Dtos.cs` | `WorkflowInstanceV2ResponseDto.IsModuleManaged` |
+| `Tests/QuilvianSystemBackend.HumanResourceTests/WorkflowGenericEndpointGuardTests.cs` (baru), `AcceptanceTestIndex.md` | 6 uji lewat controller dan service; satu baris indeks |
 
-### 3.3 Dampak kontrak API, database, dan keamanan
+---
 
-| Aspek | Dampak |
-| --- | --- |
-| Kontrak API | Tidak berubah — `GET employment-contracts/summary` dan `renewal-summary` mengembalikan bentuk dan arti yang sama |
-| Database | Tidak ada |
-| Keamanan/Auth | `NOT APPLICABLE` |
+## 2. Verifikasi
 
-**Pembuktian kesetaraan (sebelum → sesudah):**
-
-| Angka | Sebelum | Sesudah |
-| --- | --- | --- |
-| `ExpiringSoonCount` | `query(!IsDelete).Count(IsCurrent && EndDate ≥ today && EndDate ≤ today+60)` | `query(!IsDelete).Count(ExpiringWithinWindow(today))` = `!IsDelete && IsCurrent && EndDate ≥ today && EndDate ≤ today+60` |
-| `ReminderH60Count` | basis `!IsDelete && IsCurrent && EndDate ≥ today`, lalu `EndDate ≤ today+60 && EndDate > today+14` | basis sama, lalu `Stage(H60)` = syarat basis + rentang yang sama |
-| `EscalationH14Count` | `EndDate ≤ today+14 && > today+7` | `Stage(H14)` dengan rentang yang sama |
-| `NoticeDueH7Count` | `EndDate ≤ today+7` | `Stage(H7)` dengan rentang yang sama |
-| `PendingDecisionCount` | `!IsDelete && Extend && Submitted` | `PendingDecisionPredicate()` identik |
-| `OverdueCount` | `!IsDelete && EndDate < today && status Active/Signed` | `OverduePredicate(today)` identik |
-| Tanggal acuan | `DateTime.UtcNow.Date` | `ContractRenewalBuckets.ReferenceDate()` = `DateTime.UtcNow.Date` |
-
-Filter lokasi (`hospitalSiteId`) tetap diterapkan pada basis kueri seperti sebelumnya.
-
-## 4. Dokumentasi endpoint
-
-`NOT APPLICABLE` — tidak ada endpoint baru atau berubah; dua endpoint layar Kontrak tetap.
-
-## 5. Verifikasi
-
-| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| Pemeriksaan | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` penuh Paket B | 0 error; tanpa warning di berkas task | `PASS` | Log build 23 November 2026 |
-| QBE Strict (19 berkas) | `PASS` | `PASS` | Keluaran checker |
-| Pencarian salinan aturan tahapan | Tidak ada lagi di `HrdEmploymentContractService`. Ditemukan aturan 60 hari tersendiri di `HrdLifecycleWorklistService.BuildWorklistItemsAsync` (hanya status `Signed`, tanpa `IsCurrent`) — arti berbeda, milik worklist siklus hidup, tidak disentuh | `PASS` (dengan temuan) | grep 23 November 2026 |
-| Perbandingan respons `summary`/`renewal-summary` sebelum dan sesudah di DB dev (`AT-HRD-PKB-05`; izin pengguna 23 November 2026) | Build `7e4c3774` (worktree sementara, port 5198) dan build `9062bd61` (port 5199) dijalankan bergantian terhadap DB dev yang sama: kedua respons **identik**. Batas bukti: DB dev belum punya kontrak (0 baris), sehingga seluruh angka 0; kesetaraan untuk data berisi bertumpu pada pembuktian predikat di tabel 3.3 | `PASS` | `contract-before.json` vs `contract-after.json` (scratchpad sesi) |
+| `WorkflowGenericEndpointGuardTests` | 6/6 lulus | `PASS` (AC1–AC2) | Keluaran `dotnet test` |
+| Kontrol negatif: 7 mutasi (buat generik diizinkan; batal/kirim ulang tanpa cek modul; tanpa cocok akun; tanpa penjaga id kosong; penanda modul selalu `true`; controller tanpa `409`) | 7/7 tertangkap (G1 dan G2 diulang manual karena skrip gagal mengurai ringkasan); source dipulihkan | `PASS` | `mut447.js` |
+| Regresi penuh proyek uji HR | 389/389 lulus (12 menit 4 detik; dari salinan tanpa empat uji payroll yang tidak terkompilasi sejak merge `815ce085`) | `PASS` | Keluaran `dotnet test` |
+| QBE `Strict` atas 6 berkas | 0 violation, 0 review; probe `TrxZzzQbeProbe447` terdeteksi 4 violation lalu dihapus | `PASS` | Keluaran checker |
 
-`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
-
-## 6. Acceptance criteria dan Definition of Done
+### Acceptance criteria
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| 1. `summary` dan `renewal-summary` mengembalikan angka yang sama sebelum dan sesudah refactor; bukti respons sebelum/sesudah di DB dev (`AT-HRD-PKB-05`) | Terpenuhi | Respons identik pada DB dev (batas: 0 kontrak); kesetaraan predikat di tabel 3.3 |
-| 2. Tidak ada salinan aturan tahapan di luar `ContractRenewalBuckets` | Terpenuhi untuk layar Kontrak | Temuan worklist siklus hidup dicatat (arti berbeda, butuh keputusan bila ingin disatukan) |
-| 3. Kontrak API kontrak kerja tidak berubah | Terpenuhi | DTO dan route tidak disentuh |
-| DoD: laporan tracked, tanda status roadmap | Terpenuhi | Berkas ini |
+| 1. Tiga endpoint generik → `409` untuk SPPD, data tidak berubah (`AT-HRD-WF-35`) | Terpenuhi (instance engine lama tetap dapat dibatalkan) | `Buat_instance_generik_ditolak_409`, `Batal_dan_kirim_ulang_generik_…`, `Instance_engine_lama_tetap_dapat_dibatalkan` |
+| 2. Pemohon tanpa data pegawai melihat SPPD-nya di `my-requests` dengan `isModuleManaged = true` (`AT-HRD-WF-36`) | Terpenuhi | `Permohonan_saya_mencocokkan_akun_pemohon_…`, `Tanpa_akun_dan_pegawai_…`, `Detail_memuat_isModuleManaged` |
 
-## 7. Catatan penutup
+---
+
+## 3. Temuan
+
+| Temuan | Dampak | Tindakan |
+| --- | --- | --- |
+| As-is: `GetMyRequestsAsync` tanpa id pegawai (klaim kosong) mengembalikan **seluruh** tiket workflow semua pegawai | Kebocoran data permohonan orang lain di "Permohonan Saya" | Diperbaiki dalam cakupan task: tanpa akun maupun pegawai, halaman kosong; dicocokkan per akun/pegawai |
+| `GetCurrentUserId()` lokal controller hanya membaca `NameIdentifier`, sedangkan resolver HR bersama membaca `user_id` lalu `NameIdentifier` | Akun dengan klaim `user_id` saja tidak dikenali | `GET /my-requests` memakai `User.GetUserId()`; action lain tidak diubah (di luar cakupan) |
+
+---
+
+## 4. Catatan penutup
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | Tidak ada |
-| Masalah yang diketahui | Worklist siklus hidup (`HrdLifecycleWorklistService`) menghitung kontrak "segera berakhir" dengan aturan lain (status `Signed`, tanpa `IsCurrent`). Angkanya bisa berbeda dari layar Kontrak dan dashboard; menyatukannya mengubah perilaku worklist sehingga butuh keputusan terpisah |
-| Risiko tersisa | Rendah — pemindahan predikat murni; perbandingan runtime baru berisi angka 0 |
-| Perubahan sampingan | `NONE` |
-| Interupsi | `NONE` |
-| Status Git | Source sudah di-commit pengguna (`9062bd61`) |
-| Langkah berikutnya | Uji ulang perbandingan begitu DB dev punya data kontrak; `BE-HRD-449` |
+| Git | Tidak ada stage, commit, push, pull, merge, rebase, atau deploy. Berkas baru: `WorkflowInstanceOwnership.cs`, `WorkflowGenericEndpointGuardTests.cs` (cukup `git add`) |
+| Task berikutnya | `BE-HRD-443` (antrean/ringkasan/`myAction`), lalu `BE-HRD-444`; `BE-HRD-446` (SLA) dapat dikerjakan karena `BE-HRD-442` selesai |

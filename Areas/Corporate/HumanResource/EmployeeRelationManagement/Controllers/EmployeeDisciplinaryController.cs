@@ -286,7 +286,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             [FromServices] IDisciplinaryListQueryService listService,
             CancellationToken cancellationToken = default)
         {
-            // BE-HRD-446: filter beberapa status untuk Riwayat Penyelesaian (VR-PKB-04, VR-PKB-05).
+            // BE-HRD-456: filter beberapa status untuk Riwayat Penyelesaian (VR-PKB-04, VR-PKB-05).
             var filterError = DisciplinaryListQueryService.ValidateSanctionStatusFilter(query);
             if (filterError != null)
             {

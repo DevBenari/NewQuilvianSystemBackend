@@ -2,12 +2,12 @@ using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 
 // =====================================================================================
-// Hak akses penanda milik Evaluasi Kandidat (Tes/Wawancara, Paket B kontrak v29).
+// Hak akses penanda milik Evaluasi Kandidat (Tes/Wawancara, Paket B kontrak v30).
 //
 // SATU-SATUNYA deklarasi CandidateEvaluation : ViewAll di seluruh repository. Jangan menyalinnya ke
 // AccessMenuSeeder, authorization verifier, atau script SQL mana pun.
 //
-// KENAPA PENANDA INI ADA (BE-HRD-444, HRD-DEC-233, HRD-ASM-95, 23 November 2026)
+// KENAPA PENANDA INI ADA (BE-HRD-454, HRD-DEC-241, HRD-ASM-98, 23 November 2026)
 //
 //   Hak endpoint CandidateEvaluation : Read menjawab "orang ini boleh membuka daftar Tes/Wawancara".
 //   Tanpa penanda ini, daftar dan detail hanya memuat evaluasi yang EvaluatorUserId-nya pengguna itu

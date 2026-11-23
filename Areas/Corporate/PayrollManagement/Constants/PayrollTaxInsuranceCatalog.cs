@@ -1,15 +1,21 @@
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 
-// Kosakata konfigurasi PPh dan iuran yang dikelola HRD (PrlTax, PrlInsurance) dan hasilnya pada payroll run. Kolom string tanpa
+// Kosakata konfigurasi PPh dan asuransi swasta yang dikelola HRD (PrlTax, PrlInsurance) dan hasilnya pada payroll run. Iuran BPJS tidak
+// lagi dikelola; konstanta BPJS yang tersisa hanya dipertahankan untuk membaca data historis (lihat catatan pada tiap kelas). Kolom string tanpa
 // check constraint: nilai dijaga validasi controller dan penilai (PayrollTaxInsuranceRules). Tidak ada tarif atau rumus di sini.
 
-/// <summary>Jenis PPh (PrlTax.TaxArticle). Dipisah dari metode pajak (Gross/GrossUp/Net) dan status PTKP.</summary>
+/// <summary>Jenis pasal perpajakan (PrlTax.TaxArticle, PrlTaxPolicy.TaxArticle). Dipisah dari metode pajak (Gross/GrossUp/Net) dan status PTKP.</summary>
 public static class TaxArticles
 {
     public const string Pph21 = "PPH21";
+    public const string Pph23 = "PPH23";
     public const string Pph26 = "PPH26";
 
+    /// <summary>Pasal PPh yang berlaku untuk profil pajak SDM (WfpTax / PrlTax).</summary>
     public static readonly IReadOnlyList<string> All = new[] { Pph21, Pph26 };
+
+    /// <summary>Pasal perpajakan yang dikelola pada kebijakan regulasi (PrlTaxPolicy).</summary>
+    public static readonly IReadOnlyList<string> StatutoryPolicyArticles = new[] { Pph21, Pph23 };
 }
 
 /// <summary>
@@ -52,13 +58,15 @@ public static class PayrollConfigurationStatuses
     public const string Configured = "CONFIGURED";
     public const string NotEffective = "NOT_EFFECTIVE";
     public const string Error = "ERROR";
-    public const string TestingModeDisabled = "TESTING_MODE_DISABLED";
+
+    /// <summary>Konfigurasi memang tidak diwajibkan (asuransi swasta opsional): bukan kekurangan data dan tidak menahan payroll.</summary>
+    public const string NotRequired = "NOT_REQUIRED";
 }
 
 /// <summary>
-/// Status hasil PPh atau iuran pada satu penerima. VALID_ZERO, EXEMPT, dan NOT_APPLICABLE adalah nol yang sah dan berbeda dari
-/// NOT_CONFIGURED (belum ada keputusan HRD), ERROR (konfigurasi ada tetapi tidak dapat dihitung secara sah), dan
-/// TESTING_MODE_DISABLED (tidak dihitung karena BPJS dinonaktifkan sementara pada mode pengujian).
+/// Status hasil PPh atau asuransi pada satu penerima. VALID_ZERO, EXEMPT, dan NOT_APPLICABLE adalah nol yang sah dan berbeda dari
+/// NOT_CONFIGURED (belum ada keputusan HRD) dan ERROR (konfigurasi ada tetapi tidak dapat dihitung secara sah). Nilai
+/// TESTING_MODE_DISABLED pada snapshot run lama adalah data historis berupa teks biasa dan tidak lagi ditulis.
 /// </summary>
 public static class PayrollComponentResultStatuses
 {
@@ -68,10 +76,9 @@ public static class PayrollComponentResultStatuses
     public const string Exempt = "EXEMPT";
     public const string NotApplicable = "NOT_APPLICABLE";
     public const string Error = "ERROR";
-    public const string TestingModeDisabled = "TESTING_MODE_DISABLED";
 }
 
-/// <summary>Kepesertaan iuran (PrlInsurance.ParticipationStatus). Semua flag false bukan bukti tidak wajib; harus eksplisit.</summary>
+/// <summary>Kepesertaan asuransi swasta (PrlInsurance.ParticipationStatus). Semua flag false bukan bukti tidak wajib; harus eksplisit.</summary>
 public static class InsuranceParticipationStatuses
 {
     public const string Active = "ACTIVE";
@@ -81,23 +88,11 @@ public static class InsuranceParticipationStatuses
     public static readonly IReadOnlyList<string> All = new[] { Active, NotParticipating, NotApplicable };
 }
 
-/// <summary>Program BPJS Ketenagakerjaan (PrlInsurance.BpjsEmploymentPrograms, daftar dipisah koma; kosong = semua program).</summary>
-public static class InsurancePrograms
-{
-    public const string Jht = "JHT";
-    public const string Jp = "JP";
-    public const string Jkk = "JKK";
-    public const string Jkm = "JKM";
-
-    public static readonly IReadOnlyList<string> All = new[] { Jht, Jp, Jkk, Jkm };
-}
-
 /// <summary>Asal nominal pajak/iuran pada hasil hitung.</summary>
 public static class PayrollTaxInsuranceSources
 {
     public const string HrdProfile = "HRD_PROFILE";
     public const string LegacyProfileAmount = "LEGACY_PROFILE_AMOUNT";
-    public const string TestingModeDisabled = "TESTING_MODE_DISABLED";
     public const string None = "NONE";
 }
 
@@ -110,7 +105,8 @@ public static class TaxTreatments
 }
 
 /// <summary>
-/// Kode komponen iuran milik mesin (awalan PAY_, sehingga komponen yang tidak dihasilkan lagi di-soft-delete saat hitung ulang). Sisi
+/// Kode komponen asuransi milik mesin (awalan PAY_, sehingga komponen yang tidak dihasilkan lagi di-soft-delete saat hitung ulang).
+/// Kode BPJS (PAY_INS_BPJS_*) HISTORIS: komponen run lama yang tetap terbaca di laporan; mesin tidak lagi membuatnya. Sisi
 /// pegawai bertipe Insurance dan mengurangi gaji bersih; sisi pemberi kerja bertipe EmployerContribution, nominalnya di EmployerAmount,
 /// dan TIDAK pernah mengurangi gaji bersih.
 /// </summary>
@@ -132,9 +128,10 @@ public static class PayrollInsuranceComponentCodes
 }
 
 /// <summary>
-/// Kode komponen yang dibuat jalur perhitungan lama (modul "Modern": PayrollTaxCalculationService dan PayrollBpjsCalculationService).
-/// Mesin payroll run resmi tidak memakainya; bila ada pada run yang sama, komponen itu dibuang supaya pajak dan iuran tidak terpotong
-/// dua kali.
+/// Kode komponen yang dibuat jalur perhitungan lama (modul "Modern": PayrollTaxCalculationService dan layanan kalkulasi BPJS lama yang
+/// sudah dihapus). Mesin payroll run resmi tidak memakainya; bila ada pada run yang sama, komponen itu dibuang supaya pajak dan iuran
+/// tidak terpotong dua kali. Kode BPJS lama (DED_BPJS_*, ER_BPJS_*) SENGAJA dipertahankan di sini sebagai pengaman: tanpanya, komponen
+/// lama pada run yang belum final akan terhitung sebagai potongan manual.
 /// </summary>
 public static class LegacyTaxInsuranceComponentCodes
 {

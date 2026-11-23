@@ -15,13 +15,13 @@ using P = QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cons
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services
 {
     /// <summary>
-    /// Dashboard SDM baca-saja (Paket B, kontrak v29 bagian 35.1; BE-HRD-448 s.d. BE-HRD-451).
+    /// Dashboard SDM baca-saja (Paket B, kontrak v30 bagian 36.1; BE-HRD-458 s.d. BE-HRD-461).
     /// </summary>
     /// <remarks>
     /// <para>Panel 1–3 dibaca dari <c>MstEmployee</c> (pegawai yang sedang skorsing tetap aktif karena skorsing hanya
-    /// menonaktifkan akun login, <c>HRD-ASM-90</c>). Panel 4 memakai <see cref="ContractRenewalBuckets"/> yang juga dipakai
-    /// layar Kontrak (<c>HRD-DEC-237</c>). Panel 5 memakai radar lisensi dan radar sertifikat milik modul sumber, ditambah
-    /// kueri baca SPK/RKK aktif (<c>INT-HR-112</c>, <c>INT-HR-113</c>).</para>
+    /// menonaktifkan akun login, <c>HRD-ASM-93</c>). Panel 4 memakai <see cref="ContractRenewalBuckets"/> yang juga dipakai
+    /// layar Kontrak (<c>HRD-DEC-245</c>). Panel 5 memakai radar lisensi dan radar sertifikat milik modul sumber, ditambah
+    /// kueri baca SPK/RKK aktif (<c>INT-HR-116</c>, <c>INT-HR-117</c>).</para>
     /// <para>Daftar nama memakai aturan kelompok yang sama persis dengan ringkasan, sehingga jumlah baris daftar sama
     /// dengan angka panel. Respons tidak memuat gaji, NIK, data disiplin, atau data kesehatan; nomor lisensi hanya
     /// tampil 4 karakter terakhir.</para>
@@ -85,10 +85,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 InactiveCount = await employees.CountAsync(e => !e.IsActive, cancellationToken)
             };
 
-            // Panel 4 — kontrak berakhir (BE-HRD-449)
+            // Panel 4 — kontrak berakhir (BE-HRD-459)
             response.ContractExpiry = await GetContractExpiryAsync(cancellationToken);
 
-            // Panel 5 — dokumen kedaluwarsa (BE-HRD-450)
+            // Panel 5 — dokumen kedaluwarsa (BE-HRD-460)
             response.DocumentExpiry = BuildDocumentExpiry(await LoadDocumentRowsAsync(operationalDate, cancellationToken));
 
             return response;
@@ -126,7 +126,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
         private async Task<WorkforceDashboardContractExpiryDto> GetContractExpiryAsync(CancellationToken cancellationToken)
         {
-            // Tanggal acuan dan seluruh tahapan berasal dari ContractRenewalBuckets, sama dengan layar Kontrak (HRD-DEC-237).
+            // Tanggal acuan dan seluruh tahapan berasal dari ContractRenewalBuckets, sama dengan layar Kontrak (HRD-DEC-245).
             var today = ContractRenewalBuckets.ReferenceDate();
             var contracts = _dbContext.WfpContractHistories.AsNoTracking();
 
@@ -171,7 +171,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
         }
 
         // =============================================================================================
-        // Daftar nama (drill-down) — BE-HRD-451
+        // Daftar nama (drill-down) — BE-HRD-461
         // =============================================================================================
 
         public async Task<WorkforceDashboardDrilldownResult> GetDrilldownAsync(
@@ -459,7 +459,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
         }
 
         // =============================================================================================
-        // Sumber dokumen kedaluwarsa — BE-HRD-450 (kamus data v29 bagian 30.2)
+        // Sumber dokumen kedaluwarsa — BE-HRD-460 (kamus data v30 bagian 31.2)
         // =============================================================================================
 
         private sealed record DocumentRow(
@@ -558,7 +558,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             return rows;
         }
 
-        /// <summary>Tingkat radar lisensi → kelompok dashboard (kamus data 30.2).</summary>
+        /// <summary>Tingkat radar lisensi → kelompok dashboard (kamus data 31.2).</summary>
         private static string? MapLicenseRadarLevel(string? radarLevel) => radarLevel switch
         {
             "ExpiredH0" => P.BucketExpired,
@@ -568,7 +568,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             _ => null
         };
 
-        /// <summary>Zona radar sertifikat → kelompok dashboard (kamus data 30.2).</summary>
+        /// <summary>Zona radar sertifikat → kelompok dashboard (kamus data 31.2).</summary>
         private static string? MapCertificateRadarZone(string? radarZone) => radarZone switch
         {
             "OVERDUE_H0" => P.BucketExpired,
@@ -578,7 +578,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             _ => null
         };
 
-        /// <summary>Nomor dokumen disamarkan: hanya 4 karakter terakhir yang tampil (permission-audit v29 bagian 33.2).</summary>
+        /// <summary>Nomor dokumen disamarkan: hanya 4 karakter terakhir yang tampil (permission-audit v30 bagian 34.2).</summary>
         internal static string MaskReferenceNumber(string? number)
         {
             if (string.IsNullOrWhiteSpace(number))

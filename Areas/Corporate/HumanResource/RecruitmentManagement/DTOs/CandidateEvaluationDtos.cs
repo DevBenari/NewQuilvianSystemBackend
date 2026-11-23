@@ -101,8 +101,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public string? Search { get; set; }
 
         /// <summary>
-        /// Jalur Tes/Wawancara (kontrak v29 bagian 35.4, state 33.3): <c>HR</c> = <c>HrInterview</c>;
-        /// <c>CLINICAL</c> = <c>ClinicalAssessment</c> dan <c>UserInterview</c> (<c>HRD-ASM-93</c>). Kosong = semua jalur.
+        /// Jalur Tes/Wawancara (kontrak v30 bagian 36.4, state 34.3): <c>HR</c> = <c>HrInterview</c>;
+        /// <c>CLINICAL</c> = <c>ClinicalAssessment</c> dan <c>UserInterview</c> (<c>HRD-ASM-96</c>). Kosong = semua jalur.
         /// </summary>
         public string? Track { get; set; }
 

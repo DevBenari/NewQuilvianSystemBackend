@@ -1127,14 +1127,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                         "Assignment belum tersedia atau sudah diproses.");
                 }
 
-                var canAct = assignment.AssignedApproverUserId == actorContext.UserId;
-                if (!canAct)
+                // BE-HRD-441 (VR-WF-30): pemegang penugasan, atau Plh aktif dari pemegang penugasan yang bukan pemohon.
+                var actor = await ResolveActingAuthorityAsync(instance, step, assignment, actorContext, cancellationToken);
+                if (!actor.CanAct)
                 {
                     await transaction.RollbackAsync(cancellationToken);
 
                     return WorkflowServiceResult<WorkflowInstanceDetailResponse>.Fail(
                         StatusCodes.Status403Forbidden,
-                        "User login bukan approver yang ditugaskan.");
+                        actor.Message);
                 }
 
                 var now = DateTime.UtcNow;
@@ -1147,6 +1148,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 assignment.IsCurrentAssignment = false;
                 assignment.UpdateDateTime = now;
                 assignment.UpdateBy = actorContext.UserId;
+
+                // BE-HRD-442 (state 33.2): penugasan asal/eskalasi yang masih terbuka pada slot yang sama ditutup Skipped.
+                SkipEscalationTwins(instance, step, assignment, actorContext, now);
 
                 step.ApprovedActionCount = step.ApproverAssignments.Count(x =>
                     string.Equals(
@@ -1211,6 +1215,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     CreateDateTime = now,
                     CreateBy = actorContext.UserId
                 };
+
+                ApplyActingDelegation(action, assignment, actorContext, actor.Delegation);
 
                 _dbContext.Set<TrxApprovalAction>().Add(action);
 
@@ -2498,24 +2504,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             DateTime now,
             CancellationToken cancellationToken)
         {
+            // BE-HRD-441: predikat delegasi aktif dipakai bersama dengan otorisasi aksi (WorkflowDelegationResolver).
             var delegation = await _dbContext.Set<TrxApprovalDelegation>()
                 .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    !x.IsCancel &&
-                    x.IsActive &&
-                    x.DelegatorUserId == assignment.AssignedApproverUserId &&
-                    (x.DelegationStatus == WorkflowValueConstants.DelegationStatus.Active ||
-                     x.DelegationStatus == WorkflowValueConstants.DelegationStatus.Approved) &&
-                    x.EffectiveStartAt <= now &&
-                    x.EffectiveEndAt >= now &&
-                    (x.AppliesToAllWorkflows ||
-                     (!x.WorkflowDefinitionId.HasValue ||
-                      x.WorkflowDefinitionId == workflowDefinitionId)) &&
-                    (!x.WorkflowStepId.HasValue || x.WorkflowStepId == workflowStepId))
-                .OrderByDescending(x => x.WorkflowStepId.HasValue)
-                .ThenByDescending(x => x.WorkflowDefinitionId.HasValue)
-                .ThenByDescending(x => x.EffectiveStartAt)
+                .WhereActiveAt(now)
+                .WhereCovers(workflowDefinitionId, workflowStepId)
+                .Where(x => x.DelegatorUserId == assignment.AssignedApproverUserId)
+                .OrderBySpecificity()
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (delegation == null)
@@ -2835,11 +2830,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 return true;
             }
 
-            var approvedCount = requiredAssignments.Count(x =>
-                string.Equals(
-                    x.AssignmentStatus,
-                    WorkflowValueConstants.AssignmentStatus.Approved,
-                    StringComparison.OrdinalIgnoreCase));
+            // BE-HRD-442 (state 33.3): penugasan wajib dihitung disetujui bila ia atau turunan eskalasinya Approved.
+            var approvedCount = requiredAssignments.Count(x => IsRequiredSlotApproved(step, x));
 
             if (string.Equals(
                 step.ApprovalModeSnapshot,
@@ -3222,7 +3214,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 : value.Trim();
         }
 
-        private static string ResolveApprovalActionType(string? stepType)
+        internal static string ResolveApprovalActionType(string? stepType)
         {
             if (string.Equals(
                 stepType,

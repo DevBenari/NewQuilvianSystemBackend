@@ -168,7 +168,7 @@ public sealed class PayrollTaxContributionRowResponse
     /// <summary>Komponen PAY_TAX run.</summary>
     public decimal TaxAmount { get; set; }
 
-    /// <summary>Total komponen iuran pegawai run (PAY_INS_BPJS_* / PAY_INS_PRIVATE_EE / PAY_INSURANCE_EMPLOYEE).</summary>
+    /// <summary>Total komponen iuran/asuransi pegawai run (PAY_INS_PRIVATE_EE / PAY_INSURANCE_EMPLOYEE; run lama juga PAY_INS_BPJS_* historis).</summary>
     public decimal InsuranceEmployeeAmount { get; set; }
 
     /// <summary>AUTO_REGULATORY | APPROVED_MANUAL_AMOUNT | EXEMPT_OR_NOT_APPLICABLE | TETAPAN_PROFIL.</summary>
@@ -179,19 +179,14 @@ public sealed class PayrollTaxContributionRowResponse
 
     /// <summary>Versi kebijakan tarif PPh resmi yang dipakai pada snapshot pajak (kosong pada run lama/manual).</summary>
     public string? TaxPolicyVersion { get; set; }
-
-    /// <summary>True bila run ini dihitung pada mode pengujian tanpa BPJS.</summary>
-    public bool IsTestingModeWithoutBpjs { get; set; }
 }
 
-/// <summary>PagedResult baku ditambah keterangan, supaya RPT-01 dan status mode pengujian BPJS tersampaikan bersama daftar.</summary>
+/// <summary>PagedResult baku ditambah keterangan, supaya RPT-01 tersampaikan bersama daftar.</summary>
 public sealed class PayrollTaxContributionPagedResult : QuilvianSystemBackend.Responses.PagedResult<PayrollTaxContributionRowResponse>
 {
     public string PeriodCode { get; set; } = string.Empty;
     public decimal TotalTaxAmount { get; set; }
     public decimal TotalInsuranceEmployeeAmount { get; set; }
-    public bool EnableBpjsInPayroll { get; set; } = true;
-    public bool HasTestingModeRuns { get; set; }
     public string Note { get; set; } = string.Empty;
 }
 

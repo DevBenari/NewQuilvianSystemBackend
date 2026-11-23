@@ -134,7 +134,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         /// <summary>
-        /// Penanda <c>CandidateEvaluation : ViewAll</c> (BE-HRD-444, <c>HRD-DEC-233</c>): tanpa penanda ini daftar dan detail
+        /// Penanda <c>CandidateEvaluation : ViewAll</c> (BE-HRD-454, <c>HRD-DEC-241</c>): tanpa penanda ini daftar dan detail
         /// Tes/Wawancara dibatasi pada evaluasi yang ditugaskan kepada pengguna yang login.
         /// </summary>
         private Task<bool> CanViewAllEvaluationsAsync() =>

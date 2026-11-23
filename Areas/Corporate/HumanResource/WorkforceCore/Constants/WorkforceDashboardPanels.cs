@@ -5,7 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Se
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Constants
 {
     /// <summary>
-    /// Kode panel, kelompok (<c>bucket</c>), dan jenis dokumen Dashboard SDM (state-transition v29 bagian 33.1,
+    /// Kode panel, kelompok (<c>bucket</c>), dan jenis dokumen Dashboard SDM (state-transition v30 bagian 34.1,
     /// <c>VR-PKB-01</c>, <c>VR-PKB-02</c>). Klasifikasi ini dihitung saat dibaca dan tidak disimpan.
     /// </summary>
     public static class WorkforceDashboardPanels
@@ -77,7 +77,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cons
         };
 
         /// <summary>
-        /// Kelompok dokumen dari sisa hari terhadap tanggal acuan (kamus data v29 bagian 30.2): ≤ 0 = <c>EXPIRED</c>,
+        /// Kelompok dokumen dari sisa hari terhadap tanggal acuan (kamus data v30 bagian 31.2): ≤ 0 = <c>EXPIRED</c>,
         /// 1–30, 31–60, 61–90; di luar 90 hari = <c>null</c>.
         /// </summary>
         public static string? DocumentBucketFromDays(int daysRemaining)

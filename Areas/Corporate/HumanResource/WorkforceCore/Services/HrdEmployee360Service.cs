@@ -328,7 +328,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     .Select(x => $"{x.FullName} ({x.Relationship})")
                     .ToListAsync(ct);
 
-                // BE-HRD-443 (HRD-DEC-238 butir 4, VR-PKB-09): data disiplin hanya untuk pemegang
+                // BE-HRD-453 (HRD-DEC-246 butir 4, VR-PKB-09): data disiplin hanya untuk pemegang
                 // EmployeeDisciplinary : ViewSanctions, walaupun pemanggil berada pada mode HR.
                 var canViewSanctions = await _permissionService.HasAccessAsync(userPrincipal, "EmployeeDisciplinary", "ViewSanctions");
                 var discipline = canViewSanctions
@@ -342,7 +342,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     DateOfBirth = employee?.BirthDate,
                     BloodType = employee?.BloodType.ToString(),
                     FamilyMembersSummary = familyMembers,
-#pragma warning disable CS0618 // ruas usang tetap diisi untuk kompatibilitas (kontrak v29 bagian 35.3)
+#pragma warning disable CS0618 // ruas usang tetap diisi untuk kompatibilitas (kontrak v30 bagian 36.3)
                     DisciplinarySanctions = discipline.Summaries,
 #pragma warning restore CS0618
                     DisciplinaryRecords = discipline.Records,
@@ -361,7 +361,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
         private const int DisciplinaryTitleMaxLength = 120;
 
         /// <summary>
-        /// Riwayat disiplin satu pegawai untuk Employee 360 (kontrak v29 bagian 35.3, <c>INT-HR-114</c>):
+        /// Riwayat disiplin satu pegawai untuk Employee 360 (kontrak v30 bagian 36.3, <c>INT-HR-118</c>):
         /// sanksi alur resmi sebagai <c>OFFICIAL</c> ditambah catatan profil lama sebagai <c>LEGACY</c> (baca-saja).
         /// </summary>
         /// <remarks>

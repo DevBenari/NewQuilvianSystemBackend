@@ -9,7 +9,7 @@ using QuilvianSystemBackend.Responses;
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Controllers
 {
     /// <summary>
-    /// Dashboard SDM baca-saja untuk Manajer SDM dan Admin HRD (Paket B, kontrak v29 bagian 35.1, <c>HRD-DEC-235</c>).
+    /// Dashboard SDM baca-saja untuk Manajer SDM dan Admin HRD (Paket B, kontrak v30 bagian 36.1, <c>HRD-DEC-243</c>).
     /// </summary>
     [ApiController]
     [Authorize]

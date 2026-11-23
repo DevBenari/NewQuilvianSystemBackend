@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `HRD-BP-001` |
-| Revision | `42` — **Revision `42` (bagian 56.10), 23 November 2026: kontrak `v29` Paket B disetujui pengguna dan `HRD-Q-226` dijawab lewat `HRD-DEC-239` (butir menu disiplin berlabel "Tindak Disiplin"; "Teguran" menjadi filter tingkat sanksi).** **Revision `41` (bagian 56.8) adalah Closure Pass Paket B, 22 November 2026: menutup `HRD-CQ-05` s.d. `HRD-CQ-07` dari capability map revisi `1.5` lewat `HRD-DEC-236` s.d. `HRD-DEC-238` dan asumsi `HRD-ASM-93` s.d. `HRD-ASM-95` (semua `approved`); `HRD-DEC-232` `superseded`, `HRD-DEC-235` panel 4 diubah.** **Revision `40` (bagian 56) adalah Amendment Pass Paket B penyesuaian menu SDM, dibuka 22 November 2026: scope diperluas oleh pengguna menjadi lima entry point (Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian, Tindak Disiplin) lewat `HRD-DEC-229`; fakta source `HRD-TF-080` s.d. `HRD-TF-083`, pertentangan `HRD-CF-07` (ditutup `HRD-DEC-230`), keputusan `HRD-DEC-229` s.d. `HRD-DEC-235` dan asumsi `HRD-ASM-88` s.d. `HRD-ASM-92` — seluruhnya `approved` sesuai rekomendasi; pertanyaan impact scan `HRD-Q-223` s.d. `HRD-Q-225` terbuka.** **Revision `39` (bagian 55) adalah Amendment Pass Slice `S-D5`, 18 November 2026: persetujuan SPPD lewat workflow persetujuan umum (Workflow V2) dan kelengkapan 12 event audit `HRD_TRV_*`, fakta `HRD-TF-072` s.d. `HRD-TF-079` (`077` s.d. `079` ditambahkan saat desain kontrak `v28`), keputusan `HRD-DEC-224` s.d. `HRD-DEC-228` — seluruhnya `approved` oleh pengguna.** **Revision `38` (bagian 54) adalah Closure Pass Slice `S-A8` Data Penggajian Pegawai, 16 November 2026.** **Revision `37` (bagian 53) adalah Closure Pass lanjutan bagian 52, 12 November 2026: kueri baca-saja devYoga atas izin pengguna (`HRD-TF-067` s.d. `HRD-TF-071`), menutup `HRD-CQ-01` s.d. `HRD-CQ-04` dari capability map revisi `1.4`, keputusan `HRD-DEC-215` s.d. `HRD-DEC-217`, dan menyetujui asumsi `HRD-ASM-75` s.d. `HRD-ASM-83`. `HRD-DEC-216` mencabut frasa syarat setelan pada `HRD-DEC-197` butir 4 (dicoret, tidak dihapus).** **Revision `36` (bagian 52) adalah Amendment Pass penyelarasan PRD `PRD-HRD-PK-001` "Penjadwalan & Kehadiran" (12 menu Notion) dengan Slice `S-B4` dan `S-B1`, dibuka 12 November 2026: baca BE `a437ae42` / FE `6a5658269`, temuan `HRD-TF-058` s.d. `HRD-TF-066`, pertentangan `HRD-CF-01` s.d. `HRD-CF-06`, pertanyaan `HRD-Q-197` s.d. `HRD-Q-217`, keputusan `HRD-DEC-194` s.d. `HRD-DEC-214` — seluruhnya `approved` oleh pengguna dan ditutup hari yang sama; asumsi `HRD-ASM-75` s.d. `HRD-ASM-82` masih `draft`. Tidak ada keputusan lama yang `superseded`; `HRD-DEC-204` mengubah satu kolom tabel `HRD-DEC-198`.** Revision `34` (bagian 50) dan `35` (bagian 51) tercatat pada manifest (`decision_revision: 35`). **Revision `33` (bagian 49) adalah Pass Wawancara 19: Sub-modul 19 Occupational Health & Staff Safety (K3RS & Medical Check-Up, Slice `S-C6`), dibuka 9 November 2026: penegasan batas scope penapisan risiko kesehatan kerja, resolusi resmi `HRD-DEC-010` menjadi approved lewat `HRD-DEC-176` (field-level privacy rekam medis staf terenkripsi khusus dokter K3RS, status fitness to work ringkas untuk HR/atasan), protokol darurat tertusuk jarum cito PEP < 4 jam & serial serology radar 6 bulan, segmentasi paket MCU berbasis risiko unit (radiasi TLD, serologi bedah/lab, spirometri linen/CSSD), radar imunitas vaksinasi nakes (titer anti-HBs & booster), otomasi pembatasan kerja work restriction terintegrasi hard-stop jadwal dinas Sub-06 INT-HR-89, serta digitalisasi pelaporan KAK/PAK dan generator klaim BPJS Ketenagakerjaan JKK Tahap I/II, pertanyaan `HRD-Q-179` s.d. `HRD-Q-184`, keputusan `HRD-DEC-176` s.d. `HRD-DEC-181`, asumsi `HRD-ASM-63` s.d. `HRD-ASM-66`. Menuntaskan seluruh keputusan sensitif HRD menjadi approved.** **Revision `32` (bagian 48) adalah Pass Wawancara 18: Sub-modul 18 Hubungan Industrial & Terminasi (Disciplinary, Grievance, Bipartite & Exit Clearance, Slice `S-C5`), dibuka 6 November 2026: penegasan batas scope tata tertib, SP PP 35/2021, Just Culture, whistleblower terenkripsi, skorsing investigasi paid suspension, kalkulasi pesangon PHK otomatis & gerbang digital exit clearance multi-departemen pemblokir payroll, pertanyaan `HRD-Q-173` s.d. `HRD-Q-178`, keputusan `HRD-DEC-170` s.d. `HRD-DEC-175`, asumsi `HRD-ASM-59` s.d. `HRD-ASM-62`.** **Revision `31` (bagian 47) adalah Pass Wawancara 17: Sub-modul 17 Performance Management & Clinical Career (Slice `S-C3`), dibuka 6 November 2026: pertanyaan `HRD-Q-167` s.d. `HRD-Q-172`, keputusan `HRD-DEC-164` s.d. `HRD-DEC-169`, asumsi `HRD-ASM-55` s.d. `HRD-ASM-58`.** **Revision `30` (bagian 46) **Revision `30` (bagian 46) adalah Pass Wawancara 16: Sub-modul 16 Learning, Training & Competency (Tata Kelola Diklat Rumah Sakit, Pelatihan Wajib KARS/STARKES & Pemeliharaan Kompetensi Tenaga Medis, Slice `S-C2`), dibuka 6 November 2026: penegasan batas scope pelatihan wajib dan kompetensi RS, pertanyaan `HRD-Q-161` s.d. `HRD-Q-166`, keputusan `HRD-DEC-158` s.d. `HRD-DEC-163` (kebijakan pelatihan wajib akreditasi RS 100% staf dengan siklus resertifikasi 2 tahun BHD/PPI/SKP/K3RS/Komunikasi Efektif, pemisahan tegas jam kehadiran diklat vs kelulusan kompetensi klinis via post-test & simulasi OSCE terverifikasi assessor, pengamanan operasional shift dinas saat sertifikat wajib kedaluwarsa dengan sistem pendampingan buddy system & notifikasi kredensialing, integrasi prasyarat kompetensi diklat langsung sebagai prerequisite gate RKK Sub-14 & portofolio OPPE Sub-15, tata kelola pengajuan pelatihan eksternal berjenjang dengan kontrol pagu anggaran diklat & penerbitan ikatan dinas otomatis, serta pencatatan portofolio perolehan Satuan Kredit Profesi (SKP) Kemenkes terintegrasi Plataran Sehat).** **Revision `29` (bagian 45) adalah Pass Wawancara 15: Sub-modul 15 OPPE, FPPE & Recredentialing (Evaluasi Praktik Profesional Berkelanjutan, Terfokus & Rekredensialing Tenaga Medis Rumah Sakit, Slice `S-C1-OPPE`), dibuka 6 November 2026: penegasan batas scope evaluasi mutu klinis berkala & rekredensialing 3 tahunan, pertanyaan `HRD-Q-155` s.d. `HRD-Q-160`, keputusan `HRD-DEC-152` s.d. `HRD-DEC-157` (siklus evaluasi OPPE tahunan/semesteran semi-otomatis berbobot 60% data SIMRS/KMKP + 40% kualitatif SMF, ambang pemicu otomatis FPPE berbasis risiko KARS 1 sentinel / komplikasi > 2SD / resume EMR > 48 jam > 20%, protokol FPPE proctoring dokter baru 3 bulan/10 kasus & prosedur baru 6 bulan/5 kasus, rapor komposit 3 tahun rekredensialing berbobot 25%-35%-40% kategori hijau/kuning/merah, kerahasiaan ketat data kinerja peer-review privilege dengan read-audit logging, serta otomasi 4 putusan rekredensialing perpanjang/upgrade/restricted/revoked ke SIMRS INT-HR-69).** **Revision `28` (bagian 44) adalah Pass Wawancara 14: Sub-modul 14 Credentialing, License & Clinical Privilege (Kredensial, Lisensi Praktik STR/SIP & Rincian Kewenangan Klinis Rumah Sakit, Slice `S-C1`), dibuka 5 November 2026: penegasan batas scope kredensialing 3 komite dan penegakan kewenangan klinis SIMRS, pertanyaan `HRD-Q-149` s.d. `HRD-Q-154`, keputusan `HRD-DEC-146` s.d. `HRD-DEC-151` (verifikasi PSV STR seumur hidup KKI/SatuSehat SDMK & radar pemantau SIP 5 tahun H-90 s.d. fail-closed H-0 di Sub-06 dan SIMRS, pemisahan 3 komite mandiri Komite Medik/Keperawatan/Nakes Lain & panel Mitra Bestari peer review, otorisasi tunggal SPK/RKK oleh Direktur Utama dengan 3 derajat kewenangan mandiri/supervisi/tidak berwenang, resolusi final `HRD-DEC-005` menjadi Hard-Stop bertingkat ke SIMRS EMR `INT-HR-69` dengan jalur life-saving emergency override & audit KMKP 24 jam, tata kelola penugasan cepat temporary privilege maks 3 bulan & emergency privilege cito bencana maks 48-72 jam, serta siklus SPK/RKK 3 tahun berjenjang menuju rekredensialing berkala Sub-15 dan penangguhan suspended otomatis). Menuntaskan status `HRD-DEC-005` menjadi approved.** **Revision `27` (bagian 43) adalah Pass Wawancara 13: Sub-modul 13 HR Service Management & Request (Layanan Administrasi, Helpdesk Tiket SDM & Penerbitan Dokumen Kepegawaian Rumah Sakit, Slice `S-D4`), dibuka 5 November 2026: penegasan batas scope tiket helpdesk dan persuratan kepegawaian RS, pertanyaan `HRD-Q-143` s.d. `HRD-Q-148`, keputusan `HRD-DEC-140` s.d. `HRD-DEC-145` (otentikasi QR Code publik & PIN 4-digit untuk data finansial, standar SLA 3-tier cito 4 jam / standar 24 jam / khusus 72 jam & eskalasi keterlambatan ke Manajer SDM, penarikan otomatis nominal gaji dari payroll finalized Sub-10 & approval supervisor C&B, pemutakhiran data profil pegawai otomatis pasca-verifikasi dokumen sah, mesin penomoran surat terpusat gapless & template variabel token dinamis, serta pengarsipan abadi e-Dossier Sub-02, riwayat ESS & protokol revokasi dokumen sah).** **Revision `26` (bagian 42) adalah Pass Wawancara 12: Sub-modul 12 Benefit Management (Manajemen Manfaat, Asuransi BPJS & Tanggungan Pegawai Rumah Sakit, Slice `S-D3`), dibuka 5 November 2026: penegasan batas scope paket benefit rumah sakit, pertanyaan `HRD-Q-137` s.d. `HRD-Q-142`, keputusan `HRD-DEC-134` s.d. `HRD-DEC-139` (struktur paket berjenjang 3-lapisan regulasi BPJS wajib, asuransi swasta tambahan per grade & subsidi berobat internal RS, batasan tanggungan keluarga inti maks 1 pasangan + 3 anak hingga usia 21/25 tahun kuliah aktif via KK/Akta, alur berobat internal nakes & integrasi real-time SIMRS Admission/Billing `INT-HR-61` dengan pemotongan saldo plafon `HrdBenefitBalanceMovement` & tagihan ekses, koordinasi manfaat COB BPJS Kesehatan sebagai primary payer & RS/swasta secondary payer, aktivasi bertahap BPJS TK JKK/JKM aktif H+0 Onboarding dan BPJS Kes/swasta pasca-lulus masa percobaan 3 bulan `S-C4-ONB`, serta terminasi benefit otomatis per tanggal keluar kerja via Exit Clearance Sub-20).** **Revision `25` (bagian 41) adalah Pass Wawancara 11: Sub-modul 11 Restitution & Payroll Deduction Integration (Restitusi & Integrasi Pemotongan Penggajian, Slice `S-B6`), dibuka 5 November 2026: penegasan batas scope restitusi dan pemotongan kewajiban finansial non-regulasi, pertanyaan `HRD-Q-131` s.d. `HRD-Q-136`, keputusan `HRD-DEC-128` s.d. `HRD-DEC-133` (batas maksimal pemotongan gaji Hard-Cap 50% PP 36/2021 & hirarki prioritas pemotongan berjenjang, siklus sinkronisasi dua arah saldo piutang Finance via `INT-HR-55`, ruang lingkup klaim restitusi medis darurat & biaya operasional dinas via ESS, tata kelola koreksi salah potong periode lampau tanpa manipulasi payroll final `PAY-B6`, penyelesaian sisa pinjaman saat resign/PHK via Exit Clearance, serta kanal pembayaran restitusi slip gaji bulanan vs pencairan cito kasir RS).** **Revision `24` (bagian 40) adalah Pass Wawancara 10: Sub-modul 10 Payroll Processing & Handoff (Penggajian Pegawai Rumah Sakit, Slice `S-B5`), dibuka 5 November 2026: penegasan batas scope penggajian rumah sakit sesuai `HRD-DEC-009`, pertanyaan `HRD-Q-125` s.d. `HRD-Q-130`, keputusan `HRD-DEC-122` s.d. `HRD-DEC-127` (penguncian otomatis prasyarat closed kehadiran/cuti/lembur tgl 20, mesin formula gaji berparameter transparan PPh 21 TER PMK 168/2023 & BPJS, ambang deteksi variansi anomali >= 20% / Rp 2jt, alur otorisasi 3-jenjang SoD anti-self-approval, berkas serah terima payroll terkunci dengan protokol rollback resmi Finance penutup `HRD-Q-10` & `HRD-Q-11`, serta proteksi rilis slip gaji ESS ber-PIN).** **Revision `23` (bagian 39) adalah Pass Wawancara 9: Sub-modul 09 Overtime Management (Administrasi Lembur Pegawai Rumah Sakit, Slice `S-B3`), dibuka 4 November 2026: penegasan batas scope lembur rumah sakit, pertanyaan `HRD-Q-119` s.d. `HRD-Q-124`, keputusan `HRD-DEC-116` s.d. `HRD-DEC-121` (SPKL pra-dinas terencana H-1 & pasca-dinas darurat cito H+1, batas lembur PP 35/2021 maks 4 jam/hari & 18 jam/minggu dengan eskalasi darurat Direktur Pelayanan Medik, opsi kompensasi uang lembur vs CTO berkedaluwarsa 3 bulan & pengecualian pejabat struktural, verifikasi min-duration rule terhadap mesin presensi biometrik, alur persetujuan 2-tahap dengan anti-self-approval mutlak, serta penutupan periode cut-off & rekonsiliasi retrospektif payroll).** **Revision `22` (bagian 38) adalah Pass Wawancara 8: Sub-modul 08 Leave & Permission Management (Administrasi Cuti & Izin Pegawai Rumah Sakit, Slice `S-B2`), dibuka 4 November 2026: penegasan batas scope cuti rumah sakit, pertanyaan `HRD-Q-113` s.d. `HRD-Q-118`, keputusan `HRD-DEC-110` s.d. `HRD-DEC-115` (hak cuti 12 hari & carry-forward 6 hari hingga 30 Juni, safe staffing coverage warning, cuti sakit & privasi dokter, alur recall darurat & pemulihan saldo, rekonsiliasi retrospektif payroll, dan penutupan celah /reverse `HRD-Q-35`).** **Revision `21` (bagian 37) adalah Pass Wawancara 7: Sub-modul 07 Attendance Management (Presensi & Kehadiran Staf Rumah Sakit, Slice `S-B1`), dibuka 4 November 2026: penegasan batas scope presensi rumah sakit 24/7, pertanyaan `HRD-Q-107` s.d. `HRD-Q-112`, keputusan `HRD-DEC-104` (shift malam lintas hari dikunci pada tanggal masuk shift).** **Revision `20` (bagian 36) adalah Pass Wawancara 6: Sub-modul 06 Scheduling, Roster & On-Call (`S-B4`), dibuka 4 November 2026: audit HEAD BE `38e892b0` / FE `44990b3d3`, temuan `HRD-TF-050` s.d. `HRD-TF-057`, pertanyaan `HRD-Q-99` s.d. `HRD-Q-105`, keputusan `HRD-DEC-097` s.d. `HRD-DEC-103` — seluruh 7 keputusan inti `approved` oleh pengguna dan ditutup 4 November 2026; `HRD-Q-106` (cek regulasi PP 35/2021) terbuka untuk HRD dan tidak memblokir desain. Siap untuk `design-business-module`.** **Revision `19` (bagian 34) adalah Pass Wawancara 5: Sub-modul 05 Onboarding, Contract & Employment Lifecycle (`S-C4` bagian onboarding dan kontrak), dibuka 4 November 2026: audit HEAD BE `8b17b75a` / FE `44990b3d3`, temuan `HRD-TF-039` s.d. `HRD-TF-048`, pertanyaan `HRD-Q-82` s.d. `HRD-Q-97`, keputusan `HRD-DEC-081` s.d. `HRD-DEC-090` — seluruhnya `approved` oleh pengguna dan ditutup hari yang sama; menutup bagian masa percobaan `HRD-Q-06` dan `HRD-Q-05` untuk tabel sub-modul 05.** **Revision `18` (bagian 33) adalah Pass Wawancara 4: Sub-modul 04 Recruitment & Hiring (`S-D2`), 3 November 2026: audit HEAD BE `e8d47c77` / FE `cfa82fbb3`, temuan `HRD-TF-033` s.d. `HRD-TF-038`, keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` — seluruhnya `approved` oleh pengguna; menutup `HRD-Q-05` dan membuka blocker `HRD-BLK-004` untuk `S-D2`.** **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-022` s.d. `HRD-TF-029`, `HRD-TF-030` s.d. `HRD-TF-032` (3 November 2026), pertanyaan `HRD-Q-68` s.d. `HRD-Q-81`, keputusan `HRD-DEC-058` s.d. `HRD-DEC-071` — seluruhnya `approved`, ditutup 3 November 2026; ditambah `HRD-DEC-072` saat desain (bagian 32.10).** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
+| Revision | `43` — **Revision `43` (bagian 57.10), 23 November 2026: kontrak `v30` Paket B disetujui pengguna dan `HRD-Q-234` dijawab lewat `HRD-DEC-247` (butir menu disiplin berlabel "Tindak Disiplin"; "Teguran" menjadi filter tingkat sanksi).** **Revision `42` (bagian 57.8) adalah Closure Pass Paket B, 22 November 2026: menutup `HRD-CQ-05` s.d. `HRD-CQ-07` dari capability map revisi `1.5` lewat `HRD-DEC-244` s.d. `HRD-DEC-246` dan asumsi `HRD-ASM-96` s.d. `HRD-ASM-98` (semua `approved`); `HRD-DEC-240` `superseded`, `HRD-DEC-243` panel 4 diubah.** **Revision `41` (bagian 57) adalah Amendment Pass Paket B penyesuaian menu SDM, dibuka 22 November 2026: scope diperluas oleh pengguna menjadi lima entry point (Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian, Tindak Disiplin) lewat `HRD-DEC-237`; fakta source `HRD-TF-088` s.d. `HRD-TF-091`, pertentangan `HRD-CF-07` (ditutup `HRD-DEC-238`), keputusan `HRD-DEC-237` s.d. `HRD-DEC-243` dan asumsi `HRD-ASM-91` s.d. `HRD-ASM-95` — seluruhnya `approved` sesuai rekomendasi; pertanyaan impact scan `HRD-Q-231` s.d. `HRD-Q-233` terbuka.** **Revision `40` (bagian 56) adalah Amendment Pass Slice `S-A7-V2`, 20 November 2026: Kotak Masuk Terpadu V2 menjadi tampilan atas engine `WorkflowService` (aksi diteruskan ke engine, PIN dihapus, kotak lama dipensiunkan sesudah terbukti, eskalasi menambah atasan, massal hanya jenis bertanda, satu registri Plh, kirim ulang dari layar modul, cek tiket lama pra-rilis), `HRD-DEC-229` s.d. `HRD-DEC-236`, fakta `HRD-TF-080` s.d. `HRD-TF-087`.** Sebelumnya: **Revision `39` (bagian 55) adalah Amendment Pass Slice `S-D5`, 18 November 2026: persetujuan SPPD lewat workflow persetujuan umum (Workflow V2) dan kelengkapan 12 event audit `HRD_TRV_*`, fakta `HRD-TF-072` s.d. `HRD-TF-079` (`077` s.d. `079` ditambahkan saat desain kontrak `v28`), keputusan `HRD-DEC-224` s.d. `HRD-DEC-228` — seluruhnya `approved` oleh pengguna.** **Revision `38` (bagian 54) adalah Closure Pass Slice `S-A8` Data Penggajian Pegawai, 16 November 2026.** **Revision `37` (bagian 53) adalah Closure Pass lanjutan bagian 52, 12 November 2026: kueri baca-saja devYoga atas izin pengguna (`HRD-TF-067` s.d. `HRD-TF-071`), menutup `HRD-CQ-01` s.d. `HRD-CQ-04` dari capability map revisi `1.4`, keputusan `HRD-DEC-215` s.d. `HRD-DEC-217`, dan menyetujui asumsi `HRD-ASM-75` s.d. `HRD-ASM-83`. `HRD-DEC-216` mencabut frasa syarat setelan pada `HRD-DEC-197` butir 4 (dicoret, tidak dihapus).** **Revision `36` (bagian 52) adalah Amendment Pass penyelarasan PRD `PRD-HRD-PK-001` "Penjadwalan & Kehadiran" (12 menu Notion) dengan Slice `S-B4` dan `S-B1`, dibuka 12 November 2026: baca BE `a437ae42` / FE `6a5658269`, temuan `HRD-TF-058` s.d. `HRD-TF-066`, pertentangan `HRD-CF-01` s.d. `HRD-CF-06`, pertanyaan `HRD-Q-197` s.d. `HRD-Q-217`, keputusan `HRD-DEC-194` s.d. `HRD-DEC-214` — seluruhnya `approved` oleh pengguna dan ditutup hari yang sama; asumsi `HRD-ASM-75` s.d. `HRD-ASM-82` masih `draft`. Tidak ada keputusan lama yang `superseded`; `HRD-DEC-204` mengubah satu kolom tabel `HRD-DEC-198`.** Revision `34` (bagian 50) dan `35` (bagian 51) tercatat pada manifest (`decision_revision: 35`). **Revision `33` (bagian 49) adalah Pass Wawancara 19: Sub-modul 19 Occupational Health & Staff Safety (K3RS & Medical Check-Up, Slice `S-C6`), dibuka 9 November 2026: penegasan batas scope penapisan risiko kesehatan kerja, resolusi resmi `HRD-DEC-010` menjadi approved lewat `HRD-DEC-176` (field-level privacy rekam medis staf terenkripsi khusus dokter K3RS, status fitness to work ringkas untuk HR/atasan), protokol darurat tertusuk jarum cito PEP < 4 jam & serial serology radar 6 bulan, segmentasi paket MCU berbasis risiko unit (radiasi TLD, serologi bedah/lab, spirometri linen/CSSD), radar imunitas vaksinasi nakes (titer anti-HBs & booster), otomasi pembatasan kerja work restriction terintegrasi hard-stop jadwal dinas Sub-06 INT-HR-89, serta digitalisasi pelaporan KAK/PAK dan generator klaim BPJS Ketenagakerjaan JKK Tahap I/II, pertanyaan `HRD-Q-179` s.d. `HRD-Q-184`, keputusan `HRD-DEC-176` s.d. `HRD-DEC-181`, asumsi `HRD-ASM-63` s.d. `HRD-ASM-66`. Menuntaskan seluruh keputusan sensitif HRD menjadi approved.** **Revision `32` (bagian 48) adalah Pass Wawancara 18: Sub-modul 18 Hubungan Industrial & Terminasi (Disciplinary, Grievance, Bipartite & Exit Clearance, Slice `S-C5`), dibuka 6 November 2026: penegasan batas scope tata tertib, SP PP 35/2021, Just Culture, whistleblower terenkripsi, skorsing investigasi paid suspension, kalkulasi pesangon PHK otomatis & gerbang digital exit clearance multi-departemen pemblokir payroll, pertanyaan `HRD-Q-173` s.d. `HRD-Q-178`, keputusan `HRD-DEC-170` s.d. `HRD-DEC-175`, asumsi `HRD-ASM-59` s.d. `HRD-ASM-62`.** **Revision `31` (bagian 47) adalah Pass Wawancara 17: Sub-modul 17 Performance Management & Clinical Career (Slice `S-C3`), dibuka 6 November 2026: pertanyaan `HRD-Q-167` s.d. `HRD-Q-172`, keputusan `HRD-DEC-164` s.d. `HRD-DEC-169`, asumsi `HRD-ASM-55` s.d. `HRD-ASM-58`.** **Revision `30` (bagian 46) **Revision `30` (bagian 46) adalah Pass Wawancara 16: Sub-modul 16 Learning, Training & Competency (Tata Kelola Diklat Rumah Sakit, Pelatihan Wajib KARS/STARKES & Pemeliharaan Kompetensi Tenaga Medis, Slice `S-C2`), dibuka 6 November 2026: penegasan batas scope pelatihan wajib dan kompetensi RS, pertanyaan `HRD-Q-161` s.d. `HRD-Q-166`, keputusan `HRD-DEC-158` s.d. `HRD-DEC-163` (kebijakan pelatihan wajib akreditasi RS 100% staf dengan siklus resertifikasi 2 tahun BHD/PPI/SKP/K3RS/Komunikasi Efektif, pemisahan tegas jam kehadiran diklat vs kelulusan kompetensi klinis via post-test & simulasi OSCE terverifikasi assessor, pengamanan operasional shift dinas saat sertifikat wajib kedaluwarsa dengan sistem pendampingan buddy system & notifikasi kredensialing, integrasi prasyarat kompetensi diklat langsung sebagai prerequisite gate RKK Sub-14 & portofolio OPPE Sub-15, tata kelola pengajuan pelatihan eksternal berjenjang dengan kontrol pagu anggaran diklat & penerbitan ikatan dinas otomatis, serta pencatatan portofolio perolehan Satuan Kredit Profesi (SKP) Kemenkes terintegrasi Plataran Sehat).** **Revision `29` (bagian 45) adalah Pass Wawancara 15: Sub-modul 15 OPPE, FPPE & Recredentialing (Evaluasi Praktik Profesional Berkelanjutan, Terfokus & Rekredensialing Tenaga Medis Rumah Sakit, Slice `S-C1-OPPE`), dibuka 6 November 2026: penegasan batas scope evaluasi mutu klinis berkala & rekredensialing 3 tahunan, pertanyaan `HRD-Q-155` s.d. `HRD-Q-160`, keputusan `HRD-DEC-152` s.d. `HRD-DEC-157` (siklus evaluasi OPPE tahunan/semesteran semi-otomatis berbobot 60% data SIMRS/KMKP + 40% kualitatif SMF, ambang pemicu otomatis FPPE berbasis risiko KARS 1 sentinel / komplikasi > 2SD / resume EMR > 48 jam > 20%, protokol FPPE proctoring dokter baru 3 bulan/10 kasus & prosedur baru 6 bulan/5 kasus, rapor komposit 3 tahun rekredensialing berbobot 25%-35%-40% kategori hijau/kuning/merah, kerahasiaan ketat data kinerja peer-review privilege dengan read-audit logging, serta otomasi 4 putusan rekredensialing perpanjang/upgrade/restricted/revoked ke SIMRS INT-HR-69).** **Revision `28` (bagian 44) adalah Pass Wawancara 14: Sub-modul 14 Credentialing, License & Clinical Privilege (Kredensial, Lisensi Praktik STR/SIP & Rincian Kewenangan Klinis Rumah Sakit, Slice `S-C1`), dibuka 5 November 2026: penegasan batas scope kredensialing 3 komite dan penegakan kewenangan klinis SIMRS, pertanyaan `HRD-Q-149` s.d. `HRD-Q-154`, keputusan `HRD-DEC-146` s.d. `HRD-DEC-151` (verifikasi PSV STR seumur hidup KKI/SatuSehat SDMK & radar pemantau SIP 5 tahun H-90 s.d. fail-closed H-0 di Sub-06 dan SIMRS, pemisahan 3 komite mandiri Komite Medik/Keperawatan/Nakes Lain & panel Mitra Bestari peer review, otorisasi tunggal SPK/RKK oleh Direktur Utama dengan 3 derajat kewenangan mandiri/supervisi/tidak berwenang, resolusi final `HRD-DEC-005` menjadi Hard-Stop bertingkat ke SIMRS EMR `INT-HR-69` dengan jalur life-saving emergency override & audit KMKP 24 jam, tata kelola penugasan cepat temporary privilege maks 3 bulan & emergency privilege cito bencana maks 48-72 jam, serta siklus SPK/RKK 3 tahun berjenjang menuju rekredensialing berkala Sub-15 dan penangguhan suspended otomatis). Menuntaskan status `HRD-DEC-005` menjadi approved.** **Revision `27` (bagian 43) adalah Pass Wawancara 13: Sub-modul 13 HR Service Management & Request (Layanan Administrasi, Helpdesk Tiket SDM & Penerbitan Dokumen Kepegawaian Rumah Sakit, Slice `S-D4`), dibuka 5 November 2026: penegasan batas scope tiket helpdesk dan persuratan kepegawaian RS, pertanyaan `HRD-Q-143` s.d. `HRD-Q-148`, keputusan `HRD-DEC-140` s.d. `HRD-DEC-145` (otentikasi QR Code publik & PIN 4-digit untuk data finansial, standar SLA 3-tier cito 4 jam / standar 24 jam / khusus 72 jam & eskalasi keterlambatan ke Manajer SDM, penarikan otomatis nominal gaji dari payroll finalized Sub-10 & approval supervisor C&B, pemutakhiran data profil pegawai otomatis pasca-verifikasi dokumen sah, mesin penomoran surat terpusat gapless & template variabel token dinamis, serta pengarsipan abadi e-Dossier Sub-02, riwayat ESS & protokol revokasi dokumen sah).** **Revision `26` (bagian 42) adalah Pass Wawancara 12: Sub-modul 12 Benefit Management (Manajemen Manfaat, Asuransi BPJS & Tanggungan Pegawai Rumah Sakit, Slice `S-D3`), dibuka 5 November 2026: penegasan batas scope paket benefit rumah sakit, pertanyaan `HRD-Q-137` s.d. `HRD-Q-142`, keputusan `HRD-DEC-134` s.d. `HRD-DEC-139` (struktur paket berjenjang 3-lapisan regulasi BPJS wajib, asuransi swasta tambahan per grade & subsidi berobat internal RS, batasan tanggungan keluarga inti maks 1 pasangan + 3 anak hingga usia 21/25 tahun kuliah aktif via KK/Akta, alur berobat internal nakes & integrasi real-time SIMRS Admission/Billing `INT-HR-61` dengan pemotongan saldo plafon `HrdBenefitBalanceMovement` & tagihan ekses, koordinasi manfaat COB BPJS Kesehatan sebagai primary payer & RS/swasta secondary payer, aktivasi bertahap BPJS TK JKK/JKM aktif H+0 Onboarding dan BPJS Kes/swasta pasca-lulus masa percobaan 3 bulan `S-C4-ONB`, serta terminasi benefit otomatis per tanggal keluar kerja via Exit Clearance Sub-20).** **Revision `25` (bagian 41) adalah Pass Wawancara 11: Sub-modul 11 Restitution & Payroll Deduction Integration (Restitusi & Integrasi Pemotongan Penggajian, Slice `S-B6`), dibuka 5 November 2026: penegasan batas scope restitusi dan pemotongan kewajiban finansial non-regulasi, pertanyaan `HRD-Q-131` s.d. `HRD-Q-136`, keputusan `HRD-DEC-128` s.d. `HRD-DEC-133` (batas maksimal pemotongan gaji Hard-Cap 50% PP 36/2021 & hirarki prioritas pemotongan berjenjang, siklus sinkronisasi dua arah saldo piutang Finance via `INT-HR-55`, ruang lingkup klaim restitusi medis darurat & biaya operasional dinas via ESS, tata kelola koreksi salah potong periode lampau tanpa manipulasi payroll final `PAY-B6`, penyelesaian sisa pinjaman saat resign/PHK via Exit Clearance, serta kanal pembayaran restitusi slip gaji bulanan vs pencairan cito kasir RS).** **Revision `24` (bagian 40) adalah Pass Wawancara 10: Sub-modul 10 Payroll Processing & Handoff (Penggajian Pegawai Rumah Sakit, Slice `S-B5`), dibuka 5 November 2026: penegasan batas scope penggajian rumah sakit sesuai `HRD-DEC-009`, pertanyaan `HRD-Q-125` s.d. `HRD-Q-130`, keputusan `HRD-DEC-122` s.d. `HRD-DEC-127` (penguncian otomatis prasyarat closed kehadiran/cuti/lembur tgl 20, mesin formula gaji berparameter transparan PPh 21 TER PMK 168/2023 & BPJS, ambang deteksi variansi anomali >= 20% / Rp 2jt, alur otorisasi 3-jenjang SoD anti-self-approval, berkas serah terima payroll terkunci dengan protokol rollback resmi Finance penutup `HRD-Q-10` & `HRD-Q-11`, serta proteksi rilis slip gaji ESS ber-PIN).** **Revision `23` (bagian 39) adalah Pass Wawancara 9: Sub-modul 09 Overtime Management (Administrasi Lembur Pegawai Rumah Sakit, Slice `S-B3`), dibuka 4 November 2026: penegasan batas scope lembur rumah sakit, pertanyaan `HRD-Q-119` s.d. `HRD-Q-124`, keputusan `HRD-DEC-116` s.d. `HRD-DEC-121` (SPKL pra-dinas terencana H-1 & pasca-dinas darurat cito H+1, batas lembur PP 35/2021 maks 4 jam/hari & 18 jam/minggu dengan eskalasi darurat Direktur Pelayanan Medik, opsi kompensasi uang lembur vs CTO berkedaluwarsa 3 bulan & pengecualian pejabat struktural, verifikasi min-duration rule terhadap mesin presensi biometrik, alur persetujuan 2-tahap dengan anti-self-approval mutlak, serta penutupan periode cut-off & rekonsiliasi retrospektif payroll).** **Revision `22` (bagian 38) adalah Pass Wawancara 8: Sub-modul 08 Leave & Permission Management (Administrasi Cuti & Izin Pegawai Rumah Sakit, Slice `S-B2`), dibuka 4 November 2026: penegasan batas scope cuti rumah sakit, pertanyaan `HRD-Q-113` s.d. `HRD-Q-118`, keputusan `HRD-DEC-110` s.d. `HRD-DEC-115` (hak cuti 12 hari & carry-forward 6 hari hingga 30 Juni, safe staffing coverage warning, cuti sakit & privasi dokter, alur recall darurat & pemulihan saldo, rekonsiliasi retrospektif payroll, dan penutupan celah /reverse `HRD-Q-35`).** **Revision `21` (bagian 37) adalah Pass Wawancara 7: Sub-modul 07 Attendance Management (Presensi & Kehadiran Staf Rumah Sakit, Slice `S-B1`), dibuka 4 November 2026: penegasan batas scope presensi rumah sakit 24/7, pertanyaan `HRD-Q-107` s.d. `HRD-Q-112`, keputusan `HRD-DEC-104` (shift malam lintas hari dikunci pada tanggal masuk shift).** **Revision `20` (bagian 36) adalah Pass Wawancara 6: Sub-modul 06 Scheduling, Roster & On-Call (`S-B4`), dibuka 4 November 2026: audit HEAD BE `38e892b0` / FE `44990b3d3`, temuan `HRD-TF-050` s.d. `HRD-TF-057`, pertanyaan `HRD-Q-99` s.d. `HRD-Q-105`, keputusan `HRD-DEC-097` s.d. `HRD-DEC-103` — seluruh 7 keputusan inti `approved` oleh pengguna dan ditutup 4 November 2026; `HRD-Q-106` (cek regulasi PP 35/2021) terbuka untuk HRD dan tidak memblokir desain. Siap untuk `design-business-module`.** **Revision `19` (bagian 34) adalah Pass Wawancara 5: Sub-modul 05 Onboarding, Contract & Employment Lifecycle (`S-C4` bagian onboarding dan kontrak), dibuka 4 November 2026: audit HEAD BE `8b17b75a` / FE `44990b3d3`, temuan `HRD-TF-039` s.d. `HRD-TF-048`, pertanyaan `HRD-Q-82` s.d. `HRD-Q-97`, keputusan `HRD-DEC-081` s.d. `HRD-DEC-090` — seluruhnya `approved` oleh pengguna dan ditutup hari yang sama; menutup bagian masa percobaan `HRD-Q-06` dan `HRD-Q-05` untuk tabel sub-modul 05.** **Revision `18` (bagian 33) adalah Pass Wawancara 4: Sub-modul 04 Recruitment & Hiring (`S-D2`), 3 November 2026: audit HEAD BE `e8d47c77` / FE `cfa82fbb3`, temuan `HRD-TF-033` s.d. `HRD-TF-038`, keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` — seluruhnya `approved` oleh pengguna; menutup `HRD-Q-05` dan membuka blocker `HRD-BLK-004` untuk `S-D2`.** **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-022` s.d. `HRD-TF-029`, `HRD-TF-030` s.d. `HRD-TF-032` (3 November 2026), pertanyaan `HRD-Q-68` s.d. `HRD-Q-81`, keputusan `HRD-DEC-058` s.d. `HRD-DEC-071` — seluruhnya `approved`, ditutup 3 November 2026; ditambah `HRD-DEC-072` saat desain (bagian 32.10).** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
 | Status | `approved`. Seluruh keputusan rekayasa, produk teknis, kredensialing klinis (`HRD-DEC-005`), hubungan industrial, dan privasi rekam kesehatan kerja K3RS (`HRD-DEC-010` disahkan lewat `HRD-DEC-176`) telah disetujui penuh (`approved`) oleh pemilik teknis dan otoritas K3RS (`HRD-DEC-015`). Tidak ada lagi keputusan sensitif yang berstatus draft! |
 | Pass | **Scope pass**, **Closure pass**, **Amendment pass**, lalu **Amendment pass 1.1**. Rinciannya ada di bagian 14, 15, dan 16 |
 | Module | `human-resource` / `HumanResource`, prefix entity `Hrd` |
@@ -9617,16 +9617,184 @@ Capability map: wawancara memakai fakta source yang diperiksa langsung pada `d7d
 
 ---
 
-## 56. Amendment Pass — Paket B Penyesuaian Menu SDM: Lima Entry Point
+## 56. Amendment Pass — Penyatuan Kotak Masuk Persetujuan Terpadu (V2) dengan Engine Workflow (`WorkflowService`) — Slice `S-A7-V2`
+
+Tanggal Wawancara: 20 November 2026
+Mode pass: **Amendment pass** atas bagian 50 (`HRD-DEC-182` s.d. `HRD-DEC-187`, approved 9 November 2026). Revisi decision log: `40`. Bagian 50 tidak diubah; keputusan di bawah menetapkan cara keputusan bagian 50 dijalankan di atas satu engine.
+Status Scope: **APPROVED** untuk kedelapan keputusan (`HRD-DEC-229` s.d. `HRD-DEC-236`).
+Pemicu: verifikasi `FE-HRD-340` (20 November 2026). SPPD yang menunggu atasan tidak tampil di menu "Kotak Masuk Persetujuan Terpadu (V2)". Penelusuran menunjukkan menu itu berjalan di atas engine terpisah yang tidak membaca, dan tidak memutuskan, permohonan HR yang nyata.
+Capability map: wawancara memakai fakta source yang diperiksa langsung pada backend `815ce085` (branch `yoga`) dan frontend `564365595` (branch `YogaV2`), bukan capability map baru. `01-existing-capability-map.md` (27 Agustus 2026) sudah basi untuk area ini.
+
+### 56.1 Batas Ruang Lingkup (dikonfirmasi pengguna 20 November 2026)
+
+* **Di dalam scope:**
+  1. Antrean dan ringkasan Kotak Masuk Terpadu V2 membaca penugasan persetujuan yang dibuat engine `WorkflowService`.
+  2. Aksi Setujui, Tolak, dan Kembalikan dari kotak V2 (termasuk persetujuan massal) diteruskan ke `WorkflowService`, sehingga status modul ikut berubah.
+  3. Nasib kotak masuk lama `/hr/workflow/approval-inbox` sesudah penyatuan.
+  4. Titik sentuh fitur V2 terhadap engine: PIN, persetujuan massal, Pelaksana Harian (Plh), eskalasi SLA, kirim ulang revisi, dan tiket engine lama.
+* **Di luar scope:**
+  1. Aturan bisnis tiap modul pemilik permohonan (Cuti, Lembur, Presensi, Lifecycle, Penjadwalan, WorkforceCore, Perencanaan, SPPD). Modul tetap memiliki status dan aturannya lewat penangan masing-masing (`HRD-DEC-018`).
+  2. Isi Master Workflow (tahapan, penyetuju) dan isi master alasan penolakan; diatur Admin HR.
+  3. Kotak masuk Procurement (memakai engine yang sama, tetapi layar dan aturannya milik modul Procurement).
+
+### 56.2 Fakta source yang dipakai (tanpa ditanyakan)
+
+| ID | Fakta | Bukti |
+| --- | --- | --- |
+| `HRD-TF-080` | Antrean dan ringkasan kotak V2 hanya membaca penugasan berstatus `Pending` yang `ApproverEmployeeId`-nya sama dengan pegawai login (atau principal Plh-nya) | `ApprovalInboxQueryService.GetInboxAsync` (`AssignmentStatus == "Pending"`, `ApproverEmployeeId == employeeId`) |
+| `HRD-TF-081` | Delapan modul HR membuat persetujuan lewat `WorkflowService.CreateAsync`: Presensi, Perjalanan Dinas, Cuti, Lifecycle, Lembur, Penjadwalan, WorkforceCore, Perencanaan Tenaga Kerja. Penugasannya berstatus `Available` dengan `AssignedApproverUserId` terisi dan `ApproverEmployeeId` kosong. Pembuat instance engine V2 (`WorkflowInstanceCreationService`) hanya dipanggil endpoint generik `POST /api/v1/hrd/workflow/instances`, tidak oleh modul mana pun | Pencarian pemanggil; data devYoga SPPD `0009` |
+| `HRD-TF-082` | Aksi kotak V2 (`WorkflowApprovalActionService`, per `stepInstanceId`) mengubah status tahap dan penugasan langsung serta membuat penugasan tahap berikut sendiri. Ia tidak memanggil `WorkflowService`, sehingga `IWorkflowReferenceLifecycleHandler` milik modul tidak pernah terpanggil | `WorkflowApprovalActionService.cs` baris 87–134, 230–238, 314 |
+| `HRD-TF-083` | PIN pada Setujui/Tolak kotak V2 tidak diverifikasi ke PIN tersimpan mana pun. Isian apa saja diterima, lalu di-hash bersama id pegawai, tahap, aksi, dan tanggal ke log aksi. PIN tidak pernah diputuskan di decision log; ia hanya muncul di kontrak API bagian 30.2 | `ComputeSignatureHash` di `WorkflowApprovalActionService.cs` |
+| `HRD-TF-084` | Worker eskalasi SLA (`WorkflowSlaEscalationWorker` → `WorkflowSlaEnforcementService`) hanya menangani penugasan `Pending` dan memindahkan `ApproverEmployeeId` ke atasan. Penugasan `WorkflowService` tidak pernah dieskalasi, walaupun `DueAt` sudah dihitung engine dari `EscalationAfterHours` | `WorkflowSlaEnforcementService.cs` baris 63–70; `WorkflowService.cs` baris 1911–1932 |
+| `HRD-TF-085` | Delegasi (Plh) di kedua engine memakai tabel yang sama `TrxApprovalDelegation`, tetapi dengan kunci berbeda: engine memakai `DelegatorUserId`/`DelegateUserId` (layar `/api/v1/corporate/human-resource/approval-delegations`), kotak V2 memakai `PrincipalEmployeeId`/`DelegateEmployeeId` (layar `/api/v1/hrd/workflow/delegations`) | `ApprovalDelegationService.cs`; `ApprovalDelegationV2Service.cs`; `TrxApprovalDelegation.cs` |
+| `HRD-TF-086` | Kotak masuk lama (`ApprovalInboxController` → `WorkflowService`) menampilkan dan memutuskan permohonan modul dengan benar sejak perbaikan frontend `FE-HRD-393`; Tolak memakai alasan berkode dari detail penugasan | Laporan `FE-HRD-393` dan `FE-HRD-340` |
+| `HRD-TF-087` | Per 20 November 2026 devYoga hanya punya satu penugasan aktif (SPPD `0009`, engine `WorkflowService`); tidak ada tiket engine V2 lama yang terbuka | Kueri baca-saja `TrxWorkflowApproverAssignment` |
+
+Catatan: asumsi `HRD-ASM-67` (bagian 50.3) sudah menyatakan engine workflow sebagai orkestrator sentral tunggal yang memicu layanan domain. Dua engine yang berjalan saat ini menyimpang dari asumsi itu; keputusan di bawah mengembalikannya.
+
+### 56.3 Pertanyaan dan Pilihan Pengguna
+
+| Pertanyaan | Pilihan disajikan | Pilihan pengguna | Menjadi |
+| --- | --- | --- | --- |
+| `HRD-Q-223` Arah penyatuan | A. Kotak V2 menjadi tampilan atas `WorkflowService` **(Direkomendasikan)**; B. Kotak V2 membaca dua engine, aksi dirutekan per asal; C. Pensiunkan kotak V2 | **A** | `HRD-DEC-229` |
+| `HRD-Q-224` PIN tanda tangan | A. Hapus PIN **(Direkomendasikan)**; B. PIN sungguhan di semua pintu; C. PIN kosmetik dipertahankan | **A** | `HRD-DEC-230` |
+| `HRD-Q-225` Kotak masuk lama | A. Pensiunkan setelah kotak V2 terbukti **(Direkomendasikan)**; B. Pertahankan keduanya; C. Pensiunkan segera | **A** | `HRD-DEC-231` |
+| `HRD-Q-226` Eskalasi SLA | A. Atasan satu tingkat ditambahkan sebagai penyetuju **(Direkomendasikan)**; B. Penyetuju diganti; C. Notifikasi saja | **A** | `HRD-DEC-232` |
+| `HRD-Q-227` Persetujuan massal | A. Hanya jenis bertanda "boleh massal" **(Direkomendasikan)**; B. Semua jenis bila hijau; C. Matikan dulu | **A** | `HRD-DEC-233` |
+| `HRD-Q-228` Pelaksana Harian | A. Satu registri, satu layar **(Direkomendasikan)**; B. Dua layar tetap | **A** | `HRD-DEC-234` |
+| `HRD-Q-229` Kirim ulang revisi | A. Arahkan ke layar modul **(Direkomendasikan)**; B. Kirim ulang generik lewat engine | **A** | `HRD-DEC-235` |
+| `HRD-Q-230` Tiket engine lama saat rilis | A. Cek pra-rilis, tahan bila ada **(Direkomendasikan)**; B. Batalkan otomatis dan beri tahu; C. Migrasikan ke engine | **A** | `HRD-DEC-236` |
+
+### 56.4 Keputusan yang Dikunci (`HRD-DEC-229` s.d. `HRD-DEC-236`)
+
+Semua keputusan: Type `Decision`, Owner pengguna (`HRD-DEC-015`), Status `approved`, Approved by/at pengguna — 20 November 2026.
+
+#### `HRD-DEC-229` — Kotak Masuk Terpadu V2 Menjadi Tampilan atas Engine `WorkflowService`
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-223` |
+| Evidence | `HRD-TF-080` s.d. `HRD-TF-082`; `HRD-ASM-67` |
+| Ringkasan | Hanya ada satu sumber status persetujuan: engine `WorkflowService`. Antrean, ringkasan, dan detail Kotak Masuk Terpadu V2 membaca penugasan engine yang masih menunggu keputusan pengguna login: penugasan aktif yang `AssignedApproverUserId`-nya pengguna itu, atau yang didelegasikan kepadanya (`HRD-DEC-234`). Setujui, Tolak, dan Kembalikan dari kotak V2 diteruskan ke `WorkflowService` (approve, reject dengan alasan berkode, request-revision), sehingga penangan modul selalu berjalan. Engine aksi V2 lama (`WorkflowApprovalActionService` dan pembuat instance generiknya) berhenti dipakai untuk aksi |
+| Contoh | Kepala Ruang membuka menu Kotak Masuk Persetujuan Terpadu dan melihat SPPD perawat Sari bersama cuti dan lembur stafnya. Ia menekan Setujui pada SPPD; engine menutup tahap, dan penangan SPPD mengubah status SPPD menjadi Disetujui serta mencatat presensi Dinas Luar. Hasilnya sama persis dengan menyetujui dari kotak masuk lama |
+| Implikasi Arsitektur | 1. Kueri antrean, ringkasan, dan detail V2 diganti ke penugasan engine (status aktif engine, `AssignedApproverUserId`, delegasi aktif).<br>2. Endpoint aksi V2 meneruskan ke `WorkflowService`; tanggapan dan galatnya mengikuti engine, termasuk `RejectionReasonId` wajib (`HRD-DEC-186`).<br>3. Kontrak API bagian 30 direvisi: identitas aksi (penugasan, bukan hanya tahap), isi permintaan Tolak (alasan berkode), dan penghapusan PIN.<br>4. `POST /api/v1/hrd/workflow/instances` (pembuat instance generik V2) tidak lagi dipakai untuk membuat permohonan; nasibnya ditetapkan saat desain |
+
+#### `HRD-DEC-230` — PIN Tanda Tangan Dihapus dari Aksi Persetujuan
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-224` |
+| Evidence | `HRD-TF-083` |
+| Ringkasan | Setujui dan Tolak tidak lagi meminta PIN di layar mana pun. Pelaku dan waktu aksi tetap dicatat engine dari sesi login yang sah, sehingga akuntabilitas tetap terjaga. Bila kelak dibutuhkan tanda tangan elektronik sungguhan (PIN tersimpan, verifikasi, reset), itu dibuat sebagai amandemen tersendiri |
+| Contoh | Kepala Ruang menekan Setujui pada cuti tahunan staf. Tidak ada isian PIN; jejak aksi mencatat "Disetujui oleh Ns. Rina, 20 Nov 2026 09.14" |
+| Implikasi Arsitektur | 1. Ruas `pinSignature` keluar dari kontrak permintaan aksi V2.<br>2. Isian PIN dihapus dari modal Setujui, Tolak, dan Setujui Massal.<br>3. Hash tanda tangan pada log aksi lama tetap disimpan apa adanya (data historis) |
+
+#### `HRD-DEC-231` — Kotak Masuk Lama Dipensiunkan sesudah Kotak V2 Terbukti
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-225` |
+| Evidence | `HRD-TF-086` |
+| Ringkasan | Kotak masuk lama `/hr/workflow/approval-inbox` tetap berjalan sampai uji ujung-ke-ujung kotak V2 lulus untuk SPPD dan sekurang-kurangnya satu modul lain. Sesudah itu rute lama diarahkan ke kotak V2 dan dihapus dari menu; endpoint `approval-inbox` backend tetap ada sampai tidak ada pemanggil |
+| Contoh | Selama masa transisi atasan boleh memakai kedua kotak; sesudah uji lulus, membuka alamat lama langsung membawa atasan ke Kotak Masuk Persetujuan Terpadu |
+| Implikasi Arsitektur | 1. Task frontend pengalihan rute dan menu, bergantung pada uji ujung-ke-ujung kotak V2.<br>2. Keputusan menghapus endpoint backend lama ditunda sampai pemanggilnya nol |
+
+#### `HRD-DEC-232` — Eskalasi SLA Menambahkan Atasan Satu Tingkat sebagai Penyetuju
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-226` |
+| Evidence | `HRD-TF-084`; `HRD-DEC-185` |
+| Ringkasan | Penugasan engine yang melewati batas waktu (`DueAt`) dieskalasi: atasan satu tingkat dari penyetuju ditambahkan sebagai penyetuju pada tahap yang sama, dan keduanya diberi notifikasi. Penyetuju awal tetap boleh memutuskan; siapa pun yang memutuskan lebih dulu menutup tahap. Tidak ada persetujuan otomatis (`HRD-DEC-185`). Eskalasi satu tahap hanya terjadi sekali per tingkat |
+| Contoh | Cuti tahunan perawat menunggu Kepala Ruang lebih dari 48 jam. Kepala Instalasi ditambahkan sebagai penyetuju dan menerima notifikasi; Kepala Ruang yang kembali dari libur masih dapat menyetujuinya sendiri |
+| Implikasi Arsitektur | 1. Worker eskalasi membaca penugasan engine, bukan penugasan `Pending` engine lama.<br>2. Penambahan penugasan atasan dicatat sebagai aksi sistem di jejak workflow.<br>3. Bila atasan satu tingkat tidak ditemukan, tiket tidak diubah dan Admin HR diberi notifikasi (`HRD-ASM-88`) |
+
+#### `HRD-DEC-233` — Persetujuan Massal Hanya untuk Jenis Bertanda "Boleh Massal"
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-227` |
+| Evidence | `HRD-DEC-187` |
+| Ringkasan | Persetujuan massal hanya menerima permohonan yang jenisnya ditandai "boleh massal" oleh Admin HR di Master Workflow, dan indikator risikonya hijau (`HRD-DEC-187`). SPPD bawaan **tidak** boleh massal karena menyangkut anggaran, presensi, dan gembok roster. Setiap butir diputuskan lewat `WorkflowService` satu per satu; butir yang tidak memenuhi syarat atau gagal dilewati dan dilaporkan pada ringkasan hasil |
+| Contoh | Kepala Ruang mencentang 12 lembur rutin dan 1 SPPD lalu menekan Setujui Massal. Kedua belas lembur disetujui; SPPD dilewati dengan keterangan "Jenis ini harus disetujui satu per satu" |
+| Implikasi Arsitektur | 1. Penanda "boleh massal" per definisi atau jenis permohonan di Master Workflow.<br>2. Persetujuan massal memanggil engine per butir dengan hasil parsial (`HRD-ASM-70`) |
+
+#### `HRD-DEC-234` — Satu Registri dan Satu Layar Pelaksana Harian (Plh)
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-228` |
+| Evidence | `HRD-TF-085`; `HRD-DEC-184` |
+| Ringkasan | Plh didaftarkan dari layar Delegasi pada Kotak Masuk Terpadu. Setiap delegasi menyimpan kedua kunci (akun dan pegawai) dan berlaku untuk semua penugasan engine. Delegasi yang sudah ada dilengkapi kuncinya. Layar delegasi lama ikut dipensiunkan bersama kotak masuk lama (`HRD-DEC-231`) |
+| Contoh | Kepala Ruang yang cuti 3 hari mendaftarkan Wakil Karu sebagai Plh. Selama 3 hari itu SPPD, cuti, dan lembur staf muncul di kotak Wakil Karu bertanda "Plh Kepala Ruang", dan Wakil Karu dapat memutuskannya |
+| Implikasi Arsitektur | 1. Registri delegasi dibaca engine dengan kunci akun; layar V2 mengisi kunci akun dan pegawai.<br>2. Pelengkapan kunci untuk delegasi lama (perubahan data; butuh izin eksekusi terpisah) |
+
+#### `HRD-DEC-235` — Kirim Ulang Revisi Dilakukan dari Layar Modul
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-229` |
+| Evidence | `HRD-TF-081`, `HRD-TF-082` |
+| Ringkasan | Permohonan yang dikembalikan untuk revisi diperbaiki dan diajukan ulang dari layar modul pemilik data (SPPD, Cuti, dan seterusnya), yang memanggil engine. Layar ESS "Permohonan Saya" tetap menampilkan permohonan engine beserta statusnya, tetapi tombol kirim ulang generik diganti tautan ke layar modul |
+| Contoh | SPPD Sari dikembalikan karena hotel terlalu mahal. Di "Permohonan Saya", Sari menekan "Perbaiki di Formulir SPPD", mengganti hotel, lalu menekan Ajukan; workflow yang sama berlanjut |
+| Implikasi Arsitektur | 1. ESS membaca instance engine.<br>2. Peta jenis permohonan ke rute layar modul.<br>3. Endpoint kirim ulang generik V2 tidak lagi dipakai untuk permohonan engine |
+
+#### `HRD-DEC-236` — Tiket Engine Lama: Pemeriksaan Pra-Rilis, Rilis Ditahan bila Ada
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-230` |
+| Evidence | `HRD-TF-087` |
+| Ringkasan | Sebelum penyatuan dirilis ke sebuah lingkungan, dijalankan pemeriksaan tiket engine V2 lama yang masih terbuka. Bila ada, rilis ditahan sampai tiket itu diputuskan lewat jalur lama atau pemiliknya memutuskan perlakuannya. Tidak ada migrasi data |
+| Contoh | Pemeriksaan di produksi menemukan 2 tiket engine lama yang masih menunggu; tim menunda rilis satu hari sampai kedua tiket diputuskan, lalu merilis |
+| Implikasi Arsitektur | 1. Kueri pemeriksaan pra-rilis (baca-saja) masuk ke langkah rilis.<br>2. Fail-closed: hasil tidak nol berarti rilis tertahan |
+
+### 56.5 Asumsi Rekayasa
+
+| ID Asumsi | Isi Asumsi | Dasar / Rasional | Konsekuensi bila Salah |
+| --- | --- | --- | --- |
+| `HRD-ASM-88` | "Atasan satu tingkat" pada eskalasi ditentukan dari atasan langsung penyetuju di data organisasi (`WfpManagerAssignment` aktif); bila tidak ada, tiket tidak diubah dan Admin HR diberi notifikasi | Sumber atasan yang sama dengan penentuan penyetuju "Atasan Langsung" | Bila rumah sakit memakai hierarki lain untuk eskalasi, penyetuju tambahan bisa salah orang |
+| `HRD-ASM-89` | "Modul lain" pada bukti `HRD-DEC-231` adalah Cuti (volume tertinggi, sudah memakai engine) | Mewakili permohonan non-anggaran | Bila Cuti tidak punya data uji, modul pengganti dipilih saat verifikasi |
+| `HRD-ASM-90` | Penanda "boleh massal" bawaan: aktif untuk lembur rutin dan cuti tahunan (contoh di `HRD-DEC-187`), nonaktif untuk jenis lain termasuk SPPD, sampai Admin HR mengubahnya | Mengikuti contoh keputusan bagian 50 | Atasan perlu menyetujui satu per satu sampai Admin HR menandai jenis lain |
+
+### 56.6 Di luar scope — untuk modul lain
+
+| Hal | Alasan | Pemilik |
+| --- | --- | --- |
+| Kotak masuk Procurement | Memakai engine yang sama; layar dan aturan milik Procurement | Modul Procurement |
+| Isi master alasan penolakan per jenis (devYoga hanya `UJI_376_TOLAK` untuk SPPD) | Data konfigurasi | Admin HR / admin workflow |
+
+### 56.7 Penutup Pass
+
+* **Keputusan baru:** `HRD-DEC-229` s.d. `HRD-DEC-236` (semua `approved`). Fakta source baru: `HRD-TF-080` s.d. `HRD-TF-087`. Asumsi baru: `HRD-ASM-88` s.d. `HRD-ASM-90`.
+* **Pertanyaan terbuka:** tidak ada yang memblokir desain.
+* **Acceptance criteria yang sudah dapat diuji:**
+  1. SPPD, cuti, dan lembur yang menunggu atasan tampil di Kotak Masuk Terpadu V2 atasan tersebut (dan Plh-nya), dengan angka ringkasan yang sama dengan isi antrean.
+  2. Setujui/Tolak/Kembalikan dari kotak V2 mengubah status permohonan di modulnya sama persis dengan aksi dari kotak lama; Tolak mewajibkan alasan berkode.
+  3. Tidak ada isian PIN di layar persetujuan mana pun.
+  4. Persetujuan massal menolak SPPD dan jenis yang tidak bertanda, dengan ringkasan butir yang dilewati.
+  5. Penugasan yang lewat `DueAt` menambahkan atasan satu tingkat tanpa menghapus penyetuju awal, tanpa persetujuan otomatis.
+  6. Plh yang didaftarkan di layar Delegasi V2 dapat memutuskan permohonan engine.
+  7. "Permohonan Saya" menampilkan permohonan engine dan mengarahkan revisi ke layar modul.
+  8. Rilis tertahan bila pemeriksaan pra-rilis menemukan tiket engine lama yang terbuka.
+  9. Kotak masuk lama dialihkan ke kotak V2 hanya sesudah kriteria 1–2 lulus untuk SPPD dan Cuti.
+* **Untuk pass blueprint:** header revisi decision log dan hash `00-interview-decisions.md` di `blueprint-manifest.md` perlu disegarkan (revisi `40`). Kontrak API bagian 30 (antrean, aksi, PIN, kirim ulang, delegasi), state transition, integration contract (aksi kotak V2 → engine), permission matrix, dan desain frontend kotak V2/ESS/delegasi perlu diamandemen sebelum task delivery dibuat.
+* **Langkah berikutnya:** `/design-business-module` — amandemen kontrak dan desain slice `S-A7-V2` atas dasar kedelapan keputusan ini, lalu `/plan-module-delivery` untuk task backend dan frontend.
+
+---
+
+## 57. Amendment Pass — Paket B Penyesuaian Menu SDM: Lima Entry Point
+
+> **Penomoran ulang saat merge, 23 November 2026.** Bagian ini semula bernomor 56 (revisi decision log `40`–`42`) dengan `HRD-DEC-229`–`239`, `HRD-TF-080`–`083`, `HRD-ASM-88`–`95`, `HRD-Q-223`–`226`, dan kontrak `v29`. Nomor-nomor itu sudah dipakai amandemen `S-A7-V2` (bagian 56) yang lebih dulu masuk `QuilvianIntegrationBackend` (PR #367), sehingga bagian ini digeser menjadi `HRD-DEC-237`–`247`, `HRD-TF-088`–`091`, `HRD-ASM-91`–`98`, `HRD-Q-231`–`234`, kontrak `v30`, dan revisi `41`–`43`. Isi keputusan tidak berubah.
 
 Tanggal Wawancara: 22 November 2026
-Mode pass: **Amendment pass** atas planning `docs/PLANNING_PENYESUAIAN_MENU_SDM_BERDASARKAN_ANALISIS_BISNIS.md` bagian 13 (keputusan yang masih diperlukan untuk Paket B). Revisi decision log: `40`. Bagian sebelumnya tidak diubah.
-Status Scope: **APPROVED** (`HRD-DEC-229`). Keputusan per entry point `HRD-DEC-230` s.d. `HRD-DEC-235` **APPROVED** (lihat 56.4).
+Mode pass: **Amendment pass** atas planning `docs/PLANNING_PENYESUAIAN_MENU_SDM_BERDASARKAN_ANALISIS_BISNIS.md` bagian 13 (keputusan yang masih diperlukan untuk Paket B). Revisi decision log: `41`. Bagian sebelumnya tidak diubah.
+Status Scope: **APPROVED** (`HRD-DEC-237`). Keputusan per entry point `HRD-DEC-238` s.d. `HRD-DEC-243` **APPROVED** (lihat 57.4).
 Bentuk blueprint: tetap `SINGLE` (sudah tercatat pada planning; Paket B adalah amandemen navigasi di dalam blueprint `HRD-BP-001`, bukan modul baru). Tidak ditanyakan ulang.
 Keputusan lama yang dipakai tanpa ditanyakan ulang: `HRD-DEC-076` (Seleksi Administrasi), `HRD-DEC-077` (wawancara HR dan uji klinis/teknis sebagai dua penilaian terpisah), `HRD-DEC-170` s.d. `HRD-DEC-175` (disiplin, SP, *Just Culture*, whistleblower, skorsing, arsip riwayat).
-Capability map: berpotensi basi. Audit terakhir memakai BE `a437ae42`/`26066c76` dan FE `6a5658269`; source saat wawancara BE `b164edc1`, FE `573b7429c`. Fakta 56.2 diperiksa langsung pada SHA saat wawancara. Impact scan `trace-existing-capabilities` direkomendasikan sesudah pass ini.
+Capability map: berpotensi basi. Audit terakhir memakai BE `a437ae42`/`26066c76` dan FE `6a5658269`; source saat wawancara BE `b164edc1`, FE `573b7429c`. Fakta 57.2 diperiksa langsung pada SHA saat wawancara. Impact scan `trace-existing-capabilities` direkomendasikan sesudah pass ini.
 
-### 56.1 Batas Ruang Lingkup (dikonfirmasi pengguna 22 November 2026)
+### 57.1 Batas Ruang Lingkup (dikonfirmasi pengguna 22 November 2026)
 
 * **Di dalam scope:**
   1. Dashboard SDM: definisi angka ringkasan dan siapa yang melihatnya.
@@ -9639,7 +9807,7 @@ Capability map: berpotensi basi. Audit terakhir memakai BE `a437ae42`/`26066c76`
   2. Aturan seleksi dan penilaian rekrutmen — sudah dikunci `HRD-DEC-076` dan `HRD-DEC-077`.
   3. Verifikasi Paket A (live browser dan permission runtime) — jalur `live-browser-testing` terpisah.
 
-#### `HRD-DEC-229` — Paket B mencakup lima entry point, termasuk Tindak Disiplin
+#### `HRD-DEC-237` — Paket B mencakup lima entry point, termasuk Tindak Disiplin
 
 | Field | Isi |
 | --- | --- |
@@ -9649,42 +9817,42 @@ Capability map: berpotensi basi. Audit terakhir memakai BE `a437ae42`/`26066c76`
 | Approved by/at | Pengguna — 22 November 2026 (jawaban "B") |
 | Evidence | `MODULE-STATUS.md` 9.2 (Paket B `DEFERRED`, Tindak Disiplin `CONFLICT`); `blueprint-manifest.md` `not_covered` |
 | Ringkasan | Paket B tidak hanya menutup empat entry point (Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian), tetapi juga Tindak Disiplin: bentuk entry point, akses data sensitif, dan konflik kontrak frontend/backend diputuskan dalam pass yang sama |
-| Konsekuensi | Cakupan lebih besar; keputusan Tindak Disiplin memerlukan fakta source tambahan (56.2) dan impact scan sebelum desain ditutup |
+| Konsekuensi | Cakupan lebih besar; keputusan Tindak Disiplin memerlukan fakta source tambahan (57.2) dan impact scan sebelum desain ditutup |
 
-### 56.2 Fakta source yang dipakai (tanpa ditanyakan)
+### 57.2 Fakta source yang dipakai (tanpa ditanyakan)
 
 | ID | Fakta | Bukti |
 | --- | --- | --- |
-| `HRD-TF-080` | Backend punya alur disiplin global sesuai `HRD-DEC-170` s.d. `HRD-DEC-173` di `api/v1/hrd/disciplinary`: laporan insiden, investigasi/BAP, sanksi (daftar global `GET sanctions` dan per pegawai `GET sanctions/employee/{employeeId}`), banding, serta skorsing. Hak akses resource `EmployeeDisciplinary` (`ViewIncidents`, `ViewSanctions`, `IssueSanction`, `ManageSuspension`, dst.) | BE `b164edc1`: `EmployeeRelationManagement/Controllers/EmployeeDisciplinaryController.cs` baris 23–299 |
-| `HRD-TF-081` | Backend juga punya catatan tindakan disiplin per profil pegawai di `api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/disciplinary-actions` (daftar, ringkasan, detail, buat, ubah, ubah status, acknowledge) dengan resource hak akses terpisah `WorkforceDisciplinaryAction`. Tidak ada daftar lintas pegawai | BE `b164edc1`: `WfpDisciplinaryActionController.cs` baris 18–341 |
-| `HRD-TF-082` | Halaman frontend `/hr/employee-relations/disciplinary-actions` memanggil `/v1/hr/workforce-profile/disciplinary-actions`, alamat yang tidak ada di backend | FE `573b7429c`: `lib/services/hr/employee-relations-service.js` baris 6; `components/view/hr/employee-relations/disciplinary-action-view.jsx` baris 20, 39 |
-| `HRD-TF-083` | Frontend sudah punya layar alur global yang memakai `/v1/hrd/disciplinary`: Insiden, Sanksi, dan Skorsing di `/hrd/relations/*` dan `/corporate/hrd/relations/*` | FE `573b7429c`: `lib/services/hr/employee-relation-service.js` baris 7; `app/(dashboard)/hrd/relations/{incidents,sanctions,suspensions}/page.jsx` |
+| `HRD-TF-088` | Backend punya alur disiplin global sesuai `HRD-DEC-170` s.d. `HRD-DEC-173` di `api/v1/hrd/disciplinary`: laporan insiden, investigasi/BAP, sanksi (daftar global `GET sanctions` dan per pegawai `GET sanctions/employee/{employeeId}`), banding, serta skorsing. Hak akses resource `EmployeeDisciplinary` (`ViewIncidents`, `ViewSanctions`, `IssueSanction`, `ManageSuspension`, dst.) | BE `b164edc1`: `EmployeeRelationManagement/Controllers/EmployeeDisciplinaryController.cs` baris 23–299 |
+| `HRD-TF-089` | Backend juga punya catatan tindakan disiplin per profil pegawai di `api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/disciplinary-actions` (daftar, ringkasan, detail, buat, ubah, ubah status, acknowledge) dengan resource hak akses terpisah `WorkforceDisciplinaryAction`. Tidak ada daftar lintas pegawai | BE `b164edc1`: `WfpDisciplinaryActionController.cs` baris 18–341 |
+| `HRD-TF-090` | Halaman frontend `/hr/employee-relations/disciplinary-actions` memanggil `/v1/hr/workforce-profile/disciplinary-actions`, alamat yang tidak ada di backend | FE `573b7429c`: `lib/services/hr/employee-relations-service.js` baris 6; `components/view/hr/employee-relations/disciplinary-action-view.jsx` baris 20, 39 |
+| `HRD-TF-091` | Frontend sudah punya layar alur global yang memakai `/v1/hrd/disciplinary`: Insiden, Sanksi, dan Skorsing di `/hrd/relations/*` dan `/corporate/hrd/relations/*` | FE `573b7429c`: `lib/services/hr/employee-relation-service.js` baris 7; `app/(dashboard)/hrd/relations/{incidents,sanctions,suspensions}/page.jsx` |
 
-### 56.3 Pertentangan
+### 57.3 Pertentangan
 
 | ID | Pertentangan | Status |
 | --- | --- | --- |
-| `HRD-CF-07` | Data disiplin tersimpan di dua tempat dengan hak akses berbeda: sanksi alur global (`EmployeeDisciplinary`, `HRD-TF-080`) dan tindakan disiplin per profil (`WorkforceDisciplinaryAction`, `HRD-TF-081`). Menu Tindak Disiplin harus menunjuk satu sumber yang sah agar riwayat SP tidak terbelah | `RESOLVED` — ditutup `HRD-DEC-230`; perlakuan data lama tersisa di `HRD-Q-223` |
+| `HRD-CF-07` | Data disiplin tersimpan di dua tempat dengan hak akses berbeda: sanksi alur global (`EmployeeDisciplinary`, `HRD-TF-088`) dan tindakan disiplin per profil (`WorkforceDisciplinaryAction`, `HRD-TF-089`). Menu Tindak Disiplin harus menunjuk satu sumber yang sah agar riwayat SP tidak terbelah | `RESOLVED` — ditutup `HRD-DEC-238`; perlakuan data lama tersisa di `HRD-Q-231` |
 
-### 56.4 Keputusan yang Dikunci (`HRD-DEC-230` s.d. `HRD-DEC-235`)
+### 57.4 Keputusan yang Dikunci (`HRD-DEC-238` s.d. `HRD-DEC-243`)
 
 Pengguna menjawab Pertanyaan 2 dan seluruh pertanyaan sisanya dengan "semua pertanyaan dijawab dengan rekomendasi" (22 November 2026). Setiap keputusan di bawah adalah opsi rekomendasi pada pertanyaannya dan dicatat `approved` oleh pemilik produk (`HRD-DEC-015`).
 
-#### `HRD-DEC-230` — Menu Tindak Disiplin menunjuk alur disiplin resmi; catatan disiplin profil hanya dibaca
+#### `HRD-DEC-238` — Menu Tindak Disiplin menunjuk alur disiplin resmi; catatan disiplin profil hanya dibaca
 
 | Field | Isi |
 | --- | --- |
 | Type | Decision |
-| Menutup | `HRD-CF-07` (pada tingkat keputusan; perlakuan data lama lihat `HRD-Q-223`) |
+| Menutup | `HRD-CF-07` (pada tingkat keputusan; perlakuan data lama lihat `HRD-Q-231`) |
 | Owner | Pengguna (`HRD-DEC-015`) |
 | Status | `approved` |
 | Approved by/at | Pengguna — 22 November 2026 (opsi A, Pertanyaan 2) |
-| Evidence | `HRD-TF-080` s.d. `HRD-TF-083`; `HRD-DEC-170`, `HRD-DEC-171`, `HRD-DEC-172` |
+| Evidence | `HRD-TF-088` s.d. `HRD-TF-091`; `HRD-DEC-170`, `HRD-DEC-171`, `HRD-DEC-172` |
 | Ringkasan | 1. Menu **Tindak Disiplin** membuka daftar sanksi seluruh pegawai dari alur resmi (`api/v1/hrd/disciplinary`), memakai layar Sanksi yang sudah ada. Insiden dan Skorsing tetap satu grup.<br>2. Halaman `/hr/employee-relations/disciplinary-actions` yang memanggil alamat tidak ada **dipensiunkan**; item sidebar diarahkan ke layar Sanksi.<br>3. Tab disiplin di profil pegawai (Employee 360) menampilkan sanksi dari alur resmi. Catatan disiplin profil lama (`WorkforceDisciplinaryAction`) tetap terlihat sebagai riwayat **baca-saja** dan tidak dipakai menerbitkan sanksi baru.<br>4. Daftar global hanya untuk pemegang hak `EmployeeDisciplinary.ViewSanctions` (HR Relations dan Manajer SDM). Atasan dan pegawai tidak melihat daftar global. Kasus whistleblower tetap terpisah sesuai `HRD-DEC-172` |
 | Contoh | SP 1 Budi terbit 3 Desember 2026 lewat alur resmi. Sari (HR Relations) membuka Tindak Disiplin dan melihat SP 1 Budi aktif sampai 3 Juni 2027, sehingga pelanggaran berikutnya naik ke SP 2. Teguran lama di catatan profil Budi tetap terlihat di tab profil sebagai riwayat |
 | Implikasi Arsitektur | 1. Satu sumber kebenaran sanksi: `TrxDisciplinarySanction`.<br>2. Tab Employee 360 membaca `GET sanctions/employee/{employeeId}`; endpoint tulis `WorkforceDisciplinaryAction` tidak dipakai layar baru.<br>3. Tidak ada endpoint daftar global baru untuk catatan profil |
 
-#### `HRD-DEC-231` — Istilah BA tampil sebagai label menu yang menunjuk layar pemilik yang sudah ada
+#### `HRD-DEC-239` — Istilah BA tampil sebagai label menu yang menunjuk layar pemilik yang sudah ada
 
 | Field | Isi |
 | --- | --- |
@@ -9696,21 +9864,21 @@ Pengguna menjawab Pertanyaan 2 dan seluruh pertanyaan sisanya dengan "semua pert
 | Ringkasan | Label BA Paket B (Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian, Tindak Disiplin) tampil **persis** sebagai item menu agar petugas mengenali istilahnya. Setiap item menunjuk layar pemilik yang sudah ada (bila perlu dengan filter bawaan), bukan halaman tiruan atau parent kedua. Item tanpa layar yang siap tidak dipublikasikan dan tidak diarahkan ke placeholder (planning bagian 9 butir 10) |
 | Implikasi Arsitektur | Perubahan `menu-items.jsx` dan filter bawaan lewat parameter alamat; tanpa duplikasi workflow |
 
-#### `HRD-DEC-232` — Seleksi Administrasi adalah Bank Pelamar dengan filter bawaan tahap penapisan
+#### `HRD-DEC-240` — Seleksi Administrasi adalah Bank Pelamar dengan filter bawaan tahap penapisan
 
 | Field | Isi |
 | --- | --- |
 | Type | Decision |
 | Menutup | Planning bagian 13 butir 2 |
 | Owner | Pengguna (`HRD-DEC-015`) |
-| Status | `superseded` oleh `HRD-DEC-236` (22 November 2026) — bentuk "Bank Pelamar berfilter" diganti daftar penapisan per lamaran; aturan `HRD-DEC-076` tidak berubah |
+| Status | `superseded` oleh `HRD-DEC-244` (22 November 2026) — bentuk "Bank Pelamar berfilter" diganti daftar penapisan per lamaran; aturan `HRD-DEC-076` tidak berubah |
 | Approved by/at | Pengguna — 22 November 2026 (rekomendasi) |
 | Evidence | `HRD-DEC-076`; route existing `/hr/recruitment/candidates` |
 | Ringkasan | Menu **Seleksi Administrasi** membuka Bank Pelamar dengan filter bawaan "menunggu penapisan berkas". Recruiter memeriksa berkas lalu menandai Lolos Administrasi atau Gugur Administrasi. Pelamar klinis tanpa STR atau dengan STR kedaluwarsa tampil sudah **Gugur Administrasi** otomatis (`HRD-DEC-076` butir 3); pelamar dengan surat keterangan proses perpanjangan STR tampil "perlu verifikasi manual" (`HRD-DEC-076` butir 4). Tidak ada halaman worklist baru |
 | Contoh | 25 November 2026, Dodi (Recruiter) membuka Seleksi Administrasi dan melihat 14 pelamar perawat menunggu penapisan; 3 sudah gugur otomatis karena STR habis; 1 perlu verifikasi surat perpanjangan |
-| Implikasi Arsitektur | Filter tahap pada daftar kandidat; ketersediaan filter backend dipastikan impact scan (`HRD-Q-225`) |
+| Implikasi Arsitektur | Filter tahap pada daftar kandidat; ketersediaan filter backend dipastikan impact scan (`HRD-Q-233`) |
 
-#### `HRD-DEC-233` — Tes/Wawancara adalah satu daftar gabungan dengan dua jalur penilaian terpisah
+#### `HRD-DEC-241` — Tes/Wawancara adalah satu daftar gabungan dengan dua jalur penilaian terpisah
 
 | Field | Isi |
 | --- | --- |
@@ -9722,9 +9890,9 @@ Pengguna menjawab Pertanyaan 2 dan seluruh pertanyaan sisanya dengan "semua pert
 | Evidence | `HRD-DEC-077`; route detail existing `/hr/recruitment/evaluations/hr/[id]` dan `/hr/recruitment/evaluations/clinical/[id]` |
 | Ringkasan | Menu **Tes/Wawancara** membuka satu halaman daftar evaluasi kandidat yang dipisah menjadi jalur **Wawancara HR** dan **Uji Klinis/Teknis**. Setiap baris membuka formulir detail yang sudah ada. HR melihat kedua jalur; Kepala Unit/Asesor hanya melihat uji klinis/teknis yang ditugaskan kepadanya. Veto klinis tetap mutlak (`HRD-DEC-077` butir 3–4) dan ditampilkan sebagai status "Gagal Asesmen" |
 | Contoh | Rina (HR) melihat 6 wawancara HR terjadwal dan 4 uji klinis menunggu nilai. Sari (Kepala Ruang ICU) hanya melihat 2 uji klinis kandidat perawat ICU yang ditugaskan kepadanya |
-| Implikasi Arsitektur | Satu halaman daftar baru di atas data evaluasi existing; nama route dan bentuk pemisah jalur (tab atau filter) `DEV_DISCRETION`; endpoint daftar dan cakupan per penilai dipastikan impact scan (`HRD-Q-225`) |
+| Implikasi Arsitektur | Satu halaman daftar baru di atas data evaluasi existing; nama route dan bentuk pemisah jalur (tab atau filter) `DEV_DISCRETION`; endpoint daftar dan cakupan per penilai dipastikan impact scan (`HRD-Q-233`) |
 
-#### `HRD-DEC-234` — Riwayat Penyelesaian adalah filter "Selesai" pada layar Sanksi alur resmi
+#### `HRD-DEC-242` — Riwayat Penyelesaian adalah filter "Selesai" pada layar Sanksi alur resmi
 
 | Field | Isi |
 | --- | --- |
@@ -9733,12 +9901,12 @@ Pengguna menjawab Pertanyaan 2 dan seluruh pertanyaan sisanya dengan "semua pert
 | Owner | Pengguna (`HRD-DEC-015`) |
 | Status | `approved` |
 | Approved by/at | Pengguna — 22 November 2026 (rekomendasi) |
-| Evidence | `HRD-DEC-170` (SP kedaluwarsa 6 bulan, arsip permanen); `HRD-DEC-230` |
-| Ringkasan | Menu **Riwayat Penyelesaian** membuka layar Sanksi dengan filter bawaan **Selesai**. "Selesai" berarti salah satu dari: (1) sanksi melewati masa berlaku 6 bulan (`Expired`); (2) sanksi dicabut lewat banding; (3) insiden ditutup tanpa sanksi (dialihkan ke pembinaan atau konseling sesuai *Just Culture*). Data baca-saja dan diarsip permanen. Akses sama dengan `HRD-DEC-230` butir 4. Tidak ada daftar kasus kedua |
+| Evidence | `HRD-DEC-170` (SP kedaluwarsa 6 bulan, arsip permanen); `HRD-DEC-238` |
+| Ringkasan | Menu **Riwayat Penyelesaian** membuka layar Sanksi dengan filter bawaan **Selesai**. "Selesai" berarti salah satu dari: (1) sanksi melewati masa berlaku 6 bulan (`Expired`); (2) sanksi dicabut lewat banding; (3) insiden ditutup tanpa sanksi (dialihkan ke pembinaan atau konseling sesuai *Just Culture*). Data baca-saja dan diarsip permanen. Akses sama dengan `HRD-DEC-238` butir 4. Tidak ada daftar kasus kedua |
 | Contoh | 10 Juni 2027, Sari membuka Riwayat Penyelesaian dan menemukan SP 1 Budi berstatus Selesai (kedaluwarsa 3 Juni 2027), lengkap dengan BAP-nya |
 | Implikasi Arsitektur | Filter status pada daftar sanksi/insiden existing; definisi "Selesai" dipetakan ke status backend saat desain |
 
-#### `HRD-DEC-235` — Dashboard SDM: satu halaman lima panel untuk HR, angka dihitung backend dan dapat ditelusuri sampai nama
+#### `HRD-DEC-243` — Dashboard SDM: satu halaman lima panel untuk HR, angka dihitung backend dan dapat ditelusuri sampai nama
 
 | Field | Isi |
 | --- | --- |
@@ -9750,29 +9918,29 @@ Pengguna menjawab Pertanyaan 2 dan seluruh pertanyaan sisanya dengan "semua pert
 | Evidence | Planning 5.1; `HRD-DEC-146` (STR seumur hidup, SIP H-90), `HRD-DEC-151` (SPK/RKK H-90), `HRD-DEC-158` (sertifikat wajib), `HRD-DEC-208` (pola dashboard yang dapat ditelusuri) |
 | Ringkasan | Satu halaman **Dashboard SDM** untuk Manajer SDM dan Admin HRD, cakupan seluruh rumah sakit, berisi lima panel:<br>1. **Ringkasan Data Pegawai** — total pegawai aktif, pegawai baru, dan pegawai keluar bulan berjalan.<br>2. **Distribusi Profesi** — jumlah pegawai aktif per profesi master.<br>3. **Pegawai Aktif/Nonaktif** — memakai status kepegawaian backend, bukan label frontend; pegawai yang sedang skorsing tetap dihitung aktif (masih terikat hubungan kerja, `HRD-DEC-173`).<br>4. **Kontrak Berakhir** — PKWT yang berakhir dalam 90 hari, dikelompokkan ≤30, 31–60, dan 61–90 hari.<br>5. **Dokumen Kedaluwarsa** — hanya dokumen bermasa berlaku yang berakibat pada izin kerja: SIP, SPK/RKK, sertifikat pelatihan wajib, dan STR yang tidak seumur hidup. KTP dan dokumen personal lain tidak dihitung. Kelompok: Sudah kedaluwarsa, ≤30, 31–60, dan 61–90 hari (selaras horizon H-90 keputusan kredensial).<br>Setiap angka dapat diklik untuk melihat daftar nama. Angka dihitung backend saat halaman dibuka, bukan di browser. Dashboard tidak memuat gaji, data disiplin, atau data kesehatan |
 | Contoh | 20 Desember 2026, Rina membuka Dashboard SDM: 326 pegawai aktif, 12 kontrak berakhir (4 di antaranya ≤30 hari), 8 dokumen kedaluwarsa (2 SIP sudah habis). Rina mengklik "2 SIP sudah habis" dan langsung melihat nama dr. Dodi dan perawat Sari |
-| Implikasi Arsitektur | Endpoint agregat ringkasan HR baru atau reuse bila sudah ada (`HRD-Q-224`); permission baca dashboard tersendiri; route halaman `DEV_DISCRETION` (planning menyarankan `/hr/dashboard`) |
+| Implikasi Arsitektur | Endpoint agregat ringkasan HR baru atau reuse bila sudah ada (`HRD-Q-232`); permission baca dashboard tersendiri; route halaman `DEV_DISCRETION` (planning menyarankan `/hr/dashboard`) |
 
-### 56.5 Default yang ditetapkan tanpa ditanyakan (`Assumption`)
+### 57.5 Default yang ditetapkan tanpa ditanyakan (`Assumption`)
 
 | ID | Asumsi | Dasar | Status |
 | --- | --- | --- | --- |
-| `HRD-ASM-88` | Dashboard SDM rilis pertama hanya untuk HR tingkat rumah sakit; Kepala Unit memakai dashboard unit yang sudah ada (mis. Dashboard Kehadiran `HRD-DEC-208`) | Prinsip sederhana; lazim di rumah sakit umum swasta sekelas RS MMC | `approved` (ikut rekomendasi) |
-| `HRD-ASM-89` | Angka dashboard dihitung saat dibuka, tanpa snapshot harian | Pola `HRD-DEC-208` | `approved` |
-| `HRD-ASM-90` | Pegawai yang sedang skorsing dihitung aktif pada dashboard | `HRD-DEC-173` (upah tetap dibayar penuh) | `approved` |
-| `HRD-ASM-91` | Atasan langsung tidak mendapat akses daftar disiplin global; akses atasan ke sanksi bawahan memerlukan keputusan terpisah | Privasi data disiplin; `HRD-DEC-172` | `approved` |
-| `HRD-ASM-92` | Halaman lama Tindak Disiplin dipensiunkan, bukan diperbaiki | `HRD-DEC-230` | `approved` |
+| `HRD-ASM-91` | Dashboard SDM rilis pertama hanya untuk HR tingkat rumah sakit; Kepala Unit memakai dashboard unit yang sudah ada (mis. Dashboard Kehadiran `HRD-DEC-208`) | Prinsip sederhana; lazim di rumah sakit umum swasta sekelas RS MMC | `approved` (ikut rekomendasi) |
+| `HRD-ASM-92` | Angka dashboard dihitung saat dibuka, tanpa snapshot harian | Pola `HRD-DEC-208` | `approved` |
+| `HRD-ASM-93` | Pegawai yang sedang skorsing dihitung aktif pada dashboard | `HRD-DEC-173` (upah tetap dibayar penuh) | `approved` |
+| `HRD-ASM-94` | Atasan langsung tidak mendapat akses daftar disiplin global; akses atasan ke sanksi bawahan memerlukan keputusan terpisah | Privasi data disiplin; `HRD-DEC-172` | `approved` |
+| `HRD-ASM-95` | Halaman lama Tindak Disiplin dipensiunkan, bukan diperbaiki | `HRD-DEC-238` | `approved` |
 
-### 56.6 Pertanyaan terbuka (dijawab impact scan, bukan pengguna)
+### 57.6 Pertanyaan terbuka (dijawab impact scan, bukan pengguna)
 
 | ID | Pertanyaan | Owner | Memblokir |
 | --- | --- | --- | --- |
-| `HRD-Q-223` | Apakah ada data pada `WorkforceDisciplinaryAction`? Bila ada, apakah cukup ditampilkan baca-saja atau perlu dipetakan ke alur resmi agar kenaikan SP tidak terlewat? | `trace-existing-capabilities`, lalu pengguna | `IMPLEMENTATION` tab Employee 360 |
-| `HRD-Q-224` | Endpoint agregat apa yang sudah ada untuk kelima panel Dashboard SDM (status pegawai, profesi, kontrak, SIP/SPK/sertifikat)? | `trace-existing-capabilities` | `DESIGN` kontrak dashboard |
-| `HRD-Q-225` | Apakah daftar kandidat sudah mendukung filter tahap penapisan, dan apakah ada endpoint daftar evaluasi lintas kandidat dengan cakupan per penilai? | `trace-existing-capabilities` | `DESIGN` Seleksi Administrasi dan Tes/Wawancara |
+| `HRD-Q-231` | Apakah ada data pada `WorkforceDisciplinaryAction`? Bila ada, apakah cukup ditampilkan baca-saja atau perlu dipetakan ke alur resmi agar kenaikan SP tidak terlewat? | `trace-existing-capabilities`, lalu pengguna | `IMPLEMENTATION` tab Employee 360 |
+| `HRD-Q-232` | Endpoint agregat apa yang sudah ada untuk kelima panel Dashboard SDM (status pegawai, profesi, kontrak, SIP/SPK/sertifikat)? | `trace-existing-capabilities` | `DESIGN` kontrak dashboard |
+| `HRD-Q-233` | Apakah daftar kandidat sudah mendukung filter tahap penapisan, dan apakah ada endpoint daftar evaluasi lintas kandidat dengan cakupan per penilai? | `trace-existing-capabilities` | `DESIGN` Seleksi Administrasi dan Tes/Wawancara |
 
-### 56.7 Penutup Pass
+### 57.7 Penutup Pass
 
-* **Keputusan baru:** `HRD-DEC-229` s.d. `HRD-DEC-235` (semua `approved`). Fakta source `HRD-TF-080` s.d. `HRD-TF-083`. Pertentangan `HRD-CF-07` ditutup pada tingkat keputusan oleh `HRD-DEC-230`.
+* **Keputusan baru:** `HRD-DEC-237` s.d. `HRD-DEC-243` (semua `approved`). Fakta source `HRD-TF-088` s.d. `HRD-TF-091`. Pertentangan `HRD-CF-07` ditutup pada tingkat keputusan oleh `HRD-DEC-238`.
 * **Bentuk blueprint:** tetap `SINGLE`.
 * **Acceptance criteria yang sudah dapat diuji:**
   1. Menu Tindak Disiplin membuka daftar sanksi alur resmi; halaman lama tidak lagi dapat diakses dari sidebar; pengguna tanpa `ViewSanctions` tidak melihat item menu dan mendapat 403 dari API.
@@ -9780,22 +9948,22 @@ Pengguna menjawab Pertanyaan 2 dan seluruh pertanyaan sisanya dengan "semua pert
   3. Riwayat Penyelesaian hanya memuat sanksi kedaluwarsa, sanksi yang dicabut lewat banding, atau insiden yang ditutup tanpa sanksi.
   4. Seleksi Administrasi membuka Bank Pelamar terfilter tahap penapisan; pelamar klinis tanpa STR berlaku tampil Gugur Administrasi.
   5. Tes/Wawancara menampilkan dua jalur; asesor hanya melihat uji yang ditugaskan kepadanya; kandidat dengan veto klinis tampil Gagal Asesmen dan tidak dapat dibawa ke penawaran.
-  6. Dashboard SDM menampilkan lima panel sesuai definisi 56.4; setiap angka dapat ditelusuri ke daftar nama; jumlahnya sama dengan hasil kueri backend; tidak ada gaji, disiplin, atau data kesehatan.
-* **Di luar scope:** aturan disiplin dan rekrutmen (sudah dikunci), verifikasi Paket A, akses atasan ke sanksi bawahan (`HRD-ASM-91`).
-* **Untuk pass blueprint:** hash `00-interview-decisions.md` dan `decision_revision` pada `blueprint-manifest.md` perlu disegarkan (revisi `40`); planning bagian 13 dapat ditandai tertutup oleh bagian 56.
-* **Langkah berikutnya:** `trace-existing-capabilities` mode impact scan (BE `b164edc1`, FE `573b7429c`) untuk menjawab `HRD-Q-223` s.d. `HRD-Q-225`, lalu `design-business-module` untuk amandemen kontrak Paket B.
+  6. Dashboard SDM menampilkan lima panel sesuai definisi 57.4; setiap angka dapat ditelusuri ke daftar nama; jumlahnya sama dengan hasil kueri backend; tidak ada gaji, disiplin, atau data kesehatan.
+* **Di luar scope:** aturan disiplin dan rekrutmen (sudah dikunci), verifikasi Paket A, akses atasan ke sanksi bawahan (`HRD-ASM-94`).
+* **Untuk pass blueprint:** hash `00-interview-decisions.md` dan `decision_revision` pada `blueprint-manifest.md` perlu disegarkan (revisi `40`); planning bagian 13 dapat ditandai tertutup oleh bagian 57.
+* **Langkah berikutnya:** `trace-existing-capabilities` mode impact scan (BE `b164edc1`, FE `573b7429c`) untuk menjawab `HRD-Q-231` s.d. `HRD-Q-233`, lalu `design-business-module` untuk amandemen kontrak Paket B.
 
-### 56.8 Closure Pass — Pertanyaan penutup impact scan capability map bagian 17 (22 November 2026)
+### 57.8 Closure Pass — Pertanyaan penutup impact scan capability map bagian 17 (22 November 2026)
 
-Revisi decision log: `41`. Masukan: capability map revisi `1.5` bagian 17 (BE `b164edc1`, FE `573b7429c`), `HRD-CAP-92` s.d. `HRD-CAP-104`, pertanyaan penutup `HRD-CQ-05` s.d. `HRD-CQ-07`. Pengguna menjawab "jawab semua dengan rekomendasi"; ketiga keputusan di bawah adalah opsi rekomendasi dan dicatat `approved` oleh pemilik produk (`HRD-DEC-015`).
+Revisi decision log: `42`. Masukan: capability map revisi `1.5` bagian 17 (BE `b164edc1`, FE `573b7429c`), `HRD-CAP-92` s.d. `HRD-CAP-104`, pertanyaan penutup `HRD-CQ-05` s.d. `HRD-CQ-07`. Pengguna menjawab "jawab semua dengan rekomendasi"; ketiga keputusan di bawah adalah opsi rekomendasi dan dicatat `approved` oleh pemilik produk (`HRD-DEC-015`).
 
-#### `HRD-DEC-236` — Seleksi Administrasi adalah daftar penapisan per lamaran (menggantikan bentuk `HRD-DEC-232`)
+#### `HRD-DEC-244` — Seleksi Administrasi adalah daftar penapisan per lamaran (menggantikan bentuk `HRD-DEC-240`)
 
 | Field | Isi |
 | --- | --- |
 | Type | Decision |
-| Menutup | `HRD-CQ-05`; `HRD-Q-225` bagian Seleksi Administrasi |
-| Supersedes | `HRD-DEC-232` (bentuk saja) |
+| Menutup | `HRD-CQ-05`; `HRD-Q-233` bagian Seleksi Administrasi |
+| Supersedes | `HRD-DEC-240` (bentuk saja) |
 | Owner | Pengguna (`HRD-DEC-015`) |
 | Status | `approved` |
 | Approved by/at | Pengguna — 22 November 2026 (opsi A) |
@@ -9804,13 +9972,13 @@ Revisi decision log: `41`. Masukan: capability map revisi `1.5` bagian 17 (BE `b
 | Contoh | Sari melamar perawat ICU dan perawat IGD. Dodi melihat dua baris: lamaran ICU **Lolos**, lamaran IGD **Menunggu** karena sertifikat BTCLS belum diunggah |
 | Implikasi Arsitektur | Reuse `GET recruitment/screenings` dan formulir penapisan existing; satu halaman daftar frontend baru (route `DEV_DISCRETION`); hak akses `CandidateScreening.Read` |
 
-#### `HRD-DEC-237` — Panel Kontrak Berakhir mengikuti tahapan perpanjangan kontrak yang sudah berjalan (mengubah `HRD-DEC-235` panel 4)
+#### `HRD-DEC-245` — Panel Kontrak Berakhir mengikuti tahapan perpanjangan kontrak yang sudah berjalan (mengubah `HRD-DEC-243` panel 4)
 
 | Field | Isi |
 | --- | --- |
 | Type | Decision |
 | Menutup | `HRD-CQ-06` |
-| Mengubah | `HRD-DEC-235` panel 4 (kelompok 30/60/90 hari tidak dipakai); panel lain `HRD-DEC-235` tidak berubah |
+| Mengubah | `HRD-DEC-243` panel 4 (kelompok 30/60/90 hari tidak dipakai); panel lain `HRD-DEC-243` tidak berubah |
 | Owner | Pengguna (`HRD-DEC-015`) |
 | Status | `approved` |
 | Approved by/at | Pengguna — 22 November 2026 (rekomendasi) |
@@ -9819,17 +9987,17 @@ Revisi decision log: `41`. Masukan: capability map revisi `1.5` bagian 17 (BE `b
 | Contoh | 20 Desember 2026: Dashboard SDM dan layar Kontrak sama-sama menunjukkan 12 kontrak berakhir; 3 di antaranya sudah masuk H-14 dan perlu keputusan perpanjangan dari Rina |
 | Implikasi Arsitektur | Agregat dashboard memakai ulang logika `HrdEmploymentContractService` (ringkasan dan renewal-summary), bukan hitungan baru |
 
-#### `HRD-DEC-238` — Catatan disiplin profil lama: kueri baca-saja diizinkan, tanpa migrasi otomatis
+#### `HRD-DEC-246` — Catatan disiplin profil lama: kueri baca-saja diizinkan, tanpa migrasi otomatis
 
 | Field | Isi |
 | --- | --- |
 | Type | Decision |
-| Menutup | `HRD-CQ-07`; `HRD-Q-223` pada tingkat keputusan |
+| Menutup | `HRD-CQ-07`; `HRD-Q-231` pada tingkat keputusan |
 | Owner | Pengguna (`HRD-DEC-015`) |
 | Status | `approved` |
 | Approved by/at | Pengguna — 22 November 2026 (rekomendasi) |
 | Evidence | `HRD-CAP-94`; capability map 17.1 butir 2–3; preseden `HRD-CQ-04` (kueri baca-saja devYoga atas izin pengguna) |
-| Ringkasan | 1. Agen **diizinkan** menjalankan kueri **baca-saja** di database lingkungan pengembangan untuk menghitung baris `WfpDisciplinaryAction` dan jenis `ActionType`-nya. Sesuai `CLAUDE.md`, eksekusi tetap meminta konfirmasi terpisah pada saat dijalankan; tidak ada penulisan data.<br>2. Apa pun hasilnya, **tidak ada migrasi otomatis** ke alur resmi. Catatan lama tampil baca-saja di tab Employee 360 sebagai riwayat (`HRD-DEC-230` butir 3).<br>3. Bila ada catatan berjenis SP/teguran dengan tanggal dalam 6 bulan terakhir, HR Relations memasukkannya ulang secara manual lewat alur resmi agar kenaikan SP tetap benar (`HRD-DEC-170`).<br>4. Tab disiplin Employee 360 hanya tampil bagi pemegang `EmployeeDisciplinary.ViewSanctions` (menegaskan `HRD-DEC-230` butir 4 untuk temuan `HRD-CAP-94`) |
+| Ringkasan | 1. Agen **diizinkan** menjalankan kueri **baca-saja** di database lingkungan pengembangan untuk menghitung baris `WfpDisciplinaryAction` dan jenis `ActionType`-nya. Sesuai `CLAUDE.md`, eksekusi tetap meminta konfirmasi terpisah pada saat dijalankan; tidak ada penulisan data.<br>2. Apa pun hasilnya, **tidak ada migrasi otomatis** ke alur resmi. Catatan lama tampil baca-saja di tab Employee 360 sebagai riwayat (`HRD-DEC-238` butir 3).<br>3. Bila ada catatan berjenis SP/teguran dengan tanggal dalam 6 bulan terakhir, HR Relations memasukkannya ulang secara manual lewat alur resmi agar kenaikan SP tetap benar (`HRD-DEC-170`).<br>4. Tab disiplin Employee 360 hanya tampil bagi pemegang `EmployeeDisciplinary.ViewSanctions` (menegaskan `HRD-DEC-238` butir 4 untuk temuan `HRD-CAP-94`) |
 | Contoh | Kueri menemukan 5 catatan lama; satu berupa SP 1 untuk Budi tertanggal 1 Oktober 2026. Sari menerbitkan ulang SP 1 itu lewat alur resmi dengan tanggal aslinya, sehingga masa berlakunya tetap sampai 1 April 2027 |
 | Implikasi Arsitektur | Tanpa migration data; `HrdEmployee360Service` membaca sanksi alur resmi plus catatan lama sebagai riwayat; izin tab mengikuti `ViewSanctions` |
 
@@ -9837,57 +10005,57 @@ Revisi decision log: `41`. Masukan: capability map revisi `1.5` bagian 17 (BE `b
 
 | ID | Asumsi | Dasar | Status |
 | --- | --- | --- | --- |
-| `HRD-ASM-93` | Evaluasi jenis `UserInterview` masuk jalur **Uji Klinis/Teknis** pada daftar Tes/Wawancara | Diterima `submit-clinical` (capability map 17.3 butir 3); `HRD-DEC-077` | `approved` |
-| `HRD-ASM-94` | Filter "Selesai" pada Riwayat Penyelesaian boleh diwujudkan dengan filter multi-status di backend atau beberapa permintaan di frontend; pilihannya diserahkan ke desain | `HRD-CAP-95` | `approved` |
-| `HRD-ASM-95` | Pembatasan asesor (`HRD-DEC-233`) mencakup baca **dan** kirim nilai: asesor hanya dapat mengirim nilai untuk evaluasi yang `EvaluatorUserId`-nya miliknya | `HRD-CAP-104`; `HRD-DEC-077` | `approved` |
+| `HRD-ASM-96` | Evaluasi jenis `UserInterview` masuk jalur **Uji Klinis/Teknis** pada daftar Tes/Wawancara | Diterima `submit-clinical` (capability map 17.3 butir 3); `HRD-DEC-077` | `approved` |
+| `HRD-ASM-97` | Filter "Selesai" pada Riwayat Penyelesaian boleh diwujudkan dengan filter multi-status di backend atau beberapa permintaan di frontend; pilihannya diserahkan ke desain | `HRD-CAP-95` | `approved` |
+| `HRD-ASM-98` | Pembatasan asesor (`HRD-DEC-241`) mencakup baca **dan** kirim nilai: asesor hanya dapat mengirim nilai untuk evaluasi yang `EvaluatorUserId`-nya miliknya | `HRD-CAP-104`; `HRD-DEC-077` | `approved` |
 
 #### Penutup closure pass
 
-* **Keputusan baru:** `HRD-DEC-236` s.d. `HRD-DEC-238` (`approved`). `HRD-DEC-232` → `superseded`; `HRD-DEC-235` panel 4 diubah `HRD-DEC-237`.
-* **Pertanyaan tertutup:** `HRD-Q-223` (tingkat keputusan; jumlah data menunggu kueri), `HRD-Q-224`, `HRD-Q-225`, `HRD-CQ-05` s.d. `HRD-CQ-07`.
-* **Blocker desain:** tidak ada. Hasil kueri `HRD-DEC-238` butir 1 hanya menentukan beban input ulang manual HR, bukan desain.
+* **Keputusan baru:** `HRD-DEC-244` s.d. `HRD-DEC-246` (`approved`). `HRD-DEC-240` → `superseded`; `HRD-DEC-243` panel 4 diubah `HRD-DEC-245`.
+* **Pertanyaan tertutup:** `HRD-Q-231` (tingkat keputusan; jumlah data menunggu kueri), `HRD-Q-232`, `HRD-Q-233`, `HRD-CQ-05` s.d. `HRD-CQ-07`.
+* **Blocker desain:** tidak ada. Hasil kueri `HRD-DEC-246` butir 1 hanya menentukan beban input ulang manual HR, bukan desain.
 * **Acceptance criteria tambahan:**
   1. Seleksi Administrasi menampilkan satu baris per lamaran dengan status Menunggu/Lolos/Gugur; pelamar dengan dua lamaran tampil dua baris.
   2. Angka Kontrak Berakhir di Dashboard SDM sama dengan layar Kontrak, dengan kelompok H-60/H-14/H-7/Menunggu keputusan/Lewat jatuh tempo.
   3. Tab disiplin Employee 360 tidak tampil bagi pengguna tanpa `ViewSanctions`; catatan lama tampil baca-saja.
   4. Asesor yang mengirim nilai untuk evaluasi milik penilai lain ditolak.
-* **Langkah berikutnya:** `design-business-module` — amandemen arsitektur dan kontrak Paket B (bagian 56), lalu `plan-module-delivery`.
+* **Langkah berikutnya:** `design-business-module` — amandemen arsitektur dan kontrak Paket B (bagian 57), lalu `plan-module-delivery`.
 
-### 56.9 Pertanyaan yang lahir saat desain kontrak `v29` (22 November 2026)
+### 57.9 Pertanyaan yang lahir saat desain kontrak `v30` (22 November 2026)
 
 | ID | Pertanyaan | Rekomendasi desain | Owner | Memblokir |
 | --- | --- | --- | --- | --- |
-| `HRD-Q-226` | Butir menu **Teguran** (Paket A) sudah membuka layar Sanksi, sedangkan `HRD-DEC-230` meminta **Tindak Disiplin** membuka layar yang sama; invariant Paket A melarang dua butir menuju alamat yang sama. Label mana yang dipakai? | Ganti label butir yang ada menjadi **Tindak Disiplin**; "Teguran" menjadi filter tingkat sanksi di dalam layar (diizinkan planning 5.11) | Pengguna (`HRD-DEC-015`) | Hanya `FR-PKB-20` (`04-prd-to-mvp.md` 42.5); sampai dijawab butir tetap berlabel Teguran |
+| `HRD-Q-234` | Butir menu **Teguran** (Paket A) sudah membuka layar Sanksi, sedangkan `HRD-DEC-238` meminta **Tindak Disiplin** membuka layar yang sama; invariant Paket A melarang dua butir menuju alamat yang sama. Label mana yang dipakai? | Ganti label butir yang ada menjadi **Tindak Disiplin**; "Teguran" menjadi filter tingkat sanksi di dalam layar (diizinkan planning 5.11) | Pengguna (`HRD-DEC-015`) | Hanya `FR-PKB-20` (`04-prd-to-mvp.md` 43.5); sampai dijawab butir tetap berlabel Teguran |
 
-> **Ditutup 23 November 2026** oleh `HRD-DEC-239` (bagian 56.10): rekomendasi desain dipakai.
+> **Ditutup 23 November 2026** oleh `HRD-DEC-247` (bagian 57.10): rekomendasi desain dipakai.
 
-### 56.10 Persetujuan kontrak `v29` dan jawaban `HRD-Q-226` (23 November 2026)
+### 57.10 Persetujuan kontrak `v30` dan jawaban `HRD-Q-234` (23 November 2026)
 
-Revisi decision log: `42`. Agen desain sebelumnya meminta pengguna menyetujui kontrak `v29` dan menjawab `HRD-Q-226`. Pada 23 November 2026, sesudah penjelasan opsi di percakapan (A: ganti label "Teguran" menjadi "Tindak Disiplin"; B: label "Teguran" dipertahankan), pengguna menjawab: **"1. ya setujui 2. A"** — kontrak `v29` disetujui beserta tiga usulan detailnya, dan `HRD-Q-226` memakai opsi A (rekomendasi).
+Revisi decision log: `43`. Agen desain sebelumnya meminta pengguna menyetujui kontrak `v30` dan menjawab `HRD-Q-234`. Pada 23 November 2026, sesudah penjelasan opsi di percakapan (A: ganti label "Teguran" menjadi "Tindak Disiplin"; B: label "Teguran" dipertahankan), pengguna menjawab: **"1. ya setujui 2. A"** — kontrak `v30` disetujui beserta tiga usulan detailnya, dan `HRD-Q-234` memakai opsi A (rekomendasi).
 
-#### `HRD-DEC-239` — Butir menu disiplin berlabel "Tindak Disiplin"; "Teguran" menjadi filter tingkat sanksi
+#### `HRD-DEC-247` — Butir menu disiplin berlabel "Tindak Disiplin"; "Teguran" menjadi filter tingkat sanksi
 
 | Field | Isi |
 | --- | --- |
 | Type | Decision |
-| Menutup | `HRD-Q-226` |
+| Menutup | `HRD-Q-234` |
 | Owner | Pengguna (`HRD-DEC-015`) |
 | Status | `approved` |
 | Approved by/at | Pengguna — 23 November 2026 (jawaban "2. A") |
-| Evidence | `03-frontend-architecture.md` 34.1 (konflik label); frontend `573b7429c`: `src/utils/menu-sidebar/menu-items.jsx` baris 1885–1888 (butir "Teguran" menuju `/hrd/relations/sanctions`), `src/lib/constants/hr/relations/relations-constants.js` baris 88–95 (filter Tingkat sudah memuat pilihan "Teguran Lisan") |
+| Evidence | `03-frontend-architecture.md` 35.1 (konflik label); frontend `573b7429c`: `src/utils/menu-sidebar/menu-items.jsx` baris 1885–1888 (butir "Teguran" menuju `/hrd/relations/sanctions`), `src/lib/constants/hr/relations/relations-constants.js` baris 88–95 (filter Tingkat sudah memuat pilihan "Teguran Lisan") |
 | Ringkasan | Butir menu Paket A yang kini berlabel **Teguran** diganti labelnya menjadi **Tindak Disiplin**. Alamatnya tetap `/hrd/relations/sanctions` dan tidak ada butir kedua, sehingga aturan Paket A "satu fungsi, satu pintu sidebar" tetap terjaga. Teguran tetap mudah dicari lewat filter **Tingkat** di dalam layar (pilihan "Teguran Lisan" yang sudah ada) |
 | Contoh | Sari (HR Relations) membuka Hubungan Industrial & Terminasi → **Tindak Disiplin** dan melihat seluruh sanksi alur resmi. Untuk melihat teguran saja, Sari memilih Tingkat = Teguran Lisan |
 | Implikasi Arsitektur | Hanya perubahan label sidebar dan uji anti-duplikasi menu (`FR-PKB-20`, `AT-HRD-PKB-23`, `AT-HRD-PKB-25`). Tanpa perubahan backend, route, maupun hak akses |
 
-#### Persetujuan kontrak `v29`
+#### Persetujuan kontrak `v30`
 
 | Butir | Isi |
 | --- | --- |
-| Yang disetujui | Kontrak `v29`: API 35, State 33, Validation 34, Integration 26, Permission 33, Acceptance 38, Data 30; desain `02-backend-architecture.md` 37, `03-frontend-architecture.md` 34, `04-prd-to-mvp.md` 42; flowchart `dashboard-sdm-dan-worklist-paket-b.md` |
-| Usulan desain yang ikut disetujui | (1) Nomor lisensi pada daftar nama dashboard hanya menampilkan 4 karakter terakhir. (2) Target waktu muat `GET /workforce-dashboard/summary` ≤ 2 detik untuk ±500 pegawai, diverifikasi saat build. (3) Batas kelompok hari radar lisensi dan sertifikat mengikuti radar sumber dan diverifikasi saat implementasi (kamus data 30.2) |
-| Requirement completeness gate | Tidak dijalankan — preseden amandemen `A52`, `S-A8`, dan `S-D5`; alasannya tercatat di `02-backend-architecture.md` 37 |
-| Tetap terbuka, tidak memblokir | Kueri baca-saja jumlah `WfpDisciplinaryAction` (`HRD-DEC-238` butir 1) — eksekusinya tetap meminta konfirmasi terpisah; akses atasan langsung ke sanksi bawahan (`HRD-ASM-91`) |
+| Yang disetujui | Kontrak `v30`: API 36, State 34, Validation 35, Integration 27, Permission 34, Acceptance 39, Data 31; desain `02-backend-architecture.md` 38, `03-frontend-architecture.md` 35, `04-prd-to-mvp.md` 43; flowchart `dashboard-sdm-dan-worklist-paket-b.md` |
+| Usulan desain yang ikut disetujui | (1) Nomor lisensi pada daftar nama dashboard hanya menampilkan 4 karakter terakhir. (2) Target waktu muat `GET /workforce-dashboard/summary` ≤ 2 detik untuk ±500 pegawai, diverifikasi saat build. (3) Batas kelompok hari radar lisensi dan sertifikat mengikuti radar sumber dan diverifikasi saat implementasi (kamus data 31.2) |
+| Requirement completeness gate | Tidak dijalankan — preseden amandemen `A52`, `S-A8`, dan `S-D5`; alasannya tercatat di `02-backend-architecture.md` 38 |
+| Tetap terbuka, tidak memblokir | Kueri baca-saja jumlah `WfpDisciplinaryAction` (`HRD-DEC-246` butir 1) — eksekusinya tetap meminta konfirmasi terpisah; akses atasan langsung ke sanksi bawahan (`HRD-ASM-94`) |
 
-* **Keputusan baru:** `HRD-DEC-239` (`approved`). **Pertanyaan tertutup:** `HRD-Q-226`.
-* **Akibat pada PRD:** `FR-PKB-20` tidak lagi tertahan dan dijadwalkan pada `MVP-74` bersama butir menu Paket B.
-* **Langkah berikutnya:** `plan-module-delivery` — roadmap backend bagian 30 (`BE-HRD-443` s.d. `BE-HRD-452`) dan roadmap frontend bagian 30 (`FE-HRD-393` s.d. `FE-HRD-401`).
+* **Keputusan baru:** `HRD-DEC-247` (`approved`). **Pertanyaan tertutup:** `HRD-Q-234`.
+* **Akibat pada PRD:** `FR-PKB-20` tidak lagi tertahan dan dijadwalkan pada `MVP-76` bersama butir menu Paket B.
+* **Langkah berikutnya:** `plan-module-delivery` — roadmap backend bagian 31 (`BE-HRD-453` s.d. `BE-HRD-462`) dan roadmap frontend bagian 31 (`FE-HRD-401` s.d. `FE-HRD-409`).
