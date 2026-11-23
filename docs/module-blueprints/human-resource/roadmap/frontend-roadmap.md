@@ -1024,11 +1024,11 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 | `FE-HRD-398` | `S-PKB` · `MVP-73` | Layar Riwayat Penyelesaian | ✅ | `FE-HRD-395` ✅, `BE-HRD-446` ✅ [BE] | [FE-HRD-398.md](../task/report/frontend/FE-HRD-398.md) |
 | `FE-HRD-399` | `S-PKB` · `MVP-74` | Layar Dashboard SDM dengan daftar nama | ✅ | `BE-HRD-451` ✅ [BE] | [FE-HRD-399.md](../task/report/frontend/FE-HRD-399.md) |
 | `FE-HRD-400` | `S-PKB` · `MVP-74` | Butir menu Paket B dan label "Tindak Disiplin" | 🟡 | `FE-HRD-396` ✅, `FE-HRD-397` ✅, `FE-HRD-398` ✅, `FE-HRD-399` ✅ | [FE-HRD-400.md](../task/report/frontend/FE-HRD-400.md) |
-| `FE-HRD-401` | `S-PKB` · Verifikasi | Verifikasi browser lima pintu Paket B |  | `FE-HRD-393` ✅, `FE-HRD-394` ✅, `FE-HRD-400` 🟡, `BE-HRD-452` ✅ [BE] | — |
+| `FE-HRD-401` | `S-PKB` · Verifikasi | Verifikasi browser lima pintu Paket B | 🟡 | `FE-HRD-393` ✅, `FE-HRD-394` ✅, `FE-HRD-400` 🟡, `BE-HRD-452` ✅ [BE] | [FE-HRD-401.md](../task/report/frontend/FE-HRD-401.md) |
 
 > **Pemutakhiran register 23 November 2026 (Paket B, kontrak `v29`).** Baris `FE-HRD-393` s.d. `FE-HRD-401` (bagian 30, Grafik F97) ditambahkan; seluruhnya belum dikerjakan sehingga kolom status kosong.
 >
-> **Pemutakhiran register 23 November 2026 (sore).** `FE-HRD-393` s.d. `FE-HRD-399` ✅ dan `FE-HRD-400` 🟡 diisi beserta tautan laporannya; kolom status `FE-HRD-394` s.d. `FE-HRD-398` sebelumnya tertinggal kosong walaupun kartunya sudah ✅. `FE-HRD-401` belum dikerjakan.
+> **Pemutakhiran register 23 November 2026 (sore).** `FE-HRD-393` s.d. `FE-HRD-399` ✅ dan `FE-HRD-400` 🟡 diisi beserta tautan laporannya; kolom status `FE-HRD-394` s.d. `FE-HRD-398` sebelumnya tertinggal kosong walaupun kartunya sudah ✅. `FE-HRD-401` 🟡: verifikasi live dengan lima akun uji 32/32 lulus; jalur rekrutmen berisi data dan sanksi selesai belum dapat diuji (lihat kartu).
 
 
 ---
@@ -7448,8 +7448,8 @@ Empat layar `MVP-73` yang tidak menunggu backend (`FE-HRD-394`, `FE-HRD-395`, `F
 | --- | --- | --- | --- |
 | G1 | ~~Kontrak `v29` belum disetujui~~ **TERTUTUP 23 November 2026** | Pengguna | Tidak memblokir |
 | G2 | ~~`HRD-Q-226` label menu disiplin~~ **DIJAWAB 23 November 2026** (`HRD-DEC-239`, opsi A) | Pengguna | Tidak memblokir; dikerjakan di `FE-HRD-400` |
-| G3 | Hak `HrdWorkforceDashboard : Read` dan `CandidateEvaluation : ViewAll` diberikan ke peran uji | Admin aplikasi atas arahan pengguna | Tidak memblokir pengembangan; wajib sebelum `FE-HRD-401` dan sebelum rilis |
-| G4 | Akun uji per peran (HR Relations, Recruiter, asesor, atasan langsung, Manajer SDM) | Pengguna | Hanya `FE-HRD-401`; sandi diminta saat uji dan tidak disimpan |
+| G3 | ~~Hak `HrdWorkforceDashboard : Read` dan `CandidateEvaluation : ViewAll` diberikan ke peran uji~~ **TERPENUHI 23 November 2026 untuk peran uji** (jabatan "UAT Paket B - …"); peran produksi tetap wajib diatur sebelum rilis | Admin aplikasi atas arahan pengguna | Tidak memblokir `FE-HRD-401`; tetap wajib sebelum rilis |
+| G4 | ~~Akun uji per peran (HR Relations, Recruiter, asesor, atasan langsung, Manajer SDM)~~ **TERPENUHI 23 November 2026** — lima akun `uat.pkb.*@rsmmc.local` dibuat atas izin pengguna; sandi di berkas data uji yang di-ignore Git | Pengguna | Tidak memblokir |
 
 ### Grafik F97 — Layar dan menu Paket B (`FE-HRD-393` s.d. `FE-HRD-401`)
 
@@ -7468,7 +7468,7 @@ BE-HRD-446 ✅ [BE] ─┴─> FE-HRD-398 ✅ ──┴──┐                
                                            │                     │
 BE-HRD-451 ✅ [BE] ─> FE-HRD-399 ✅ ───────┴─> FE-HRD-400 🟡 ────┴──┐
                                                                     │
-BE-HRD-452 ✅ [BE] ─────────────────────────────────────────────────┴─> FE-HRD-401
+BE-HRD-452 ✅ [BE] ─────────────────────────────────────────────────┴─> FE-HRD-401 🟡
 ```
 
 `[BE]` = task backend pada `backend-roadmap.md` bagian 30, cermin baca-saja; tandanya disalin dari sana. `BE-HRD-445` sudah memuat `BE-HRD-444` dan `BE-HRD-451` sudah memuat `BE-HRD-447` s.d. `BE-HRD-450` lewat Grafik B100, sehingga tidak digambar ulang.
@@ -7647,9 +7647,9 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 * **Risiko / pemilik**: UI Lead HR.
 * **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-400.md`.
 
-#### `FE-HRD-401` — Verifikasi browser lima pintu Paket B
+#### 🟡 `FE-HRD-401` — Verifikasi browser lima pintu Paket B
 * **Slice / MVP**: `S-PKB` / Verifikasi
-* **Status**: Belum dikerjakan
+* **Status**: 🟡 **SEBAGIAN 23 November 2026** — lima akun uji per peran dibuat lewat API resmi (jabatan uji terpisah agar hak pegawai nyata tidak berubah); Chromium headed terhadap backend lokal dan DB dev: 32/32 skenario lulus, 0 panggilan ke alamat usang, 0 galat halaman; tangkapan Manajemen Role membuktikan `HrdWorkforceDashboard : Read` dan `CandidateEvaluation : ViewAll`; lint dan build lulus. **Belum terpenuhi:** AC1 untuk jalur berisi data `HRD-125`/`HRD-126` (DB dev tanpa rantai rekrutmen) dan bagian sanksi selesai `HRD-127` (status `RevokedOnAppeal` tidak pernah diisi backend; `Expired` menunggu worker 6 jam). Bukti: [laporan](../task/report/frontend/FE-HRD-401.md) dan laporan uji per menu di `testing/test-by-agy/`.
 * **Outcome**: Bukti browser (desktop dan ponsel) terhadap backend lokal untuk Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Tindak Disiplin, Riwayat Penyelesaian, dan bagian disiplin Employee 360, memakai akun yang memegang hak dan akun yang tidak.
 * **Requirement / keputusan**: UAT PRD 42.10 (`HRD-124` s.d. `HRD-129`); DoD PRD 42.11
 * **Kontrak**: `v29`

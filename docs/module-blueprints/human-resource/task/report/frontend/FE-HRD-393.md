@@ -16,7 +16,7 @@
 | Task mode | `CROSS-REPO` (source frontend; laporan dan tanda status di repository backend) |
 | Target tulis | `employee-360-view.jsx`, spec Playwright Paket B; laporan, roadmap, traceability HRD |
 | Model | Claude Opus 5.5 (melanjutkan sesi Codex GPT-5 yang terhenti karena batas pemakaian) |
-| Commit frontend saat dikerjakan | `6c05df212` (branch `HamzahV2`) + perubahan belum di-commit yang dicatat di 3.2 |
+| Commit frontend saat dikerjakan | `6c05df212` (branch `HamzahV2`); perbaikan sesi ini di-commit pengguna sebagai `6c1d4e368` |
 | Commit backend yang dijadikan rujukan | `a9c1af31` (branch `MHamzah`) |
 | Tanggal | 23 November 2026 |
 | Status | ✅ Selesai |
@@ -53,8 +53,8 @@ Atasan langsung yang membuka tab yang sama melihat "Data disiplin hanya untuk HR
 | Berkas | Perubahan | Status Git |
 | --- | --- | --- |
 | `src/components/view/hr/workforce-core/employee-360-view.jsx` | Kolom tabel disiplin dari `disciplinaryRecords`; baris `LEGACY` berlabel "Catatan lama" dan "Arsip" tanpa aksi; pesan "Data disiplin hanya untuk HR." bila `disciplineHidden` atau mode Atasan Langsung; ruas usang `disciplinarySanctions` tidak dibaca lagi. | Di-commit `6c05df212` |
-| `src/components/view/hr/workforce-core/employee-360-view.jsx` | `rowKey` memakai indeks baris agar dua catatan lama berjudul sama tidak bentrok. | Belum di-commit |
-| `tests/e2e/human-resource-package-b.spec.mjs` | `beforeEach`: route cadangan tingkat context untuk `**/api/v1/**` agar panggilan yang tidak dimock tidak jatuh ke backend asli; dua skenario `FE-HRD-393` diberi mock `/auth/permissions`; skenario ketiga untuk `disciplineHidden = true`; screenshot untuk ketiganya; NIK dikosongkan dari data mock. | Belum di-commit |
+| `src/components/view/hr/workforce-core/employee-360-view.jsx` | `rowKey` memakai indeks baris agar dua catatan lama berjudul sama tidak bentrok. | Di-commit `6c1d4e368` |
+| `tests/e2e/human-resource-package-b.spec.mjs` | `beforeEach`: route cadangan tingkat context untuk `**/api/v1/**` agar panggilan yang tidak dimock tidak jatuh ke backend asli; dua skenario `FE-HRD-393` diberi mock `/auth/permissions`; skenario ketiga untuk `disciplineHidden = true`; screenshot untuk ketiganya; NIK dikosongkan dari data mock. | Di-commit `6c1d4e368` |
 
 Route cadangan di `beforeEach` berlaku untuk seluruh skenario di berkas spec. Route tingkat page milik skenario selalu didahulukan Playwright, sehingga skenario lain tidak berubah perilakunya.
 
@@ -94,11 +94,11 @@ variant tidak sah          : 0
 
 | Layar | Screenshot | Catatan |
 | --- | --- | --- |
-| Employee 360 — akun HR | `test-with-agy/hr-paket-b-1123/FE-HRD-393-employee-360-discipline.png` | SP-001 Kedaluwarsa, SP-002 Dicabut Lewat Banding, satu baris Catatan Lama; tanpa NIK. |
-| Employee 360 — Atasan Langsung | `test-with-agy/hr-paket-b-1123/FE-HRD-393-employee-360-atasan.png` | "Data disiplin hanya untuk HR." di tempat tabel. |
-| Employee 360 — HR tanpa `ViewSanctions` | `test-with-agy/hr-paket-b-1123/FE-HRD-393-employee-360-hr-tanpa-hak.png` | Pesan yang sama; teks "Tidak ada catatan disiplin." tidak muncul. |
+| Employee 360 — akun HR | `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/FE-HRD-393-employee-360-discipline.png` | SP-001 Kedaluwarsa, SP-002 Dicabut Lewat Banding, satu baris Catatan Lama; tanpa NIK. |
+| Employee 360 — Atasan Langsung | `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/FE-HRD-393-employee-360-atasan.png` | "Data disiplin hanya untuk HR." di tempat tabel. |
+| Employee 360 — HR tanpa `ViewSanctions` | `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/FE-HRD-393-employee-360-hr-tanpa-hak.png` | Pesan yang sama; teks "Tidak ada catatan disiplin." tidak muncul. |
 
-Folder `test-with-agy/` berada di akar workspace, di luar kedua repository. Screenshot tidak disimpan di `test-results/` karena Playwright mengosongkan folder itu setiap kali dijalankan.
+Folder `QuilvianSystemFrontendDev/test-with-agy/` di-ignore Git (aturan skill `live-browser-testing`). Screenshot tidak disimpan di `test-results/` karena Playwright mengosongkan folder itu setiap kali dijalankan.
 
 ---
 
@@ -162,9 +162,9 @@ Folder `test-with-agy/` berada di akar workspace, di luar kedua repository. Scre
 | Hal | Isi |
 | --- | --- |
 | Peringatan | Mode Atasan Langsung menampilkan dua peringatan bertumpuk (akses terbatas bagian pribadi, lalu pesan disiplin). Keduanya benar; bila dianggap terlalu ramai, pesan pertama dapat dihapus pada task lain. |
-| Masalah yang diketahui | Screenshot `FE-HRD-394` s.d. `FE-HRD-398` yang dahulu dicatat di `test-results/human-resource-package-b/` terhapus oleh run Playwright berikutnya. Seluruh spec Paket B dijalankan ulang (15/15 lulus) dan screenshot-nya disalin ke `test-with-agy/hr-paket-b-1123/`; tautan di kelima laporan itu sudah diganti. |
+| Masalah yang diketahui | Screenshot `FE-HRD-394` s.d. `FE-HRD-398` yang dahulu dicatat di `test-results/human-resource-package-b/` terhapus oleh run Playwright berikutnya. Seluruh spec Paket B dijalankan ulang (15/15 lulus) dan screenshot-nya disalin ke `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/`; tautan di kelima laporan itu sudah diganti. |
 | Dependency backend | `BE-HRD-443` ✅ |
 | Perubahan sampingan | `NONE` |
 | Interupsi | Sesi sebelumnya terhenti karena batas pemakaian; dilanjutkan dari `6c05df212` tanpa mengulang pekerjaan yang sudah ada. |
-| Status Git | Perbaikan `rowKey` dan spec belum di-commit. |
+| Status Git | Di-commit pengguna sebagai `6c1d4e368` (23 November 2026, 15.17 WIB). |
 | Langkah berikutnya | `FE-HRD-399`, `FE-HRD-400`, lalu `FE-HRD-401`. |

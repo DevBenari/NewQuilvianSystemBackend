@@ -66,7 +66,7 @@ Route memakai `redirect` milik Next.js App Router, sama dengan pola route pengal
 
 | Layar | Screenshot | Catatan perbandingan dengan referensi |
 | --- | --- | --- |
-| `/hr/employee-relations/disciplinary-actions` → `/hrd/relations/sanctions` | `test-with-agy/hr-paket-b-1123/FE-HRD-394-redirect.png` | Route tujuan menampilkan heading "Surat Peringatan". Screenshot dibuat ulang 23 November 2026 saat regresi seluruh spec Paket B (15/15, laporan `FE-HRD-400`); salinan lama di `test-results/` terhapus oleh run Playwright berikutnya. |
+| `/hr/employee-relations/disciplinary-actions` → `/hrd/relations/sanctions` | `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/FE-HRD-394-redirect.png` | Route tujuan menampilkan heading "Surat Peringatan". Screenshot dibuat ulang 23 November 2026 saat regresi seluruh spec Paket B (15/15, laporan `FE-HRD-400`); salinan lama di `test-results/` terhapus oleh run Playwright berikutnya. |
 
 ---
 

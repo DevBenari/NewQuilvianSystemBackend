@@ -16,7 +16,7 @@
 | Task mode | `CROSS-REPO` (source frontend; laporan dan tanda status di repository backend) |
 | Target tulis | `menu-items.jsx`, `hr-master-data-sidebar-grouping.test.mjs`, spec Playwright Paket B; laporan, roadmap, traceability HRD |
 | Model | Claude Opus 5.5 |
-| Commit frontend saat dikerjakan | `6c05df212` (branch `HamzahV2`), perubahan belum di-commit |
+| Commit frontend saat dikerjakan | `6c05df212` (branch `HamzahV2`); hasil task di-commit pengguna sebagai `6c1d4e368` |
 | Commit backend yang dijadikan rujukan | `a9c1af31` (branch `MHamzah`) |
 | Tanggal | 23 November 2026 |
 | Status | 🟡 Sebagian — dua `pathname` ganda bawaan di luar Paket B masih ada (bagian 8) |
@@ -83,9 +83,9 @@ Grep anti-regresi bagian G: `menu-items.jsx` adalah data menu tanpa elemen tampi
 
 | Layar | Screenshot | Catatan |
 | --- | --- | --- |
-| `/hr/dashboard` | `test-with-agy/hr-paket-b-1123/FE-HRD-400-menu-dashboard-sdm.png` | Dashboard SDM aktif di bawah Master Data. |
-| `/hr/recruitment/screenings` | `test-with-agy/hr-paket-b-1123/FE-HRD-400-menu-rekrutmen.png` | Seleksi Administrasi aktif; Tes/Wawancara di bawahnya; butir rekrutmen lain tersembunyi karena akun uji tidak memegang haknya. |
-| `/hrd/relations/sanctions/history` | `test-with-agy/hr-paket-b-1123/FE-HRD-400-menu-hubungan-industrial.png` | Tindak Disiplin dan Riwayat Penyelesaian (aktif); tidak ada "Teguran". |
+| `/hr/dashboard` | `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/FE-HRD-400-menu-dashboard-sdm.png` | Dashboard SDM aktif di bawah Master Data. |
+| `/hr/recruitment/screenings` | `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/FE-HRD-400-menu-rekrutmen.png` | Seleksi Administrasi aktif; Tes/Wawancara di bawahnya; butir rekrutmen lain tersembunyi karena akun uji tidak memegang haknya. |
+| `/hrd/relations/sanctions/history` | `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/FE-HRD-400-menu-hubungan-industrial.png` | Tindak Disiplin dan Riwayat Penyelesaian (aktif); tidak ada "Teguran". |
 
 ---
 
@@ -159,5 +159,5 @@ Suite yang sama dijalankan pada salinan HEAD `6c05df212` (git worktree sementara
 | Dependency backend | Tidak ada (hak `HrdWorkforceDashboard : Read` sudah terdaftar oleh `BE-HRD-448`). |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | Seluruh berkas belum di-commit. |
+| Status Git | Di-commit pengguna sebagai `6c1d4e368` (23 November 2026, 15.17 WIB). |
 | Langkah berikutnya | Keputusan pengguna atas dua pintu ganda, lalu `FE-HRD-401`. |

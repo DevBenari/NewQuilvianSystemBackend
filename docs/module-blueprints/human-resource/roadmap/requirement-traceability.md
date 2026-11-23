@@ -2060,7 +2060,7 @@ Dasar: decision log revision `42` bagian 56 (`HRD-DEC-229` s.d. `HRD-DEC-239`), 
 | `FR-PKB-18` Layar Sanksi mengirim `status` | `HRD-DEC-230` | API 35.2 | — | `FE-HRD-395` ✅ ([laporan](../task/report/frontend/FE-HRD-395.md)) | `AT-HRD-PKB-23` | `HRD-128` | ✅ |
 | `FR-PKB-19` Butir menu Paket B | `HRD-DEC-231` | Frontend 34.1; `VR-PKB-11` | — | `FE-HRD-400` 🟡 ([laporan](../task/report/frontend/FE-HRD-400.md)) | `AT-HRD-PKB-25` | `HRD-129` | 🟡 |
 | `FR-PKB-20` Label "Tindak Disiplin" | `HRD-DEC-239` | Frontend 34.1 | — | `FE-HRD-400` 🟡 ([laporan](../task/report/frontend/FE-HRD-400.md)) | `AT-HRD-PKB-23` | `HRD-129` | 🟡 |
-| Kepatuhan kontrak `v29`, hak baru, catatan rilis | — | Seluruh bagian | `BE-HRD-452` ✅ ([laporan](../task/report/backend/BE-HRD-452.md)) | `FE-HRD-401` | DoD 42.11 | `HRD-124` s.d. `HRD-129` | 🟡 |
+| Kepatuhan kontrak `v29`, hak baru, catatan rilis | — | Seluruh bagian | `BE-HRD-452` ✅ ([laporan](../task/report/backend/BE-HRD-452.md)) | `FE-HRD-401` 🟡 ([laporan](../task/report/frontend/FE-HRD-401.md)) | DoD 42.11 | `HRD-124` s.d. `HRD-129` | 🟡 |
 
 **Celah cakupan (coverage gap):**
 
@@ -2077,5 +2077,12 @@ Pertanyaan yang tetap terbuka tanpa memblokir: kueri baca-saja jumlah `WfpDiscip
 > **Pemutakhiran 23 November 2026 (build backend Paket B).** Seluruh 10 task backend dikerjakan: 8 ✅, `BE-HRD-447` dan `BE-HRD-452` ✅ (perbandingan respons layar Kontrak dan waktu muat `/summary` menunggu izin uji di DB dev). `dotnet build` 0 error, QBE Strict `PASS`, registri hak `IsValid=True`; tanpa migration. Status baris mengikuti task frontend yang belum dikerjakan (🟡 bila backend sudah ada); `FR-PKB-10` tidak punya task frontend sehingga ✅. Koreksi catatan rilis: yang kehilangan riwayat disiplin di Employee 360 adalah pengguna mode HR tanpa `ViewSanctions`, bukan atasan langsung ([BE-HRD-452](../task/report/backend/BE-HRD-452.md)).
 
 > **Pemutakhiran 23 November 2026 (build frontend Paket B, lanjutan).** `FE-HRD-393` ✅ dan `FE-HRD-399` ✅; `FE-HRD-400` 🟡 karena `AT-HRD-PKB-25` meminta `pathname` unik di seluruh menu SDM, sedangkan dua `pathname` ganda bawaan adapter `FE-HRD-384`/`FE-HRD-385` (`/corporate/hrd/learning/certificates`, `/hr/master-data/competency`) masih ada. Seluruh spec Playwright Paket B 15/15 lulus; suite unit penuh tanpa kegagalan baru. Baris `FR-PKB-01`–`03`, `05`, `14`–`16` menjadi ✅; `FR-PKB-04`, `19`, `20` 🟡 mengikuti `FE-HRD-400`; baris kepatuhan `v29` tetap 🟡 menunggu `FE-HRD-401`.
+
+> **Pemutakhiran 23 November 2026 (verifikasi live `FE-HRD-401`).** Gerbang G4 tertutup: lima akun uji `uat.pkb.*@rsmmc.local` dibuat lewat API resmi atas izin pengguna, masing-masing dengan jabatan uji tersendiri. Chromium headed terhadap backend lokal dan DB dev: 32/32 skenario lulus, 0 panggilan ke `/v1/hr/workforce-profile/disciplinary-actions`. `FE-HRD-401` 🟡 karena tiga hal yang belum dapat diuji:
+> - jalur berisi data `HRD-125`/`HRD-126`, karena DB dev tidak punya rantai rekrutmen;
+> - sanksi selesai `HRD-127`, karena backend tidak pernah menetapkan `RevokedOnAppeal` — celah baru, perlu task backend atau keputusan pemilik;
+> - status `Expired` yang baru terisi saat worker EMP-W1 berjalan (tiap 6 jam).
+>
+> Laporan per menu di `testing/test-by-agy/`.
 
 > **Pemutakhiran 23 November 2026 (uji runtime backend Paket B).** Atas izin pengguna, backend dijalankan di DB dev: 26/27 skenario API `PASS`, respons layar Kontrak sebelum/sesudah refactor identik, median `/summary` 226 ms; `BE-HRD-447` dan `BE-HRD-452` kini ✅, sehingga seluruh 10 task backend Paket B ✅. Status baris tetap mengikuti task frontend yang belum selesai. Kueri `HRD-DEC-238` butir 1: tabel catatan disiplin lama kosong (0 baris).

@@ -16,7 +16,7 @@
 | Task mode | `CROSS-REPO` (source frontend; laporan dan tanda status di repository backend) |
 | Target tulis | Source frontend; laporan, roadmap, traceability HRD |
 | Model | Claude Opus 5.5 |
-| Commit frontend saat dikerjakan | `6c05df212` (branch `HamzahV2`), perubahan belum di-commit |
+| Commit frontend saat dikerjakan | `6c05df212` (branch `HamzahV2`); hasil task di-commit pengguna sebagai `6c1d4e368` |
 | Commit backend yang dijadikan rujukan | `a9c1af31` (branch `MHamzah`) |
 | Tanggal | 23 November 2026 |
 | Status | ✅ Selesai |
@@ -110,9 +110,9 @@ variant tidak sah          : 0
 
 | Layar | Screenshot | Catatan |
 | --- | --- | --- |
-| `/hr/dashboard` dengan daftar nama | `test-with-agy/hr-paket-b-1123/FE-HRD-399-dashboard-sdm-drilldown.png` | Jenis SIP/STR; kartu Sudah Habis tersorot; dua nama dengan lisensi tersamar. |
-| `/hr/dashboard` ringkasan gagal | `test-with-agy/hr-paket-b-1123/FE-HRD-399-dashboard-sdm-gagal.png` | Hanya pesan dan Coba lagi; tidak ada kartu atau panel. |
-| `/hr/dashboard` serba kosong | `test-with-agy/hr-paket-b-1123/FE-HRD-399-dashboard-sdm-kosong.png` | Pesan kosong per panel dan daftar nama kosong. |
+| `/hr/dashboard` dengan daftar nama | `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/FE-HRD-399-dashboard-sdm-drilldown.png` | Jenis SIP/STR; kartu Sudah Habis tersorot; dua nama dengan lisensi tersamar. |
+| `/hr/dashboard` ringkasan gagal | `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/FE-HRD-399-dashboard-sdm-gagal.png` | Hanya pesan dan Coba lagi; tidak ada kartu atau panel. |
+| `/hr/dashboard` serba kosong | `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/FE-HRD-399-dashboard-sdm-kosong.png` | Pesan kosong per panel dan daftar nama kosong. |
 
 `SummaryGrid` menampilkan judul kartu "Pengingat H-60" sebagai "PENGINGAT H 60" (normalisasi judul bawaan komponen). Perilaku ini sama persis dengan layar Perpanjangan Kontrak yang memakai label dan komponen yang sama, sehingga dibiarkan.
 
@@ -193,5 +193,5 @@ Baris daftar nama membuka route existing `/hr/employee-360/{workforceProfileId}`
 | Dependency backend | `BE-HRD-451` ✅ |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | Seluruh berkas belum di-commit. |
+| Status Git | Di-commit pengguna sebagai `6c1d4e368` (23 November 2026, 15.17 WIB). |
 | Langkah berikutnya | `FE-HRD-400` (butir menu), lalu `FE-HRD-401`. |

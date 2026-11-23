@@ -78,7 +78,7 @@ OK — 2 berkas diperiksa, 0 temuan.
 
 | Layar | Screenshot | Catatan |
 | --- | --- | --- |
-| `/hr/recruitment/evaluations` | `test-with-agy/hr-paket-b-1123/FE-HRD-397-tes-wawancara.png` | Jalur klinis, veto, dan pesan 403 terlihat. Screenshot dibuat ulang 23 November 2026 saat regresi seluruh spec Paket B (15/15, laporan `FE-HRD-400`); salinan lama di `test-results/` terhapus oleh run Playwright berikutnya. |
+| `/hr/recruitment/evaluations` | `QuilvianSystemFrontendDev/test-with-agy/screenshots/hr-paket-b-1123/FE-HRD-397-tes-wawancara.png` | Jalur klinis, veto, dan pesan 403 terlihat. Screenshot dibuat ulang 23 November 2026 saat regresi seluruh spec Paket B (15/15, laporan `FE-HRD-400`); salinan lama di `test-results/` terhapus oleh run Playwright berikutnya. |
 
 ---
 
