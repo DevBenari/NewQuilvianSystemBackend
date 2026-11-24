@@ -49,6 +49,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             _dbContext = dbContext;
         }
 
+        /// <summary>
+        /// Nomor batch Approved/Executed per pegawai (HRD-DEC-054). Satu pegawai dapat tercatat pada lebih dari satu
+        /// baris batch tersebut (index unik baris hanya per BatchId + WorkforceProfileId), sehingga baris dikelompokkan
+        /// per pegawai dan diambil batch paling awal; ToDictionaryAsync langsung gagal karena kunci ganda (BE-HRD-FIX-005).
+        /// </summary>
+        private async Task<Dictionary<Guid, string>> GetApprovedBatchNumberByProfileAsync(List<Guid> profileIds, CancellationToken ct)
+        {
+            var batchRows = await _dbContext.HrdInitialPlacementBatchRows
+                .AsNoTracking()
+                .Where(r => profileIds.Contains(r.WorkforceProfileId) &&
+                            (r.Batch!.BatchStatus == "Approved" || r.Batch.BatchStatus == "Executed") &&
+                            !r.Batch.IsDelete)
+                .Select(r => new { r.WorkforceProfileId, r.Batch!.BatchNumber, BatchCreateDateTime = r.Batch.CreateDateTime })
+                .ToListAsync(ct);
+
+            return batchRows
+                .GroupBy(r => r.WorkforceProfileId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderBy(r => r.BatchCreateDateTime).ThenBy(r => r.BatchNumber).First().BatchNumber);
+        }
+
         public async Task<List<InitialBatchRowResponse>> GetTemplateRowsAsync(CancellationToken ct = default)
         {
             var today = DateTime.UtcNow.Date;
@@ -78,13 +100,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 .ToDictionaryAsync(x => x.WorkforceProfileId, ct);
 
             // Bulk fetch check if already in an approved/executed initial batch (HRD-DEC-054)
-            var approvedBatchRows = await _dbContext.HrdInitialPlacementBatchRows
-                .Include(r => r.Batch)
-                .AsNoTracking()
-                .Where(r => profileIds.Contains(r.WorkforceProfileId) &&
-                            (r.Batch.BatchStatus == "Approved" || r.Batch.BatchStatus == "Executed") &&
-                            !r.Batch.IsDelete)
-                .ToDictionaryAsync(r => r.WorkforceProfileId, r => r.Batch.BatchNumber, ct);
+            var approvedBatchRows = await GetApprovedBatchNumberByProfileAsync(profileIds, ct);
 
             // Collect position IDs for validation & department checking
             var positionIds = orgAssignments
@@ -301,13 +317,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 .ToDictionaryAsync(x => x.WorkforceProfileId, ct);
 
             // Check approved/executed initial placement batch rows (AUD-HRD07-15 / HRD-DEC-054)
-            var approvedBatchRows = await _dbContext.HrdInitialPlacementBatchRows
-                .Include(r => r.Batch)
-                .AsNoTracking()
-                .Where(r => profileIds.Contains(r.WorkforceProfileId) &&
-                            (r.Batch.BatchStatus == "Approved" || r.Batch.BatchStatus == "Executed") &&
-                            !r.Batch.IsDelete)
-                .ToDictionaryAsync(r => r.WorkforceProfileId, r => r.Batch.BatchNumber, ct);
+            var approvedBatchRows = await GetApprovedBatchNumberByProfileAsync(profileIds, ct);
 
             for (int i = 0; i < rows.Count; i++)
             {
