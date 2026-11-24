@@ -361,7 +361,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             var isSensitiveChanged = (entity.IsTaxDependent != request.IsTaxDependent) ||
                 (entity.IsBenefitEligible != request.IsBenefitEligible) ||
                 (entity.IsInsuranceEligible != request.IsInsuranceEligible) ||
-                (request.FamilyMemberId.HasValue && entity.FamilyMemberId != request.FamilyMemberId.Value);
+                // BE-HRD-393: mengosongkan relasi anggota keluarga juga termasuk perubahan relasi.
+                (entity.FamilyMemberId != NormalizeNullableGuid(request.FamilyMemberId));
 
             if (isSensitiveChanged)
             {
@@ -711,11 +712,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             return (true, null);
         }
 
+        // BE-HRD-401: riwayat pegawai yang sudah dinonaktifkan (offboarding/purnatugas) tetap dapat dibuka; hanya profil terhapus yang dianggap tidak ada.
         private async Task<bool> WorkforceProfileExistsAsync(Guid workforceProfileId, CancellationToken cancellationToken)
         {
             return workforceProfileId != Guid.Empty && await _dbContext.MstWorkforceProfiles
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == workforceProfileId && x.IsActive && !x.IsDelete, cancellationToken);
+                .AnyAsync(x => x.Id == workforceProfileId && !x.IsDelete, cancellationToken);
         }
 
         private async Task<Dictionary<Guid, string>> GetActorNameMapAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken)

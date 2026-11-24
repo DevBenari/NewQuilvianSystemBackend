@@ -108,7 +108,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         public string DocumentTypeName { get; set; } = string.Empty;
         public string EmployeeNameMasked { get; set; } = string.Empty;
         public string EmployeeNumberMasked { get; set; } = string.Empty;
-        public string IssuedByHospital { get; set; } = "Rumah Sakit Quilvian Utama";
+        public string IssuedByHospital { get; set; } = string.Empty;
         public DateTime IssuedAt { get; set; }
         public DateTime? ValidUntil { get; set; }
         public string SignerName { get; set; } = string.Empty;

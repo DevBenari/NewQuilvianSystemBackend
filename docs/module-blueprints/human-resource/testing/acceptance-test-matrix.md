@@ -4,15 +4,15 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `testing/acceptance-test-matrix.md` |
-| `contract_version` | `v6` |
-| `last_changed_in` | `v7` — bagian 15 (`S-D1`) ditambahkan 3 November 2026; bagian lain tidak berubah sejak `v6` |
+| `contract_version` | `v6` sebagai baseline; amandemen per bagian mengikuti kontrak sampai `v30` (bagian 39, approved 23 November 2026); bagian 38 memakai identitas `NAV-A1` tanpa perubahan kontrak API |
+| `last_changed_in` | `NAV-A1` — bagian 38 penyesuaian navigasi SDM ditambahkan 20 November 2026 |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`), bersama pemilik proses untuk skenario UAT |
-| `approved_by` / `approved_at` | **Hanya bagian 15** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
+| `approved_by` / `approved_at` | Bagian 15 (`S-D1`) disetujui 2026-11-03; bagian 38 (`NAV-A1`) disetujui pengguna 2026-11-20. Bagian lain mengikuti status lokalnya; status dokumen keseluruhan tetap `draft` |
 | `input_revision` | `contracts/state-transition-matrix.md` `v6`; `contracts/validation-matrix.md` `v6`; `contracts/api-contract.md` `v6`; `00-interview-decisions.md` rev `16` (`HRD-DEC-046` s.d. `HRD-DEC-057`) |
 | `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
-| Frontend SHA | `fff76a1b394d4b247c70a04f106c8ec098c9696e` |
+| Frontend SHA | `51853893e9f229f0f22f5e86bc5f2e8c08946779` untuk bagian 38; bagian historis mengikuti SHA lokal masing-masing |
 
 ---
 
@@ -1213,3 +1213,74 @@ Dasar: `HRD-DEC-229` s.d. `HRD-DEC-236`. Bukti backend memakai harness `Tests/Qu
 | `AT-HRD-WF-37` | Pemeriksaan pra-rilis | Jalankan kueri pra-rilis pada basis data dengan dan tanpa penugasan engine lama terbuka | Hasil 0 → lanjut; hasil > 0 → rilis tertahan dan daftar tiket ditampilkan | FR-WF-33, `VR-WF-33` |
 | `AT-HRD-WF-38` | Layar: kotak terpadu ujung-ke-ujung | Browser: atasan menyetujui SPPD, mengembalikan cuti, menolak satu permohonan dengan alasan, menyetujui massal lembur; Plh memutuskan satu tugas; pemohon membuka "Permohonan Saya" | Semua status modul berubah sesuai aksi; tidak ada isian PIN; tombol nonaktif selama permintaan; galat server tampil apa adanya; ponsel terbaca | FR-WF-26 s.d. FR-WF-32 |
 | `AT-HRD-WF-39` | Pensiun kotak lama sesudah terbukti | Sesudah `AT-HRD-WF-38` lulus untuk SPPD dan Cuti, buka `/hr/workflow/approval-inbox` | Dialihkan ke kotak terpadu; menu kotak lama dan layar delegasi lama tidak tampil | FR-WF-33, `HRD-DEC-231` |
+
+---
+
+## 38. Matriks Uji Penerimaan Penyesuaian Navigasi SDM — Paket A (approved 20 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Cakupan | Label, urutan, primary navigation owner, permission preservation, dan anti-duplikasi menu SDM |
+| Status | `PARTIAL / VERIFYING` |
+| Persetujuan | Pengguna, 20 November 2026 |
+| Frontend SHA | `51853893e9f229f0f22f5e86bc5f2e8c08946779` (`HamzahV2`) |
+| Perubahan backend/API | Tidak ada |
+| Cakupan tertunda | Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian, dan konflik Tindak Disiplin |
+
+| ID | Skenario | Jenis | Hasil yang diharapkan | Status/bukti |
+| --- | --- | --- | --- | --- |
+| `AT-HRD-NAV-01` | Buka root SDM dan periksa Perencanaan Kebutuhan SDM | `UNIT` | Empat item awal: Analisa Beban Kerja, Formasi Pegawai, Pengajuan Kebutuhan Tenaga, Evaluasi Kebutuhan | `PASS` — test `HR-07` |
+| `AT-HRD-NAV-02` | Periksa Rekrutmen & Seleksi | `UNIT` | Lowongan, Pelamar, dan Onboarding ditemukan pada route existing; fungsi non-BA tetap ada | `PASS` — test `HR-07` |
+| `AT-HRD-NAV-03` | Periksa Administrasi Kepegawaian | `UNIT` | Lima fungsi BA berada di urutan awal dan tidak ada `Relasi Atasan` sebagai owner kedua | `PASS` — test `HR-07` |
+| `AT-HRD-NAV-04` | Periksa Data Induk Pegawai | `UNIT` | Parent tidak aktif pada sidebar; Master Data tetap menjadi owner | `PASS` — test `HR-07` |
+| `AT-HRD-NAV-05` | Periksa Penilaian Kerja dan Kompetensi & Kredensial | `UNIT` | Lima fungsi BA kinerja berada di urutan awal; seluruh OPPE/FPPE hanya berada pada Penilaian Kerja | `PASS` — test `HR-08` |
+| `AT-HRD-NAV-06` | Periksa Teguran dan Pelanggaran | `UNIT` | Keduanya berada pada Hubungan Industrial & Terminasi; parent Disiplin kedua tidak dibuat | `PASS` — test `HR-08` |
+| `AT-HRD-NAV-07` | Periksa uniqueness leaf menu | `UNIT` | 54 leaf menu, 54 `key`, dan 54 `pathname` unik pada cakupan test | `PASS` — test `HR-02`; 8/8 test file target lulus |
+| `AT-HRD-NAV-08` | Build aplikasi sesudah reorganisasi | `BUILD` | Build produksi selesai tanpa error route/import | `PASS` — `npm run build`, 890 route/page |
+| `AT-HRD-NAV-09` | Pengguna dengan permission berbeda membuka sidebar | `E2E` | Hanya item berizin tampil; parent kosong tidak tampil; 403 tidak disamarkan sebagai data kosong | `PENDING` — butuh akun runtime positif/negatif |
+| `AT-HRD-NAV-10` | Navigasi dan refresh setiap menu terdampak di browser headed | `E2E / MANUAL` | Route terbuka, parent aktif benar, refresh mempertahankan active state, tidak ada error console/network | `PENDING` — live browser belum dijalankan |
+| `AT-HRD-NAV-11` | Coba publikasi Tindak Disiplin sebelum kontrak diperbaiki | `CONTRACT` | Item tidak dipublikasikan; tidak ada link yang mengarah ke base URL frontend yang tidak cocok | `PASS` untuk pengaman publikasi; perbaikan kontrak tetap `CONFLICT` |
+| `AT-HRD-NAV-12` | Periksa menu non-BA | `UNIT / REGRESSION` | Diklat, K3RS, SPPD, Layanan Mandiri, dan item existing lain tidak hilang | `PASS` melalui snapshot/struktur test target; visual regression tetap mengikuti `AT-HRD-NAV-10` |
+
+Acceptance Paket A belum boleh ditutup `DONE` sampai `AT-HRD-NAV-09` dan
+`AT-HRD-NAV-10` memiliki bukti runtime yang dapat ditelusuri.
+
+---
+
+## 39. Matriks Uji Penerimaan Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v30`, approved 23 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `last_changed_in` | `v30` — 22 November 2026 |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`) |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `input_revision` | Decision log revision `42` bagian 57 |
+
+| ID | Skenario | Prasyarat | Hasil yang diharapkan | Jenis | Dasar |
+| --- | --- | --- | --- | --- | --- |
+| `AT-HRD-PKB-01` | Ringkasan dashboard | 3 pegawai aktif (1 masuk bulan ini), 1 nonaktif keluar bulan ini | `activeCount = 3`, `newThisMonthCount = 1`, `leftThisMonthCount = 1`, `inactiveCount = 1` | BE integrasi | `HRD-DEC-243` |
+| `AT-HRD-PKB-02` | Distribusi profesi | 2 perawat, 1 dokter, 1 tanpa profesi (semua aktif) | Tiga baris: Perawat 2, Dokter 1, "Belum diisi" 1 | BE | `HRD-DEC-243` |
+| `AT-HRD-PKB-03` | Skorsing tetap aktif | Pegawai aktif dengan skorsing `Active` | Tetap dihitung `activeCount` | BE | `HRD-ASM-93` |
+| `AT-HRD-PKB-04` | Kontrak sama dengan layar Kontrak | Data kontrak uji | Angka `contractExpiry.*` = `renewal-summary` dan `ExpiringSoonCount` | BE | `HRD-DEC-245` |
+| `AT-HRD-PKB-05` | Regresi refactor kelompok kontrak | Data uji yang sama sebelum dan sesudah refactor | `GET employment-contracts/summary` dan `renewal-summary` tidak berubah | BE regresi | 38.9 |
+| `AT-HRD-PKB-06` | Dokumen kedaluwarsa | SIP lewat 2 hari, STR seumur hidup, SPK `Active` sisa 20 hari, SPK `Revoked` sisa 10 hari, sertifikat sisa 45 hari | `EXPIRED` 1 (SIP), `WITHIN_30` 1 (SPK aktif), `DAYS_31_60` 1 (sertifikat); STR seumur hidup dan SPK `Revoked` tidak dihitung | BE | `HRD-DEC-243` |
+| `AT-HRD-PKB-07` | Drill-down | Klik `DOCUMENT_EXPIRY`/`EXPIRED`/`SIP_STR` | Daftar berisi nama pemilik SIP; nomor lisensi hanya 4 karakter terakhir; tanpa gaji/NIK | BE + FE | Permission 34.2 |
+| `AT-HRD-PKB-08` | Validasi drill-down | `panel=PROFESSION&bucket=EXPIRED` | `400` `VR-PKB-02` | BE | `VR-PKB-02` |
+| `AT-HRD-PKB-09` | Hak dashboard | Akun tanpa `HrdWorkforceDashboard : Read` | API `403`; butir menu Dashboard SDM tidak tampil | BE + FE | `VR-PKB-11` |
+| `AT-HRD-PKB-10` | Riwayat Penyelesaian multi-status | Sanksi `Active`, `Expired`, `RevokedOnAppeal` | `statuses=Expired&statuses=RevokedOnAppeal` → dua baris, tanpa `Active` | BE | `HRD-DEC-242` |
+| `AT-HRD-PKB-11` | Validasi status | `statuses=Closed`; lalu `status=Active&statuses=Expired` | `400` `VR-PKB-04`; `400` `VR-PKB-05` | BE | `VR-PKB-04/05` |
+| `AT-HRD-PKB-12` | Layar Riwayat Penyelesaian | Data seperti PKB-10 + 1 insiden `ResolvedNoSanction` | Layar menampilkan 2 sanksi selesai dan 1 insiden ditutup tanpa sanksi, semua baca-saja | FE | `HRD-DEC-242` |
+| `AT-HRD-PKB-13` | 360 untuk HR Relations | Pegawai dengan SP 1 resmi (`EmployeeId` = `MstEmployee.Id`), SP 2 resmi (`EmployeeId` = `WorkforceProfileId`), 1 catatan lama | `disciplinaryRecords` berisi 2 `OFFICIAL` + 1 `LEGACY`; `disciplineHidden = false` | BE | `HRD-DEC-246` |
+| `AT-HRD-PKB-14` | 360 untuk atasan langsung | Akun dengan `HrdEmployee360 : Read` tanpa `ViewSanctions` | `disciplineHidden = true`; kedua daftar kosong; layar menampilkan "Data disiplin hanya untuk HR." | BE + FE | `VR-PKB-09`, `HRD-ASM-94` |
+| `AT-HRD-PKB-15` | Catatan lama baca-saja | Seperti PKB-13 | Baris `LEGACY` tanpa tombol ubah/terbitkan; diberi label "Catatan lama" | FE | `VR-PKB-10` |
+| `AT-HRD-PKB-16` | Seleksi Administrasi | Pelamar Sari: lamaran ICU `Passed`, IGD `Pending` | Layar bawaan menampilkan lamaran IGD; filter "Semua" menampilkan dua baris | FE | `HRD-DEC-244` |
+| `AT-HRD-PKB-17` | Gugur otomatis STR | Lamaran klinis tanpa STR berlaku | Tampil "Gugur" dengan hasil cek STR, tanpa tindakan Recruiter | FE (data existing) | `HRD-DEC-076` |
+| `AT-HRD-PKB-18` | Recruiter melihat semua | Akun dengan `ViewAll`; evaluasi milik 2 penilai berbeda | Kedua evaluasi tampil | BE + FE | `HRD-DEC-241` |
+| `AT-HRD-PKB-19` | Asesor hanya melihat miliknya | Akun asesor tanpa `ViewAll` | Daftar hanya evaluasi `EvaluatorUserId` miliknya | BE | `VR-PKB-07` |
+| `AT-HRD-PKB-20` | Asesor membuka evaluasi lain | Akun asesor, id evaluasi penilai lain | `403` "Evaluasi ini ditugaskan kepada penilai lain." | BE | `VR-PKB-07` |
+| `AT-HRD-PKB-21` | Kirim nilai oleh bukan penilai | Akun dengan `EvaluateClinical` + `ViewAll`, evaluasi milik penilai lain | `403` `VR-PKB-08`; evaluasi tidak berubah | BE | `HRD-ASM-98` |
+| `AT-HRD-PKB-22` | Jalur evaluasi | Evaluasi `HrInterview`, `ClinicalAssessment`, `UserInterview` | `track=HR` → 1 baris; `track=CLINICAL` → 2 baris; `track=X` → `400` | BE | `HRD-ASM-96`, `VR-PKB-06` |
+| `AT-HRD-PKB-23` | Tindak Disiplin | Akun HR Relations | Butir menu membuka daftar sanksi alur resmi; data sama dengan `GET /hrd/disciplinary/sanctions` | FE | `HRD-DEC-238` |
+| `AT-HRD-PKB-24` | Halaman lama dipensiunkan | Buka `/hr/employee-relations/disciplinary-actions` | Dialihkan ke layar Tindak Disiplin; tidak ada panggilan ke `/v1/hr/workforce-profile/disciplinary-actions` | FE | `HRD-DEC-238` butir 2 |
+| `AT-HRD-PKB-25` | Anti-duplikasi menu | Seluruh menu SDM | Setiap `pathname` dan `key` unik; butir Paket B tampil sesuai hak; tidak ada butir menuju placeholder | FE unit (`hr-master-data-sidebar-grouping.test.mjs`) | `HRD-DEC-239`, frontend 34.3 |
+| `AT-HRD-PKB-26` | Keadaan gagal dashboard | API `/summary` gagal | Pesan "Data dashboard gagal dimuat." dan tombol Coba lagi; tidak ada angka nol palsu | FE | `INT-HR-115` |

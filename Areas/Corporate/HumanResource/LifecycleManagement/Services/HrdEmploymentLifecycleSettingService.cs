@@ -41,6 +41,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     ContractEscalationDays = 14,
                     ProbationReminderDays = 14,
                     LateStartFlagDays = 3,
+                    NormalRetirementAge = null,
                     RowVersion = Guid.Empty
                 }, "Pengaturan default siklus kepegawaian berhasil dimuat.");
             }
@@ -54,6 +55,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 ContractEscalationDays = setting.ContractEscalationDays,
                 ProbationReminderDays = setting.ProbationReminderDays,
                 LateStartFlagDays = setting.LateStartFlagDays,
+                NormalRetirementAge = setting.NormalRetirementAge,
                 RowVersion = setting.RowVersion
             }, "Pengaturan siklus kepegawaian berhasil diambil.");
         }
@@ -85,6 +87,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     ContractEscalationDays = request.ContractEscalationDays,
                     ProbationReminderDays = request.ProbationReminderDays,
                     LateStartFlagDays = request.LateStartFlagDays,
+                    NormalRetirementAge = request.NormalRetirementAge,
                     RowVersion = Guid.NewGuid(),
                     CreateDateTime = DateTime.UtcNow,
                     CreateBy = userId
@@ -102,6 +105,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 setting.ContractEscalationDays = request.ContractEscalationDays;
                 setting.ProbationReminderDays = request.ProbationReminderDays;
                 setting.LateStartFlagDays = request.LateStartFlagDays;
+                if (request.NormalRetirementAge.HasValue)
+                {
+                    setting.NormalRetirementAge = request.NormalRetirementAge.Value;
+                }
                 setting.RowVersion = Guid.NewGuid();
                 setting.UpdateDateTime = DateTime.UtcNow;
                 setting.UpdateBy = userId;

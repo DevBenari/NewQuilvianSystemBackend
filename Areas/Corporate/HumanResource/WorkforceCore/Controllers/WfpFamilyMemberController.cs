@@ -352,8 +352,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             var isRelationshipChanged = !string.IsNullOrEmpty(oldRelationship) && !string.Equals(oldRelationship, newRelationship, StringComparison.OrdinalIgnoreCase);
             var isIdentityChanged = !string.IsNullOrEmpty(oldIdentity) && !string.Equals(oldIdentity, newIdentity, StringComparison.OrdinalIgnoreCase);
             var isMaritalChanged = !string.IsNullOrEmpty(oldMarital) && !string.Equals(oldMarital, newMarital, StringComparison.OrdinalIgnoreCase);
+            // BE-HRD-392: jenis identitas ikut dikunci bila nomor identitas anggota keluarga sudah ada.
+            var isIdentityTypeChanged = !string.IsNullOrEmpty(oldIdentity) && !string.Equals(
+                entity.IdentityType?.Trim() ?? string.Empty,
+                Normalize(request.IdentityType) ?? string.Empty,
+                StringComparison.OrdinalIgnoreCase);
 
-            if (isRelationshipChanged || isIdentityChanged || isMaritalChanged)
+            if (isRelationshipChanged || isIdentityChanged || isMaritalChanged || isIdentityTypeChanged)
             {
                 return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
                     StatusCodes.Status409Conflict,
@@ -528,11 +533,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             return (true, null);
         }
 
+        // BE-HRD-401: riwayat pegawai yang sudah dinonaktifkan (offboarding/purnatugas) tetap dapat dibuka; hanya profil terhapus yang dianggap tidak ada.
         private async Task<bool> WorkforceProfileExistsAsync(Guid id)
         {
             return await _dbContext.Set<MstWorkforceProfile>()
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == id && x.IsActive && !x.IsDelete);
+                .AnyAsync(x => x.Id == id && !x.IsDelete);
         }
 
         private IActionResult WorkforceProfileNotFound() =>

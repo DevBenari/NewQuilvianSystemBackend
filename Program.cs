@@ -1160,6 +1160,7 @@ try
     // Workforce Core - Unified SK Kepegawaian, Employee 360, & Initial Batch Placement (BE-HRD-024..027)
     builder.Services.AddScoped<IHrdPersonnelActionOrderService, HrdPersonnelActionOrderService>();
     builder.Services.AddScoped<IHrdEmployee360Service, HrdEmployee360Service>();
+    builder.Services.AddScoped<IHrdWorkforceDashboardService, HrdWorkforceDashboardService>(); // Paket B BE-HRD-458: Dashboard SDM
     builder.Services.AddScoped<IHrdInitialPlacementBatchService, HrdInitialPlacementBatchService>();
     // MSL-13 (register-masalah-hr.md, 18 Nov 2026): worker penjadwal SDM hanya berjalan pada Runtime:Role All/Worker.
     // Pada Blue-Green (BLUE/GREEN = Web, satu container Worker) pendaftaran tanpa gerbang membuat setiap worker berjalan tiga kali.
@@ -1273,6 +1274,8 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.IEmployeeEmploymentRecordService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.EmployeeEmploymentRecordService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.EmployeeEmploymentRecordService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.IWorkforceIdentityResolverService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.WorkforceIdentityResolverService>();
+    // BE-HRD-401: penjaga reaktivasi purnatugas dan kunci akun skorsing pada Data Induk.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.IWorkforceLifecycleGuardService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.WorkforceLifecycleGuardService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.WorkforceIdentityResolverService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.IWfpContractHistoryWriteService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpContractHistoryWriteService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpContractHistoryWriteService>();
@@ -1574,6 +1577,9 @@ try
     // Slice S-D4 (HR Service Management) - MVP-40 & MVP-41 (Profile Sync, Document Issuance 2-Tier, Anti-Manual Guard, PDF Rendering, E-Dossier & Anti-Brute-Force Rate Limiter)
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IWorkforceProfileSyncService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.WorkforceProfileSyncService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IEmployeeDocumentIssuanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.EmployeeDocumentIssuanceService>();
+    // BE-HRD-382..385: Surat Tugas multi-pegawai berjenjang dan registri dokumen administrasi lintas jenis.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.AssignmentLetterService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.AdministrativeDocumentRegistryService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IPinRateLimiterService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.PinRateLimiterService>(); // Scoped sejak 10 Nov 2026: penghitung PIN kini di tabel HrdPinAttemptRecord (BE-HRD-204)
 
     // Slice S-C1 (Credentialing, License & Clinical Privilege) - MVP-42 (PSV Kemenkes/KKI & Radar Pemantau SIP 5 Tahun / Fail-Closed H-0)
@@ -2736,6 +2742,26 @@ try
         uploadRootPath = Path.GetFullPath(uploadRootPath);
 
         Directory.CreateDirectory(uploadRootPath);
+
+        // BE-HRD-397 / HRD-DEC-053: dokumen personal dan ijazah pegawai tidak boleh terbuka lewat
+        // URL statis tanpa login. Berkas di bawah human-resource/workforce hanya disajikan oleh
+        // endpoint unduh yang memeriksa hak akses dan kerahasiaan
+        // (/workforce-profiles/{id}/documents/{docId}/file, /educations/{eduId}/file).
+        var protectedWorkforceFilePath = new PathString($"{publicRequestPath}/human-resource/workforce");
+        // BE-HRD-432: PDF SPK/RKK (nama nakes + rincian kewenangan) hanya lewat endpoint unduh berizin
+        // /credentialing/spk-rkk/{id}/files; gambar QR (hanya berisi hash) tetap boleh statis.
+        var protectedSpkRkkFilePath = new PathString($"{publicRequestPath}/storage/spk-rkk");
+        app.Use(async (context, next) =>
+        {
+            if (context.Request.Path.StartsWithSegments(protectedWorkforceFilePath, StringComparison.OrdinalIgnoreCase)
+                || context.Request.Path.StartsWithSegments(protectedSpkRkkFilePath, StringComparison.OrdinalIgnoreCase))
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                return;
+            }
+
+            await next();
+        });
 
         app.UseStaticFiles(new StaticFileOptions
         {

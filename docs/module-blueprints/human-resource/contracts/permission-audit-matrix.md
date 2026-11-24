@@ -1818,3 +1818,45 @@ Jejak keputusan tetap dicatat engine di `TrxApprovalAction` (tabel yang sama den
 | Persetujuan massal | Satu `TrxApprovalAction` per butir yang disetujui; ringkasan batch hanya dikembalikan di respons (tidak disimpan) | `batchNote` sebagai komentar | Pengguna |
 
 Data sensitif: komentar dan alasan tidak ditulis ke custom logger (`LoggerService`). Nilai `DigitalSignatureHash` lama dibiarkan sebagai data historis.
+
+---
+
+## 34. Matriks Hak Akses & Jejak Audit Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v30`, approved 23 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `last_changed_in` | `v30` — 22 November 2026 |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`) |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `input_revision` | Decision log revision `42` bagian 57 |
+
+### 34.1 Hak akses per layar
+
+| Layar / aksi | String hak akses persis | Status hak | Peran yang lazim diberi (diatur admin, bukan kode) |
+| --- | --- | --- | --- |
+| Dashboard SDM — lihat ringkasan dan daftar nama | `[AccessPermission("HrdWorkforceDashboard", "Read")]` | **Baru** | Manajer SDM, Admin HRD (`HRD-ASM-91`) |
+| Seleksi Administrasi — lihat daftar | `[AccessPermission("CandidateScreening", "Read")]` | Sudah ada | Recruiter HR |
+| Seleksi Administrasi — tandai Lolos/Gugur | `[AccessPermission("CandidateScreening", "Evaluate")]` | Sudah ada | Recruiter HR |
+| Tes/Wawancara — lihat daftar (yang ditugaskan) | `[AccessPermission("CandidateEvaluation", "Read")]` | Sudah ada | Recruiter HR, Kepala Unit / Asesor |
+| Tes/Wawancara — lihat semua evaluasi | `CandidateEvaluation : ViewAll` (`AccessExplicitPermission`, tanpa endpoint sendiri) | **Baru** | Recruiter HR, Manajer SDM |
+| Tes/Wawancara — isi wawancara HR | `[AccessPermission("CandidateEvaluation", "Evaluate")]` | Sudah ada | Recruiter HR |
+| Tes/Wawancara — isi uji klinis/teknis | `[AccessPermission("CandidateEvaluation", "EvaluateClinical")]` + harus penilai yang ditugaskan (`VR-PKB-08`) | Sudah ada | Kepala Unit / Asesor |
+| Tindak Disiplin — daftar sanksi seluruh pegawai | `[AccessPermission("EmployeeDisciplinary", "ViewSanctions")]` | Sudah ada | HR Relations, Manajer SDM (`HRD-DEC-238` butir 4) |
+| Riwayat Penyelesaian — sanksi selesai | `[AccessPermission("EmployeeDisciplinary", "ViewSanctions")]` | Sudah ada | Idem |
+| Riwayat Penyelesaian — insiden ditutup tanpa sanksi | `[AccessPermission("EmployeeDisciplinary", "ViewIncidents")]` | Sudah ada | Idem; bila tidak dimiliki, bagian insiden disembunyikan |
+| Employee 360 — buka profil | `[AccessPermission("HrdEmployee360", "Read")]` | Sudah ada | HR, atasan langsung |
+| Employee 360 — bagian disiplin terisi | `EmployeeDisciplinary : ViewSanctions` (diperiksa di controller 360) | Sudah ada, **perilaku baru** | HR Relations, Manajer SDM; atasan langsung **tidak** (`HRD-ASM-94`) |
+
+Kasus whistleblower tetap memakai `Hrd.Disciplinary.WhistleblowerReview` (`HRD-DEC-172`) dan tidak tampil di layar Paket B mana pun.
+
+### 34.2 Privasi
+
+| Data | Aturan |
+| --- | --- |
+| Daftar nama Dashboard SDM | Hanya nomor, nama, profesi, keterangan dokumen/kontrak, tanggal. Pemegang `HrdWorkforceDashboard : Read` dapat melihat nama pemilik dokumen kedaluwarsa walaupun tidak memegang `ProfessionalLicense : Read`; ini disengaja karena tindak lanjutnya tugas Manajer SDM. Nomor lisensi tidak ditampilkan lengkap: `detailLabel` hanya menyebut jenis dokumen dan 4 karakter terakhir nomornya |
+| Gaji, NIK, data kesehatan, data disiplin | Tidak pernah ada di respons dashboard |
+| Data disiplin Employee 360 | Hanya untuk `ViewSanctions` (`VR-PKB-09`) |
+
+### 34.3 Jejak audit
+
+Paket B tidak menambah event audit. Seluruh endpoint baru atau yang diubah bersifat baca-saja, kecuali `submit-clinical` yang sudah tercatat oleh mekanisme rekrutmen existing; penolakan `403` dari `VR-PKB-07`/`08` dicatat oleh logging permintaan standar tanpa isi formulir. Kolom sensitif tidak boleh masuk custom logger.

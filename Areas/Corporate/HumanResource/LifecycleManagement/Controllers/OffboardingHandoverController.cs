@@ -96,12 +96,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             if (!TryGetUserId(out var actorUserId)) return UnauthorizedResponse();
             try
             {
-                var result = await _service.SubmitTaskAsync(id, taskId, request, actorUserId, cancellationToken);
+                var result = await _service.SubmitTaskAsync(id, taskId, request, actorUserId, User, cancellationToken);
                 return Ok(ApiResponse<HandoverTaskResponse>.Ok(result, "Tugas serah terima berhasil diserahkan untuk verifikasi."));
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(StatusCodes.Status409Conflict, ex.Message));
             }
             catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
@@ -117,13 +125,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             if (!TryGetUserId(out var actorUserId)) return UnauthorizedResponse();
             try
             {
-                var result = await _service.VerifyTaskAsync(id, taskId, request, actorUserId, cancellationToken);
+                var result = await _service.VerifyTaskAsync(id, taskId, request, actorUserId, User, cancellationToken);
                 var actionText = request.IsApproved ? "disetujui" : "dikembalikan untuk perbaikan";
                 return Ok(ApiResponse<HandoverTaskResponse>.Ok(result, $"Tugas serah terima berhasil {actionText}."));
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(StatusCodes.Status409Conflict, ex.Message));
             }
             catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {

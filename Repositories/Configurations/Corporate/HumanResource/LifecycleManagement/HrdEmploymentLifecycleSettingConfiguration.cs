@@ -22,6 +22,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             builder.Property(x => x.ContractEscalationDays).HasDefaultValue(14);
             builder.Property(x => x.ProbationReminderDays).HasDefaultValue(14);
             builder.Property(x => x.LateStartFlagDays).HasDefaultValue(3);
+            builder.Property(x => x.NormalRetirementAge).IsRequired(false);
             builder.Property(x => x.RowVersion).IsConcurrencyToken();
 
             builder.HasOne(x => x.HospitalSite).WithMany().HasForeignKey(x => x.HospitalSiteId).OnDelete(DeleteBehavior.Restrict);

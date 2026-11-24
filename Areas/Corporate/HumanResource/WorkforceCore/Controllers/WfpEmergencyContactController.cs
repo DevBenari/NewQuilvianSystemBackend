@@ -631,11 +631,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             await _dbContext.SaveChangesAsync();
         }
 
+        // BE-HRD-401: riwayat pegawai yang sudah dinonaktifkan (offboarding/purnatugas) tetap dapat dibuka; hanya profil terhapus yang dianggap tidak ada.
         private async Task<bool> WorkforceProfileExistsAsync(Guid id)
         {
             return await _dbContext.Set<MstWorkforceProfile>()
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == id && x.IsActive && !x.IsDelete);
+                .AnyAsync(x => x.Id == id && !x.IsDelete);
         }
 
         private IActionResult WorkforceProfileNotFound() =>

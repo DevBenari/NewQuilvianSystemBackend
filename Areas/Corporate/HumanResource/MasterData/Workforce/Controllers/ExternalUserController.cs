@@ -55,6 +55,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
         private readonly IConfiguration _configuration;
         private readonly OrganizationAuthorizationProjectionService _authorizationProjection;
         private readonly IWorkforceIdentityResolverService _identityResolver;
+        private readonly IWorkforceLifecycleGuardService _lifecycleGuard;
 
         public ExternalUserController(
             ApplicationDbContext dbContext,
@@ -62,7 +63,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration,
             OrganizationAuthorizationProjectionService authorizationProjection,
-            IWorkforceIdentityResolverService identityResolver)
+            IWorkforceIdentityResolverService identityResolver,
+            IWorkforceLifecycleGuardService lifecycleGuard)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
@@ -70,6 +72,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             _configuration = configuration;
             _authorizationProjection = authorizationProjection;
             _identityResolver = identityResolver;
+            _lifecycleGuard = lifecycleGuard;
         }
 
         private static List<ExternalUserDetailTabMetadataResponse> BuildExternalUserDetailTabs()
@@ -895,7 +898,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 whatsAppNumber: request.WhatsAppNumber,
                 email: request.Email,
                 taxNumber: request.TaxNumber,
-                businessLicenseNumber: request.BusinessLicenseNumber
+                businessLicenseNumber: request.BusinessLicenseNumber,
+                identityType: request.IdentityType
             );
 
             if (!validation.IsValid)
@@ -935,7 +939,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 {
                     profileResult = await _identityResolver.ResolveOrCreateProfileAsync(
                         request.IdentityType,
-                        request.IdentityNumber ?? Guid.NewGuid().ToString("N"),
+                        request.IdentityNumber,
                         request.FullName,
                         normalizedEmail,
                         normalizedPhone,
@@ -986,7 +990,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     DistrictId = NormalizeNullableGuid(request.DistrictId),
                     PostalCodeId = NormalizeNullableGuid(request.PostalCodeId),
                     IdentityType = NormalizeNullableText(request.IdentityType),
-                    IdentityNumber = NormalizeNullableText(request.IdentityNumber),
+                    IdentityNumber = NormalizeNullableText(
+                        _identityResolver.NormalizeIdentityNumber(request.IdentityType, request.IdentityNumber)),
                     TaxNumber = NormalizeNullableText(request.TaxNumber),
                     BusinessLicenseNumber = NormalizeNullableText(request.BusinessLicenseNumber),
                     PrimaryDepartmentId = primaryDepartmentId,
@@ -1160,10 +1165,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 ));
             }
 
-            // Guard FIN-HRD-04-BE-003 / HRD-DEC-052: Guard data identitas resmi dan NPWP pengguna eksternal
-            var oldExternalIdentity = NormalizeNullableText(entity.IdentityNumber) ?? string.Empty;
-            var newExternalIdentity = NormalizeNullableText(request.IdentityNumber) ?? string.Empty;
-            if (!string.IsNullOrEmpty(oldExternalIdentity) && !string.Equals(oldExternalIdentity, newExternalIdentity, StringComparison.OrdinalIgnoreCase))
+            // Guard FIN-HRD-04-BE-003 / HRD-DEC-052 (BE-HRD-389): Guard data identitas resmi dan NPWP pengguna eksternal.
+            // Pembanding memakai normalisasi resolver identitas; jenis identitas ikut dikunci bila nomor sudah ada.
+            var oldExternalIdentity = _identityResolver.NormalizeIdentityNumber(entity.IdentityType, entity.IdentityNumber);
+            var newExternalIdentity = _identityResolver.NormalizeIdentityNumber(request.IdentityType, request.IdentityNumber);
+            var externalIdentityTypeChanged = !string.Equals(
+                (entity.IdentityType ?? string.Empty).Trim(),
+                (request.IdentityType ?? string.Empty).Trim(),
+                StringComparison.OrdinalIgnoreCase);
+            if (!string.IsNullOrEmpty(oldExternalIdentity) &&
+                (!string.Equals(oldExternalIdentity, newExternalIdentity, StringComparison.OrdinalIgnoreCase) || externalIdentityTypeChanged))
             {
                 return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
                     StatusCodes.Status409Conflict,
@@ -1181,6 +1192,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     "Perubahan Nomor Pokok Wajib Pajak (NPWP) pengguna eksternal adalah data sensitif dan tidak dapat diubah langsung (HRD-DEC-052).",
                     "SENSITIVE_TAX_NUMBER_LOCKED"
                 ));
+            }
+
+            // Pengisian identitas pertama kali tetap diperbolehkan, tetapi wajib valid dan tidak boleh
+            // milik profil orang lain (HRD-DEC-051, BE-HRD-387).
+            if (string.IsNullOrEmpty(oldExternalIdentity) && !string.IsNullOrEmpty(newExternalIdentity))
+            {
+                if (!_identityResolver.IsValidIdentity(request.IdentityType, request.IdentityNumber, out var firstIdentityError))
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        firstIdentityError ?? "Nomor identitas tidak valid."
+                    ));
+                }
+
+                var identityOwner = await _identityResolver.FindByIdentityAsync(request.IdentityType, request.IdentityNumber);
+                if (identityOwner.Found && identityOwner.WorkforceProfileId != entity.WorkforceProfileId)
+                {
+                    return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Nomor identitas ini sudah tercatat pada profil orang lain. Penggabungan profil tidak dilakukan otomatis; hubungi HR untuk penelusuran data ganda (HRD-DEC-051).",
+                        "IDENTITY_BELONGS_TO_OTHER_PROFILE"
+                    ));
+                }
             }
 
             var requiredValidation = ValidateRequiredExternalUserRequest(request);
@@ -1226,7 +1260,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 whatsAppNumber: request.WhatsAppNumber,
                 email: request.Email,
                 taxNumber: request.TaxNumber,
-                businessLicenseNumber: request.BusinessLicenseNumber
+                businessLicenseNumber: request.BusinessLicenseNumber,
+                identityType: request.IdentityType
             );
 
             if (!validation.IsValid)
@@ -1267,8 +1302,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             entity.CityId = NormalizeNullableGuid(request.CityId);
             entity.DistrictId = NormalizeNullableGuid(request.DistrictId);
             entity.PostalCodeId = NormalizeNullableGuid(request.PostalCodeId);
-            entity.IdentityType = NormalizeNullableText(request.IdentityType);
-            entity.IdentityNumber = NormalizeNullableText(request.IdentityNumber);
+            if (string.IsNullOrEmpty(oldExternalIdentity))
+            {
+                // Hanya pengisian pertama yang ditulis; nomor yang sudah ada tidak pernah ditimpa di sini.
+                entity.IdentityType = NormalizeNullableText(request.IdentityType);
+                entity.IdentityNumber = NormalizeNullableText(newExternalIdentity);
+            }
             entity.TaxNumber = NormalizeNullableText(request.TaxNumber);
             entity.BusinessLicenseNumber = NormalizeNullableText(request.BusinessLicenseNumber);
             entity.PrimaryDepartmentId = primaryDepartmentId;
@@ -1280,6 +1319,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             entity.AccessEndDate = NormalizeNullableDateTimeUtc(request.AccessEndDate);
             entity.AccessPurpose = NormalizeNullableText(request.AccessPurpose);
             entity.Description = NormalizeNullableText(request.Description);
+            // BE-HRD-401: pegawai/akun purnatugas tidak diaktifkan kembali lewat Data Induk.
+            if (!entity.IsActive && request.IsActive &&
+                await _lifecycleGuard.IsSeparationFinalizedAsync(entity.WorkforceProfileId))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Pemberhentian orang ini sudah final. Data Induk tidak dapat mengaktifkan kembali pegawai atau akun purnatugas; penerimaan kembali dilakukan melalui Rekrutmen dan Onboarding.",
+                    "SEPARATED_WORKFORCE_REACTIVATION_BLOCKED"
+                ));
+            }
+
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
@@ -1323,7 +1373,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 linkedUser.PrimaryPositionId = entity.PrimaryPositionId;
                 linkedUser.WorkforceProfileId = entity.WorkforceProfileId;
                 linkedUser.AccessValidUntil = entity.AccessEndDate;
-                linkedUser.IsActive = entity.IsActive;
+                // BE-HRD-401: akun yang dikunci karena skorsing tetap terkunci sampai skorsing berakhir.
+                linkedUser.IsActive = entity.IsActive && !await _lifecycleGuard.HasActiveSuspensionLockAsync(linkedUser.Id);
                 linkedUser.UpdateDateTime = now;
             }
 
@@ -1335,6 +1386,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             {
                 await SyncUserOrganizationProjectionAsync(entity.WorkforceProfileId, actorUserId);
             }
+
+            var changedFields = CaptureChangedFieldNames(entity);
 
             await _dbContext.SaveChangesAsync();
 
@@ -1351,7 +1404,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     entity.ExternalUserStatus,
                     entity.FullName,
                     entity.CompanyName,
-                    entity.IsActive
+                    entity.IsActive,
+                    entity.UpdateBy,
+                    ChangedFields = changedFields
                 }
             );
 
@@ -1390,6 +1445,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            // BE-HRD-401: pegawai/akun purnatugas tidak diaktifkan kembali lewat Data Induk.
+            if (!entity.IsActive && request.IsActive &&
+                await _lifecycleGuard.IsSeparationFinalizedAsync(entity.WorkforceProfileId))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Pemberhentian orang ini sudah final. Data Induk tidak dapat mengaktifkan kembali pegawai atau akun purnatugas; penerimaan kembali dilakukan melalui Rekrutmen dan Onboarding.",
+                    "SEPARATED_WORKFORCE_REACTIVATION_BLOCKED"
+                ));
+            }
+
             entity.IsActive = request.IsActive;
             entity.ExternalUserStatus = request.ExternalUserStatus;
             entity.AccessEndDate = NormalizeNullableDateTimeUtc(request.AccessEndDate);
@@ -1416,7 +1482,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
 
             if (linkedUser != null)
             {
-                linkedUser.IsActive = request.IsActive;
+                // BE-HRD-401: akun yang dikunci karena skorsing tetap terkunci sampai skorsing berakhir.
+                linkedUser.IsActive = request.IsActive && !await _lifecycleGuard.HasActiveSuspensionLockAsync(linkedUser.Id);
                 linkedUser.AccessValidUntil = entity.AccessEndDate;
                 linkedUser.UpdateDateTime = now;
             }
@@ -1679,32 +1746,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             }
         }
 
-        private async Task<string> GenerateWorkforceProfileCodeAsync()
-        {
-            const string prefix = $"WFP-{HospitalCode}-";
-
-            var totalData = await _dbContext.Set<MstWorkforceProfile>()
-                .IgnoreQueryFilters()
-                .CountAsync();
-
-            var nextNumber = totalData + 1;
-
-            while (true)
-            {
-                var code = $"{prefix}{nextNumber.ToString("D5")}";
-
-                var exists = await _dbContext.Set<MstWorkforceProfile>()
-                    .AnyAsync(x => x.ProfileCode == code);
-
-                if (!exists)
-                {
-                    return code;
-                }
-
-                nextNumber++;
-            }
-        }
-
         private async Task<ExternalUserAccountCompactResponse?> BuildExternalUserAccountCompactResponseAsync(Guid externalUserId)
         {
             var now = DateTime.UtcNow;
@@ -1886,6 +1927,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             return (true, null);
         }
 
+        /// <summary>
+        /// Nama kolom yang benar-benar berubah pada entity ini (BE-HRD-389, HRD-DEC-052). Hanya nama
+        /// kolom yang dicatat ke log aplikasi, bukan nilainya, supaya data pribadi tidak tersalin ke log.
+        /// </summary>
+        private List<string> CaptureChangedFieldNames(object entity)
+        {
+            _dbContext.ChangeTracker.DetectChanges();
+
+            return _dbContext.Entry(entity).Properties
+                .Where(p => p.IsModified
+                    && p.Metadata.Name != "UpdateBy"
+                    && p.Metadata.Name != "UpdateDateTime")
+                .Select(p => p.Metadata.Name)
+                .OrderBy(name => name)
+                .ToList();
+        }
+
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateExternalUserRequestAsync(
             Guid? excludeExternalUserId,
             Guid? primaryDepartmentId,
@@ -1900,7 +1958,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             string? whatsAppNumber,
             string? email,
             string? taxNumber,
-            string? businessLicenseNumber)
+            string? businessLicenseNumber,
+            string? identityType = null)
         {
             primaryDepartmentId = NormalizeNullableGuid(primaryDepartmentId);
             primaryPositionId = NormalizeNullableGuid(primaryPositionId);
@@ -1950,7 +2009,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 return regionValidation;
             }
 
-            var normalizedIdentityNumber = NormalizeNullableText(identityNumber);
+            // BE-HRD-387: bentuk normal nomor identitas mengikuti resolver identitas lintas peran.
+            var normalizedIdentityNumber = NormalizeNullableText(
+                _identityResolver.NormalizeIdentityNumber(identityType, identityNumber));
             var normalizedPhoneNumber = NormalizeDigitsOnly(phoneNumber);
             var normalizedWhatsAppNumber = NormalizeDigitsOnly(whatsAppNumber);
             var normalizedEmail = NormalizeNullableText(email);
@@ -3278,6 +3339,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             if (existingExternalUserAccount)
             {
                 return (false, "External user ini sudah memiliki akun login.", null);
+            }
+
+            // BE-HRD-388: satu profil hanya punya satu akun login (index unik WorkforceProfileId).
+            var profileAlreadyHasAccount = await _dbContext.Users
+                .AsNoTracking()
+                .AnyAsync(x => x.WorkforceProfileId == externalUser.WorkforceProfileId);
+
+            if (profileAlreadyHasAccount)
+            {
+                return (false, "Orang ini sudah memiliki akun login melalui peran lain pada profil yang sama. Gunakan akun yang ada; jangan centang pembuatan akun login.", null);
             }
 
             var initialPassword = GenerateInitialPasswordForExternalUser();

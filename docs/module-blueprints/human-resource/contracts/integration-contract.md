@@ -1987,3 +1987,29 @@ Dasar: `HRD-DEC-229`, `HRD-DEC-232`, `HRD-DEC-234`, `HRD-DEC-235`; fakta `HRD-TF
 | Arah | Frontend ESS → rute layar modul pemilik permohonan |
 | Mekanisme | Peta `ReferenceType` → rute di frontend (mis. `HRD_TRV_REQUEST` → daftar SPPD, `LEAVE_REQUEST` → cuti saya). Instance `isModuleManaged = true` menampilkan tautan "Perbaiki di layar …" alih-alih tombol kirim ulang/batal generik |
 | Jenis tanpa rute | Ditampilkan tanpa tautan, dengan keterangan "Buka modul terkait untuk memperbaiki"; tidak ada tombol aksi generik |
+
+---
+
+## 27. Integrasi Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v30`, approved 23 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `last_changed_in` | `v30` — 22 November 2026 |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`) |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `input_revision` | Decision log revision `42` bagian 57 |
+
+Semua integrasi Paket B adalah **pembacaan sinkron di dalam proses yang sama** (satu `ApplicationDbContext`, satu permintaan HTTP). Tidak ada event, antrean, atau sistem luar; karena itu tidak ada idempotensi, retry, atau dead-letter yang perlu dirancang.
+
+| ID | Arah | Pemanggil → sumber | Data | Mode | Bila gagal |
+| --- | --- | --- | --- | --- | --- |
+| `INT-HR-115` | Dashboard SDM ← Lifecycle | `HrdWorkforceDashboardService` → `ContractRenewalBuckets` atas `WfpContractHistory` | Jumlah dan daftar kontrak per tahapan perpanjangan | Sinkron, baca-saja | Seluruh `/summary` gagal `500`; frontend menampilkan "Data dashboard gagal dimuat." dengan Coba lagi. Tidak ada angka sebagian yang ditampilkan sebagai angka lengkap |
+| `INT-HR-116` | Dashboard SDM ← Credentialing | Dashboard → `ICredentialVerificationService.GetLicenseExpiringRadarListAsync` (SIP/STR, sudah mengecualikan STR seumur hidup) dan kueri `TrxSpkRkkIssuance` (`IssuanceStatus = Active`, `ValidUntil` ≤ hari ini + 90) | Dokumen kedaluwarsa | Sinkron, baca-saja | Sama dengan `INT-HR-115` |
+| `INT-HR-117` | Dashboard SDM ← Learning & Development | Dashboard → `ITrainingExpiryRadarService.GetExpiringRadarSummaryAsync` | Sertifikat pelatihan wajib kedaluwarsa | Sinkron, baca-saja | Sama dengan `INT-HR-115` |
+| `INT-HR-118` | Employee 360 ← Employee Relation | `HrdEmployee360Service` → `HrdDisciplinarySanction` (resmi) dan `WfpDisciplinaryAction` (lama) | Riwayat disiplin pegawai | Sinkron, baca-saja; hanya bila pemanggil memegang `ViewSanctions` | Bagian 360 gagal bersama respons 360 (perilaku existing) |
+
+Batas yang dijaga:
+
+1. Dashboard **tidak** menulis ke modul sumber dan tidak menyimpan salinan angka.
+2. Dashboard memakai ulang service radar milik modul sumber; aturan "STR seumur hidup tidak dihitung" tetap dimiliki `CredentialingManagement`.
+3. Hanya SPK/RKK yang dibaca langsung dari tabel karena belum ada radar; bila kelak `CredentialingManagement` menyediakan radar SPK/RKK, dashboard wajib beralih memakainya.

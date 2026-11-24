@@ -218,6 +218,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 throw new InvalidOperationException("Dokter tidak dapat memberikan persetujuan Co-Signature atas tindakannya sendiri (Anti-Self-CoSignature).");
             }
 
+            // BE-HRD-434 (sebagian, 20 November 2026): sebelum kontrak order-scoped dengan pemilik EMR tersedia, backend HR
+            // setidaknya menolak co-sign yang tidak terikat order/encounter, co-sign atas kewenangan yang tidak memerlukan
+            // supervisi atau sudah tidak berlaku, dan co-sign oleh supervisor selain penanggung jawab yang tercatat.
+            if (!request.OrderId.HasValue || request.OrderId.Value == Guid.Empty
+                || !request.EncounterId.HasValue || request.EncounterId.Value == Guid.Empty)
+            {
+                throw new InvalidOperationException("Co-Signature wajib menyebut order dan encounter yang disetujui; persetujuan umum tanpa order ditolak.");
+            }
+
+            var nowCheck = DateTime.UtcNow;
+            if (!privilege.IsActive || privilege.IsDelete
+                || privilege.PrivilegeStatus != ClinicalPrivilegeStatus.Active
+                || privilege.IsClinicalServiceBlocked
+                || privilege.EffectiveStartDate > nowCheck
+                || (privilege.EffectiveEndDate.HasValue && privilege.EffectiveEndDate.Value < nowCheck))
+            {
+                throw new InvalidOperationException("Kewenangan klinis tidak aktif atau di luar masa berlaku, sehingga Co-Signature tidak dapat diberikan.");
+            }
+
+            if (!privilege.IsSupervisionRequired)
+            {
+                throw new InvalidOperationException("Kewenangan klinis ini tidak berstatus supervisi; Co-Signature tidak diperlukan.");
+            }
+
+            if (privilege.SupervisorUserId.HasValue && privilege.SupervisorUserId.Value != supervisorUserId)
+            {
+                throw new UnauthorizedAccessException("Hanya supervisor penanggung jawab yang tercatat pada kewenangan ini yang dapat memberikan Co-Signature.");
+            }
+
             var supervisorUser = await _context.Users
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == supervisorUserId, cancellationToken);
@@ -229,7 +258,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             var orderRef = request.OrderId.HasValue ? $" [Order: {request.OrderId}]" : string.Empty;
             var encRef = request.EncounterId.HasValue ? $" [Encounter: {request.EncounterId}]" : string.Empty;
 
-            privilege.SupervisorUserId = supervisorUserId;
+            // Supervisor penanggung jawab TIDAK diganti oleh co-sign (bukan perubahan kewenangan permanen).
             privilege.ApprovalNotes = $"{privilege.ApprovalNotes} | Co-Signature ({request.Decision}){orderRef}{encRef}: {request.SupervisorNotes} pada {now:g}".Trim();
             privilege.UpdateBy = supervisorUserId;
             privilege.UpdateDateTime = now;

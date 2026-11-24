@@ -2762,3 +2762,56 @@ Engine menilai tahap selesai dari penugasan **wajib** (`IsRequired = true`). Pen
 | Eskalasi kedua atas penugasan yang sama | Dilewati (`VR-WF-31`); atasan hasil eskalasi dapat dieskalasi lagi bila penugasannya sendiri lewat `DueAt` |
 | Persetujuan otomatis karena waktu habis | Tidak pernah terjadi (`VR-WF-11`, `HRD-DEC-185`) |
 | Aksi kotak terpadu pada instance engine V2 lama | Tidak tampil di antrean; aksi lewat path 35.2 untuk tahap engine lama menjawab `403` (tidak ada penugasan engine) |
+
+---
+
+## 34. Matriks Transisi Status Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v30`, approved 23 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `last_changed_in` | `v30` — 22 November 2026 |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`) |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `input_revision` | Decision log revision `42` bagian 57 |
+
+Paket B **tidak menambah status dan tidak menambah transisi**. Bagian ini mengunci klasifikasi turunan (dihitung saat dibaca, tidak disimpan) yang dipakai layar Paket B, supaya backend dan frontend memakai arti yang sama.
+
+### 34.1 Kelompok Dashboard SDM
+
+| Panel | Kelompok (`bucket`) | Arti yang dapat diuji |
+| --- | --- | --- |
+| `EMPLOYEE_OVERVIEW` | `ACTIVE` | `MstEmployee.IsActive = true` dan tidak terhapus |
+| | `NEW_THIS_MONTH` | `JoinDate` pada bulan dan tahun tanggal operasional |
+| | `LEFT_THIS_MONTH` | `ResignDate` pada bulan dan tahun tanggal operasional |
+| `PROFESSION` | `{professionId}` / `UNASSIGNED` | Pegawai aktif dengan profesi tersebut / tanpa profesi |
+| `ACTIVE_STATUS` | `ACTIVE` / `INACTIVE` | `IsActive = true` / `false` |
+| `CONTRACT_EXPIRY` | `ALL`, `H60`, `H14`, `H7`, `PENDING_DECISION`, `OVERDUE` | Didefinisikan **hanya** oleh `ContractRenewalBuckets` (sama dengan `renewal-summary`); `ALL` = kontrak berjalan yang berakhir dalam 60 hari (`HRD-DEC-245`) |
+| `DOCUMENT_EXPIRY` | `EXPIRED`, `WITHIN_30`, `DAYS_31_60`, `DAYS_61_90` | Sisa hari dihitung dari tanggal kedaluwarsa dokumen terhadap tanggal operasional: `< 0` atau hari ini = `EXPIRED`; 1–30; 31–60; 61–90 (pemetaan tingkat radar: kamus data 31.2) |
+
+### 34.2 Arti "Selesai" pada Riwayat Penyelesaian (`HRD-DEC-242`)
+
+| Sumber | Status yang termasuk | Status yang tidak termasuk |
+| --- | --- | --- |
+| Sanksi (`HrdDisciplinarySanction.Status`) | `Expired`, `RevokedOnAppeal` | `Active` |
+| Insiden (`HrdDisciplinaryIncidentReport.Status`) | `ResolvedNoSanction` | `Reported`, `Investigating`, `SanctionRecommended` (insiden yang berlanjut ke sanksi muncul lewat sanksinya) |
+
+Status sanksi tetap diubah oleh mekanisme yang sudah ada: worker `Active → Expired` saat `ValidUntil` lewat, dan banding yang dikabulkan `Active → RevokedOnAppeal`. Paket B tidak menambah jalur ubah status.
+
+### 34.3 Jalur evaluasi Tes/Wawancara (`HRD-DEC-241`, `HRD-ASM-96`)
+
+| `track` | `EvaluationType` yang termasuk | Diisi lewat |
+| --- | --- | --- |
+| `HR` | `HrInterview` | `POST /{id}/submit-hr` |
+| `CLINICAL` | `ClinicalAssessment`, `UserInterview` | `POST /{id}/submit-clinical` |
+
+`pendingOnly = true` berarti evaluasi yang belum memiliki rekomendasi. Status kandidat sesudah veto klinis (`ASSESSMENT_FAILED`, `HRD-DEC-077`) tidak berubah oleh Paket B.
+
+### 34.4 Status penapisan Seleksi Administrasi (`HRD-DEC-244`)
+
+| Status `ScreeningStatus` | Label layar |
+| --- | --- |
+| `Pending` | Menunggu |
+| `Passed` | Lolos |
+| `Rejected` | Gugur |
+
+Transisi penapisan tetap seperti kontrak `S-D2`; tidak ada perubahan.
