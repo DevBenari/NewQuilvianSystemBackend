@@ -5,7 +5,7 @@
 | Tanggal | 24 November 2026 |
 | Modul | Human Resource — Layanan Mandiri Pegawai (ESS) |
 | Repository terdampak | `QuilvianSystemFrontendDev` (frontend saja; backend tidak diubah) |
-| Status | Rencana — keputusan bagian 4 berisi rekomendasi dan menunggu persetujuan |
+| Status | Disetujui dan diimplementasikan 24 November 2026 — hasil dan penyimpangan dari rencana ada di bagian 10 |
 | Alur kerja | Analisis → Planning → Implementasi → Testing |
 
 ---
@@ -298,3 +298,65 @@ milik pengguna yang sedang login.
 | Penyaringan bagian Praktik Klinis khusus tenaga kesehatan | Butuh penanda tenaga kesehatan pada data pegawai |
 | Tombol di layar lama yang membuka halaman detail sendiri (misalnya revisi permohonan) | Tetap membuka halaman terpisah di luar workspace untuk sementara |
 | Merapikan alamat ganda (`/ess/...`, `/portal/...`, `/hr/self-service/...`) | Alamat lama dibiarkan supaya tautan yang beredar tidak rusak |
+
+---
+
+## 10. Hasil implementasi (24 November 2026)
+
+Seluruh keputusan bagian 4 dijalankan sesuai rekomendasi. Perubahan belum di-commit.
+
+### 10.1 Penyimpangan dari rencana
+
+| Hal | Rencana | Yang dikerjakan | Alasan |
+| --- | --- | --- | --- |
+| Nama bagian 5 | Data Kepegawaian Saya | **Data Kepegawaian** | Label terpotong di navigasi kiri |
+| Layar Jadwal & Tukar Shift | Dipasang apa adanya | **Ditulis ulang** | Layar lama selalu galat: daftar jadwal memanggil fungsi yang selalu melempar "belum tersedia", dan form tukar shift mengirim tanggal padahal backend meminta ID penugasan shift. Kini memakai `GET my-schedule` dan alur tukar shift lengkap: kirim ke rekan → rekan menerima/menolak → ajukan ke atasan |
+| Jenis Perubahan Jadwal | Semua jenis | Hanya **Ganti Shift** dan **Ganti Hari Libur** | Ganti pola jadwal dan jadwal sementara butuh daftar pola jadwal kerja yang hanya dikelola kepala ruang/SDM |
+| Tata letak ponsel | — | Penyesuaian khusus workspace | `ClinicalWorkspaceShell` pada satu kolom memakai `align-items: start`, sehingga area isi melebar 796 px pada layar 390 px. Diperbaiki lewat kelas milik workspace ini saja; CSS bersama tidak diubah |
+| Unit test | — | ESS-002 dan ESS-003 disesuaikan | Keduanya memeriksa butir menu dan tautan lama Kelola Data Saya yang kini menjadi tab workspace |
+
+### 10.2 Hasil pengujian
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| ESLint file baru dan yang diubah | 0 error; peringatan yang tersisa hanya di file lama yang tidak disentuh (sama dengan HEAD) |
+| `npm run build` | Berhasil (`✓ Compiled successfully`), rute `/self-services` terdaftar |
+| Unit test frontend | Satu-satunya test yang gagal sekarang tetapi lulus di HEAD hanyalah ESS-003 (komentar menyebut path lama); sudah diperbaiki dan lulus. Test lain yang gagal juga gagal di HEAD |
+| Uji browser — superadmin | 40 kasus: 23 tab tampil tanpa galat, 8 tombol panel profil mendarat di tab yang benar, 2 alamat lama dialihkan, parameter ngasal aman, Bantuan IT hilang. Satu FAIL lebar ponsel sudah diperbaiki dan diverifikasi ulang |
+| Uji browser — pegawai tanpa izin `My…` | 15/15 PASS; tab berizin tersembunyi, header identitas tampil |
+| Uji browser — pegawai dengan izin penuh | 31/31 PASS setelah skrip diperbaiki; payload Perubahan Jadwal dan Pengunduran Diri sesuai DTO backend (POST dicegat, tanpa penulisan database) |
+
+Skrip dan screenshot: `QuilvianSystemFrontendDev/test-with-agy/scripts/rks-1124-*` dan
+`QuilvianSystemFrontendDev/test-with-agy/screenshots/rks-1124/`.
+
+### 10.3 Fase 3 (24 November 2026)
+
+Tiga layar yang backend-nya sudah ada tetapi belum punya tampilan:
+
+| Layar | Letak | Endpoint | Izin |
+| --- | --- | --- | --- |
+| Dispensasi Presensi | Kehadiran & Jadwal → Dispensasi | `self-services/human-resource/attendance-dispensations` | `MyAttendanceDispensation` |
+| Pembatalan Cuti | Cuti & Lembur → Pembatalan Cuti | `self-services/human-resource/leave/cancellations` | `MyLeaveCancellation` |
+| Panggilan Kembali dari Cuti | Cuti & Lembur → Panggilan Kembali | `self-services/human-resource/leave/return-to-work` | `MyReturnToWork` |
+
+- "Lapor kembali kerja" ternyata berarti **konfirmasi panggilan kembali dari cuti**: atasan memanggil pegawai
+  sebelum cuti selesai, pegawai mengonfirmasi tanggal masuk (harus di antara tanggal efektif panggilan dan
+  akhir cuti semula). Panggilan yang belum dikonfirmasi tampil sebagai badge pada Cuti & Lembur, baris
+  "Panggilan kembali cuti" di panel ringkasan, dan tombol "Konfirmasi Panggilan Kembali" di Aksi Cepat.
+- Pembatalan cuti hanya untuk cuti `Approved`/`Taken`; tanggal mulai pembatalan otomatis hari pertama cuti
+  (atau hari ini bila cuti sudah berjalan). Cuti yang belum disetujui tetap dibatalkan dari tab Cuti.
+- Dispensasi mengirim jam tanpa zona (dibaca server sebagai WIB), misalnya `2026-11-24T07:00:00`.
+- Kalender Cuti (`MyLeaveCalendar`) tidak dibuatkan layar karena hanya berisi cuti milik sendiri — sama
+  dengan riwayat di tab Cuti.
+- Perbaikan tampilan lintas layar baru: sel tabel dua baris memakai `<div>` (kelas sel tabel tidak
+  `display: block`), dan modal form memakai `modalClassName="region-confirm-modal-wide"` (550 px) dengan
+  isi rata kiri — `size="lg"` tidak melebarkan ConfirmModal.
+
+| Pemeriksaan Fase 3 | Hasil |
+| --- | --- |
+| ESLint | 0 error; peringatan tersisa hanya di file lama |
+| `check-css-usage.mjs` pada 15 file JSX baru/diubah | 0 temuan di file baru; 3 temuan di baris lama panel profil yang tidak disentuh |
+| Unit test | 104 gagal dari 5374 — tidak ada test baru yang gagal dibanding putaran sebelumnya |
+| `npm run build` | Berhasil |
+| Uji browser Fase 3 | 10/10 PASS: validasi form kosong, jam terbalik, payload dispensasi/pembatalan/konfirmasi (POST dicegat; data cuti dan panggilan disuntikkan lewat GET tiruan) |
+| Uji ulang form Fase 2 sesudah perubahan modal | 8/8 PASS |
