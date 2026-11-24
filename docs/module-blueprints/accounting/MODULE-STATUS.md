@@ -320,6 +320,20 @@ selesai sesuai lingkup yang sudah dibentuk.
 bernilai `0`. Berkas impor wajib mengirim jenis akun `1`..`5` dan saldo normal `1` (Debit) atau `2`
 (Kredit); berkas `gl_coa_all_request_body_swagger.json` yang ada tidak dipakai.
 
+### TITIK LANJUT — 24 November 2026: finishing ACC-FIN-005 + 008 dirancang (`draft`)
+
+Rizki menempel MASTER PRD finishing `ACC-FIN-PRD-001` (29 kebutuhan, 7 wave). Development selesai
+30 September tetap berlaku; PRD ini membuka lingkup baru atas permintaan eksplisit Rizki.
+
+| Hal | Keadaan |
+|---|---|
+| Audit | [finishing/01-capability-map-finishing.md](finishing/01-capability-map-finishing.md) — 2 Ready, 3 Reuse with adapter, 8 Extend, 6 Missing, 6 Conflict, 4 Unknown. Wave 6 dipenuhi roadmap Aset; Wave 3 konflik Medical Fee → Payroll/Finance (`C-01`); Wave 4 konflik anggaran Pengadaan (`C-02`); Wave 5 terhalang harga perolehan Farmasi (`U-04`) |
+| Slice pertama | Buku besar + laba rugi + neraca: `ACC-DEC-141`..`155` (decision log revisi 19), gerbang `evidence/19` `READY_FOR_DOMAIN_DESIGN`, desain **approved** `GATE-DESAIN-1124` (manifest revisi 18, bagian *Amendment 24 November 2026*) |
+| Dampak data | Nol tabel, kolom, migration, hak, dan baris `Program.cs` baru |
+| Roadmap | [backend](roadmap/backend-roadmap-finishing.md), [frontend](roadmap/frontend-roadmap-finishing.md), [traceability](roadmap/requirement-traceability-finishing.md) — revisi 1 `APPROVED`. `FIN-0`: `BE/FE-ACC-FIN-005-01`, `BE/FE-ACC-FIN-008-01`. `FIN-1`: `BE/FE-ACC-FIN-008-02`, `008-03`. Sisa ACC-FIN-008 ⛔: `008-04` (`U-05`), `008-05` (`C-02`), `008-06` (`U-07`) |
+| Berikutnya | Review roadmap oleh Rizki → `build-module-backend` `BE-ACC-FIN-005-01` → `build-module-frontend` `FE-ACC-FIN-005-01`, dan seterusnya berpasangan |
+| Commit | Belum — seluruh berkas dokumen di working tree |
+
 ### TITIK LANJUT — 5 Oktober 2026: jawaban atas surat Finance 22 dan permintaan kode sewa
 
 Dokumen saja — nol perubahan source, nol kartu baru (arahan Rizki 5 Oktober 2026). Development tetap ✅ selesai.

@@ -1137,3 +1137,213 @@ Aturan yang mengikat:
 
 Status dan tempat simpan saldo dirinci di `02-backend-architecture.md` bagian 22.6; pemakaiannya
 untuk rekonsiliasi di bagian 23.
+
+---
+
+## `ACC-API-0.17` — buku besar, laba rugi, dan neraca (ACC-FIN-005 + 008)
+
+| Field | Nilai |
+|---|---|
+| Versi | `ACC-API-0.17` — status **`approved`** (`GATE-DESAIN-1124`) |
+| Owner | Rizki |
+| `approved_by` / `approved_at` | Rizki, 24 November 2026 |
+| `input_revision` | `00-interview-decisions.md@19`, `02-backend-architecture.md` bagian 25 |
+| Traceability | `ACC-DEC-141`..`154`; PRD `ACC-FIN-PRD-001` ACC-FIN-005, ACC-FIN-008 |
+| Dampak kompatibilitas | **Tidak mematahkan.** Satu endpoint lama mendapat satu parameter opsional dan sebelas field respons tambahan; tujuh endpoint baru. Konsumen lama yang mengabaikan field baru tetap berjalan |
+
+Seluruh endpoint di bagian ini **hanya menghitung jurnal `Posted`**, dan dijaga
+`[AccessPermission("GeneralLedger", "Read")]` (`ACC-DEC-150`). Pengguna tanpa hak itu menerima `403`
+pada semuanya, termasuk unduhan.
+
+### `[Tags("Corporate / Accounting / General Ledger")]`
+
+Base URL: `api/v1/corporate/accounting/general-ledger`
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|---|
+| `GET` | `/movements` | **Diperluas** — Rencana (belum tersedia) | Mutasi buku besar, kini dapat disaring unit biaya dan membawa asal jurnal | `GeneralLedger : Read` | `LedgerMovementQuery` | `ApiResponse<PagedResult<LedgerMovementResponse>>` |
+| `GET` | `/movements/summary` | **Baru** — Rencana (belum tersedia) | Saldo awal, total debit, total kredit, saldo akhir untuk seluruh rentang | `GeneralLedger : Read` | `LedgerMovementQuery` tanpa `PageNumber`/`PageSize` | `ApiResponse<LedgerMovementSummaryResponse>` |
+| `GET` | `/movements/export` | **Baru** — Rencana (belum tersedia) | Unduh CSV seluruh mutasi sesuai saringan | `GeneralLedger : Read` | sama dengan `summary` | Berkas `text/csv` |
+| `GET` | `/trial-balance/export` | **Baru** — Rencana (belum tersedia) | Unduh CSV neraca saldo | `GeneralLedger : Read` | `TrialBalanceQuery` | Berkas `text/csv` |
+
+### `[Tags("Corporate / Accounting / General Ledger")]` — laporan keuangan
+
+Base URL: `api/v1/corporate/accounting/general-ledger` — sama dengan grup di atas. Keempat endpoint laporan
+sengaja ditaruh di controller buku besar yang sudah ada, supaya Akses Role tetap menampilkan satu
+modul akses `ACCOUNTING_GENERAL_LEDGER` (`ACC-DEC-150`).
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|---|
+| `GET` | `/income-statement` | **Baru** — Rencana (belum tersedia) | Laba rugi satu periode beserta YTD dan pembanding | `GeneralLedger : Read` | `IncomeStatementQuery` | `ApiResponse<IncomeStatementResponse>` |
+| `GET` | `/income-statement/export` | **Baru** — Rencana (belum tersedia) | Unduh CSV laba rugi | `GeneralLedger : Read` | `IncomeStatementQuery` | Berkas `text/csv` |
+| `GET` | `/balance-sheet` | **Baru** — Rencana (belum tersedia) | Neraca per akhir periode beserta pembanding | `GeneralLedger : Read` | `BalanceSheetQuery` | `ApiResponse<BalanceSheetResponse>` |
+| `GET` | `/balance-sheet/export` | **Baru** — Rencana (belum tersedia) | Unduh CSV neraca | `GeneralLedger : Read` | `BalanceSheetQuery` | Berkas `text/csv` |
+
+### Request
+
+**`LedgerMovementQuery`** — diperluas
+
+| Field | Tipe | Wajib | Bawaan | Validasi |
+|---|---|:---:|---|---|
+| `PageNumber` | `int` | Tidak | `1` | < 1 dianggap 1 (perilaku lama) |
+| `PageSize` | `int` | Tidak | `25` | di luar 1–200 dianggap 25 (perilaku lama) |
+| `LegalEntityId` | `Guid` | Ya | — | Penjaga badan hukum yang ada |
+| `AccountId` | `Guid` | Ya | — | Akun harus ada → `404` |
+| `DateFrom`, `DateTo` | `DateTime?` | Tidak | — | `DateTo` < `DateFrom` → `400` (perilaku lama) |
+| **`CostCenterId`** | `Guid?` | Tidak | kosong = seluruh baris | Harus ada dan milik `LegalEntityId` → `400` |
+
+**`IncomeStatementQuery`**
+
+| Field | Tipe | Wajib | Bawaan | Validasi |
+|---|---|:---:|---|---|
+| `LegalEntityId` | `Guid` | Ya | — | Penjaga badan hukum |
+| `PeriodCode` | `string`, maks 7 | Ya | — | Bentuk `YYYY-MM`; tidak ditemukan → `404` |
+| `CostCenterId` | `Guid?` | Tidak | kosong = seluruh baris | Harus ada dan milik `LegalEntityId` → `400` |
+| `IncludeZeroAccounts` | `bool` | Tidak | `false` | — |
+
+**`BalanceSheetQuery`** — sama dengan `IncomeStatementQuery` **tanpa** `CostCenterId`
+(`ACC-DEC-147` butir 3). Parameter `CostCenterId` yang tetap dikirim diabaikan.
+
+### Response
+
+**`LedgerMovementResponse`** — sebelas field tambahan, field lama tetap:
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `AccountingDate`, `JournalNumber`, `LineNumber`, `Description`, `DebitAmount`, `CreditAmount`, `RunningBalance` | — | Tidak berubah |
+| `JournalId` | `Guid` | Baru |
+| `JournalTypeCode` | `string` | Baru |
+| `DocumentNumber` | `string?` | Baru |
+| `CostCenterId`, `CostCenterCode`, `CostCenterName` | `Guid?`, `string?`, `string?` | Baru |
+| `SourceKind` | `int` (`LedgerSourceKind`: `1` Manual, `2` Kejadian, `3` Jurnal Berulang, `4` Tutup Tahun, `5` Koreksi) | Baru |
+| `SourceLabel` | `string` | Baru. Contoh `Finance · RCPT-2026-1102`, `Manual · INV-778`, `Tutup Tahun` |
+| `AccountingEventId`, `RecurringTemplateId`, `ReversalOfJournalId` | `Guid?` | Baru; hanya satu yang terisi sesuai `SourceKind` |
+
+Bila `CostCenterId` disaring, `RunningBalance` adalah saldo bagian unit itu saja.
+
+**`LedgerMovementSummaryResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `AccountId`, `AccountCode`, `AccountName` | — | Akun yang diminta |
+| `CostCenterId`, `CostCenterCode`, `CostCenterName` | nullable | Saringan yang dipakai |
+| `OpeningBalance` | `decimal` | Saldo sebelum `DateFrom`; `0` bila `DateFrom` kosong. Positif = condong debit |
+| `TotalDebit`, `TotalCredit` | `decimal` | Dalam rentang |
+| `ClosingBalance` | `decimal` | `OpeningBalance + TotalDebit − TotalCredit` |
+| `LineCount` | `int` | Jumlah baris dalam rentang |
+
+**`IncomeStatementResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `LegalEntityId`, `PeriodCode`, `PeriodName`, `FiscalYear` | — | Periode terpilih |
+| `PeriodStartDate`, `PeriodEndDate`, `YearToDateStartDate` | `DateTime` | Rentang kolom berjalan |
+| `ComparisonAvailable` | `bool` | `false` bila periode pembanding tidak ada |
+| `ComparisonPeriodCode`, `ComparisonPeriodName` | `string?` | Kosong bila tidak ada |
+| `ComparisonUnavailableReason` | `string?` | Contoh "Periode November 2025 belum ada di sistem." |
+| `CostCenterId`, `CostCenterCode`, `CostCenterName` | nullable | Saringan |
+| `CostCenterNotice` | `string?` | Bunyi tetap bila saringan unit biaya dipakai (`02-backend-architecture.md` bagian 25.6) |
+| `Sections` | `List<FinancialStatementSectionResponse>` | Tepat dua, urutan Pendapatan lalu Beban |
+| `NetIncome` | `FinancialStatementAmountsResponse` | Pendapatan − Beban |
+
+**`BalanceSheetResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `LegalEntityId`, `PeriodCode`, `PeriodName`, `FiscalYear` | — | Periode terpilih |
+| `AsOfDate` | `DateTime` | `EndDate` periode terpilih |
+| `ComparisonAvailable`, `ComparisonAsOfDate`, `ComparisonUnavailableReason` | — | Pembanding akhir tahun buku lalu |
+| `Sections` | `List<FinancialStatementSectionResponse>` | Tepat tiga: Aset, Liabilitas, Ekuitas. Ekuitas memuat baris `Computed` laba |
+| `TotalLiabilitiesAndEquity` | `FinancialStatementAmountsResponse` | — |
+| `IsBalanced`, `ComparisonIsBalanced` | `bool`, `bool?` | Aset = Liabilitas + Ekuitas, apa adanya, tanpa pembulatan (`ACC-DEC-154`) |
+| `Difference`, `ComparisonDifference` | `decimal`, `decimal?` | Aset − (Liabilitas + Ekuitas) |
+| `UnclosedFiscalYears` | `List<int>` | Tahun buku lalu yang belum ditutup; kosong bila tidak ada |
+
+**`FinancialStatementSectionResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `AccountType` | `int` | `1`..`5` |
+| `Title` | `string` | `Pendapatan`, `Beban`, `Aset`, `Liabilitas`, `Ekuitas` |
+| `Rows` | `List<FinancialStatementRowResponse>` | Urutan pra-order |
+| `Total` | `FinancialStatementAmountsResponse` | — |
+
+**`FinancialStatementRowResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `RowKind` | `int` | `1` akun transaksi, `2` akun induk (subtotal), `3` baris laba hitungan |
+| `AccountId` | `Guid?` | Kosong pada `RowKind = 3` |
+| `ParentAccountId` | `Guid?` | Induk tampilan menurut aturan bagian 25.6 |
+| `AccountCode`, `AccountName` | `string` | Baris laba: kode kosong, nama `Laba (Rugi) Tahun Berjalan` atau `Laba (Rugi) Tahun Lalu Belum Ditutup` |
+| `Depth` | `int` | 0 = akar kelompok |
+| `IsActive` | `bool` | Akun nonaktif yang masih bernilai tetap tampil |
+| `Amounts` | `FinancialStatementAmountsResponse` | — |
+
+**`FinancialStatementAmountsResponse`**
+
+| Field | Tipe | Laba rugi | Neraca |
+|---|---|---|---|
+| `Current` | `decimal` | Periode terpilih | Per `AsOfDate` |
+| `Comparison` | `decimal?` | Periode yang sama tahun lalu | Per akhir tahun buku lalu |
+| `Variance` | `decimal?` | `Current − Comparison` | sama |
+| `CurrentYearToDate` | `decimal?` | YTD | Kosong |
+| `ComparisonYearToDate` | `decimal?` | YTD tahun lalu | Kosong |
+| `VarianceYearToDate` | `decimal?` | Selisih YTD | Kosong |
+
+`Comparison` dan selisihnya `null` — bukan `0` — bila `ComparisonAvailable = false` (`ACC-DEC-144`
+butir 4).
+
+**Contoh respons laba rugi (dipendekkan):**
+
+```json
+{
+  "periodCode": "2026-11",
+  "periodName": "November 2026",
+  "fiscalYear": 2026,
+  "comparisonAvailable": true,
+  "comparisonPeriodCode": "2025-11",
+  "costCenterNotice": null,
+  "sections": [
+    {
+      "accountType": 4,
+      "title": "Pendapatan",
+      "rows": [
+        { "rowKind": 2, "accountCode": "4-1000", "accountName": "Pendapatan Layanan", "depth": 0,
+          "amounts": { "current": 95000000.00, "comparison": 80000000.00, "variance": 15000000.00,
+                       "currentYearToDate": 900000000.00, "comparisonYearToDate": 810000000.00,
+                       "varianceYearToDate": 90000000.00 } },
+        { "rowKind": 1, "accountCode": "4-1001", "accountName": "Pendapatan Rawat Jalan", "depth": 1,
+          "amounts": { "current": 100000000.00, "comparison": 82000000.00, "variance": 18000000.00,
+                       "currentYearToDate": 940000000.00, "comparisonYearToDate": 830000000.00,
+                       "varianceYearToDate": 110000000.00 } },
+        { "rowKind": 1, "accountCode": "4-1009", "accountName": "Potongan Pendapatan", "depth": 1,
+          "amounts": { "current": -5000000.00, "comparison": -2000000.00, "variance": -3000000.00,
+                       "currentYearToDate": -40000000.00, "comparisonYearToDate": -20000000.00,
+                       "varianceYearToDate": -20000000.00 } }
+      ],
+      "total": { "current": 95000000.00, "comparison": 80000000.00, "variance": 15000000.00 }
+    }
+  ]
+}
+```
+
+Potongan Pendapatan bersaldo debit sehingga bernilai negatif dan mengurangi subtotal (`ACC-DEC-145`).
+
+### Respons unduhan
+
+`200` dengan `Content-Type: text/csv; charset=utf-8` dan `Content-Disposition: attachment;
+filename="..."`. Bentuk isi dan nama berkas: `02-backend-architecture.md` bagian 25.7. Galat
+dikembalikan sebagai `ApiResponse` JSON biasa, bukan berkas.
+
+### Arti kode status
+
+| Kode | Kapan | Contoh pesan |
+|---|---|---|
+| `200` | Berhasil | — |
+| `400` | Rentang tanggal terbalik; unit biaya tidak ditemukan atau milik badan hukum lain; `PeriodCode` bukan bentuk `YYYY-MM` | "Unit biaya tidak ditemukan pada badan hukum ini." |
+| `401` | Belum masuk | — |
+| `403` | Tanpa `GeneralLedger : Read`, atau badan hukum bukan hak pengguna | — |
+| `404` | Akun atau periode tidak ditemukan | "Periode akuntansi tidak ditemukan." (pesan lama) |
+| `409` | Penjaga badan hukum `IsDefault` tidak lolos (perilaku lama) | — |
+| `422` | Unduhan buku besar melebihi 50.000 baris | "Mutasi terlalu banyak untuk diunduh sekaligus (64.120 baris). Persempit rentang tanggal." |

@@ -288,3 +288,38 @@ khusus test yang namanya mengandung `test`.
 dan menulis ke sana mengubah data yang sedang dipakai orang lain.
 
 Proyek unit test berjalan tanpa database sama sekali, sehingga aman dijalankan kapan saja.
+
+
+---
+
+## 4. Finishing ACC-FIN-005 + 008 *(24 November 2026, **`approved`**, `GATE-DESAIN-1124`)*
+
+Diuji lewat Swagger dan layar terhadap database dev, **tanpa SQL tulis** dan tanpa automated test
+(`ACC-DEC-081`; kesepakatan kerja Rizki). Data uji dibuat lewat layar Jurnal yang ada. Angka berikut
+data samaran.
+
+| Skenario | Requirement | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| `F1` | `FR-FIN-041` | Buat jurnal beban Rp 1.000.000 lalu biarkan Draft; buka laba rugi periodenya | Beban tidak bertambah |
+| `F2` | `FR-FIN-011` | Pada tahun buku uji yang sudah ditutup `JT`, buka laba rugi periode terakhirnya | Laba bersih YTD = pendapatan − beban sebenarnya, bukan Rp 0 |
+| `F3` | `FR-FIN-011` | Balik penuh jurnal `JT` tahun uji, sahkan pembaliknya, buka laba rugi periode yang sama | Laba bersih tidak berubah dari `F2` |
+| `F4` | `FR-FIN-021` | Tahun uji belum ditutup; buka neraca periode pertama tahun berikutnya | Baris Laba Tahun Lalu Belum Ditutup + peringatan; Seimbang |
+| `F5` | `FR-FIN-021` | Sesudah `JT` disahkan, buka neraca yang sama | Baris tahun lalu hilang; Laba Ditahan naik sebesar baris itu; total ekuitas tetap |
+| `F6` | `FR-FIN-010` | Bandingkan laba rugi YTD periode terakhir tahun buku dengan neraca saldo periode itu | Total pendapatan dan beban sama dengan saldo akun-akunnya, di luar jurnal `JT` |
+| `F7` | `FR-FIN-010` | Buka laba rugi pada tahun buku pertama di sistem | Pembanding dan selisih `—` beserta alasannya |
+| `F8` | `FR-FIN-012` | Akun Akumulasi Penyusutan bersaldo kredit | Tampil dalam kurung, mengurangi subtotal aset tetap |
+| `F9` | `FR-FIN-012` | Akun bernilai nol di semua kolom; centang Tampilkan akun bersaldo nol | Tersembunyi lalu tampil |
+| `F10` | `FR-FIN-001` | Buku besar akun beban dengan dua unit biaya; saring satu unit | Saldo awal, berjalan, dan akhir hanya dari unit itu; catatan bagian unit tampil |
+| `F11` | `FR-FIN-013` | Laba rugi disaring unit biaya | Hanya baris unit itu; catatan tetap tampil |
+| `F12` | `VAL-GL-01` | Kirim `CostCenterId` milik badan hukum lain lewat Swagger | `400` "Unit biaya tidak ditemukan pada badan hukum ini." |
+| `F13` | `FR-FIN-003` | Buku besar akun yang menerima jurnal hasil kejadian | Asal "{modul} · {nomor transaksi}"; klik membuka kejadian; nomor jurnal membuka rincian jurnal |
+| `F14` | `FR-FIN-005` | Klik baris akun di neraca | Buku besar akun itu terbuka dengan rentang sampai tanggal kolom |
+| `F15` | `FR-FIN-004` | Unduh CSV buku besar yang lebih dari satu halaman | Berkas memuat seluruh baris, saldo awal, saldo akhir; angka sama dengan layar |
+| `F16` | `FR-FIN-041` | Pengguna tanpa `GeneralLedger : Read` memanggil kedelapan endpoint | `403` semuanya |
+| `F17` | `FR-FIN-015` | Buka laba rugi lalu unduh; buka buku besar | Dua baris log tanpa nominal untuk laba rugi; nol baris untuk buku besar |
+| `F18` | `FR-FIN-030` | Unduh CSV neraca saldo | Tersedia; isi sama dengan layar |
+| `F19` | `VAL-GL-06` | Unduh buku besar lebih dari 50.000 baris | `422` dengan anjuran mempersempit rentang |
+| `F20` | `FR-FIN-014` | Buka CSV laba rugi di Excel komputer rumah sakit | Kolom terpisah benar; angka terbaca angka, bukan teks |
+
+`F19` dan `F20` ditambahkan saat desain (`VAL-GL-06`, `evidence/19` butir 14b); `F1`..`F18` berasal dari
+decision log.

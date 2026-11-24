@@ -352,3 +352,27 @@ hanya mengubah keterangan → `409` dengan pesan baris pertama. `DELETE` atas ju
 | Akun laba ditahan harus berjenis Ekuitas | Simpan pengaturan | Akun bukan `Equity` | `422` | "Akun laba ditahan harus akun berjenis Ekuitas." |
 | Jurnal penutup tahun tidak boleh ganda | Susun | Tahun itu sudah punya jurnal `JT` | `409` | "Jurnal penutup tahun ini sudah pernah disusun." |
 | Tidak menyusun bila tidak ada saldo | Susun | Seluruh akun pendapatan dan beban bersaldo nol | `422` | "Tidak ada saldo pendapatan maupun beban yang perlu ditutup." |
+
+
+---
+
+## 6. Buku besar, laba rugi, dan neraca *(`ACC-VALIDATION-0.12`, **`approved`** Rizki 24 November 2026, `GATE-DESAIN-1124`)*
+
+Dasar: `ACC-DEC-141`..`155`; kontrak `ACC-API-0.17`. Seluruh aturan di bawah berlaku pada endpoint
+baca dan unduhan yang sama. Tidak ada aturan yang menulis data.
+
+| ID | Aturan | Kode | Pesan untuk pengguna | Contoh |
+|---|---|---|---|---|
+| `VAL-GL-01` | `CostCenterId` pada mutasi atau laba rugi harus menunjuk unit biaya yang ada, belum dihapus, dan milik `LegalEntityId` yang sama. Unit biaya nonaktif **diterima**, karena baris lama boleh mencatatnya | `400` | "Unit biaya tidak ditemukan pada badan hukum ini." | Unit Radiologi milik badan hukum B dikirim untuk laporan badan hukum A → ditolak |
+| `VAL-GL-02` | `DateTo` tidak boleh mendahului `DateFrom` — aturan lama, berlaku juga pada `summary` dan `export` | `400` | "Tanggal akhir tidak boleh mendahului tanggal mulai." | 30 November s.d. 1 November → ditolak |
+| `VAL-GL-03` | Akun pada mutasi harus ada — aturan lama | `404` | "Akun tidak ditemukan." | — |
+| `VAL-GL-04` | `PeriodCode` wajib, berbentuk `YYYY-MM` | `400` | "Periode wajib dipilih dengan bentuk tahun-bulan, contoh 2026-11." | `2026/11` → ditolak |
+| `VAL-GL-05` | Periode harus ada pada badan hukum itu — pesan sama dengan neraca saldo | `404` | "Periode akuntansi tidak ditemukan." | `2019-11` padahal tahun buku 2019 belum dibuat → ditolak |
+| `VAL-GL-06` | Unduhan buku besar paling banyak 50.000 baris | `422` | "Mutasi terlalu banyak untuk diunduh sekaligus ({n} baris). Persempit rentang tanggal." | 64.120 baris → ditolak; layar tetap dapat menampilkannya per halaman |
+| `VAL-GL-07` | `CostCenterId` pada neraca **diabaikan**, tidak ditolak | — | — | Layar lama yang terlanjur mengirimnya tetap menerima neraca utuh |
+| `VAL-GL-08` | Periode pembanding yang tidak ada **bukan** galat | `200` | `ComparisonUnavailableReason`: "Periode {nama} belum ada di sistem." | Tahun buku pertama 2026 → pembanding `null` |
+| `VAL-GL-09` | Neraca tidak seimbang **bukan** galat (`ACC-DEC-154`) | `200` | `IsBalanced = false`, `Difference` terisi | Selisih Rp 100 → laporan tetap tampil |
+
+**Yang sengaja tidak divalidasi:** status periode. Periode `Open`, `Closing`, `Closed` maupun yang
+dibuka kembali boleh dilaporkan (`ACC-DEC-144` butir 5), karena yang dihitung tetap hanya jurnal
+`Posted`.
