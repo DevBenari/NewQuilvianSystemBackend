@@ -77,6 +77,55 @@ public sealed record PayrollTaxYtd(
 
     /// <summary>False bila penyimpanan saldo awal belum tersedia: ketiadaan saldo awal bukan berarti saldo nol yang terverifikasi.</summary>
     public bool OpeningBalanceFeatureAvailable { get; init; }
+
+    /// <summary>
+    /// PAY-BE-FIX-030: true HANYA bila satu-satunya alasan akumulasi tidak lengkap adalah bulan histori yang belum tercakup run disahkan
+    /// maupun saldo awal yang disetujui. Bernilai false bila ada alasan lain (saldo awal di luar rentang, cakupan beririsan, run lama tanpa
+    /// rincian akumulasi): hal-hal itu berisiko menghitung pajak dua kali dan tidak boleh dilonggarkan.
+    /// </summary>
+    public bool HistoryGapOnly { get; init; }
+}
+
+/// <summary>Kode klasifikasi penahan PPh yang terstruktur (PAY-BE-FIX-030). Keputusan kelayakan tidak boleh bergantung pada teks pesan.</summary>
+public static class PayrollTaxBlockCodes
+{
+    /// <summary>Histori PPh tahunan Januari sampai bulan sebelum masa pajak terakhir belum tercakup run disahkan atau saldo awal disetujui.</summary>
+    public const string YtdHistoryIncomplete = "TAX_YTD_HISTORY_INCOMPLETE";
+}
+
+/// <summary>Status kefinalan pajak pada run. BELUM_FINAL = masih memuat PPh sementara, tidak boleh disahkan.</summary>
+public static class PayrollTaxFinality
+{
+    public const string Final = "FINAL";
+    public const string NotFinal = "BELUM_FINAL";
+}
+
+/// <summary>
+/// PPh SEMENTARA (estimasi) satu penerima. Dipisahkan dari nominal PPh resmi: <see cref="Amount"/> tidak pernah ditulis ke EmployeeAmount
+/// snapshot pajak, tidak menjadi TotalTax run, dan bukan dasar pemotongan, pelaporan, ataupun Finance. <see cref="IsAvailable"/> false
+/// berarti "Estimasi Tidak Tersedia" (bukan Rp0).
+/// </summary>
+public sealed record PayrollProvisionalTaxEstimate(
+    bool IsAvailable,
+    decimal? Amount,
+    string Method,
+    string Treatment,
+    string? PolicyVersion,
+    string? PolicyLegalBasis,
+    decimal? BasisGross,
+    string? TerCategory,
+    decimal? TerRatePercent,
+    decimal NoNpwpSurchargePercent,
+    string TaxFinality,
+    string Explanation,
+    string? UnavailableReason)
+{
+    /// <summary>Estimasi memakai TER bulanan atas penghasilan periode berjalan sebagai proksi pengujian.</summary>
+    public const string MethodTerMonthlyProxy = "TER_MONTHLY_PROXY";
+
+    /// <summary>Keterangan wajib: nilai ini bukan hasil rekonsiliasi akhir tahun dan bukan pajak final.</summary>
+    public const string ExplanationText =
+        "Estimasi PPh sementara berdasarkan penghasilan periode berjalan. Bukan rekonsiliasi PPh 21 akhir tahun dan tidak dapat digunakan sebagai pajak final.";
 }
 
 /// <summary>Masukan perhitungan PPh satu penerima pada satu masa pajak. Semua nominal berasal dari komponen payroll dan snapshot, bukan layar.</summary>
@@ -103,6 +152,9 @@ public sealed record PayrollTaxInput(
 public sealed record PayrollTaxComputation(decimal Amount, IReadOnlyList<string> Issues, IReadOnlyDictionary<string, object?> Detail)
 {
     public bool IsValid => Issues.Count == 0;
+
+    /// <summary>Kode klasifikasi penahan (<see cref="PayrollTaxBlockCodes"/>); null bila tidak terklasifikasi atau hasil sah.</summary>
+    public string? BlockCode { get; init; }
 
     public static PayrollTaxComputation Blocked(string issue, IReadOnlyDictionary<string, object?>? detail = null) =>
         new(0m, new[] { issue }, detail ?? new Dictionary<string, object?>());
@@ -359,6 +411,13 @@ public static class PayrollTaxPolicyEngine
 
         if (!input.IsLastTaxPeriod)
         {
+            // PAY-BE-FIX-015: kesiapan riwayat untuk rekonsiliasi masa pajak terakhir dicatat sebagai INFORMASI. TER bulanan tidak membacanya,
+            // sehingga bulan yang belum tercakup di sini tidak pernah menjadi penahan perhitungan periode ini (ytdRequired = false).
+            detail["ytdCoveredMonths"] = input.Ytd.CoveredMonths;
+            detail["ytdOpeningBalanceMonths"] = input.Ytd.OpeningBalanceMonths;
+            detail["ytdMissingMonths"] = input.Ytd.MissingMonths;
+            detail["ytdOpeningBalanceFeatureAvailable"] = input.Ytd.OpeningBalanceFeatureAvailable;
+
             var rate = LookupTerRate(policy, ptkp.TerCategory, TaxTerPeriodKinds.Monthly, gross);
             if (rate is null)
                 return PayrollTaxComputation.Blocked(
@@ -380,7 +439,19 @@ public static class PayrollTaxPolicyEngine
         if (input.HasPreviousEmployer)
             issues.Add("Masa pajak terakhir untuk pegawai yang punya pemberi kerja sebelumnya belum didukung mesin (perlu bukti 1721-A1 dan masa kerja sebelumnya); gunakan Nominal Manual Disetujui dengan dasar yang sah.");
         if (!input.Ytd.IsComplete) issues.AddRange(input.Ytd.Issues);
-        if (issues.Count > 0) return PayrollTaxComputation.Blocked(issues, detail);
+        if (issues.Count > 0)
+        {
+            var blocked = PayrollTaxComputation.Blocked(issues, detail);
+            // PAY-BE-FIX-030: klasifikasi terstruktur. Hanya bila pemberi kerja sebelumnya tidak ada dan satu-satunya masalah adalah bulan
+            // histori yang belum tercakup; masalah lain tetap penahan biasa.
+            if (!input.HasPreviousEmployer && !input.Ytd.IsComplete && input.Ytd.HistoryGapOnly)
+            {
+                detail["blockCode"] = PayrollTaxBlockCodes.YtdHistoryIncomplete;
+                return blocked with { BlockCode = PayrollTaxBlockCodes.YtdHistoryIncomplete };
+            }
+
+            return blocked;
+        }
 
         var ytd = input.Ytd;
         var annualGross = ytd.PriorTaxableGross + ytd.PriorEmployerPremium + gross;
@@ -430,6 +501,36 @@ public static class PayrollTaxPolicyEngine
         detail["reconciliationOutcome"] = due > 0m ? "UNDERWITHHELD_CATCH_UP" : "EXACT";
         detail["shortfallAmount"] = due;
         return new PayrollTaxComputation(due, Array.Empty<string>(), detail);
+    }
+
+    /// <summary>
+    /// PAY-BE-FIX-030: estimasi PPh sementara untuk masa pajak terakhir yang histori tahunannya belum lengkap. Memakai TER bulanan atas
+    /// penghasilan periode berjalan dari kebijakan tarif yang SAMA dan sudah disahkan (tanpa angka bawaan). Hanya PPh 21 pegawai tetap.
+    /// Bila PTKP atau tabel TER tidak mencakup, hasilnya "Estimasi Tidak Tersedia" dengan alasan, bukan Rp0.
+    /// </summary>
+    public static PayrollProvisionalTaxEstimate EstimateProvisionalTerProxy(PayrollTaxPolicy policy, PayrollTaxInput input, string treatment)
+    {
+        PayrollProvisionalTaxEstimate Unavailable(string reason) => new(
+            false, null, PayrollProvisionalTaxEstimate.MethodTerMonthlyProxy, treatment, policy.Version, policy.LegalBasis, null, null, null,
+            0m, PayrollTaxFinality.NotFinal, PayrollProvisionalTaxEstimate.ExplanationText, reason);
+
+        if (input.Article != TaxArticles.Pph21 || input.Category != TaxRecipientCategories.PermanentEmployee)
+            return Unavailable("Estimasi proksi TER hanya tersedia untuk PPh 21 pegawai tetap.");
+
+        var ptkp = policy.Ptkp.FirstOrDefault(x => string.Equals(x.Status, input.PtkpStatus, StringComparison.OrdinalIgnoreCase));
+        if (ptkp is null)
+            return Unavailable($"Status PTKP '{input.PtkpStatus ?? "-"}' tidak ada pada kebijakan tarif PPh {policy.Version}.");
+
+        var gross = input.TaxableGross + input.EmployerPremium;
+        var rate = LookupTerRate(policy, ptkp.TerCategory, TaxTerPeriodKinds.Monthly, gross);
+        if (rate is null)
+            return Unavailable($"Tabel TER bulanan kategori {ptkp.TerCategory} pada kebijakan {policy.Version} tidak mencakup penghasilan bruto {Rupiah(gross)}.");
+
+        var amount = RoundTax(policy, ApplyNpwpSurcharge(policy, input.HasNpwp, gross * rate.Value / 100m));
+        return new PayrollProvisionalTaxEstimate(
+            true, amount, PayrollProvisionalTaxEstimate.MethodTerMonthlyProxy, treatment, policy.Version, policy.LegalBasis, gross,
+            ptkp.TerCategory, rate.Value, input.HasNpwp ? 0m : policy.NoNpwpSurchargePercent, PayrollTaxFinality.NotFinal,
+            PayrollProvisionalTaxEstimate.ExplanationText, null);
     }
 
     private static PayrollTaxComputation ComputeNonEmployee(PayrollTaxPolicy policy, PayrollTaxInput input)

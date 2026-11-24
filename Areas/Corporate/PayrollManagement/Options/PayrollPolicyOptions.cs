@@ -38,7 +38,12 @@ public sealed class PayrollPolicyOptions
     /// </summary>
     public bool UnpaidLeaveDeductionEnabled { get; set; } = true;
 
-    /// <summary>NEEDS CONFIRMATION. Bila true, pengesah run tidak boleh orang yang sama dengan pengaju (pemisahan kewenangan).</summary>
+    /// <summary>
+    /// TIDAK BERLAKU untuk Payroll Run sejak 24 Nov 2026: pemilik proses memutuskan pengaju dan pengesah run boleh orang yang sama bila
+    /// Role Management memberinya izin PayrollRun:Submit dan PayrollRun:Approve, sehingga nilai ini tidak lagi dibaca oleh PayrollRunService
+    /// (nilai true tidak menghalangi pengesahan). Properti dipertahankan agar konfigurasi lama tetap valid dan karena masih dipakai
+    /// persetujuan Tunjangan Pegawai (PayrollWorkforceAllowanceService) serta tercatat pada snapshot kebijakan run. Bawaan false.
+    /// </summary>
     public bool RequireDifferentApprover { get; set; } = false;
 
     /// <summary>

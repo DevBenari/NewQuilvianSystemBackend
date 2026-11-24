@@ -7,10 +7,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public int TotalCategory { get; set; }
         public int ActiveCategory { get; set; }
         public int InactiveCategory { get; set; }
-        public int EarningCategory { get; set; }
-        public int DeductionCategory { get; set; }
-        public int EmployerContributionCategory { get; set; }
-        public int InformationCategory { get; set; }
+
+        /// <summary>Kategori yang namanya sama dengan katalog dan kelompoknya sesuai (aktif maupun nonaktif).</summary>
+        public int CoreCategory { get; set; }
+
+        /// <summary>Kategori lain (legacy atau berkelompok tidak sesuai): tetap dibaca, tidak ditawarkan untuk komponen baru.</summary>
+        public int LegacyCategory { get; set; }
+
+        /// <summary>Kategori katalog yang belum ada di database sama sekali.</summary>
+        public int MissingCoreCategory { get; set; }
     }
 
     public class PayrollComponentCategoryResponse
@@ -18,7 +23,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public Guid Id { get; set; }
         public string ComponentCategoryCode { get; set; } = string.Empty;
         public string ComponentCategoryName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Kelompok teknis internal (Earning/Deduction/...), diturunkan backend dari kategori. Dipertahankan pada respons demi
+        /// kompatibilitas; frontend baru tidak menampilkannya dan tidak mengirimnya.
+        /// </summary>
         public string ComponentGroup { get; set; } = string.Empty;
+
+        /// <summary>Kunci kategori katalog (BASIC_SALARY, ALLOWANCE, INCENTIVE, DEDUCTION, BONUS); null untuk kategori legacy.</summary>
+        public string? CategoryKey { get; set; }
+
+        /// <summary>True bila nama kategori sama dengan katalog dan karena itu dikunci (tidak dapat diubah).</summary>
+        public bool IsNameLocked { get; set; }
+
+        /// <summary>True bila kategori boleh dipilih untuk komponen baru (nama katalog dan kelompok sesuai).</summary>
+        public bool IsOperational { get; set; }
+
         public bool AffectsGrossPay { get; set; }
         public bool AffectsTaxableIncome { get; set; }
         public bool AffectsTakeHomePay { get; set; }
@@ -45,6 +65,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public string ComponentCategoryCode { get; set; } = string.Empty;
         public string ComponentCategoryName { get; set; } = string.Empty;
         public string ComponentGroup { get; set; } = string.Empty;
+        public string? CategoryKey { get; set; }
+        public bool IsOperational { get; set; }
     }
 
     public class PayrollComponentCategoryOptionPagedResponse
@@ -60,7 +82,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public PayrollComponentCategoryDefaultFilterResponse DefaultFilter { get; set; } = new();
-        public List<PayrollMasterStringOptionResponse> ComponentGroupOptions { get; set; } = new();
+
+        /// <summary>
+        /// Lima kategori katalog beserta keadaannya di database (Missing/Ready/Inactive/GroupMismatch). Menjadi sumber pilihan Nama
+        /// Kategori pada formulir Tambah; frontend tidak mengarang kategori sendiri.
+        /// </summary>
+        public List<PayrollComponentCategoryCoreOptionResponse> CoreCategoryOptions { get; set; } = new();
         public List<PayrollMasterCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<PayrollMasterSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
@@ -72,7 +99,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string? CustomPeriod { get; set; }
-        public string? ComponentGroup { get; set; }
         public bool? AffectsGrossPay { get; set; }
         public bool? AffectsTaxableIncome { get; set; }
         public bool? AffectsTakeHomePay { get; set; }
@@ -91,9 +117,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [MaxLength(150)]
         public string ComponentCategoryName { get; set; } = string.Empty;
 
-        [Required]
+        /// <summary>
+        /// Tidak lagi dipilih pengguna: backend menurunkan kelompok dari kategori. Boleh dikirim klien lama; bila terisi dan tidak sama
+        /// dengan kelompok hasil turunan, permintaan ditolak (bukan diam-diam ditimpa).
+        /// </summary>
         [MaxLength(50)]
-        public string ComponentGroup { get; set; } = "Earning";
+        public string? ComponentGroup { get; set; }
 
         public bool AffectsGrossPay { get; set; } = true;
         public bool AffectsTaxableIncome { get; set; } = true;
@@ -122,6 +151,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public string ComponentCategoryCode { get; set; } = string.Empty;
         public string ComponentCategoryName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+    }
+
+    public class PayrollComponentCategoryCoreOptionResponse
+    {
+        public string Key { get; set; } = string.Empty;
+
+        /// <summary>Nama kanonik kategori; juga nilai yang dikirim saat membuat kategori.</summary>
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string ComponentGroup { get; set; } = string.Empty;
+        public bool DefaultAffectsGrossPay { get; set; }
+        public bool DefaultAffectsTaxableIncome { get; set; }
+        public bool DefaultAffectsTakeHomePay { get; set; }
+        public int DefaultSortOrder { get; set; }
+        public string? DefaultDescription { get; set; }
+
+        /// <summary>Missing, Ready, Inactive, atau GroupMismatch.</summary>
+        public string Status { get; set; } = "Missing";
+        public bool AvailableForCreate { get; set; }
+        public Guid? ExistingCategoryId { get; set; }
     }
 
     public class PayrollMasterStringOptionResponse

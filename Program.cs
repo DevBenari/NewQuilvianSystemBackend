@@ -440,8 +440,10 @@ try
     // Kebijakan regulasi penggajian berversi (tarif PPh): pembaca kebijakan yang disahkan, dipakai mesin hitung dan kelengkapan data.
     builder.Services.AddScoped<PayrollStatutoryPolicyResolver>();
     builder.Services.AddScoped<PayrollTaxPolicyService>();
-    // Saldo awal PPh historis: tabelnya belum ada (menunggu migrasi terpisah), sumber ini menyatakan dirinya tidak tersedia dan tidak menyimpan apa pun.
-    builder.Services.AddScoped<IPayrollOpeningTaxBalanceSource, UnavailablePayrollOpeningTaxBalanceSource>();
+    // Saldo awal PPh historis (PAY-BE-FIX-016): sumber berbasis tabel PrlOpeningTaxBalance (DDL diterapkan pemilik). Bila tabelnya belum ada,
+    // sumber ini menyatakan dirinya TIDAK TERSEDIA (bukan saldo nol) dan payroll tetap berjalan; UnavailablePayrollOpeningTaxBalanceSource tidak dipakai lagi.
+    builder.Services.AddScoped<IPayrollOpeningTaxBalanceSource, PayrollOpeningTaxBalanceStoreSource>();
+    builder.Services.AddScoped<PayrollOpeningTaxBalanceService>();
     builder.Services.AddScoped<PayrollCalculationService>();
     // Penyiapan profil payroll otomatis dari data HRD tanpa impor CSV (PAY-BE-24): dipanggil di dalam transaksi buka dan hitung payroll run.
     builder.Services.AddScoped<PayrollHrdSourceReader>();
@@ -1547,6 +1549,7 @@ try
     // Slice S-B6 (Restitution & Deduction Integration) - MVP-33 (Settings, Finance Sync, Deduction Engine)
     builder.Services.AddScoped<IRestitutionSettingService, RestitutionSettingService>();
     builder.Services.AddScoped<IFinanceDeductionSyncService, FinanceDeductionSyncService>();
+    builder.Services.AddScoped<IFinanceInstallmentScheduleService, FinanceInstallmentScheduleService>();
     builder.Services.AddScoped<IPayrollDeductionEngineService, PayrollDeductionEngineService>();
 
     // Slice S-B6 (Restitution & Deduction Integration) - MVP-34 (Claims, Approvals, Salary Correction & Payroll Injection)

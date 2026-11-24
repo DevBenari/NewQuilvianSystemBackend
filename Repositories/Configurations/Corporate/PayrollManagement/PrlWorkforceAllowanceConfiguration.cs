@@ -9,9 +9,16 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.PayrollMan
     {
         public void Configure(EntityTypeBuilder<PrlWorkforceAllowance> entity)
         {
-            entity.ToTable("PrlWorkforceAllowance", "public");
+            // Nama check constraint sama persis dengan DDL (laporan PAY-BE-FIX-021).
+            entity.ToTable("PrlWorkforceAllowance", "public", table =>
+            {
+                table.HasCheckConstraint("CK_PrlWorkforceAllowance_AssignmentSource", "\"AssignmentSource\" IN ('Direct','Policy')");
+                table.HasCheckConstraint("CK_PrlWorkforceAllowance_PolicySourceHasLinks",
+                    "\"AssignmentSource\" <> 'Policy' OR (\"AllowancePolicyId\" IS NOT NULL AND \"AllowancePolicyGradeRateId\" IS NOT NULL AND \"SalaryGradeId\" IS NOT NULL)");
+            });
             entity.HasKey(x => x.Id);
 
+            entity.Property(x => x.AssignmentSource).HasMaxLength(20).HasDefaultValue(WorkforceAllowanceAssignmentSources.Direct).IsRequired();
             entity.Property(x => x.CalculationMethod).HasMaxLength(30).IsRequired();
             entity.Property(x => x.Amount).HasPrecision(18, 2);
             entity.Property(x => x.Percentage).HasPrecision(7, 2);
@@ -32,12 +39,21 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.PayrollMan
 
             entity.HasOne(x => x.WorkforceProfile).WithMany().HasForeignKey(x => x.WorkforceProfileId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.AllowanceType).WithMany().HasForeignKey(x => x.AllowanceTypeId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.AllowancePolicy).WithMany().HasForeignKey(x => x.AllowancePolicyId)
+                .HasConstraintName("FK_PrlWorkforceAllowance_AllowancePolicy").OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.AllowancePolicyGradeRate).WithMany().HasForeignKey(x => x.AllowancePolicyGradeRateId)
+                .HasConstraintName("FK_PrlWorkforceAllowance_AllowancePolicyGradeRate").OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.SalaryGrade).WithMany().HasForeignKey(x => x.SalaryGradeId)
+                .HasConstraintName("FK_PrlWorkforceAllowance_SalaryGrade").OnDelete(DeleteBehavior.Restrict);
 
             // Pembacaan per pegawai (layar Tunjangan Pegawai) dan pemeriksaan tumpang-tindih per pegawai + jenis. Tumpang-tindih tanggal
             // tidak dapat diekspresikan sebagai unique index; dijaga transaksi Serializable + advisory lock di layanan.
             entity.HasIndex(x => new { x.WorkforceProfileId, x.AllowanceTypeId, x.IsDelete });
             // Mesin hitung payroll memuat penetapan Approved yang berlaku di periode untuk banyak pegawai sekaligus.
             entity.HasIndex(x => new { x.AllowanceStatus, x.IsActive, x.EffectiveStartDate, x.EffectiveEndDate, x.IsDelete });
+            entity.HasIndex(x => x.AllowancePolicyId).HasDatabaseName("IX_PrlWorkforceAllowance_AllowancePolicyId");
+            entity.HasIndex(x => x.AllowancePolicyGradeRateId).HasDatabaseName("IX_PrlWorkforceAllowance_AllowancePolicyGradeRateId");
+            entity.HasIndex(x => x.SalaryGradeId).HasDatabaseName("IX_PrlWorkforceAllowance_SalaryGradeId");
         }
 
         private static void ConfigureIdentity<T>(EntityTypeBuilder<T> entity)

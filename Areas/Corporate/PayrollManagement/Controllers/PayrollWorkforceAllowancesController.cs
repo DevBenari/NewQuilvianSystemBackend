@@ -102,6 +102,60 @@ public sealed class PayrollWorkforceAllowancesController : ControllerBase
             () => _service.GetAsync(workforceProfileId, id, caller, cancellationToken), "Nominal tunjangan berhasil dimuat.");
     }
 
+    // ---- Penetapan berbasis Kebijakan Tunjangan (PAY-BE-FIX-021). GET tidak pernah membuat atau mengubah data. ----
+
+    /// <summary>
+    /// Dropdown pertama: seluruh jenis tunjangan aktif beserta Selectable/Assignable/Payable (tiga konsep terpisah) dan alasan bila belum
+    /// dapat ditetapkan. Sumber yang sama dipakai penyimpanan, sehingga pilihan dan validasi tidak dapat berselisih.
+    /// </summary>
+    [HttpGet("eligible-types")]
+    [AccessAction("Read", "Read Workforce Allowance Assignment", Description = "Melihat tunjangan pegawai dari struktur gaji, penetapan khusus, dan kebijakan", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("WorkforceAllowanceAssignment", "Read")]
+    public Task<IActionResult> EligibleTypes(Guid workforceProfileId, CancellationToken cancellationToken) =>
+        PayrollControllerSupport.RunAsync(
+            () => _service.GetEligibleTypesAsync(workforceProfileId, cancellationToken), "Jenis tunjangan berhasil dimuat.");
+
+    /// <summary>Dropdown kedua: kebijakan aktif untuk jenis itu yang punya tarif untuk Grade Gaji efektif pegawai.</summary>
+    [HttpGet("policies")]
+    [AccessAction("Read", "Read Workforce Allowance Assignment", Description = "Melihat tunjangan pegawai dari struktur gaji, penetapan khusus, dan kebijakan", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("WorkforceAllowanceAssignment", "Read")]
+    public Task<IActionResult> Policies(Guid workforceProfileId, [FromQuery] Guid allowanceTypeId, CancellationToken cancellationToken) =>
+        PayrollControllerSupport.RunAsync(
+            () => _service.GetPoliciesAsync(workforceProfileId, allowanceTypeId, cancellationToken), "Kebijakan tunjangan berhasil dimuat.");
+
+    /// <summary>Resolusi nilai oleh backend (grade, tarif, metode, batas, masa berlaku). Nominal null tanpa izin ViewAmount.</summary>
+    [HttpGet("preview")]
+    [AccessAction("Read", "Read Workforce Allowance Assignment", Description = "Melihat tunjangan pegawai dari struktur gaji, penetapan khusus, dan kebijakan", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("WorkforceAllowanceAssignment", "Read")]
+    public async Task<IActionResult> Preview(
+        Guid workforceProfileId,
+        [FromQuery] Guid allowanceTypeId,
+        [FromQuery] Guid allowancePolicyId,
+        [FromQuery] string? policySource,
+        CancellationToken cancellationToken)
+    {
+        var caller = await ResolveCallerAsync();
+        return await PayrollControllerSupport.RunAsync(
+            () => _service.PreviewAsync(workforceProfileId, allowanceTypeId, allowancePolicyId, policySource, caller, cancellationToken),
+            "Pratinjau tunjangan berhasil dimuat.");
+    }
+
+    /// <summary>
+    /// Menetapkan tunjangan dari kebijakan. Body hanya identitas (jenis dan kebijakan); nominal, metode, grade, dan tanggal diambil ulang
+    /// backend. Permintaan yang sama mengembalikan penetapan yang sudah ada.
+    /// </summary>
+    [HttpPost("from-policy")]
+    [AccessAction("Create", "Create Workforce Allowance Assignment", Description = "Menetapkan tunjangan dari Master Tunjangan untuk satu pegawai", AccessType = AccessTypes.Create, SortOrder = 3)]
+    [AccessPermission("WorkforceAllowanceAssignment", "Create")]
+    public async Task<IActionResult> CreateFromPolicy(
+        Guid workforceProfileId, [FromBody] CreateWorkforceAllowanceFromPolicyRequest request, CancellationToken cancellationToken)
+    {
+        var caller = await ResolveCallerAsync();
+        return await PayrollControllerSupport.RunAsync(
+            () => _service.CreateFromPolicyAsync(workforceProfileId, request, PayrollControllerSupport.CurrentUserId(User), caller, cancellationToken),
+            "Penetapan tunjangan berhasil disimpan.");
+    }
+
     [HttpPost]
     [AccessAction("Create", "Create Workforce Allowance Assignment", Description = "Menetapkan tunjangan dari Master Tunjangan untuk satu pegawai", AccessType = AccessTypes.Create, SortOrder = 3)]
     [AccessPermission("WorkforceAllowanceAssignment", "Create")]
