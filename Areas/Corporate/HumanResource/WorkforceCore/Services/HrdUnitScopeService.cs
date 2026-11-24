@@ -128,6 +128,58 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             return _readScope = HrdUnitScope.ForUnits(readable);
         }
 
+        /// <summary>
+        /// Unit yang dipimpin pengguna (penempatan berjabatan yang berlaku hari ini) beserta seluruh turunannya,
+        /// <b>tanpa</b> memperhitungkan penanda semua-unit milik domain jadwal/presensi. Dipakai domain lain
+        /// (mis. Kontrak Kerja, BE-HRD-424) yang punya penanda semua-unit sendiri.
+        /// </summary>
+        public async Task<HrdUnitScope> GetManagerialReadScopeAsync(CancellationToken cancellationToken = default)
+        {
+            var user = _httpContextAccessor.HttpContext?.User;
+            if (user?.Identity?.IsAuthenticated != true)
+            {
+                return HrdUnitScope.Empty;
+            }
+
+            var roots = await GetManagerialUnitIdsAsync(user, cancellationToken);
+            if (roots.Count == 0)
+            {
+                return HrdUnitScope.Empty;
+            }
+
+            var units = await _context.MstOrganizationUnits
+                .AsNoTracking()
+                .Where(x => !x.IsDelete)
+                .Select(x => new { x.Id, x.ParentOrganizationUnitId })
+                .ToListAsync(cancellationToken);
+
+            var childrenByParent = units
+                .Where(x => x.ParentOrganizationUnitId.HasValue)
+                .GroupBy(x => x.ParentOrganizationUnitId!.Value)
+                .ToDictionary(x => x.Key, x => x.Select(c => c.Id).ToList());
+
+            var readable = new HashSet<Guid>(roots);
+            var pending = new Queue<Guid>(roots);
+            while (pending.Count > 0)
+            {
+                var parentId = pending.Dequeue();
+                if (!childrenByParent.TryGetValue(parentId, out var children))
+                {
+                    continue;
+                }
+
+                foreach (var childId in children)
+                {
+                    if (readable.Add(childId))
+                    {
+                        pending.Enqueue(childId);
+                    }
+                }
+            }
+
+            return HrdUnitScope.ForUnits(readable);
+        }
+
         private async Task<IReadOnlyCollection<Guid>> GetManagerialUnitIdsAsync(
             ClaimsPrincipal user,
             CancellationToken cancellationToken)

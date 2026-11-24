@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Se
 using System.Security.Claims;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Services.Security;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Controllers
 {
@@ -23,10 +24,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
     public class EmployeeDocumentIssuanceController : ControllerBase
     {
         private readonly IEmployeeDocumentIssuanceService _issuanceService;
+        private readonly AccessPermissionService _accessPermissionService;
 
-        public EmployeeDocumentIssuanceController(IEmployeeDocumentIssuanceService issuanceService)
+        public EmployeeDocumentIssuanceController(
+            IEmployeeDocumentIssuanceService issuanceService,
+            AccessPermissionService accessPermissionService)
         {
             _issuanceService = issuanceService;
+            _accessPermissionService = accessPermissionService;
         }
 
         private Guid GetCurrentUserId()
@@ -35,10 +40,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             return Guid.TryParse(str, out var g) ? g : Guid.Empty;
         }
 
-        private bool IsHrStaff()
-        {
-            return User.IsInRole("SuperAdmin") || User.IsInRole("HRAdmin") || User.IsInRole("HRManager") || User.IsInRole("HRStaff");
-        }
+        /// <summary>
+        /// BE-HRD-381: menggantikan pemeriksaan nama peran tertanam. Hak "semua pegawai" kini penanda
+        /// <c>EmployeeDocumentIssuance : AccessAllEmployees</c> yang dicentang admin di Akses Role.
+        /// </summary>
+        private Task<bool> CanAccessAllEmployeesAsync() =>
+            _accessPermissionService.HasAccessAsync(User, "EmployeeDocumentIssuance", EmployeeDocumentIssuancePermissions.AccessAllEmployees);
 
         /// <summary>
         /// Pengajuan permohonan surat keterangan dinas resmi kepegawaian (Anti-Manual Guard Enforced - VR-HRS-06)
@@ -55,8 +62,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             try
             {
                 var userId = GetCurrentUserId();
-                var result = await _issuanceService.RequestDocumentAsync(workforceProfileId, request, userId, cancellationToken);
+                var result = await _issuanceService.RequestDocumentAsync(workforceProfileId, request, userId, cancellationToken, User);
                 return CreatedAtAction(nameof(GetIssuanceDetail), new { id = result.Id }, result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                // BE-HRD-381: pegawai tujuan di luar kewenangan pengaju → 403 tanpa data tersimpan.
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
@@ -70,7 +82,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         [HttpPost("{id:guid}/cb-approve")]
         [AccessAction("ApproveDraft", "Menyetujui Draf Surat (Supervisor C&B)", AccessType = AccessTypes.Update, SortOrder = 2)]
         [AccessPermission("EmployeeDocumentIssuance", "ApproveDraft")]
-        [Authorize(Roles = "SuperAdmin,HRAdmin,HRManager,HRStaff")]
         public async Task<IActionResult> CbSupervisorApprove(
             Guid id,
             [FromBody] CbSupervisorApprovalDto request,
@@ -94,7 +105,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         [HttpPost("{id:guid}/authorize-issue")]
         [AccessAction("Issue", "Mengesahkan & Menerbitkan Surat Resmi", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("EmployeeDocumentIssuance", "Issue")]
-        [Authorize(Roles = "SuperAdmin,HRAdmin,HRManager")]
         public async Task<IActionResult> FinalAuthorizeAndIssue(
             Guid id,
             [FromBody] FinalAuthorizeAndIssueDto request,
@@ -161,13 +171,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             try
             {
                 var userId = GetCurrentUserId();
-                var isStaff = IsHrStaff();
+                var isStaff = await CanAccessAllEmployeesAsync();
                 var (fileBytes, contentType, fileName) = await _issuanceService.DownloadIssuedDocumentPdfAsync(id, userId, isStaff, cancellationToken);
                 return File(fileBytes, contentType, fileName);
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
@@ -181,7 +191,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         [HttpPost("{id:guid}/revoke")]
         [AccessAction("Revoke", "Mencabut Dokumen Resmi", AccessType = AccessTypes.Update, SortOrder = 6)]
         [AccessPermission("EmployeeDocumentIssuance", "Revoke")]
-        [Authorize(Roles = "SuperAdmin,HRAdmin,HRManager")]
         public async Task<IActionResult> RevokeDocument(
             Guid id,
             [FromBody] RevokeDocumentRequestDto request,
@@ -200,7 +209,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         }
 
         /// <summary>
-        /// Endpoint Publik: Verifikasi keabsahan naskah dinas resmi RS Quilvian via SHA-256 Hash / QR Code (HRS-B5)
+        /// Endpoint Publik: Verifikasi keabsahan naskah dinas resmi via SHA-256 Hash / QR Code (HRS-B5)
         /// Catatan: Nominal finansial disamarkan secara default (Masked).
         /// </summary>
         [HttpGet("public-verify/{hash}")]

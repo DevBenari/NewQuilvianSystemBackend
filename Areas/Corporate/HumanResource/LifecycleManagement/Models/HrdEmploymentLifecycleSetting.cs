@@ -22,6 +22,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
         public int LateStartFlagDays { get; set; } = 3;
 
+        /// <summary>
+        /// Usia pensiun normal kebijakan rumah sakit (BE-HRD-368). <c>null</c> berarti kebijakan belum
+        /// ditetapkan: kandidat pensiun otomatis diblokir (<c>POLICY_NOT_CONFIGURED</c>), kasus pensiun
+        /// yang sudah ada tetap dapat dibaca dan diproses.
+        /// </summary>
+        public int? NormalRetirementAge { get; set; }
+
         [ConcurrencyCheck]
         public Guid RowVersion { get; set; } = Guid.NewGuid();
 

@@ -1,13 +1,13 @@
 # MASTER INSTRUKSI AGENT — FINISHING ULANG HRD MENU 07: PENEMPATAN, MUTASI & PROMOSI
 
-**Versi:** Revisi pascaaudit source dan laporan Agent Antigravity — 18 November 2026 (WIB)  
+**Versi:** Revisi 20 November 2026 (WIB) — Penanganan temuan UAT Batch Penempatan Awal dan fitur Smart Validation & Guided Data Correction (menggabungkan audit 18 November 2026)  
 **Sifat:** **PROMPT EKSEKUSI PERBAIKAN SOURCE NYATA**, bukan dokumen audit-only, bukan klaim sudah selesai, bukan rencana untuk diwawancarai ulang.  
-**Menu target:** Kepegawaian > **07. Penempatan, Mutasi & Promosi**; **tepat lima Submenu** berdasarkan registry pengguna.  
-**Target penomoran FIN yang DIPERTAHANKAN:** `FIN-HRD-07-BE-001` s.d. `FIN-HRD-07-BE-009` (sembilan task) dan `FIN-HRD-07-FE-001` s.d. `FIN-HRD-07-FE-007` (tujuh task). Jangan buat namespace nomor baru untuk perbaikan ini.  
-**Urutan kerja WAJIB:** preflight izin/aturan singkat → **BACKEND dahulu** → penguncian kontrak API → **FRONTEND** → pengujian regresi dan UAT live (bila diizinkan dan tersedia) → laporan berbukti.  
+**Menu target:** Kepegawaian > **07. Penempatan, Mutasi & Promosi**; **tepat lima Submenu** berdasarkan registry pengguna: (1) Penempatan Awal, (2) Perpindahan Unit, (3) Rotasi Promosi, (4) Uraian Tugas, (5) Atasan Langsung.  
+**Target penomoran FIN yang DIPERTAHANKAN:** `FIN-HRD-07-BE-001` s.d. `FIN-HRD-07-BE-009` (sembilan task) dan `FIN-HRD-07-FE-001` s.d. `FIN-HRD-07-FE-007` (tujuh task). Jangan buat namespace nomor baru untuk perbaikan ini. Temuan baru menggunakan ID UAT (`UAT-HRD07-INITIAL-001..004`) dan dipetakan ke task FIN existing.  
+**Urutan kerja WAJIB:** preflight izin/aturan singkat → penyesuaian canonical bila diizinkan → **BACKEND dahulu** → penguncian kontrak API → **FRONTEND** → pengujian regresi dan UAT live (bila diizinkan dan tersedia) → laporan berbukti.  
 **File master yang harus DIPERBARUI di workspace BE bila penulisan dokumen diizinkan:** `docs/module-blueprints/human-resource/docs/update/penempatan-mutasi-dan-promosi/INSTRUKSI_AGENT_HRD_MENU_07_PENEMPATAN_MUTASI_DAN_PROMOSI.md`. **Perbarui file existing ini**, jangan menambah master prompt kedua.  
-**Laporan existing yang HARUS direkonsiliasi sesudah implementasi:** `docs/module-blueprints/human-resource/docs/update/penempatan-mutasi-dan-promosi/LAPORAN_IMPLEMENTASI_MENU_07_AGENT_ANTIGRAVITY.md`. Status laporan saat audit adalah **klaim Agent, bukan UAT PASS**.  
-**Snapshot GitHub read-only untuk analisis:** FE `DevBenari/QuilvianSystemFrontendDev` @ `HamzahV2` HEAD `f7a1f0917eb82e95b0a6d02842362637a8d2b089`; BE `DevBenari/NewQuilvianSystemBackend` @ `MHamzah` HEAD `90e36deefe012801469de880631322fd40293117`; Engineering Skills `DevBenari/QuilvianEngineeringSkills` @ `main` HEAD `201af64552b27873fd9af83c6722cf11b441bb1e`. **Agent harus cek ulang HEAD dan perubahan lokal sebelum mulai.**  
+**Laporan existing yang HARUS direkonsiliasi sesudah implementasi:** `docs/module-blueprints/human-resource/docs/update/penempatan-mutasi-dan-promosi/LAPORAN_IMPLEMENTASI_MENU_07_AGENT_ANTIGRAVITY.md`.  
+**Snapshot GitHub read-only untuk analisis:** FE `DevBenari/QuilvianSystemFrontendDev` @ `HamzahV2` HEAD `0fc88be5c64e68d105c7c75adbca2e7104d8de4a`; BE `DevBenari/NewQuilvianSystemBackend` @ `MHamzah` HEAD `b9a9ae08709fe103eeb0cbaff29682e8ecc2a246`; Engineering Skills `DevBenari/QuilvianEngineeringSkills` @ `main` HEAD `201af64552b27873fd9af83c6722cf11b441bb1e`.  
 **Batas kejujuran:** `IMPLEMENTED IN SOURCE` bukan `VERIFIED WORKING`; `CSS CHECK PASS` bukan `BUILD PASS`; `READY FOR UAT` bukan `UAT PASS`; laporan `100%` tidak sah bila ditemukan P0, test wajib belum dijalankan, atau bukti database tidak ada.
 
 ---
@@ -56,7 +56,25 @@ Rumah sakit harus dapat mengetahui **pada tanggal acuan** pegawai bekerja di uni
 
 **Keputusan canonical yang mengikat:** `HRD-DEC-031`, `HRD-DEC-036`, `HRD-DEC-047`, `HRD-DEC-048`, `HRD-DEC-049`, `HRD-DEC-050`, `HRD-DEC-054`, `HRD-DEC-055`, `HRD-DEC-056`, `HRD-DEC-057` pada `docs/module-blueprints/human-resource/00-interview-decisions.md`. Maknanya di antaranya: maker-checker; sumber penempatan berbasis tanggal efektif; satu SK satu event; satu primary per jenis dan tanggal; backdate tidak boleh melewati periode absensi Closed; batch data awal disetujui oleh aktor berbeda; gaji tidak dimutasi lewat SK/batch; scan SK bertanda tangan; SK Applied immutable dan reversal melalui event/SK baru.
 
-### 2.2 Keputusan prioritas audit — bukan daftar yang cukup dicentang tanpa mengubah kode
+### 2.2 Temuan UAT 20 November 2026 (Smart Validation & Guided Correction)
+
+| ID temuan | Tingkat risiko | Bukti/actual | Expected setelah perbaikan |
+|---|---|---|---|
+| `UAT-HRD07-INITIAL-001` | P1 — alur kerja terhambat | Template 41 kandidat; 37 valid, 4 invalid. Tombol `Simpan & Buat Batch` tidak bisa ditekan | HRD dapat memilih sekumpulan kandidat yang valid (37 pegawai) untuk disimpan; 4 invalid tidak ikut payload; batch tersimpan 100% valid |
+| `UAT-HRD07-INITIAL-002` | P1 — pencampuran kandidat | Baris pegawai yang sudah memiliki jabatan aktif masuk kategori Tidak Valid | Pegawai dengan penempatan resmi yang sah masuk kategori `Dilewati — Sudah Ditempatkan`, bukan dipaksa hapus jabatan |
+| `UAT-HRD07-INITIAL-003` | P1 — diagnosis tidak terbimbing | Pesan validasi hanya ditampilkan di tabel tanpa aksi perbaikan | Ada CTA `Perbaiki Data` / `Tinjau Penempatan` dengan navigasi aman ke pemilik data, simpan konteks draf, kembali, dan validasi ulang dari server |
+| `UAT-HRD07-INITIAL-004` | P2 — validasi tidak konsisten | Jumlah awal 38 valid / 3 invalid, setelah validasi ulang menjadi 37 / 4 | Preview template dan validasi ulang menggunakan mesin aturan server yang sama persis |
+
+### 2.3 Model Kategori Diagnostik Kelayakan (Smart Validation)
+
+| Status Kelayakan | Kategori | Penanganan & CTA |
+|---|---|---|
+| `SIAP_DIPROSES` | Siap Diproses (`ELIGIBLE_INITIAL_PLACEMENT`) | Dapat dicentang dan dimasukkan ke batch; tombol `Lihat Detail` |
+| `DILEWATI_SUDAH_DITEMPATKAN` | Dilewati (`ALREADY_HAS_ACTIVE_PRIMARY_POSITION`, `ALREADY_IN_APPROVED_INITIAL_BATCH`) | Tidak dapat dipilih; tombol `Tinjau Penempatan` menuju `/hr/workforce-core/position-assignments` |
+| `PERLU_PERBAIKAN` | Perlu Perbaikan (`POSITION_NOT_ASSIGNED`, `POSITION_DEPARTMENT_MISMATCH`, `ORGANIZATION_UNIT_DEPARTMENT_MISMATCH`, `EMPLOYEE_INACTIVE_OR_MISSING`, `MANAGER_INVALID_OR_SELF`, `DUPLICATE_IN_SELECTION_OR_CONCURRENT_CHANGE`) | Tidak dapat dipilih; tombol `Perbaiki Data` menuju modul master terkait via allowlist aman |
+| `PERLU_REKONSILIASI` | Perlu Rekonsiliasi (`EFFECTIVE_DATE_UNVERIFIED`) | Tidak dapat dipilih; verifikasi SK riil bersama HRD resmi |
+
+### 2.4 Keputusan prioritas audit — bukan daftar yang cukup dicentang tanpa mengubah kode
 
 | ID temuan | Prioritas | Fakta source yang perlu diperbaiki | Task FIN pemilik |
 |---|---|---|---|
@@ -105,26 +123,50 @@ Rumah sakit harus dapat mengetahui **pada tanggal acuan** pegawai bekerja di uni
 6. Hapus `BaseSalary` dari DTO biasa, baik list maupun detail dan responses validasi yang dapat dibaca role HR biasa; atau mask di server berdasarkan permission amount eksplisit. Jangan hanya menghapus field FE, jangan menyimpan nilai salary input tanpa jalur Payroll yang disetujui.
 7. Perbaiki `WfpNewHireAssignmentService`: `DepartmentId` harus berasal dari `MstOrganizationUnit.DepartmentId`, `MstPosition.DepartmentId`, atau relasi master sah, tidak boleh memakai `organizationUnitId` sebagai `DepartmentId`. Bila tidak valid, fail closed/response validasi spesifik. Pastikan kontrak awal Menu 08, batch awal Menu 07 dan Payroll tidak membuat penempatan/gaji ganda serta tidak mengubah mirror sebelum efektif.
 
-**Perbaikan frontend wajib:**
-1. Tangani bug `isPending` dengan state yang terdefinisi dan guard yang benar. Tombol **Validasi Integritas** hanya aktif untuk status yang boleh divalidasi BE; jangan hanya menambahkan `const isPending` tanpa menyelesaikan kebenaran state machine.
-2. Setelah `submit`, `approve`, `execute`, reload detail dan ringkasan dari API; error harus menampilkan respons backend, tidak mengarang sukses. Tombol harus berdasarkan status **dan izin user**; unauthorized 403 tidak boleh tetap tersedia sebagai aksi seolah berhasil.
-3. Jika batch sudah `PendingApproval` atau `Approved`, tombol validasi **tidak tersedia**; jika status berubah di tab lain, action harus mendapat conflict response dan UI me-refresh.
-4. Pindahkan salary dari output yang terbaca pengguna biasa; status `Approved` sebelum execute dibedakan jelas dari `Executed`; tampilkan keterangan deferred future-date bila implementasinya memerlukan antrean.
+**Perbaikan frontend wajib (Smart Validation & Guided Data Correction):**
+1. Tangani bug `isPending` dengan state yang terdefinisi dan guard yang benar.
+2. Tampilkan 4 kategori kelayakan (`SIAP_DIPROSES`, `DILEWATI_SUDAH_DITEMPATKAN`, `PERLU_PERBAIKAN`, `PERLU_REKONSILIASI`), metrik ringkasan `Total Terbaca | Siap Diproses | Dilewati | Perlu Perbaikan | Rekonsiliasi`, tab penyaring kategori, dan saringan kata kunci cepat.
+3. Checkbox seleksi baris hanya aktif untuk kandidat yang memenuhi syarat (`SIAP_DIPROSES`); baris yang sudah ditempatkan sah (`Dilewati`) atau bermasalah (`Perlu Perbaikan`) dinonaktifkan dari seleksi batch. Tombol `Pilih Semua yang Layak` memudahkan seleksi massal kandidat eligible.
+4. Tombol `Simpan & Buat Batch (N Pegawai)` aktif jika **N > 0** dan seluruh N terpilih berstatus valid; baris invalid yang tidak dicentang **tidak boleh memblokir** pembuatan batch.
+5. Modal Konfirmasi Pembentukan Batch menampilkan ringkasan kandidat terpilih vs yang dilewati serta peringatan bahwa `Simpan Batch ≠ Eksekusi Penempatan` (eksekusi tetap atomik setelah approval HRD berbeda).
+6. Aksi baris tabel: `Lihat Detail` (modal penjelasan masalah, sumber data, dan rekomendasi solusi), `Tinjau Penempatan` (menuju `/hr/workforce-core/position-assignments`), dan `Perbaiki Data` (menuju halaman pemilik data resmi melalui allowlist aman).
+7. Simpan konteks sesi draf (`sessionStorage`) saat berpindah ke halaman perbaikan, dan pulihkan otomatis nama batch serta seleksi kandidat yang masih eligible saat pengguna kembali ke batch, disertai pembaruan data live dari database.
 
-**Skema halaman target:**
+**Skema halaman dan modal target:**
 
 ```text
 Penempatan Awal
-[Hero] Penempatan Awal Pegawai     [Buat Batch] [Template]
-[SummaryGrid] Draft | Perlu Validasi | Menunggu Persetujuan | Disetujui | Selesai
-[DataFilter] Pencarian pegawai | Unit | Status | Tanggal efektif
-[DataTable] Batch / Pegawai / Status / Masalah validasi / Tanggal efektif / Aksi
-[Panel detail] Ringkasan batch + error per baris + timeline approval
-[Actions by role/state] Validasi -> Ajukan -> Setujui (aktor lain) -> Eksekusi
-[InformationAlert] Hasil server dan alasan tindakan ditolak
+[Hero] Penempatan Awal Pegawai                     [+ Buat Batch Baru]
+[InformationAlert] Inisialisasi awal satu kali per pegawai; perubahan berikutnya via SK (HRD-DEC-048)
+[DataFilter] Batch Aktif & Saringan Baris Pegawai  [Validasi Integritas] [Ajukan] [Setujui] [Eksekusi]
+[SummaryGrid] Total Baris | Baris Valid | Baris Tidak Valid
+[DataTable] Riwayat Batch / Baris Pegawai Terdaftar
+
+MODAL: Buat Batch Baru Penempatan Awal
++-----------------------------------------------------------------------------------------------+
+| Nama Batch [ Batch Penempatan Awal Pegawai Baseline ________________________________________ ]|
+| Ringkasan: Total Terbaca: 41 | Siap: 37 | Dilewati: 2 | Perlu Perbaikan: 2 | Rekonsiliasi: 0  |
+| [Semua (41)] [Siap Diproses (37)] [Dilewati (2)] [Perlu Perbaikan (2)] [Rekonsiliasi (0)]      |
+| Saring nama/kode/unit... [Pilih Semua Layak] [Validasi Ulang Integritas]                      |
+|-----------------------------------------------------------------------------------------------|
+| [x] | No | Pegawai | Unit / Departemen | Jabatan | Mulai Berlaku | Status | Catatan | Aksi    |
+| [x] | 1  | Budi    | Rawat Inap / Medis| Perawat | 01/01/2026    | Siap   | -       | Detail  |
+| [ ] | 2  | Siti    | IGD / Medis       | Dokter  | 01/01/2026    | Lewati | Punya pos| Tinjau |
+| [ ] | 3  | Joko    | Farmasi / Farmasi | -       | 01/01/2026    | Perbaik| Belum pos| Perbaiki|
+|-----------------------------------------------------------------------------------------------|
+| Dipilih: 37 | Dilewati: 2 | Perlu Perbaikan: 2                                                 |
+|                                                     [Batal] [Simpan & Buat Batch (37 Pegawai)] |
++-----------------------------------------------------------------------------------------------+
+
+MODAL: Detail Validasi & Panduan Tindak Lanjut (Reason Modal)
+  Pegawai: Joko (P-003) | Status: Perlu Perbaikan
+  Catatan Masalah: Jabatan belum ditentukan pada data baseline organisasi.
+  Sumber Data: Master Posisi / Penugasan Organisasi
+  Rekomendasi: Perbaiki relasi jabatan pada master organisasi sebelum menyertakan ke batch.
+  [Buka Halaman Perbaikan Data]  [Tutup]
 ```
 
-**Acceptance:** tidak ada `ReferenceError`; read-only user tidak bisa mengubah batch via `/validate`; approval tidak dapat di-downgrade; status konsisten lintas refresh; gaji tidak bocor; future effective date tidak aktif prematur; dua eksekusi paralel tidak menggandakan primary.
+**Acceptance:** Pada kasus 41 kandidat dengan 37 valid dan 4 invalid: HRD berwenang dapat langsung memilih 37 kandidat valid dan membuat batch berstatus Validated; 4 invalid tidak disertakan dalam payload dan tidak memblokir tombol simpan; pegawai berpenempatan aktif sah dilewati tanpa menghapus penempatan lama; CTA perbaikan data mengarahkan ke modul pemilik dengan konteks tersimpan dan validasi server terkonfirmasi saat kembali.
 
 ### Submenu 2 - Perpindahan Unit
 

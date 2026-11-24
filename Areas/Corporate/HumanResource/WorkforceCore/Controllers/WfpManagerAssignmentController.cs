@@ -193,6 +193,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             {
                 return BadRequest(ApiResponse<object>.Fail(400, "Pegawai sudah memiliki atasan langsung utama aktif. Penetapan atasan langsung baru wajib melalui Pengajuan Perubahan Atasan Resmi atau SK Mutasi (HRD-DEC-036/HRD-DEC-048)."));
             }
+            // BE-HRD-410: atasan utama awal tidak boleh membentuk siklus (A→B→C lalu C diatasi A).
+            if (request.IsPrimaryManager &&
+                await WouldCreateManagerCycleAsync(workforceProfileId, request.ManagerWorkforceProfileId, request.EffectiveStartDate.Date, ct))
+            {
+                return BadRequest(ApiResponse<object>.Fail(400, "Penetapan atasan ditolak karena membentuk rantai atasan melingkar (atasan berada di bawah pegawai ini)."));
+            }
 
             var now = DateTime.UtcNow;
             var actor = GetCurrentUserId();
@@ -247,6 +253,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 return BadRequest(ApiResponse<object>.Fail(400, "Perubahan langsung atas atasan langsung utama aktif dilarang. Pengalihan atasan wajib melalui pengajuan perubahan atasan berpersetujuan (HRD-DEC-036/HRD-DEC-055)."));
             }
 
+            // BE-HRD-410: penugasan non-utama tidak boleh dinaikkan menjadi atasan utama lewat PUT; jalurnya SK atau
+            // pengajuan perubahan atasan berpersetujuan.
+            if (request.IsPrimaryManager && !entity.IsPrimaryManager)
+            {
+                return BadRequest(ApiResponse<object>.Fail(400, "Penetapan atasan langsung utama tidak dapat dilakukan lewat ubah data. Gunakan SK Mutasi atau Pengajuan Perubahan Atasan (HRD-DEC-036/HRD-DEC-048)."));
+            }
             var validation = await ValidateRequestAsync(workforceProfileId, id, request, ct);
             if (!validation.IsValid) return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage!));
 
@@ -335,6 +347,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 await transaction.RollbackAsync(ct);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// BE-HRD-410: true bila menjadikan <paramref name="managerWorkforceProfileId"/> atasan utama
+        /// <paramref name="workforceProfileId"/> membentuk siklus pada rantai atasan utama per tanggal acuan.
+        /// </summary>
+        private async Task<bool> WouldCreateManagerCycleAsync(Guid workforceProfileId, Guid managerWorkforceProfileId, DateTime activeDate, CancellationToken ct)
+        {
+            var current = managerWorkforceProfileId;
+            var visited = new HashSet<Guid>();
+            for (var depth = 0; depth < 100; depth++)
+            {
+                if (current == workforceProfileId) return true;
+                if (!visited.Add(current)) return true;
+                var next = await _dbContext.Set<WfpManagerAssignment>().AsNoTracking()
+                    .Where(x => x.WorkforceProfileId == current && x.IsPrimaryManager && x.IsActive && !x.IsDelete &&
+                                x.EffectiveStartDate <= activeDate && (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= activeDate))
+                    .Select(x => (Guid?)x.ManagerWorkforceProfileId).FirstOrDefaultAsync(ct);
+                if (!next.HasValue || next.Value == Guid.Empty) return false;
+                current = next.Value;
+            }
+            return true;
         }
 
         [HttpDelete("{id:guid}")]

@@ -10,10 +10,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
     public class OffboardingHandoverService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly QuilvianSystemBackend.Services.Security.AccessPermissionService _accessPermissionService;
 
-        public OffboardingHandoverService(ApplicationDbContext dbContext)
+        public OffboardingHandoverService(
+            ApplicationDbContext dbContext,
+            QuilvianSystemBackend.Services.Security.AccessPermissionService accessPermissionService)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+            _accessPermissionService = accessPermissionService ?? throw new ArgumentNullException(nameof(accessPermissionService));
         }
 
         public async Task<HandoverSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken = default)
@@ -256,11 +260,51 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             };
         }
 
+        /// <summary>
+        /// True bila <paramref name="actorUserId"/> adalah atasan utama aktif (hari ini, tanggal server) dari
+        /// salah satu profil pada <paramref name="workforceProfileIds"/>.
+        /// </summary>
+        private async Task<bool> IsActivePrimaryManagerAsync(
+            Guid actorUserId,
+            IReadOnlyCollection<Guid> workforceProfileIds,
+            CancellationToken cancellationToken)
+        {
+            if (actorUserId == Guid.Empty || workforceProfileIds.Count == 0)
+            {
+                return false;
+            }
+
+            var actorProfileId = await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => x.Id == actorUserId)
+                .Select(x => x.WorkforceProfileId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (!actorProfileId.HasValue || actorProfileId.Value == Guid.Empty)
+            {
+                return false;
+            }
+
+            var today = DateTime.UtcNow.Date;
+            return await _dbContext.WfpManagerAssignments
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    workforceProfileIds.Contains(x.WorkforceProfileId) &&
+                    x.ManagerWorkforceProfileId == actorProfileId.Value &&
+                    x.IsPrimaryManager &&
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    x.EffectiveStartDate <= today &&
+                    (x.EffectiveEndDate == null || x.EffectiveEndDate >= today),
+                    cancellationToken);
+        }
+
         public async Task<HandoverTaskResponse> SubmitTaskAsync(
             Guid checklistId,
             Guid taskId,
             SubmitHandoverTaskRequest request,
             Guid actorUserId,
+            System.Security.Claims.ClaimsPrincipal? user = null,
             CancellationToken cancellationToken = default)
         {
             var task = await _dbContext.WfpOffboardingTasks
@@ -271,6 +315,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             if (task.TaskStatus == "Completed")
             {
                 throw new InvalidOperationException("Item tugas serah terima sudah berstatus 'Completed' dan tidak dapat diserahkan kembali.");
+            }
+
+            // BE-HRD-365: hanya pemilik tugas yang menyerahkan. Tugas tanpa penanggung jawab diserahkan oleh
+            // pegawai yang keluar sendiri.
+            var actorProfileId = await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => x.Id == actorUserId)
+                .Select(x => x.WorkforceProfileId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var isAssignee =
+                (task.AssignedToUserId.HasValue && task.AssignedToUserId.Value == actorUserId) ||
+                (task.AssignedToWorkforceProfileId.HasValue && actorProfileId.HasValue && task.AssignedToWorkforceProfileId.Value == actorProfileId.Value);
+            var isUnassignedOwner =
+                !task.AssignedToUserId.HasValue && !task.AssignedToWorkforceProfileId.HasValue &&
+                task.OffboardingChecklist != null && actorProfileId.HasValue &&
+                task.OffboardingChecklist.WorkforceProfileId == actorProfileId.Value;
+
+            if (!isAssignee && !isUnassignedOwner)
+            {
+                throw new UnauthorizedAccessException("Tugas serah terima hanya dapat diserahkan oleh penanggung jawab tugas tersebut.");
             }
 
             var now = DateTime.UtcNow;
@@ -323,6 +388,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             Guid taskId,
             VerifyHandoverTaskRequest request,
             Guid actorUserId,
+            System.Security.Claims.ClaimsPrincipal? user = null,
             CancellationToken cancellationToken = default)
         {
             var checklist = await _dbContext.WfpOffboardingChecklists
@@ -336,6 +402,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             if (!string.Equals(task.TaskStatus, "Submitted", StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException($"Hanya item tugas serah terima berstatus 'Submitted' yang dapat diverifikasi (status saat ini: '{task.TaskStatus}').");
+            }
+
+            // BE-HRD-365: penyerah tidak memverifikasi tugasnya sendiri; verifikator adalah atasan langsung aktif
+            // pegawai yang keluar, atau pemegang hak VerifyAllTasks (Akses Role).
+            if (task.CompletedByUserId.HasValue && task.CompletedByUserId.Value == actorUserId)
+            {
+                throw new UnauthorizedAccessException("Penyerah tugas tidak boleh memverifikasi tugasnya sendiri.");
+            }
+
+            var canVerifyAll = user != null && await _accessPermissionService.HasAccessAsync(
+                user, "OffboardingHandoverAdministration", LifecycleExitPermissions.VerifyAllHandoverTasks);
+            if (!canVerifyAll &&
+                !await IsActivePrimaryManagerAsync(actorUserId, new[] { checklist.WorkforceProfileId }, cancellationToken))
+            {
+                throw new UnauthorizedAccessException("Tugas serah terima hanya dapat diverifikasi oleh atasan langsung pegawai yang keluar atau petugas berhak.");
             }
 
             var now = DateTime.UtcNow;

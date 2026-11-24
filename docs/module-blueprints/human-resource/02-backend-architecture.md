@@ -10321,3 +10321,230 @@ Harness `HumanResourceTests` (SQLite) untuk `AT-HRD-WF-23` s.d. `AT-HRD-WF-37`, 
 | Migrasi tiket engine lama | Ditolak (`HRD-DEC-236`); diganti pemeriksaan pra-rilis |
 | Endpoint kirim ulang generik untuk permohonan modul | Ditolak (`HRD-DEC-235`); kirim ulang dari layar modul |
 | Menghapus `ApprovalInboxController` sekarang | Ditunda sampai kotak terpadu terbukti dan pemanggil nol (`HRD-DEC-231`) |
+
+---
+
+## 38. Amandemen Paket B — Lima Entry Point Menu SDM (revision `68`, kontrak `v30`, 22 November 2026; approved 23 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | Decision log revision `42` bagian 57 (`HRD-DEC-237` s.d. `HRD-DEC-246`, `HRD-ASM-91` s.d. `HRD-ASM-98`); `HRD-DEC-240` `superseded` oleh `HRD-DEC-244`; `HRD-DEC-243` panel 4 diubah `HRD-DEC-245` |
+| Capability map | Revisi `1.5` bagian 17 (`HRD-CAP-92` s.d. `HRD-CAP-104`) |
+| Source acuan | Backend `b164edc12790d92e55e2a8f102cc5791ba39d440` (branch `MHamzah`); frontend `573b7429c967a3229fc651437a902c33eac3708f` (branch `HamzahV2`) |
+| Kontrak | api-contract 36; state-transition 34; validation 35; integration 27; permission-audit 34; acceptance 39; kamus data 31 |
+| Requirement completeness gate | Tidak dijalankan. Mengikuti preseden amandemen `A52`, `S-A8`, dan `S-D5`: Paket B tidak menambah konsep bisnis rumah sakit baru, hanya membuka jalan masuk ke kemampuan yang sudah diputuskan (`HRD-DEC-076`, `077`, `146`, `151`, `158`, `170` s.d. `173`) dan menambah agregasi baca-saja. Seluruh keputusan `approved`; tidak ada keputusan `BLOCKING` |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — tidak ada bounded context, aggregate, atau status baru. Data kredensial dan SPK/RKK hanya **dibaca** untuk hitungan dashboard; larangan manifest bagian 6 butir 1 (jangan mengarang bounded context klinis) tidak tersentuh |
+| Migration | **Tidak ada** |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`). Delivery: roadmap backend bagian 31 (`BE-HRD-453` s.d. `BE-HRD-462`) |
+
+Inti perubahan:
+
+1. **Dashboard SDM** — satu controller baca-saja baru di `WorkforceCore` yang menghitung lima panel dari data pemilik masing-masing (`MstEmployee`, kontrak kerja, lisensi, sertifikat pelatihan wajib, SPK/RKK) dan menyediakan daftar nama untuk setiap angka.
+2. **Riwayat Penyelesaian** — daftar sanksi menerima beberapa status sekaligus.
+3. **Employee 360** — bagian disiplin membaca sanksi alur resmi plus catatan lama sebagai riwayat, dan hanya diisi untuk pemegang `EmployeeDisciplinary : ViewSanctions`.
+4. **Tes/Wawancara** — daftar evaluasi dibatasi menurut penilai kecuali pemegang hak baru `CandidateEvaluation : ViewAll`; kirim nilai uji klinis hanya oleh penilai yang ditugaskan.
+5. Seleksi Administrasi dan Tindak Disiplin **tidak** mengubah backend: keduanya memakai endpoint yang sudah ada (`GET recruitment/screenings`, `GET hrd/disciplinary/sanctions`).
+
+### 38.1 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai di sini | Dibuat ulang? |
+| --- | --- | --- | --- |
+| Pegawai (`MstEmployee`: `IsActive`, `ProfessionId`, `JoinDate`, `ResignDate`) | `MasterData/Workforce` | Ya — dibaca panel 1–3 dan daftar nama | Tidak |
+| Profesi (`MstProfession`) | `MasterData/CompetencyAndCredential` | Ya — nama profesi panel 2 | Tidak |
+| Kontrak kerja (`WfpContractHistory`, dikelola `HrdEmploymentContractService`) | `WorkforceCore` (model) / `LifecycleManagement` (layanan, `S-C4`) | Ya — panel 4 memakai aturan tahapan perpanjangan yang sama dengan `renewal-summary` | Tidak |
+| Lisensi STR/SIP (`WfpCredentialLicense` dan radar `CredentialVerificationService`) | `CredentialingManagement` (`S-C1`) | Ya — panel 5, lewat radar yang sudah mengecualikan STR seumur hidup | Tidak |
+| Sertifikat pelatihan wajib (radar `TrainingExpiryRadarService`) | `LearningAndDevelopment` (`S-C2`) | Ya — panel 5 | Tidak |
+| SPK/RKK (`TrxSpkRkkIssuance`: `ValidUntil`, `IssuanceStatus`) | `CredentialingManagement` (`S-C1`) | Ya — panel 5, kueri baca-saja baru | Tidak |
+| Sanksi, insiden (`HrdDisciplinarySanction`, `HrdDisciplinaryIncidentReport`) | `EmployeeRelationManagement` (`S-C5`) | Ya — daftar sanksi multi-status; bagian disiplin Employee 360 | Tidak |
+| Catatan disiplin profil lama (`WfpDisciplinaryAction`) | `EmployeeRelationManagement` | Ya — hanya dibaca sebagai riwayat Employee 360 (`HRD-DEC-246`) | Tidak; endpoint tulisnya dibiarkan tetapi tidak dipakai layar baru |
+| Penapisan lamaran (`HrdCandidateScreening`) | `RecruitmentManagement` (`S-D2`) | Ya — tanpa perubahan backend | Tidak |
+| Evaluasi kandidat (`HrdCandidateEvaluation`: `EvaluationType`, `EvaluatorUserId`) | `RecruitmentManagement` (`S-D2`) | Ya — pembatasan menurut penilai | Tidak |
+
+### 38.2 Class diagram
+
+**38.2a Dashboard SDM**
+
+```mermaid
+classDiagram
+    direction LR
+    class HrdWorkforceDashboardController {
+        <<BARU>>
+        +GetSummary() lima panel
+        +GetDrilldown(panel, bucket, page) daftar nama
+    }
+    class IHrdWorkforceDashboardService {
+        <<BARU>>
+        +GetSummaryAsync(ct)
+        +GetDrilldownAsync(query, ct)
+    }
+    class ContractRenewalBuckets {
+        <<BARU static>>
+        +Classify(contract, today) bucket
+        +Predicate(bucket, today) expression
+    }
+    class HrdEmploymentContractService {
+        +GetRenewalSummaryAsync() memakai ContractRenewalBuckets
+    }
+    class ICredentialVerificationService {
+        +GetLicenseExpiringRadarListAsync(level)
+    }
+    class ITrainingExpiryRadarService {
+        +GetExpiringRadarSummaryAsync()
+    }
+    class MstEmployee
+    class TrxSpkRkkIssuance
+    HrdWorkforceDashboardController --> IHrdWorkforceDashboardService
+    IHrdWorkforceDashboardService --> MstEmployee : panel 1-3 baca
+    IHrdWorkforceDashboardService --> ContractRenewalBuckets : panel 4
+    HrdEmploymentContractService --> ContractRenewalBuckets : refactor tanpa ubah hasil
+    IHrdWorkforceDashboardService --> ICredentialVerificationService : panel 5 SIP/STR
+    IHrdWorkforceDashboardService --> ITrainingExpiryRadarService : panel 5 sertifikat
+    IHrdWorkforceDashboardService --> TrxSpkRkkIssuance : panel 5 SPK/RKK baca
+```
+
+**38.2b Disiplin, Employee 360, dan evaluasi kandidat**
+
+```mermaid
+classDiagram
+    direction LR
+    class EmployeeDisciplinaryController {
+        +GetSanctionList(query) statuses BARU
+    }
+    class DisciplinaryListQueryService {
+        +GetSanctionsAsync(query) filter multi-status
+    }
+    class HrdEmployee360Controller {
+        +Get() cek ViewSanctions
+    }
+    class HrdEmployee360Service {
+        +GetAsync(id, includeDiscipline)
+    }
+    class CandidateEvaluationController {
+        +GetPaged() scope penilai
+        +GetById() scope penilai
+        +SubmitClinical() cek penilai
+    }
+    class CandidateEvaluationService {
+        +GetPagedAsync(query, actorId, canViewAll)
+        +GetByIdAsync(id, actorId, canViewAll)
+        +SubmitClinicalEvaluationAsync(id, req, actorId)
+    }
+    class AccessPermissionService {
+        +HasAccessAsync(user, resource, action)
+    }
+    EmployeeDisciplinaryController --> DisciplinaryListQueryService
+    HrdEmployee360Controller --> AccessPermissionService : ViewSanctions
+    HrdEmployee360Controller --> HrdEmployee360Service
+    HrdEmployee360Service --> HrdDisciplinarySanction : resmi
+    HrdEmployee360Service --> WfpDisciplinaryAction : riwayat lama
+    CandidateEvaluationController --> AccessPermissionService : ViewAll
+    CandidateEvaluationController --> CandidateEvaluationService
+```
+
+### 38.3 Penjelasan class
+
+| Class | Status | Lokasi file | Fungsi | Dipanggil oleh | Transaksi |
+| --- | --- | --- | --- | --- | --- |
+| `HrdWorkforceDashboardController` | Baru | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/HrdWorkforceDashboardController.cs` | `[Route("api/v1/corporate/human-resource/workforce-dashboard")]`; `[AccessController(moduleCode: "HUMAN_RESOURCE_WORKFORCE_CORE", moduleName: "Human Resource Workforce Core", displayName: "Dashboard SDM", AreaName = "Corporate", ControllerName = "HrdWorkforceDashboard", SortOrder = 23)]`; `[Tags("Corporate / Human Resource / Workforce Core / Workforce Dashboard")]`. Action `GetSummary` (`GET /summary`) dan `GetDrilldown` (`GET /drilldown`), keduanya `[AccessAction("Read", "Melihat Dashboard SDM", AccessType = AccessTypes.Read, SortOrder = 1)]` dan `[AccessPermission("HrdWorkforceDashboard", "Read")]` | Frontend Dashboard SDM | Tidak |
+| `IHrdWorkforceDashboardService` / `HrdWorkforceDashboardService` | Baru | `…/WorkforceCore/Services/HrdWorkforceDashboardService.cs` | Menghitung lima panel saat dipanggil (tanpa snapshot, `HRD-ASM-92`) dengan `AsNoTracking`; memetakan tingkat radar ke kelompok dashboard (kamus data 31.2); daftar nama berhalaman per panel dan kelompok | Controller dashboard | Tidak — baca saja |
+| `ContractRenewalBuckets` | Baru | `…/LifecycleManagement/Services/ContractRenewalBuckets.cs` | Satu-satunya definisi kelompok tahapan perpanjangan (`H60`, `H14`, `H7`, `PENDING_DECISION`, `OVERDUE`) dan batas 60 hari, dipindahkan dari `GetRenewalSummaryAsync` **tanpa mengubah hasil** agar dashboard dan layar Kontrak selalu sama (`HRD-DEC-245`) | `HrdEmploymentContractService`, `HrdWorkforceDashboardService` | — |
+| `HrdEmploymentContractService` | Diperbarui | `…/LifecycleManagement/Services/HrdEmploymentContractService.cs` | `GetContractSummaryAsync` (`ExpiringSoonCount`) dan `GetRenewalSummaryAsync` memakai `ContractRenewalBuckets`; angka keluaran tidak berubah (dijaga uji regresi) | Controller kontrak | Tidak berubah |
+| `HrdWorkforceDashboardDtos` | Baru | `…/WorkforceCore/DTOs/HrdWorkforceDashboardDtos.cs` | `WorkforceDashboardSummaryResponse`, `WorkforceDashboardDrilldownQuery`, `WorkforceDashboardDrilldownItem` (kontrak API 36.1) | Service, controller | — |
+| `WorkforceDashboardPanels` | Baru | `…/WorkforceCore/Constants/WorkforceDashboardPanels.cs` | Konstanta kode panel dan kelompok (state-transition 34.1) | Service, validasi query | — |
+| `DisciplinaryListQuery` | Diperbarui | `…/EmployeeRelationManagement/DTOs/DisciplinaryListDtos.cs` | Tambah `List<string>? Statuses` (diikat dari `?statuses=Expired&statuses=RevokedOnAppeal`); `Status` lama tetap | Controller disiplin | — |
+| `DisciplinaryListQueryService` | Diperbarui | `…/EmployeeRelationManagement/Services/DisciplinaryListQueryService.cs` | `GetSanctionsAsync`: bila `Statuses` terisi → `Where(Statuses.Contains(s.Status))`; validasi nilai `VR-PKB-04`; bila `Status` dan `Statuses` sama-sama terisi → `400` (`VR-PKB-05`) | Controller disiplin | Tidak |
+| `HrdEmployee360Controller` | Diperbarui | `…/WorkforceCore/Controllers/HrdEmployee360Controller.cs` | Sebelum memanggil service, `includeDiscipline = await accessPermissionService.HasAccessAsync(User, "EmployeeDisciplinary", "ViewSanctions")`; hak endpoint tetap `HrdEmployee360 : Read` | Frontend Employee 360 | — |
+| `IHrdEmployee360Service` / `HrdEmployee360Service` | Diperbarui | `…/WorkforceCore/Services/HrdEmployee360Service.cs` | Parameter baru `bool includeDiscipline`. Bila `true`: baca `HrdDisciplinarySanction` dengan `EmployeeId` = `MstEmployee.Id` **atau** `workforceProfileId` (kolom ini menampung keduanya, capability map 17.1 dan komentar `DisciplinaryListQueryService` baris 13), ditambah `WfpDisciplinaryAction` sebagai riwayat lama; isi `DisciplinaryRecords`. Bila `false`: kedua daftar kosong dan `DisciplineHidden = true` | Controller 360 | Tidak |
+| `ConfidentialPersonalAndDisciplineDto` | Diperbarui | `…/WorkforceCore/DTOs/Employee360Dtos.cs` | Tambah `List<Employee360DisciplinaryItemDto> DisciplinaryRecords` dan `bool DisciplineHidden`; `DisciplinarySanctions` (daftar teks) tetap diisi dari sumber yang sama untuk kompatibilitas, ditandai `[Obsolete]` | Service 360 | — |
+| `Employee360DisciplinaryItemDto` | Baru | `…/WorkforceCore/DTOs/Employee360Dtos.cs` | `Source` (`OFFICIAL`/`LEGACY`), `ReferenceNumber`, `Level`, `Title`, `IssuedDate`, `ValidUntil`, `Status`, `IsActive` | Service 360 | — |
+| `CandidateEvaluationController` | Diperbarui | `…/RecruitmentManagement/Controllers/CandidateEvaluationController.cs` | `GetPaged` dan `GetById`: hitung `canViewAll = HasAccessAsync(User, "CandidateEvaluation", "ViewAll")` dan `actorId = User.GetUserId()`, teruskan ke service. `SubmitClinical`: teruskan `actorId`. Atribut akses endpoint tidak berubah | Frontend Tes/Wawancara | — |
+| `CandidateEvaluationQuery` | Diperbarui | `…/RecruitmentManagement/DTOs/CandidateEvaluationDtos.cs` | Tambah `string? Track` (`HR` = `HrInterview`; `CLINICAL` = `ClinicalAssessment` + `UserInterview`, `HRD-ASM-96`) dan `bool? PendingOnly` (belum ada rekomendasi) | Controller evaluasi | — |
+| `ICandidateEvaluationService` / `CandidateEvaluationService` | Diperbarui | `…/RecruitmentManagement/Services/CandidateEvaluationService.cs` | `GetPagedAsync`/`GetByIdAsync` menerima `actorId`, `canViewAll`; tanpa `canViewAll` hasil dibatasi `EvaluatorUserId == actorId` (detail milik penilai lain → `403`, `VR-PKB-07`). `SubmitClinicalEvaluationAsync` menolak `403` bila `EvaluatorUserId != actorId` (`VR-PKB-08`, `HRD-ASM-98`) | Controller evaluasi | Tidak berubah |
+| `RecruitmentEvaluationExplicitPermissions` | Baru | `…/RecruitmentManagement/RecruitmentEvaluationExplicitPermissions.cs` | `[assembly: AccessExplicitPermission(moduleCode: "HUMAN_RESOURCE_RECRUITMENT", resourceName: "CandidateEvaluation", actionName: "ViewAll", displayName: "View All Evaluations", accessType: AccessTypes.Read, Description = "Melihat seluruh evaluasi kandidat, bukan hanya yang ditugaskan kepada diri sendiri", SortOrder = 10)]`; mengikuti pola `MultiDeptExitClearanceExplicitPermissions.cs` | Katalog hak akses | — |
+| `Program.cs` | Diperbarui | `Program.cs` | `AddScoped<IHrdWorkforceDashboardService, HrdWorkforceDashboardService>()` | — | — |
+
+### 38.4 Arsitektur folder
+
+```text
+Areas/Corporate/HumanResource/
+├── WorkforceCore/
+│   ├── Constants/WorkforceDashboardPanels.cs              Baru
+│   ├── Controllers/
+│   │   ├── HrdWorkforceDashboardController.cs             Baru
+│   │   └── HrdEmployee360Controller.cs                    Diperbarui (cek ViewSanctions)
+│   ├── DTOs/
+│   │   ├── HrdWorkforceDashboardDtos.cs                   Baru
+│   │   └── Employee360Dtos.cs                             Diperbarui (DisciplinaryRecords)
+│   └── Services/
+│       ├── HrdWorkforceDashboardService.cs                Baru
+│       └── HrdEmployee360Service.cs                       Diperbarui
+├── LifecycleManagement/Services/
+│   ├── ContractRenewalBuckets.cs                          Baru
+│   └── HrdEmploymentContractService.cs                    Diperbarui (refactor, hasil sama)
+├── EmployeeRelationManagement/
+│   ├── DTOs/DisciplinaryListDtos.cs                       Diperbarui (Statuses)
+│   └── Services/DisciplinaryListQueryService.cs           Diperbarui
+└── RecruitmentManagement/
+    ├── RecruitmentEvaluationExplicitPermissions.cs        Baru
+    ├── Controllers/CandidateEvaluationController.cs       Diperbarui
+    ├── DTOs/CandidateEvaluationDtos.cs                    Diperbarui (Track, PendingOnly)
+    └── Services/CandidateEvaluationService.cs             Diperbarui (scope penilai)
+Program.cs                                                 Diperbarui (DI)
+Tests/QuilvianSystemBackend.HumanResourceTests/
+    ├── WorkforceDashboardTests.cs                         Baru (AT-HRD-PKB-01..08)
+    ├── ContractRenewalBucketsRegressionTests.cs           Baru (AT-HRD-PKB-05)
+    ├── DisciplinaryResolutionHistoryTests.cs              Baru (AT-HRD-PKB-10..12)
+    ├── Employee360DisciplineTests.cs                      Baru (AT-HRD-PKB-13..15)
+    └── CandidateEvaluationScopeTests.cs                   Baru (AT-HRD-PKB-18..22)
+```
+
+Penyimpangan yang dibiarkan (utang teknis, jangan ditiru): kolom `employee_id` modul disiplin menampung dua jenis ID (`MstEmployee.Id` atau `MstWorkforceProfile.Id`); status sanksi masih string bebas; `WfpDisciplinaryAction` tetap memiliki endpoint tulis walaupun tidak lagi dipakai layar.
+
+### 38.5 Status model dan dampak migration
+
+| Model | Status | Kolom berubah | Migration |
+| --- | --- | --- | --- |
+| `MstEmployee`, `MstProfession` | Sudah ada | — | Tidak |
+| `WfpContractHistory` | Sudah ada | — | Tidak |
+| `TrxSpkRkkIssuance` | Sudah ada | — (dibaca `ValidUntil`, `IssuanceStatus`) | Tidak |
+| `HrdDisciplinarySanction`, `HrdDisciplinaryIncidentReport`, `WfpDisciplinaryAction` | Sudah ada | — | Tidak |
+| `HrdCandidateScreening`, `HrdCandidateEvaluation` | Sudah ada | — | Tidak |
+
+### 38.6 Rencana migration
+
+Tidak ada migration. Rollback = kembalikan rilis. Satu-satunya perubahan yang dapat terasa sebagai regresi adalah pembatasan daftar evaluasi (38.9); rollback-nya adalah memberikan `CandidateEvaluation : ViewAll` ke peran yang membutuhkan, bukan mengembalikan kode.
+
+### 38.7 Rencana data master awal
+
+Tidak ada tabel master baru. Hak akses baru terdaftar otomatis dari atribut:
+
+| Hak akses | Sumber pendaftaran | Wajib diberikan sebelum rilis ke |
+| --- | --- | --- |
+| `HrdWorkforceDashboard : Read` | `[AccessPermission]` pada controller baru | Manajer SDM, Admin HRD |
+| `CandidateEvaluation : ViewAll` | `[assembly: AccessExplicitPermission]` | Recruiter HR dan Manajer SDM — **tanpa langkah ini HR hanya melihat evaluasi yang ditugaskan kepadanya sendiri** |
+| `EmployeeDisciplinary : ViewSanctions` | Sudah ada | Sudah dimiliki HR Relations dan Manajer SDM; kini juga menentukan apakah bagian disiplin Employee 360 terisi |
+
+Pemberian hak dilakukan admin di Manajemen Role → Akses Role. Tidak ada pengecualian berdasarkan nama peran di kode.
+
+### 38.8 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+| --- | --- |
+| Tabel snapshot harian dashboard | `HRD-ASM-92`: dihitung saat dibuka; jumlah pegawai ratusan, kueri agregat cukup |
+| Dashboard per unit untuk Kepala Unit | `HRD-ASM-91`: rilis pertama hanya HR tingkat rumah sakit |
+| Hitungan kontrak 30/60/90 hari khusus dashboard | `HRD-DEC-245`: satu definisi bersama layar Kontrak |
+| Endpoint daftar global untuk `WfpDisciplinaryAction` | `HRD-DEC-238`: satu sumber kebenaran sanksi |
+| Migrasi otomatis `WfpDisciplinaryAction` ke `HrdDisciplinarySanction` | `HRD-DEC-246` butir 2 |
+| Menghapus endpoint tulis `WfpDisciplinaryAction` | Bukan bagian keputusan; dibiarkan sebagai utang teknis sampai ada keputusan penghapusan |
+| Endpoint daftar penapisan baru | `GET recruitment/screenings` sudah memenuhi `HRD-DEC-244` |
+| Endpoint gabungan "riwayat penyelesaian" (sanksi + insiden) | Dua daftar existing sudah memenuhi; frontend menampilkannya berdampingan (`HRD-ASM-97`) |
+| Kolom penugasan asesor baru | `EvaluatorUserId` sudah ada pada evaluasi |
+| Penanda hak akses per jalur (HR vs klinis) | `CandidateEvaluation : Evaluate` dan `EvaluateClinical` sudah memisahkan pengisian; pembatasan baca cukup menurut penilai |
+
+### 38.9 Risiko rilis
+
+| Risiko | Dampak | Mitigasi |
+| --- | --- | --- |
+| Hak `CandidateEvaluation : ViewAll` belum diberikan saat rilis | Recruiter tiba-tiba tidak melihat evaluasi yang dijadwalkan untuk orang lain | Langkah rilis wajib 38.7; uji `AT-HRD-PKB-18` dengan dua akun |
+| Pengguna Employee 360 tanpa `ViewSanctions` (mis. atasan langsung) kehilangan bagian disiplin yang selama ini terlihat | Perubahan perilaku yang disengaja (`HRD-DEC-246` butir 4, `HRD-ASM-94`) | Disebut di catatan rilis; frontend menampilkan "Data disiplin hanya untuk HR" |
+| Refactor `ContractRenewalBuckets` mengubah angka layar Kontrak | Angka kontrak berbeda dari sebelum rilis | Uji regresi `AT-HRD-PKB-05` membandingkan hasil sebelum dan sesudah pada data uji yang sama |

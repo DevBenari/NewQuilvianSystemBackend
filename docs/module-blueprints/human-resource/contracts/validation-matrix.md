@@ -1423,3 +1423,28 @@ Dasar: `HRD-DEC-229` s.d. `HRD-DEC-236`. Aturan `VR-WF-01` s.d. `VR-WF-25` (bagi
 | `VR-WF-33` | Tidak ada tiket engine lama terbuka saat rilis penyatuan | Pemeriksaan pra-rilis (baca-saja) | Ada penugasan terbuka dengan `ApproverEmployeeId` terisi | Rilis tertahan (`HRD-DEC-236`); bukan respons API |
 
 Aturan yang **tidak** ditambahkan: tidak ada pembatasan jenis permohonan pada antrean (semua jenis engine tampil). Tidak ada batas waktu tambahan untuk Plh di luar `VR-WF-03`.
+
+---
+
+## 35. Matriks Aturan Validasi Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v30`, approved 23 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `last_changed_in` | `v30` — 22 November 2026 |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`) |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `input_revision` | Decision log revision `42` bagian 57 |
+
+| ID | Aturan | Lapisan | Endpoint | Hasil bila dilanggar | Dasar |
+| --- | --- | --- | --- | --- | --- |
+| `VR-PKB-01` | `panel` wajib dan harus salah satu dari lima kode panel | Backend | `GET /workforce-dashboard/drilldown` | `400` "Panel atau kelompok dashboard tidak dikenal." | `HRD-DEC-243` |
+| `VR-PKB-02` | `bucket` harus sah untuk `panel`-nya (state-transition 34.1); `professionId` hanya untuk `PROFESSION`; `documentType` hanya untuk `DOCUMENT_EXPIRY` dan harus `SIP_STR`, `SPK_RKK`, atau `MANDATORY_CERTIFICATE` | Backend | Idem | `400` pesan sama | `HRD-DEC-243`, `HRD-DEC-245` |
+| `VR-PKB-03` | `pageSize` 1–100; `search` maks. 100 karakter | Backend + frontend | Idem | `400` "Parameter halaman atau pencarian melebihi batas." | Konvensi daftar |
+| `VR-PKB-04` | Setiap nilai `statuses` ∈ {`Active`, `Expired`, `RevokedOnAppeal`} | Backend | `GET /hrd/disciplinary/sanctions` | `400` "Status sanksi tidak dikenal." | `HRD-DEC-242` |
+| `VR-PKB-05` | `status` dan `statuses` tidak boleh dikirim bersamaan | Backend | Idem | `400` "Gunakan salah satu: status atau statuses." | Kejelasan kontrak |
+| `VR-PKB-06` | `track` kosong, `HR`, atau `CLINICAL` | Backend | `GET /recruitment/evaluations` | `400` "Jalur evaluasi tidak dikenal." | `HRD-DEC-241` |
+| `VR-PKB-07` | Tanpa `CandidateEvaluation : ViewAll`, daftar hanya berisi evaluasi dengan `EvaluatorUserId` = pengguna; detail milik penilai lain ditolak | Backend | `GET /recruitment/evaluations`, `GET /{id}` | Daftar tersaring; detail `403` "Evaluasi ini ditugaskan kepada penilai lain." | `HRD-DEC-241` |
+| `VR-PKB-08` | Kirim nilai uji klinis hanya oleh `EvaluatorUserId` evaluasi tersebut, termasuk bagi pemegang `ViewAll` | Backend | `POST /{id}/submit-clinical` | `403` "Hanya penilai yang ditugaskan yang dapat mengirim nilai uji ini." | `HRD-ASM-98`, `HRD-DEC-077` |
+| `VR-PKB-09` | Bagian disiplin Employee 360 hanya diisi bila pemanggil memegang `EmployeeDisciplinary : ViewSanctions`; selain itu `disciplineHidden = true` dan daftar kosong | Backend | `GET /employee-360` | Bukan error; data disiplin tidak dikirim | `HRD-DEC-246` butir 4 |
+| `VR-PKB-10` | Catatan disiplin `LEGACY` tidak memiliki aksi ubah atau terbitkan di layar mana pun Paket B | Frontend | Employee 360 | Tombol tidak dirender | `HRD-DEC-238` butir 3 |
+| `VR-PKB-11` | Butir menu Paket B hanya tampil bila pengguna memegang hak akses layar tujuannya (permission-audit 34.1) | Frontend | Sidebar | Butir tidak dirender | `HRD-DEC-239` |

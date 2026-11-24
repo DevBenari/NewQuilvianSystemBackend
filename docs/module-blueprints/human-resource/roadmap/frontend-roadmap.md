@@ -6,9 +6,10 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 19
-amendment_s_d5_v28: "2026-11-19 — Amandemen S-D5 layar Ajukan dan status SPPD (bagian 28): FE-HRD-337 s.d. FE-HRD-340, gelombang MVP-71; kontrak v28 approved 19 November 2026"
+roadmap_revision: 20
+amendment_package_b_v30: "2026-11-23 — Amandemen Paket B navigasi SDM (bagian 31): FE-HRD-401 s.d. FE-HRD-409, gelombang MVP-75 dan MVP-76, Grafik F98; kontrak v30 approved 23 November 2026; label menu Tindak Disiplin (HRD-DEC-247) masuk FE-HRD-408"
 amendment_s_a7_v2_v29: "2026-11-20 — Amandemen S-A7-V2 layar Kotak Masuk Terpadu (bagian 30): FE-HRD-394 s.d. FE-HRD-400, gelombang MVP-73 dan POST-MVP; kontrak v29 approved 20 November 2026"
+amendment_s_d5_v28: "2026-11-19 — Amandemen S-D5 layar Ajukan dan status SPPD (bagian 28): FE-HRD-337 s.d. FE-HRD-340, gelombang MVP-71; kontrak v28 approved 19 November 2026"
 finishing_update_docs: "2026-11-19 — 52 task finishing dari docs/update (Administrasi Kepegawaian, Menu 04, 05, 07, 08, 09) ditambahkan sebagai FE-HRD-341 s.d. FE-HRD-392 (bagian 29, slice S-FIN-*), dengan alias ID FIN-HRD-*. Status diisi dari audit source frontend 50e1eb7a9 (HamzahV2) dan backend bdc3ccf9 (MHamzah). Menu 12: FE-HRD-330, FE-HRD-331, FE-HRD-334, FE-HRD-336 turun dari ✅ ke 🟡."
 draft_slice_s_a8: "2026-11-16 — Slice DRAFT S-A8 Data Penggajian Pegawai (HRD) ditambahkan (bagian 25): FE-HRD-325 s.d. FE-HRD-327. Source sudah ditulis di luar siklus task dan belum di-build; menunggu BE-HRD-360 s.d. BE-HRD-363 (kontrak v27 approved 16 November 2026, gerbang G1 tertutup); keputusan terdaftar HRD-DEC-218 s.d. HRD-DEC-223 (G2 tertutup 16 November 2026). Tidak ada tanda status yang berubah pada task lama."
 status: ACTIVE
@@ -153,6 +154,12 @@ locked_input_hashes_s_b3:
   testing/acceptance-test-matrix.md: 4c4ab7420cb00feaabd870a038ecd4ab927417c774d5d39ce1d9103e06a3791e
 ```
 
+**Apa yang berubah pada revision 19 (23 November 2026).**
+
+1. **Sembilan task frontend Paket B navigasi SDM**, `FE-HRD-401` s.d. `FE-HRD-409` (bagian 31, slice `S-PKB`), sesudah kontrak `v30` disetujui pengguna 23 November 2026 ("1. ya setujui 2. A"). `MVP-75` berisi layar Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian, perubahan layar Sanksi dan Employee 360, serta pensiun halaman Tindak Disiplin lama; `MVP-76` berisi layar Dashboard SDM dan butir menu Paket B.
+2. **Label "Teguran" menjadi "Tindak Disiplin"** (`HRD-DEC-247`, menjawab `HRD-Q-234`) digabung ke `FE-HRD-408` karena mengubah berkas menu yang sama dengan butir menu Paket B.
+3. **Grafik F98 ditambahkan** dalam bentuk pohon teks (14 node, 13 pasangan prasyarat→task) beserta tabel gelombang dan tabel task. Register mendaftarkan kesembilan task, seluruhnya belum dikerjakan.
+
 **Apa yang berubah pada revision 18 (19 November 2026).**
 
 1. **Lima puluh dua task frontend finishing**, `FE-HRD-341` s.d. `FE-HRD-392`, dari dokumen instruksi pada
@@ -252,7 +259,7 @@ locked_input_hashes_s_b3:
 Roadmap frontend HR memuat **43 task**: 28 task lama dan 15 task `S-D1`. Grafiknya dipecah menjadi
 satu ringkasan antar-slice dan sembilan grafik per slice. **Revision 7** menambah 17 task `S-C4-ONB`
 (`FE-HRD-058` s.d. `FE-HRD-074`) pada Grafik F13 s.d. F17. **Revision 18** menambah 52 task finishing dari dokumen
-update (`FE-HRD-341` s.d. `FE-HRD-392`) pada Grafik F88 s.d. F96 di bagian 29.
+update (`FE-HRD-341` s.d. `FE-HRD-392`) pada Grafik F88 s.d. F96 di bagian 29. **Revision 20** menambah 9 task Paket B (`FE-HRD-401` s.d. `FE-HRD-409`) pada Grafik F98 di bagian 31.
 
 Cara membaca:
 
@@ -1010,6 +1017,19 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 | `FE-HRD-390` | `S-FIN-M09` / Masa Berlaku Kewenangan | 🟡 SEBAGIAN | Radar Masa Berlaku Kewenangan dan siklus rekredensial (alias `FIN-HRD-09-FE-009`) |
 | `FE-HRD-391` | `S-FIN-M09` / Lintas Submenu | 🟡 SEBAGIAN | Design system, izin, dan aksesibilitas Menu 09 (alias `FIN-HRD-09-FE-010`) |
 | `FE-HRD-392` | `S-FIN-M09` / Verifikasi | 🟡 SEBAGIAN | Integrasi FE-BE, UAT 56 kasus, dan regresi Menu 09 (alias `FIN-HRD-09-FE-011`) |
+| `FE-HRD-401` | `S-PKB` · `MVP-75` | Bagian disiplin Employee 360 dari `disciplinaryRecords` | ✅ | `BE-HRD-453` ✅ [BE] | [FE-HRD-401.md](../task/report/frontend/FE-HRD-401.md) |
+| `FE-HRD-402` | `S-PKB` · `MVP-75` | Pensiun halaman Tindak Disiplin lama (pengalihan ke layar Sanksi) | ✅ | — | [FE-HRD-402.md](../task/report/frontend/FE-HRD-402.md) |
+| `FE-HRD-403` | `S-PKB` · `MVP-75` | Layar Sanksi: filter Status dan label status lengkap | ✅ | — | [FE-HRD-403.md](../task/report/frontend/FE-HRD-403.md) |
+| `FE-HRD-404` | `S-PKB` · `MVP-75` | Layar Seleksi Administrasi | ✅ | — | [FE-HRD-404.md](../task/report/frontend/FE-HRD-404.md) |
+| `FE-HRD-405` | `S-PKB` · `MVP-75` | Layar Tes/Wawancara dua jalur | ✅ | `BE-HRD-455` ✅ [BE] | [FE-HRD-405.md](../task/report/frontend/FE-HRD-405.md) |
+| `FE-HRD-406` | `S-PKB` · `MVP-75` | Layar Riwayat Penyelesaian | ✅ | `FE-HRD-403` ✅, `BE-HRD-456` ✅ [BE] | [FE-HRD-406.md](../task/report/frontend/FE-HRD-406.md) |
+| `FE-HRD-407` | `S-PKB` · `MVP-76` | Layar Dashboard SDM dengan daftar nama | ✅ | `BE-HRD-461` ✅ [BE] | [FE-HRD-407.md](../task/report/frontend/FE-HRD-407.md) |
+| `FE-HRD-408` | `S-PKB` · `MVP-76` | Butir menu Paket B dan label "Tindak Disiplin" | 🟡 | `FE-HRD-404` ✅, `FE-HRD-405` ✅, `FE-HRD-406` ✅, `FE-HRD-407` ✅ | [FE-HRD-408.md](../task/report/frontend/FE-HRD-408.md) |
+| `FE-HRD-409` | `S-PKB` · Verifikasi | Verifikasi browser lima pintu Paket B | 🟡 | `FE-HRD-401` ✅, `FE-HRD-402` ✅, `FE-HRD-408` 🟡, `BE-HRD-462` ✅ [BE] | [FE-HRD-409.md](../task/report/frontend/FE-HRD-409.md) |
+
+> **Pemutakhiran register 23 November 2026 (Paket B, kontrak `v30`).** Baris `FE-HRD-401` s.d. `FE-HRD-409` (bagian 31, Grafik F98) ditambahkan; seluruhnya belum dikerjakan sehingga kolom status kosong.
+>
+> **Pemutakhiran register 23 November 2026 (sore).** `FE-HRD-401` s.d. `FE-HRD-407` ✅ dan `FE-HRD-408` 🟡 diisi beserta tautan laporannya; kolom status `FE-HRD-402` s.d. `FE-HRD-406` sebelumnya tertinggal kosong walaupun kartunya sudah ✅. `FE-HRD-409` 🟡: verifikasi live dengan lima akun uji 32/32 lulus; jalur rekrutmen berisi data dan sanksi selesai belum dapat diuji (lihat kartu).
 
 
 ---
@@ -6114,7 +6134,7 @@ FE-HRD-306 ✅ ─┬─> FE-HRD-317 ⬜ (BE-HRD-352)
                ├─> FE-HRD-321 ⬜ (BE-HRD-357)
                └─> FE-HRD-322 ⬜ (BE-HRD-340)
 FE-HRD-317 ⬜ s.d. FE-HRD-322 ⬜ ─> FE-HRD-323 ⬜
-{DSG-Q-01, DSG-Q-02} ─> FE-HRD-324 ⛔
+{DSG-Q-01 ⛔, DSG-Q-02 ✅} ─> FE-HRD-324 ⛔
 ```
 
 ### Tabel gelombang eksekusi frontend `A52`
@@ -6125,7 +6145,7 @@ FE-HRD-317 ⬜ s.d. FE-HRD-322 ⬜ ─> FE-HRD-323 ⬜
 | **MVP-68** | Jadwal Saya; laporan dan ekspor | `FE-HRD-314`, `FE-HRD-315` | Task backend `MVP-68` |
 | **Verifikasi** | Uji browser MVP | `FE-HRD-316` | `FE-HRD-306` s.d. `FE-HRD-315` |
 | **POST-MVP** | Siaga, dispensasi, tugas belajar, gangguan mesin, dashboard, realisasi jadwal | `FE-HRD-317` s.d. `FE-HRD-323` | Task backend `POST-MVP` |
-| — | Grup menu 12 menu | `FE-HRD-324` ⛔ | `DSG-Q-01`, `DSG-Q-02` |
+| — | Grup menu 12 menu | `FE-HRD-324` ⛔ | `DSG-Q-01` (`DSG-Q-02` dijawab 21 November 2026) |
 
 ### Rincian task frontend `A52`
 
@@ -6360,7 +6380,7 @@ Verifikasi lulus; laporan di `task/report/frontend/<ID>.md`.
 #### ⛔ `FE-HRD-324` — Grup menu "Penjadwalan & Kehadiran" (terblokir)
 * **Slice / MVP**: `A52` / tidak dijadwalkan / `EPIC HRD-120`
 * **Outcome**: Sidebar SDM memuat 12 menu dan 58 submenu sesuai `HRD-DEC-214`.
-* **Diblokir oleh**: `DSG-Q-01` (14 submenu jatuh ke layar yang sama atau berupa aksi) dan `DSG-Q-02` (daftar penempatan sementara). Pemilik keputusan: pengguna.
+* **Diblokir oleh**: `DSG-Q-01` (14 submenu jatuh ke layar yang sama atau berupa aksi). `DSG-Q-02` dijawab pengguna 21 November 2026: submenu "Penugasan Tambahan" menuju layar surat perintah personel `/hr/personnel-action-orders`, tanpa endpoint daftar baru (`BE-HRD-359` dibatalkan). Pemilik keputusan: pengguna.
 * **Pekerjaan yang tetap berjalan**: Seluruh layar MVP dapat dijangkau dari sidebar lama; entri sementara untuk layar baru boleh ditambahkan di grup yang ada.
 * **Kontrak**: `v26` — `03-frontend-architecture.md` 31.1
 * **Reuse**: `src/utils/menu-sidebar/menu-items.jsx`
@@ -7559,3 +7579,272 @@ BE-HRD-440 ───────────────────┴─> FE-H
 * **Verifikasi**: uji browser; lint dan build.
 * **Risiko / pemilik**: penghapusan endpoint backend `approval-inbox` **tidak** termasuk task ini (menunggu pemanggil nol); UI Lead HR.
 * **DoD**: AC terbukti, laporan `FE-HRD-400.md`.
+
+---
+
+## 31. Amandemen Paket B — Lima Entry Point Menu SDM (roadmap revisi `20`, kontrak `v30`)
+
+> **Penomoran ulang saat merge, 23 November 2026.** Bagian ini semula bagian 30 (roadmap revisi `19`, Grafik F97) dengan task `FE-HRD-393` s.d. `FE-HRD-401`. Nomor itu sudah dipakai amandemen `S-A7-V2` (bagian 30, `FE-HRD-393` dan `FE-HRD-394` s.d. `FE-HRD-400`) yang lebih dulu masuk `QuilvianIntegrationBackend` (PR #367), sehingga bagian ini menjadi bagian 31 (revisi `20`, Grafik F98) dengan task `FE-HRD-401` s.d. `FE-HRD-409` dan kontrak `v30`. Isi task dan statusnya tidak berubah; tiap kartu mencatat nomor lamanya. Pesan commit frontend, judul test Playwright, dan nama berkas screenshot yang sudah ada tetap memakai nomor lama.
+
+> **Status slice: kontrak `v30` APPROVED 23 November 2026** oleh Pengguna (`HRD-DEC-015`), jawaban: "1. ya setujui 2. A". Belum ada task yang dikerjakan. Tata letak, bentuk pemisah jalur (tab atau filter), bentuk panel daftar nama (drawer, modal, atau halaman), urutan butir menu, ikon, dan urutan kolom adalah `DEV_DISCRETION`, kecuali yang diikat `03-frontend-architecture.md` bagian 35 (`pathname`, butir hak akses, pesan kosong dan gagal).
+
+| Field | Nilai |
+| --- | --- |
+| `blueprint_id` / revision | `HRD-BP-001` / manifest revision `69` |
+| Slice | `S-PKB` — Paket B Navigasi SDM (`00-slice-roadmap.md`) |
+| Keputusan | `HRD-DEC-237` s.d. `HRD-DEC-247`, `HRD-ASM-91` s.d. `HRD-ASM-98`; `HRD-DEC-247` menjawab `HRD-Q-234` (label "Tindak Disiplin") |
+| Kontrak | `v30` approved — API 36 (terutama 36.1 ruas respons, 36.6 pesan), State 34, Validation `VR-PKB-03`, `VR-PKB-10`, `VR-PKB-11`, Permission 34, Acceptance 39 |
+| Desain | `03-frontend-architecture.md` bagian 35 (peta menu 35.1, skema layar 35.2, berkas 35.3); PRD `04-prd-to-mvp.md` bagian 43 (`EPIC HRD-125` s.d. `HRD-130`, `MVP-75`, `MVP-76`) |
+| Source acuan | Frontend `573b7429c` (branch `HamzahV2`) — HEAD saat perencanaan sama dengan source desain |
+| Bergantung backend | `BE-HRD-453` (Employee 360), `BE-HRD-455` (evaluasi; memuat `BE-HRD-454`), `BE-HRD-456` (filter status sanksi), `BE-HRD-461` (dashboard; memuat `BE-HRD-457` s.d. `BE-HRD-460`), `BE-HRD-462` (verifikasi) — roadmap backend bagian 31 |
+| Kebijakan test | Mengikuti `rules/frontend/test-policy.md`: test unit direkomendasikan untuk logika murni (pemetaan status, serialisasi parameter, pemetaan panel), tidak diwajibkan untuk komposisi view; validasi minimum `AGENTS.md` frontend tetap dijalankan |
+
+### Latar belakang
+
+Paket A merapikan sidebar SDM dengan aturan "satu fungsi, satu pintu" dan menunda lima pintu yang aturannya belum diputuskan. Frontend Paket B membuka kelima pintu itu, memensiunkan halaman Tindak Disiplin lama yang memanggil alamat backend yang tidak ada (`HRD-TF-090`), dan menampilkan bagian disiplin Employee 360 sesuai hak.
+
+Contoh alur: Dodi (Recruiter) membuka Rekrutmen & Seleksi → **Seleksi Administrasi** dan langsung melihat lamaran IGD Sari yang masih Menunggu. Sari (asesor ICU) membuka **Tes/Wawancara** dan hanya melihat dua uji yang ditugaskan kepadanya. Rina (Manajer SDM) membuka **Dashboard SDM**, mengklik "SIP sudah habis 2", lalu membuka Employee 360 dr. Dodi dari daftar nama.
+
+Empat layar `MVP-75` yang tidak menunggu backend (`FE-HRD-402`, `FE-HRD-403`, `FE-HRD-404`, dan bagian awal `FE-HRD-406`) boleh dikerjakan lebih dulu. Butir menu ditambahkan paling akhir (`FE-HRD-408`) agar tidak ada butir yang menuju halaman yang belum ada.
+
+### Fakta source yang menopang rencana
+
+| Fakta | Bukti |
+| --- | --- |
+| Butir "Teguran" menuju `/hrd/relations/sanctions`; label inilah yang diganti `HRD-DEC-247` | `src/utils/menu-sidebar/menu-items.jsx` baris 1885–1888 |
+| Layar Sanksi sudah punya filter Tingkat dengan pilihan "Teguran Lisan", tetapi belum punya filter Status dan `SANCTION_STATUS` baru memuat `Active` | `src/components/view/hrd/relations/relations-sanctions-view.jsx` baris 86–90, 214–226; `src/lib/constants/hr/relations/relations-constants.js` baris 88–99 |
+| Route detail evaluasi sudah ada, tetapi belum ada halaman daftar `/hr/recruitment/evaluations` | `src/app/hr/recruitment/evaluations/hr/[id]/page.jsx`, `.../clinical/[id]/page.jsx` |
+| Belum ada `/hr/dashboard` dan `/hr/recruitment/screenings` | Pencarian `src/app/hr` |
+| Halaman Tindak Disiplin lama masih dipakai lewat `disciplinary-action-view.jsx` dan `employee-relations-service.js` (beda dari `employee-relation-service.js` yang dipakai layar Sanksi) | Pencarian `src` |
+
+### Gerbang
+
+| Gerbang | Isi | Pemilik | Akibat |
+| --- | --- | --- | --- |
+| G1 | ~~Kontrak `v30` belum disetujui~~ **TERTUTUP 23 November 2026** | Pengguna | Tidak memblokir |
+| G2 | ~~`HRD-Q-234` label menu disiplin~~ **DIJAWAB 23 November 2026** (`HRD-DEC-247`, opsi A) | Pengguna | Tidak memblokir; dikerjakan di `FE-HRD-408` |
+| G3 | ~~Hak `HrdWorkforceDashboard : Read` dan `CandidateEvaluation : ViewAll` diberikan ke peran uji~~ **TERPENUHI 23 November 2026 untuk peran uji** (jabatan "UAT Paket B - …"); peran produksi tetap wajib diatur sebelum rilis | Admin aplikasi atas arahan pengguna | Tidak memblokir `FE-HRD-409`; tetap wajib sebelum rilis |
+| G4 | ~~Akun uji per peran (HR Relations, Recruiter, asesor, atasan langsung, Manajer SDM)~~ **TERPENUHI 23 November 2026** — lima akun `uat.pkb.*@rsmmc.local` dibuat atas izin pengguna; sandi di berkas data uji yang di-ignore Git | Pengguna | Tidak memblokir |
+
+### Grafik F98 — Layar dan menu Paket B (`FE-HRD-401` s.d. `FE-HRD-409`)
+
+```text
+BE-HRD-453 ✅ [BE] ─> FE-HRD-401 ✅ ──────────────────────────┐
+                                                              │
+FE-HRD-402 ✅ ────────────────────────────────────────────────┴──┐
+                                                                 │
+FE-HRD-404 ✅ ───────────────────────┐                           │
+                                     │                           │
+BE-HRD-455 ✅ [BE] ─> FE-HRD-405 ✅ ─┴──┐                        │
+                                        │                        │
+FE-HRD-403 ✅ ──────┐                   │                        │
+                    │                   │                        │
+BE-HRD-456 ✅ [BE] ─┴─> FE-HRD-406 ✅ ──┴──┐                     │
+                                           │                     │
+BE-HRD-461 ✅ [BE] ─> FE-HRD-407 ✅ ───────┴─> FE-HRD-408 🟡 ────┴──┐
+                                                                    │
+BE-HRD-462 ✅ [BE] ─────────────────────────────────────────────────┴─> FE-HRD-409 🟡
+```
+
+`[BE]` = task backend pada `backend-roadmap.md` bagian 31, cermin baca-saja; tandanya disalin dari sana. `BE-HRD-455` sudah memuat `BE-HRD-454` dan `BE-HRD-461` sudah memuat `BE-HRD-457` s.d. `BE-HRD-460` lewat Grafik B101, sehingga tidak digambar ulang.
+
+Grafik memuat 14 node dan 13 pasangan prasyarat→task, sama dengan isi kolom `Dependency` pada tabel task di bawah.
+
+### Tabel gelombang eksekusi
+
+Gelombang dihitung dari prasyarat frontend; prasyarat backend disebut pada kolom kedua dan tidak menaikkan nomor gelombang.
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | `FE-HRD-402`, `FE-HRD-403`, `FE-HRD-404` — **boleh dikerjakan sekarang** (`MVP-75`) |
+| 1 | `BE-HRD-453` / `BE-HRD-455` / `BE-HRD-461` | `FE-HRD-401`, `FE-HRD-405` (`MVP-75`); `FE-HRD-407` (`MVP-76`) — menunggu task backend masing-masing |
+| 2 | `FE-HRD-403`, `BE-HRD-456` | `FE-HRD-406` (`MVP-75`) |
+| 3 | `FE-HRD-404`, `FE-HRD-405`, `FE-HRD-406`, `FE-HRD-407` | `FE-HRD-408` (`MVP-76`) |
+| 4 | `FE-HRD-401`, `FE-HRD-402`, `FE-HRD-408`, `BE-HRD-462` | `FE-HRD-409` (Verifikasi) |
+
+### Tabel task
+
+Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD ada pada kartu task di bawah tabel.
+
+| Task ID | Outcome | Requirement / keputusan | Kontrak `v30` | Dependency | MVP |
+| --- | --- | --- | --- | --- | --- |
+| `FE-HRD-401` | Bagian disiplin Employee 360 dari `disciplinaryRecords`; pesan bila disembunyikan | `FR-PKB-14` s.d. `FR-PKB-16`; `HRD-DEC-246` | API 36.3; `VR-PKB-09`, `VR-PKB-10` | `BE-HRD-453` | `MVP-75` |
+| `FE-HRD-402` | Halaman Tindak Disiplin lama dialihkan; service lama dihapus | `FR-PKB-17`; `HRD-DEC-238`, `HRD-ASM-95` | Acceptance `AT-HRD-PKB-24` | — | `MVP-75` |
+| `FE-HRD-403` | Layar Sanksi mengirim filter `status`; label status lengkap | `FR-PKB-18`; `HRD-DEC-238` | API 36.2; State 34.2 | — | `MVP-75` |
+| `FE-HRD-404` | Layar Seleksi Administrasi per lamaran | `FR-PKB-06`, `FR-PKB-07`; `HRD-DEC-244` | API 36.5; State 34.4 | — | `MVP-75` |
+| `FE-HRD-405` | Layar Tes/Wawancara dua jalur | `FR-PKB-11`; `HRD-DEC-241` | API 36.4, 36.6; State 34.3 | `BE-HRD-455` | `MVP-75` |
+| `FE-HRD-406` | Layar Riwayat Penyelesaian | `FR-PKB-13`; `HRD-DEC-242` | API 36.2; State 34.2 | `FE-HRD-403`, `BE-HRD-456` | `MVP-75` |
+| `FE-HRD-407` | Layar Dashboard SDM dengan daftar nama | `FR-PKB-05`; `HRD-DEC-243`, `HRD-DEC-245` | API 36.1; `INT-HR-115` | `BE-HRD-461` | `MVP-76` |
+| `FE-HRD-408` | Butir menu Paket B dan label "Tindak Disiplin" | `FR-PKB-19`, `FR-PKB-20`; `HRD-DEC-239`, `HRD-DEC-247` | Frontend 35.1; `VR-PKB-11` | `FE-HRD-404`, `FE-HRD-405`, `FE-HRD-406`, `FE-HRD-407` | `MVP-76` |
+| `FE-HRD-409` | Verifikasi browser lima pintu | UAT 43.10; DoD 43.11 | Seluruh `v30` | `FE-HRD-401`, `FE-HRD-402`, `FE-HRD-408`, `BE-HRD-462` | Verifikasi |
+
+### Rincian 9 task frontend (`FE-HRD-401` s.d. `FE-HRD-409`)
+
+#### ✅ `FE-HRD-401` — Bagian disiplin Employee 360 dari `disciplinaryRecords`
+* **Nomor lama**: `FE-HRD-393` (sebelum merge 23 November 2026)
+* **Slice / MVP**: `S-PKB` / `MVP-75` · `EPIC HRD-129`
+* **Status**: ✅ **SELESAI 23 November 2026** — tabel disiplin dari `disciplinaryRecords` (2 `OFFICIAL` + 1 `LEGACY` "Catatan lama" tanpa tombol), "Data disiplin hanya untuk HR." untuk Atasan Langsung dan `disciplineHidden`, ruas usang tidak dibaca; build (893 halaman), lint, CSS checker 0 temuan, dan Playwright Chromium headed 3/3 lulus. Uji akun nyata menjadi cakupan `FE-HRD-409`. Bukti: [laporan](../task/report/frontend/FE-HRD-401.md).
+* **Outcome**: `employee-360-view.jsx` menampilkan `confidentialPersonalAndDiscipline.disciplinaryRecords`: baris `OFFICIAL` memuat nomor, tingkat, tanggal terbit, berlaku sampai, dan status; baris `LEGACY` berlabel "Catatan lama" tanpa tombol apa pun. Bila `disciplineHidden = true`, bagian itu menampilkan "Data disiplin hanya untuk HR." — bukan daftar kosong.
+* **Requirement / keputusan**: `FR-PKB-14`, `FR-PKB-15`, `FR-PKB-16`; `HRD-DEC-238` butir 3, `HRD-DEC-246`
+* **Kontrak**: `v30` — API 36.3; Validation `VR-PKB-09`, `VR-PKB-10`
+* **Reuse**: struktur bagian yang sudah ada di Employee 360, `HrStatusBadge`, `SANCTION_LEVEL`
+* **Cakupan**: `src/components/view/hr/workforce-core/employee-360-view.jsx`; util pemetaan baris bila dibutuhkan
+* **Dependencies**: `BE-HRD-453`
+* **Acceptance Criteria**:
+  1. Akun HR Relations: 2 baris `OFFICIAL` dan 1 baris `LEGACY` tampil; baris `LEGACY` berlabel "Catatan lama" tanpa tombol ubah atau terbitkan (`AT-HRD-PKB-13` tampilan, `AT-HRD-PKB-15`).
+  2. Akun atasan langsung: "Data disiplin hanya untuk HR." tampil di tempat daftar (`AT-HRD-PKB-14` bagian frontend).
+  3. Layar tidak lagi membaca `disciplinarySanctions` (ruas usang).
+  4. Keadaan memuat dan galat mengikuti bagian lain Employee 360.
+* **Verifikasi**: test unit util pemetaan bila util dibuat (direkomendasikan); `npm run lint:errors`; `npm run build`; uji browser dengan dua akun.
+* **Risiko / pemilik**: UI Lead HR.
+* **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-401.md`, tanda status roadmap diperbarui.
+
+#### ✅ `FE-HRD-402` — Pensiun halaman Tindak Disiplin lama
+* **Nomor lama**: `FE-HRD-394` (sebelum merge 23 November 2026)
+* **Slice / MVP**: `S-PKB` / `MVP-75` · `EPIC HRD-129`
+* **Status**: ✅ **SELESAI 23 November 2026** — route lama dialihkan ke `/hrd/relations/sanctions`; view dan service usang dihapus; lint dan build lulus; Playwright Chromium headed membuktikan redirect dan heading tujuan. Bukti: [laporan](../task/report/frontend/FE-HRD-402.md).
+* **Outcome**: `/hr/employee-relations/disciplinary-actions` dialihkan ke `/hrd/relations/sanctions` untuk tautan lama. `src/components/view/hr/employee-relations/disciplinary-action-view.jsx` dan `src/lib/services/hr/employee-relations-service.js` dihapus setelah dipastikan tidak ada pemakai lain. Tidak ada lagi panggilan ke `/v1/hr/workforce-profile/disciplinary-actions`.
+* **Requirement / keputusan**: `FR-PKB-17`; `HRD-DEC-238` butir 2, `HRD-ASM-95`; fakta `HRD-TF-090`
+* **Kontrak**: `v30` — Acceptance `AT-HRD-PKB-24`; frontend 35.1 (layar anak tanpa butir menu)
+* **Reuse**: pola pengalihan route App Router yang sudah dipakai proyek
+* **Cakupan**: `src/app/hr/employee-relations/disciplinary-actions/page.jsx`; dua berkas yang dihapus di atas
+* **Dependencies**: —
+* **Acceptance Criteria**:
+  1. Membuka alamat lama membawa pengguna ke layar Sanksi (`AT-HRD-PKB-24`).
+  2. Pencarian source tidak menemukan rujukan ke `employee-relations-service` maupun `/v1/hr/workforce-profile/disciplinary-actions`.
+  3. `employee-relation-service.js` (dipakai layar Sanksi) tidak tersentuh oleh penghapusan.
+* **Verifikasi**: `npm run lint:errors`; `npm run build` (tidak ada impor patah); uji browser membuka alamat lama.
+* **Risiko / pemilik**: dua nama berkas service yang mirip — penghapusan hanya untuk `employee-relations-service.js`. UI Lead HR.
+* **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-402.md`.
+
+#### ✅ `FE-HRD-403` — Layar Sanksi: filter Status dan label status lengkap
+* **Nomor lama**: `FE-HRD-395` (sebelum merge 23 November 2026)
+* **Slice / MVP**: `S-PKB` / `MVP-75` · `EPIC HRD-129`
+* **Status**: ✅ **SELESAI 23 November 2026** — filter Status mengirim `status`, tiga label status lengkap, dan `statuses` diserialisasi berulang tanpa `[]`; unit test 2/2, lint, build, CSS checker, dan Playwright Chromium headed lulus. Bukti: [laporan](../task/report/frontend/FE-HRD-403.md).
+* **Outcome**: `relations-sanctions-view.jsx` mendapat filter Status (Berlaku, Kedaluwarsa, Dicabut lewat Banding) yang dikirim sebagai parameter `status`; `SANCTION_STATUS` di `relations-constants.js` dilengkapi `Expired` dan `RevokedOnAppeal`; `employee-relation-service.js` meneruskan `status` dan `statuses`.
+* **Requirement / keputusan**: `FR-PKB-18`; `HRD-DEC-238`, `HRD-DEC-242`
+* **Kontrak**: `v30` — API 36.2; State 34.2
+* **Reuse**: filter Tingkat yang sudah ada di layar yang sama, `HrStatusBadge`, `toOptions`
+* **Cakupan**: `src/components/view/hrd/relations/relations-sanctions-view.jsx`, `src/lib/constants/hr/relations/relations-constants.js`, `src/lib/services/hr/employee-relation-service.js`
+* **Dependencies**: —
+* **Acceptance Criteria**:
+  1. Memilih Status = Berlaku hanya menampilkan sanksi `Active`, sama dengan `GET /hrd/disciplinary/sanctions?status=Active`.
+  2. Ketiga status tampil berlabel Indonesia; status tak dikenal tampil apa adanya.
+  3. Filter Tingkat yang ada tetap bekerja, termasuk pilihan "Teguran Lisan" (`HRD-DEC-247`).
+  4. `statuses` dikirim sebagai parameter berulang `statuses=Expired&statuses=RevokedOnAppeal`, bukan `statuses[]=`.
+* **Verifikasi**: test unit serialisasi parameter dan peta label (direkomendasikan); `npm run lint:errors`; `npm run build`; uji browser.
+* **Risiko / pemilik**: Axios bawaan menulis larik sebagai `statuses[]=…`, yang tidak diikat backend sebagai `List<string>`; pakai serialisasi berulang. UI Lead HR.
+* **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-403.md`.
+
+#### ✅ `FE-HRD-404` — Layar Seleksi Administrasi
+* **Nomor lama**: `FE-HRD-396` (sebelum merge 23 November 2026)
+* **Slice / MVP**: `S-PKB` / `MVP-75` · `EPIC HRD-126`
+* **Status**: ✅ **SELESAI 23 November 2026** — worklist per lamaran, default Menunggu, empat filter, status STR/Gugur, form reusable, gate hak Evaluate, empty/failure recovery, dan pencegahan kirim ganda tersedia; lint, build, CSS checker, dan Playwright Chromium headed lulus. Bukti: [laporan](../task/report/frontend/FE-HRD-404.md).
+* **Outcome**: Halaman `/hr/recruitment/screenings` menampilkan daftar penapisan per lamaran dari `GET /recruitment/screenings` (bawaan status Menunggu; filter lowongan, status, hasil cek STR, dan cari nama pelamar). Aksi Periksa membuka formulir penapisan yang sudah ada (`POST /recruitment/screenings/evaluate`) hanya bagi pemegang `CandidateScreening : Evaluate`, dengan pencegahan kirim ganda.
+* **Requirement / keputusan**: `FR-PKB-06`, `FR-PKB-07`; `HRD-DEC-244`, `HRD-DEC-076`
+* **Kontrak**: `v30` — API 36.5; State 34.4
+* **Reuse**: `src/lib/services/hr/recruitment-service.js`, formulir penapisan existing, base component daftar HR
+* **Cakupan**: `src/app/hr/recruitment/screenings/page.jsx` + view daftar baru
+* **Dependencies**: — (endpoint sudah ada)
+* **Acceptance Criteria**:
+  1. Pelamar Sari dengan lamaran ICU `Passed` dan IGD `Pending`: tampilan bawaan menampilkan lamaran IGD; filter Semua menampilkan dua baris (`AT-HRD-PKB-16`).
+  2. Lamaran klinis tanpa STR berlaku tampil "Gugur" beserta hasil cek STR tanpa tindakan Recruiter (`AT-HRD-PKB-17`).
+  3. Tanpa hak `Evaluate`, tombol Periksa/Tandai tidak tampil.
+  4. Kosong: "Tidak ada lamaran yang menunggu penapisan." dengan tombol Lihat semua; gagal: "Data gagal dimuat." dengan Coba lagi.
+* **Verifikasi**: test unit peta label status (direkomendasikan); `npm run lint:errors`; `npm run build`; uji browser.
+* **Risiko / pemilik**: formulir penapisan existing mungkin hanya terpasang di detail kandidat — bila perlu dipindah, tetap memakai komponen yang sama, bukan salinan. UI Lead HR.
+* **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-404.md`.
+
+#### ✅ `FE-HRD-405` — Layar Tes/Wawancara dua jalur
+* **Nomor lama**: `FE-HRD-397` (sebelum merge 23 November 2026)
+* **Slice / MVP**: `S-PKB` / `MVP-75` · `EPIC HRD-127`
+* **Status**: ✅ **SELESAI 23 November 2026** — worklist jalur HR/klinis, pending-only, pembatasan hak, label veto "Gagal Asesmen", dan pengambilan detail dengan pesan 403 khusus tersedia; lint, build, CSS checker, dan Playwright headed lulus. Bukti: [laporan](../task/report/frontend/FE-HRD-405.md).
+* **Outcome**: Halaman `/hr/recruitment/evaluations` dengan pemisah jalur Wawancara HR dan Uji Klinis/Teknis (`track`), pilihan "Belum dinilai" (`pendingOnly`), dan cari kandidat. Baris membuka route detail yang sudah ada (`/hr/recruitment/evaluations/hr/[id]` atau `/clinical/[id]`). Respons `403` tampil sebagai "Evaluasi ini ditugaskan kepada penilai lain."; kandidat dengan veto klinis tampil "Gagal Asesmen".
+* **Requirement / keputusan**: `FR-PKB-11`; `HRD-DEC-241`, `HRD-DEC-077`, `HRD-ASM-96`
+* **Kontrak**: `v30` — API 36.4, 36.6; State 34.3
+* **Reuse**: `recruitment-service.js` (ditambah parameter `track`, `pendingOnly`), halaman detail evaluasi yang sudah ada
+* **Cakupan**: `src/app/hr/recruitment/evaluations/page.jsx` + view daftar; `src/lib/services/hr/recruitment-service.js`
+* **Dependencies**: `BE-HRD-455`
+* **Acceptance Criteria**:
+  1. Akun dengan `ViewAll` melihat evaluasi milik dua penilai (`AT-HRD-PKB-18` bagian frontend).
+  2. Asesor tanpa uji: "Belum ada uji yang ditugaskan kepada Anda."
+  3. Membuka detail milik penilai lain menampilkan pesan `403` sesuai kontrak, bukan halaman galat umum.
+  4. Pemisah jalur bekerja untuk kedua jalur; bentuknya `DEV_DISCRETION`.
+* **Verifikasi**: test unit pemetaan jalur (direkomendasikan); `npm run lint:errors`; `npm run build`; uji browser dengan akun recruiter dan asesor.
+* **Risiko / pemilik**: halaman detail existing mungkin belum menangani `403` — bila ya, penanganannya masuk task ini karena pesannya diikat kontrak 36.6. UI Lead HR.
+* **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-405.md`.
+
+#### ✅ `FE-HRD-406` — Layar Riwayat Penyelesaian
+* **Nomor lama**: `FE-HRD-398` (sebelum merge 23 November 2026)
+* **Slice / MVP**: `S-PKB` / `MVP-75` · `EPIC HRD-128`
+* **Status**: ✅ **SELESAI 23 November 2026** — dua panel baca-saja, multi-status berulang, label lengkap, permission gate insiden, pagination dan state kosong tersedia; lint, build, CSS checker, serta 2 Playwright headed lulus. Bukti: [laporan](../task/report/frontend/FE-HRD-406.md).
+* **Outcome**: Halaman `/hrd/relations/sanctions/history` dengan dua bagian baca-saja: sanksi selesai (`GET /hrd/disciplinary/sanctions?statuses=Expired&statuses=RevokedOnAppeal`, memakai kolom tabel layar Sanksi) dan insiden ditutup tanpa sanksi (`GET /hrd/disciplinary/incidents?status=ResolvedNoSanction`, disembunyikan bila pengguna tidak memegang `EmployeeDisciplinary : ViewIncidents`); filter cari pegawai dan Tingkat.
+* **Requirement / keputusan**: `FR-PKB-13`; `HRD-DEC-242`, `HRD-ASM-97`
+* **Kontrak**: `v30` — API 36.2; State 34.2; Permission 34.1
+* **Reuse**: label status dan serialisasi `statuses` dari `FE-HRD-403`, kolom tabel layar Sanksi, `employee-relation-service.js`
+* **Cakupan**: `src/app/(dashboard)/hrd/relations/sanctions/history/page.jsx` + view
+* **Dependencies**: `FE-HRD-403`, `BE-HRD-456`
+* **Acceptance Criteria**:
+  1. Dengan data `AT-HRD-PKB-12`: 2 sanksi selesai dan 1 insiden ditutup tanpa sanksi tampil, semuanya tanpa tombol aksi.
+  2. Tanpa `ViewIncidents`, bagian insiden tidak dirender.
+  3. Kosong: "Belum ada kasus yang selesai."
+* **Verifikasi**: `npm run lint:errors`; `npm run build`; uji browser.
+* **Risiko / pemilik**: UI Lead HR.
+* **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-406.md`.
+
+#### ✅ `FE-HRD-407` — Layar Dashboard SDM dengan daftar nama
+* **Nomor lama**: `FE-HRD-399` (sebelum merge 23 November 2026)
+* **Slice / MVP**: `S-PKB` / `MVP-76` · `EPIC HRD-125`
+* **Status**: ✅ **SELESAI 23 November 2026** — `/hr/dashboard` dengan lima panel yang setiap angkanya membuka daftar nama berpaginasi (baris ke Employee 360), filter jenis dokumen, gerbang `HrdWorkforceDashboard : Read`, serta keadaan gagal tanpa angka nol palsu dan pesan kosong per panel; build (894 halaman), lint, CSS checker 0 temuan, test unit 5/5, dan Playwright Chromium headed 4/4 lulus. Uji akun nyata menjadi cakupan `FE-HRD-409`. Bukti: [laporan](../task/report/frontend/FE-HRD-407.md).
+* **Outcome**: Halaman `/hr/dashboard` dan `workforce-dashboard-service.js` menampilkan kartu ringkasan, distribusi profesi, aktif/nonaktif, kontrak berakhir (H-60, H-14, H-7, Menunggu keputusan, Lewat jatuh tempo), dan dokumen kedaluwarsa dengan filter jenis. Setiap angka membuka daftar nama (`GET /drilldown`) yang barisnya membuka Employee 360. Data dimuat ulang setiap halaman dibuka, tanpa cache lintas sesi.
+* **Requirement / keputusan**: `FR-PKB-05`; `HRD-DEC-243`, `HRD-DEC-245`, `HRD-ASM-92`
+* **Kontrak**: `v30` — API 36.1; State 34.1; Integration `INT-HR-115`; Validation `VR-PKB-03`
+* **Reuse**: base component kartu dan tabel HR, route Employee 360 yang sudah ada
+* **Cakupan**: `src/app/hr/dashboard/page.jsx` + view Dashboard SDM, `src/lib/services/hr/workforce-dashboard-service.js` (baru)
+* **Dependencies**: `BE-HRD-461`
+* **Acceptance Criteria**:
+  1. Rina mengklik "Sudah habis 2" pada jenis SIP/STR → daftar nama dr. Dodi dan Sari dengan nomor lisensi tersamar; klik baris membuka Employee 360 (`AT-HRD-PKB-07` bagian frontend, UAT `HRD-125`).
+  2. `/summary` gagal → "Data dashboard gagal dimuat." dengan Coba lagi, tanpa angka nol palsu (`AT-HRD-PKB-26`).
+  3. Keadaan kosong per panel memakai pesan pada `03-frontend-architecture.md` 35.2.
+  4. Bentuk panel daftar nama `DEV_DISCRETION`.
+* **Verifikasi**: test unit pemetaan panel/kelompok ke parameter drill-down (direkomendasikan); `npm run lint:errors`; `npm run build`; uji browser.
+* **Risiko / pemilik**: UI Lead HR.
+* **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-407.md`.
+
+#### 🟡 `FE-HRD-408` — Butir menu Paket B dan label "Tindak Disiplin"
+* **Nomor lama**: `FE-HRD-400` (sebelum merge 23 November 2026)
+* **Slice / MVP**: `S-PKB` / `MVP-76` · `EPIC HRD-130`
+* **Status**: 🟡 **SEBAGIAN 23 November 2026** — empat butir Paket B dengan hak masing-masing dan label "Tindak Disiplin" selesai; `key` ganda bawaan diperbaiki; suite menu 11/11, lint, build, dan Playwright headed 2/2 lulus; suite unit penuh tanpa kegagalan baru (73 gagal bawaan). **Belum terpenuhi:** AC1 (`AT-HRD-PKB-25`) — dua `pathname` ganda bawaan di luar Paket B (`/corporate/hrd/learning/certificates`, `/hr/master-data/competency`; adapter `FE-HRD-384`/`FE-HRD-385`) masih ada dan menunggu keputusan pintu mana yang dipertahankan. Bukti: [laporan](../task/report/frontend/FE-HRD-408.md).
+* **Outcome**: `menu-items.jsx` menambah butir Dashboard SDM (tingkat 1), Seleksi Administrasi dan Tes/Wawancara (di Rekrutmen & Seleksi), serta Riwayat Penyelesaian (di Hubungan Industrial & Terminasi), masing-masing dengan butir hak akses sesuai 35.1. Butir "Teguran" berganti label menjadi "Tindak Disiplin" dengan alamat tetap. Uji anti-duplikasi menu diperbarui.
+* **Requirement / keputusan**: `FR-PKB-19`, `FR-PKB-20`; `HRD-DEC-239`, `HRD-DEC-247`
+* **Kontrak**: `v30` — frontend 35.1; Validation `VR-PKB-11`; Permission 34.1; Acceptance `AT-HRD-PKB-09`, `AT-HRD-PKB-23`, `AT-HRD-PKB-25`
+* **Reuse**: util `filter-menu-items-by-permission`, `tests/unit/hr-master-data-sidebar-grouping.test.mjs`
+* **Cakupan**: `src/utils/menu-sidebar/menu-items.jsx`, `tests/unit/hr-master-data-sidebar-grouping.test.mjs`
+* **Dependencies**: `FE-HRD-404`, `FE-HRD-405`, `FE-HRD-406`, `FE-HRD-407` — tidak boleh ada butir yang menuju halaman yang belum ada
+* **Acceptance Criteria**:
+  1. Setiap `pathname` dan `key` menu SDM unik dan tidak ada butir menuju placeholder (`AT-HRD-PKB-25`).
+  2. Butir tampil hanya bila pengguna memegang hak layar tujuannya; akun tanpa `HrdWorkforceDashboard : Read` tidak melihat Dashboard SDM (`AT-HRD-PKB-09` bagian frontend).
+  3. Butir "Tindak Disiplin" membuka daftar sanksi alur resmi; tidak ada lagi butir berlabel "Teguran" (`AT-HRD-PKB-23`).
+  4. Urutan butir dan ikon `DEV_DISCRETION`.
+* **Verifikasi**: `npm run test:unit` (suite menu yang sudah ada); `npm run lint:errors`; `npm run build`.
+* **Risiko / pemilik**: UI Lead HR.
+* **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-408.md`.
+
+#### 🟡 `FE-HRD-409` — Verifikasi browser lima pintu Paket B
+* **Nomor lama**: `FE-HRD-401` (sebelum merge 23 November 2026)
+* **Slice / MVP**: `S-PKB` / Verifikasi
+* **Status**: 🟡 **SEBAGIAN 23 November 2026** — lima akun uji per peran dibuat lewat API resmi (jabatan uji terpisah agar hak pegawai nyata tidak berubah); Chromium headed terhadap backend lokal dan DB dev: 32/32 skenario lulus, 0 panggilan ke alamat usang, 0 galat halaman; tangkapan Manajemen Role membuktikan `HrdWorkforceDashboard : Read` dan `CandidateEvaluation : ViewAll`; lint dan build lulus. **Belum terpenuhi:** AC1 untuk jalur berisi data `HRD-126`/`HRD-127` (DB dev tanpa rantai rekrutmen) dan bagian sanksi selesai `HRD-128` (status `RevokedOnAppeal` tidak pernah diisi backend; `Expired` menunggu worker 6 jam). Bukti: [laporan](../task/report/frontend/FE-HRD-409.md) dan laporan uji per menu di `testing/test-by-agy/`.
+* **Outcome**: Bukti browser (desktop dan ponsel) terhadap backend lokal untuk Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Tindak Disiplin, Riwayat Penyelesaian, dan bagian disiplin Employee 360, memakai akun yang memegang hak dan akun yang tidak.
+* **Requirement / keputusan**: UAT PRD 43.10 (`HRD-125` s.d. `HRD-130`); DoD PRD 43.11
+* **Kontrak**: `v30`
+* **Reuse**: skill `live-browser-testing` (Chromium headed), laporan per menu di blueprint
+* **Cakupan**: tanpa perubahan source kecuali perbaikan temuan verifikasi
+* **Dependencies**: `FE-HRD-401`, `FE-HRD-402`, `FE-HRD-408`, `BE-HRD-462`
+* **Acceptance Criteria**:
+  1. Jalur berhasil dan jalur gagal UAT `HRD-125` s.d. `HRD-130` lulus di layar.
+  2. Hak `HrdWorkforceDashboard : Read` dan `CandidateEvaluation : ViewAll` terbukti sudah diberikan ke peran uji (tangkapan Manajemen Role).
+  3. Tab network tidak memuat panggilan ke `/v1/hr/workforce-profile/disciplinary-actions` (`AT-HRD-PKB-24`).
+  4. `npm run lint:errors` dan `npm run build` lulus.
+* **Verifikasi**: Playwright headed (dev 3000 → backend lokal), tangkapan layar tanpa NIK, laporan `task/report/frontend/FE-HRD-409.md` dan laporan uji per menu. Butuh akun HR Relations, Recruiter, asesor, atasan langsung, dan Manajer SDM (gerbang G4).
+* **Risiko / pemilik**: menyalakan backend di DB dev bersama memerlukan izin pengguna. UI Lead HR.
+* **DoD**: AC terbukti; Paket B siap rilis sesudah catatan rilis `BE-HRD-462` dijalankan.
