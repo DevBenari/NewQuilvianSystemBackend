@@ -78,9 +78,17 @@ public sealed class PayrollRunService
         DateTime SubmittedAt, Guid SubmittedByUserId, string Reason, int AffectedEmployeeCount, decimal TotalProvisionalTax,
         string? PolicyVersion, List<int> MissingTaxMonths, string BlockCode);
 
-    /// <summary>Warnings dan ReviewOnly bertipe opsional supaya JSON lama (tanpa kedua kunci itu) tetap terbaca.</summary>
+    /// <summary>
+    /// PAY-BE-FIX-031: metadata klasifikasi penahan yang ditulis saat hitung (tanpa migration). <c>OtherBlockerCount</c> = penahan yang BUKAN
+    /// histori PPh belum lengkap; dihitung dari kode penahan terstruktur mesin pajak, bukan dari pencocokan teks. Run yang dihitung sebelum
+    /// metadata ini ada (null) tidak dapat dinilai kelayakan review-nya dan harus dihitung ulang.
+    /// </summary>
+    private sealed record TaxReviewMeta(int Version, int TaxHistoryBlockerCount, int OtherBlockerCount);
+
+    /// <summary>Warnings, ReviewOnly, dan TaxReview bertipe opsional supaya JSON lama (tanpa kunci itu) tetap terbaca.</summary>
     private sealed record ValidationSummary(
-        List<string> Blockers, List<string> SyncNotes, List<string>? Warnings = null, ReviewOnlyMarker? ReviewOnly = null);
+        List<string> Blockers, List<string> SyncNotes, List<string>? Warnings = null, ReviewOnlyMarker? ReviewOnly = null,
+        TaxReviewMeta? TaxReview = null);
 
     // ------------------------------------------------------------------------------------
     // Baca
@@ -249,7 +257,8 @@ public sealed class PayrollRunService
 
         // PAY-BE-FIX-030: PPh sementara dan kelayakan pengajuan review. Sumber kebenarannya snapshot pajak penerima (kode penahan
         // terstruktur), bukan pencocokan teks pesan penahan.
-        var taxHistoryBlockers = TaxHistoryBlockerTexts(employees);
+        var taxReview = EvaluateTaxReview(validation, employees);
+        detail.TaxReviewState = taxReview.State;
         detail.ProvisionalTax = BuildProvisionalSummary(employees);
         if (validation.ReviewOnly is { } marker)
         {
@@ -267,15 +276,31 @@ public sealed class PayrollRunService
             };
         }
 
-        detail.DecisionBlockReasons = await BuildDecisionBlockReasonsAsync(run, detail, taxHistoryBlockers, forReview: false, cancellationToken);
-        if (string.Equals(run.RunStatus, PayrollRunStatuses.Calculated, StringComparison.OrdinalIgnoreCase) && taxHistoryBlockers.Count > 0)
+        detail.DecisionBlockReasons = await BuildDecisionBlockReasonsAsync(run, detail, taxReview, forReview: false, cancellationToken);
+        if (string.Equals(run.RunStatus, PayrollRunStatuses.Calculated, StringComparison.OrdinalIgnoreCase) && taxReview.State != TaxReviewNotApplicable)
         {
-            var reviewReasons = await BuildDecisionBlockReasonsAsync(run, detail, taxHistoryBlockers, forReview: true, cancellationToken);
-            if (detail.ProvisionalTax is { EstimateUnavailableCount: > 0 } summary)
-                reviewReasons.Add(
-                    $"Estimasi PPh sementara tidak tersedia untuk {summary.EstimateUnavailableCount} penerima; pengajuan untuk review memerlukan estimasi yang dapat ditelusuri bagi seluruh penerima terdampak.");
+            // Aturan kelayakan SAMA dengan SubmitForReviewAsync: EvaluateTaxReview + alasan non-pajak yang sama + estimasi tersedia.
+            var reviewReasons = await BuildDecisionBlockReasonsAsync(run, detail, taxReview, forReview: true, cancellationToken);
+            var codes = new List<string>();
+            var taxReasonCount = 0;
+            if (taxReview.State == TaxReviewRecalculationRequired) { codes.Add(PayrollRunReviewBlockCodes.RecalculationRequired); taxReasonCount++; }
+            if (taxReview.State == TaxReviewBlocked) { codes.Add(PayrollRunReviewBlockCodes.OtherBlockers); taxReasonCount++; }
+            if (taxReview.State == TaxReviewEligible)
+            {
+                var unavailable = UnavailableEstimateReasons(employees);
+                if (unavailable.Count > 0)
+                {
+                    reviewReasons.AddRange(unavailable);
+                    codes.Add(PayrollRunReviewBlockCodes.EstimateUnavailable);
+                    taxReasonCount += unavailable.Count;
+                }
+            }
+
+            if (reviewReasons.Count > taxReasonCount) codes.Add(PayrollRunReviewBlockCodes.OtherReasons);
             detail.SubmitForReviewBlockReasons = reviewReasons;
-            detail.CanSubmitForReview = reviewReasons.Count == 0;
+            detail.SubmitForReviewBlockCodes = codes;
+            detail.ReviewRecalculationRequired = taxReview.State == TaxReviewRecalculationRequired && !run.IsLocked;
+            detail.CanSubmitForReview = taxReview.State == TaxReviewEligible && reviewReasons.Count == 0;
         }
 
         detail.AvailableActions = BuildAvailableActions(run, detail);
@@ -287,6 +312,58 @@ public sealed class PayrollRunService
     // ------------------------------------------------------------------------------------
     // PAY-BE-FIX-030: PPh sementara (review-only). Estimasi TIDAK PERNAH menjadi nominal PPh resmi.
     // ------------------------------------------------------------------------------------
+
+    private const string TaxReviewNotApplicable = "NotApplicable";
+    private const string TaxReviewRecalculationRequired = "RecalculationRequired";
+    private const string TaxReviewBlocked = "Blocked";
+    private const string TaxReviewEligible = "Eligible";
+
+    private const string TaxReviewRecalculationMessage =
+        "Payroll Run dihitung sebelum fitur PPh sementara tersedia. Hitung ulang Payroll Run untuk menyiapkan estimasi PPh dan pengajuan review.";
+
+    /// <summary>Hasil penilaian kelayakan review-only: satu-satunya sumber untuk GET detail, availableActions, dan SubmitForReviewAsync.</summary>
+    private sealed record TaxReviewEvaluation(string State, int OtherBlockerCount, List<string> AffectedEmployees);
+
+    /// <summary>
+    /// PAY-BE-FIX-031: menilai kelayakan pengajuan review-only dari data terstruktur, tanpa pencocokan teks pesan:
+    /// - snapshot pajak penerima: <c>IsBlocking</c> + <c>BlockCode</c> TAX_YTD_HISTORY_INCOMPLETE (hasil mesin pajak saat hitung);
+    /// - metadata klasifikasi run (<see cref="TaxReviewMeta"/>): jumlah penahan lain, ditulis saat hitung dari kode yang sama.
+    /// Snapshot lama (blocking tanpa BlockCode, tetapi dengan bukti terstruktur masa pajak terakhir dan bulan histori yang hilang) atau run
+    /// tanpa metadata dinilai RecalculationRequired: tidak ditebak dan tidak dianggap lolos. Penahan lain membuat state Blocked.
+    /// </summary>
+    private static TaxReviewEvaluation EvaluateTaxReview(ValidationSummary validation, IReadOnlyCollection<PrlPayrollRunEmployee> employees)
+    {
+        var classified = new List<string>();
+        var legacy = new List<string>();
+        foreach (var employee in employees)
+        {
+            var snapshot = ReadSnapshot<PayrollTaxSnapshot>(employee.TaxSnapshotJson);
+            if (IsTaxHistoryBlocked(snapshot)) classified.Add(employee.EmployeeNameSnapshot);
+            else if (snapshot is { IsBlocking: true, BlockCode: null, IsLastTaxPeriod: true } && MissingMonthsOf(snapshot).Count > 0)
+                legacy.Add(employee.EmployeeNameSnapshot);
+        }
+
+        if (classified.Count == 0 && legacy.Count == 0) return new TaxReviewEvaluation(TaxReviewNotApplicable, 0, new List<string>());
+        if (legacy.Count > 0 || validation.TaxReview is null)
+            return new TaxReviewEvaluation(TaxReviewRecalculationRequired, 0, legacy.Concat(classified).Distinct().ToList());
+        if (validation.TaxReview.OtherBlockerCount > 0)
+            return new TaxReviewEvaluation(TaxReviewBlocked, validation.TaxReview.OtherBlockerCount, classified);
+        return new TaxReviewEvaluation(TaxReviewEligible, 0, classified);
+    }
+
+    /// <summary>Alasan spesifik per penerima terdampak yang estimasinya tidak tersedia (data/kebijakan yang kurang), bukan pesan generik.</summary>
+    private static List<string> UnavailableEstimateReasons(IEnumerable<PrlPayrollRunEmployee> employees)
+    {
+        var reasons = new List<string>();
+        foreach (var employee in employees)
+        {
+            var provisional = ProvisionalTaxOf(employee, ReadSnapshot<PayrollTaxSnapshot>(employee.TaxSnapshotJson));
+            if (provisional is { IsAvailable: false })
+                reasons.Add($"{employee.EmployeeNameSnapshot}: estimasi PPh sementara tidak tersedia. {provisional.UnavailableReason}".TrimEnd());
+        }
+
+        return reasons;
+    }
 
     private static bool IsTaxHistoryBlocked(PayrollTaxSnapshot? snapshot) =>
         snapshot is { IsBlocking: true, BlockCode: PayrollTaxBlockCodes.YtdHistoryIncomplete };
@@ -404,7 +481,7 @@ public sealed class PayrollRunService
     /// berubah, dan, khusus pengajuan, penghasilan variabel). Murni baca; tidak mengubah status, nominal, ataupun hasil pajak.
     /// </summary>
     private async Task<List<string>> BuildDecisionBlockReasonsAsync(
-        PrlPayrollRun run, PayrollRunDetailResponse detail, IReadOnlyCollection<string> taxHistoryBlockers, bool forReview, CancellationToken cancellationToken)
+        PrlPayrollRun run, PayrollRunDetailResponse detail, TaxReviewEvaluation taxReview, bool forReview, CancellationToken cancellationToken)
     {
         var reasons = new List<string>();
         var calculated = string.Equals(run.RunStatus, PayrollRunStatuses.Calculated, StringComparison.OrdinalIgnoreCase);
@@ -414,12 +491,24 @@ public sealed class PayrollRunService
         // PAY-BE-FIX-030: run yang diajukan dengan PPh sementara tidak boleh disahkan sampai dikembalikan, dihitung ulang, dan diajukan ulang.
         if (submitted && detail.IsTaxProvisional) reasons.Add(TaxNotFinalApproveMessage);
 
-        // Mode review hanya mengabaikan penahan yang terklasifikasi histori PPh belum lengkap; penahan lain tetap menahan.
-        var blockerCount = forReview ? detail.Blockers.Except(taxHistoryBlockers).Count() : detail.Blockers.Count;
-        if (blockerCount > 0)
-            reasons.Add(forReview
-                ? $"Terdapat {blockerCount} penahan payroll selain histori PPh yang belum lengkap; selesaikan lebih dulu."
-                : $"Terdapat {detail.Blockers.Count} penahan payroll (termasuk perhitungan PPh yang belum valid bila ada); lihat daftar penahan.");
+        // Mode review hanya mengabaikan penahan yang terklasifikasi histori PPh belum lengkap (kode terstruktur + metadata hitung);
+        // penahan lain tetap menahan, dan run yang tidak dapat dinilai (snapshot lama) wajib dihitung ulang.
+        if (forReview)
+        {
+            if (taxReview.State == TaxReviewRecalculationRequired)
+            {
+                var names = taxReview.AffectedEmployees.Count > 0 ? $" Penerima terdampak: {string.Join(", ", taxReview.AffectedEmployees)}." : string.Empty;
+                reasons.Add(TaxReviewRecalculationMessage + names);
+            }
+            else if (taxReview.State == TaxReviewBlocked)
+            {
+                reasons.Add($"Terdapat {taxReview.OtherBlockerCount} penahan payroll selain histori PPh yang belum lengkap; selesaikan lebih dulu.");
+            }
+        }
+        else if (detail.Blockers.Count > 0)
+        {
+            reasons.Add($"Terdapat {detail.Blockers.Count} penahan payroll (termasuk perhitungan PPh yang belum valid bila ada); lihat daftar penahan.");
+        }
         if (run.ErrorEmployeeCount > 0)
             reasons.Add($"{run.ErrorEmployeeCount} penerima memiliki hasil perhitungan bermasalah.");
         if (run.ProcessedEmployeeCount <= 0)
@@ -990,7 +1079,9 @@ public sealed class PayrollRunService
             run.CalculatedByUserId = actorUserId;
             run.PolicySnapshotJson = _calculationService.BuildPolicySnapshotJson();
             run.ValidationSummaryJson = JsonSerializer.Serialize(new ValidationSummary(
-                blockers.Distinct().ToList(), sync.SkipReasons.Distinct().ToList(), warnings.Distinct().ToList()));
+                blockers.Distinct().ToList(), sync.SkipReasons.Distinct().ToList(), warnings.Distinct().ToList(),
+                ReviewOnly: null,
+                TaxReview: new TaxReviewMeta(1, calculation.TaxHistoryBlockerCount, Math.Max(0, blockers.Count - calculation.TaxHistoryBlockerCount))));
             run.UpdateDateTime = DateTime.UtcNow;
             run.UpdateBy = actorUserId;
 
@@ -1068,20 +1159,29 @@ public sealed class PayrollRunService
 
             var employees = await _dbContext.PrlPayrollRunEmployees.AsNoTracking()
                 .Where(x => x.PayrollRunId == run.Id && !x.IsDelete).ToListAsync(cancellationToken);
-            var taxHistoryBlockers = TaxHistoryBlockerTexts(employees);
-            if (taxHistoryBlockers.Count == 0)
-                throw new PayrollRunValidationException("Payroll run tidak memiliki penahan histori PPh; gunakan pengajuan normal.");
-
+            // Aturan kelayakan SAMA dengan GET detail dan availableActions (EvaluateTaxReview + UnavailableEstimateReasons).
             var validation = ReadValidation(run.ValidationSummaryJson);
-            var otherBlockers = validation.Blockers.Except(taxHistoryBlockers).ToList();
-            if (otherBlockers.Count > 0)
+            var taxReview = EvaluateTaxReview(validation, employees);
+            switch (taxReview.State)
+            {
+                case TaxReviewNotApplicable:
+                    throw new PayrollRunValidationException("Payroll run tidak memiliki penahan histori PPh; gunakan pengajuan normal.");
+                case TaxReviewRecalculationRequired:
+                    throw new PayrollRunValidationException($"{PayrollRunReviewBlockCodes.RecalculationRequired}: {TaxReviewRecalculationMessage}");
+                case TaxReviewBlocked:
+                    // Daftar teks hanya untuk tampilan galat; keputusan sudah diambil dari metadata terstruktur.
+                    var otherTexts = validation.Blockers.Except(TaxHistoryBlockerTexts(employees)).Take(3).ToList();
+                    throw new PayrollRunValidationException(
+                        $"{PayrollRunReviewBlockCodes.OtherBlockers}: Payroll run masih memiliki {taxReview.OtherBlockerCount} penahan selain histori PPh yang belum lengkap"
+                        + (otherTexts.Count > 0 ? $": {string.Join("; ", otherTexts)}." : "."));
+            }
+
+            var unavailable = UnavailableEstimateReasons(employees);
+            if (unavailable.Count > 0)
                 throw new PayrollRunValidationException(
-                    $"Payroll run masih memiliki {otherBlockers.Count} penahan selain histori PPh yang belum lengkap: {string.Join("; ", otherBlockers.Take(3))}.");
+                    $"{PayrollRunReviewBlockCodes.EstimateUnavailable}: pengajuan untuk review memerlukan estimasi PPh sementara yang dapat ditelusuri bagi seluruh penerima terdampak. {string.Join(" ", unavailable)}");
 
             var summary = BuildProvisionalSummary(employees)!;
-            if (summary.EstimateUnavailableCount > 0)
-                throw new PayrollRunValidationException(
-                    $"Estimasi PPh sementara tidak tersedia untuk {summary.EstimateUnavailableCount} penerima; pengajuan untuk review memerlukan estimasi yang dapat ditelusuri bagi seluruh penerima terdampak.");
 
             var now = DateTime.UtcNow;
             var trimmedReason = reason.Trim();

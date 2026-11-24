@@ -30,6 +30,22 @@ public static class PayrollRunSubmissionModes
     public const string ReviewOnly = "ReviewOnly";
 }
 
+/// <summary>Kode alasan pengajuan review-only belum dapat dilakukan (PAY-BE-FIX-031). Keputusan klien memakai kode, bukan teks pesan.</summary>
+public static class PayrollRunReviewBlockCodes
+{
+    /// <summary>Run dihitung sebelum klasifikasi penahan PPh tersedia; hitung ulang (endpoint Calculate) sebelum dapat diajukan untuk review.</summary>
+    public const string RecalculationRequired = "RECALCULATION_REQUIRED_FOR_TAX_REVIEW";
+
+    /// <summary>Ada penahan selain histori PPh yang belum lengkap.</summary>
+    public const string OtherBlockers = "OTHER_BLOCKERS";
+
+    /// <summary>Estimasi PPh sementara tidak tersedia untuk sebagian penerima terdampak.</summary>
+    public const string EstimateUnavailable = "ESTIMATE_UNAVAILABLE";
+
+    /// <summary>Alasan lain: penerima bermasalah, belum ada yang terhitung, input manual, atau sumber kompensasi berubah.</summary>
+    public const string OtherReasons = "OTHER_REASONS";
+}
+
 /// <summary>
 /// Badan aksi Submit (PAY-BE-FIX-030). Tanpa badan atau tanpa <see cref="SubmissionMode"/> = pengajuan normal (perilaku lama). Mode
 /// <c>ReviewOnly</c> memakai izin PayrollRun:Submit yang sama dan diperiksa ulang penuh oleh backend; bukan jalan pintas pengesahan.
@@ -608,6 +624,21 @@ public sealed class PayrollRunDetailResponse : PayrollRunListItemResponse
 
     /// <summary>Alasan <see cref="CanSubmitForReview"/> false padahal ada penahan histori PPh (teks siap tampil). Aditif.</summary>
     public List<string> SubmitForReviewBlockReasons { get; set; } = new();
+
+    /// <summary>
+    /// PAY-BE-FIX-031: kode terstruktur untuk <see cref="SubmitForReviewBlockReasons"/> (<see cref="PayrollRunReviewBlockCodes"/>). Klien memilih
+    /// tampilan (hitung ulang, penahan lain, estimasi tidak tersedia) dari kode ini. Aditif.
+    /// </summary>
+    public List<string> SubmitForReviewBlockCodes { get; set; } = new();
+
+    /// <summary>
+    /// PAY-BE-FIX-031: Calculated dan penahan PPh terlihat, tetapi run dihitung sebelum klasifikasi penahan tersedia (snapshot lama atau
+    /// tanpa metadata klasifikasi). Pengajuan review baru dapat dinilai setelah run dihitung ulang lewat endpoint Calculate. Aditif.
+    /// </summary>
+    public bool ReviewRecalculationRequired { get; set; }
+
+    /// <summary>NotApplicable | RecalculationRequired | Blocked | Eligible. Hanya informasi diagnosis; keputusan ada pada CanSubmitForReview. Aditif.</summary>
+    public string TaxReviewState { get; set; } = "NotApplicable";
 
     /// <summary>
     /// PAY-BE-FIX-030: true hanya bila run Submitted, tidak ada alasan menahan, dan PPh sudah final (bukan PPh sementara). Beda dengan izin

@@ -260,6 +260,12 @@ public sealed class PayrollCalculationService
         /// ditandai), tetapi run tidak dapat diajukan sebelum HRD melengkapinya. Tanpa awalan nama.
         /// </summary>
         public Dictionary<Guid, List<string>> EmployeeBlockers { get; } = new();
+
+        /// <summary>
+        /// PAY-BE-FIX-031: jumlah entri <see cref="Blockers"/> yang berasal dari penahan PPh terklasifikasi TAX_YTD_HISTORY_INCOMPLETE
+        /// (kode terstruktur dari mesin pajak, bukan teks). Selisihnya dengan jumlah seluruh penahan = penahan lain yang tetap menahan review.
+        /// </summary>
+        public int TaxHistoryBlockerCount { get; set; }
     }
 
     private sealed record IdentityInfo(Guid WorkforceProfileId, bool IsActive, DateTime? JoinDate, DateTime? ResignDate);
@@ -460,6 +466,11 @@ public sealed class PayrollCalculationService
                 statutory, periodStart, periodEnd, totalDays, actorUserId, errors, warnings, blockers);
 
             var label = employee.EmployeeNameSnapshot;
+
+            // Semua Issues snapshot pajak ditambahkan apa adanya ke daftar penahan penerima (taxAssessment.IsBlocking), jadi jumlahnya sama.
+            var classifiedTax = ReadSnapshot<PayrollTaxSnapshot>(employee.TaxSnapshotJson);
+            if (classifiedTax is { IsBlocking: true, BlockCode: PayrollTaxBlockCodes.YtdHistoryIncomplete })
+                result.TaxHistoryBlockerCount += classifiedTax.Issues.Count;
 
             foreach (var warning in warnings) result.Warnings.Add($"{label}: {warning}");
             if (warnings.Count > 0) result.EmployeeWarnings[employee.Id] = warnings;
