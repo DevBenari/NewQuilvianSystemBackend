@@ -26,9 +26,9 @@ FE-AST-001 [FE-REG] ────────────────┴─> FE-A
 ```
 
 ```text
-                  BE-AST-024 [BE] ─┐
+               BE-AST-024 [BE] ✅ ─┐
                                    │
-         FE-AST-017 ✅ ─┬──────────┴─> FE-AST-018
+         FE-AST-017 ✅ ─┬──────────┴─> FE-AST-018 ✅
                         │
 FE-AST-010 [FE-REG] ────┘
 ```
@@ -77,9 +77,9 @@ Pasangan prasyarat→task: **9** (sama dengan kolom `Dependency`).
 | **Status** | ✅ **SELESAI 23 November 2026.** Satu view + hook empat varian (`stock-take/{matching,discrepancies,verification,reports}?sessionId=`), kolom hasil dengan chip usulan dan aksi baris sesuai hak, empat butir menu; `UI GATE` REUSE 9, NEW 0. ESLint 11 berkas 0/0; build Rizki `BUILD_ID` 15:31:41; Playwright **12/12** di build produksi: tutup pemindaian, ajukan ditolak tanpa catatan, catatan dari menu baris, ajukan, tombol verifikasi tersembunyi bagi anggota tim, verifikasi, proses usulan menampilkan `AST-PNY-000016`, cetak berita acara. Abaikan dan draft temuan diuji di API (`BE-AST-023`). `UAT-INV-01`, `04`, `05` milik tim UAT — [`FE-AST-017.md`](../task/report/frontend/FE-AST-017.md) |
 | Acceptance criteria | 1. `SCR-AST-INV-03..06`. 2. Tombol verifikasi tersembunyi bagi anggota tim. 3. Proses usulan menampilkan nomor dokumen tujuan. 4. Empat butir menu terdaftar |
 
-### `FE-AST-018` — Kartu 1.5 dan laporan
+### ✅ `FE-AST-018` — Kartu 1.5 dan laporan
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 24 November 2026.** Bagian dashboard "Inventaris Tertunda" (dua kartu bertautan ke tab baru Jadwal Inventaris: Lewat Jadwal, Selisih Belum Ditindaklanjuti), varian `report` pada daftar sesi di `/reports/stock-takes` dengan kolom hitungan kategori dan usulan serta Ekspor Excel, menu "Laporan Inventaris"; `UI GATE` REUSE 4, NEW 0. ESLint 11 berkas 0/0; build Rizki `BUILD_ID` 08:51:56; Playwright **15/15** + uji hak akses **6/6** (policy sementara dipulihkan). Label menu "Laporan Inventaris" (kriteria menulis "Inventaris") — [`FE-AST-018.md`](../task/report/frontend/FE-AST-018.md) |
 | Acceptance criteria | 1. Kartu "Inventaris Tertunda" disisipkan ke dashboard tanpa mengubah kartu lain. 2. Laporan dan ekspor. 3. Butir menu "Inventaris" pada grup Laporan |

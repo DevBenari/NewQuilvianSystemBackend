@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.PhysicalInventory.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Enums;
 
 namespace QuilvianSystemBackend.Areas.Corporate.AssetManagement.PhysicalInventory.DTOs;
@@ -11,6 +12,8 @@ public sealed class StockTakePagedQuery
     public Guid? OrganizationUnitId { get; set; }
     public int? Year { get; set; }
     public bool? Mine { get; set; }
+    public bool? Overdue { get; set; }
+    public bool? HasOpenFollowUps { get; set; }
     public string SortDirection { get; set; } = "desc";
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 25;
@@ -105,6 +108,7 @@ public sealed class StockTakeSessionResponse
     public StockTakeStartBlockersResponse? StartBlockers { get; set; }
     public int FindingCount { get; set; }
     public StockTakeResultCountsResponse? ResultCounts { get; set; }
+    public StockTakeFollowUpCountsResponse? FollowUpCounts { get; set; }
     public Guid RowVersion { get; set; }
 }
 
@@ -351,4 +355,30 @@ public sealed class StockTakeFollowUpResponse
     public StockTakeActorResponse? Dismissed { get; set; }
     public string? DismissReason { get; set; }
     public List<string> AvailableActions { get; set; } = [];
+}
+
+public sealed class StockTakeFollowUpCountsResponse
+{
+    public int Total { get; set; }
+    public int Open { get; set; }
+    public int Processed { get; set; }
+    public int Dismissed { get; set; }
+}
+
+public sealed class StockTakeDashboardQuery
+{
+    public Guid? OrganizationUnitId { get; set; }
+}
+
+public sealed class StockTakeSummaryResponse
+{
+    public Guid? OrganizationUnitId { get; set; }
+    public string? OrganizationUnitName { get; set; }
+    public bool CanReadAllUnits { get; set; }
+    public int PendingTotal { get; set; }
+    public int OverdueSessions { get; set; }
+    public int OpenFollowUps { get; set; }
+    public int SessionsWithOpenFollowUps { get; set; }
+    public List<AssetDashboardCardResponse> Cards { get; set; } = [];
+    public DateTime GeneratedAt { get; set; }
 }

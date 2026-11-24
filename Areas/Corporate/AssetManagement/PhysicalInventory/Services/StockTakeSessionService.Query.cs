@@ -36,6 +36,8 @@ public sealed partial class StockTakeSessionService
             new() { Name = "organizationUnitId", Type = "guid", Description = "Unit yang diinventarisasi" },
             new() { Name = "year", Type = "integer", Description = "Tahun tanggal mulai rencana", Example = "2026" },
             new() { Name = "mine", Type = "boolean", Description = "true = hanya sesi tempat pengguna menjadi anggota tim", Example = "true" },
+            new() { Name = "overdue", Type = "boolean", Description = "true = hanya sesi yang lewat tanggal selesai rencana dan belum diverifikasi atau dibatalkan", Example = "true" },
+            new() { Name = "hasOpenFollowUps", Type = "boolean", Description = "true = hanya sesi yang masih punya usulan tindak lanjut berstatus Usulan", Example = "true" },
             new() { Name = "sortDirection", Type = "string", Description = "asc atau desc", Example = "desc" },
             new() { Name = "pageNumber", Type = "integer", Description = "Halaman, mulai 1", Example = "1" },
             new() { Name = "pageSize", Type = "integer", Description = $"Jumlah baris per halaman, maksimal {MaxPageSize}", Example = "25" }
@@ -148,6 +150,16 @@ public sealed partial class StockTakeSessionService
             query = Mine(query, actor);
         }
 
+        if (request.Overdue == true)
+        {
+            query = Overdue(query, AssetRegisterSettingReader.Today());
+        }
+
+        if (request.HasOpenFollowUps == true)
+        {
+            query = WithOpenFollowUps(query);
+        }
+
         var keyword = string.IsNullOrWhiteSpace(request.Search) ? null : request.Search.Trim().ToUpper();
         if (keyword != null)
         {
@@ -175,6 +187,33 @@ public sealed partial class StockTakeSessionService
             unitIds.Contains(x.OrganizationUnitId) ||
             x.CreateBy == userId ||
             (employeeId.HasValue && x.TeamMembers.Any(m => !m.IsDelete && m.EmployeeId == employeeId.Value)));
+    }
+
+    internal IQueryable<AstStockTakeSession> ScopedFor(AssetActor actor) => Scoped(actor);
+
+    internal static IQueryable<AstStockTakeSession> Overdue(IQueryable<AstStockTakeSession> query, DateOnly today) =>
+        query.Where(x => CancellableStatuses.Contains(x.Status) && x.PlannedEndDate < today);
+
+    internal static IQueryable<AstStockTakeSession> WithOpenFollowUps(IQueryable<AstStockTakeSession> query) =>
+        query.Where(x => x.FollowUps.Any(f => !f.IsDelete && f.Status == StockTakeFollowUpStatus.Usulan));
+
+    internal async Task<(int Total, List<StockTakeSessionResponse> Items)> ListForExportAsync(StockTakePagedQuery request, int maxRows, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var actor = await RequireActorAsync(cancellationToken);
+        var query = Filtered(request, actor);
+        var total = await query.CountAsync(cancellationToken);
+        if (total > maxRows)
+        {
+            return (total, []);
+        }
+
+        var ordered = string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase)
+            ? query.OrderBy(x => x.PlannedStartDate).ThenBy(x => x.SessionNumber)
+            : query.OrderByDescending(x => x.PlannedStartDate).ThenByDescending(x => x.SessionNumber);
+        var items = await Project(ordered).ToListAsync(cancellationToken);
+        await DescribeAsync(items, actor, false, cancellationToken);
+        return (total, items);
     }
 
     private static IQueryable<AstStockTakeSession> Mine(IQueryable<AstStockTakeSession> query, AssetActor actor)

@@ -30,7 +30,7 @@ BE-AST-004 [REG] ─> BE-AST-020 ✅ ──────┴─┴─┴─> BE-AS
 ```
 
 ```text
-BE-AST-008 [REG] ─┬─> BE-AST-022 ✅ ─> BE-AST-023 ✅ ─> BE-AST-024
+BE-AST-008 [REG] ─┬─> BE-AST-022 ✅ ─> BE-AST-023 ✅ ─> BE-AST-024 ✅
                   │
    BE-AST-021 ✅ ─┘
 ```
@@ -87,9 +87,9 @@ Pasangan prasyarat→task: **9** (sama dengan kolom `Dependency`).
 | **Status** | ✅ **SELESAI 23 November 2026.** `StockTakeSessionService.Verification` (catatan tim, ajukan, verifikasi/kembalikan, PDF), `StockTakeFollowUpService` (usulan per selisih saat verifikasi; proses klaim → dokumen tujuan → isi target; abaikan), `StockTakeDocumentService` (QuestPDF), controller `AssetStockTakeFollowUps` (`Read`/`Process`/`Dismiss`); register + `AssetPlacementService.CreateStockTakeCorrectionAsync` dan izin unduh foto `StockTakeScan`. QBE Strict 14 berkas `PASS`; nol baris komentar; build Rizki DLL 15:26:45. Runtime **40/40** (putaran 1 39/40 = skrip memilih aset yang sudah terkunci pemanfaatan lama): `AT-INV-07`, `08`, `09`, `10`, `12`, `34`, `35`, `36`, `37`, `AST-DEC-019`, validasi `020..023`, `030`, `031`; PDF berita acara 2 halaman dibaca langsung. Delta: +`GET /follow-ups/{id}`, `draft` pada proses temuan, `followUps[]` per hasil, dokumen hanya saat `Diverifikasi` — [`BE-AST-023.md`](../task/report/backend/BE-AST-023.md) |
 | Acceptance criteria | 1. Ajukan mewajibkan catatan selisih. 2. Verifikator Kepala Bagian Aset bukan anggota tim. 3. Verifikasi membuat usulan tanpa mengubah aset; linimasa `Diopname`. 4. Proses usulan membuat dokumen tujuan sesuai jenis (`AST-DES-007`); abaikan dengan alasan. 5. PDF berita acara (`AST-DEC-046`) |
 
-### `BE-AST-024` — Dashboard 1.5 dan laporan inventaris
+### ✅ `BE-AST-024` — Dashboard 1.5 dan laporan inventaris
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 24 November 2026.** `StockTakeQueryService` (kartu 1.5 = opname lewat jadwal belum diverifikasi + usulan `Usulan`; laporan per sesi dengan hitungan kategori dan usulan; ekspor xlsx 27 kolom, batas 10.000), controller `AssetStockTakeDashboard` (`AssetStockTake : Read`) dan `AssetStockTakeReports` (`AssetReport : Read`), saringan `overdue`/`hasOpenFollowUps` di kueri sesi. QBE Strict 6 berkas `PASS`; nol baris komentar; build Rizki DLL 08:56:45. Runtime **23/23** (putaran 1 22/23 = skrip memanggil `unzip` di luar PATH Node; isi xlsx benar): `AT-INV-11` kartu 0 → 1, sesudah verifikasi lewat jadwal 1 → 0 dan selisih terbuka 0 → 21, hitungan laporan sama dengan rincian sesi, isi ekspor dibaca langsung, tanpa hak 403. Delta: dua controller (arsitektur menulis satu), +`filters/metadata`, +`followUpCounts` — [`BE-AST-024.md`](../task/report/backend/BE-AST-024.md) |
 | Acceptance criteria | 1. Kartu: sesi lewat tanggal belum diverifikasi + usulan `Usulan`. 2. Laporan per sesi dan kategori, ekspor |
