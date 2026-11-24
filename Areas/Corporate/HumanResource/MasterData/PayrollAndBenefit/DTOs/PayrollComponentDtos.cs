@@ -55,6 +55,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
     public class PayrollComponentDetailResponse : PayrollComponentResponse
     {
+        /// <summary>
+        /// True bila komponen sudah dipakai data payroll (baris Payroll Run, input variabel, atau handoff lembur). Komponen terpakai
+        /// tidak dapat mengganti Metode Perhitungan atau kategori bertipe berbeda (PAY-BE-FIX-026).
+        /// </summary>
+        public bool IsUsedByPayroll { get; set; }
+
         public DateTime? UpdateDateTime { get; set; }
         public Guid? UpdateBy { get; set; }
         public string? UpdateByName { get; set; }
@@ -137,7 +143,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [MaxLength(1000)]
         public string? FormulaExpression { get; set; }
 
+        /// <summary>Nominal Default (numeric 18,2). Hanya sah untuk metode Fixed; saling eksklusif dengan <see cref="DefaultPercentage"/> (PAY-BE-FIX-025).</summary>
         public decimal DefaultAmount { get; set; }
+
+        /// <summary>Persentase Default 0-100 (numeric 9,4). Hanya sah untuk metode Percentage; saling eksklusif dengan <see cref="DefaultAmount"/>.</summary>
         public decimal DefaultPercentage { get; set; }
         public bool IsRecurring { get; set; } = true;
         public bool IsTaxable { get; set; } = true;

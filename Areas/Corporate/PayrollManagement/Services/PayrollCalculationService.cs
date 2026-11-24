@@ -208,6 +208,7 @@ public sealed class PayrollCalculationService
         var covered = new HashSet<int>(months);
         covered.UnionWith(openingMonths);
         var missingMonthsList = new List<int>();
+        var missingHistoryIssueAdded = false;
 
         if (category == TaxRecipientCategories.PermanentEmployee)
         {
@@ -227,6 +228,7 @@ public sealed class PayrollCalculationService
                 if (isLastTaxPeriod)
                 {
                     issues.Add(issueMessage);
+                    missingHistoryIssueAdded = true;
                 }
             }
         }
@@ -236,7 +238,9 @@ public sealed class PayrollCalculationService
             CoveredMonths = covered.OrderBy(m => m).ToList(),
             OpeningBalanceMonths = openingMonths.OrderBy(m => m).ToList(),
             MissingMonths = missingMonthsList,
-            OpeningBalanceFeatureAvailable = openingFeatureAvailable
+            OpeningBalanceFeatureAvailable = openingFeatureAvailable,
+            // PAY-BE-FIX-030: klasifikasi terstruktur, bukan pencocokan teks: satu-satunya masalah adalah bulan histori yang belum tercakup.
+            HistoryGapOnly = missingHistoryIssueAdded && issues.Count == 1
         };
     }
 
@@ -456,6 +460,7 @@ public sealed class PayrollCalculationService
                 statutory, periodStart, periodEnd, totalDays, actorUserId, errors, warnings, blockers);
 
             var label = employee.EmployeeNameSnapshot;
+
             foreach (var warning in warnings) result.Warnings.Add($"{label}: {warning}");
             if (warnings.Count > 0) result.EmployeeWarnings[employee.Id] = warnings;
             if (errors.Count > 0) result.EmployeeErrors[employee.Id] = errors;

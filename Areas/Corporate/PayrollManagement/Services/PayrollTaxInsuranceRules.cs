@@ -124,6 +124,15 @@ public sealed record PayrollTaxAssessment(
     /// <summary>Rincian langkah hitung (kategori TER, tarif, PKP, dst.) sebagai bukti penelusuran.</summary>
     public IReadOnlyDictionary<string, object?>? Detail { get; init; }
 
+    /// <summary>PAY-BE-FIX-030: kode klasifikasi penahan (<see cref="PayrollTaxBlockCodes"/>); null bila tidak terklasifikasi.</summary>
+    public string? BlockCode { get; init; }
+
+    /// <summary>
+    /// PAY-BE-FIX-030: PPh SEMENTARA, terpisah dari <see cref="EmployeeAmount"/>. Hanya terisi untuk penahan TAX_YTD_HISTORY_INCOMPLETE.
+    /// Tidak mengubah ResultStatus, IsBlocking, ataupun nominal resmi.
+    /// </summary>
+    public PayrollProvisionalTaxEstimate? ProvisionalEstimate { get; init; }
+
     public PayrollTaxSnapshot ToSnapshot() => new(
         Source, ConfigurationStatus, ResultStatus, Article, RecipientCategory, CalculationMode, TaxMethod, PtkpStatus, PolicyVersion,
         Treatment, EmployeeAmount, EmployerBorneAmount, ConfigId, EffectiveStartDate, EffectiveEndDate, DecisionBasis, ExemptionReason,
@@ -138,7 +147,9 @@ public sealed record PayrollTaxAssessment(
         TaxableGross = TaxableGross,
         EmployerPremium = EmployerPremium,
         EmployeePension = EmployeePension,
-        Detail = Detail?.ToDictionary(x => x.Key, x => x.Value)
+        Detail = Detail?.ToDictionary(x => x.Key, x => x.Value),
+        BlockCode = BlockCode,
+        Provisional = ProvisionalEstimate
     };
 }
 
@@ -206,6 +217,15 @@ public sealed record PayrollTaxSnapshot(
 
     /// <summary>Rincian langkah hitung sebagai bukti penelusuran (kategori TER, tarif, PKP, dst.).</summary>
     public Dictionary<string, object?>? Detail { get; init; }
+
+    /// <summary>PAY-BE-FIX-030: kode klasifikasi penahan; null pada snapshot lama dan pada hasil yang sah.</summary>
+    public string? BlockCode { get; init; }
+
+    /// <summary>
+    /// PAY-BE-FIX-030: PPh SEMENTARA (estimasi), terpisah dari <see cref="EmployeeAmount"/>. Tidak pernah dibaca sebagai akumulasi PPh
+    /// tahun berjalan dan tidak pernah menjadi nominal resmi.
+    /// </summary>
+    public PayrollProvisionalTaxEstimate? Provisional { get; init; }
 }
 
 /// <summary>
@@ -549,7 +569,20 @@ public static class PayrollTaxInsuranceRules
             };
 
             if (!computation.IsValid)
-                return WithTrace(TaxBlocked(cfg, PayrollConfigurationStatuses.Configured, PayrollComponentResultStatuses.Error, computation.Issues));
+            {
+                var blocked = WithTrace(TaxBlocked(cfg, PayrollConfigurationStatuses.Configured, PayrollComponentResultStatuses.Error, computation.Issues))
+                    with { BlockCode = computation.BlockCode };
+                if (computation.BlockCode == PayrollTaxBlockCodes.YtdHistoryIncomplete)
+                {
+                    // Estimasi hanya pelengkap penahan: status ERROR, IsBlocking, dan nominal resmi (0) tidak diubah.
+                    var treatment = string.Equals(method, TaxMethodKinds.Net, StringComparison.OrdinalIgnoreCase)
+                        ? TaxTreatments.EmployerBorne
+                        : TaxTreatments.EmployeeDeduction;
+                    blocked = blocked with { ProvisionalEstimate = PayrollTaxPolicyEngine.EstimateProvisionalTerProxy(run.Policy, input, treatment) };
+                }
+
+                return blocked;
+            }
 
             var autoAmount = Round(computation.Amount);
             var autoKind = autoAmount > 0m ? PayrollComponentResultStatuses.Calculated : PayrollComponentResultStatuses.ValidZero;

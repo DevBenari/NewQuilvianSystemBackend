@@ -8,7 +8,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
     public interface IPayrollDeductionEngineService
     {
         decimal CalculateSalaryCapLimit(decimal grossPay, decimal maxDeductionPercentage = 50.0m);
-        Task<DeductionSimulationResultDto> SimulateEmployeeDeductionsAsync(Guid employeeId, decimal grossPay, CancellationToken cancellationToken = default);
         Task<DeductionSimulationResultDto> ExecutePayrollDeductionsAsync(Guid payrollRunId, Guid employeeId, decimal grossPay, Guid userId, CancellationToken cancellationToken = default);
         Task<List<DeductionSimulationResultDto>> ExecuteBatchPayrollDeductionsAsync(Guid payrollRunId, Guid userId, CancellationToken cancellationToken = default);
     }

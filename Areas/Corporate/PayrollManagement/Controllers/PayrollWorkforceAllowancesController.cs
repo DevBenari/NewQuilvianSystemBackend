@@ -128,11 +128,15 @@ public sealed class PayrollWorkforceAllowancesController : ControllerBase
     [AccessAction("Read", "Read Workforce Allowance Assignment", Description = "Melihat tunjangan pegawai dari struktur gaji, penetapan khusus, dan kebijakan", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("WorkforceAllowanceAssignment", "Read")]
     public async Task<IActionResult> Preview(
-        Guid workforceProfileId, [FromQuery] Guid allowanceTypeId, [FromQuery] Guid allowancePolicyId, CancellationToken cancellationToken)
+        Guid workforceProfileId,
+        [FromQuery] Guid allowanceTypeId,
+        [FromQuery] Guid allowancePolicyId,
+        [FromQuery] string? policySource,
+        CancellationToken cancellationToken)
     {
         var caller = await ResolveCallerAsync();
         return await PayrollControllerSupport.RunAsync(
-            () => _service.PreviewAsync(workforceProfileId, allowanceTypeId, allowancePolicyId, caller, cancellationToken),
+            () => _service.PreviewAsync(workforceProfileId, allowanceTypeId, allowancePolicyId, policySource, caller, cancellationToken),
             "Pratinjau tunjangan berhasil dimuat.");
     }
 

@@ -28,6 +28,33 @@ public static class WorkforceAllowancePolicySources
 {
     public const string General = "General";
     public const string TransportLegacy = "TransportLegacy";
+
+    /// <summary>Kebijakan Shift/Siaga/Risiko (tabel master masing-masing). Hanya dapat dibaca: belum ada penghubung payroll untuk aktivitasnya.</summary>
+    public const string ShiftActivity = "ShiftActivity";
+    public const string OnCallActivity = "OnCallActivity";
+    public const string HazardActivity = "HazardActivity";
+}
+
+/// <summary>
+/// Jalur penetapan atau input yang dibutuhkan sebuah jenis tunjangan (PAY-BE-FIX-027). Dipakai Frontend untuk menentukan panel dan
+/// field popup; memilih jenis TIDAK pernah menjadi perintah bayar.
+/// </summary>
+public static class WorkforceAllowanceAssignmentModes
+{
+    /// <summary>Tunjangan rutin berbasis Kebijakan Tunjangan umum (PrlAllowancePolicy): ditetapkan lewat from-policy.</summary>
+    public const string Policy = "Policy";
+
+    /// <summary>Transportasi: Kebijakan umum atau kebijakan transportasi lama bermetode FixedMonthly (PrlTransportAllowance).</summary>
+    public const string TransportPolicy = "TransportPolicy";
+
+    /// <summary>Shift, Siaga, Risiko: kebijakan di tabel master masing-masing; dibayar dari aktivitas terverifikasi.</summary>
+    public const string ActivityPolicy = "ActivityPolicy";
+
+    /// <summary>Lembur: dibayar dari realisasi lembur terverifikasi lewat HRD Lembur dan penyerahan ke payroll.</summary>
+    public const string OvertimeHandoff = "OvertimeHandoff";
+
+    /// <summary>Insentif, Bonus, Honor, atau input manual: per periode lewat Payroll Run, Penghasilan Variabel.</summary>
+    public const string VariableInput = "VariableInput";
 }
 
 /// <summary>
@@ -47,8 +74,26 @@ public sealed class WorkforceAllowanceEligibleTypeResponse
     public bool Payable { get; set; }
     public bool HasPolicyForGrade { get; set; }
 
-    /// <summary>Alasan singkat bila tidak Assignable; null bila Assignable.</summary>
+    /// <summary>Alasan singkat bila belum dapat disimpan lewat popup; null bila dapat. Informasi saja: tidak pernah mengunci pemilihan jenis.</summary>
     public string? Reason { get; set; }
+
+    /// <summary>Salah satu <see cref="WorkforceAllowanceAssignmentModes"/>.</summary>
+    public string AssignmentMode { get; set; } = WorkforceAllowanceAssignmentModes.Policy;
+
+    /// <summary>True bila jenis ini memakai Kebijakan Tunjangan sehingga popup menampilkan dropdown kebijakan.</summary>
+    public bool RequiresPolicy { get; set; }
+
+    /// <summary>Data yang dibutuhkan jenis ini (mis. periode, realisasi lembur); teks siap tampil.</summary>
+    public List<string> RequiredInputs { get; set; } = new();
+
+    /// <summary>True bila nilainya berasal dari aktivitas yang harus terverifikasi sebelum dibayar.</summary>
+    public bool RequiresVerification { get; set; }
+
+    /// <summary>True bila popup ini memiliki jalur simpan yang sah dan seluruh persyaratan tingkat jenis terpenuhi untuk pegawai ini.</summary>
+    public bool CanSave { get; set; }
+
+    /// <summary>Keterangan netral singkat untuk item dropdown (mis. "Memerlukan data lembur").</summary>
+    public string Hint { get; set; } = string.Empty;
 }
 
 public sealed class WorkforceAllowanceEligibleTypesResponse
@@ -68,6 +113,9 @@ public sealed class WorkforceAllowancePolicyOptionResponse
     public string CalculationMethod { get; set; } = string.Empty;
     public DateTime EffectiveStartDate { get; set; }
     public DateTime? EffectiveEndDate { get; set; }
+
+    /// <summary>Selalu dapat dipilih untuk melihat rinciannya (PAY-BE-FIX-027); apakah dapat disimpan ditentukan <see cref="Assignable"/>.</summary>
+    public bool Selectable { get; set; } = true;
     public bool Assignable { get; set; }
     public string? Reason { get; set; }
 }
@@ -109,6 +157,17 @@ public sealed class WorkforceAllowancePreviewResponse
     /// <summary>Sumber tiap batas tanggal (mis. "Kebijakan", "Tarif Grade", "Jenis Tunjangan", "Penetapan Gaji").</summary>
     public string EffectiveStartSource { get; set; } = string.Empty;
     public string? EffectiveEndSource { get; set; }
+
+    /// <summary><see cref="WorkforceAllowancePolicySources"/> kebijakan yang diresolusi.</summary>
+    public string PolicySource { get; set; } = WorkforceAllowancePolicySources.General;
+
+    /// <summary>True bila penetapan ini boleh disimpan sekarang; false disertai <see cref="BlockedReason"/> yang konkret.</summary>
+    public bool CanSave { get; set; } = true;
+    public string? BlockedReason { get; set; }
+    public bool RequiresVerification { get; set; }
+
+    /// <summary>Syarat kebijakan (mis. kehadiran cocok, verifikasi atasan, clearance K3); teks siap tampil.</summary>
+    public List<string> Requirements { get; set; } = new();
 }
 
 /// <summary>Hanya identitas. Nominal, metode, grade, dan tanggal selalu diambil ulang oleh backend (klien tidak dipercaya).</summary>
@@ -119,6 +178,13 @@ public sealed class CreateWorkforceAllowanceFromPolicyRequest
 
     [Required]
     public Guid AllowancePolicyId { get; set; }
+
+    /// <summary>
+    /// Sumber kebijakan (<see cref="WorkforceAllowancePolicySources"/>). Kosong = General (kompatibel dengan klien lama). Memastikan
+    /// identitas kebijakan tidak pernah dicocokkan ke tabel yang salah.
+    /// </summary>
+    [MaxLength(30)]
+    public string? PolicySource { get; set; }
 
     [MaxLength(1000)]
     public string? Notes { get; set; }

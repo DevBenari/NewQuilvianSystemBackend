@@ -27,7 +27,11 @@ public sealed partial class PayrollWorkforceAllowanceService
         Guid? LegalEntityId,
         Guid? HospitalSiteId,
         DateTime EffectiveStartDate,
-        DateTime? EffectiveEndDate);
+        DateTime? EffectiveEndDate,
+        Guid? SalaryStructureId,
+        Guid? OrganizationUnitId,
+        Guid? EmployeeCategoryId,
+        Guid? EmploymentTypeId);
 
     private sealed record PolicyResolution(
         TypeFacts Type,
@@ -105,7 +109,11 @@ public sealed partial class PayrollWorkforceAllowanceService
                 a.SalaryStructure != null ? a.SalaryStructure.LegalEntityId : null,
                 a.SalaryStructure != null ? a.SalaryStructure.HospitalSiteId : null,
                 a.EffectiveStartDate,
-                a.EffectiveEndDate))
+                a.EffectiveEndDate,
+                a.SalaryStructureId,
+                a.SalaryStructure != null ? a.SalaryStructure.OrganizationUnitId : null,
+                a.SalaryStructure != null ? a.SalaryStructure.EmployeeCategoryId : null,
+                a.SalaryStructure != null ? a.SalaryStructure.EmploymentTypeId : null))
             .FirstOrDefaultAsync(cancellationToken);
 
     /// <summary>
@@ -149,40 +157,77 @@ public sealed partial class PayrollWorkforceAllowanceService
                 x.CalculationMethod,
                 x.IsRecurring,
                 x.PayrollComponentId,
+                x.RequiresApproval,
                 InvalidComponent = x.PayrollComponentId != null
-                    && (x.PayrollComponent == null || !x.PayrollComponent.IsActive || x.PayrollComponent.IsDelete)
+                    && (x.PayrollComponent == null || !x.PayrollComponent.IsActive || x.PayrollComponent.IsDelete),
+                IsOvertimeComponent = x.PayrollComponent != null && !x.PayrollComponent.IsDelete
+                    && (x.PayrollComponent.IsOvertimeBased || x.PayrollComponent.CalculationMethod == "Overtime")
             })
             .ToListAsync(cancellationToken);
 
         var typesWithPolicy = new HashSet<Guid>();
-        if (grade is not null)
-            typesWithPolicy = (await MatchingPolicies(grade, today).Select(p => p.AllowanceTypeId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
+        var legacyComponentsAny = new HashSet<Guid>();
+        var legacyComponentsSavable = new HashSet<Guid>();
+        var activityTypeIds = new HashSet<Guid>();
+        var hasLegacyRow = false;
 
-        // Komponen payroll jenis Transportasi yang sudah punya kebijakan LAMA (Daftar Kebijakan Tunjangan Transportasi) untuk Grade Gaji
-        // pegawai: dipakai hanya untuk pesan yang jujur, bukan agar kebijakan lama dapat dipilih.
-        var componentsWithLegacyPolicy = new HashSet<Guid>();
         if (grade is not null)
         {
+            typesWithPolicy = (await MatchingPolicies(grade, today).Select(p => p.AllowanceTypeId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
+
+            // Kebijakan transportasi lama yang cocok dengan pegawai. "Savable" = benar-benar dibayar mesin hitung (FixedMonthly, ikut payroll).
             var legacyGradeId = grade.SalaryGradeId;
-            componentsWithLegacyPolicy = (await _dbContext.PrlTransportAllowancePolicies.AsNoTracking()
-                .Where(p => !p.IsDelete && p.IsActive && p.SalaryGradeId == legacyGradeId && p.PayrollComponentId != null
+            var legacy = await _dbContext.PrlTransportAllowancePolicies.AsNoTracking()
+                .Where(p => !p.IsDelete && p.IsActive && p.PayrollComponentId != null && p.SalaryGradeId == legacyGradeId
                     && (p.EffectiveEndDate == null || p.EffectiveEndDate >= today))
-                .Select(p => p.PayrollComponentId!.Value)
-                .Distinct()
-                .ToListAsync(cancellationToken)).ToHashSet();
+                .ToListAsync(cancellationToken);
+            foreach (var policy in legacy.Where(p => ScopeMatches(grade, p.SalaryGradeId, p.SalaryStructureId, p.LegalEntityId, p.HospitalSiteId, null, null, null, requireGrade: true)))
+            {
+                legacyComponentsAny.Add(policy.PayrollComponentId!.Value);
+                if (string.Equals(policy.CalculationMethod, LegacyFixedMonthly, StringComparison.OrdinalIgnoreCase)
+                    && policy.IsIncludedInPayroll && policy.FixedMonthlyAmount > 0m)
+                    legacyComponentsSavable.Add(policy.PayrollComponentId!.Value);
+            }
+
+            hasLegacyRow = await _dbContext.PrlTransportAllowances.AsNoTracking()
+                .AnyAsync(x => !x.IsDelete && x.WorkforceProfileId == workforceProfileId, cancellationToken);
+
+            activityTypeIds = (await LoadActivityPoliciesAsync(null, grade, today, cancellationToken)).Select(r => r.AllowanceTypeId).ToHashSet();
         }
 
         var items = types.Select(x =>
         {
             var kind = ClassifyKind(x.AllowanceCategory, x.CalculationMethod);
-            var reason = PolicyFlowBlockReason(kind, x.IsRecurring, x.InvalidComponent);
-            var hasPolicy = typesWithPolicy.Contains(x.Id);
-            if (reason is null && grade is null) reason = "Pegawai belum memiliki Grade Gaji aktif pada penetapan gaji utama.";
-            if (reason is null && !hasPolicy)
-                reason = kind == WorkforceAllowanceKinds.TransportPolicy && x.PayrollComponentId.HasValue && componentsWithLegacyPolicy.Contains(x.PayrollComponentId.Value)
-                    ? "Kebijakan transportasi untuk Grade Gaji ini masih di Daftar Kebijakan Tunjangan Transportasi lama dan belum dipindahkan ke Kebijakan Tunjangan umum; hubungi HRD/administrator untuk memindahkannya."
-                    : "Belum tersedia kebijakan aktif untuk jenis tunjangan dan Grade Gaji ini.";
-            var assignable = reason is null;
+            var profile = BuildProfile(x.AllowanceCategory, kind, x.IsOvertimeComponent);
+            var isPolicyMode = profile.Mode is WorkforceAllowanceAssignmentModes.Policy or WorkforceAllowanceAssignmentModes.TransportPolicy;
+
+            var hasGeneralPolicy = typesWithPolicy.Contains(x.Id);
+            var legacyAny = x.PayrollComponentId.HasValue && legacyComponentsAny.Contains(x.PayrollComponentId.Value);
+            var legacySavable = x.PayrollComponentId.HasValue && legacyComponentsSavable.Contains(x.PayrollComponentId.Value)
+                && !x.RequiresApproval && !hasLegacyRow;
+            var isTransport = profile.Mode == WorkforceAllowanceAssignmentModes.TransportPolicy;
+
+            string? reason;
+            var canSave = false;
+            var hasPolicyForGrade = false;
+
+            if (isPolicyMode)
+            {
+                hasPolicyForGrade = hasGeneralPolicy || (isTransport && legacyAny);
+                reason = PolicyFlowBlockReason(kind, x.IsRecurring, x.InvalidComponent);
+                if (reason is null && grade is null) reason = "Pegawai belum memiliki Grade Gaji aktif pada penetapan gaji utama.";
+                if (reason is null && !(hasGeneralPolicy || (isTransport && legacySavable)))
+                    reason = isTransport && legacyAny
+                        ? "Kebijakan transportasi tersedia tetapi belum dapat disimpan; pilih jenis ini untuk melihat penyebabnya."
+                        : "Belum tersedia kebijakan aktif untuk jenis tunjangan dan Grade Gaji ini.";
+                canSave = reason is null;
+            }
+            else
+            {
+                hasPolicyForGrade = profile.Mode == WorkforceAllowanceAssignmentModes.ActivityPolicy && activityTypeIds.Contains(x.Id);
+                reason = profile.StaticBlockReason;
+            }
+
             return new WorkforceAllowanceEligibleTypeResponse
             {
                 Id = x.Id,
@@ -191,13 +236,19 @@ public sealed partial class PayrollWorkforceAllowanceService
                 Category = x.AllowanceCategory,
                 CalculationMethod = x.CalculationMethod,
                 Kind = kind,
+                // Semua jenis aktif dapat dipilih untuk membuka dan mengonfigurasi popup; kemampuan simpan dipisah (CanSave).
                 Selectable = true,
-                Assignable = assignable,
+                Assignable = canSave,
                 // Payable: hanya tunjangan rutin (termasuk Transportasi bulanan) yang sudah ditetapkan yang dihitung mesin tiap periode.
-                // Jenis lain tidak pernah otomatis.
-                Payable = assignable && (kind == WorkforceAllowanceKinds.RecurringPolicy || kind == WorkforceAllowanceKinds.TransportPolicy),
-                HasPolicyForGrade = hasPolicy,
-                Reason = reason
+                Payable = canSave && isPolicyMode,
+                HasPolicyForGrade = hasPolicyForGrade,
+                Reason = canSave ? null : reason,
+                AssignmentMode = profile.Mode,
+                RequiresPolicy = profile.RequiresPolicy,
+                RequiredInputs = profile.RequiredInputs,
+                RequiresVerification = profile.RequiresVerification,
+                CanSave = canSave,
+                Hint = profile.Hint
             };
         }).ToList();
 
@@ -215,11 +266,7 @@ public sealed partial class PayrollWorkforceAllowanceService
         await EnsureWorkforceExistsAsync(workforceProfileId, cancellationToken);
         var today = PayrollDateNormalizer.ToUtcDate(DateTime.UtcNow);
         var grade = await LoadEffectiveGradeAsync(workforceProfileId, today, cancellationToken);
-        var type = await _dbContext.MstAllowanceTypes.AsNoTracking()
-            .Where(x => x.Id == allowanceTypeId && !x.IsDelete && x.IsActive)
-            .Select(x => new { x.AllowanceCategory, x.CalculationMethod, x.IsRecurring, x.PayrollComponentId })
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new ArgumentException("Jenis tunjangan tidak ditemukan atau tidak aktif di Master Tunjangan.");
+        var type = await LoadTypeFactsAsync(allowanceTypeId, cancellationToken);
 
         var response = new WorkforceAllowancePolicyOptionsResponse
         {
@@ -229,10 +276,14 @@ public sealed partial class PayrollWorkforceAllowanceService
         };
         if (grade is null) return response;
 
-        var kind = ClassifyKind(type.AllowanceCategory, type.CalculationMethod);
-        if ((kind == WorkforceAllowanceKinds.RecurringPolicy || kind == WorkforceAllowanceKinds.TransportPolicy) && type.IsRecurring)
+        var kind = ClassifyKind(type.Category, type.Method);
+        var profile = BuildProfile(type.Category, kind, await IsOvertimeComponentAsync(type.PayrollComponentId, cancellationToken));
+
+        var items = new List<WorkforceAllowancePolicyOptionResponse>();
+
+        if (profile.Mode is WorkforceAllowanceAssignmentModes.Policy or WorkforceAllowanceAssignmentModes.TransportPolicy && type.IsRecurring)
         {
-            response.Items = await MatchingPolicies(grade, today)
+            items.AddRange(await MatchingPolicies(grade, today)
                 .Where(p => p.AllowanceTypeId == allowanceTypeId)
                 .OrderBy(p => p.PolicyName)
                 .Select(p => new WorkforceAllowancePolicyOptionResponse
@@ -244,48 +295,74 @@ public sealed partial class PayrollWorkforceAllowanceService
                     CalculationMethod = p.CalculationMethod,
                     EffectiveStartDate = p.EffectiveStartDate,
                     EffectiveEndDate = p.EffectiveEndDate,
+                    Selectable = true,
                     Assignable = true
                 })
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken));
         }
 
-        if (kind == WorkforceAllowanceKinds.TransportPolicy && type.PayrollComponentId.HasValue)
+        if (profile.Mode == WorkforceAllowanceAssignmentModes.TransportPolicy && type.PayrollComponentId.HasValue)
         {
-            // Hanya dibaca: kebijakan transportasi lama (per-EmployeeGrade/SalaryGrade, metode beragam) tampil agar petugas melihat apa yang
-            // berlaku, tetapi tidak dapat dipilih di sini sampai dipetakan HRD ke kebijakan umum (NEEDS CONFIRMATION, PAY-BE-FIX-022).
-            var gradeId = grade.SalaryGradeId;
-            var componentId = type.PayrollComponentId.Value;
-            const string reason = "Kebijakan transportasi lama belum dipindahkan ke Kebijakan Tunjangan umum; hubungi HRD untuk pemetaannya.";
-            var legacy = await _dbContext.PrlTransportAllowancePolicies.AsNoTracking()
-                .Where(p => !p.IsDelete && p.IsActive && p.SalaryGradeId == gradeId && p.PayrollComponentId == componentId
-                    && (p.EffectiveEndDate == null || p.EffectiveEndDate >= today))
-                .OrderBy(p => p.PolicyName)
-                .Select(p => new WorkforceAllowancePolicyOptionResponse
+            // Kebijakan transportasi lama: tetap dapat ditemukan dan dipilih. Yang bermetode FixedMonthly dan memenuhi syarat dapat disimpan
+            // lewat penetapan transportasi (kunci asing ke tabel kebijakan yang benar); sisanya menampilkan penyebab yang konkret.
+            var generalCodes = items.Select(i => i.Code).ToHashSet(StringComparer.Ordinal);
+            foreach (var policy in await LoadMatchingLegacyTransportPoliciesAsync(type.PayrollComponentId.Value, grade, today, cancellationToken))
+            {
+                // Kebijakan lama yang sudah dipindahkan ke Kebijakan umum (kode MIG-) tidak ditampilkan dua kali.
+                if (generalCodes.Contains(MigratedPolicyCode(policy.PolicyCode))) continue;
+
+                var (reason, _) = await EvaluateLegacyTransportAsync(policy, type, workforceProfileId, today, cancellationToken);
+                items.Add(new WorkforceAllowancePolicyOptionResponse
                 {
-                    Id = p.Id,
-                    Code = p.PolicyCode,
-                    Name = p.PolicyName,
+                    Id = policy.Id,
+                    Code = policy.PolicyCode,
+                    Name = policy.PolicyName,
                     Source = WorkforceAllowancePolicySources.TransportLegacy,
-                    CalculationMethod = p.CalculationMethod,
-                    EffectiveStartDate = p.EffectiveStartDate ?? today,
-                    EffectiveEndDate = p.EffectiveEndDate,
-                    Assignable = false,
+                    CalculationMethod = policy.CalculationMethod,
+                    EffectiveStartDate = policy.EffectiveStartDate.HasValue ? PayrollDateNormalizer.ToUtcDate(policy.EffectiveStartDate.Value) : today,
+                    EffectiveEndDate = LegacyEnd(policy),
+                    Selectable = true,
+                    Assignable = reason is null,
                     Reason = reason
-                })
-                .ToListAsync(cancellationToken);
-            // Kebijakan lama yang sudah dipindahkan (kode umum = MigratedPolicyCode) tidak ditampilkan dua kali.
-            var generalCodes = response.Items.Select(i => i.Code).ToHashSet(StringComparer.Ordinal);
-            legacy = legacy.Where(l => !generalCodes.Contains(MigratedPolicyCode(l.Code))).ToList();
-            response.Items = response.Items.Concat(legacy).ToList();
+                });
+            }
         }
 
+        if (profile.Mode == WorkforceAllowanceAssignmentModes.ActivityPolicy)
+        {
+            // Kebijakan Shift/Siaga/Risiko ditemukan sesuai cakupan pegawai agar dapat ditinjau; tidak ada jalur simpan (belum ada consumer payroll).
+            items.AddRange((await LoadActivityPoliciesAsync(allowanceTypeId, grade, today, cancellationToken))
+                .OrderBy(r => r.Name)
+                .Select(r => new WorkforceAllowancePolicyOptionResponse
+                {
+                    Id = r.Id,
+                    Code = r.Code,
+                    Name = r.Name,
+                    Source = r.Source,
+                    CalculationMethod = r.Method,
+                    EffectiveStartDate = r.Start.HasValue ? PayrollDateNormalizer.ToUtcDate(r.Start.Value) : today,
+                    EffectiveEndDate = r.End.HasValue ? PayrollDateNormalizer.ToUtcDate(r.End.Value) : null,
+                    Selectable = true,
+                    Assignable = false,
+                    Reason = ActivityBlockReason
+                }));
+        }
+
+        response.Items = items;
         return response;
     }
 
     public async Task<WorkforceAllowancePreviewResponse> PreviewAsync(
-        Guid workforceProfileId, Guid allowanceTypeId, Guid allowancePolicyId, WorkforceAllowanceCaller caller, CancellationToken cancellationToken)
+        Guid workforceProfileId, Guid allowanceTypeId, Guid allowancePolicyId, string? policySource, WorkforceAllowanceCaller caller, CancellationToken cancellationToken)
     {
         await EnsureWorkforceExistsAsync(workforceProfileId, cancellationToken);
+
+        var source = NormalizePolicySource(policySource);
+        if (source == WorkforceAllowancePolicySources.TransportLegacy)
+            return await PreviewLegacyTransportAsync(workforceProfileId, allowanceTypeId, allowancePolicyId, caller, cancellationToken);
+        if (IsActivitySource(source))
+            return await PreviewActivityAsync(workforceProfileId, allowanceTypeId, allowancePolicyId, source, caller, cancellationToken);
+
         var resolution = await ResolvePolicyAsync(workforceProfileId, allowanceTypeId, allowancePolicyId, cancellationToken);
         var visible = caller.CanViewAmount;
         return new WorkforceAllowancePreviewResponse
@@ -338,6 +415,10 @@ public sealed partial class PayrollWorkforceAllowanceService
 
         var blocked = PolicyFlowBlockReason(ClassifyKind(type.Category, type.Method), type.IsRecurring, row.InvalidComponent);
         if (blocked is not null) throw new ArgumentException($"Tunjangan {type.Name}: {blocked}");
+
+        // Lembur dibayar dari realisasi lembur terverifikasi; penetapan bulanan dari kebijakan akan membayar tanpa aktivitas.
+        if (await IsOvertimeComponentAsync(type.PayrollComponentId, cancellationToken))
+            throw new ArgumentException($"Tunjangan {type.Name}: {OvertimeBlockReason}");
 
         var grade = await LoadEffectiveGradeAsync(workforceProfileId, today, cancellationToken)
             ?? throw new ArgumentException("Pegawai belum memiliki Grade Gaji aktif pada penetapan gaji utama, sehingga kebijakan belum dapat dipilih.");
@@ -439,7 +520,27 @@ public sealed partial class PayrollWorkforceAllowanceService
     // POST
     // ------------------------------------------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// Menyimpan penetapan sesuai sumber kebijakan: General -> Tunjangan Pegawai (PrlWorkforceAllowance); TransportLegacy -> penetapan
+    /// transportasi (PrlTransportAllowance); sumber aktivitas ditolak karena belum ada consumer payroll yang benar.
+    /// </summary>
     public Task<WorkforceAllowanceItemResponse> CreateFromPolicyAsync(
+        Guid workforceProfileId,
+        CreateWorkforceAllowanceFromPolicyRequest request,
+        Guid actorUserId,
+        WorkforceAllowanceCaller caller,
+        CancellationToken cancellationToken)
+    {
+        var source = NormalizePolicySource(request.PolicySource);
+        if (source == WorkforceAllowancePolicySources.TransportLegacy)
+            return CreateLegacyTransportAsync(workforceProfileId, request, actorUserId, caller, cancellationToken);
+        if (IsActivitySource(source))
+            throw new ArgumentException(ActivityBlockReason);
+
+        return CreateGeneralFromPolicyAsync(workforceProfileId, request, actorUserId, caller, cancellationToken);
+    }
+
+    private Task<WorkforceAllowanceItemResponse> CreateGeneralFromPolicyAsync(
         Guid workforceProfileId,
         CreateWorkforceAllowanceFromPolicyRequest request,
         Guid actorUserId,

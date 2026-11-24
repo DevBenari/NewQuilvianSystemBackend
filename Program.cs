@@ -1546,6 +1546,7 @@ try
     // Slice S-B6 (Restitution & Deduction Integration) - MVP-33 (Settings, Finance Sync, Deduction Engine)
     builder.Services.AddScoped<IRestitutionSettingService, RestitutionSettingService>();
     builder.Services.AddScoped<IFinanceDeductionSyncService, FinanceDeductionSyncService>();
+    builder.Services.AddScoped<IFinanceInstallmentScheduleService, FinanceInstallmentScheduleService>();
     builder.Services.AddScoped<IPayrollDeductionEngineService, PayrollDeductionEngineService>();
 
     // Slice S-B6 (Restitution & Deduction Integration) - MVP-34 (Claims, Approvals, Salary Correction & Payroll Injection)

@@ -384,6 +384,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     "Payroll component tidak ditemukan."));
             }
 
+            data.IsUsedByPayroll = await IsUsedByPayrollAsync(data.Id);
+
             return Ok(ApiResponse<PayrollComponentDetailResponse>.Ok(
                 data,
                 "Detail payroll component berhasil diambil."));
@@ -418,8 +420,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 ComponentType = validation.ComponentType,
                 CalculationMethod = NormalizeCalculationMethod(request.CalculationMethod),
                 FormulaExpression = NormalizeNullableString(request.FormulaExpression),
-                DefaultAmount = request.DefaultAmount,
-                DefaultPercentage = request.DefaultPercentage,
+                DefaultAmount = NormalizeDefaultAmount(request.DefaultAmount),
+                DefaultPercentage = NormalizeDefaultPercentage(request.DefaultPercentage),
                 IsRecurring = request.IsRecurring,
                 IsTaxable = request.IsTaxable,
                 IsProrated = request.IsProrated,
@@ -498,8 +500,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             entity.ComponentType = validation.ComponentType;
             entity.CalculationMethod = NormalizeCalculationMethod(request.CalculationMethod);
             entity.FormulaExpression = NormalizeNullableString(request.FormulaExpression);
-            entity.DefaultAmount = request.DefaultAmount;
-            entity.DefaultPercentage = request.DefaultPercentage;
+            entity.DefaultAmount = NormalizeDefaultAmount(request.DefaultAmount);
+            entity.DefaultPercentage = NormalizeDefaultPercentage(request.DefaultPercentage);
             entity.IsRecurring = request.IsRecurring;
             entity.IsTaxable = request.IsTaxable;
             entity.IsProrated = request.IsProrated;
@@ -729,6 +731,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             };
         }
 
+        /// <summary>Pemakaian payroll: baris Payroll Run, input variabel, realisasi lembur, atau permintaan lembur yang menunjuk komponen ini.</summary>
+        private async Task<bool> IsUsedByPayrollAsync(Guid componentId) =>
+            await _dbContext.PrlPayrollEmployeeComponents.AsNoTracking().AnyAsync(x => x.PayrollComponentId == componentId && !x.IsDelete) ||
+            await _dbContext.PrlPayrollVariableInputs.AsNoTracking().AnyAsync(x => x.PayrollComponentId == componentId && !x.IsDelete) ||
+            await _dbContext.TrxOvertimeRealizations.AsNoTracking().AnyAsync(x => x.PayrollComponentId == componentId && !x.IsDelete) ||
+            await _dbContext.WfpOvertimeRequests.AsNoTracking().AnyAsync(x => x.PayrollComponentId == componentId && !x.IsDelete);
+
         private sealed record ComponentValidationResult(bool IsValid, string? ErrorMessage, string ComponentType)
         {
             public static ComponentValidationResult Fail(string message) => new(false, message, string.Empty);
@@ -761,17 +770,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             if (!AllowedCalculationMethods.Contains(request.CalculationMethod.Trim()))
                 return ComponentValidationResult.Fail("CalculationMethod tidak valid.");
 
-            if (request.DefaultAmount < 0 || request.DefaultPercentage < 0)
-                return ComponentValidationResult.Fail("Default amount dan default percentage tidak boleh negatif.");
+            // PAY-BE-FIX-025: Nominal Default dan Persentase Default saling eksklusif; metode menentukan nilai yang sah.
+            var defaultValueError = ValidateDefaultValues(
+                NormalizeCalculationMethod(request.CalculationMethod),
+                request.DefaultAmount,
+                request.DefaultPercentage,
+                request.FormulaExpression);
 
-            if (request.DefaultPercentage > 100)
-                return ComponentValidationResult.Fail("Default percentage tidak boleh lebih dari 100.");
-
-            if (request.CalculationMethod.Equals("Formula", StringComparison.OrdinalIgnoreCase) &&
-                string.IsNullOrWhiteSpace(request.FormulaExpression))
-            {
-                return ComponentValidationResult.Fail("FormulaExpression wajib diisi untuk calculation method Formula.");
-            }
+            if (defaultValueError != null)
+                return ComponentValidationResult.Fail(defaultValueError);
 
             if (request.EffectiveStartDate.HasValue &&
                 request.EffectiveEndDate.HasValue &&
@@ -817,6 +824,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             }
 
             var typeChanged = existing != null && !SameText(existing.ComponentType, componentType);
+
+            // PAY-BE-FIX-026: komponen yang sudah dipakai payroll tidak boleh mengganti Metode Perhitungan atau pindah ke kategori bertipe
+            // berbeda. Mengubah makna komponen yang sudah dipakai dapat mengubah perilaku handoff dan klasifikasi hasil berikutnya; snapshot
+            // baris Payroll Run yang sudah ada tidak terpengaruh. Nilai default dan nama tetap boleh diubah (tidak dibaca mesin payroll).
+            var methodChanged = existing != null && !SameText(existing.CalculationMethod, request.CalculationMethod);
+
+            if ((typeChanged || methodChanged) && existing != null && await IsUsedByPayrollAsync(existing.Id))
+            {
+                return ComponentValidationResult.Fail(
+                    "Komponen ini sudah dipakai oleh data payroll, sehingga Metode Perhitungan dan kategori bertipe berbeda tidak dapat diubah. Buat komponen baru, lalu nonaktifkan komponen ini.");
+            }
 
             if (typeChanged && existing != null)
             {
@@ -971,6 +989,51 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 new() { Value = "lastmonth", Label = "Bulan lalu" }
             };
         }
+
+        /// <summary>
+        /// Aturan nilai default per metode. Fixed hanya Nominal Default; Percentage hanya Persentase Default; Formula hanya Formula
+        /// Perhitungan. Metode lain (ManualInput, Attendance, Overtime, Benefit) tidak punya pembaca nilai default pada mesin Payroll
+        /// yang terbukti, sehingga kontrak lamanya dipertahankan: hanya aturan umum (tidak negatif, persentase 0-100, tidak
+        /// bersamaan) yang berlaku. Mengembalikan pesan kesalahan, atau null bila sah.
+        /// </summary>
+        private static string? ValidateDefaultValues(string method, decimal amount, decimal percentage, string? formulaExpression)
+        {
+            if (amount < 0)
+                return "Nominal Default tidak boleh negatif.";
+
+            if (percentage < 0 || percentage > 100)
+                return "Persentase Default harus berada dalam rentang yang diperbolehkan.";
+
+            if (amount > 0 && percentage > 0)
+                return "Nominal Default dan Persentase Default tidak dapat digunakan bersamaan.";
+
+            var isFormula = string.Equals(method, "Formula", StringComparison.OrdinalIgnoreCase);
+
+            if (string.Equals(method, "Fixed", StringComparison.OrdinalIgnoreCase) && percentage > 0)
+                return "Metode Nominal Tetap tidak boleh menggunakan Persentase Default.";
+
+            if (string.Equals(method, "Percentage", StringComparison.OrdinalIgnoreCase) && amount > 0)
+                return "Metode Persentase tidak boleh menggunakan Nominal Default.";
+
+            if (isFormula && (amount > 0 || percentage > 0))
+                return "Metode Formula tidak boleh menggunakan Nominal Default maupun Persentase Default.";
+
+            if (isFormula && string.IsNullOrWhiteSpace(formulaExpression))
+                return "FormulaExpression wajib diisi untuk calculation method Formula.";
+
+            if (!isFormula && !string.IsNullOrWhiteSpace(formulaExpression))
+                return "Formula Perhitungan hanya dapat digunakan pada metode Formula.";
+
+            return null;
+        }
+
+        // Presisi kolom: DefaultAmount numeric(18,2), DefaultPercentage numeric(9,4). Dibulatkan eksplisit agar tidak bergantung pada
+        // pembulatan database.
+        private static decimal NormalizeDefaultAmount(decimal value) =>
+            Math.Round(value, 2, MidpointRounding.AwayFromZero);
+
+        private static decimal NormalizeDefaultPercentage(decimal value) =>
+            Math.Round(value, 4, MidpointRounding.AwayFromZero);
 
         private static string BuildCalculationMethodLabel(string value)
         {
