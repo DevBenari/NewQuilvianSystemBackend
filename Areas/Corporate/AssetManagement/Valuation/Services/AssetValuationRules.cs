@@ -11,6 +11,9 @@ public static class AssetValuationErrorCodes
     public const string PolicyRange = "AST-VAL-NLI-004";
     public const string GroupNotDepreciable = "AST-VAL-NLI-005";
     public const string ParameterMissing = "AST-VAL-NLI-008";
+    public const string AccountCode = "AST-VAL-NLI-017";
+    public const string CostCenterInactive = "AST-VAL-NLI-018";
+    public const string Concurrent = "AST-VAL-NLI-028";
     public const string OpeningBalanceExhausted = "AST-VAL-NLI-040";
     public const string OpeningAccumulation = "AST-VAL-REG-064";
     public const string Field = "AST-NLI-FIELD";
@@ -33,6 +36,21 @@ public static class AssetValuationMessages
     public const string GroupNotFound = "Kelompok aset tidak ditemukan atau sudah dihapus.";
     public const string GroupRequired = "Kelompok aset wajib dipilih.";
     public const string EventCodeFormat = "Kode kejadian {0} tidak dikenal modul aset.";
+    public const string AccountRequired = "Kode akun kontrol harga perolehan dan akumulasi penyusutan wajib diisi.";
+    public const string AccountLengthFormat = "Kode akun paling panjang {0} karakter.";
+    public const string AccountCodeFormat = "Kode akun {0} tidak ada di daftar akun Akuntansi, tidak aktif, atau bukan akun yang dapat diposting.";
+    public const string AccountUnknownFormat = "Akun {0} tidak lagi ada atau aktif di daftar akun Akuntansi.";
+    public const string AccountNotControlFormat = "Akun {0} belum ditandai akun kontrol di Akuntansi.";
+    public const string GroupWithoutAccountFormat = "Saldo kelompok {0} tidak akan dikirim untuk rekonsiliasi.";
+    public const string UnitNotFound = "Unit tidak ditemukan atau tidak aktif.";
+    public const string CostCenterRequired = "Pusat biaya wajib dipilih.";
+    public const string CostCenterNotFound = "Pusat biaya tidak ditemukan.";
+    public const string CostCenterInactive = "Pusat biaya ini tidak aktif.";
+    public const string MappingNotFound = "Unit ini belum punya pemetaan pusat biaya.";
+    public const string MappedCostCenterInactiveFormat = "Pusat biaya pemetaan {0} tidak aktif lagi.";
+    public const string NoActiveCostCenter = "Unit ini belum punya pusat biaya aktif.";
+    public const string ManyActiveCostCentersFormat = "Unit ini punya {0} pusat biaya aktif; tetapkan salah satu.";
+    public const string Concurrent = "Data ini baru saja diubah orang lain. Muat ulang lalu coba lagi.";
 }
 
 public static class AssetValuationPeriod

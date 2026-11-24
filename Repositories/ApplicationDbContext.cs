@@ -727,6 +727,11 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<AstAssetBook> AstAssetBooks { get; set; }
         public DbSet<AstAssetValueEntry> AstAssetValueEntries { get; set; }
         public DbSet<AstAccountingOutbox> AstAccountingOutboxes { get; set; }
+        public DbSet<AstDepreciationRun> AstDepreciationRuns { get; set; }
+        public DbSet<AstDepreciationRunLine> AstDepreciationRunLines { get; set; }
+        public DbSet<AstValueChangeRequest> AstValueChangeRequests { get; set; }
+        public DbSet<AstSubledgerAccountSetup> AstSubledgerAccountSetups { get; set; }
+        public DbSet<AstUnitCostCenter> AstUnitCostCenters { get; set; }
         #endregion CORPORATE - ASSET MANAGEMENT - VALUATION
 
         #region CORPORATE - ASSET MANAGEMENT - MOVEMENT

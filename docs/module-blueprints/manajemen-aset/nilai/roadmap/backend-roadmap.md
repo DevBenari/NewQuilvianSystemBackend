@@ -26,7 +26,7 @@ kejadian menumpuk `Held` sampai dinyalakan.
 Dipotong menjadi dua blok karena lebar; `BE-AST-027` muncul lagi sebagai sambungan blok kedua.
 
 ```text
-BE-AST-002 [REG] ─> BE-AST-014 ✅ ─┬─> BE-AST-015 🟡 ─> BE-AST-025 ─> BE-AST-026 ─> BE-AST-027
+BE-AST-002 [REG] ─> BE-AST-014 ✅ ─┬─> BE-AST-015 🟡 ─> BE-AST-025 ✅ ─> BE-AST-026 ✅ ─> BE-AST-027
                                    │
 BE-AST-005 [REG] ✅ ───────────────┘
 ```
@@ -62,7 +62,7 @@ Pasangan prasyarat→task: **14** (sama dengan kolom `Dependency`).
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
 | `NLI-S1` Tabel dasar, parameter, buku nilai, kotak keluar | `MVP-0` | `BE-AST-014`, `BE-AST-015` | 🟡 `BE-AST-014` ✅ 2026-11-16; `BE-AST-015` 🟡 2026-11-16 (runtime 2.1–2.2 35/35; `AT-NLI-07`, `08`, `13`, `33` menunggu `BE-AST-007`/`012`/`027`) |
-| `NLI-S2` Penyusutan, perubahan nilai, kiriman, rekonsiliasi, laporan | `MVP-4` | `BE-AST-025` s.d. `BE-AST-031` | belum dikerjakan |
+| `NLI-S2` Penyusutan, perubahan nilai, kiriman, rekonsiliasi, laporan | `MVP-4` | `BE-AST-025` s.d. `BE-AST-031` | dikerjakan — `BE-AST-025` ✅, `BE-AST-026` ✅, sisanya belum |
 | `NLI-S3` Penyalaan integrasi Akuntansi | `MVP-4` | `BE-AST-032` | ⛔ `GATE-AST-ACC` |
 
 ## Tabel task
@@ -98,19 +98,19 @@ Pasangan prasyarat→task: **14** (sama dengan kolom `Dependency`).
 | Cakupan | `AssetValuationParameterService`/`QueryService`, `AssetBookService` (`CreateForRegisteredAsset`, `CreateOpeningBalance`, `GetNetBookValue`), `AssetAccountingEventService` (penulisan baris + status `Held` per kode), `AssetValuationParametersController` bagian 2.1–2.2 |
 | Acceptance criteria | 1. Baris pertama parameter boleh bulan berjalan, berikutnya bulan depan. 2. Kebijakan kelompok berlaku ke depan bagi aset tanpa estimasi sendiri. 3. Buku: dikapitalisasi bila harga ≥ batas **dan** kepemilikan dapat dikapitalisasi; mulai penyusutan bulan sesudah siap pakai; saldo awal menghitung bulan yang sudah disusutkan. 4. Kejadian hibah ditulis `Held`/`Pending` sesuai konfigurasi kode. 5. Persetujuan aset tanpa parameter → `AST-VAL-NLI-008` |
 
-### `BE-AST-025` — Tabel proses dan migration `AddAssetValuationProcessing`
+### ✅ `BE-AST-025` — Tabel proses dan migration `AddAssetValuationProcessing`
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 24 November 2026.** 5 model (`AstDepreciationRun`, `AstDepreciationRunLine`, `AstValueChangeRequest`, `AstSubledgerAccountSetup`, `AstUnitCostCenter`), 3 enum, 5 configuration, 5 DbSet; QBE Strict 12 berkas `PASS`, nol baris komentar; model ↔ snapshot bersih sebelum migration. Build Rizki DLL 09:37:06; migration `20261124023459_AddAssetValuationProcessing` dibuat dan diterapkan Rizki: `Up()` 5 `CreateTable`, 94 kolom, 12 FK `Restrict`, 16 `CreateIndex`, snapshot +531/−0; DB baca-saja cocok termasuk unik `(LegalEntityId, Period)` dan unik parsial satu pengajuan terbuka per aset. Belum di-commit — [`BE-AST-025.md`](../task/report/backend/BE-AST-025.md) |
 | Cakupan | `AstDepreciationRun`, `AstDepreciationRunLine`, `AstValueChangeRequest`, `AstSubledgerAccountSetup`, `AstUnitCostCenter`; enum `ValueChangeType`, `ValueChangeStatus`, `DepreciationAdjustmentReason`; migration urutan 4 |
 | Acceptance criteria | 1. Migration hanya menambah lima tabel. 2. Unik `(LegalEntityId, Period)` pada proses. 3. Unik parsial satu pengajuan terbuka per aset |
 
-### `BE-AST-026` — Akun kontrol dan pusat biaya
+### ✅ `BE-AST-026` — Akun kontrol dan pusat biaya
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 24 November 2026.** `AssetSubledgerSetupService` + `AssetSubledgerSetupController` (resource `AssetSubledgerSetup` `Read`/`Update`): akun kontrol per kelompok divalidasi terhadap daftar akun Akuntansi (ada, aktif, dapat diposting; bukan akun kontrol = peringatan), pusat biaya per unit (pemetaan > satu-satunya aktif > Belum Jelas), hapus/pulihkan pemetaan. QBE Strict 5 berkas `PASS`; build Rizki DLL 10:18:59. Runtime **34/34** (putaran 1 33/34 = skrip mengharapkan 200 dari API Akuntansi yang membalas 201). Data dev: akun `1-4000`/`1-4001`/`1-4002` dan akun kontrol ALKMED (keputusan Rizki). Delta: +`GET unit-cost-centers/cost-center-options` (hindari hak HR `CostCenter : Read`), kode `017`/`018`. Temuan HR: kode pusat biaya dipakai ulang sesudah hapus — [`BE-AST-026.md`](../task/report/backend/BE-AST-026.md) |
 | Acceptance criteria | 1. Endpoint 2.3–2.4. 2. Kode akun divalidasi terhadap daftar akun Akuntansi (baca saja). 3. Daftar unit "belum jelas" = unit tanpa pemetaan dengan 0 atau > 1 pusat biaya aktif |
 
 ### `BE-AST-027` — Pratinjau dan proses penyusutan

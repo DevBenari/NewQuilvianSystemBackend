@@ -19,13 +19,13 @@ hanya peran ber-hak nilai yang melihat butir menunya.
 Dipotong menjadi dua blok karena lebar; `FE-AST-019` muncul lagi sebagai sambungan blok kedua.
 
 ```text
-                 BE-AST-015 [BE] 🟡 ─┐               BE-AST-026 [BE] ─┐
+                 BE-AST-015 [BE] 🟡 ─┐            BE-AST-026 [BE] ✅ ─┐
                                      │                                │
-FE-AST-001 [FE-REG] ─────────────────┴─> FE-AST-011 ─┬────────────────┴─> FE-AST-019
-                                                     │
-                                                     │   BE-AST-031 [BE] ─┐
-                                                     │                    │
-                                                     └────────────────────┴─> FE-AST-022
+FE-AST-001 [FE-REG] ─────────────────┴─> FE-AST-011 ✅ ─┬─────────────┴─> FE-AST-019 ✅
+                                                        │
+                                                        │   BE-AST-031 [BE] ─┐
+                                                        │                    │
+                                                        └────────────────────┴─> FE-AST-022
 ```
 
 ```text
@@ -33,7 +33,7 @@ FE-AST-001 [FE-REG] ─────────────────┴─> F
                                                        │
 BE-AST-027 [BE] ─┬─> FE-AST-020 ─┬─────────────────────┴─> FE-AST-021
                  │               │
-     FE-AST-019 ─┘               │    BE-AST-030 [BE] ───┐
+  FE-AST-019 ✅ ─┘               │    BE-AST-030 [BE] ───┐
                                  │                       │
                                  │    BE-AST-029 [BE] ─┐ │
                                  │                     │ │
@@ -65,18 +65,18 @@ Pasangan prasyarat→task: **13** (sama dengan kolom `Dependency`).
 
 ## Kartu task
 
-### `FE-AST-011` — Parameter nilai dan kebijakan kelompok
+### ✅ `FE-AST-011` — Parameter nilai dan kebijakan kelompok
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 24 November 2026.** Layar `valuation/parameters` bertab (Parameter Nilai, Kebijakan Kelompok; tab 3–4 = `FE-AST-019`), grup menu "Nilai Aset & Rekonsiliasi" + "Parameter Nilai"; `UI GATE` REUSE 5, NEW 0; ESLint 0/0. Playwright **20/20** (bersama `FE-AST-019`, server `next dev` Rizki): kartu = parameter berlaku, akan berlaku, riwayat; modal dan toast "Berlaku mulai {bulan}"; parameter ganda 409 tampil; kebijakan TI 48 bulan tersimpan (data permanen, disetujui Rizki); tanpa hak → menu tersembunyi dan Akses Ditolak. build ulang Rizki `BUILD_ID` 10:48:23 memuat perbaikan judul kartu (cek perbaikan 3/3) — [`FE-AST-011.md`](../task/report/frontend/FE-AST-011.md) |
 | Acceptance criteria | 1. Parameter berlaku, yang akan berlaku, dan riwayat. 2. Setiap simpan menampilkan "Berlaku mulai {bulan}". 3. Grup menu "Nilai Aset & Rekonsiliasi" dan butir "Parameter Nilai" terdaftar, tersembunyi tanpa hak |
 
-### `FE-AST-019` — Akun kontrol dan pusat biaya
+### ✅ `FE-AST-019` — Akun kontrol dan pusat biaya
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 24 November 2026.** Tab Akun Kontrol (kode + nama akun, catatan per kelompok, galat `017` di field yang salah) dan Pusat Biaya (sumber Otomatis/Pemetaan/Belum Jelas, saringan belum jelas, petakan/ubah/hapus pemetaan dengan pilihan dari endpoint aset). ESLint 0/0. Playwright **20/20** bersama `FE-AST-011` (pusat biaya uji dibuat lalu dihapus). build ulang Rizki `BUILD_ID` 10:48:23 memuat perbaikan `pagination={false}` (cek perbaikan 3/3) — [`FE-AST-019.md`](../task/report/frontend/FE-AST-019.md) |
 | Acceptance criteria | 1. Bagian 3–4 `SCR-AST-NLI-06`. 2. Saringan "belum jelas" untuk unit. 3. Galat kode akun dari backend tampil per baris |
 
 ### `FE-AST-020` — Data penyusutan

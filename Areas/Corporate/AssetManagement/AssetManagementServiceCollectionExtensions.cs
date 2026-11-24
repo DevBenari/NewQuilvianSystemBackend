@@ -32,6 +32,7 @@ public static class AssetManagementServiceCollectionExtensions
         services.Configure<AssetAccountingDispatchOptions>(configuration.GetSection(AssetAccountingDispatchOptions.SectionName));
         services.AddScoped<AssetValuationParameterQueryService>();
         services.AddScoped<AssetValuationParameterService>();
+        services.AddScoped<AssetSubledgerSetupService>();
         services.AddScoped<AssetAccountingEventService>();
         services.AddScoped<AssetBookService>();
 
