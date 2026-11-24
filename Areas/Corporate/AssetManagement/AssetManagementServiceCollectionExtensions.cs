@@ -33,6 +33,7 @@ public static class AssetManagementServiceCollectionExtensions
         services.AddScoped<AssetValuationParameterQueryService>();
         services.AddScoped<AssetValuationParameterService>();
         services.AddScoped<AssetSubledgerSetupService>();
+        services.AddScoped<AssetDepreciationRunService>();
         services.AddScoped<AssetAccountingEventService>();
         services.AddScoped<AssetBookService>();
 

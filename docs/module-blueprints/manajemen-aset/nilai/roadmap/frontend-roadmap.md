@@ -29,15 +29,15 @@ FE-AST-001 [FE-REG] ─────────────────┴─> F
 ```
 
 ```text
-                                      BE-AST-028 [BE] ─┐
-                                                       │
-BE-AST-027 [BE] ─┬─> FE-AST-020 ─┬─────────────────────┴─> FE-AST-021
-                 │               │
-  FE-AST-019 ✅ ─┘               │    BE-AST-030 [BE] ───┐
-                                 │                       │
-                                 │    BE-AST-029 [BE] ─┐ │
-                                 │                     │ │
-                                 └─────────────────────┴─┴─> FE-AST-023
+                                         BE-AST-028 [BE] ─┐
+                                                          │
+BE-AST-027 [BE] 🟡 ─┬─> FE-AST-020 ─┬─────────────────────┴─> FE-AST-021
+                    │               │
+     FE-AST-019 ✅ ─┘               │    BE-AST-030 [BE] ───┐
+                                    │                       │
+                                    │    BE-AST-029 [BE] ─┐ │
+                                    │                     │ │
+                                    └─────────────────────┴─┴─> FE-AST-023
 ```
 
 `[BE]` = task backend pada `backend-roadmap.md` sub-modul ini · `[FE-REG]` = task frontend sub-modul
