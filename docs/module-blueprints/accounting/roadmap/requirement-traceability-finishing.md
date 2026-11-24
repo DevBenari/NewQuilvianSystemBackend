@@ -29,11 +29,11 @@ diputuskan.
 
 | Requirement | Decision | Desain | Kontrak | Task BE | Task FE | UAT | Bukti | Status |
 |---|---|---|---|---|---|---|---|---|
-| `FR-FIN-001` Saringan unit biaya buku besar | `147` | BE §25.5; FE §15.4 | `ACC-API-0.17` movements; `VAL-GL-01` | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F10`, `F12` | JSON, tangkapan | Belum |
-| `FR-FIN-002` Ringkasan saldo | `141` | BE §25.5 | movements/summary | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F10`, `F15` | JSON, tangkapan | Belum |
-| `FR-FIN-003` Asal jurnal dan tautan | `148` | BE §25.5; FE §15.4 | movements (11 field) | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F13` | JSON, tangkapan | Belum |
-| `FR-FIN-004` CSV buku besar | `149`, `155` | BE §25.7 | movements/export; `VAL-GL-06` | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F15`, `F19`, `F20` | Berkas, Excel, log | Belum |
-| `FR-FIN-005` Masuk dari laporan | `148` butir 4 | FE §15.4 | — (frontend) | — | `FE-ACC-FIN-005-01` | `F14` | Tangkapan | Belum |
+| `FR-FIN-001` Saringan unit biaya buku besar | `147` | BE §25.5; FE §15.4 | `ACC-API-0.17` movements; `VAL-GL-01` | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F10`, `F12` | JSON, tangkapan | [BE 🟡](../task/report/backend/BE-ACC-FIN-005-01.md) uji API 12/12; [FE ✅](../task/report/frontend/FE-ACC-FIN-005-01.md) uji layar 14/14 |
+| `FR-FIN-002` Ringkasan saldo | `141` | BE §25.5 | movements/summary | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F10`, `F15` | JSON, tangkapan | [BE 🟡](../task/report/backend/BE-ACC-FIN-005-01.md) uji API 12/12; [FE ✅](../task/report/frontend/FE-ACC-FIN-005-01.md) uji layar 14/14 |
+| `FR-FIN-003` Asal jurnal dan tautan | `148` | BE §25.5; FE §15.4 | movements (11 field) | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F13` | JSON, tangkapan | [BE 🟡](../task/report/backend/BE-ACC-FIN-005-01.md) uji API 12/12; [FE ✅](../task/report/frontend/FE-ACC-FIN-005-01.md) uji layar 14/14 |
+| `FR-FIN-004` CSV buku besar | `149`, `155` | BE §25.7 | movements/export; `VAL-GL-06` | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F15`, `F19`, `F20` | Berkas, Excel, log | [BE 🟡](../task/report/backend/BE-ACC-FIN-005-01.md) uji API 12/12; [FE ✅](../task/report/frontend/FE-ACC-FIN-005-01.md) uji layar 14/14 |
+| `FR-FIN-005` Masuk dari laporan | `148` butir 4 | FE §15.4 | — (frontend) | — | `FE-ACC-FIN-005-01` | `F14` | Tangkapan | [FE ✅](../task/report/frontend/FE-ACC-FIN-005-01.md) U6, U8 |
 | `FR-FIN-030` CSV neraca saldo | `153`, `155` | BE §25.7; FE §15.5 | trial-balance/export | `BE-ACC-FIN-008-01` | `FE-ACC-FIN-008-01` | `F18`, `F20` | Berkas, log | Belum |
 | `FR-FIN-010` Kolom periode, YTD, pembanding | `144` | BE §25.6 | income-statement | `BE-ACC-FIN-008-02` | `FE-ACC-FIN-008-02` | `F6`, `F7` | JSON, tangkapan | Belum |
 | `FR-FIN-011` Pengecualian `JT` | `142` | BE §25.6 | income-statement | `BE-ACC-FIN-008-02` | `FE-ACC-FIN-008-02` | `F2`, `F3` | JSON | Belum |

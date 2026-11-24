@@ -48,7 +48,7 @@ flowchart LR
     classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
-    BEACCFIN00501["BE-ACC-FIN-005-01<br/>Buku besar diperluas dan CSV"]:::belum
+    BEACCFIN00501["🟡 BE-ACC-FIN-005-01<br/>Buku besar diperluas dan CSV"]:::sebagian
     BEACCFIN00801["BE-ACC-FIN-008-01<br/>CSV neraca saldo"]:::belum
     BEACCFIN00802["BE-ACC-FIN-008-02<br/>Laba rugi periode dan YTD"]:::belum
     BEACCFIN00803["BE-ACC-FIN-008-03<br/>Neraca dengan laba belum ditutup"]:::belum
@@ -121,7 +121,7 @@ dikerjakan, atau dikeluarkan dari lingkup lewat keputusan Rizki.
 
 | Task ID | Outcome | Requirement / decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko / pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `BE-ACC-FIN-005-01` | Buku besar dapat disaring unit biaya, membawa asal jurnal, punya ringkasan saldo, dan dapat diunduh CSV | `FR-FIN-001`..`005`; `ACC-DEC-141`, `147`, `148`, `149`, `155` | `ACC-API-0.17` (`movements`, `movements/summary`, `movements/export`); `VAL-GL-01`..`03`, `06` | `BarisDisahkan`, `GetMovementsAsync`, `LoggerService` | Lihat kartu | — | AC-1..AC-8 kartu | Swagger + layar, `F10`, `F12`, `F13`, `F15`, `F16`, `F19` | Pemecahan `partial` menggeser `GetMovementsAsync` — regresi buku besar; Rizki | Kartu |
+| 🟡 `BE-ACC-FIN-005-01` | Buku besar dapat disaring unit biaya, membawa asal jurnal, punya ringkasan saldo, dan dapat diunduh CSV | `FR-FIN-001`..`005`; `ACC-DEC-141`, `147`, `148`, `149`, `155` | `ACC-API-0.17` (`movements`, `movements/summary`, `movements/export`); `VAL-GL-01`..`03`, `06` | `BarisDisahkan`, `GetMovementsAsync`, `LoggerService` | Lihat kartu | — | AC-1..AC-8 kartu | Swagger + layar, `F10`, `F12`, `F13`, `F15`, `F16`, `F19` | Pemecahan `partial` menggeser `GetMovementsAsync` — regresi buku besar; Rizki | Kartu |
 | `BE-ACC-FIN-008-01` | Neraca saldo dapat diunduh CSV | `FR-FIN-030`; `ACC-DEC-149`, `153`, `155` | `ACC-API-0.17` (`trial-balance/export`) | `GetTrialBalanceAsync`, `AccLedgerCsv` | Lihat kartu | `BE-ACC-FIN-005-01` | AC-1..AC-5 | `F18`, `F16`, `F20` | Rendah; Rizki | Kartu |
 | `BE-ACC-FIN-008-02` | Laba rugi periode dan YTD dengan pembanding, tanpa jurnal `JT`, dapat disaring unit biaya, tercatat saat dibuka, dapat diunduh | `FR-FIN-010`..`015`; `ACC-DEC-142`, `144`..`147`, `149`, `150`, `155` | `ACC-API-0.17` (`income-statement`, `/export`); `VAL-GL-01`, `04`, `05`, `08` | `BarisDisahkan`, `AccJournalTypeService.CariMenurutKodeAsync`, `AccLedgerCsv` | Lihat kartu | `BE-ACC-FIN-005-01` | AC-1..AC-10 | `F1`..`F3`, `F6`, `F7`, `F8`, `F9`, `F11`, `F16`, `F17` | Rumus pengecualian `JT` dan hierarki; Rizki | Kartu |
 | `BE-ACC-FIN-008-03` | Neraca per akhir periode dengan pembanding, dua baris laba belum ditutup, status seimbang, tercatat saat dibuka, dapat diunduh | `FR-FIN-012`, `014`, `015`, `020`..`022`; `ACC-DEC-143`..`146`, `149`, `150`, `154`, `155` | `ACC-API-0.17` (`balance-sheet`, `/export`); `VAL-GL-04`, `05`, `07`..`09` | Penyusun hierarki dan rentang periode dari `008-02` | Lihat kartu | `BE-ACC-FIN-008-02` | AC-1..AC-9 | `F4`, `F5`, `F8`, `F9`, `F14`, `F16`, `F17` | Rumus laba tahun berjalan; Rizki | Kartu |
@@ -131,7 +131,9 @@ dikerjakan, atau dikeluarkan dari lingkup lewat keputusan Rizki.
 
 ---
 
-## `BE-ACC-FIN-005-01` — Buku besar diperluas dan CSV
+## 🟡 `BE-ACC-FIN-005-01` — Buku besar diperluas dan CSV
+
+**Status:** 🟡 SEBAGIAN, 24 November 2026. Source untuk AC-1..AC-8 lengkap; QBE Strict 7 berkas `VIOLATION: 0`, `REVIEW: 0`, `PASS`. Build `PASS` (Rizki, DLL 15:19:56 WIB). Uji runtime agent 24 November 2026: **7 dari 8 AC terbukti** (API 12/12, layar 14/14). **Belum terpenuhi:** AC-8 (`> 50.000` baris → `422`) — `F19` `NOT FEASIBLE` di data dev; butuh keputusan pengecualian pemilik untuk naik ke ✅. Bukti: [laporan BE-ACC-FIN-005-01](../task/report/backend/BE-ACC-FIN-005-01.md).
 
 **Gelombang pengiriman:** `FIN-0`. **Pasangan frontend:** `FE-ACC-FIN-005-01`.
 

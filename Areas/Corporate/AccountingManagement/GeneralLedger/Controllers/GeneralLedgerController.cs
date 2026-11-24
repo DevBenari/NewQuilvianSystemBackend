@@ -50,6 +50,42 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
         public async Task<IActionResult> GetMovements([FromQuery] LedgerMovementQuery query, CancellationToken ct)
             => ToActionResult(await _service.GetMovementsAsync(query, ct));
 
+        [HttpGet("movements/summary")]
+        [AccessAction("Read", "Read General Ledger", Description = "Melihat ringkasan saldo buku besar", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("GeneralLedger", "Read")]
+        public async Task<IActionResult> GetMovementSummary([FromQuery] LedgerMovementQuery query, CancellationToken ct)
+            => ToActionResult(await _service.GetMovementSummaryAsync(query, ct));
+
+        [HttpGet("movements/export")]
+        [AccessAction("Read", "Read General Ledger", Description = "Mengunduh buku besar sebagai CSV", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("GeneralLedger", "Read")]
+        public async Task<IActionResult> ExportMovements([FromQuery] LedgerMovementQuery query, CancellationToken ct)
+        {
+            var hasil = await _service.BuildMovementCsvAsync(query, ct);
+
+            var muatan = new
+            {
+                JenisLaporan = "BukuBesar",
+                query.LegalEntityId,
+                query.AccountId,
+                query.CostCenterId,
+                query.DateFrom,
+                query.DateTo,
+                hasil.StatusCode,
+                JumlahBaris = hasil.Data?.RowCount
+            };
+
+            if (!hasil.Success)
+            {
+                await _loggerService.WarningAsync(LogCategory, "GeneralLedger.Export", hasil.Message, muatan);
+                return ToActionResult(hasil);
+            }
+
+            await _loggerService.InfoAsync(LogCategory, "GeneralLedger.Export", hasil.Message, muatan);
+
+            return File(hasil.Data!.Content, AccLedgerCsv.ContentType, hasil.Data.FileName);
+        }
+
         /// <remarks>
         /// <b>Satu-satunya endpoint grup ini yang dicatat logger</b>, sesuai `ACC-PERMISSION-0.3`
         /// bagian 3. Neraca saldo adalah laporan yang dipakai menutup buku, sehingga siapa

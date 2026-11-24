@@ -46,7 +46,7 @@ flowchart LR
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
     subgraph backend["Prasyarat backend — backend-roadmap-finishing.md"]
-        BEACCFIN00501["BE-ACC-FIN-005-01<br/>Buku besar diperluas dan CSV"]:::luar
+        BEACCFIN00501["🟡 BE-ACC-FIN-005-01<br/>Buku besar diperluas dan CSV"]:::luar
         BEACCFIN00801["BE-ACC-FIN-008-01<br/>CSV neraca saldo"]:::luar
         BEACCFIN00802["BE-ACC-FIN-008-02<br/>Laba rugi periode dan YTD"]:::luar
         BEACCFIN00803["BE-ACC-FIN-008-03<br/>Neraca dengan laba belum ditutup"]:::luar
@@ -55,7 +55,7 @@ flowchart LR
         BEACCFIN00806["⛔ BE-ACC-FIN-008-06<br/>Laporan pajak"]:::luar
     end
 
-    FEACCFIN00501["FE-ACC-FIN-005-01<br/>Buku besar bertelusur dan berunduh"]:::belum
+    FEACCFIN00501["✅ FE-ACC-FIN-005-01<br/>Buku besar bertelusur dan berunduh"]:::selesai
     FEACCFIN00801["FE-ACC-FIN-008-01<br/>Tombol unduh neraca saldo"]:::belum
     FEACCFIN00802["FE-ACC-FIN-008-02<br/>Layar laba rugi dan menunya"]:::belum
     FEACCFIN00803["FE-ACC-FIN-008-03<br/>Layar neraca dan menunya"]:::belum
@@ -109,7 +109,7 @@ subgraph adalah cermin baca-saja; tandanya disalin dari `backend-roadmap-finishi
 
 | Task ID | Outcome | Requirement / decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko / pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-ACC-FIN-005-01` | Buku besar bersaring unit biaya, berringkasan, bertautan ke jurnal dan kejadian, dapat diunduh, dan menerima saringan dari tautan laporan | `FR-FIN-001`..`005`; `ACC-DEC-147`, `148`, `149` | `ACC-API-0.17` movements, summary, export | `general-ledger-view.jsx`, `use-general-ledger.jsx`, token rute privat | Kartu | `BE-ACC-FIN-005-01` | AC-1..AC-8 | Layar `F10`, `F13`, `F14`, `F15`, `F19` | Saringan dari alamat; Rizki | Kartu |
+| ✅ `FE-ACC-FIN-005-01` | Buku besar bersaring unit biaya, berringkasan, bertautan ke jurnal dan kejadian, dapat diunduh, dan menerima saringan dari tautan laporan | `FR-FIN-001`..`005`; `ACC-DEC-147`, `148`, `149` | `ACC-API-0.17` movements, summary, export | `general-ledger-view.jsx`, `use-general-ledger.jsx`, token rute privat | Kartu | `BE-ACC-FIN-005-01` | AC-1..AC-8 | Layar `F10`, `F13`, `F14`, `F15`, `F19` | Saringan dari alamat; Rizki | Kartu |
 | `FE-ACC-FIN-008-01` | Neraca saldo dapat diunduh CSV | `FR-FIN-030`; `ACC-DEC-153` | `trial-balance/export` | `trial-balance-view.jsx`, pengunduh dari `005-01` | Kartu | `BE-ACC-FIN-008-01`, `FE-ACC-FIN-005-01` | AC-1..AC-4 | `F18` | Rendah; Rizki | Kartu |
 | `FE-ACC-FIN-008-02` | Layar laba rugi bertingkat dengan pembanding, YTD, saringan unit biaya, telusur, unduh, cetak, dan butir menu | `FR-FIN-010`..`015`, `040`; `ACC-DEC-142`..`147`, `149`, `152` | `income-statement`, `/export` | Pola `trial-balance-view.jsx`; pengunduh dan tautan buku besar dari `005-01` | Kartu | `BE-ACC-FIN-008-02`, `FE-ACC-FIN-005-01` | AC-1..AC-11 | `F2`, `F6`, `F7`, `F8`, `F9`, `F11`, `F14`, `F16` | Tabel enam kolom angka; Rizki | Kartu |
 | `FE-ACC-FIN-008-03` | Layar neraca bertingkat dengan baris laba, peringatan, status seimbang, telusur, unduh, cetak, dan butir menu | `FR-FIN-012`, `014`, `020`..`022`, `040`; `ACC-DEC-143`..`146`, `149`, `152`, `154` | `balance-sheet`, `/export` | Komponen tabel laporan dari `008-02` | Kartu | `BE-ACC-FIN-008-03`, `FE-ACC-FIN-008-02` | AC-1..AC-9 | `F4`, `F5`, `F8`, `F14`, `F16` | Rendah; Rizki | Kartu |
@@ -119,7 +119,9 @@ subgraph adalah cermin baca-saja; tandanya disalin dari `backend-roadmap-finishi
 
 ---
 
-## `FE-ACC-FIN-005-01` — Buku besar bertelusur dan berunduh
+## ✅ `FE-ACC-FIN-005-01` — Buku besar bertelusur dan berunduh
+
+**Status:** ✅ SELESAI (development), 24 November 2026. AC-1..AC-8 terbukti: uji layar Playwright agent terhadap `next dev` Rizki 14/14, ESLint 7 berkas 0/0, `UI GATE` REUSE 7 NEW 0. Cacat keadaan memuat (reducer pembatalan) ditemukan dan diperbaiki dalam task ini. `npm run build` `NOT RUN` (dijalankan Rizki). UAT belum dijalankan — milik tim UAT. Delta lingkup: `general-ledger/page.jsx` dibungkus `Suspense`. Bukti: [laporan FE-ACC-FIN-005-01](../task/report/frontend/FE-ACC-FIN-005-01.md).
 
 **Gelombang pengiriman:** `FIN-0`. **Prasyarat:** `BE-ACC-FIN-005-01`.
 
