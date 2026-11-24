@@ -6,8 +6,9 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 17
+roadmap_revision: 18
 amendment_s_d5_v28: "2026-11-19 — Amandemen S-D5 persetujuan SPPD lewat workflow persetujuan umum (bagian 27): BE-HRD-374 s.d. BE-HRD-380, gelombang MVP-70; kontrak v28 approved 19 November 2026; menutup celah BE-HRD-333"
+amendment_s_a7_v2_v29: "2026-11-20 — Amandemen S-A7-V2 Kotak Masuk Terpadu di atas engine WorkflowService (bagian 29): BE-HRD-440 s.d. BE-HRD-449, gelombang MVP-72; kontrak v29 approved 20 November 2026"
 finishing_update_docs: "2026-11-19 — 59 task finishing dari docs/update (Administrasi Kepegawaian, Menu 04, 05, 07, 08, 09) ditambahkan sebagai BE-HRD-381 s.d. BE-HRD-439 (bagian 28, slice S-FIN-*), dengan alias ID FIN-HRD-*. Status diisi dari audit source backend bdc3ccf9 (MHamzah) dan frontend 50e1eb7a9 (HamzahV2). Menu 12 (BE-HRD-364 s.d. BE-HRD-373) diaudit ulang: BE-HRD-365, BE-HRD-368, BE-HRD-372, BE-HRD-373 turun dari ✅ ke 🟡."
 draft_slice_s_a8: "2026-11-16 — Slice DRAFT S-A8 Data Penggajian Pegawai (HRD) ditambahkan (bagian 24): BE-HRD-360 s.d. BE-HRD-363. Source sudah ditulis di luar siklus task dan belum di-build; kontrak v27 approved 16 November 2026 (gerbang G1 tertutup); keputusan terdaftar `HRD-DEC-218` s.d. `HRD-DEC-223` pada 16 November 2026 (gerbang G2 tertutup). Tidak ada tanda status yang berubah pada task lama."
 status: ACTIVE
@@ -8057,3 +8058,270 @@ BE-HRD-436 ✅ [B98] ───────────────────�
 * **Dependencies**: `BE-HRD-429` 🟡, `BE-HRD-434` 🟡, `BE-HRD-435` ✅, `BE-HRD-436` ✅, `BE-HRD-438` ✅
 * **Acceptance Criteria**: (1) Semua endpoint ditrace method+URI+permission+DTO. (2) P1 sisa punya blocker dan pemilik.
 * **Verifikasi**: QBE preflight dan conformance, `dotnet build` project aplikasi, verifikasi kontrak API (method, route, permission, DTO), dan uji API berizin pada DB dev. QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend.
+
+---
+
+## 29. Amandemen `S-A7-V2` — Kotak Masuk Persetujuan Terpadu di atas Engine Workflow (roadmap revisi `18`, kontrak `v29`)
+
+> **Status slice: kontrak `v29` APPROVED 20 November 2026** oleh Pengguna (`HRD-DEC-015`), jawaban: "setujui kontrak v29, lanjut plan". Task di bawah boleh dikirim ke builder satu per satu sesuai urutan dependency. Belum ada task yang dikerjakan.
+
+| Field | Nilai |
+| --- | --- |
+| `blueprint_id` / revision | `HRD-BP-001` / manifest revision `67` |
+| Keputusan | `HRD-DEC-229` s.d. `HRD-DEC-236` (decision log revision `40` bagian 56, SHA-256 `956024bd…`) |
+| Kontrak | `v29` approved — API 35, State 33, Validation 34 (`VR-WF-26` s.d. `VR-WF-33`), Integration 26 (`INT-HR-111` s.d. `INT-HR-114`), Permission 33, Data 30, Acceptance 37 (`AT-HRD-WF-23` s.d. `AT-HRD-WF-39`) |
+| Desain | `02-backend-architecture.md` bagian 37; PRD `04-prd-to-mvp.md` bagian 42 (`EPIC HRD-124`, `MVP-72`) |
+| Source acuan | Backend `815ce085` (branch `yoga`) |
+| Migration | Satu: `AddWorkflowBulkFlagAndEscalationLink` (dua kolom, tanpa downtime) — **butuh izin eksplisit pengguna** untuk dibuat dan untuk diterapkan ke devYoga |
+| Menutup | Temuan `FE-HRD-339`/`FE-HRD-340`: Kotak Masuk Terpadu V2 tidak memuat dan tidak memutuskan permohonan engine |
+
+### Latar belakang
+
+Delapan modul HR membuat persetujuan lewat engine `WorkflowService`. Kotak Masuk Terpadu V2 justru berjalan di atas engine lama yang terpisah. Akibatnya antreannya kosong, aksinya tidak menjalankan penangan modul, PIN-nya tidak pernah diperiksa, dan eskalasi SLA tidak pernah terjadi. Amandemen ini menjadikan layanan kotak terpadu **adapter** atas engine, tanpa engine ketiga.
+
+Contoh alur: Ns. Rina menyetujui SPPD perawat Sari dari Kotak Masuk Terpadu, lalu SPPD menjadi Disetujui beserta presensi Dinas Luar. Lima lembur rutin disetujui massal; SPPD tidak dapat dicentang. Wakil Karu yang menjadi Plh Rina dapat memutuskan tugas Rina yang sudah ada. Cuti yang lewat batas waktu menambahkan Kepala Instalasi sebagai penyetuju setara.
+
+### Fakta source yang menopang rencana
+
+| Fakta | Bukti |
+| --- | --- |
+| `ApprovalInboxService.BuildBaseQuery` + `OpenAssignmentStatuses` sudah benar membaca penugasan engine (kotak lama) | `ApprovalInboxService.cs` baris 15–31, 728–745 |
+| Engine menolak aksi bila `AssignedApproverUserId` bukan pengguna login; delegasi hanya diterapkan saat penugasan dibuat (`ApplyDelegationAsync`) | `WorkflowService.cs` baris 1130, 2494–2545 |
+| Syarat tahap dihitung dari penugasan `IsRequired` (`IsApprovalRequirementSatisfied`) | `WorkflowService.cs` baris 2826–2866 |
+| Resolver atasan `ResolveManagerApproverAsync` (`WfpManagerAssignment`) dapat dipakai ulang untuk eskalasi | `WorkflowService.cs` baris 2126 |
+| Engine dan engine lama sama-sama menulis `TrxApprovalAction` | `WorkflowService.cs` baris 917, 1184 |
+| Penugasan engine lama selalu mengisi `ApproverEmployeeId`; engine tidak pernah | `HRD-TF-081`; `WorkflowInstanceCreationService.cs` baris 171 |
+
+### Gerbang
+
+| Gerbang | Isi | Pemilik | Akibat |
+| --- | --- | --- | --- |
+| G1 | ~~Kontrak `v29` belum disetujui~~ **TERTUTUP 20 November 2026** | Pengguna (`HRD-DEC-015`) | Tidak memblokir |
+| G2 | ~~Izin membuat dan menerapkan migration `AddWorkflowBulkFlagAndEscalationLink`~~ **TERTUTUP 20 November 2026** (diberikan dan diterapkan di `BE-HRD-440`) | Pengguna | Memblokir `BE-HRD-440` bagian migration; kode lain di `BE-HRD-440` dan seluruh uji harness (SQLite) tetap dapat dikerjakan |
+| G3 | Izin menjalankan skrip data (penanda massal, kunci delegasi lama) dan pemeriksaan pra-rilis di devYoga | Pengguna | Memblokir eksekusi pada `BE-HRD-448`; skrip tetap disusun dan diuji di harness |
+| G4 | `HRD-ASM-90`: kode definisi lembur rutin dan cuti tahunan yang diberi `AllowBulkApproval = true` | Admin HR | Tidak memblokir kode; isi skrip data `BE-HRD-448` dipastikan dari Master Workflow saat eksekusi |
+
+### API yang direncanakan
+
+#### Corporate - HRD Workflow Inbox & Instances
+
+Base URL: `api/v1/hrd/workflow` — kontrak `v29` bagian 35.1.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/inbox` | Antrean penugasan engine + delegasi aktif (**diubah**) | `WorkflowInboxInstance : ViewInbox` | Query tetap | `200`, `PagedResult<ApprovalInboxItemV2ResponseDto>` (+ `assignmentId`, `referenceNumber`, `canBulkApprove`) |
+| `GET` | `/inbox/summary` | Ringkasan dari himpunan yang sama (**diubah**) | `WorkflowInboxInstance : ViewInbox` | — | `200` |
+| `GET` | `/instances/{id}` | Detail + `myAction` (**diubah**) | `WorkflowInboxInstance : ViewInstanceDetail` | — | `200`; `404` |
+| `POST` | `/instances` | Dihentikan (**diubah**) | `WorkflowInboxInstance : CreateInstance` | — | `409` |
+| `PUT` | `/instances/{id}/cancel` | `409` untuk permohonan modul (**diubah**) | `WorkflowInboxInstance : CancelMyInstance` | `CancelWorkflowRequestDto` | `200`; `409` |
+| `GET` | `/my-requests` | Cocok `RequestedByUserId`/`RequestedByEmployeeId`, `isModuleManaged` (**diubah**) | `WorkflowInboxInstance : ViewOwn` | Query tetap | `200` |
+
+#### Corporate - HRD Workflow Approval Actions
+
+Base URL: `api/v1/hrd/workflow` — kontrak `v29` bagian 35.2.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `POST` | `/approvals/{stepInstanceId}/approve` | Diteruskan ke engine (**diubah**) | `WorkflowApprovalAction : ApproveRequest` | `ApproveActionRequestDto` (`note`) | `200`; `400`, `403`, `404`, `409` |
+| `POST` | `/approvals/{stepInstanceId}/reject` | Diteruskan ke engine, alasan berkode (**diubah**) | `WorkflowApprovalAction : RejectRequest` | `RejectActionRequestDto` (`rejectionReasonId`, `comment`) | Sama |
+| `POST` | `/approvals/{stepInstanceId}/return` | Diteruskan ke engine (**diubah**) | `WorkflowApprovalAction : ReturnForRevision` | `ReturnForRevisionRequestDto` | Sama |
+| `POST` | `/approvals/bulk-approve` | Per butir lewat engine, kelayakan `VR-WF-32` (**diubah**) | `WorkflowApprovalAction : BulkApprove` | `BulkApproveRequestDto` (tanpa PIN) | `200`, `BulkApproveResultDto` |
+| `POST` | `/instances/{id}/resubmit` | `409` untuk permohonan modul (**diubah**) | `WorkflowApprovalAction : ResubmitRevision` | `ResubmitWorkflowRequestDto` | `200`; `409` |
+
+SLA (`/sla/overdue`, `/sla/escalate/{id}`, `/sla/compliance-report`) dan Master Workflow definisi (ruas `allowBulkApproval`) mengikuti kontrak 35.4 dan desain 37.4.
+
+**Preflight QBE (diselesaikan saat eksekusi dari `AGENTS.md` backend dan dokumen engineering canonical):** Area `Corporate`, Module `HumanResource`, Submodule `WorkflowManagement` (dan `MasterData/Workflow` untuk `BE-HRD-440`); kelas perubahan `EXTEND`; satu migration; tanpa entity baru; tanpa `[AccessPermission]` baru; tanpa `<summary>` XML pada action controller.
+
+### Grafik B100 — Kotak Masuk Terpadu di atas Engine (`BE-HRD-440` s.d. `BE-HRD-449`)
+
+```text
+{Kontrak v29 ✅} ─> BE-HRD-440 ┬─> BE-HRD-441 ─┬─> BE-HRD-443 ─┬─> BE-HRD-445 ─┐
+   (kolom/migration, G2)      │               └─> BE-HRD-444 ─┘               │
+                              ├─> BE-HRD-442 ───> BE-HRD-446 ─────────────────┤
+                              ├─> BE-HRD-447 (paralel) ───────────────────────┤
+                              └─> BE-HRD-448 (skrip, G3) ─────────────────────┴─> BE-HRD-449
+```
+
+### Tabel gelombang
+
+| Gelombang | Isi | Task | Prasyarat |
+| --- | --- | --- | --- |
+| 1 · `MVP-72` | Kolom, migration, konstanta, ruas definisi | `BE-HRD-440` | G1 ✅; G2 untuk migration |
+| 2 · `MVP-72` | Otorisasi Plh di engine; eskalasi di engine; endpoint generik (paralel) | `BE-HRD-441`, `BE-HRD-442`, `BE-HRD-447` | `BE-HRD-440` |
+| 3 · `MVP-72` | Antrean/detail; aksi adapter | `BE-HRD-443`, `BE-HRD-444` | `BE-HRD-441` |
+| 4 · `MVP-72` | Massal; SLA dan worker; skrip data dan pra-rilis | `BE-HRD-445`, `BE-HRD-446`, `BE-HRD-448` | `BE-HRD-443`/`444`; `BE-HRD-442`; `BE-HRD-440` + G3 |
+| 5 · Verifikasi | Kontrak `v29`, regresi penuh HR, QBE | `BE-HRD-449` | Semua di atas |
+
+### Rincian 10 task backend (`BE-HRD-440` s.d. `BE-HRD-449`)
+
+#### ✅ `BE-HRD-440` — Kolom `AllowBulkApproval` dan `EscalatedFromAssignmentId`, migration, konstanta `Escalate`, ruas definisi
+* **Slice / MVP**: `S-A7-V2` amandemen / `MVP-72` · `EPIC HRD-124`
+* **Status**: ✅ Selesai (2026-11-20). 3/3 acceptance criteria terpenuhi: harness `WorkflowEscalationAndBulkFlagSchemaTests` 7/7 (6 dari 7 mutasi tertangkap; satu mutan setara), regresi HR 360/360 (dari salinan tanpa empat uji payroll yang tidak terkompilasi sejak merge `815ce085`), build 0 galat, QBE Strict bersih dengan probe kontrol. Migration `20261120035346_AddWorkflowBulkFlagAndEscalationLink` diterapkan ke devYoga lewat skrip idempoten sesudah uji kering (riwayat 428 → 429); operasi `HrdOvertimeSetting` yang ikut tergenerasi karena snapshot tertinggal dikeluarkan. Laporan: [BE-HRD-440](../task/report/backend/BE-HRD-440.md)
+* **Outcome**: `MstWorkflowDefinition.AllowBulkApproval` (`boolean NOT NULL DEFAULT false`) dan `TrxWorkflowApproverAssignment.EscalatedFromAssignmentId` (`uuid NULL`, FK diri sendiri `Restrict`, index) tersedia di model, konfigurasi, dan migration; `WorkflowValueConstants.ActionType.Escalate`; DTO buat/ubah/respons definisi memuat `allowBulkApproval`
+* **Requirement / keputusan**: `FR-WF-29`, `FR-WF-30`; `HRD-DEC-232`, `HRD-DEC-233`
+* **Kontrak**: `v29` — Data 30.1, 30.2, 30.4; desain 37.6–37.7
+* **Reuse**: `MstWorkflowDefinitionConfiguration`, `TrxWorkflowApproverAssignmentConfiguration`, `WorkflowDefinitionController`
+* **Cakupan**: dua model, dua konfigurasi, `WorkflowValueConstants.cs`, `WorkflowDefinitionDtos.cs`, `WorkflowDefinitionController.cs`, satu migration
+* **Dependencies**: G1 ✅; G2 (izin migration)
+* **Acceptance Criteria**:
+  1. Migration menambah kedua kolom, FK, dan index; `Down` menghapusnya; definisi lama bernilai `AllowBulkApproval = false`.
+  2. Master Workflow menyimpan dan mengembalikan `allowBulkApproval`.
+  3. Penugasan dapat menyimpan `EscalatedFromAssignmentId` yang menunjuk penugasan pada tahap yang sama.
+* **Verifikasi**: uji harness (model + konfigurasi SQLite) dengan kontrol negatif; `dotnet build -p:RunAnalyzers=False`; script migration ditinjau (preflight DROP/UPDATE) sebelum diterapkan atas izin.
+* **Risiko / pemilik**: migration di devYoga bersama — hanya atas izin; Technical Owner HR.
+* **DoD**: AC terbukti, laporan `task/report/backend/BE-HRD-440.md`.
+
+#### ✅ `BE-HRD-441` — Engine: Plh aktif boleh memutuskan penugasan yang sudah ada
+* **Slice / MVP**: `S-A7-V2` amandemen / `MVP-72` · `EPIC HRD-124`
+* **Status**: ✅ Selesai (2026-11-20). 4/4 acceptance criteria terpenuhi: harness `WorkflowDelegatedActionTests` 11/11 dengan engine nyata (8/8 mutasi tertangkap), uji SPPD hijau, regresi HR 371/371, QBE Strict bersih. Helper bersama `WorkflowDelegationResolver` dipakai otorisasi aksi dan pengalihan saat penugasan dibuat; Plh tidak memindahkan penugasan; jejak Plh lengkap; `DigitalSignatureHash` memang tidak pernah diisi engine. Laporan: [BE-HRD-441](../task/report/backend/BE-HRD-441.md)
+* **Outcome**: Otorisasi aksi engine (`ApproveAsync`, `RejectAsync`, `RequestRevisionAsync`) menerima pemegang penugasan **atau** delegasi aktif dari pemegang penugasan (status `Active`/`Approved`, dalam rentang, cakupan definisi/tahap cocok), dan menolak bila pelaku adalah pemohon. Aksi Plh mengisi `IsDelegated`, `ApprovalDelegationId`, `DelegatedFromUserId`, `ActionEmployeeId`/`OnBehalfOfEmployeeId`. `DigitalSignatureHash` tidak diisi. Satu helper bersama penentu "penugasan yang boleh dijalankan pengguna" dipakai engine dan adapter
+* **Requirement / keputusan**: `FR-WF-31`, `FR-WF-28`; `HRD-DEC-234`, `HRD-DEC-230`, `HRD-DEC-183`
+* **Kontrak**: `v29` — Validation `VR-WF-30`, `VR-WF-25`, `VR-WF-02`; Integration `INT-HR-113`; Permission 33.2
+* **Reuse**: kueri delegasi `ApplyDelegationAsync`, `AntiSelfApprovalGuardService`
+* **Cakupan**: `WorkflowService.cs`, `WorkflowService.ActionsV2.cs` (bagian otorisasi), helper baru di `WorkflowManagement/Services`
+* **Dependencies**: `BE-HRD-440`
+* **Acceptance Criteria**:
+  1. Plh aktif menyetujui penugasan pejabat yang dibuat sebelum delegasi → `200`, jejak berisi pelaku Plh dan pejabat definitif (`AT-HRD-WF-33` bagian engine).
+  2. Delegasi berakhir/dicabut → Plh `403`.
+  3. Plh yang adalah pemohon → `403` (`AT-HRD-WF-34`).
+  4. Kotak lama dan modul (SPPD) tetap berperilaku sama (`TravelSubmitTests`, `TravelWorkflowLifecycleTests` hijau).
+* **Verifikasi**: uji harness engine dengan kontrol negatif per AC; `dotnet build`.
+* **Risiko / pemilik**: perubahan otorisasi inti engine berdampak ke semua modul — dijaga uji regresi modul; Technical Owner HR.
+* **DoD**: AC terbukti, laporan `BE-HRD-441.md`.
+
+#### ✅ `BE-HRD-442` — Engine: eskalasi menambah penugasan setara
+* **Slice / MVP**: `S-A7-V2` amandemen / `MVP-72` · `EPIC HRD-124`
+* **Status**: ✅ Selesai (2026-11-20). 4/4 acceptance criteria terpenuhi: harness `WorkflowEscalationEngineTests` 12/12 dengan engine nyata (10/10 mutasi tertangkap), uji Plh dan SPPD hijau, regresi HR 383/383, QBE Strict bersih. `AddEscalationAssignmentAsync` (berkas parsial `WorkflowService.Escalation.cs`) menegakkan `VR-WF-31`, termasuk tujuan yang sudah penyetuju di tahap (indeks unik); slot wajib dihitung bersama turunan eskalasinya; kembaran `Skipped` + aksi `Skip`. Laporan: [BE-HRD-442](../task/report/backend/BE-HRD-442.md)
+* **Outcome**: `WorkflowService.AddEscalationAssignmentAsync(assignmentId, approverUserId, reason, isSystem)` membuat penugasan `Available`, `IsRequired = false`, `EscalatedFromAssignmentId`, `DueAt` baru, dan aksi `Escalate`. `IsApprovalRequirementSatisfied` menghitung penugasan wajib disetujui bila ia atau turunan eskalasinya `Approved`. Saat salah satu dari pasangan memutuskan, kembarannya `Skipped` dengan aksi `Skip`
+* **Requirement / keputusan**: `FR-WF-30`; `HRD-DEC-232`, `HRD-DEC-185`
+* **Kontrak**: `v29` — State 33.2–33.4; Validation `VR-WF-31`, `VR-WF-11`; Permission 33.2
+* **Reuse**: pembuatan penugasan engine, `IsApprovalRequirementSatisfied`
+* **Cakupan**: `WorkflowService.cs`, `WorkflowService.ActionsV2.cs`
+* **Dependencies**: `BE-HRD-440`
+* **Acceptance Criteria**:
+  1. Eskalasi membuat penugasan atasan sesuai outcome; penugasan awal tetap `Available` (`AT-HRD-WF-30` bagian engine).
+  2. Mode `Any`: atasan menyetujui → tahap selesai, penugasan awal `Skipped`; mode `All`: tahap selesai hanya sesudah penyetuju wajib lain juga menyetujui (`AT-HRD-WF-31`).
+  3. Eskalasi kedua atas penugasan yang sama ditolak/dilewati; pelaku eskalasi tidak boleh pemohon (`VR-WF-31`).
+  4. Tidak ada persetujuan otomatis.
+* **Verifikasi**: uji harness dengan kontrol negatif; `dotnet build`.
+* **Risiko / pemilik**: perubahan penghitungan tahap — dijaga uji mode `Any`/`All`/`Sequential`/`Percentage`; Technical Owner HR.
+* **DoD**: AC terbukti, laporan `BE-HRD-442.md`.
+
+#### ✅ `BE-HRD-443` — Antrean, ringkasan, dan `myAction` dari penugasan engine
+* **Slice / MVP**: `S-A7-V2` amandemen / `MVP-72` · `EPIC HRD-124`
+* **Status**: ✅ Selesai (2026-11-20). 3/3 acceptance criteria terpenuhi: harness `WorkflowInboxEngineQueryTests` 15/15 dengan engine nyata (12/12 mutasi tertangkap sesudah uji diperketat), regresi HR 404/404, QBE Strict bersih dengan probe kontrol. Antrean/ringkasan dipilih per akun dari penugasan engine terbuka pada tahap aktif + tugas pejabat yang mendelegasikan secara aktif; helper bersama `WorkflowRejectionReasonOptions` menjamin alasan `myAction` = kotak masuk lama. Delta: `myAction` diisi di controller lewat `GetMyActionAsync`, bukan di `WorkflowInstanceCreationService`; parameter `status` diabaikan sesuai §35.1. Uji API lokal akun dr. Bima belum dijalankan. Laporan: [BE-HRD-443](../task/report/backend/BE-HRD-443.md)
+* **Outcome**: `ApprovalInboxQueryService` membaca penugasan engine terbuka milik pengguna + penugasan pejabat yang mendelegasikan kepadanya secara aktif, mengecualikan penugasan engine lama (`ApproverEmployeeId` terisi), mengisi `assignmentId`, `referenceNumber`, `canBulkApprove` (`VR-WF-32` tanpa pemanggilan aksi), filter `requestType` cocok persis. Ringkasan dari himpunan yang sama. `GET /instances/{id}` menambah `myAction` (penugasan, Plh, aksi tersedia, alasan penolakan aktif). Controller meneruskan `userId` akun
+* **Requirement / keputusan**: `FR-WF-26`, `FR-WF-31` (baca); `HRD-DEC-229`, `HRD-DEC-234`
+* **Kontrak**: `v29` — API 35.1, 35.6; Integration `INT-HR-111`, `INT-HR-113`
+* **Reuse**: `ApprovalInboxService` (himpunan status terbuka, pembentuk alasan penolakan), helper `BE-HRD-441`
+* **Cakupan**: `ApprovalInboxQueryService.cs`, `WorkflowInstanceCreationService.cs` (detail), `WorkflowInboxAndInstancesController.cs`, `WorkflowV2Dtos.cs`
+* **Dependencies**: `BE-HRD-441`
+* **Acceptance Criteria**:
+  1. SPPD dan cuti menunggu atasan tampil di antrean atasan dengan ruas baru; penugasan engine lama tidak tampil; ringkasan sama dengan isi antrean (`AT-HRD-WF-23`).
+  2. Antrean Plh memuat tugas pejabat selama delegasi aktif, `isDelegated = true` (`AT-HRD-WF-33` bagian baca).
+  3. `myAction` terisi untuk pemegang penugasan/Plh, `null` untuk orang lain; `rejectionReasons` sama dengan kotak lama.
+* **Verifikasi**: uji harness dengan kontrol negatif; `dotnet build`; uji API lokal dengan akun dr. Bima (SPPD `0009`) bila diizinkan.
+* **Risiko / pemilik**: kinerja kueri delegasi — satu kueri berhalaman; Technical Owner HR.
+* **DoD**: AC terbukti, laporan `BE-HRD-443.md`.
+
+#### ✅ `BE-HRD-444` — Aksi Setujui/Tolak/Kembalikan diteruskan ke engine; PIN dihapus
+* **Slice / MVP**: `S-A7-V2` amandemen / `MVP-72` · `EPIC HRD-124`
+* **Status**: ✅ Selesai (2026-11-23). 4/4 acceptance criteria terpenuhi: harness `WorkflowApprovalActionAdapterTests` 12/12 lewat controller dengan engine nyata + penangan SPPD (12/12 mutasi tertangkap), regresi HR 416/416, QBE Strict bersih dengan probe kontrol. Adapter memilih penugasan lewat `FindActionableAssignmentAsync` (aturan sama dengan antrean/`myAction` `BE-HRD-443`), memvalidasi alasan/catatan dengan pesan §35.7, lalu meneruskan ke `WorkflowService`; status, PIN, hash, dan eksekusi hilir lama dihapus. Delta: satu method baru di `ApprovalInboxQueryService`; `BulkApprovalService` hanya disesuaikan agar terkompilasi (isi tetap untuk `BE-HRD-445`). Uji API lokal akun dr. Bima tertahan: sandi yang diberikan ditolak (`401`). Laporan: [BE-HRD-444](../task/report/backend/BE-HRD-444.md)
+* **Outcome**: `WorkflowApprovalActionService` menjadi adapter: menentukan penugasan dari `stepInstanceId` + pengguna (helper `BE-HRD-441`), lalu memanggil `ApproveAsync`/`RejectAsync`/`RequestRevisionAsync` engine. `RejectActionRequestDto` memakai `rejectionReasonId` + `comment`; `pinSignature` dihapus dari ketiga DTO; logika ubah status langsung, `ComputeSignatureHash`, dan pemanggilan `IdempotentDownstreamExecutionService` dihapus dari jalur ini. Controller memetakan hasil engine ke `400/403/404/409`
+* **Requirement / keputusan**: `FR-WF-27`, `FR-WF-28`; `HRD-DEC-229`, `HRD-DEC-230`
+* **Kontrak**: `v29` — API 35.2, 35.7; Validation `VR-WF-26` s.d. `VR-WF-28`, `VR-WF-30`; State 33.1
+* **Reuse**: `WorkflowService` aksi, `WorkflowServiceResult`
+* **Cakupan**: `WorkflowApprovalActionService.cs`, `WorkflowApprovalActionsController.cs`, `WorkflowV2Dtos.cs`
+* **Dependencies**: `BE-HRD-441`
+* **Acceptance Criteria**:
+  1. Setujui SPPD dari endpoint kotak terpadu → instance `Completed`, SPPD `Approved` dengan presensi Dinas Luar (`AT-HRD-WF-24`).
+  2. Tolak tanpa alasan / alasan wajib catatan tanpa catatan / lengkap → `400`, `400`, `200` (`AT-HRD-WF-25`); Kembalikan tanpa/dengan catatan → `400`/`200` dan SPPD `NeedRevision` (`AT-HRD-WF-26`).
+  3. Bukan penyetuju → `403` tanpa perubahan (`AT-HRD-WF-27`).
+  4. Tanpa PIN dan dengan PIN acak → `200`; `DigitalSignatureHash` kosong (`AT-HRD-WF-28`).
+* **Verifikasi**: uji harness engine + penangan SPPD (SQLite) dengan kontrol negatif; `dotnet build`.
+* **Risiko / pemilik**: klien yang masih mengirim `rejectReason` teks menerima `400` — frontend diperbarui di `FE-HRD-394`/`395`; Technical Owner HR.
+* **DoD**: AC terbukti, laporan `BE-HRD-444.md`.
+
+#### ⬜ `BE-HRD-445` — Persetujuan massal lewat engine dengan kelayakan bertanda
+* **Slice / MVP**: `S-A7-V2` amandemen / `MVP-72` · `EPIC HRD-124`
+* **Status**: ⬜ Belum dikerjakan
+* **Outcome**: `BulkApprovalService` tanpa PIN; kelayakan `VR-WF-32` (penanda `AllowBulkApproval`, bukan milik sendiri, tidak mendesak/lewat SLA, pengguna memegang penugasan); setiap butir lewat adapter `BE-HRD-444` (engine, transaksi per butir); maksimal 50 butir
+* **Requirement / keputusan**: `FR-WF-29`; `HRD-DEC-233`, `HRD-DEC-187`
+* **Kontrak**: `v29` — API 35.2, 35.5; Validation `VR-WF-32`, `VR-WF-17`
+* **Reuse**: `BulkApproveResultDto`, aturan kelayakan bersama `BE-HRD-443`
+* **Cakupan**: `BulkApprovalService.cs`, `WorkflowV2Dtos.cs`
+* **Dependencies**: `BE-HRD-443`, `BE-HRD-444`
+* **Acceptance Criteria**:
+  1. Batch 2 lembur bertanda + 1 SPPD + 1 milik sendiri → 2 disetujui lewat engine (penangan lembur berjalan), 2 dilewati dengan alasan 35.5 (`AT-HRD-WF-29`).
+  2. Satu butir gagal di engine tidak membatalkan butir lain.
+  3. Lebih dari 50 butir → `400`.
+* **Verifikasi**: uji harness dengan kontrol negatif; `dotnet build`.
+* **Risiko / pemilik**: penanda massal kosong di semua definisi sampai skrip `BE-HRD-448` dijalankan; Technical Owner HR.
+* **DoD**: AC terbukti, laporan `BE-HRD-445.md`.
+
+#### ⬜ `BE-HRD-446` — SLA: eskalasi otomatis/manual, peringatan dini, daftar overdue, laporan kepatuhan di atas engine
+* **Slice / MVP**: `S-A7-V2` amandemen / `MVP-72` · `EPIC HRD-124`
+* **Status**: ⬜ Belum dikerjakan
+* **Outcome**: `WorkflowSlaEnforcementService` memindai penugasan engine (`DueAt` lewat, wajib, terbuka, belum dieskalasi), menentukan atasan lewat `ResolveManagerApproverAsync`, memanggil `AddEscalationAssignmentAsync`, memberi notifikasi; tanpa atasan → notifikasi Admin HR (maksimal sekali per 24 jam). Peringatan dini, `GET /sla/overdue`, `POST /sla/escalate/{id}`, dan laporan kepatuhan membaca penugasan engine
+* **Requirement / keputusan**: `FR-WF-30`; `HRD-DEC-232`, `HRD-DEC-185`; `HRD-ASM-88`
+* **Kontrak**: `v29` — API 35.4; Integration `INT-HR-112`; Validation `VR-WF-31`
+* **Reuse**: `WorkflowSlaEscalationWorker`, `WorkflowSlaEarlyWarningWorker`, `UnifiedNotificationGatewayService`
+* **Cakupan**: `WorkflowSlaEnforcementService.cs` (worker tidak berubah)
+* **Dependencies**: `BE-HRD-442`
+* **Acceptance Criteria**:
+  1. Penugasan lewat `DueAt` → penugasan atasan dibuat sekali; putaran kedua tidak menambah (`AT-HRD-WF-30`, `AT-HRD-WF-32`).
+  2. Penyetuju tanpa atasan → tanpa perubahan, notifikasi Admin HR (`AT-HRD-WF-32`).
+  3. Eskalasi manual ke pejabat sah → penugasan baru; ke pemohon atau akun nonaktif → `400`.
+  4. Daftar overdue dan laporan kepatuhan menghitung penugasan engine.
+* **Verifikasi**: uji harness (waktu dikendalikan) dengan kontrol negatif; `dotnet build`.
+* **Risiko / pemilik**: lonjakan eskalasi pertama kali untuk tiket lama yang sudah lewat `DueAt` — dicatat di laporan dan dikomunikasikan sebelum rilis; Technical Owner HR.
+* **DoD**: AC terbukti, laporan `BE-HRD-446.md`.
+
+#### ✅ `BE-HRD-447` — Endpoint generik menolak permohonan modul; "Permohonan Saya" untuk permohonan engine
+* **Slice / MVP**: `S-A7-V2` amandemen / `MVP-72` · `EPIC HRD-124`
+* **Status**: ✅ Selesai (2026-11-20). 2/2 acceptance criteria terpenuhi: harness `WorkflowGenericEndpointGuardTests` 6/6 lewat controller (7/7 mutasi tertangkap), regresi HR 389/389, QBE Strict bersih. Penanda kepemilikan `WorkflowInstanceOwnership` (definisi terisi + tanpa `ApproverEmployeeId`); `409` lewat `WorkflowModuleManagedException`. Temuan diperbaiki dalam cakupan: "Permohonan Saya" tanpa id pegawai sebelumnya menampilkan seluruh tiket. Laporan: [BE-HRD-447](../task/report/backend/BE-HRD-447.md)
+* **Outcome**: `POST /instances` → `409`; `PUT /instances/{id}/cancel` dan `POST /instances/{id}/resubmit` → `409` untuk instance engine (tanpa penugasan berisi `ApproverEmployeeId`), tetap jalan untuk instance engine lama; `GET /my-requests` mencocokkan `RequestedByUserId` atau `RequestedByEmployeeId` dan mengisi `isModuleManaged`
+* **Requirement / keputusan**: `FR-WF-32`; `HRD-DEC-229`, `HRD-DEC-235`
+* **Kontrak**: `v29` — API 35.1, 35.2, 35.6; Validation `VR-WF-29`; Integration `INT-HR-114`
+* **Reuse**: `WorkflowInstanceCreationService`, `WorkflowResubmitService`
+* **Cakupan**: `WorkflowInstanceCreationService.cs`, `WorkflowResubmitService.cs`, `WorkflowInboxAndInstancesController.cs`, `WorkflowV2Dtos.cs`
+* **Dependencies**: `BE-HRD-440` (urutan); boleh paralel dengan `BE-HRD-441`/`442`
+* **Acceptance Criteria**:
+  1. Tiga endpoint generik → `409` untuk SPPD, data tidak berubah (`AT-HRD-WF-35`).
+  2. Pemohon tanpa data pegawai melihat SPPD-nya di `my-requests` dengan `isModuleManaged = true` (`AT-HRD-WF-36`).
+* **Verifikasi**: uji harness dengan kontrol negatif; `dotnet build`.
+* **Risiko / pemilik**: klien lain yang membuat instance generik — pencarian pemanggil frontend kosong (`HRD-TF-081`); Technical Owner HR.
+* **DoD**: AC terbukti, laporan `BE-HRD-447.md`.
+
+#### ⬜ `BE-HRD-448` — Skrip data dan pemeriksaan pra-rilis
+* **Slice / MVP**: `S-A7-V2` amandemen / `MVP-72` · `EPIC HRD-124`
+* **Status**: ⬜ Belum dikerjakan
+* **Outcome**: Tiga skrip SQL ber-dokumen di `docs/module-blueprints/human-resource/task/scripts/` (tanpa dieksekusi otomatis): (1) `AllowBulkApproval = true` untuk definisi lembur rutin dan cuti tahunan (kode dipastikan dari Master Workflow, G4); (2) pelengkapan `PrincipalEmployeeId`/`DelegateEmployeeId` delegasi lama dari akun, dengan daftar id untuk mundur; (3) kueri pra-rilis baca-saja `VR-WF-33`. Masing-masing dengan uji kering di transaksi `ROLLBACK`
+* **Requirement / keputusan**: `FR-WF-29`, `FR-WF-31`, `FR-WF-33`; `HRD-DEC-233`, `HRD-DEC-234`, `HRD-DEC-236`; `HRD-ASM-90`
+* **Kontrak**: `v29` — Data 30.1, 30.3; Validation `VR-WF-33`; desain 37.7–37.8
+* **Reuse**: pola skrip `--idempotent` dan preflight DROP/UPDATE yang sudah dipakai
+* **Cakupan**: berkas skrip + laporan; tanpa source aplikasi
+* **Dependencies**: `BE-HRD-440`; G3 untuk eksekusi di devYoga; G4 untuk isi skrip (1)
+* **Acceptance Criteria**:
+  1. Uji kering skrip (1) dan (2) menunjukkan jumlah baris yang diubah sesuai perkiraan dan dapat dibatalkan.
+  2. Kueri pra-rilis mengembalikan 0 di devYoga dan > 0 di harness yang berisi penugasan engine lama (`AT-HRD-WF-37`).
+* **Verifikasi**: uji kering `ROLLBACK`; eksekusi hanya atas izin G3.
+* **Risiko / pemilik**: perubahan data devYoga bersama; Technical Owner HR + Admin HR (G4).
+* **DoD**: AC terbukti, laporan `BE-HRD-448.md`.
+
+#### ⬜ `BE-HRD-449` — Kepatuhan kontrak `v29`, registri hak, regresi penuh HR, QBE
+* **Slice / MVP**: `S-A7-V2` amandemen / Verifikasi · `EPIC HRD-124`
+* **Status**: ⬜ Belum dikerjakan
+* **Outcome**: Uji kontrak endpoint 35.1–35.4 dan kode status 35.7; `PermissionRegistryValidator` valid; regresi penuh proyek uji HR hijau; QBE Strict tanpa temuan (dengan probe kontrol); laporan dampak lonjakan eskalasi
+* **Requirement / keputusan**: `FR-WF-26` s.d. `FR-WF-33`
+* **Kontrak**: `v29` seluruhnya
+* **Reuse**: pola `BE-HRD-380`
+* **Cakupan**: uji kontrak, laporan
+* **Dependencies**: `BE-HRD-440` s.d. `BE-HRD-448`
+* **Acceptance Criteria**:
+  1. Seluruh `AT-HRD-WF-23` s.d. `AT-HRD-WF-37` lulus dengan kontrol negatif.
+  2. Regresi penuh HR hijau, termasuk uji SPPD.
+  3. `dotnet build -p:RunAnalyzers=False` 0 galat; QBE Strict bersih.
+* **Verifikasi**: harness; build; QBE.
+* **Risiko / pemilik**: waktu regresi panjang — dijalankan sekali di task ini; Technical Owner HR.
+* **DoD**: AC terbukti, laporan `BE-HRD-449.md`.

@@ -3206,3 +3206,126 @@ Persetujuan, pengembalian untuk revisi, dan penolakan dikerjakan lewat endpoint 
 | `409` | Uang muka untuk SPPD belum disetujui (`VR-TRV-30`) | "SPPD belum disetujui. Ajukan SPPD dan tunggu persetujuan sebelum mengajukan uang muka." |
 | `409` | Penarikan workflow ditolak saat membatalkan SPPD yang menunggu (`VR-TRV-33`) | Pesan dari Workflow V2 diteruskan apa adanya |
 | `409` | Settlement untuk SPPD belum disetujui (`VR-TRV-31`) | "SPPD belum disetujui sehingga belum dapat dipertanggungjawabkan." |
+
+---
+
+## 35. Amandemen Slice `S-A7-V2`: Kotak Masuk Persetujuan Terpadu di atas Engine Workflow (Kontrak `v29`)
+
+| Field | Nilai |
+| --- | --- |
+| Slice | `S-A7-V2` — Employee Self-Service & Kotak Masuk Persetujuan Terpadu (amandemen bagian 30) |
+| `contract_version` | `v29` |
+| `last_changed_in` | `v29` — bagian 35 ditambahkan 20 November 2026 |
+| Status | `approved` — pengguna, 20 November 2026 ("setujui kontrak v29, lanjut plan") |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna (`HRD-DEC-015`) / 20 November 2026 |
+| `input_revision` | `00-interview-decisions.md` revision `40` bagian 56 (`HRD-DEC-229` s.d. `HRD-DEC-236`, `HRD-TF-080` s.d. `HRD-TF-087`, `HRD-ASM-88` s.d. `HRD-ASM-90`) |
+| `input_hash` — decision log | dicatat di `blueprint-manifest.md` (`artifact_hashes.00-interview-decisions.md`, revisi 66) |
+| Backend SHA | `815ce085` (branch `yoga`) |
+| Frontend SHA | `564365595` (branch `YogaV2`) + working tree `FE-HRD-338`/`339`/`393` |
+| Dampak kompatibilitas | **Mengubah perilaku**: antrean, ringkasan, dan aksi kotak terpadu bekerja di atas penugasan engine `WorkflowService` (bukan engine V2 lama); Tolak wajib alasan berkode; PIN tidak lagi diminta; membuat instance generik, membatalkan, dan mengirim ulang permohonan milik modul lewat endpoint generik ditolak `409`. **Menambah**: ruas penugasan, kelayakan massal, dan blok aksi saya pada respons. Path endpoint **tidak** berubah, sehingga layar lama tetap memanggil alamat yang sama. Bagian 30 tetap berlaku untuk yang tidak disebut di sini |
+| Bukti as-is | `HRD-TF-080` s.d. `HRD-TF-087`; impact scan `815ce085` (20 November 2026): layanan delegasi V2 sudah mengisi `DelegatorUserId`/`DelegateUserId` dan status `Active` untuk delegasi baru, sehingga `HRD-TF-085` hanya tersisa untuk delegasi lama |
+
+Bagian ini mengatur cara Kotak Masuk Persetujuan Terpadu bekerja sesudah penyatuan. Inti aturannya satu: **semua keputusan persetujuan dijalankan engine `WorkflowService`** (`HRD-DEC-229`). Kotak terpadu hanya menampilkan tugas dari engine dan meneruskan keputusan atasan kepadanya. Dengan begitu penangan modul (`IWorkflowReferenceLifecycleHandler`) selalu berjalan. Contohnya, SPPD menjadi Disetujui beserta presensi Dinas Luar, persis seperti saat diputuskan dari kotak masuk lama.
+
+Contoh alur: Ns. Rina (Kepala Ruang) membuka Kotak Masuk Persetujuan Terpadu. Isinya SPPD perawat Sari, dua cuti tahunan, dan satu lembur. Rina menyetujui SPPD satu per satu, lalu mencentang cuti dan lembur untuk Setujui Massal. Rina sedang cuti minggu depan, jadi ia mendaftarkan Wakil Karu sebagai Plh. Selama periode itu tugas Rina juga tampil di kotak Wakil Karu, dan Wakil Karu dapat memutuskannya atas nama Rina.
+
+### 35.1 Grup Tag Swagger `[Tags("Corporate - HRD Workflow Inbox & Instances")]` — perubahan
+
+Base URL: `api/v1/hrd/workflow`. Controller `WorkflowInboxAndInstancesController`.
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/inbox` | **Diubah** | Daftar tugas persetujuan engine yang menunggu keputusan pengguna login: penugasan berstatus terbuka (`Pending`, `Available`, `InProgress`, `Delegated`) milik pengguna, ditambah penugasan milik pejabat yang mendelegasikan kepadanya secara aktif (`HRD-DEC-234`). Penugasan engine V2 lama (`ApproverEmployeeId` terisi) **tidak** ditampilkan | `WorkflowInboxInstance : ViewInbox` | Query `requestType` (kode `ReferenceType`, cocok persis tanpa membedakan huruf besar), `isUrgent`, `isDelegated`, `pageNumber`, `pageSize` | `200 OK`, `ApiResponse<PagedResult<ApprovalInboxItemV2ResponseDto>>` (ruas 35.6) |
+| `GET` | `/inbox/summary` | **Diubah** | Ringkasan dari himpunan yang sama dengan `/inbox`: total menunggu, mendesak (SLA kurang dari 4 jam), sebagai Plh, lewat SLA, dan jumlah per jenis (`ReferenceType`) | `WorkflowInboxInstance : ViewInbox` | — | `200 OK`, `ApiResponse<ApprovalInboxSummaryV2ResponseDto>` (bentuk tetap) |
+| `GET` | `/instances/{id}` | **Diubah** | Detail instance; ditambah blok `myAction` bila pengguna login (atau Plh-nya) memegang penugasan terbuka pada tahap aktif | `WorkflowInboxInstance : ViewInstanceDetail` | — | `200 OK`, `ApiResponse<WorkflowInstanceDetailV2ResponseDto>` + `myAction` (35.6); `404` |
+| `POST` | `/instances` | **Dihentikan** | Membuat permohonan generik tidak lagi didukung: permohonan dibuat dari layar modul pemiliknya | `WorkflowInboxInstance : CreateInstance` | — | `409 Conflict` "Permohonan dibuat dari layar modul (Cuti, Lembur, SPPD, dan seterusnya)." |
+| `PUT` | `/instances/{id}/cancel` | **Diubah** | Membatalkan instance engine V2 lama tetap seperti bagian 30. Untuk instance engine (`WorkflowService`), ditolak dan pemohon diarahkan ke layar modul, karena pembatalan modul ikut menarik workflow (contoh SPPD `INT-HR-110`) | `WorkflowInboxInstance : CancelMyInstance` | `CancelWorkflowRequestDto` (tetap) | `200 OK` (engine lama); `409` "Batalkan permohonan dari layar modulnya." (engine) |
+| `GET` | `/my-requests` | **Diubah** | Riwayat permohonan pengguna login: instance dengan `RequestedByUserId` = pengguna **atau** `RequestedByEmployeeId` = pegawai pengguna (permohonan engine sering tanpa id pegawai). Setiap baris membawa `isModuleManaged` | `WorkflowInboxInstance : ViewOwn` | Query tetap | `200 OK`, `ApiResponse<PagedResult<WorkflowInstanceV2ResponseDto>>` + `isModuleManaged` |
+
+### 35.2 Grup Tag Swagger `[Tags("Corporate - HRD Workflow Approval Actions")]` — perubahan
+
+Base URL: `api/v1/hrd/workflow`. Controller `WorkflowApprovalActionsController`.
+
+Path tetap memakai `stepInstanceId`. Server mencari penugasan terbuka pada tahap itu yang boleh dijalankan pengguna login, dengan urutan: (1) penugasan atas namanya sendiri; (2) penugasan pejabat yang mendelegasikan kepadanya secara aktif. Bila tidak ada, server menjawab `403`. Aksi lalu diteruskan ke `WorkflowService` dengan `workflowInstanceId` dan `assignmentId` tersebut.
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/approvals/{stepInstanceId}/approve` | **Diubah** | Menyetujui lewat `WorkflowService.ApproveAsync` | `WorkflowApprovalAction : ApproveRequest` | `ApproveActionRequestDto` (`note` opsional, maks 1000). `pinSignature` **dihapus**; bila masih dikirim, diabaikan | `200 OK`, `ApiResponse<WorkflowActionV2ResponseDto>`; `400`, `403`, `404`, `409` |
+| `POST` | `/approvals/{stepInstanceId}/reject` | **Diubah** | Menolak lewat `WorkflowService.RejectAsync` dengan alasan berkode | `WorkflowApprovalAction : RejectRequest` | `RejectActionRequestDto` (`rejectionReasonId` wajib; `comment` wajib bila alasan bertanda `isCommentRequired`, maks 1000). `rejectReason` (teks minimal 15 karakter) dan `pinSignature` **dihapus** | `200 OK`; `400` bila alasan kosong, tidak aktif, atau bukan untuk jenis ini; `403`, `404`, `409` |
+| `POST` | `/approvals/{stepInstanceId}/return` | **Diubah** | Mengembalikan untuk revisi lewat `WorkflowService.RequestRevisionAsync` | `WorkflowApprovalAction : ReturnForRevision` | `ReturnForRevisionRequestDto` (`revisionNotes` wajib, maks 1000; diteruskan sebagai `comment`) | `200 OK`; `400`, `403`, `404`, `409` |
+| `POST` | `/approvals/bulk-approve` | **Diubah** | Persetujuan massal: setiap butir diputuskan lewat `WorkflowService.ApproveAsync` satu per satu, dalam transaksi masing-masing; butir yang tidak layak (35.5) atau gagal dilewati dan dilaporkan | `WorkflowApprovalAction : BulkApprove` | `BulkApproveRequestDto` (`stepInstanceIds` 1–50, `batchNote` opsional). `pinSignature` **dihapus** | `200 OK`, `ApiResponse<BulkApproveResultDto>` (bentuk tetap) |
+| `POST` | `/instances/{id}/resubmit` | **Diubah** | Kirim ulang generik hanya untuk instance engine V2 lama. Instance engine ditolak: pemohon memperbaiki dan mengajukan ulang dari layar modul (`HRD-DEC-235`) | `WorkflowApprovalAction : ResubmitRevision` | `ResubmitWorkflowRequestDto` (tetap) | `200 OK` (engine lama); `409` "Perbaiki dan ajukan ulang dari layar modulnya." (engine) |
+
+### 35.3 Grup Tag Swagger `[Tags("Corporate - HRD Workflow Delegations")]` — perubahan
+
+| Method | Path | Status | Perubahan |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/hrd/workflow/delegations` | **Diubah (kecil)** | Tetap menyimpan kedua kunci (`DelegatorUserId`/`DelegateUserId` dan `PrincipalEmployeeId`/`DelegateEmployeeId`) dan status `Active` (sudah benar sejak `815ce085`). Delegasi ini **berlaku juga untuk penugasan engine yang sudah ada** (35.2 dan 35.1), bukan hanya penugasan yang dibuat sesudahnya |
+| `GET` | `/api/v1/hrd/workflow/delegations`, `/my-acting-roles` | **Diubah (kecil)** | Membaca delegasi lama yang belum punya kunci pegawai, sesudah kuncinya dilengkapi (rencana data 37.7 arsitektur backend) |
+
+Endpoint delegasi lama `api/v1/corporate/human-resource/approval-delegations` tetap ada sampai dipensiunkan bersama kotak masuk lama (`HRD-DEC-231`, `HRD-DEC-234`).
+
+### 35.4 Grup Tag Swagger `[Tags("Corporate - HRD Workflow SLA & Matrix Management")]` — perubahan
+
+| Method | Path | Status | Perubahan |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/hrd/workflow/sla/overdue` | **Diubah** | Membaca penugasan engine terbuka yang `DueAt` sudah lewat, bukan instance engine V2 lama |
+| `POST` | `/api/v1/hrd/workflow/sla/escalate/{id}` | **Diubah** | Eskalasi manual oleh HR Admin menambahkan penugasan baru untuk pejabat tujuan pada tahap aktif dengan aturan yang sama seperti eskalasi otomatis (`HRD-DEC-232`): penyetuju awal tetap boleh memutuskan. `ManualEscalationRequestDto` tetap (`targetApproverEmployeeId`, `escalationReason`); pejabat tujuan wajib berakun aktif dan bukan pemohon |
+| `GET` | `/api/v1/hrd/workflow/sla/compliance-report` | **Diubah** | Dihitung dari penugasan dan aksi engine |
+| `GET`/`POST` | `/api/v1/hrd/workflow/matrix` | Tetap | — |
+
+### 35.5 Kelayakan persetujuan massal (`HRD-DEC-233`)
+
+Sebuah butir hanya disetujui dalam batch bila **seluruh** syarat berikut terpenuhi. Butir yang gagal syarat masuk `skippedItems` beserta alasannya.
+
+| Syarat | Alasan dilewati (teks) |
+| --- | --- |
+| Definisi workflow butir bertanda `AllowBulkApproval = true` | "Jenis permohonan ini harus disetujui satu per satu." |
+| Bukan permohonan milik pengguna login (`VR-WF-02`) | "Pejabat tidak boleh menyetujui permohonan sendiri." |
+| Tidak mendesak dan belum lewat SLA | "Permohonan mendesak atau lewat SLA wajib ditinjau satu per satu." |
+| Pengguna memegang penugasan terbuka pada tahap itu (35.2) | "Anda bukan penyetuju tahap ini." |
+| Engine berhasil memprosesnya | Pesan galat engine diteruskan apa adanya |
+
+### 35.6 DTO response — tambahan dan perubahan
+
+`ApprovalInboxItemV2ResponseDto` (butir antrean):
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `assignmentId` | GUID | **Baru**. Penugasan engine yang ditampilkan |
+| `stepInstanceId` | GUID | Tetap; dipakai path aksi |
+| `workflowInstanceId` | GUID | Tetap |
+| `workflowNumber` | string | Nomor instance engine (`RequestNumber`) |
+| `requestType` | string | Kode `ReferenceType` engine, misalnya `HRD_TRV_REQUEST`, `LEAVE_REQUEST`, `OVERTIME_REQUEST` |
+| `referenceNumber` | string? | **Baru**. Nomor dokumen modul (`ExternalReferenceNumber`), misalnya `SPPD/RSQ/2026/11/0013` |
+| `applicantName`, `departmentName` | string | Dari pemohon instance; bila pemohon tanpa data pegawai, dari nama akun |
+| `summaryText` | string | Nomor dokumen modul dan nama workflow |
+| `submittedAt`, `slaDeadline`, `isOverdue`, `isUrgent` | — | `slaDeadline` = `DueAt` penugasan; `isUrgent` = sisa kurang dari 4 jam |
+| `isDelegated`, `delegatedFromEmployeeName` | — | `true` bila tampil karena delegasi aktif atau penugasan engine sudah dialihkan ke Plh |
+| `canBulkApprove` | bool | **Baru**. Hasil syarat 35.5 untuk butir ini, agar layar dapat menonaktifkan pilihan massal |
+| `currentStepNumber`, `totalSteps`, `riskIndicator`, `amount`, `priorityLevel` | — | Tetap |
+
+`WorkflowInstanceDetailV2ResponseDto` — blok baru `myAction` (`null` bila pengguna tidak memegang penugasan terbuka):
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `assignmentId`, `stepInstanceId` | GUID | Penugasan yang akan dipakai aksi |
+| `isDelegated` | bool | Pengguna bertindak sebagai Plh |
+| `onBehalfOfName` | string? | Nama pejabat definitif bila sebagai Plh |
+| `availableActions` | string[] | `Approve`, `Reject`, `RequestRevision` sesuai jenis tahap |
+| `rejectionReasons` | `ApprovalInboxRejectionReasonOptionResponse[]` | Alasan aktif untuk jenis dan tahap ini (sama dengan kotak masuk lama) |
+
+`WorkflowInstanceV2ResponseDto` — tambahan `isModuleManaged` (bool): `true` untuk instance engine (`WorkflowService`), sehingga layar ESS mengarahkan perbaikan, pembatalan, dan pengajuan ulang ke layar modul.
+
+### 35.7 Kode status dan pesan
+
+| Kode | Kapan | Pesan |
+| --- | --- | --- |
+| `403` | Pengguna tidak memegang penugasan terbuka pada tahap itu, langsung maupun sebagai Plh aktif | "Anda bukan penyetuju tahap ini." |
+| `403` | Penyetuju (atau Plh) adalah pemohon (`VR-WF-02`) | "Pejabat tidak boleh menyetujui permohonan sendiri." |
+| `400` | Tolak tanpa alasan, alasan tidak aktif, atau alasan bukan untuk jenis permohonan ini (`VR-WF-26`) | "Pilih alasan penolakan yang berlaku untuk permohonan ini." |
+| `400` | Alasan mewajibkan catatan tetapi `comment` kosong (`VR-WF-27`) | "Alasan ini mewajibkan catatan." |
+| `400` | Kembalikan tanpa catatan revisi (`VR-WF-28`) | "Isi catatan revisi untuk pemohon." |
+| `409` | Penugasan sudah diputuskan pihak lain (penyetuju awal atau atasan hasil eskalasi), atau instance tidak lagi menunggu | Pesan engine diteruskan apa adanya |
+| `409` | Membuat instance generik; membatalkan atau mengirim ulang instance milik modul lewat endpoint generik (`VR-WF-29`) | Lihat 35.1 dan 35.2 |

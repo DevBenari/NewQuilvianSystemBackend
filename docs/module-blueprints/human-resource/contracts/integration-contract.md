@@ -1940,3 +1940,50 @@ Dasar: `HRD-DEC-224` s.d. `HRD-DEC-227`; fakta `HRD-TF-075` dan `HRD-TF-077`. Du
 | Idempotensi | Sudah dijamin service yang ada: satu tautan presensi per tanggal; pemanggilan ulang hanya memperbarui `SyncedAt` |
 | Perubahan pada service | Parameter pelaku (`actorUserId`) ditambahkan agar `CreateBy`/`UpdateBy` tidak lagi `Guid.Empty`; `SaveChangesAsync` di dalamnya tetap aman karena berada di transaksi Workflow V2 |
 | SPPD lama | Tidak disinkronkan surut (`HRD-DEC-227`): sinkron hanya terjadi saat persetujuan baru |
+
+---
+
+## 26. Integrasi Amandemen Slice `S-A7-V2`: Kotak Masuk Terpadu di atas Engine Workflow (Kontrak `v29`, approved 20 November 2026)
+
+Dasar: `HRD-DEC-229`, `HRD-DEC-232`, `HRD-DEC-234`, `HRD-DEC-235`; fakta `HRD-TF-080` s.d. `HRD-TF-085`. Semua integrasi di bawah adalah **integrasi di dalam modul HR** (kotak terpadu, engine, layar modul). Tidak ada integrasi lintas modul RS baru. Bagian 21 tetap berlaku untuk yang tidak disebut.
+
+### 26.1 `INT-HR-111` — Kotak Masuk Terpadu → Engine `WorkflowService`
+
+| Field | Isi |
+| --- | --- |
+| Arah | `WorkflowInboxAndInstancesController`/`WorkflowApprovalActionsController` (kotak terpadu) → `WorkflowService` (engine) → penangan modul (`IWorkflowReferenceLifecycleHandler`, mis. `INT-HR-109` SPPD) |
+| Mekanisme | Pemanggilan service sinkron di proses yang sama. Kotak terpadu tidak lagi mengubah tabel tahap/penugasan sendiri; `WorkflowApprovalActionService` menjadi adapter: mencari penugasan yang boleh dijalankan (35.2 kontrak API) lalu memanggil `ApproveAsync`, `RejectAsync`, atau `RequestRevisionAsync` engine |
+| Pembacaan | Antrean, ringkasan, dan blok `myAction` dibaca dari penugasan engine (himpunan status terbuka yang sama dengan `ApprovalInboxService`, ditambah delegasi aktif) |
+| Transaksi | Transaksi dibuka engine (Serializable) per aksi. Adapter tidak membuka transaksi. Persetujuan massal memanggil engine per butir, sehingga satu butir gagal tidak membatalkan butir lain (`HRD-ASM-70`) |
+| Idempotensi | Diwarisi dari engine: penugasan yang sudah diputuskan menjawab `409`; layar menonaktifkan tombol selama permintaan berjalan |
+| Kegagalan penangan modul | Mengikuti perilaku engine as-is (penangan dipanggil sesudah commit dan galatnya ditelan, lalu diselaraskan ulang oleh worker modul bila ada, mis. `TravelWorkflowReconciliationWorker`). Tidak diubah oleh amandemen ini |
+| Observability | Log informasi `[WF-INBOX] {aksi} tahap {stepInstanceId} penugasan {assignmentId} oleh {userId} (Plh: {ya/tidak})`, tanpa isi komentar |
+
+### 26.2 `INT-HR-112` — Worker Eskalasi SLA → Engine dan Notifikasi
+
+| Field | Isi |
+| --- | --- |
+| Arah | `WorkflowSlaEscalationWorker` (setiap 15 menit, `HRD-DEC-185`) → `WorkflowSlaEnforcementService` → penugasan engine; → `UnifiedNotificationGatewayService` |
+| Kapan | Penugasan wajib terbuka dengan `DueAt < sekarang` dan belum pernah dieskalasi (`VR-WF-31`) |
+| Perilaku | Menentukan atasan satu tingkat dari penyetuju (`ResolveManagerApproverAsync` engine, `WfpManagerAssignment` aktif, `HRD-ASM-88`); membuat penugasan baru `Available` untuk atasan dengan `EscalatedFromAssignmentId`; mencatat aksi `Escalate` di `TrxApprovalAction` sebagai aksi sistem (`IsSystemAction = true`); memberi notifikasi penyetuju awal dan atasan |
+| Atasan tidak ditemukan | Penugasan tidak diubah; notifikasi ke Admin HR (peran yang memegang `WorkflowSlaMatrix : ViewSlaOverdue`); dicoba lagi pada putaran berikutnya tanpa notifikasi ulang dalam 24 jam |
+| Transaksi | Satu transaksi per penugasan yang dieskalasi; kegagalan satu penugasan tidak menghentikan putaran |
+| Peringatan dini | `WorkflowSlaEarlyWarningWorker` membaca penugasan engine (`DueAt` kurang dari 4 jam) — bukan penugasan engine lama |
+
+### 26.3 `INT-HR-113` — Registri Delegasi (Plh) → Antrean dan Otorisasi Engine
+
+| Field | Isi |
+| --- | --- |
+| Arah | `TrxApprovalDelegation` (didaftarkan dari layar Delegasi kotak terpadu) → antrean kotak terpadu dan otorisasi aksi engine |
+| Saat penugasan dibuat | Tetap seperti as-is: engine mengalihkan penugasan ke Plh (`ApplyDelegationAsync`, `IsDelegated = true`, `OriginalApproverUserId`) |
+| Penugasan yang sudah ada | **Baru**: penugasan milik pejabat P tampil di antrean Plh D selama delegasi aktif, dan D boleh memutuskannya (`VR-WF-30`) tanpa memindahkan penugasan. Sesudah delegasi berakhir atau dicabut, tugas kembali hanya di antrean P |
+| Jejak | Aksi oleh D atas penugasan P mencatat pelaku D, `IsDelegated = true`, dan `ApprovalDelegationId` (`VR-WF-25`) |
+| Data lama | Delegasi yang dibuat layar lama tanpa `PrincipalEmployeeId`/`DelegateEmployeeId` dilengkapi kuncinya lewat skrip data sekali jalan (izin eksekusi terpisah) |
+
+### 26.4 `INT-HR-114` — ESS "Permohonan Saya" → Layar Modul
+
+| Field | Isi |
+| --- | --- |
+| Arah | Frontend ESS → rute layar modul pemilik permohonan |
+| Mekanisme | Peta `ReferenceType` → rute di frontend (mis. `HRD_TRV_REQUEST` → daftar SPPD, `LEAVE_REQUEST` → cuti saya). Instance `isModuleManaged = true` menampilkan tautan "Perbaiki di layar …" alih-alih tombol kirim ulang/batal generik |
+| Jenis tanpa rute | Ditampilkan tanpa tautan, dengan keterangan "Buka modul terkait untuk memperbaiki"; tidak ada tombol aksi generik |

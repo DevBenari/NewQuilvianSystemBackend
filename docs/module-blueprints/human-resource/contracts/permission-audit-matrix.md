@@ -1783,3 +1783,38 @@ Jejak audit tetap diturunkan dari cap waktu tabel oleh `TravelAuditTrailService`
 Event tambahan yang sudah ada dan **tetap** dicatat (bukan bagian dari 12, tidak bertentangan dengan matriks): `HRD_TRV_ADVANCE_APPROVED`, `HRD_TRV_ADVANCE_REJECTED`, `HRD_TRV_ADVANCE_SETTLED`. Event tambahan baru: `HRD_TRV_REQUEST_CREATED` (dari `CreateDateTime`, membedakan Draft dari pengajuan) dan `HRD_TRV_REQUEST_REJECTED` (dari `RejectedAt`/`RejectedByUserId`).
 
 Data sensitif: pesan tidak memuat nomor rekening, gaji, atau isi alasan medis. Alasan deklarasi tanpa nota dipotong 200 karakter.
+
+---
+
+## 33. Matriks Hak Akses & Jejak Audit Amandemen Slice `S-A7-V2`: Kotak Masuk Terpadu di atas Engine Workflow (Kontrak `v29`, approved 20 November 2026)
+
+Dasar: `HRD-DEC-229` s.d. `HRD-DEC-234`. Bagian 28 tetap berlaku untuk yang tidak disebut. **Tidak ada string `[AccessPermission]` baru.**
+
+### 33.1 Hak akses yang berubah
+
+| Hak | Wujud di source | Perubahan v29 |
+| --- | --- | --- |
+| Lihat antrean | `[AccessPermission("WorkflowInboxInstance", "ViewInbox")]` | Tetap; isi antrean kini penugasan engine milik pengguna dan pejabat yang mendelegasikan kepadanya |
+| Lihat detail | `[AccessPermission("WorkflowInboxInstance", "ViewInstanceDetail")]` | Tetap; blok `myAction` hanya terisi untuk pemegang penugasan atau Plh-nya |
+| Setujui / Tolak / Kembalikan | `[AccessPermission("WorkflowApprovalAction", "ApproveRequest"/"RejectRequest"/"ReturnForRevision")]` | Hak menjadi **gerbang pertama** saja. Gerbang kedua yang menentukan adalah penugasan engine (`AssignedApproverUserId`) atau delegasi aktif (`VR-WF-30`). Memegang hak tanpa penugasan tetap `403` |
+| Setujui massal | `[AccessPermission("WorkflowApprovalAction", "BulkApprove")]` | Tetap; kelayakan per butir `VR-WF-32` |
+| Buat instance generik | `[AccessPermission("WorkflowInboxInstance", "CreateInstance")]` | Endpoint dihentikan (`409`); hak dibiarkan terdaftar sampai endpoint dihapus |
+| Batal / kirim ulang generik | `[AccessPermission("WorkflowInboxInstance", "CancelMyInstance")]`, `[AccessPermission("WorkflowApprovalAction", "ResubmitRevision")]` | Hanya untuk instance engine lama; instance modul `409` (`VR-WF-29`) |
+| Eskalasi manual | `[AccessPermission("WorkflowSlaMatrix", "ManualEscalate")]` | Tetap; kini menambah penugasan engine |
+| Kotak masuk lama | `[AccessPermission("ApprovalInbox", "*")]` | Tetap sampai dipensiunkan (`HRD-DEC-231`) |
+
+Pemisahan tugas: pemohon tidak pernah boleh memutuskan permohonannya sendiri, baik sebagai penyetuju, atasan hasil eskalasi, maupun Plh (`VR-WF-02`, `VR-WF-30`, `VR-WF-31`).
+
+### 33.2 Jejak audit
+
+Jejak keputusan tetap dicatat engine di `TrxApprovalAction` (tabel yang sama dengan engine lama; tanpa tabel baru). Ruas `DigitalSignatureHash` tidak lagi diisi untuk aksi baru.
+
+| Kejadian | Tempat | Isi | Pelaku |
+| --- | --- | --- | --- |
+| Setujui/Tolak/Kembalikan dari kotak terpadu | `TrxApprovalAction` (engine) | Jenis aksi, status sebelum/sesudah, komentar, `ActionReasonId` untuk Tolak | Pengguna (`ActualActionByUserId`); bila Plh: `IsDelegated = true`, `ApprovalDelegationId`, `DelegatedFromUserId` = pejabat definitif, `ActionEmployeeId`/`OnBehalfOfEmployeeId` (`VR-WF-25`) |
+| Eskalasi otomatis | `TrxApprovalAction`, `ActionType = "Escalate"`, `IsSystemAction = true` | "Dieskalasi ke {nama atasan}: lewat batas waktu {DueAt}." | Sistem |
+| Eskalasi manual | Sama, `IsSystemAction = false` | Alasan eskalasi dari HR | HR Admin |
+| Kembaran eskalasi ditutup | Status penugasan `Skipped` + aksi `Skip` | "Ditutup karena {nama} sudah memutuskan." | Sistem |
+| Persetujuan massal | Satu `TrxApprovalAction` per butir yang disetujui; ringkasan batch hanya dikembalikan di respons (tidak disimpan) | `batchNote` sebagai komentar | Pengguna |
+
+Data sensitif: komentar dan alasan tidak ditulis ke custom logger (`LoggerService`). Nilai `DigitalSignatureHash` lama dibiarkan sebagai data historis.
