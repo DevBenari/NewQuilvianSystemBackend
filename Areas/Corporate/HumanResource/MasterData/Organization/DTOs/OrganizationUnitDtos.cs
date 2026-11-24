@@ -39,6 +39,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
 
     public class OrganizationUnitDetailResponse : OrganizationUnitResponse
     {
+        // Nama relasi untuk halaman detail, supaya layar tidak menampilkan ID mentah (BE-HRD-463).
+        public string? LegalEntityName { get; set; }
+        public string? HospitalSiteName { get; set; }
+        public string? DepartmentName { get; set; }
+
         public DateTime? UpdateDateTime { get; set; }
         public Guid? UpdateBy { get; set; }
         public string? UpdateByName { get; set; }

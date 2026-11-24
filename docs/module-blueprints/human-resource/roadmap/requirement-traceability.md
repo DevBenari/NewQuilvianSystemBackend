@@ -6,7 +6,8 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 17
+roadmap_revision: 18
+amendment_org_menu_hrd_dec_248: "2026-11-24 — jejak amandemen Menu Organisasi (bagian 1af): ISSUE-HRD-008 ke FIX-HRD-008-01 s.d. 08, BE-HRD-463/464, FE-HRD-410 s.d. 414"
 amendment_package_b_v30: "2026-11-23 — jejak amandemen Paket B kontrak v30 (bagian 1ae): FR-PKB-01 s.d. FR-PKB-20 ke BE-HRD-453 s.d. BE-HRD-462 dan FE-HRD-401 s.d. FE-HRD-409"
 amendment_s_a7_v2_v29: "2026-11-20 — jejak amandemen S-A7-V2 kontrak v29 (bagian 1ad): FR-WF-26 s.d. FR-WF-33 ke BE-HRD-440 s.d. BE-HRD-449 dan FE-HRD-394 s.d. FE-HRD-400"
 amendment_s_d5_v28: "2026-11-19 — jejak amandemen S-D5 kontrak v28 (bagian 1aa): FR-TRV-26 s.d. FR-TRV-34 ke BE-HRD-374 s.d. BE-HRD-380 dan FE-HRD-337 s.d. FE-HRD-340"
@@ -2115,3 +2116,21 @@ Pertanyaan yang tetap terbuka tanpa memblokir: kueri baca-saja jumlah `WfpDiscip
 > Laporan per menu di `testing/test-by-agy/`.
 
 > **Pemutakhiran 23 November 2026 (uji runtime backend Paket B).** Atas izin pengguna, backend dijalankan di DB dev: 26/27 skenario API `PASS`, respons layar Kontrak sebelum/sesudah refactor identik, median `/summary` 226 ms; `BE-HRD-457` dan `BE-HRD-462` kini ✅, sehingga seluruh 10 task backend Paket B ✅. Status baris tetap mengikuti task frontend yang belum selesai. Kueri `HRD-DEC-246` butir 1: tabel catatan disiplin lama kosong (0 baris).
+
+### Bagian 1af: Jejak Amandemen Menu Organisasi — Unit Organisasi Digabung ke Struktur Organisasi (`HRD-DEC-248`, 24 November 2026)
+
+Sumber: [`ISSUE-HRD-008`](../docs/issue/issue-008-gabung-unit-organisasi-ke-struktur-organisasi.md) dan [`PLAN-REPAIR-HRD-008`](../docs/plan-repair/plan-repair-008-gabung-unit-organisasi-ke-struktur-organisasi.md). Keputusan `HRD-DEC-248` s.d. `HRD-DEC-250` (decision log bagian 58). Kontrak tetap `v30`.
+
+| Temuan | Perbaikan | Task | Desain / keputusan | Bukti |
+| --- | --- | --- | --- | --- |
+| `ISS-HRD-008-01` isi struktur terpecah ke dua menu | `FIX-HRD-008-01`, `FIX-HRD-008-03`, `FIX-HRD-008-04` | dokumen (bagian ini), `FE-HRD-410`, `FE-HRD-412` | `HRD-DEC-248`; `03-frontend-architecture.md` 34.7 | ✅ [FE-HRD-410](../task/report/frontend/FE-HRD-410.md), [FE-HRD-412](../task/report/frontend/FE-HRD-412.md); decision log bagian 58 |
+| `ISS-HRD-008-02` Departemen/Posisi tanpa menu sendiri | `FIX-HRD-008-01`, `FIX-HRD-008-02`, `FIX-HRD-008-04`, `FIX-HRD-008-05` | `FE-HRD-411`, `FE-HRD-412`, `FE-HRD-413` | `HRD-DEC-248`, `HRD-DEC-250` | ✅ [FE-HRD-411](../task/report/frontend/FE-HRD-411.md), [FE-HRD-412](../task/report/frontend/FE-HRD-412.md), [FE-HRD-413](../task/report/frontend/FE-HRD-413.md) |
+| `ISS-HRD-008-T1` tombol pohon tidak membuka detail | `FIX-HRD-008-03` | `FE-HRD-410` | Desain Menu 05 baris 304 | ✅ [FE-HRD-410](../task/report/frontend/FE-HRD-410.md) |
+| `ISS-HRD-008-T2` isian level diabaikan server | `FIX-HRD-008-05` | `FE-HRD-413` | `FIN-HRD-05-BE-001` (level otomatis) | ✅ [FE-HRD-413](../task/report/frontend/FE-HRD-413.md) |
+| `ISS-HRD-008-T3` detail unit menampilkan ID | `FIX-HRD-008-06`, `FIX-HRD-008-07` | `BE-HRD-463`, `FE-HRD-414` | Aturan output 5.3 | ✅ [BE-HRD-463](../task/report/backend/BE-HRD-463.md), [FE-HRD-414](../task/report/frontend/FE-HRD-414.md) |
+| `ISS-HRD-008-T4` teks Inggris | `FIX-HRD-008-02`, `03`, `05` | `FE-HRD-410`, `FE-HRD-411`, `FE-HRD-413` | Daftar periksa UI | ✅ [FE-HRD-410](../task/report/frontend/FE-HRD-410.md), [FE-HRD-411](../task/report/frontend/FE-HRD-411.md), [FE-HRD-413](../task/report/frontend/FE-HRD-413.md) |
+| `ISS-HRD-008-T5` departemen tidak divalidasi server | `FIX-HRD-008-08` | `BE-HRD-464` | `HRD-DEC-248` butir 5 | ✅ [BE-HRD-464](../task/report/backend/BE-HRD-464.md) |
+
+Celah cakupan: pesan server berbahasa campur pada `OrganizationUnitController` ("Organization unit berhasil dibuat.", "Unit type tidak valid.") sengaja tidak ditangani (issue T4). Penggantian label hak akses Akses Role ditunda (`HRD-DEC-249`).
+
+> **Pemutakhiran 24 November 2026 (build amandemen Menu Organisasi).** Ketujuh task selesai: `BE-HRD-463`, `BE-HRD-464` ✅ (`dotnet build` 0 error, QBE Strict `PASS`, tanpa migration; uji API runtime NOT RUN) dan `FE-HRD-410` s.d. `FE-HRD-414` ✅ (lint, build 927 halaman, uji sidebar 12/12, Playwright 5/5 dengan API dimock; uji backend/akun nyata NOT RUN). Backend lokal perlu di-restart agar ruas nama `BE-HRD-463` terkirim.

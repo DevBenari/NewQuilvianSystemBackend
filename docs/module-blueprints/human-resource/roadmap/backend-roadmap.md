@@ -6,7 +6,8 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 19
+roadmap_revision: 20
+amendment_org_menu_hrd_dec_248: "2026-11-24 — Amandemen Menu Organisasi (bagian 32): BE-HRD-463 dan BE-HRD-464, Grafik B102; HRD-DEC-248 s.d. 250; ISSUE-HRD-008 / PLAN-REPAIR-HRD-008; tanpa migration, kontrak tetap v30"
 amendment_package_b_v30: "2026-11-23 — Amandemen Paket B navigasi SDM (bagian 31): BE-HRD-453 s.d. BE-HRD-462, gelombang MVP-74 dan MVP-75, Grafik B101; kontrak v30 approved 23 November 2026 (HRD-DEC-247 menjawab HRD-Q-234); tanpa migration"
 amendment_s_a7_v2_v29: "2026-11-20 — Amandemen S-A7-V2 Kotak Masuk Terpadu di atas engine WorkflowService (bagian 29): BE-HRD-440 s.d. BE-HRD-449, gelombang MVP-72; kontrak v29 approved 20 November 2026"
 amendment_s_d5_v28: "2026-11-19 — Amandemen S-D5 persetujuan SPPD lewat workflow persetujuan umum (bagian 27): BE-HRD-374 s.d. BE-HRD-380, gelombang MVP-70; kontrak v28 approved 19 November 2026; menutup celah BE-HRD-333"
@@ -8749,3 +8750,75 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 * **Verifikasi**: build, QBE, log startup registri, uji API ringkas per endpoint, laporan `task/report/backend/BE-HRD-462.md`.
 * **Risiko / pemilik**: Technical Owner HR.
 * **DoD**: AC terbukti; backend `MVP-74` dan `MVP-75` siap dipakai `FE-HRD-401`, `FE-HRD-405`, `FE-HRD-406`, `FE-HRD-407`, dan `FE-HRD-409`.
+
+---
+
+## 32. Amandemen Menu Organisasi — Unit Organisasi Digabung ke Struktur Organisasi (roadmap revisi `20`, `HRD-DEC-248`)
+
+> **Status slice: SELESAI 24 November 2026 — 2/2 task backend ✅** (disetujui pengguna 24 November 2026: "oke saya setujui kerjakan semua dan selesaikan"). Uji API runtime belum dijalankan. Sumber: [`ISSUE-HRD-008`](../docs/issue/issue-008-gabung-unit-organisasi-ke-struktur-organisasi.md) dan [`PLAN-REPAIR-HRD-008`](../docs/plan-repair/plan-repair-008-gabung-unit-organisasi-ke-struktur-organisasi.md). Amandemen ini terutama perubahan frontend (roadmap frontend bagian 32); backend hanya menutup dua temuan tambahan. Tanpa endpoint baru, tanpa migration, kontrak tetap `v30`.
+
+| Field | Nilai |
+| --- | --- |
+| `blueprint_id` / revision | `HRD-BP-001` / manifest revision `70` |
+| Keputusan | `HRD-DEC-248` s.d. `HRD-DEC-250` |
+| Source acuan | Backend `3ef27c96` (branch `MHamzah`) |
+| Controller | `OrganizationUnitController` — grup Swagger `Corporate / Human Resource / Master Data / Organization Unit`, base URL `api/v1/corporate/human-resource/master-data/organization-units` |
+
+### Grafik B102 — Perbaikan backend Menu Organisasi (`BE-HRD-463`, `BE-HRD-464`)
+
+```text
+BE-HRD-463 ✅ ─> FE-HRD-414 ✅ [FE]
+BE-HRD-464 ✅
+```
+
+`[FE]` = task frontend pada `frontend-roadmap.md` bagian 32. Kedua task backend tanpa prasyarat dan boleh dikerjakan sekarang (gelombang 1).
+
+| Task ID | Outcome | Menutup | Dependency |
+| --- | --- | --- | --- |
+| `BE-HRD-463` | `GET /{id}` membawa `LegalEntityName`, `HospitalSiteName`, `DepartmentName` | `FIX-HRD-008-06` | — |
+| `BE-HRD-464` | `POST /` dan `PUT /{id}` menolak Departemen Terkait yang tidak ada atau nonaktif (`400`) | `FIX-HRD-008-08` | — |
+
+#### ✅ `BE-HRD-463` — Respons detail unit membawa nama legal entity, fasilitas, dan departemen
+* **Slice / MVP**: `S-FIN-M05` amandemen / perbaikan `PLAN-REPAIR-HRD-008` (`FIX-HRD-008-06`)
+* **Status**: ✅ **SELESAI 24 November 2026** — 4/4 AC terpetakan ke source; `dotnet build` 0 error (610 warning baseline); QBE Strict `PASS`; tanpa migration. Uji API runtime NOT RUN (backend lokal masih build lama). Bukti: [laporan](../task/report/backend/BE-HRD-463.md)
+* **Outcome**: `OrganizationUnitDetailResponse` ditambah `LegalEntityName`, `HospitalSiteName`, `DepartmentName` (`string?`), diisi `GetById` dari relasi apa pun status aktifnya. Field lama tidak berubah.
+* **Requirement / keputusan**: `ISS-HRD-008-T3`; aturan output 5.3 (tanpa UUID sebagai satu-satunya penjelas)
+* **Kontrak**: di luar `api-contract.md`; perubahan aditif
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/{id}` | Detail satu unit beserta nama legal entity, fasilitas, dan departemen | `OrganizationUnit : Read` | - | `OrganizationUnitDetailResponse` + `LegalEntityName`, `HospitalSiteName`, `DepartmentName` |
+
+* **Cakupan**: `DTOs/OrganizationUnitDtos.cs`, `Controllers/OrganizationUnitController.cs` (`GetById`)
+* **Dependencies**: —
+* **Acceptance Criteria**:
+  1. Unit yang terhubung ke departemen "Farmasi" mengembalikan `departmentName: "Farmasi"`.
+  2. Unit tanpa fasilitas mengembalikan `hospitalSiteName: null` tanpa galat.
+  3. Unit yang terhubung ke departemen nonaktif tetap mengembalikan namanya.
+  4. Field lama respons tetap sama nama dan tipenya.
+* **Verifikasi**: `dotnet build`; QBE Strict pada berkas yang diubah; uji API bila backend boleh dijalankan.
+* **Risiko / pemilik**: tiga relasi tambahan pada kueri satu baris — dampak kecil. Technical Owner HR.
+* **DoD**: AC terbukti, laporan `task/report/backend/BE-HRD-463.md`.
+
+#### ✅ `BE-HRD-464` — Server menolak Departemen Terkait yang tidak ada atau nonaktif
+* **Slice / MVP**: `S-FIN-M05` amandemen / perbaikan `PLAN-REPAIR-HRD-008` (`FIX-HRD-008-08`)
+* **Status**: ✅ **SELESAI 24 November 2026** — 4/4 AC terpetakan ke source; `dotnet build` 0 error (610 warning baseline); QBE Strict `PASS`; tanpa migration. Uji API runtime NOT RUN. Bukti: [laporan](../task/report/backend/BE-HRD-464.md)
+* **Outcome**: `ValidateRequestAsync` memeriksa `DepartmentId` (ada, aktif, tidak dihapus) mengikuti pola pemeriksaan legal entity; gagal → `400` "Departemen tidak ditemukan atau tidak aktif."
+* **Requirement / keputusan**: `ISS-HRD-008-T5`; `HRD-DEC-248` butir 5 (departemen dipilih dari master)
+* **Kontrak**: di luar `api-contract.md`; kode status baru `400` dengan pesan di atas
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | Membuat unit | `OrganizationUnit : Create` | `CreateOrganizationUnitRequest` | `object` (`Id`, `UnitCode`, `UnitName`) |
+| `PUT` | `/{id}` | Mengubah unit | `OrganizationUnit : Update` | `UpdateOrganizationUnitRequest` | sama seperti sekarang |
+
+* **Cakupan**: `Controllers/OrganizationUnitController.cs` (`ValidateRequestAsync`)
+* **Dependencies**: —
+* **Acceptance Criteria**:
+  1. Departemen aktif diterima seperti sekarang.
+  2. Departemen nonaktif ditolak `400` dengan pesan di atas.
+  3. `departmentId` yang tidak ada ditolak `400` dengan pesan yang sama, bukan `500`.
+  4. `departmentId: null` tetap diterima.
+* **Verifikasi**: `dotnet build`; QBE Strict pada berkas yang diubah; uji API bila backend boleh dijalankan.
+* **Risiko / pemilik**: unit lama yang terhubung ke departemen nonaktif tidak bisa disimpan ulang sebelum departemennya diganti — disengaja. Technical Owner HR.
+* **DoD**: AC terbukti, laporan `task/report/backend/BE-HRD-464.md`.

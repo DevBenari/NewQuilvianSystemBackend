@@ -3917,7 +3917,7 @@ diminta Business Analyst tetap dipertahankan.
 | Perencanaan Kebutuhan SDM | `corporateWorkforcePlanningGroup` | Empat fungsi BA menjadi urutan awal; lima fungsi planning tambahan tetap ada | `IMPLEMENTED` |
 | Rekrutmen & Seleksi | `corporateRecruitmentGroup` | Lowongan, Pelamar, dan handoff Onboarding memakai route existing | `IMPLEMENTED` |
 | Data Induk Pegawai | Master Data Karyawan/Dokter | Blok `corporateHrDataIndukPegawai` tetap nonaktif pada sidebar; deep-link kompatibilitas tidak menjadi owner | `IMPLEMENTED` |
-| Struktur Organisasi & Jabatan | Master Data SDM | Struktur, unit, jabatan, rumpun, uraian tugas, dan relasi atasan tidak digandakan ke parent baru | `UNCHANGED / REUSED` |
+| Struktur Organisasi & Jabatan | Master Data SDM | Struktur, unit, jabatan, rumpun, uraian tugas, dan relasi atasan tidak digandakan ke parent baru. **Diamandemen 24 November 2026 (`HRD-DEC-248`, bagian 34.7):** Unit Organisasi digabung ke Struktur Organisasi; Departemen dan Posisi menjadi butir sendiri | `AMENDED` |
 | Penempatan, Mutasi & Promosi | `corporateHrPlacementMutationPromotion` | Lima route existing dipertahankan | `UNCHANGED / REUSED` |
 | Kontrak & Masa Kerja | `corporateHrContractAndTenure` | Empat route existing dipertahankan | `UNCHANGED / REUSED` |
 | Pemberhentian & Pensiun | Group separation existing | Ejaan `Clearance` diperbaiki tanpa mengubah route atau `key` | `IMPLEMENTED` |
@@ -3999,6 +3999,32 @@ untuk dilanjutkan ke uji browser/permission, tetapi belum memenuhi syarat `DONE`
 konflik Tindak Disiplin tidak termasuk implementasi commit ini.
 
 ---
+
+### 34.7 Amandemen Menu Organisasi — Unit Organisasi digabung ke Struktur Organisasi (24 November 2026, `HRD-DEC-248`)
+
+Sumber: `ISSUE-HRD-008` dan `PLAN-REPAIR-HRD-008` (bagian 3 memuat skema layar sebelum dan
+sesudah). Amandemen ini menerapkan aturan 34.1 "satu fungsi, satu pintu sidebar" pada grup
+**Organisasi & Struktur Jabatan**: sebelumnya data unit punya dua pintu (Struktur Organisasi >
+Hierarki dan Unit Organisasi), sedangkan Departemen dan Posisi tidak punya pintu sendiri.
+
+| Butir sidebar | `key` | `pathname` | Hak akses halaman | Isi |
+| --- | --- | --- | --- | --- |
+| Struktur Organisasi | `corporateOrganizationUnit` | `/hr/master-data/organization-unit` | `OrganizationUnit : Read` | Daftar unit + tambah/ubah unit + tombol `Daftar \| Hierarki` (mode bawaan Daftar). Pohon tetap hanya untuk dilihat; tombol panel membuka detail unit terpilih |
+| Departemen | `corporateDepartment` | `/hr/master-data/organization/departments` | `Organization : Read` | Daftar, tambah, detail, dan ubah departemen (layar lama, tanpa tab) |
+| Posisi | `corporatePosition` | `/hr/master-data/organization/positions` | `Organization : Read` | Daftar, tambah, detail, dan ubah posisi, termasuk tombol "Buka Uraian" |
+| *(dihapus)* | `corporateOrganization` | `/hr/master-data/organization` | — | Halaman pengalih: `?type=positions` → Posisi, `?type=departments` → Departemen, selain itu → Struktur Organisasi |
+
+Urutan grup sesudah amandemen: Struktur Organisasi, Departemen, Posisi, Legal Entity, Fasilitas
+Rumah Sakit, Lokasi Kerja, Pusat Biaya, Rumpun Jabatan, Level Jabatan, Grade Karyawan, Uraian
+Tugas, Atasan Langsung (12 butir). Invariant 34.3 tetap berlaku: `key` dan `pathname` unik, butir
+grup ini tetap tanpa `requiredPermission`.
+
+Aturan tambahan pada form unit (`HRD-DEC-250`): isian "Level Hierarki" dicabut karena server
+menghitungnya dari unit induk; isian "Departemen Terkait" hanya memilih dari master Departemen dan
+memberi petunjuk bahwa departemen baru dibuat di menu Departemen.
+
+Task: roadmap frontend bagian 32 (`FE-HRD-410` s.d. `FE-HRD-414`) dan roadmap backend bagian 32
+(`BE-HRD-463`, `BE-HRD-464`).
 
 ## 35. Arsitektur Frontend Amandemen Paket B — Lima Entry Point Menu SDM (kontrak `v30`, 22 November 2026; approved 23 November 2026)
 
