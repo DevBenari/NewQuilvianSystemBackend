@@ -1987,3 +1987,34 @@ Dasar: `HRD-DEC-229`, `HRD-DEC-232`, `HRD-DEC-234`, `HRD-DEC-235`; fakta `HRD-TF
 | Arah | Frontend ESS → rute layar modul pemilik permohonan |
 | Mekanisme | Peta `ReferenceType` → rute di frontend (mis. `HRD_TRV_REQUEST` → daftar SPPD, `LEAVE_REQUEST` → cuti saya). Instance `isModuleManaged = true` menampilkan tautan "Perbaiki di layar …" alih-alih tombol kirim ulang/batal generik |
 | Jenis tanpa rute | Ditampilkan tanpa tautan, dengan keterangan "Buka modul terkait untuk memperbaiki"; tidak ada tombol aksi generik |
+
+## 27. Integrasi Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v30`, approved 24 November 2026)
+
+Dasar: `HRD-DEC-238`, `HRD-DEC-240`, `HRD-DEC-241`, `HRD-DEC-245`. Seluruhnya **integrasi di dalam modul HR**; tidak ada integrasi lintas modul, antrean pesan, atau sistem luar baru. Billing dan klinis tidak tersentuh.
+
+### 27.1 `INT-HR-115` — Layanan Mandiri → Service Izin Pulang Cepat / Dinas Luar
+
+| Field | Isi |
+| --- | --- |
+| Arah | `EarlyLeavePermissionSelfServiceController` / `OfficialDutySelfServiceController` → `HumanResourceContextService` (identitas) → `EarlyLeavePermissionService` / `OfficialDutyRequestService` (aturan yang sama dengan layar HR) |
+| Mekanisme | Pemanggilan service sinkron di proses yang sama |
+| Hasil | Pengajuan ESS tersimpan pada tabel yang sama dan tampil di daftar HR; diputuskan lewat endpoint approve/reject yang ada (`HRD-DEC-245`) |
+| Transaksi | Satu `SaveChanges` per aksi |
+| Idempotensi | Klik ganda dicegah layar; izin ganda pada tanggal sama ditolak aturan yang ada; batal kedua kali `409` |
+| Kegagalan | Galat validasi → tidak ada yang tersimpan; lampiran yang terunggah tetapi tidak dipakai tetap di penyimpanan (perilaku `HrAttachmentStorage` yang ada) |
+
+### 27.2 `INT-HR-116` — Tutup Periode → Pengecualian Presensi
+
+| Field | Isi |
+| --- | --- |
+| Arah | `AttendancePeriodService.CloseAsync` → `HrdAttendanceDaily` (konversi `Absent`) dan `HrdAttendanceException` (penyelesaian pengecualian konversi) |
+| Transaksi | Satu transaksi `Serializable` bersama status periode; gagal → seluruhnya batal |
+| Hilir | Sinkronisasi payroll membaca hasil tutup seperti sebelumnya; tidak ada perubahan kontrak payroll |
+
+### 27.3 `INT-HR-117` — Daftar Penempatan Sementara → Cakupan Unit
+
+| Field | Isi |
+| --- | --- |
+| Arah | `TemporaryAssignmentQueryService` → `WfpOrganizationAssignment` (baca) + `HrdUnitScopeService.GetReadScopeAsync` |
+| Mekanisme | Baca saja; paginasi di basis data |
+| Kegagalan | Filter unit di luar cakupan → `403` (`VR-PK-27`) |

@@ -1642,11 +1642,11 @@ bagian yang disebut, source frontend `d09dc74da`, dan source backend `f751f8ca`.
 | FE-HRD-093 | S-B1 | Sebagian | Tersambung API | ada | Guard Penutupan Periode & Peringatan Koreksi Pending ([R29](../task/report/frontend/FE-HRD-R29.md)) |
 | FE-HRD-094 | S-B1 | Sebagian | Tersambung API | ada | Modal Buka Kembali Periode Darurat HR Manager ([R29](../task/report/frontend/FE-HRD-R29.md)) |
 | FE-HRD-095 | S-B1 | Sebagian | Tersambung API | ada | Monitoring koreksi; penanda jalur ESS/kuasa belum eksplisit di DTO ([R28](../task/report/frontend/FE-HRD-R28.md)) |
-| FE-HRD-096 | S-B1 | Terblokir | Kontrak backend belum lengkap | tidak | Endpoint unggah bukti kuasa HR belum tersedia ([R28](../task/report/frontend/FE-HRD-R28.md)) |
+| FE-HRD-096 | S-B1 | Siap (24 November 2026: unggah bukti on-behalf sudah ada, `HRD-TF-092`) | — | ya | Endpoint unggah bukti kuasa HR belum tersedia ([R28](../task/report/frontend/FE-HRD-R28.md)) |
 | FE-HRD-097 | S-B1 | Sebagian | Tersambung API | ada | Pengelolaan Izin Pulang Cepat; jam tap aktual belum tersedia di DTO ([R28](../task/report/frontend/FE-HRD-R28.md)) |
 | FE-HRD-098 | S-B1 | Sebagian | Tersambung API | ada | Pengelolaan Surat Penugasan Dinas Luar ([R28](../task/report/frontend/FE-HRD-R28.md)) |
 | FE-HRD-099 | S-B1 | Belum | Belum dikerjakan | tidak | Layar Pengaturan Parameter Presensi & Toleransi Waktu HR (FE-HRD-149 /hr/attendance/settin |
-| FE-HRD-100 | S-B1 | Terblokir | Kontrak backend belum tersedia | tidak | Endpoint self-service izin pulang cepat/dinas luar tidak ditemukan ([R28](../task/report/frontend/FE-HRD-R28.md)) |
+| FE-HRD-100 | A52-B (asal S-B1) | Direncanakan (24 November 2026: kontrak `v30` API 36.4–36.5; menunggu `BE-HRD-453`/`454`) | — | ya, sesudah backend | Endpoint self-service izin pulang cepat/dinas luar tidak ditemukan ([R28](../task/report/frontend/FE-HRD-R28.md)) |
 | FE-HRD-101 | S-B1 | Belum | Belum dikerjakan | tidak | Verifikasi menu, hak akses peran, dan keterjangkauan seluruh layar S-B1 |
 | FE-HRD-102 | S-B2 | Selesai | Non-layar | ada | Service Client API Cuti, Perizinan, dan Redux State Management (leave-service.js, leaveSli |
 | FE-HRD-103 | S-B2 | Selesai | Tersambung API | ada | Komponen Metrik Kartu Saldo & Progress Bar Pemakaian Cuti Tahunan (LeaveBalanceMetricCards |

@@ -3329,3 +3329,148 @@ Sebuah butir hanya disetujui dalam batch bila **seluruh** syarat berikut terpenu
 | `400` | Kembalikan tanpa catatan revisi (`VR-WF-28`) | "Isi catatan revisi untuk pemohon." |
 | `409` | Penugasan sudah diputuskan pihak lain (penyetuju awal atau atasan hasil eskalasi), atau instance tidak lagi menunggu | Pesan engine diteruskan apa adanya |
 | `409` | Membuat instance generik; membatalkan atau mengirim ulang instance milik modul lewat endpoint generik (`VR-WF-29`) | Lihat 35.1 dan 35.2 |
+
+## 36. Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v30`)
+
+| Field | Nilai |
+| --- | --- |
+| `contract_version` | `v30` |
+| Status | `approved` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna / 24 November 2026 ("setujui kontrak v30, lanjut plan") |
+| `input_revision` | `00-interview-decisions.md` revision `41` (bagian 57, `HRD-DEC-237` s.d. `HRD-DEC-245`); `02-backend-architecture.md` bagian 38 |
+| `input_hash` — decision log | `49932d6b90674815f78600a006b2f5118cde3e2795b2d811e592f38f8033f1a9` |
+| Backend SHA | `4d2c0162` (branch `yoga`) |
+| Dampak kompatibilitas | **Tidak memutus klien.** Penambahan field respons (detail roster, tutup periode), endpoint baru (ESS, penempatan sementara), dan perubahan perilaku tutup periode (lebih sedikit pemblokir) serta cakupan daftar Perubahan Shift/Tukar Dinas (lebih sedikit baris untuk pengguna tanpa `ManageAllUnits`) |
+
+### 36.1 Catatan kontrak lama
+
+| Butir | Isi |
+| --- | --- |
+| Kontrak `v10` — string hak akses `HrdScheduling`, `HrdOnCall` | **`superseded` oleh `v26`** (`HRD-DEC-244`). String itu tidak dipakai kode; acuan hak akses penjadwalan dan siaga adalah bagian 32 dan matriks hak akses bagian 30.1 |
+| `VR-PK-28` batas rentang laporan/ekspor 92 hari | **Diterima** (`HRD-DEC-244`); tidak berubah |
+| `GET /api/v1/corporate/human-resource/master-data/attendance-devices/filters/metadata` | Sudah ada di kode dan dipakai layar Mesin Absen (`FE-HRD-312`); kini dicantumkan di kontrak: `AttendanceDevice : Read`, respons `deviceTypeOptions` (`value`, `label`) |
+
+### 36.2 HR Scheduling - Roster Period
+
+Base URL: `api/v1/corporate/human-resource/scheduling-management/roster-periods`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{id}` | Detail roster; **respons diperluas** (`HRD-DEC-237`) | `RosterPeriod : Read` | — | `RosterPeriodDetailResponse` | Sudah ada — perluasan **Rencana (belum tersedia)** |
+
+Perluasan respons:
+
+| DTO | Field baru | Tipe | Keterangan |
+| --- | --- | --- | --- |
+| `RosterAssignmentResponse` | `isReplacementOnly` | `bool` | `true` = baris tampilan untuk petugas yang hanya memegang shift sebagai pengganti; `id` = `00000000-…` |
+| `ShiftAssignmentItemResponse` | `workforceProfileId` | `Guid` | Petugas yang bertugas sekarang |
+| | `workforceProfileCode` | `string` | |
+| | `workforceDisplayName` | `string` | |
+| | `isReplacement` | `bool` | `true` bila shift hasil Ganti Petugas |
+| | `originalWorkforceProfileId` | `Guid?` | Petugas awal (dari `OriginalEmployeeId`) |
+| | `originalWorkforceDisplayName` | `string?` | |
+
+Contoh potongan respons (Pagi 16 Feb Indra → Raka):
+
+```json
+{
+  "workforceDisplayName": "Raka Firmansyah",
+  "isReplacementOnly": false,
+  "shiftAssignments": [
+    { "shiftDate": "2027-02-16", "shiftName": "Pagi", "workforceDisplayName": "Raka Firmansyah",
+      "isReplacement": true, "originalWorkforceDisplayName": "Indra Setiawan" }
+  ]
+}
+```
+
+### 36.3 HR Attendance - Period Management
+
+Base URL: `api/v1/corporate/human-resource/attendance/periods`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{id}/close-preview` | Pratinjau tutup; isu `PAYROLL_BLOCKING_EXCEPTION` tidak menghitung pengecualian konversi; field baru `conversionExceptionCount` (`int`) | `AttendancePeriod : Read` | — | `AttendancePeriodClosePreviewResponse` | Sudah ada — perubahan **Rencana (belum tersedia)** |
+| `POST` | `/{id}/close` | Tutup; pengecualian konversi ditutup bersama konversi; field baru `closedConversionExceptionCount` (`int`) | `AttendancePeriod : Close` | `CloseAttendancePeriodRequest` (tidak berubah) | `AttendancePeriodActionResponse` | Sudah ada — perubahan **Rencana (belum tersedia)** |
+
+Kode status tidak berubah (`200`, `400`, `401`, `403`, `404`, `409`). `409` kini hanya muncul untuk pemblokir lain (`VR-PK-31`).
+
+### 36.4 Self Services / Human Resource / Early Leave Permission
+
+Base URL: `api/v1/self-services/human-resource/early-leave-permissions`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Pilihan status (`Submitted`, `Approved`, `Rejected`, `Cancelled` beserta label) | `MyEarlyLeavePermission : Read` | — | `EarlyLeaveSelfFilterMetadataResponse` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar izin milik sendiri | `MyEarlyLeavePermission : Read` | Query `fromDate`, `toDate`, `status`, `pageNumber`, `pageSize` (maks. 100) | `PagedResult<EarlyLeaveSelfResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail milik sendiri | `MyEarlyLeavePermission : Read` | — | `EarlyLeaveSelfResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mengajukan izin pulang cepat | `MyEarlyLeavePermission : Create` | `CreateEarlyLeaveSelfRequest` | `EarlyLeaveSelfResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Membatalkan pengajuan `Submitted` | `MyEarlyLeavePermission : Cancel` | `CancelSelfRequest` | `EarlyLeaveSelfResponse` | **Rencana (belum tersedia)** |
+
+| DTO | Field | Tipe | Wajib | Validasi |
+| --- | --- | --- | --- | --- |
+| `CreateEarlyLeaveSelfRequest` | `attendanceDate` | `DateOnly` | Ya | Rekap harian milik sendiri pada tanggal itu ada dan belum terkunci (`VR-PK-32`) |
+| | `requestedEarlyLeaveAt` | `DateTime` | Ya | Di dalam jam shift (aturan yang ada) |
+| | `reason` | `string` | Ya | 1–500 karakter (sama dengan `CreateEarlyLeavePermissionRequest`) |
+| `CancelSelfRequest` | `reason` | `string` | Ya | 1–500 karakter |
+| `EarlyLeaveSelfResponse` | `id`, `attendanceDate`, `requestedEarlyLeaveAt`, `reason`, `status`, `statusLabel`, `rejectionReason`, `createDateTime`, `cancelDateTime` | | | Tanpa data pegawai lain |
+
+Kode status: `200`, `400` (validasi), `401`, `403`, `404` (akun tanpa profil pegawai; data bukan milik sendiri), `409` (batal pada status selain `Submitted`; izin ganda).
+
+### 36.5 Self Services / Human Resource / Official Duty
+
+Base URL: `api/v1/self-services/human-resource/official-duties`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Pilihan kategori dinas dan status | `MyOfficialDuty : Read` | — | `OfficialDutySelfFilterMetadataResponse` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar surat tugas milik sendiri | `MyOfficialDuty : Read` | Query `fromDate`, `toDate`, `status`, paginasi | `PagedResult<OfficialDutySelfResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail milik sendiri | `MyOfficialDuty : Read` | — | `OfficialDutySelfResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/attachments` | Unggah lampiran surat tugas; jenis dan ukuran berkas mengikuti `HrAttachmentStorage` yang dipakai unggahan HR (kategori `attendance-official-duty`) | `MyOfficialDuty : Create` | `multipart/form-data` `file` | `201` `HrStoredAttachment` | **Rencana (belum tersedia)** |
+| `GET` | `/attachments/download` | Unduh lampiran milik pengajuan sendiri; selain itu `404` | `MyOfficialDuty : Read` | Query `url` | Berkas | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mengajukan surat tugas dinas luar | `MyOfficialDuty : Create` | `CreateOfficialDutySelfRequest` | `OfficialDutySelfResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Membatalkan pengajuan `Submitted` | `MyOfficialDuty : Cancel` | `CancelSelfRequest` | `OfficialDutySelfResponse` | **Rencana (belum tersedia)** |
+
+| DTO | Field | Tipe | Wajib | Validasi |
+| --- | --- | --- | --- | --- |
+| `CreateOfficialDutySelfRequest` | `dutyCategory` | `string` | Ya | Maks. 50; salah satu pilihan metadata |
+| | `assignmentOrderNumber` | `string` | Ya | Maks. 100 |
+| | `startAt`, `endAt` | `DateTime` | Ya | `endAt` > `startAt` (aturan yang ada) |
+| | `destination` | `string` | Ya | Maks. 255 |
+| | `purpose` | `string` | Ya | Tidak kosong (aturan yang ada) |
+| | `latitude`, `longitude` | `decimal?` | Tidak | Opsional, sama dengan HR |
+| | `attachmentUrl` | `string?` | Tidak | Maks. 500; hasil unggah `/attachments` milik sendiri |
+
+`OfficialDutySelfResponse` memuat `id`, `dutyCategory`, `assignmentOrderNumber`, `startAt`, `endAt`, `destination`, `purpose`, `attachmentUrl`, `status`, `statusLabel`, `rejectionReason`, `createDateTime`, `cancelDateTime` — tanpa data pegawai lain.
+
+Kode status sama dengan 36.4.
+
+### 36.6 Corporate / Human Resource / Workforce Core / Temporary Assignment
+
+Base URL: `api/v1/corporate/human-resource/workforce-core/temporary-assignments`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Pilihan status waktu (`Upcoming`, `Ongoing`, `Ended` + label) | `TemporaryAssignment : Read` | — | `TemporaryAssignmentFilterMetadataResponse` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar penempatan sementara lintas pegawai dalam cakupan | `TemporaryAssignment : Read` | Query `organizationUnitId`, `fromDate`, `toDate`, `timeStatus`, `search`, `pageNumber`, `pageSize` (maks. 100) | `PagedResult<TemporaryAssignmentResponse>` | **Rencana (belum tersedia)** |
+
+| `TemporaryAssignmentResponse` | Tipe | Keterangan |
+| --- | --- | --- |
+| `id` | `Guid` | Id penempatan |
+| `workforceProfileId`, `profileCode`, `employeeName` | | Pegawai |
+| `originUnitName` | `string?` | Unit penempatan utama pada tanggal mulai |
+| `destinationUnitId`, `destinationUnitName` | | Unit tujuan |
+| `effectiveStartDate`, `effectiveEndDate` | `DateOnly`, `DateOnly?` | |
+| `timeStatus`, `timeStatusLabel` | `string` | `Upcoming`/`Ongoing`/`Ended` |
+| `assignmentNumber`, `description` | `string?` | |
+
+Kode status: `200`, `401`, `403` (izin; filter unit di luar cakupan `VR-PK-27`).
+
+### 36.7 Perubahan Shift dan Tukar Dinas sisi HR (cakupan unit)
+
+| Tag | Base URL | Perubahan |
+| --- | --- | --- |
+| `Corporate / Human Resource / Scheduling Management / Schedule Change Administration` | `api/v1/corporate/human-resource/scheduling-management/schedule-change-requests` | `GET /`, `GET /{id}`, `GET /{id}/workflow`, `GET /summary` hanya memuat pengajuan dalam cakupan baca; `POST /{id}/apply` mensyaratkan cakupan kelola (`403` "Anda tidak berwenang mengubah roster unit ini"). **Rencana (belum tersedia)** |
+| `Corporate / Human Resource / Scheduling Management / Shift Swap Administration` | `api/v1/corporate/human-resource/scheduling-management/shift-swap-requests` | Sama; tukar dinas tampil bila shift pemohon atau tujuan dalam cakupan baca; Terapkan mensyaratkan kedua unit dalam cakupan kelola. **Rencana (belum tersedia)** |
+
+Hak akses tidak berubah (`ScheduleChangeRequest : Read/Update`, `ShiftSwapRequest : Read/Update`).

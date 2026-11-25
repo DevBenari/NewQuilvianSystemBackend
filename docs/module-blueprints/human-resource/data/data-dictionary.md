@@ -6213,3 +6213,24 @@ Tidak ada perubahan skema. Kolom kunci: `DelegatorUserId`, `DelegateUserId` (waj
 ### 30.4 `public.TrxApprovalAction` (status tabel: `Sudah ada`)
 
 Tidak ada perubahan skema. `ActionType` mendapat nilai baru `Escalate` (konstanta, tanpa CHECK constraint, tanpa migration). `DigitalSignatureHash` tidak lagi diisi untuk aksi baru (`HRD-DEC-230`).
+
+## 31. Kamus Data Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v30`, approved 24 November 2026)
+
+**Tidak ada tabel baru, kolom baru, index baru, atau migration.** Sepuluh kolom warisan `IdentityModel` tidak diulang. Bagian ini mencatat kolom yang sudah ada dan kini dipakai aturan amandemen.
+
+| Tabel (status `Sudah ada`) | Model | Kolom | Dipakai untuk | Sensitif |
+| --- | --- | --- | --- | --- |
+| `TrxShiftAssignment` | `Areas/Corporate/HumanResource/SchedulingManagement/Models/TrxShiftAssignment.cs` | `WorkforceProfileId` | Petugas yang bertugas sekarang; dasar baris kisi (`HRD-DEC-237`) | Tidak |
+| | | `OriginalEmployeeId` | Petugas awal sebelum Ganti Petugas; penanda `isReplacement` | Tidak |
+| | | `RosterAssignmentId`, `OrganizationUnitId` | Baris asal; cakupan unit Perubahan Shift / Tukar Dinas | Tidak |
+| `HrdAttendanceException` | `Areas/Corporate/HumanResource/AttendanceManagement/Models/HrdAttendanceException.cs` | `ExceptionType`, `ExceptionStatus`, `IsPayrollBlocking` | Penentuan pengecualian konversi (`VR-PK-31`) | Tidak |
+| | | `ResolvedByUserId`, `ResolvedAt`, `ResolutionNote` | Diisi saat tutup periode menyelesaikan pengecualian konversi | Tidak |
+| `HrdEarlyLeavePermission` | `…/AttendanceManagement/Models/HrdEarlyLeavePermission.cs` | `WorkforceProfileId`, `Status` | Pemilik pengajuan ESS; nilai `Cancelled` dipakai transisi batal | Tidak |
+| | | `Reason` | Alasan izin; dapat memuat keterangan pribadi | **Ya** — tidak masuk log |
+| | | `IsCancel`, `CancelBy`, `CancelDateTime` (warisan) | Pembatalan oleh pemohon | Tidak |
+| `HrdOfficialDutyRequest` | `…/AttendanceManagement/Models/HrdOfficialDutyRequest.cs` | `WorkforceProfileId`, `Status`, `AttachmentUrl` | Pemilik, transisi batal, lampiran milik sendiri | Tidak |
+| | | `Purpose`, `Latitude`, `Longitude` | Maksud tugas dan lokasi | **Ya** (lokasi) — tidak masuk log |
+| `WfpOrganizationAssignment` | `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpOrganizationAssignment.cs` | `AssignmentType` (`Temporary`), `OrganizationUnitId`, `EffectiveStartDate`, `EffectiveEndDate`, `IsActive` | Daftar penempatan sementara (`HRD-DEC-240`) | Tidak |
+| `WfpScheduleChangeRequest`, `WfpShiftSwapRequest` | `…/SchedulingManagement/Models/` | `CurrentShiftAssignmentId`, `RequesterShiftAssignmentId`, `TargetShiftAssignmentId`, `RequestStatus` | Penentuan unit untuk cakupan (`VR-PK-35`) | Tidak |
+
+Nama kolom dan lokasi model di atas diperiksa terhadap source `4d2c0162` pada 24 November 2026. Nilai `Status` pengajuan yang dipakai: `Submitted` (saat dibuat), `Approved`, `Rejected`, dan `Cancelled` (baru dipakai transisi batal ESS); nilai bawaan model `Draft` tidak dipakai alur ini.

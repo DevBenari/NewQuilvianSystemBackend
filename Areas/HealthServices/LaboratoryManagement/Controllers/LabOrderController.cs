@@ -373,6 +373,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Create", "Create Lab Order", Description = "Membuat order pemeriksaan laboratorium", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("LabOrder", "Create")]
         public async Task<IActionResult> Create(
@@ -389,6 +390,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                     ApiResponse<LabOrderDetailResponse>.Ok(
                         result,
                         "Order laboratorium berhasil dibuat."));
+            }
+            catch (LabOrderValidationException ex)
+            {
+                // BE-LAB-101 / VAL-166: tanggal rencana sebelum hari ini. Tanpa tangkapan ini
+                // galat validasi jatuh ke 500 — endpoint ini sebelumnya tidak punya jalur 422.
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    ex.Message));
             }
             catch (UnauthorizedAccessException ex)
             {

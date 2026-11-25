@@ -4809,3 +4809,145 @@ Tidak ada integrasi lintas modul RS atau dampak billing baru. Integrasi di dalam
 | --- | --- | --- |
 | Kode definisi lembur rutin dan cuti tahunan yang diberi `AllowBulkApproval = true` (`HRD-ASM-90`) | Admin HR | Tidak — dipastikan saat implementasi dari Master Workflow |
 | Isi alasan penolakan per jenis selain SPPD | Admin HR | Tidak untuk development; ya untuk penggunaan Tolak di produksi |
+
+## 43. PRD → MVP Amandemen `A52-B` — Pembuka Task Tertahan Penjadwalan & Kehadiran (kontrak `v30`)
+
+### 43.1 Identitas dokumen
+
+| Field | Nilai |
+| --- | --- |
+| Produk | Quilvian V2 — Modul Human Resource |
+| Modul / slice | `human-resource` — amandemen `A52-B` atas `A52` (`S-B4`/`S-B1`, `PRD-HRD-PK-001`) |
+| Status | `approved` — pengguna, 24 November 2026 ("setujui kontrak v30, lanjut plan"); direncanakan pada roadmap revisi `25` |
+| Repository target | `NewQuilvianSystemBackend` (`4d2c0162`, branch `yoga`), `QuilvianSystemFrontendDev` (`004524f4c` + working tree, branch `YogaV2`) |
+| `input_revision` | `00-interview-decisions.md` revision `41` bagian 57 (`HRD-DEC-237` s.d. `HRD-DEC-245`); `02-backend-architecture.md` bagian 38; `03-frontend-architecture.md` bagian 34; kontrak `v30` |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — kemampuan HR operasional; tanpa konsep klinis atau billing baru |
+| Ringkasan cakupan | Menutup dua cacat yang ditemukan uji `FE-HRD-316`, membuka empat task yang tertahan keputusan, dan melengkapi layar M04 serta grup menu 12 menu Notion |
+
+### 43.2 Ringkasan eksekutif dan masalah produk
+
+Uji browser MVP `A52` dengan data asli (`FE-HRD-316`) menemukan dua hal yang membuat alur inti tidak dapat dipakai apa adanya. Selain itu, beberapa submenu PRD belum punya layar karena keputusannya tertahan.
+
+| Kondisi sekarang | Bukti |
+| --- | --- |
+| Sesudah Ganti Petugas, shift tetap tampil di baris petugas awal; pengganti tidak terlihat dan Ganti Petugas berikutnya ditolak | `FE-HRD-316` temuan T1, `HRD-TF-088` |
+| Tutup periode tertolak oleh pengecualian "belum scan pulang" milik hari yang justru akan diubah menjadi Alpa oleh tutup itu | `FE-HRD-316` temuan T2, `HRD-TF-089` |
+| Pegawai tidak dapat mengajukan izin pulang cepat dan dinas luar sendiri; `FE-HRD-100` tertahan | `HRD-TF-091`, `HRD-TF-094` |
+| Submenu "Penugasan Tambahan" tidak punya daftar lintas pegawai; `BE-HRD-359` tertahan | `DSG-Q-02` |
+| Submenu "Perubahan Shift" dan "Tukar Dinas" tidak punya layar HR, dan daftarnya di backend tidak dibatasi unit | `HRD-TF-090`, `HRD-TF-095` |
+| Grup menu 12 menu / 58 submenu tertahan (`FE-HRD-324`) | `DSG-Q-01` |
+
+### 43.3 Batas MVP
+
+| Batas | Isi |
+| --- | --- |
+| Titik mulai | Kepala Unit mengganti petugas pada roster terbit; pegawai mengajukan izin/dinas luar dari ESS; Kepala Unit membuka submenu mana pun di grup "Penjadwalan & Kehadiran" |
+| Titik akhir | Kisi roster menunjukkan petugas yang benar; periode berhasil ditutup dan rekap tak lengkap menjadi Alpa; pengajuan ESS diputuskan di layar HR; Perubahan Shift/Tukar Dinas diterapkan dari layar HR dalam cakupan unit; 58 submenu terjangkau |
+| `MUST HAVE` | `EPIC HRD-125` (kisi pengganti), `EPIC HRD-126` (tutup periode) — keduanya memperbaiki alur MVP `A52` yang sudah dijanjikan |
+| `SHOULD HAVE` | `EPIC HRD-127` ESS izin & dinas luar, `EPIC HRD-128` penempatan sementara, `EPIC HRD-129` layar HR Perubahan Shift/Tukar Dinas, `EPIC HRD-120` grup menu (dibuka kembali) |
+| Ditunda | Integrasi izin pulang cepat dan dinas luar ke engine workflow dan kotak masuk terpadu (`HRD-DEC-245`). Pengganti selama MVP: persetujuan di layar Izin Pulang Cepat dan Dinas Luar |
+| Di luar | Pemberian hak akses permanen (dilakukan Admin Sistem, `HRD-DEC-243`); kategori dokter/penunjang pada master jenis siaga |
+
+### 43.4 Alur bisnis target
+
+1. Kepala Unit ICU mengganti Indra dengan Raka pada Pagi 16 Feb. Kisi menampilkan "PA · Pengganti" di baris Raka dan sel Indra kosong. Raka jatuh sakit; Kepala Unit mengeklik sel Raka dan mengganti dengan Tono. Server menerima.
+2. Pada akhir Februari, Admin HRD membuka Penguncian Periode. Pratinjau menyebut Rina akan menjadi Alpa pada 10 Feb dan "1 pengecualian scan akan diselesaikan oleh penutupan". Admin HRD menekan Tutup; periode tertutup.
+3. Perawat Sari mengajukan izin pulang pukul 12.00 dari Layanan Mandiri. Kepala Ruang membuka Izin, melihat pengajuan Sari "Diajukan", lalu menyetujuinya. Sebelum diputuskan, Sari masih bisa membatalkan.
+4. Kepala Bidang membuka Penugasan Tambahan dan melihat Raka di IGD 1–14 Mar (asal ICU).
+5. Kepala Unit ICU membuka Tukar Dinas, menyaring "Disetujui — belum diterapkan", lalu menekan Terapkan pada tukar dinas Ani–Bayu 20 Feb.
+
+### 43.5 Epic dan functional requirement
+
+#### `EPIC HRD-125` — Kisi roster menampilkan petugas pengganti (`MUST HAVE`)
+
+| FR | Kebutuhan (dapat diuji) | Disposisi | Rujukan |
+| --- | --- | --- | --- |
+| `FR-PK-033` | Detail roster menempatkan setiap shift di baris petugas yang memegangnya sekarang, menandai shift pengganti beserta nama petugas awal, dan menambah baris tampilan untuk petugas yang hanya menjadi pengganti; kisi frontend menampilkan tanda "Pengganti" dan Ganti Petugas dari sel pengganti diterima | `EXTEND` | `HRD-DEC-237`, API 36.2, `AT-HRD-PK-47`, `AT-HRD-PK-53` |
+
+#### `EPIC HRD-126` — Tutup periode dengan rekap belum lengkap (`MUST HAVE`)
+
+| FR | Kebutuhan (dapat diuji) | Disposisi | Rujukan |
+| --- | --- | --- | --- |
+| `FR-PK-034` | Pengecualian scan hilang milik hari calon Alpa tidak memblokir tutup; tutup menyelesaikannya dalam transaksi yang sama dan mencatat jumlahnya; pengecualian lain tetap memblokir; layar menyebut jumlahnya pada konfirmasi dan hasil | `EXTEND` | `HRD-DEC-238`, API 36.3, `VR-PK-31`, `AT-HRD-PK-48`, `AT-HRD-PK-53` |
+
+#### `EPIC HRD-127` — ESS izin pulang cepat dan dinas luar (`SHOULD HAVE`)
+
+| FR | Kebutuhan (dapat diuji) | Disposisi | Rujukan |
+| --- | --- | --- | --- |
+| `FR-PK-035` | Pegawai mengajukan, melihat, dan membatalkan (hanya "Diajukan") izin pulang cepat miliknya; identitas dari sesi; pengajuan tampil di layar HR Izin dan diputuskan di sana; pemohon tidak dapat memutuskan pengajuannya sendiri | `MISSING / NEW` (endpoint), `EXTEND` (service) | `HRD-DEC-241`, `HRD-DEC-245`, API 36.4, `VR-PK-32` s.d. `VR-PK-34`, `VR-PK-36`, `AT-HRD-PK-49`, `AT-HRD-PK-55` |
+| `FR-PK-036` | Sama untuk surat tugas dinas luar, termasuk unggah dan unduh lampiran milik sendiri | `MISSING / NEW`, `EXTEND` | API 36.5, `AT-HRD-PK-50`, `AT-HRD-PK-55` |
+
+#### `EPIC HRD-128` — Daftar penempatan sementara (`SHOULD HAVE`)
+
+| FR | Kebutuhan (dapat diuji) | Disposisi | Rujukan |
+| --- | --- | --- | --- |
+| `FR-PK-037` | Daftar baca penempatan sementara lintas pegawai, tampil bila unit asal atau tujuan dalam cakupan; filter unit, tanggal, status waktu, cari; tanpa ubah | `MISSING / NEW` | `HRD-DEC-240`, API 36.6, `VR-PK-27`, `AT-HRD-PK-51`, `AT-HRD-PK-54` |
+
+#### `EPIC HRD-129` — Layar HR Perubahan Shift dan Tukar Dinas (`SHOULD HAVE`)
+
+| FR | Kebutuhan (dapat diuji) | Disposisi | Rujukan |
+| --- | --- | --- | --- |
+| `FR-PK-038` | Dua layar daftar HR dengan filter status, detail, riwayat workflow, dan Terapkan untuk pengajuan disetujui yang belum diterapkan; daftar dan Terapkan dibatasi cakupan unit | `EXISTING / REUSE` (endpoint), `EXTEND` (cakupan), `MISSING / NEW` (layar) | `HRD-DEC-242`, API 36.7, `VR-PK-35`, `AT-HRD-PK-52`, `AT-HRD-PK-54` |
+
+#### `EPIC HRD-120` — Grup menu 12 menu Notion (dibuka kembali, `SHOULD HAVE`)
+
+Disposisi berubah dari `OPEN DECISION` menjadi `EXTEND` (`HRD-DEC-239`, `HRD-DEC-240`). `FR-PK-032` dipertajam: grup "Penjadwalan & Kehadiran" berisi 58 entri sesuai `03-frontend-architecture.md` 34.2; entri yang berbagi layar membuka keadaan berbeda lewat parameter alamat; tidak ada dua entri beralamat identik; route lama tidak berubah. Bukti `AT-HRD-PK-56`.
+
+### 43.6 Model status
+
+Rujukan: `contracts/state-transition-matrix.md` bagian 34 (batal ESS `Submitted` → `Cancelled`; pengecualian konversi `Open`/`UnderReview` → `Closed` saat tutup).
+
+### 43.7 Matriks kewenangan
+
+Rujukan string: `contracts/permission-audit-matrix.md` bagian 34. Daftar periksa izin per peran di 34.3 matriks itu **menggantikan** tabel 40.14 dan menambah `AttendanceDashboard : Read`, `ScheduleChangeRequest`, `ShiftSwapRequest`, `EarlyLeavePermission`/`OfficialDutyRequest` (Kepala Unit), `TemporaryAssignment : Read`, `MyEarlyLeavePermission`, dan `MyOfficialDuty`. Pemberiannya oleh Admin Sistem (`HRD-DEC-243`).
+
+### 43.8 Batas integrasi dan billing
+
+Tidak ada integrasi lintas modul, billing, atau klinis baru. Integrasi di dalam HR: `INT-HR-115` s.d. `INT-HR-117` (`contracts/integration-contract.md` bagian 27). Kontrak payroll tidak berubah.
+
+### 43.9 Kebutuhan non-fungsional
+
+| Kebutuhan | Ukuran |
+| --- | --- |
+| Tanpa migration | Tidak ada perubahan skema; deploy biasa |
+| Kinerja detail roster | Pengelompokan ulang di memori atas data yang sama; tanpa kueri tambahan per baris |
+| Atomik | Tutup periode tetap satu transaksi `Serializable` |
+| Privasi | Endpoint ESS hanya data milik sendiri; alasan dan lokasi tidak masuk log |
+| Aksesibilitas | Tanda pengganti tidak hanya berupa warna |
+
+### 43.10 Skenario UAT
+
+| ID | Epic | Jalur | Skenario | Hasil yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `UAT-PK-16` | `HRD-125` | Berhasil | Ganti Indra dengan Raka (Pagi 16 Feb), lalu ganti Raka dengan Tono | Kisi: "Pengganti" di baris Raka, lalu di baris Tono; kedua penggantian diterima; Riwayat Revisi dua baris |
+| `UAT-PK-17` | `HRD-126` | Berhasil | Periode Februari, Rina "Belum Lengkap" 10 Feb dengan pengecualian "belum scan pulang"; Tutup | Periode tertutup; Rina Alpa; pengecualian selesai oleh penutupan |
+| `UAT-PK-18` | `HRD-126` | Gagal | Periode yang juga punya pengecualian jadwal bentrok terbuka | Tutup ditolak dengan isu pemblokir; tidak ada yang berubah |
+| `UAT-PK-19` | `HRD-127` | Berhasil | Sari mengajukan izin pulang 12.00; Kepala Ruang menyetujui di layar Izin | Status Disetujui; rekap harian Sari memakai izin |
+| `UAT-PK-20` | `HRD-127` | Gagal | Sari membatalkan izin yang sudah disetujui; Kepala Ruang menyetujui izinnya sendiri | Keduanya ditolak; status tidak berubah |
+| `UAT-PK-21` | `HRD-128` | Berhasil/gagal | Kepala Unit ICU membuka Penugasan Tambahan; menyaring unit HCU | Raka (IGD, asal ICU) tampil; filter HCU ditolak |
+| `UAT-PK-22` | `HRD-129` | Berhasil/gagal | Kepala Unit ICU menerapkan tukar dinas ICU; mencoba menerapkan pengajuan IGD lewat API | Tukar dinas ICU diterapkan; IGD tidak tampak dan ditolak `403` |
+| `UAT-PK-23` | `HRD-120` | Berhasil | Buka 58 submenu satu per satu | Setiap submenu membuka layar dan keadaan sesuai pemetaan |
+
+### 43.11 Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| `AT-HRD-PK-47` s.d. `AT-HRD-PK-52` dan `AT-HRD-PK-57` lulus di harness dengan kontrol negatif | Laporan task backend |
+| `UAT-PK-03` dan `UAT-PK-09` (bagian 40.18) lulus ulang dengan data asli devYoga, bersama `UAT-PK-16`, `UAT-PK-17` | Laporan verifikasi frontend |
+| `AT-HRD-PK-53` s.d. `AT-HRD-PK-56` lulus di browser, desktop dan ponsel | Laporan task frontend |
+| Regresi uji HR backend dan uji unit frontend tidak bertambah gagal dari baseline | Laporan task terakhir gelombang |
+| Lint dan build frontend lulus | Laporan task frontend |
+| Hak akses daftar periksa 34.3 diberikan Admin Sistem | Tangkapan Akses Role — **di luar kendali tim delivery** (`HRD-DEC-243`); butir tetap terbuka sampai dilakukan |
+
+### 43.12 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Prasyarat |
+| --- | --- | --- |
+| `MVP-74` | Backend: `FR-PK-033`, `FR-PK-034` (perbaikan), cakupan `FR-PK-038`, endpoint `FR-PK-035`–`037` | Kontrak `v30` disetujui |
+| `MVP-75` | Frontend: kisi pengganti, tutup periode, layar Perubahan Shift/Tukar Dinas, Penugasan Tambahan, ESS (`FE-HRD-100`) | Task backend pasangannya |
+| `MVP-76` | Frontend: grup menu 58 submenu dan parameter alamat layar tujuan; verifikasi browser gabungan | `MVP-75`; layar `FE-HRD-317` s.d. `FE-HRD-322` untuk entri bertanda Task (entri itu boleh tampil belakangan) |
+
+| Pertanyaan | Pemilik | Memblokir? |
+| --- | --- | --- |
+| Tidak ada pertanyaan bisnis terbuka | — | — |
+| ~~Aturan baru `VR-PK-36` (pemohon tidak memutuskan pengajuannya sendiri) diturunkan dari prinsip `VR-WF-02`~~ **Disetujui bersama kontrak `v30`, 24 November 2026** | Pengguna | Tidak |

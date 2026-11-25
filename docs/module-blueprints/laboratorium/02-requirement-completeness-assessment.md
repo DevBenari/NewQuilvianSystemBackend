@@ -4,13 +4,13 @@
 |---|---|
 | Blueprint ID | `laboratorium` |
 | Assessment ID | `LAB-RCG-001` |
-| Revision | `13` — bagian 0H, 2026-10-20: **`S16b` dipecah; `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan naik `READY_FOR_DOMAIN_DESIGN`** (nol `BLOCKING`, nol `CONFLICT` terbuka); `S16b-3` tetap ditunda. Sebelumnya `12` — bagian 0G, 2026-10-06: sesudah putaran 21, **delapan slice atau bagian naik `READY_FOR_DOMAIN_DESIGN`** — `S2b-1`, `S2b-3`, `S4d-2`, `S4e`, `S5`, `S6-1`, `S17-1`, `S18`; `S6` dan `S17` dipecah; dua penahan baru dari kode dan alur — `DEC-LAB-030` (`S2b-2`), `DEC-LAB-034` (`S6-2`); `S17-2` menunggu `LAB-COORD-015`; `S16b` ditunda Phase 2. Sebelumnya `11` — bagian 0F, 2026-09-25: sesudah putaran 19, **`S16a` naik `READY_FOR_DOMAIN_DESIGN`**; `S8` dilebur ke `S5`/`S6`; `S19` keluar dari desain; `S2b` dipecah tiga dengan dua penahan baru `DEC-LAB-028`, `DEC-LAB-029`. Sebelumnya `10` — bagian 0E, 2026-09-25: `S2b`, `S8`, `S16`, `S18`, `S19` dinilai ulang; kelimanya tetap `BUSINESS_DECISION_REQUIRED` dengan penahan bernama `DEC-LAB-022`..`027` dan `LAB-COORD-017`. Sebelumnya `9` — bagian 0D, 2026-09-25: `S4d-1` naik `READY_FOR_DOMAIN_DESIGN`; `S4d-2` dan `S4e` tertahan keputusan klinis baru. Sebelumnya `8` — bagian 0C, 2026-09-24: `S4` naik `READY_FOR_DOMAIN_DESIGN` untuk desain saja |
+| Revision | `14` — bagian 0I, 2026-11-25: **slice baru `S20` penjadwalan ulang pemeriksaan; `S20-1` sisi Laboratorium naik `READY_FOR_DOMAIN_DESIGN`** (nol `BLOCKING`, nol `CONFLICT` terbuka); `S20-2` layar pemesan dokter ditunda (`LAB-COORD-023`). Sebelumnya `13` — bagian 0H, 2026-10-20: **`S16b` dipecah; `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan naik `READY_FOR_DOMAIN_DESIGN`** (nol `BLOCKING`, nol `CONFLICT` terbuka); `S16b-3` tetap ditunda. Sebelumnya `12` — bagian 0G, 2026-10-06: sesudah putaran 21, **delapan slice atau bagian naik `READY_FOR_DOMAIN_DESIGN`** — `S2b-1`, `S2b-3`, `S4d-2`, `S4e`, `S5`, `S6-1`, `S17-1`, `S18`; `S6` dan `S17` dipecah; dua penahan baru dari kode dan alur — `DEC-LAB-030` (`S2b-2`), `DEC-LAB-034` (`S6-2`); `S17-2` menunggu `LAB-COORD-015`; `S16b` ditunda Phase 2. Sebelumnya `11` — bagian 0F, 2026-09-25: sesudah putaran 19, **`S16a` naik `READY_FOR_DOMAIN_DESIGN`**; `S8` dilebur ke `S5`/`S6`; `S19` keluar dari desain; `S2b` dipecah tiga dengan dua penahan baru `DEC-LAB-028`, `DEC-LAB-029`. Sebelumnya `10` — bagian 0E, 2026-09-25: `S2b`, `S8`, `S16`, `S18`, `S19` dinilai ulang; kelimanya tetap `BUSINESS_DECISION_REQUIRED` dengan penahan bernama `DEC-LAB-022`..`027` dan `LAB-COORD-017`. Sebelumnya `9` — bagian 0D, 2026-09-25: `S4d-1` naik `READY_FOR_DOMAIN_DESIGN`; `S4d-2` dan `S4e` tertahan keputusan klinis baru. Sebelumnya `8` — bagian 0C, 2026-09-24: `S4` naik `READY_FOR_DOMAIN_DESIGN` untuk desain saja |
 | Status | `draft` |
-| **Kesiapan keseluruhan** | **`PARTIALLY_READY`** — **revision 13 (0H.6): `S16b-1` dan `S16b-2` ditambahkan ke slice siap.** **Diperbarui revision 12, lihat 0G.13:** delapan slice atau bagian siap dikirim ke arsitektur domain; tiga tertahan (`S2b-2`, `S6-2`, `S17-2`). *Catatan revision 7 di bawah dipertahankan sebagai riwayat.* **Diperbarui revision 7.** Dua slice siap dikirim: `S4b` dan `S4c`. Catatan revision 6 tentang tiga penahan yang dapat ditutup pemilik modul **sudah dipakai habis pada 2026-09-18**, dan hasilnya tercatat 0B. **Sejak putaran itu, nol penahan tersisa yang dapat ditutup pemilik modul sendirian** — seluruhnya wewenang klinis atau manajemen rumah sakit. Lihat 0B.5 |
+| **Kesiapan keseluruhan** | **`PARTIALLY_READY`** — **revision 14 (0I.6): `S20-1` ditambahkan ke slice siap; `S20-2` ditunda.** **Revision 13 (0H.6): `S16b-1` dan `S16b-2` ditambahkan ke slice siap.** **Diperbarui revision 12, lihat 0G.13:** delapan slice atau bagian siap dikirim ke arsitektur domain; tiga tertahan (`S2b-2`, `S6-2`, `S17-2`). *Catatan revision 7 di bawah dipertahankan sebagai riwayat.* **Diperbarui revision 7.** Dua slice siap dikirim: `S4b` dan `S4c`. Catatan revision 6 tentang tiga penahan yang dapat ditutup pemilik modul **sudah dipakai habis pada 2026-09-18**, dan hasilnya tercatat 0B. **Sejak putaran itu, nol penahan tersisa yang dapat ditutup pemilik modul sendirian** — seluruhnya wewenang klinis atau manajemen rumah sakit. Lihat 0B.5 |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | Backend SHA | `c87d9c0` |
 | Frontend SHA | `688daff90` |
-| Masukan | **Revision 7:** `00-interview-decisions.md` revision 41; `blueprint-manifest.md` revision 56. **Revision 6:** `00-interview-decisions.md` revision 39; `01-existing-capability-map.md` revision 3; `blueprint-manifest.md` revision 54. **Revision 1-2:** decisions revision 14; capability map revision 1; `05-evidence-reconciliation.md` revision 2 |
+| Masukan | **Revision 14:** `00-interview-decisions.md` revisi 143 (`LAB-DEC-251`..`277`, BR-157); `01-existing-capability-map.md` revision 10 (BE `4d2c0162` / FE `004524f4c`). **Revision 7:** `00-interview-decisions.md` revision 41; `blueprint-manifest.md` revision 56. **Revision 6:** `00-interview-decisions.md` revision 39; `01-existing-capability-map.md` revision 3; `blueprint-manifest.md` revision 54. **Revision 1-2:** decisions revision 14; capability map revision 1; `05-evidence-reconciliation.md` revision 2 |
 | Tanggal penilaian | 2026-09-01; dinilai ulang 2026-09-17 (revision 6, sesudah `LAB-SIGN-001` ditutup); **dinilai ulang 2026-09-18** (revision 7, sesudah amendment pass putaran 6) |
 | Sifat | **Read-only** terhadap repository aplikasi |
 
@@ -1578,6 +1578,117 @@ domain menilainya perlu keputusan.
 
 ---
 
+## 0I. Penilaian Ulang Revision 14 — penjadwalan ulang pemeriksaan `S20` sesudah putaran 32 dan 33 (2026-11-25)
+
+Diminta pemilik modul sesudah gerbang `/design-business-module` menolak masuk: kemampuan *reschedule* (penjadwalan ulang)
+pemeriksaan Laboratorium belum pernah dinilai gerbang ini maupun arsitektur domain. Amendment pass putaran 32 dan closure
+pass putaran 33 sudah memutuskannya lengkap; bagian ini menilai apakah keputusan itu **cukup untuk mulai merancang**.
+
+*Penjadwalan ulang* berarti memindahkan **tanggal rencana pemeriksaan** sebuah pesanan Lab ke hari lain tanpa
+membatalkannya. Contoh: Gula Darah Puasa direncanakan Senin, pasien datang belum puasa, petugas memindahkannya ke Selasa
+dengan alasan *pasien belum puasa*. Nomor order dan kunjungannya tetap.
+
+### 0I.1 Identitas penilaian
+
+| Field | Nilai |
+|---|---|
+| Slice baru | **`S20`** Penjadwalan ulang pemeriksaan Laboratorium, dipecah dua: **`S20-1`** sisi Laboratorium (tanggal rencana pada pesanan, aksi jadwal ulang, riwayat, Daftar Pasien Lab, kiosk, izin); **`S20-2`** pilihan tanggal rencana pada layar pemesan dokter poli/IGD/Rawat Inap |
+| Alasan dipecah dua | `S20-2` berada di layar milik modul lain (`LAB-COORD-023`) dan sengaja menyusul (`LAB-DEC-269`). `S20-1` berdiri sendiri: pemanggil yang tidak mengirim tanggal memperoleh *hari ini* |
+| Bukti utama | `00-interview-decisions.md` **revisi 143** — putaran 32 (`LAB-DEC-251`..`269`, BR-157, `AC-338`..`352`) dan closure pass putaran 33 (`LAB-DEC-270`..`277`, `AC-353`..`356`) |
+| Bukti implementasi | `01-existing-capability-map.md` **revision 10** (`CAP-P32-01`..`15`) pada BE `4d2c0162` / FE `004524f4c` — sama dengan `HEAD`, **segar**; 2 kueri baca-saja devYoga |
+| Wewenang | Seluruh keputusan **disetujui pemilik modul** Yoga Aji Pratama, 2026-11-25, setiap pertanyaan dengan pilihan yang direkomendasikan; batas scope dikonfirmasi eksplisit (`LAB-DEC-251`). Yoga juga pemilik modul `mcu`, sehingga `LAB-DEC-272` sah bagi kedua sisi |
+| Baseline rujukan | **Tidak dipakai** — keputusan pemilik modul sudah lengkap; tidak ada gap yang butuh baseline rumah sakit Indonesia |
+| Hubungan dengan `S1b` | `S1b` (penyuntingan isi pesanan oleh **dokter**, `LAB-AMD-001`, masih `BUSINESS_DECISION_REQUIRED`) **tidak** dinilai ulang dan **tidak** menahan `S20`: jadwal ulang adalah aksi **petugas Lab** atas **tanggal rencana** saja, bukan penyuntingan pemeriksaan yang dipesan. Batas waktunya kebetulan sama — *sebelum sampel diambil* — tanpa saling bergantung |
+
+### 0I.2 `S20-1` — sisi Laboratorium: kedelapan belas dimensi
+
+| Dimensi | Status | Isi |
+|---|---|---|
+| 01 Tujuan | `CONFIRMED` | Pemeriksaan yang belum bisa dikerjakan pada hari rencananya dipindah tanpa membatalkan pesanan, dengan jejak siapa, kapan, dari-ke tanggal, dan alasan (`LAB-DEC-252`, BR-157) |
+| 02 Aktor | `CONFIRMED` | Pelaku: pemegang `LabOrder : Reschedule` — bawaan Analis Laboratorium (seeder salin dari `LabOrder : Hold`) dan Kepala Instalasi (langkah rilis); jabatan lain lewat admin (`LAB-DEC-254`, `LAB-DEC-274`). Pembaca riwayat: pemegang `LabOrder : Read` (`LAB-DEC-268`). Dokter: satu-satunya yang mencabut CITO pemeriksaan (`LAB-DEC-262`). Petugas MCU: pemilik jadwal pesanan bertaut MCU (`LAB-DEC-272`) |
+| 03 Pemicu / prasyarat | `CONFIRMED` | Pemicu: pasien belum siap, pasien meminta pindah, pasien tidak datang, atau kendala Lab. Prasyarat: pesanan punya tanggal rencana (pesanan lama = tanggal diminta WIB, `LAB-DEC-253`) |
+| 04 Alur utama | `CONFIRMED` | Daftar Pasien Lab bawaan *Tanggal Rencana = hari ini* + *Terlewat* → aksi *Jadwal Ulang* di baris atau detail → dialog tanggal baru + alasan → backend memeriksa penjaga → tanggal berganti + satu baris riwayat → pesanan pindah ke daftar tanggal baru (BR-157 langkah 1–6; `LAB-DEC-258`, `260`, `267`, `277`) |
+| 05 Alternatif / exception | `CONFIRMED` | Sampel sudah diambil → ditolak, arahkan ke batal wadah/ambil ulang (`LAB-DEC-270`); wadah `Rejected` → ditolak sampai ambil ulang diminta (`LAB-DEC-276`); kunjungan selesai → ditolak, pesan ulang (`LAB-DEC-261`); CITO aktif → ditolak, CITO permintaan = batal lalu pesan ulang (`LAB-DEC-262`, `271`); pesanan bertaut MCU → ditolak, ke petugas MCU (`LAB-DEC-272`); pasien datang lebih awal/terlambat → tetap dilayani (`LAB-DEC-259`) |
+| 06 Data minimum | `CONFIRMED` | Tanggal rencana pada pesanan — **tanggal kalender WIB saja**, disimpan sebagai tanggal murni (`LAB-DEC-263`). Per jadwal ulang: tanggal lama, tanggal baru, alasan teks bebas, pelaku, waktu (`LAB-DEC-252`, `256`). Penanda kelayakan + alasan per pesanan (`LAB-DEC-273`). Data pasien **tidak** bertambah |
+| 07 Aturan / validasi | `CONFIRMED` | BR-157 aturan 1–10 sesudah closure 33: tanggal baru ≥ hari ini WIB dan ≠ tanggal saat ini; alasan wajib pola `VAL-74`; jendela `Requested`/`Confirmed`/`OnHold`-nya + wadah nihil/`Planned` (wadah `Cancelled`/`RecollectionRequired` diabaikan, `OnHold` dinilai dari status sebelum ditahan, `Rejected` menolak); kunjungan bukan `Completed`/`Cancelled`/`NoShow`; nol CITO aktif (permintaan `Ordered` ber-CITO atau pemeriksaan ber-CITO yang tidak gugur/batal); tidak bertaut MCU; tanpa batas jumlah/jarak (`LAB-DEC-264`) |
+| 08 Status | `CONFIRMED` — **tidak ada status baru** | Jadwal ulang tidak mengubah status pesanan maupun wadah; `OnHold` tetap `OnHold` dengan `StatusBeforeHold` utuh (`LAB-DEC-257`). *Terlewat* adalah penanda yang dihitung saat dibaca, bukan status (`LAB-DEC-260`) |
+| 09 Kewenangan | `CONFIRMED` | Aksi izin baru `LabOrder : Reschedule`, terpisah dari `Update`/`Hold` (`LAB-DEC-254`); pemberian bawaan lewat seeder sekali jalan + langkah rilis (`LAB-DEC-274`). Layar: tanpa izin → tombol tidak tampil; berizin tapi tidak layak → nonaktif beralasan (`LAB-DEC-273`). Kepala Instalasi tanpa `LabMonitoring : Read` memakai detail pesanan — pemberian izin daftar **bukan** bagian slice ini |
+| 10 Dependency antarmodul | `CONFIRMED` | **Registrasi:** status kunjungan dibaca (`LAB-DEC-261`, jalur `VAL-67`). **MCU:** tautan komponen (`McuOrderComponent.LabOrderId`) dibaca untuk menolak; MCU juga menolak menjadwal ulang komponen yang sudah dipesan, sehingga tanggal tidak dapat bertentangan — `LAB-COORD-022` ditutup (`LAB-DEC-272`). **Administrator:** registri izin dan seeder (`LAB-DEC-274`). **Kiosk:** membaca tanggal rencana, nol tulis (`LAB-DEC-266`). Nol tulis ke modul lain |
+| 11 Integrasi | Tidak berlaku | Nol sistem luar, perangkat, atau layanan eksternal. Pemberitahuan WhatsApp ke pasien di luar scope (`S17`, `LAB-DEC-251`) |
+| 12 Hasil akhir | `CONFIRMED` | Pesanan tetap satu dengan tanggal rencana terbaru, riwayat lengkap terbaca, tampil di daftar tanggal barunya; tagihan, wadah, status, dan Laporan Pembatalan tidak berubah (BR-157 *Hasil akhir*; `AC-338`..`356`) |
+| 13 Pembatalan / koreksi | `CONFIRMED` + `PROPOSED` | **Dikonfirmasi:** jadwal ulang yang keliru dikoreksi dengan jadwal ulang berikutnya (tanpa batas jumlah, riwayat bertambah, `LAB-DEC-264`); jadwal ulang bukan pembatalan (`LAB-DEC-268`). **Usulan** (`NON_BLOCKING_STANDARD`): tidak ada aksi *batalkan jadwal ulang* terpisah — mengembalikan tanggal = jadwal ulang ke tanggal semula, beralasan |
+| 14 Audit | `CONFIRMED` | Setiap jadwal ulang tercatat: tanggal lama/baru, alasan, pelaku, waktu (`LAB-DEC-252`); terbaca pemegang `LabOrder : Read` (`LAB-DEC-268`). Pencabutan CITO oleh dokter sudah tercatat lewat mekanisme yang ada |
+| 15 Notifikasi | Tidak berlaku | Sistem tidak memberi tahu pasien maupun dokter; pasien dihubungi petugas di luar sistem (contoh `LAB-DEC-260`). Pemberitahuan otomatis = `S17`, di luar scope |
+| 16 Billing | `CONFIRMED` — tidak ada dampak | Jadwal ulang tidak membuat, mengubah, atau membalik tagihan; pesanan tetap pada kunjungan asal (`LAB-DEC-252`), dan kunjungan yang sudah tutup ditolak agar tagihan tidak menyusul ke sana (`LAB-DEC-261`). Kelayakan tagih (`S10`) tetap lahir dari wadah, tidak tersentuh. Jalan keluar *batal lalu pesan ulang* memakai alur batal yang sudah ada |
+| 17 Keselamatan klinis | `CONFIRMED` | (1) Pemeriksaan mendesak tidak dapat ditunda tanpa keputusan dokter — CITO aktif, termasuk pada permintaan, menolak (`LAB-DEC-262`, `271`). (2) Sampel yang sudah diambil tidak menggantung ke hari lain (`LAB-DEC-270`). (3) Tanggal rencana **penanda, bukan penghalang**: kesiapan klinis pasien (mis. puasa) tetap dinilai petugas, seperti sekarang (`LAB-DEC-259`) |
+| 18 Pelaporan | `CONFIRMED` | Tanpa laporan jadwal ulang pada slice ini (`LAB-DEC-268`); penanda *Terlewat* di daftar kerja (`LAB-DEC-260`); jadwal ulang **tidak** masuk Laporan Pembatalan (`CAP-P32-15`). Usulan laporan kelak lewat katalog `S16b` |
+
+### 0I.3 `S20-2` — pilihan tanggal pada layar pemesan dokter
+
+| Dimensi | Status | Isi |
+|---|---|---|
+| 01–07, 12 | `CONFIRMED` sisi Lab | Bawaan hari ini; pemesan boleh memilih tanggal ke depan, tidak boleh mundur (`LAB-DEC-253`). Backend Lab menerima ruas **opsional** — dirancang bersama `S20-1` |
+| 10 Dependency | `MISSING` di luar modul | Layar antrean dokter poli, IGD, dan Rawat Inap milik modul lain (F32-12, `CAP-P32-14`); kesediaan dan jadwal pemiliknya belum ada (`LAB-COORD-023`) |
+| Lainnya | Mengikuti `S20-1` | — |
+
+**Kesiapan `S20-2`: ditunda sebagai `LATER SLICE`** — bukan karena keputusan bisnis Lab yang terbuka, melainkan karena
+layar pemiliknya. Kontrak backend yang dibutuhkannya (ruas opsional) ikut dirancang di `S20-1`, sehingga `S20-2` kelak
+hanya pekerjaan layar modul lain.
+
+### 0I.4 Butir bermasalah dan dampaknya
+
+| Butir | Status | Dampak | Alasan klasifikasi |
+|---|---|---|---|
+| Dua petugas menjadwalkan ulang pesanan yang sama bersamaan: yang kedua ditolak lewat token konkurensi pesanan yang ada; layar basi tidak terdeteksi karena permintaan tidak membawa versi (`CAP-P32-06`) | `PROPOSED` | `NON_BLOCKING_STANDARD` | Perilaku standar pola Lab; tidak mengubah konsep tersimpan. Arsitek domain boleh menimbang apakah aksi ini membawa versi |
+| Tidak ada aksi *batalkan jadwal ulang* terpisah (0I.2 dimensi 13) | `PROPOSED` | `NON_BLOCKING_STANDARD` | Koreksi = jadwal ulang berikutnya; riwayat utuh |
+| Layar pembuatan pesanan milik Lab sendiri (Penerimaan Sampling, pasien datang langsung, rujukan luar) tidak menampilkan pilihan tanggal; pesanan lahir *hari ini* | `PROPOSED` | `NON_BLOCKING_STANDARD` | Pasien layar itu hadir hari itu; perpindahan tetap lewat jadwal ulang. `LAB-DEC-253` membolehkan pilihan, tidak mewajibkannya di setiap layar |
+| `LAB-COORD-023` — layar pemesan dokter | `MISSING` (di luar modul) | `NON_BLOCKING_STANDARD` bagi `S20-1` | Hanya menahan `S20-2`; `S20-1` berdiri dengan bawaan hari ini (`LAB-DEC-269`) |
+| `LAB-OPEN-056` — `POST /lab-orders` tanpa `VAL-67` | `MISSING` (keputusan perbaikan) | Di luar `S20` | Temuan impact scan di luar BR-157; `S20-1` memakai penjaga kunjungannya sendiri (`LAB-DEC-261`) |
+| Data uji: devYoga tidak punya pesanan `Confirmed` berwadah `Planned` bertanggal lampau, pesanan bertaut MCU di luar paket, maupun pesanan CITO pra-wadah | `MISSING` (data, bukan requirement) | `NON_BLOCKING_STANDARD` | Menyangkut bukti uji; butuh izin tulis tersendiri pada tahap pengujian |
+
+**Nol butir `BLOCKING`. Nol `CONFLICT` terbuka** — ketiga pertentangan capability map revision 10 (`CAP-P32-04`,
+`CAP-P32-08`, `CAP-P32-09`) dan rujukan `AvailableActions` (`CAP-P32-11`) sudah ditutup `LAB-DEC-270`..`273`.
+
+### 0I.5 Decision Log
+
+**Nol butir baru.** Seluruh keputusan yang dibutuhkan `S20-1` sudah `approved` (`LAB-DEC-251`..`277`; `LAB-DEC-255`
+superseded oleh `LAB-DEC-270`). `S20-2` menunggu `LAB-COORD-023`, koordinasi lintas modul — bukan keputusan bisnis Lab.
+
+### 0I.6 Kesiapan
+
+| Slice | Sebelumnya | **Revision 14** | Penahan atau syarat |
+|---|---|---|---|
+| `S20-1` sisi Laboratorium | Belum pernah dinilai | ✅ **`READY_FOR_DOMAIN_DESIGN`** | Nol. Syarat rancangan 0I.8 |
+| `S20-2` layar pemesan dokter | Belum pernah dinilai | **Ditunda — `LATER SLICE`** | `LAB-COORD-023` (pemilik layar poli/IGD/Rawat Inap) |
+
+**Kesiapan keseluruhan tetap `PARTIALLY_READY`** — satu slice naik; slice lain tidak disentuh.
+
+### 0I.7 Apa yang boleh berjalan dan apa yang harus berhenti
+
+| Boleh berjalan | Harus berhenti |
+|---|---|
+| `S20-1` ke `hospital-domain-architect`, lalu `/design-business-module` | Pilihan tanggal di layar dokter poli/IGD/Rawat Inap sampai `LAB-COORD-023` disepakati |
+| Ruas tanggal rencana **opsional** pada kedua jalur pembuatan pesanan (dirancang di `S20-1`) | Pencabutan CITO pada **permintaan** — sengaja tidak dibuat (`LAB-DEC-271`) |
+| Keputusan `LAB-OPEN-056` oleh pemilik modul, terpisah dari `S20` | Status pesanan baru, laporan jadwal ulang, pembatalan otomatis pesanan terlewat, pemberitahuan pasien |
+
+### 0I.8 Handoff ke `hospital-domain-architect`
+
+| Field | Nilai |
+|---|---|
+| Slice | `S20-1` |
+| Kesiapan | `READY_FOR_DOMAIN_DESIGN`, **independen** dari `S20-2` dan dari `S1b` |
+| Snapshot bukti | Decisions **rev 143**; capability map **rev 10**; backend `4d2c0162`; frontend `004524f4c` |
+| Decision ID yang mengikat | `LAB-DEC-251`..`LAB-DEC-277` (tanpa `LAB-DEC-255`, superseded); diwarisi `LAB-DEC-213` (kiosk nol tulis), `LAB-DEC-226`/`227` (CITO pemeriksaan), `LAB-DEC-237` (`VAL-74`), `VAL-67` |
+| Syarat rancangan wajib | (1) Tanggal rencana dan riwayatnya **milik pesanan Laboratorium** — tidak dipindah ke Registrasi, MCU, atau kunjungan. (2) **Nol status baru** pada `LAB-STATE-v1`; *Terlewat* dihitung saat dibaca, **nol job terjadwal** (A7.5). (3) Kelayakan jadwal ulang **satu rumus** dipakai penjaga aksi **dan** penanda per pesanan (`LAB-DEC-273`) — pola satu sumber seperti `INV-57`. (4) Penjaga lintas modul hanya **membaca**: status kunjungan (`BC-REG`) dan tautan komponen MCU; nol kontrak tulis baru. (5) Tanggal disimpan sebagai **tanggal murni WIB**, isi awal pesanan lama dari `RequestedAt` WIB (`LAB-DEC-253`, `263`) |
+| Usulan yang wajib tetap ditandai usulan | Seluruh baris `PROPOSED` pada 0I.4 |
+| Dependency | Registrasi (status kunjungan, baca), MCU (tautan komponen, baca), Administrator (registri izin, seeder), Kiosk (baca) |
+| Yang **tidak boleh** muncul | Status *Dijadwalkan Ulang*; job/pembatalan otomatis; batas jumlah atau jarak; penghalang pengerjaan menurut tanggal; endpoint pencabutan CITO permintaan; tulis ke data MCU; laporan jadwal ulang; jam atau sesi pada tanggal rencana |
+
+**Ke `grill-me`:** tidak ada yang dibutuhkan `S20-1`. Usulan 0I.4 dapat ditanyakan bila arsitek domain menilainya perlu
+keputusan.
+
+---
+
 ## 1. Scope Penilaian
 
 Yang dinilai adalah kemampuan Rilis 1 modul Laboratorium sebagaimana dibatasi `LAB-DEC-001`
@@ -1972,6 +2083,7 @@ menilai kebutuhan bisnis, bukan kontrak teknis; kontrak as-is yang berlaku ada d
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 14 | 2026-11-25 | **Slice baru `S20` penjadwalan ulang pemeriksaan dinilai sesudah amendment pass putaran 32 dan closure pass putaran 33** (bagian 0I). `S20` dipecah dua: **`S20-1` sisi Laboratorium** — kedelapan belas dimensi terisi, nol `BLOCKING`, nol `CONFLICT` terbuka, tiga usulan `NON_BLOCKING_STANDARD` (konkurensi layar basi, tanpa aksi batalkan jadwal ulang, layar pembuatan pesanan Lab tanpa pilihan tanggal) → **`READY_FOR_DOMAIN_DESIGN`**; **`S20-2` layar pemesan dokter** ditunda `LATER SLICE` (`LAB-COORD-023`). `S20` dinyatakan independen dari `S1b` (`LAB-AMD-001`). Decision Log: nol butir baru. Handoff 0I.8 ke `hospital-domain-architect` dengan lima syarat rancangan | `draft` |
 | 13 | 2026-10-20 | **`S16b` dinilai ulang sesudah amendment pass putaran 30 dan closure pass putaran 31** (bagian 0H). `S16b` dipecah tiga: **`S16b-1` Laporan Pembatalan Order & Pemeriksaan** dan **`S16b-2` Statistik Pesanan Laboratorium** naik **`READY_FOR_DOMAIN_DESIGN`** — kedelapan belas dimensi terjawab (`LAB-DEC-230`..`249`), nol `BLOCKING`, nol `CONFLICT` terbuka; **`S16b-3`** sisa katalog tetap ditunda. Empat usulan bertanda: jejak *membuka* laporan berisi identitas pasien, periode kosong, bawaan izin, data uji non-Rawat Jalan. Handoff 0H.8: syarat nol konsep tersimpan, baca dari peristiwa, batas privasi, baca `BC-REG` pertama bagi laporan, satu rumus dengan Beranda. Bukti: decisions rev 115, capability map rev 9 (BE `4d3e4f98`, FE `7fb1e1d3e`) | `draft` |
 | 12 | 2026-10-06 | **Sembilan slice dinilai ulang sesudah amendment pass putaran 21** (bagian 0G). **Delapan slice atau bagian naik `READY_FOR_DOMAIN_DESIGN`:** `S2b-1`, `S2b-3`, `S4d-2`, `S4e`, `S5`, `S6-1`, `S17-1`, `S18` (sisi Laboratorium). **Ratifikasi klinis `LAB-SIGN-002` diuji per keputusan** — tidak memblokir desain selama penolakan kelak tidak membongkar rancangan; satu syarat rancangan lahir darinya: empat mata ditegakkan per disiplin. **Dua penahan baru ditemukan gerbang ini:** `DEC-LAB-030` — nomor cetak tersimpan satu per order (`LabOrder.LabReportNumber`), sehingga order PA campuran histopatologi dan FNAB tidak punya seri yang pasti; `DEC-LAB-034` — akibat tarik hasil pada pemeriksaan, order *Selesai*, dan tagihan pemeriksaan ulang. `S6` dan `S17` dipecah; `S17-2` menunggu `LAB-COORD-015`, dan `owners.security` belum ditetapkan. Tiga butir dikunci sebelum kontrak, tidak memblokir desain: `DEC-LAB-031` (lebih dari satu `Sementara`), `DEC-LAB-032` (rilis mana yang dihitung `S7`/`S16a`), `DEC-LAB-033` (persetujuan perubahan SLA). Titik picu alur kritis ditetapkan **saat rilis** sebagai turunan langsung `LAB-DEC-004` dan `LAB-DEC-155`. `S16b` ditunda Phase 2, tidak dinilai | `draft` |
 | 11 | 2026-09-25 | **Kelima slice 0E dinilai ulang sesudah amendment pass putaran 19** (bagian 0F). **`S16a` naik `READY_FOR_DOMAIN_DESIGN`** — kedelapan belas dimensi terjawab atau berusulan tidak memblokir; laporan PA dan Mikrobiologi ditulis *belum dapat dihitung* sampai jalur rilisnya ada. `S8` **dilebur** ke `S5`/`S6`; `S19` **tidak dirancang**; `S18` sisi Laboratorium lengkap, penahannya di luar modul. **`S2b` dipecah tiga**, dan pembacaan ulang cetakan PA `LAB-EVD-005` menemukan dua hal yang belum pernah diputuskan: **lokasi bernomor lebih dari satu** (`DEC-LAB-029`, kardinalitas) dan **ruas Fiksasi** (`DEC-LAB-028`). Isi awal daftar lokasi diusulkan dari 166 baris lokasi SNOMED yang sudah ter-seed nonaktif | `draft` |

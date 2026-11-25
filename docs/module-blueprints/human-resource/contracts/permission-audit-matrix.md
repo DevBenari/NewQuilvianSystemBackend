@@ -1818,3 +1818,59 @@ Jejak keputusan tetap dicatat engine di `TrxApprovalAction` (tabel yang sama den
 | Persetujuan massal | Satu `TrxApprovalAction` per butir yang disetujui; ringkasan batch hanya dikembalikan di respons (tidak disimpan) | `batchNote` sebagai komentar | Pengguna |
 
 Data sensitif: komentar dan alasan tidak ditulis ke custom logger (`LoggerService`). Nilai `DigitalSignatureHash` lama dibiarkan sebagai data historis.
+
+## 34. Matriks Hak Akses & Jejak Audit Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v30`, approved 24 November 2026)
+
+Dasar: `HRD-DEC-240` s.d. `HRD-DEC-245`. Bagian 30 (`A52`, `v26`) tetap berlaku untuk yang tidak disebut.
+
+### 34.1 String hak akses baru
+
+| Resource | Action | Modul (`AccessController`) | Endpoint | Diberikan kepada (usulan daftar periksa) |
+| --- | --- | --- | --- | --- |
+| `MyEarlyLeavePermission` | `Read` | `HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE` | ESS izin: metadata, daftar, detail | Pegawai |
+| `MyEarlyLeavePermission` | `Create` | sama | ESS izin: ajukan | Pegawai |
+| `MyEarlyLeavePermission` | `Cancel` | sama | ESS izin: batal | Pegawai |
+| `MyOfficialDuty` | `Read` | sama | ESS dinas luar: metadata, daftar, detail, unduh lampiran sendiri | Pegawai |
+| `MyOfficialDuty` | `Create` | sama | ESS dinas luar: ajukan, unggah lampiran | Pegawai |
+| `MyOfficialDuty` | `Cancel` | sama | ESS dinas luar: batal | Pegawai |
+| `TemporaryAssignment` | `Read` | `HUMAN_RESOURCE_WORKFORCE_CORE` | Daftar penempatan sementara | Kepala Unit, Kepala Bidang, Admin HRD |
+
+### 34.2 Hak akses yang tidak berubah tetapi cakupannya berubah
+
+| Hak | Perubahan |
+| --- | --- |
+| `ScheduleChangeRequest : Read/Update` | Daftar, ringkasan, detail, workflow hanya dalam cakupan baca; Terapkan butuh cakupan kelola (`VR-PK-35`) |
+| `ShiftSwapRequest : Read/Update` | Sama; tukar dinas tampil bila salah satu shift dalam cakupan baca; Terapkan butuh kedua unit dalam cakupan kelola |
+| `EarlyLeavePermission : Approve/Reject`, `OfficialDutyRequest : Approve/Reject` | Tetap; kini juga memutuskan pengajuan dari ESS (`HRD-DEC-245`) |
+| `RosterPeriod : Read` | Tetap; respons detail diperluas (`HRD-DEC-237`) |
+| `AttendancePeriod : Close` | Tetap; tutup menyelesaikan pengecualian konversi (`HRD-DEC-238`) |
+
+Pemisahan tugas: pegawai yang juga Kepala Unit tidak boleh menyetujui atau menolak izin atau dinas luarnya sendiri (`VR-PK-36`). Pemeriksaan ini **belum ada** di `ApproveAsync`/`RejectAsync` kedua service (bukti: `EarlyLeavePermissionService.cs` baris 303 dan 380, `OfficialDutyRequestService.cs` baris 301 dan 452 hanya memeriksa status) dan ditambahkan oleh task backend ESS. Dasarnya prinsip pemisahan tugas yang sudah disetujui untuk persetujuan HR (`VR-WF-02`); kini relevan karena pegawai dapat mengajukan sendiri.
+
+### 34.3 Daftar periksa izin per peran (pengganti 40.14, `HRD-DEC-243`)
+
+Diberikan Admin Sistem lewat layar Akses Role per (departemen, jabatan). Butir DoD "hak akses sudah diberikan" tetap terbuka sampai Admin Sistem melakukannya.
+
+| Peran | String |
+| --- | --- |
+| Kepala Unit | `RosterPeriod : Read/Create/Update/RemoveShift`, `ShiftReplacement : Update`, `ScheduleChangeRequest : Read/Update`, `ShiftSwapRequest : Read/Update`, `EarlyLeavePermission : Read/Approve/Reject`, `OfficialDutyRequest : Read/Approve/Reject`, `TemporaryAssignment : Read`, `AttendanceReport : Read/Export`, `AttendanceDashboard : Read`, `MySchedule : Read` |
+| Kepala Bidang | `RosterPeriod : Read`, `TemporaryAssignment : Read`, `AttendanceReport : Read/Export`, `AttendanceDashboard : Read`, `MySchedule : Read` |
+| Admin HRD | `AttendanceSetting : Read/Update`, `AttendancePeriod : Read/Close/Reopen`, `Holiday : Read/Create/Update/Delete`, `AttendanceReport : Read/Export/ReadAllUnits`, `AttendanceDashboard : Read`, `ScheduleChangeRequest : Read/Update`, `ShiftSwapRequest : Read/Update`, `TemporaryAssignment : Read`, `MySchedule : Read` |
+| Petugas HR Scheduling (bila ada) | `RosterPeriod : ManageAllUnits` beserta aksi roster |
+| Petugas IT | `AttendanceDevice : Read/Create/Update/Delete` |
+| Pegawai | `MySchedule : Read`, `MyEarlyLeavePermission : Read/Create/Cancel`, `MyOfficialDuty : Read/Create/Cancel` |
+
+Nama action `AttendanceDashboard` mengikuti string di source (`BE-HRD-357`); daftar ini diperiksa ulang terhadap registri saat verifikasi.
+
+### 34.4 Jejak audit
+
+| Kejadian | Tempat | Isi (teks pesan; `AuditAsync` tidak menyimpan payload) | Pelaku |
+| --- | --- | --- | --- |
+| ESS ajukan izin pulang cepat | `LoggerService.AuditAsync` `EarlyLeavePermission.SelfCreate` | Id izin, tanggal, jam izin | Pegawai |
+| ESS batal izin | `EarlyLeavePermission.SelfCancel` | Id izin, status sebelum | Pegawai |
+| ESS ajukan / batal dinas luar | `OfficialDuty.SelfCreate`, `OfficialDuty.SelfCancel` | Id surat tugas, rentang | Pegawai |
+| Tutup periode | `AttendancePeriod.Close` (diperluas) | Kode periode, jumlah konversi, jumlah pengecualian konversi yang diselesaikan | Admin HRD |
+| Pengecualian diselesaikan oleh tutup | `HrdAttendanceException.ResolvedByUserId/ResolvedAt/ResolutionNote` | "Diselesaikan oleh penutupan periode {kode} (HRD-DEC-238): hari dikonversi menjadi Absent" | Admin HRD (penutup) |
+| Terapkan perubahan shift / tukar dinas | Perilaku yang ada | — | Kepala Unit / Admin HRD |
+
+Daftar penempatan sementara dan detail roster bersifat baca; tidak dicatat.

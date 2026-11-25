@@ -1423,3 +1423,19 @@ Dasar: `HRD-DEC-229` s.d. `HRD-DEC-236`. Aturan `VR-WF-01` s.d. `VR-WF-25` (bagi
 | `VR-WF-33` | Tidak ada tiket engine lama terbuka saat rilis penyatuan | Pemeriksaan pra-rilis (baca-saja) | Ada penugasan terbuka dengan `ApproverEmployeeId` terisi | Rilis tertahan (`HRD-DEC-236`); bukan respons API |
 
 Aturan yang **tidak** ditambahkan: tidak ada pembatasan jenis permohonan pada antrean (semua jenis engine tampil). Tidak ada batas waktu tambahan untuk Plh di luar `VR-WF-03`.
+
+## 35. Matriks Aturan Validasi Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v30`, approved 24 November 2026)
+
+Dasar: `HRD-DEC-237` s.d. `HRD-DEC-245`. Aturan `VR-PK-01` s.d. `VR-PK-30` tetap berlaku. `VR-PK-28` (rentang laporan dan ekspor paling lama 92 hari) **diterima tanpa perubahan** (`HRD-DEC-244`). `VR-PK-27` (filter unit di luar cakupan → `403`) kini juga berlaku untuk daftar penempatan sementara.
+
+| ID | Aturan | Kapan diperiksa | Kondisi gagal | Respons dan pesan |
+| --- | --- | --- | --- | --- |
+| `VR-PK-31` | Pengecualian konversi tidak memblokir tutup; pengecualian lain yang memblokir payroll tetap memblokir | `GET /periods/{id}/close-preview`, `POST /periods/{id}/close` | Ada pengecualian `Open`/`UnderReview` ber-`IsPayrollBlocking` yang **bukan** pengecualian konversi (38.9.2 arsitektur backend) | `409` dengan isu `PAYROLL_BLOCKING_EXCEPTION` (pesan yang ada); jumlah pengecualian konversi tidak dihitung |
+| `VR-PK-32` | Izin pulang cepat ESS membutuhkan rekap harian milik sendiri yang belum terkunci | `POST /self-services/human-resource/early-leave-permissions` | Tidak ada rekap harian pegawai pada `attendanceDate`; atau periodenya tertutup | `400` "Belum ada jadwal atau rekap kehadiran Anda pada tanggal ini." / `409` "Periode kehadiran tanggal ini sudah ditutup." |
+| `VR-PK-33` | Batal ESS hanya untuk pengajuan milik sendiri berstatus `Submitted`, dengan alasan | `POST …/{id}/cancel` (izin dan dinas luar) | Bukan milik sendiri; status bukan `Submitted`; alasan kosong atau lebih dari 500 | `404`; `409` "Pengajuan sudah diputuskan dan tidak dapat dibatalkan."; `400` "Alasan pembatalan wajib diisi." |
+| `VR-PK-34` | Identitas pegawai ESS hanya dari sesi | Semua endpoint 36.4–36.5 | Akun tanpa profil pegawai aktif | `404` "Akun ini belum terhubung ke profil pegawai." Parameter pegawai pada query/body diabaikan |
+| `VR-PK-35` | Terapkan perubahan shift / tukar dinas butuh cakupan kelola | `POST …/schedule-change-requests/{id}/apply`, `POST …/shift-swap-requests/{id}/apply` | Unit shift (atau salah satu dari dua unit tukar dinas) di luar cakupan kelola, tanpa `RosterPeriod : ManageAllUnits` | `403` "Anda tidak berwenang mengubah roster unit ini." Tidak ada perubahan data |
+| `VR-PK-36` | Pemohon tidak memutuskan pengajuannya sendiri | `POST …/early-leave-permissions/{id}/approve|reject`, `POST …/official-duties/{id}/approve|reject` | Pengguna yang memutuskan adalah pemilik pengajuan | `403` "Anda tidak dapat memutuskan pengajuan Anda sendiri." **Baru** — belum ada di source; prinsip `VR-WF-02` |
+| `VR-PK-37` | Ganti Petugas pada sel pengganti memakai petugas sekarang | `POST shift-replacements/{id}/replace` | `expectedWorkforceProfileId` ≠ petugas sekarang | `409` (aturan yang ada, pesan yang ada); frontend mengirim petugas sekarang (`HRD-DEC-237`) |
+
+Aturan yang **tidak** ditambahkan: tidak ada batas jumlah pengajuan ESS per hari selain aturan izin ganda yang ada; tidak ada batas tanggal mundur baru untuk izin ESS di luar periode terkunci.

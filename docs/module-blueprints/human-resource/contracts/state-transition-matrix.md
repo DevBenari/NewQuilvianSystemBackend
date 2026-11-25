@@ -2762,3 +2762,34 @@ Engine menilai tahap selesai dari penugasan **wajib** (`IsRequired = true`). Pen
 | Eskalasi kedua atas penugasan yang sama | Dilewati (`VR-WF-31`); atasan hasil eskalasi dapat dieskalasi lagi bila penugasannya sendiri lewat `DueAt` |
 | Persetujuan otomatis karena waktu habis | Tidak pernah terjadi (`VR-WF-11`, `HRD-DEC-185`) |
 | Aksi kotak terpadu pada instance engine V2 lama | Tidak tampil di antrean; aksi lewat path 35.2 untuk tahap engine lama menjawab `403` (tidak ada penugasan engine) |
+
+## 34. Matriks Transisi Status Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v30`, approved 24 November 2026)
+
+Dasar: `HRD-DEC-238`, `HRD-DEC-241`, `HRD-DEC-245`. Siklus roster, shift, periode, dan pengajuan ubah jadwal/tukar dinas **tidak berubah**.
+
+### 34.1 Izin pulang cepat dan surat tugas dinas luar — transisi batal baru
+
+```mermaid
+stateDiagram-v2
+    [*] --> Submitted : Diajukan (HR atas nama atau ESS)
+    Submitted --> Approved : Disetujui (layar HR)
+    Submitted --> Rejected : Ditolak (layar HR)
+    Submitted --> Cancelled : Dibatalkan pemohon (ESS, baru)
+```
+
+| Dari | Kejadian | Ke | Pelaku | Syarat | Efek samping |
+| --- | --- | --- | --- | --- | --- |
+| — | Ajukan dari ESS | `Submitted` | Pegawai | `VR-PK-32` (izin) / aturan yang ada (dinas luar); identitas dari sesi (`VR-PK-34`) | Log `SelfCreate` |
+| `Submitted` | Batal dari ESS | `Cancelled` | Pegawai pemilik | `VR-PK-33`; alasan batal wajib | `IsCancel = true`, `CancelBy`, `CancelDateTime`; log `SelfCancel`; tidak memengaruhi rekap harian |
+| `Approved`, `Rejected`, `Cancelled` | Batal dari ESS | Tetap | — | — | `409` "Pengajuan sudah diputuskan dan tidak dapat dibatalkan" |
+| `Submitted` | Setujui / Tolak | `Approved` / `Rejected` | Kepala Unit / HR | Aturan yang ada | Perilaku yang ada (rekap harian memakai izin yang disetujui) |
+
+Transisi ilegal: `Cancelled` → status lain; pembatalan oleh pegawai lain (`404`, data tidak tampak).
+
+### 34.2 Pengecualian presensi saat tutup periode
+
+| Dari | Kejadian | Ke | Pelaku | Syarat | Efek samping |
+| --- | --- | --- | --- | --- | --- |
+| `Open` / `UnderReview` | Periode ditutup dan rekap harinya dikonversi menjadi `Absent` | `Closed` | Admin HRD (penutup) | Pengecualian bertipe `MissingCheckIn`, `MissingCheckOut`, atau `Absent` dan menempel pada calon konversi (`VR-PK-31`) | `ResolvedByUserId`, `ResolvedAt`, `ResolutionNote` (HRD-DEC-238); dalam transaksi `Serializable` tutup |
+| `Open` / `UnderReview` (tipe lain atau bukan calon konversi) | Periode ditutup | — | — | Tetap memblokir tutup (`409`) | — |
+| `Closed` (oleh tutup) | Periode dibuka kembali | Tetap `Closed` | — | — | Konversi tidak dibatalkan; koreksi lewat koreksi presensi |
