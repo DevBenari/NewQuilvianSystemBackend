@@ -207,6 +207,111 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
                 berkas, $"Neraca saldo {data.PeriodName} berhasil diunduh.");
         }
 
+        public async Task<AccountingServiceResult<LedgerExportFile>> BuildIncomeStatementCsvAsync(
+            IncomeStatementQuery query,
+            CancellationToken ct = default)
+        {
+            var laporan = await GetIncomeStatementAsync(query, ct);
+
+            if (!laporan.Success || laporan.Data is null)
+                return AccountingServiceResult<LedgerExportFile>.Fail(laporan.StatusCode, laporan.Message);
+
+            var data = laporan.Data;
+            var namaBadanHukum = await NamaBadanHukumAsync(query.LegalEntityId, ct);
+
+            var kepala = new List<IReadOnlyList<string>>
+            {
+                AccLedgerCsv.BarisKepala("Laporan", "Laba Rugi"),
+                AccLedgerCsv.BarisKepala("Badan Hukum", namaBadanHukum),
+                AccLedgerCsv.BarisKepala("Periode", $"{data.PeriodName} ({data.PeriodCode})"),
+                AccLedgerCsv.BarisKepala(
+                    "YTD",
+                    $"{AccLedgerCsv.Tanggal(data.YearToDateStartDate)} s.d. {AccLedgerCsv.Tanggal(data.PeriodEndDate)}"),
+                AccLedgerCsv.BarisKepala(
+                    "Pembanding",
+                    data.ComparisonAvailable
+                        ? $"{data.ComparisonPeriodName} ({data.ComparisonPeriodCode})"
+                        : data.ComparisonUnavailableReason),
+                AccLedgerCsv.BarisKepala(
+                    "Unit Biaya",
+                    data.CostCenterId is null
+                        ? "Semua unit biaya"
+                        : $"{data.CostCenterCode} - {data.CostCenterName}"),
+                AccLedgerCsv.BarisKepala(
+                    "Akun Bersaldo Nol",
+                    query.IncludeZeroAccounts ? "Ditampilkan" : "Disembunyikan"),
+                AccLedgerCsv.BarisKepala("Diunduh", AccLedgerCsv.WaktuUnduh())
+            };
+
+            if (!string.IsNullOrWhiteSpace(data.CostCenterNotice))
+                kepala.Add(AccLedgerCsv.BarisKepala("Catatan", data.CostCenterNotice));
+
+            var kolom = new[]
+            {
+                AccLedgerCsv.Teks("Kode Akun"),
+                AccLedgerCsv.Teks("Nama Akun"),
+                AccLedgerCsv.Teks("Periode"),
+                AccLedgerCsv.Teks("Pembanding"),
+                AccLedgerCsv.Teks("Selisih"),
+                AccLedgerCsv.Teks("YTD"),
+                AccLedgerCsv.Teks("YTD Pembanding"),
+                AccLedgerCsv.Teks("Selisih YTD")
+            };
+
+            var isi = new List<IReadOnlyList<string>>();
+            var jumlahBaris = 0;
+
+            foreach (var bagian in data.Sections)
+            {
+                isi.Add(BarisLaporanKeuangan(string.Empty, bagian.Title.ToUpperInvariant(), null));
+
+                foreach (var b in bagian.Rows)
+                {
+                    isi.Add(BarisLaporanKeuangan(
+                        b.AccountCode,
+                        new string(' ', b.Depth * 2) + b.AccountName,
+                        b.Amounts));
+                    jumlahBaris++;
+                }
+
+                isi.Add(BarisLaporanKeuangan(string.Empty, $"Total {bagian.Title}", bagian.Total));
+            }
+
+            isi.Add(BarisLaporanKeuangan(string.Empty, "Laba (Rugi) Bersih", data.NetIncome));
+
+            var segmenUnit = data.CostCenterCode is null ? string.Empty : $"_{SegmenNamaBerkas(data.CostCenterCode)}";
+
+            var berkas = new LedgerExportFile
+            {
+                Content = AccLedgerCsv.Tulis(kepala, kolom, isi),
+                FileName = $"laba-rugi_{SegmenNamaBerkas(data.PeriodCode)}{segmenUnit}.csv",
+                RowCount = jumlahBaris
+            };
+
+            return AccountingServiceResult<LedgerExportFile>.Ok(
+                berkas, $"Laba rugi {data.PeriodName} berhasil diunduh.");
+        }
+
+        private static IReadOnlyList<string> BarisLaporanKeuangan(
+            string kode,
+            string nama,
+            FinancialStatementAmountsResponse? nilai)
+        {
+            static string Sel(decimal? angka) => angka.HasValue ? AccLedgerCsv.Angka(angka.Value) : string.Empty;
+
+            return new[]
+            {
+                string.IsNullOrEmpty(kode) ? string.Empty : AccLedgerCsv.Teks(kode),
+                AccLedgerCsv.Teks(nama),
+                nilai is null ? string.Empty : AccLedgerCsv.Angka(nilai.Current),
+                Sel(nilai?.Comparison),
+                Sel(nilai?.Variance),
+                Sel(nilai?.CurrentYearToDate),
+                Sel(nilai?.ComparisonYearToDate),
+                Sel(nilai?.VarianceYearToDate)
+            };
+        }
+
         private static AccountingServiceResult<LedgerExportFile> TolakMutasiTerlaluBanyak(string jumlah)
             => AccountingServiceResult<LedgerExportFile>.Fail(
                 StatusCodes.Status422UnprocessableEntity,

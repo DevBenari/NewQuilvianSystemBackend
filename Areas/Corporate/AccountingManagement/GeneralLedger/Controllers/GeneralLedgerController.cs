@@ -152,6 +152,67 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
             return File(hasil.Data!.Content, AccLedgerCsv.ContentType, hasil.Data.FileName);
         }
 
+        [HttpGet("income-statement")]
+        [AccessAction("Read", "Read General Ledger", Description = "Melihat laba rugi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("GeneralLedger", "Read")]
+        public async Task<IActionResult> GetIncomeStatement([FromQuery] IncomeStatementQuery query, CancellationToken ct)
+        {
+            var hasil = await _service.GetIncomeStatementAsync(query, ct);
+
+            var muatan = new
+            {
+                JenisLaporan = "LabaRugi",
+                query.LegalEntityId,
+                query.PeriodCode,
+                query.CostCenterId,
+                query.IncludeZeroAccounts,
+                hasil.StatusCode,
+                JumlahBaris = hasil.Data?.Sections.Sum(x => x.Rows.Count)
+            };
+
+            if (hasil.Success)
+            {
+                await _loggerService.InfoAsync(
+                    LogCategory, "FinancialStatement.IncomeStatement", hasil.Message, muatan);
+            }
+            else
+            {
+                await _loggerService.WarningAsync(
+                    LogCategory, "FinancialStatement.IncomeStatement", hasil.Message, muatan);
+            }
+
+            return ToActionResult(hasil);
+        }
+
+        [HttpGet("income-statement/export")]
+        [AccessAction("Read", "Read General Ledger", Description = "Mengunduh laba rugi sebagai CSV", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("GeneralLedger", "Read")]
+        public async Task<IActionResult> ExportIncomeStatement([FromQuery] IncomeStatementQuery query, CancellationToken ct)
+        {
+            var hasil = await _service.BuildIncomeStatementCsvAsync(query, ct);
+
+            var muatan = new
+            {
+                JenisLaporan = "LabaRugi",
+                query.LegalEntityId,
+                query.PeriodCode,
+                query.CostCenterId,
+                query.IncludeZeroAccounts,
+                hasil.StatusCode,
+                JumlahBaris = hasil.Data?.RowCount
+            };
+
+            if (!hasil.Success)
+            {
+                await _loggerService.WarningAsync(LogCategory, "GeneralLedger.Export", hasil.Message, muatan);
+                return ToActionResult(hasil);
+            }
+
+            await _loggerService.InfoAsync(LogCategory, "GeneralLedger.Export", hasil.Message, muatan);
+
+            return File(hasil.Data!.Content, AccLedgerCsv.ContentType, hasil.Data.FileName);
+        }
+
         [HttpGet("account-balance/{accountId:guid}")]
         [AccessAction("Read", "Read General Ledger", Description = "Melihat saldo satu akun", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("GeneralLedger", "Read")]

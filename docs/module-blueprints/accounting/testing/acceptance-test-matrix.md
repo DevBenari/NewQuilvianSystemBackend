@@ -329,13 +329,21 @@ decision log.
 
 | Skenario | Tanggal | Hasil | Bukti |
 |---|---|---|---|
+| `F1` | 25 Nov 2026 | `PASS` — jurnal Ditolak dan Diajukan yang menyentuh 4001 tidak masuk laba rugi | `fin-008-02-20261125` `06-jajak-draft` |
+| `F2` | 25 Nov 2026 | `PASS` — laba rugi 2019-12 identik sebelum dan sesudah JT/2019/12/00001 | sama, J3 |
+| `F3` | 25 Nov 2026 | `PASS` — tetap identik sesudah JB/2019/12/00001 disahkan | sama, J5 |
+| `F6` | 25 Nov 2026 | `PASS` — YTD 2026-12 = saldo neraca saldo 2026-12 per akun (sebelum data 2019 dibuat) | sama, I3 |
+| `F7` | 25 Nov 2026 | `PASS` — tanpa pembanding: `null` + alasan; dengan pembanding (2020 lawan 2019): angka dan selisih | sama, I2, J4 |
+| `F8` | 25 Nov 2026 | `PASS` untuk laba rugi — 4-1002 −30.000 mengurangi subtotal; neraca menunggu `008-03` | sama, J1 |
+| `F9` | 25 Nov 2026 | `PASS` untuk laba rugi (API) | sama, I4, I5 |
+| `F11` | 25 Nov 2026 | `PASS` (API) | sama, I6 |
 | `F10` | 24 Nov 2026 | `PASS` — akun 4001 unit `CC-MMC-00001` | `fe-acc-fin-005-01-20261124` A1/A2, U3 |
 | `F12` | 24 Nov 2026 | `PASS` — `400` pada ketiga endpoint buku besar | sama, A8 |
 | `F13` | 24 Nov 2026 | `PASS` untuk asal Manual dan Kejadian | sama, A5, U5, U7 |
 | `F14` | 24 Nov 2026 | Sebagian — saringan dari alamat lulus (U6); klik baris neraca menunggu `FE-ACC-FIN-008-03` | sama, U6, U8 |
 | `F15` | 24 + 25 Nov 2026 | `PASS` — berkas = layar; uji ulang sesudah penguatan identik | sama, A6/U4; `fin-005-01-ujiulang-20261125` U4; `fin-008-01-20261125` B7 |
-| `F16` | 24 + 25 Nov 2026 | Sebagian — `403` untuk 4 dari 8 endpoint (`movements`, `summary`, `movements/export`, `trial-balance/export`); laba rugi dan neraca menunggu `008-02`/`008-03` | `fe-acc-fin-005-01-20261124` U10; `fin-008-01-20261125` B6, V8 |
-| `F17` | 24 + 25 Nov 2026 | Sebagian — log unduhan buku besar dan neraca saldo tanpa nominal; laba rugi menunggu `008-02` | A12; `fin-008-01-20261125` B8 |
+| `F16` | 24 + 25 Nov 2026 | Sebagian — `403` untuk 6 dari 8 endpoint (`movements`, `summary`, `movements/export`, `trial-balance/export`, `income-statement`, `income-statement/export`); neraca menunggu `008-03` | `fe-acc-fin-005-01-20261124` U10; `fin-008-01-20261125` B6, V8 |
+| `F17` | 24 + 25 Nov 2026 | Sebagian — log unduhan buku besar dan neraca saldo, serta log baca dan unduh laba rugi, tanpa nominal; neraca menunggu `008-03` | A12; `fin-008-01-20261125` B8 |
 | `F18` | 25 Nov 2026 | `PASS` — 5 akun, total dan status sama dengan JSON; CSV dari layar = CSV dari API | `fin-008-01-20261125` B1–B5, V5 |
 | `F19` | — | **Ditunda** — runtime `WAIVED` (`ACC-DEC-156`); source tujuh butir terbukti. Untuk neraca saldo (`ACC-DEC-157`) hanya penanganan pesan di layar yang diuji, dengan simulasi (V10) | Laporan `BE-ACC-FIN-005-01` bagian 8 |
 | `F20` | — | `NOT RUN` — butuh Excel komputer rumah sakit; milik tim UAT | — |

@@ -50,7 +50,7 @@ flowchart LR
 
     BEACCFIN00501["✅ BE-ACC-FIN-005-01<br/>Buku besar diperluas dan CSV"]:::selesai
     BEACCFIN00801["✅ BE-ACC-FIN-008-01<br/>CSV neraca saldo"]:::selesai
-    BEACCFIN00802["BE-ACC-FIN-008-02<br/>Laba rugi periode dan YTD"]:::belum
+    BEACCFIN00802["✅ BE-ACC-FIN-008-02<br/>Laba rugi periode dan YTD"]:::selesai
     BEACCFIN00803["BE-ACC-FIN-008-03<br/>Neraca dengan laba belum ditutup"]:::belum
     BEACCFIN00804["⛔ BE-ACC-FIN-008-04<br/>Rasio keuangan"]:::terblokir
     BEACCFIN00805["⛔ BE-ACC-FIN-008-05<br/>Analisis target pendapatan"]:::terblokir
@@ -123,7 +123,7 @@ dikerjakan, atau dikeluarkan dari lingkup lewat keputusan Rizki.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | ✅ `BE-ACC-FIN-005-01` | Buku besar dapat disaring unit biaya, membawa asal jurnal, punya ringkasan saldo, dan dapat diunduh CSV | `FR-FIN-001`..`005`; `ACC-DEC-141`, `147`, `148`, `149`, `155` | `ACC-API-0.17` (`movements`, `movements/summary`, `movements/export`); `VAL-GL-01`..`03`, `06` | `BarisDisahkan`, `GetMovementsAsync`, `LoggerService` | Lihat kartu | — | AC-1..AC-8 kartu | Swagger + layar, `F10`, `F12`, `F13`, `F15`, `F16`, `F19` | Pemecahan `partial` menggeser `GetMovementsAsync` — regresi buku besar; Rizki | Kartu |
 | ✅ `BE-ACC-FIN-008-01` | Neraca saldo dapat diunduh CSV | `FR-FIN-030`; `ACC-DEC-149`, `153`, `155` | `ACC-API-0.17` (`trial-balance/export`) | `GetTrialBalanceAsync`, `AccLedgerCsv` | Lihat kartu | `BE-ACC-FIN-005-01` | AC-1..AC-5 | `F18`, `F16`, `F20` | Rendah; Rizki | Kartu |
-| `BE-ACC-FIN-008-02` | Laba rugi periode dan YTD dengan pembanding, tanpa jurnal `JT`, dapat disaring unit biaya, tercatat saat dibuka, dapat diunduh | `FR-FIN-010`..`015`; `ACC-DEC-142`, `144`..`147`, `149`, `150`, `155` | `ACC-API-0.17` (`income-statement`, `/export`); `VAL-GL-01`, `04`, `05`, `08` | `BarisDisahkan`, `AccJournalTypeService.CariMenurutKodeAsync`, `AccLedgerCsv` | Lihat kartu | `BE-ACC-FIN-005-01` | AC-1..AC-10 | `F1`..`F3`, `F6`, `F7`, `F8`, `F9`, `F11`, `F16`, `F17` | Rumus pengecualian `JT` dan hierarki; Rizki | Kartu |
+| ✅ `BE-ACC-FIN-008-02` | Laba rugi periode dan YTD dengan pembanding, tanpa jurnal `JT`, dapat disaring unit biaya, tercatat saat dibuka, dapat diunduh | `FR-FIN-010`..`015`; `ACC-DEC-142`, `144`..`147`, `149`, `150`, `155` | `ACC-API-0.17` (`income-statement`, `/export`); `VAL-GL-01`, `04`, `05`, `08` | `BarisDisahkan`, `AccJournalTypeService.CariMenurutKodeAsync`, `AccLedgerCsv` | Lihat kartu | `BE-ACC-FIN-005-01` | AC-1..AC-10 | `F1`..`F3`, `F6`, `F7`, `F8`, `F9`, `F11`, `F16`, `F17` | Rumus pengecualian `JT` dan hierarki; Rizki | Kartu |
 | `BE-ACC-FIN-008-03` | Neraca per akhir periode dengan pembanding, dua baris laba belum ditutup, status seimbang, tercatat saat dibuka, dapat diunduh | `FR-FIN-012`, `014`, `015`, `020`..`022`; `ACC-DEC-143`..`146`, `149`, `150`, `154`, `155` | `ACC-API-0.17` (`balance-sheet`, `/export`); `VAL-GL-04`, `05`, `07`..`09` | Penyusun hierarki dan rentang periode dari `008-02` | Lihat kartu | `BE-ACC-FIN-008-02` | AC-1..AC-9 | `F4`, `F5`, `F8`, `F9`, `F14`, `F16`, `F17` | Rumus laba tahun berjalan; Rizki | Kartu |
 | ⛔ `BE-ACC-FIN-008-04` | Rasio keuangan | ACC-FIN-008 (PRD) | Belum dirancang | — | Belum dirancang | `U-05`, `BE-ACC-FIN-008-03` | — | — | Pemilik proses akuntansi | — |
 | ⛔ `BE-ACC-FIN-008-05` | Analisis target pendapatan | ACC-FIN-008 (PRD) | Belum dirancang | — | Belum dirancang | `C-02`, `BE-ACC-FIN-008-02` | — | — | Rizki + owner Pengadaan | — |
@@ -291,7 +291,9 @@ akun → 112 baris akun + 1 baris total + 1 baris status.
 
 ---
 
-## `BE-ACC-FIN-008-02` — Laba rugi periode dan YTD
+## ✅ `BE-ACC-FIN-008-02` — Laba rugi periode dan YTD
+
+**Status:** ✅ SELESAI (development), 25 November 2026. AC-1..AC-10 `RUNTIME VERIFIED`: uji API 13 PASS + 2 diganti uji tutup tahun 5/5 PASS (JT/2019/12/00001 dan pembaliknya, akun kontra 4-1002, pembanding 2020 lawan 2019 — data uji 2019/2020 dibuat lewat aplikasi atas persetujuan Rizki, tercatat di `persiapan.json`). Build `PASS` (Rizki, DLL 09:48:52 WIB); QBE Strict 5 berkas `PASS`. UAT belum dijalankan — milik tim UAT. Bukti: [laporan BE-ACC-FIN-008-02](../task/report/backend/BE-ACC-FIN-008-02.md).
 
 **Gelombang pengiriman:** `FIN-1`. **Pasangan frontend:** `FE-ACC-FIN-008-02`.
 
