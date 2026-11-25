@@ -44,6 +44,41 @@ public sealed class PayrollOpeningTaxBalanceQuery
     public int PageSize { get; set; } = 25;
 }
 
+/// <summary>Pencarian opsi tenaga kerja (pegawai dan dokter) untuk form saldo awal PPh (PAY-BE-FIX-035).</summary>
+public sealed class PayrollOpeningTaxBalanceWorkforceQuery
+{
+    /// <summary>Cari nama, nomor/kode pegawai, atau nomor/kode dokter.</summary>
+    public string? Search { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 25;
+}
+
+/// <summary>
+/// Satu opsi tenaga kerja untuk saldo awal PPh. <see cref="WorkforceProfileId"/> adalah identitas pemilik saldo (MstWorkforceProfile.Id),
+/// BUKAN MstEmployee.Id maupun MstDoctor.Id. Satu profil muncul sekali walau memiliki relasi ke lebih dari satu tabel. Hanya identitas
+/// tampilan; tidak ada data pribadi atau nominal pajak.
+/// </summary>
+public sealed class PayrollOpeningTaxBalanceWorkforceOptionResponse
+{
+    public Guid WorkforceProfileId { get; set; }
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Employee | Doctor.</summary>
+    public string WorkforceType { get; set; } = string.Empty;
+
+    /// <summary>Pegawai | Dokter.</summary>
+    public string WorkforceTypeLabel { get; set; } = string.Empty;
+
+    /// <summary>Nomor pegawai (NIP) atau nomor dokter; kosong bila tidak tersedia.</summary>
+    public string? Number { get; set; }
+
+    /// <summary>NIP | Nomor Dokter.</summary>
+    public string NumberLabel { get; set; } = string.Empty;
+
+    /// <summary>Teks siap tampil: "Nama — Pegawai (NIP ...)" atau "Nama — Dokter (Nomor Dokter ...)".</summary>
+    public string Label { get; set; } = string.Empty;
+}
+
 /// <summary>Aksi yang sedang boleh dilakukan pemanggil pada saldo awal ini (bantuan tampilan; setiap aksi diperiksa ulang di backend).</summary>
 public sealed class PayrollOpeningTaxBalanceActionsResponse
 {

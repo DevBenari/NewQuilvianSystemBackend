@@ -30,6 +30,52 @@ public static class PayrollRunSubmissionModes
     public const string ReviewOnly = "ReviewOnly";
 }
 
+/// <summary>
+/// PAY-BE-FIX-034: tahap keputusan persetujuan yang eksplisit dan konsisten di daftar maupun detail, diturunkan dari data yang sudah
+/// tersimpan (status run + jejak pengesahan bersyarat pada ValidationSummaryJson); TANPA kolom/status baru dan tanpa migration. Tahap
+/// <see cref="AdministrativeApprovedTaxPending"/> BUKAN Approved: RunStatus tetap Submitted, sehingga seluruh konsumen hilir (Finance Handoff,
+/// konfirmasi potongan AR, instruksi pembayaran, slip final, laporan PPh resmi) tidak membukanya.
+/// </summary>
+public static class PayrollRunApprovalStages
+{
+    /// <summary>Bukan tahap persetujuan (belum diajukan atau sudah dibatalkan).</summary>
+    public const string None = "NONE";
+
+    /// <summary>Diajukan, menunggu keputusan persetujuan.</summary>
+    public const string AwaitingDecision = "AWAITING_DECISION";
+
+    /// <summary>Disetujui administratif, PPh BELUM FINAL: menunggu finalisasi PPh. Bukan pengesahan final dan bukan siap dibayar.</summary>
+    public const string AdministrativeApprovedTaxPending = "ADMINISTRATIVE_APPROVED_TAX_PENDING";
+
+    /// <summary>Pengesahan final (Approved dan sesudahnya).</summary>
+    public const string FinalApproved = "FINAL_APPROVED";
+}
+
+/// <summary>
+/// PAY-BE-FIX-033: langkah berikutnya menuju pengesahan FINAL untuk run Submitted. Informasi tampilan; endpoint mutasi tetap memeriksa ulang
+/// seluruh syarat. Klien memilih tampilan dari kode ini, bukan dari teks pesan.
+/// </summary>
+public static class PayrollRunApprovalNextSteps
+{
+    /// <summary>Bukan run Submitted (atau tidak ada langkah persetujuan).</summary>
+    public const string None = "NONE";
+
+    /// <summary>Seluruh syarat terpenuhi: run dapat disahkan final (izin PayrollRun:Approve tetap diperiksa terpisah).</summary>
+    public const string ApproveFinal = "APPROVE_FINAL";
+
+    /// <summary>PPh sementara dan run layak disahkan bersyarat (administratif); belum disahkan bersyarat.</summary>
+    public const string ApproveConditionally = "APPROVE_CONDITIONALLY";
+
+    /// <summary>
+    /// PPh belum final (run review-only), baik sudah maupun belum disahkan bersyarat: histori/penetapan PPh harus diselesaikan secara sah,
+    /// run dikembalikan, dihitung ulang, diajukan ulang, lalu disahkan normal. Estimasi tidak pernah menjadi PPh resmi.
+    /// </summary>
+    public const string ResolveTaxData = "RESOLVE_TAX_DATA";
+
+    /// <summary>Ada penahan selain PPh sementara (penerima bermasalah, sumber berubah, dst.).</summary>
+    public const string ResolveOtherBlockers = "RESOLVE_OTHER_BLOCKERS";
+}
+
 /// <summary>Kode alasan pengajuan review-only belum dapat dilakukan (PAY-BE-FIX-031). Keputusan klien memakai kode, bukan teks pesan.</summary>
 public static class PayrollRunReviewBlockCodes
 {
@@ -130,6 +176,12 @@ public class PayrollRunListItemResponse
 
     /// <summary>BELUM_FINAL bila <see cref="IsTaxProvisional"/>; null selain itu. Aditif.</summary>
     public string? TaxFinalStatus { get; set; }
+
+    /// <summary>
+    /// PAY-BE-FIX-034: tahap keputusan persetujuan (<see cref="PayrollRunApprovalStages"/>), sama pada daftar dan detail. Diturunkan dari
+    /// data tersimpan; BUKAN status run baru. Aditif.
+    /// </summary>
+    public string ApprovalStage { get; set; } = PayrollRunApprovalStages.None;
 
     /// <summary>Total PPh sementara (estimasi) saat diajukan untuk review; null bila bukan pengajuan review. BUKAN TotalTax resmi. Aditif.</summary>
     public decimal? ProvisionalTaxTotal { get; set; }
@@ -786,6 +838,32 @@ public sealed class PayrollRunDetailResponse : PayrollRunListItemResponse
 
     /// <summary>NONE | CONDITIONAL. CONDITIONAL tidak pernah berarti pajak final. Aditif.</summary>
     public string TaxApprovalStatus { get; set; } = "NONE";
+
+    /// <summary>
+    /// PAY-BE-FIX-033: true bila run Submitted sudah disahkan bersyarat dan masih menunggu pengesahan final. Bukan izin mengesahkan: aksi
+    /// "ContinueApproval" pada <see cref="AvailableActions"/> hanya membuka panduan/pemeriksaan; tidak ada perubahan data dan tidak
+    /// menggantikan validasi endpoint approve. Aditif.
+    /// </summary>
+    public bool CanContinueApproval { get; set; }
+
+    /// <summary>PAY-BE-FIX-033: langkah berikutnya menuju pengesahan final (<see cref="PayrollRunApprovalNextSteps"/>). Aditif.</summary>
+    public string ApprovalNextStep { get; set; } = PayrollRunApprovalNextSteps.None;
+
+    /// <summary>
+    /// PAY-BE-FIX-033: true bila pengesahan final menunggu nilai PPh yang sah (run Submitted dengan PPh sementara). Estimasi tidak pernah
+    /// dianggap PPh resmi. Aditif.
+    /// </summary>
+    public bool TaxResolutionRequired { get; set; }
+
+    /// <summary>
+    /// PAY-BE-FIX-033/034: penahan NYATA yang masih ada (teks siap tampil). Untuk run dengan PPh sementara, histori PPh yang belum lengkap TIDAK
+    /// dihitung di sini (itu tindak lanjut finalisasi, lihat <see cref="ContinueApprovalSteps"/>): hanya penerima bermasalah, belum terhitung,
+    /// sumber berubah, snapshot lama, atau penahan non-PPh. Kosong bila tidak ada penahan selain PPh. Aditif.
+    /// </summary>
+    public List<string> ContinueApprovalBlockReasons { get; set; } = new();
+
+    /// <summary>PAY-BE-FIX-033: langkah penyelesaian berurutan (teks siap tampil); kosong bila tidak ada tindak lanjut. Aditif.</summary>
+    public List<string> ContinueApprovalSteps { get; set; } = new();
 
     /// <summary>Jejak pengesahan bersyarat; null bila belum. Aditif.</summary>
     public PayrollRunConditionalApprovalResponse? ConditionalApproval { get; set; }

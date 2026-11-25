@@ -164,7 +164,7 @@ public sealed class BillingEncounterPaymentHistoryService
         {
             var settlement = group.First().Settlement;
             var target = settlement.RequestedAmount;
-            var roundedTarget = Math.Round(target, 0, MidpointRounding.AwayFromZero);
+            var roundedTarget = BillingPaymentRounding.RoundUp(target);
             var runningTotal = 0m;
 
             foreach (var (_, tender) in group.OrderBy(x => x.Tender.AttemptedAt).ThenBy(x => x.Tender.Id))

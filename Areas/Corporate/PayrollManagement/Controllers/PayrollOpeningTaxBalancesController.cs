@@ -13,7 +13,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers;
 /// Saldo awal PPh historis (Opening Tax Balance, PAY-BE-FIX-016): jalur sah melengkapi riwayat tahun pajak yang tidak punya payroll run di
 /// Quilvian, untuk rekonsiliasi masa pajak terakhir. Arketipe: master dengan lifecycle persetujuan, sehingga perpindahan status adalah
 /// aksi bernama (<c>submit</c>, <c>approve</c>, <c>reject</c>, <c>revise</c>), bukan <c>PATCH status</c> generik, dan tidak ada
-/// <c>GET /options</c> karena saldo awal bukan isi dropdown. Izin dipisah per kemampuan di Akses Role: Read, Create, Update, Submit,
+/// <c>GET /options</c> karena saldo awal bukan isi dropdown; satu-satunya opsi adalah <c>GET workforce/options</c> (pegawai dan dokter pemilik saldo). Izin dipisah per kemampuan di Akses Role: Read, Create, Update, Submit,
 /// Approve, Reject, Delete, dan ViewAmount (nominal sensitif). Penyetuju selalu berbeda dari pengaju dan wajib punya ViewAmount.
 /// Tidak pernah mengubah payroll run yang sudah final.
 /// </summary>
@@ -69,6 +69,16 @@ public sealed class PayrollOpeningTaxBalancesController : ControllerBase
         return await PayrollControllerSupport.RunAsync(() => _service.ListAsync(query, caller, cancellationToken), "Daftar saldo awal PPh berhasil dimuat.");
     }
 
+    /// <summary>
+    /// PAY-BE-FIX-035: opsi pemilik saldo (pegawai dan dokter) dengan value = WorkforceProfileId, berpencarian dan berhalaman. Dipakai form
+    /// tambah saldo awal; izin Create karena hanya penyusun draf yang memilih pemilik. Murni baca.
+    /// </summary>
+    [HttpGet("workforce/options")]
+    [AccessAction("Create", "Create Payroll Opening Tax Balance", Description = "Menyusun draf saldo awal PPh historis", AccessType = AccessTypes.Create, SortOrder = 3)]
+    [AccessPermission("PayrollOpeningTaxBalance", "Create")]
+    public Task<IActionResult> GetWorkforceOptions([FromQuery] PayrollOpeningTaxBalanceWorkforceQuery query, CancellationToken cancellationToken) =>
+        PayrollControllerSupport.RunAsync(() => _service.GetWorkforceOptionsAsync(query, cancellationToken), "Pilihan pegawai dan dokter berhasil dimuat.");
+
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Payroll Opening Tax Balance", Description = "Melihat saldo awal PPh historis", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("PayrollOpeningTaxBalance", "Read")]
@@ -123,7 +133,7 @@ public sealed class PayrollOpeningTaxBalancesController : ControllerBase
     }
 
     [HttpPost("{id:guid}/submit")]
-    [AccessAction("Submit", "Submit Payroll Opening Tax Balance", Description = "Mengajukan saldo awal PPh (beserta dokumen sumber) untuk disetujui", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessAction("Submit", "Submit Payroll Opening Tax Balance", Description = "Mengajukan saldo awal PPh untuk disetujui", AccessType = AccessTypes.Update, SortOrder = 5)]
     [AccessPermission("PayrollOpeningTaxBalance", "Submit")]
     public async Task<IActionResult> Submit(Guid id, CancellationToken cancellationToken)
     {

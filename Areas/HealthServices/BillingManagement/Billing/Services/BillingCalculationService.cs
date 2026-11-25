@@ -513,7 +513,8 @@ public class BillingCalculationService : IBillingCalculationService
         var paid = paidAmount ?? 0m;
         var remaining = remainingAmount ?? Math.Max(0m, version.PatientAmount - paid);
         var originalPayable = remaining;
-        var roundedPayable = Math.Round(originalPayable, 0, MidpointRounding.AwayFromZero);
+        // BE-BKC-FIX-027: sisa pembayaran dibulatkan KE ATAS ke rupiah penuh (semua metode; BillingPaymentRounding).
+        var roundedPayable = BillingPaymentRounding.RoundUp(originalPayable);
         var roundingAdjustment = roundedPayable - originalPayable;
         var isFullyPaid = remaining <= 0m;
         var paymentStatus = isFullyPaid ? "LUNAS" : (paid > 0m ? "SEBAGIAN" : "BELUM_LUNAS");
