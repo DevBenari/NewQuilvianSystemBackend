@@ -558,36 +558,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 .Select(x => (Guid?)x.WorkflowStepId)
                 .FirstOrDefault();
 
-            var rejectionReasons = await _dbContext.Set<MstRejectionReason>()
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    !x.IsCancel &&
-                    x.IsActive &&
-                    x.RequestType == projection.RequestType &&
-                    (!x.WorkflowDefinitionId.HasValue ||
-                     x.WorkflowDefinitionId == projection.Item.WorkflowDefinitionId) &&
-                    (!x.WorkflowStepId.HasValue ||
-                     x.WorkflowStepId == workflowStepId) &&
-                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value <= today) &&
-                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= today))
-                .OrderByDescending(x => x.WorkflowStepId.HasValue)
-                .ThenByDescending(x => x.WorkflowDefinitionId.HasValue)
-                .ThenBy(x => x.SortOrder)
-                .ThenBy(x => x.ReasonName)
-                .Select(x => new ApprovalInboxRejectionReasonOptionResponse
-                {
-                    Id = x.Id,
-                    ReasonCode = x.ReasonCode,
-                    ReasonName = x.ReasonName,
-                    ReasonCategory = x.ReasonCategory,
-                    RejectAction = x.RejectAction,
-                    ReturnToStepCode = x.ReturnToStepCode,
-                    IsCommentRequired = x.IsCommentRequired,
-                    IsAttachmentRequired = x.IsAttachmentRequired,
-                    AllowResubmit = x.AllowResubmit
-                })
-                .ToListAsync(cancellationToken);
+            // BE-HRD-443: kueri alasan dipakai bersama dengan blok myAction Kotak Masuk Terpadu.
+            var rejectionReasons = await WorkflowRejectionReasonOptions.QueryAsync(
+                _dbContext,
+                projection.RequestType,
+                projection.Item.WorkflowDefinitionId,
+                workflowStepId,
+                today,
+                cancellationToken);
 
             var result = new ApprovalInboxDetailResponse
             {

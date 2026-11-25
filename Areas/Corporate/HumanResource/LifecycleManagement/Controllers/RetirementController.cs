@@ -70,10 +70,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [AccessAction("Read", "Melihat Data Pensiun", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("RetirementAdministration", "Read")]
         public async Task<IActionResult> GetEligibleEmployees(
-            [FromQuery] int minAge = 55,
+            [FromQuery] int? minAge = null,
             CancellationToken cancellationToken = default)
         {
             var result = await _service.GetEligibleEmployeesAsync(minAge, cancellationToken);
+            if (result == null)
+            {
+                // BE-HRD-368: tanpa kebijakan usia pensiun RS, kandidat pensiun otomatis tidak dihitung.
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Usia pensiun normal rumah sakit belum ditetapkan pada Pengaturan Siklus Kepegawaian. Kandidat pensiun otomatis tidak dapat dihitung; kasus pensiun yang sudah ada tetap dapat dibuka.",
+                    RetirementService.PolicyNotConfiguredCode));
+            }
             return Ok(ApiResponse<List<EligibleRetirementEmployeeResponse>>.Ok(result, "Daftar pegawai mendekati usia pensiun berhasil diambil."));
         }
 

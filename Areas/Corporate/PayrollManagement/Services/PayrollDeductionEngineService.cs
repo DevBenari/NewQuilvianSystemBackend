@@ -27,7 +27,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             return Math.Round(grossPay * (maxDeductionPercentage / 100m), 2, MidpointRounding.AwayFromZero);
         }
 
-        public async Task<DeductionSimulationResultDto> SimulateEmployeeDeductionsAsync(
+        /// <summary>
+        /// Perhitungan batas potongan dan alokasi prioritas untuk satu pegawai (tanpa menulis data). Dahulu juga dipublikasikan sebagai
+        /// simulasi; kini hanya dipakai internal oleh <see cref="ExecutePayrollDeductionsAsync"/> sehingga aturan batas, prioritas,
+        /// pemotongan parsial, dan carry-over tetap satu sumber.
+        /// </summary>
+        private async Task<DeductionSimulationResultDto> CalculateEmployeeDeductionsAsync(
             Guid employeeId,
             decimal grossPay,
             CancellationToken cancellationToken = default)
@@ -111,7 +116,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid userId,
             CancellationToken cancellationToken = default)
         {
-            var simulation = await SimulateEmployeeDeductionsAsync(employeeId, grossPay, cancellationToken);
+            var simulation = await CalculateEmployeeDeductionsAsync(employeeId, grossPay, cancellationToken);
 
             foreach (var item in simulation.Items)
             {

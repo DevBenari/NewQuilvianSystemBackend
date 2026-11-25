@@ -379,12 +379,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                     entity.FileContentType = storedFile.ContentType;
                 }
                 // Keep the existing file reference when only certification metadata changes.
-            entity.IsVerified = request.IsVerified;
-            entity.VerificationStatus = request.IsVerified
-                ? "Verified"
-                : NormalizeVerificationStatus(request.VerificationStatus);
-            entity.VerifiedAt = request.IsVerified ? entity.VerifiedAt ?? now : null;
-            entity.VerifiedByUserId = request.IsVerified ? entity.VerifiedByUserId ?? actorUserId : null;
+            // BE-HRD-428: status verifikasi TIDAK diambil dari body PUT; hanya PATCH /verify oleh petugas lain yang
+            // boleh mengubahnya. Perubahan data substantif atas sertifikat terverifikasi mengembalikannya ke Pending.
+            if (entity.IsVerified && HasSubstantiveCertificationChange(entity))
+            {
+                entity.IsVerified = false;
+                entity.VerificationStatus = "Pending";
+                entity.VerifiedAt = null;
+                entity.VerifiedByUserId = null;
+            }
             entity.BlocksSchedulingWhenInvalid = request.BlocksSchedulingWhenInvalid;
             entity.BlocksClinicalServiceWhenInvalid = request.BlocksClinicalServiceWhenInvalid;
             entity.IsActive = request.IsActive;
@@ -473,6 +476,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
 
             if (request.IsVerified && !entity.IsLifetime && entity.ExpiredDate.HasValue && entity.ExpiredDate.Value < DateTime.UtcNow.Date)
                 return BadRequest(ApiResponse<object>.Fail(400, "Sertifikasi yang sudah kedaluwarsa tidak dapat diverifikasi sebagai valid."));
+
+            // BE-HRD-428: dokumen wajib (menurut master jenis sertifikasi) harus tersedia sebelum dinyatakan terverifikasi.
+            var verifyMaster = await FindCertificationTypeAsync(entity.CertificationTypeId, cancellationToken);
+            if (request.IsVerified && verifyMaster?.RequiresDocument == true && string.IsNullOrWhiteSpace(entity.FilePath))
+                return BadRequest(ApiResponse<object>.Fail(400, "Dokumen sertifikasi wajib tersedia sebelum data diverifikasi."));
+
+            if (!request.IsVerified && string.Equals(request.VerificationStatus.Trim(), "Verified", StringComparison.OrdinalIgnoreCase))
+                return BadRequest(ApiResponse<object>.Fail(400, "Status Verified tidak dapat dipakai bersama IsVerified=false."));
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
@@ -731,15 +742,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             if (request.ExpiredDate.HasValue && request.ExpiredDate.Value.Date < request.IssueDate.Date)
                 return (false, "Tanggal kedaluwarsa tidak boleh lebih kecil dari tanggal terbit.");
 
-            if (request.IsVerified && master?.RequiresDocument == true && request.File == null)
-            {
-                var existingFile = currentId.HasValue && await _dbContext.Set<WfpCertification>()
-                    .AsNoTracking()
-                    .AnyAsync(x => x.Id == currentId.Value && !string.IsNullOrWhiteSpace(x.FilePath), cancellationToken);
-                if (!existingFile)
-                    return (false, "Dokumen sertifikasi wajib tersedia sebelum data diverifikasi.");
-            }
-
             var requirementId = NormalizeNullableGuid(request.CredentialingRequirementId);
             if (requirementId.HasValue)
             {
@@ -770,6 +772,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             }
 
             return (true, null);
+        }
+
+        /// <summary>BE-HRD-428: apakah PUT mengubah data sertifikat yang menjadi dasar verifikasi.</summary>
+        private bool HasSubstantiveCertificationChange(WfpCertification entity)
+        {
+            var entry = _dbContext.Entry(entity);
+            return new[]
+            {
+                nameof(WfpCertification.CertificationTypeId),
+                nameof(WfpCertification.CertificationType),
+                nameof(WfpCertification.CertificationName),
+                nameof(WfpCertification.Issuer),
+                nameof(WfpCertification.CertificateNumber),
+                nameof(WfpCertification.IssueDate),
+                nameof(WfpCertification.ExpiredDate),
+                nameof(WfpCertification.IsLifetime),
+                nameof(WfpCertification.FilePath)
+            }.Any(name =>
+            {
+                var property = entry.Property(name);
+                return property.IsModified && !Equals(property.OriginalValue, property.CurrentValue);
+            });
         }
 
         private async Task<MstCertificationType?> FindCertificationTypeAsync(

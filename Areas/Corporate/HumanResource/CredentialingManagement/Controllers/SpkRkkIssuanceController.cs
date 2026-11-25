@@ -96,6 +96,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         [ProducesResponseType(typeof(CredentialingApplicationDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
         public async Task<IActionResult> CreateApplication(
             [FromBody] CreateCredentialingApplicationDto request,
             CancellationToken cancellationToken = default)
@@ -114,9 +117,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             {
                 return NotFound(new { message = ex.Message });
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                // BE-HRD-431: aktor bukan pemilik peran (bukan anggota panel, menilai diri sendiri) → 403.
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+            catch (CredentialingConflictException ex)
+            {
+                // Status permohonan tidak lagi mengizinkan aksi ini (mis. bukan InReview, sudah menilai) → 409.
+                return Conflict(new { message = ex.Message });
+            }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return UnprocessableEntity(new { message = ex.Message });
             }
         }
 
@@ -152,6 +165,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         [ProducesResponseType(typeof(CredentialingApplicationDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
         public async Task<IActionResult> AssignReviewers(
             [FromRoute] Guid id,
             [FromBody] AssignPeerReviewersDto request,
@@ -176,9 +192,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             {
                 return NotFound(new { message = ex.Message });
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                // BE-HRD-431: aktor bukan pemilik peran (bukan anggota panel, menilai diri sendiri) → 403.
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+            catch (CredentialingConflictException ex)
+            {
+                // Status permohonan tidak lagi mengizinkan aksi ini (mis. bukan InReview, sudah menilai) → 409.
+                return Conflict(new { message = ex.Message });
+            }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return UnprocessableEntity(new { message = ex.Message });
             }
         }
 
@@ -195,6 +221,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
         public async Task<IActionResult> SubmitAssessment(
             [FromRoute] Guid id,
             [FromBody] SubmitPeerReviewAssessmentDto request,
@@ -221,9 +250,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             {
                 return NotFound(new { message = ex.Message });
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                // BE-HRD-431: aktor bukan pemilik peran (bukan anggota panel, menilai diri sendiri) → 403.
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+            catch (CredentialingConflictException ex)
+            {
+                // Status permohonan tidak lagi mengizinkan aksi ini (mis. bukan InReview, sudah menilai) → 409.
+                return Conflict(new { message = ex.Message });
+            }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return UnprocessableEntity(new { message = ex.Message });
             }
         }
 
@@ -236,6 +275,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         [ProducesResponseType(typeof(PlenarySessionResultDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
         public async Task<IActionResult> ConcludePlenarySession(
             [FromRoute] Guid id,
             [FromBody] ConcludePlenarySessionDto request,
@@ -255,9 +297,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             {
                 return NotFound(new { message = ex.Message });
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                // BE-HRD-431: aktor bukan pemilik peran (bukan anggota panel, menilai diri sendiri) → 403.
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+            catch (CredentialingConflictException ex)
+            {
+                // Status permohonan tidak lagi mengizinkan aksi ini (mis. bukan InReview, sudah menilai) → 409.
+                return Conflict(new { message = ex.Message });
+            }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return UnprocessableEntity(new { message = ex.Message });
             }
         }
 
@@ -274,6 +326,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         [ProducesResponseType(typeof(SpkRkkDetailDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
         public async Task<IActionResult> IssueSpkRkkDraft(
             [FromBody] IssueSpkRkkRequestDto request,
             CancellationToken cancellationToken = default)
@@ -287,9 +341,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             {
                 return NotFound(new { message = ex.Message });
             }
+            catch (CredentialingConflictException ex)
+            {
+                // BE-HRD-432: SPK sudah disahkan / bukan Draf → 409.
+                return Conflict(new { message = ex.Message });
+            }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return UnprocessableEntity(new { message = ex.Message });
             }
         }
 
@@ -302,6 +361,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         [ProducesResponseType(typeof(SpkRkkDetailDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
         public async Task<IActionResult> SignByDirectorGeneral(
             [FromRoute] Guid id,
             [FromBody] SignSpkRkkDto request,
@@ -321,9 +382,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             {
                 return NotFound(new { message = ex.Message });
             }
+            catch (CredentialingConflictException ex)
+            {
+                // BE-HRD-432: SPK sudah disahkan / bukan Draf → 409.
+                return Conflict(new { message = ex.Message });
+            }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return UnprocessableEntity(new { message = ex.Message });
             }
         }
 

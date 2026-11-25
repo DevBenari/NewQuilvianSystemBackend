@@ -352,7 +352,7 @@ Early Leave Permission adalah bagian attendance/permission flow (`S-B1`), bukan 
 | **Frontend Impact** | 19 task `FE-HRD-306` s.d. `FE-HRD-324` (`frontend-roadmap.md` bagian 25) |
 | **Database Impact** | 6 tabel baru, 3 tabel bertambah kolom; satu migration aditif `AddSchedulingAttendanceAmendmentA52` |
 | **Dependency** | `BE-HRD-087` s.d. `BE-HRD-116` (fondasi `S-B4`/`S-B1`), `S-D1` (standar ketenagaan), `BE-HRD-314` (pemberitahuan) |
-| **Blocking Decision** | Tidak ada untuk `MUST HAVE`. `DSG-Q-01`/`DSG-Q-02` hanya memblokir `EPIC HRD-120` (grup menu) |
+| **Blocking Decision** | Tidak ada untuk `MUST HAVE`. `DSG-Q-01` hanya memblokir `EPIC HRD-120` (grup menu); `DSG-Q-02` dijawab 21 November 2026 (submenu Penugasan Tambahan menuju layar surat perintah personel; `BE-HRD-359` dibatalkan) |
 | **QBE Impact** | `NEW CODE` untuk enam tabel `Hrd*`, sembilan controller, dan service baru; `TOUCHED LEGACY` untuk service penjadwalan dan kehadiran yang diperbaiki |
 | **Migration Risk** | Rendah — seluruhnya penambahan; nilai bawaan sama dengan perilaku sekarang |
 | **Acceptance Criteria** | `AT-HRD-PK-01` s.d. `AT-HRD-PK-46`; `UAT-PK-01` s.d. `UAT-PK-15` |
@@ -767,10 +767,32 @@ dicatat pada [`01-prerequisite-readiness.md`](../01-prerequisite-readiness.md).
 
 | Slice | Cakupan | Task Backend | Task Frontend | Dampak database | Gerbang terbuka | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `S-C5-SEP` | Menu 12 Pemberhentian & Pensiun | `BE-HRD-364` s.d. `BE-HRD-373` | `FE-HRD-328` s.d. `FE-HRD-336` | Tidak ada | — | 🟡 — task sudah ada sejak 16 November 2026 dan belum tercatat di dokumen ini; audit ulang menurunkan 8 task ke 🟡 |
-| `S-FIN-ADM` | Administrasi Kepegawaian (Surat Keputusan, Surat Tugas, Surat Keterangan, Dokumen Administrasi, Perubahan Data) | `BE-HRD-381` s.d. `BE-HRD-386` | `FE-HRD-341` s.d. `FE-HRD-345` | Tabel peserta Surat Tugas (migration) | `{ADM-Q-03}` | ⛔ Surat Tugas; 🟡 sisanya |
+| `S-C5-SEP` | Menu 12 Pemberhentian & Pensiun | `BE-HRD-364` s.d. `BE-HRD-373` | `FE-HRD-328` s.d. `FE-HRD-336` | Kolom `HrdEmploymentLifecycleSetting.NormalRetirementAge` (migration `20261120090000_AddHrdRetirementPolicyAge`, sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`) | — | 🟡 — task sudah ada sejak 16 November 2026 dan belum tercatat di dokumen ini; audit ulang menurunkan 8 task ke 🟡 |
+| `S-FIN-ADM` | Administrasi Kepegawaian (Surat Keputusan, Surat Tugas, Surat Keterangan, Dokumen Administrasi, Perubahan Data) | `BE-HRD-381` s.d. `BE-HRD-386` | `FE-HRD-341` s.d. `FE-HRD-345` | Tabel `HrdAssignmentLetter`, `HrdAssignmentLetterParticipant` (migration `20261120093000_AddHrdAssignmentLetter`, sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`) | — (`{ADM-Q-03}` ditutup 20 November 2026) | 🟡 — backend `BE-HRD-381` s.d. `BE-HRD-385` ✅, `BE-HRD-386` 🟡 (uji per peran di runtime); frontend 🟡 |
 | `S-FIN-M04` | Menu 04 Data Induk Pegawai | `BE-HRD-387` s.d. `BE-HRD-402` | `FE-HRD-346` s.d. `FE-HRD-360` | Tidak ada (`HistoryType = ExternalPrior`) | — | 🟡 |
-| `S-FIN-M05` | Menu 05 Struktur Organisasi & Jabatan | `BE-HRD-403` s.d. `BE-HRD-406` | `FE-HRD-361` s.d. `FE-HRD-366` | Tabel `MstJobDescriptions`, `MstJobDescriptionItems` (migration belum ada) | `{MIG-M05-JD}` | ⛔ Uraian Tugas; 🟡 sisanya |
-| `S-FIN-M07` | Menu 07 Penempatan, Mutasi & Promosi | `BE-HRD-407` s.d. `BE-HRD-415` | `FE-HRD-367` s.d. `FE-HRD-373` | Tidak ada | `{MIG-M05-JD}` untuk Uraian Tugas | 🟡 |
-| `S-FIN-M08` | Menu 08 Kontrak & Masa Kerja | `BE-HRD-416` s.d. `BE-HRD-425` | `FE-HRD-374` s.d. `FE-HRD-381` | Tidak ada | Sinkronisasi `HRD-DEC-089` | 🟡 (5 task backend ✅) |
+| `S-FIN-M05` | Menu 05 Struktur Organisasi & Jabatan | `BE-HRD-403` s.d. `BE-HRD-406` | `FE-HRD-361` s.d. `FE-HRD-366` | Tabel `MstJobDescription`, `MstJobDescriptionItem` (migration `20261120091000_AddMstJobDescription`, sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`) | — (`{MIG-M05-JD}` ditutup 21 November 2026) | 🟡 — 4 task backend ✅; frontend 🟡 |
+| `S-FIN-M07` | Menu 07 Penempatan, Mutasi & Promosi | `BE-HRD-407` s.d. `BE-HRD-415` | `FE-HRD-367` s.d. `FE-HRD-373` | Tidak ada (Uraian Tugas memakai tabel `S-FIN-M05`) | — (`{MIG-M05-JD}` ditutup 21 November 2026) | 🟡 — 9 task backend ✅; frontend 🟡 |
+| `S-FIN-M08` | Menu 08 Kontrak & Masa Kerja | `BE-HRD-416` s.d. `BE-HRD-425` | `FE-HRD-374` s.d. `FE-HRD-381` | Empat kolom bukti pemberitahuan H-7 `NoticeEvidence*` pada `HrdContractDecision` (migration `20261120092000_AddHrdContractDecisionNoticeEvidence`, sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`) | Sinkronisasi `HRD-DEC-089` | 🟡 (5 task backend ✅) |
 | `S-FIN-M09` | Menu 09 Kompetensi & Kredensial | `BE-HRD-426` s.d. `BE-HRD-439` | `FE-HRD-382` s.d. `FE-HRD-392` | Tidak ada | Kontrak co-sign dengan pemilik EMR | 🟡 (5 task backend ✅) |
+
+> **Pemutakhiran 21 November 2026 (penerapan migration).** Empat migration manual 20 November 2026 (`20261120090000_AddHrdRetirementPolicyAge`, `20261120091000_AddMstJobDescription`, `20261120092000_AddHrdContractDecisionNoticeEvidence`, `20261120093000_AddHrdAssignmentLetter`) sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`: pemilik menjalankan `dotnet ef database update --no-build` ("No migrations were applied. The database is already up to date.") dan `dotnet ef migrations list --no-build` terhadap `QuilvianNewDevHamzah` tidak menunjukkan satu pun migration `Pending`. Gerbang `{MIG-M05-JD}` ditutup; tanda ⛔ pada `S-FIN-ADM` (Surat Tugas) dan `S-FIN-M05` (Uraian Tugas) turun ke 🟡 karena yang tersisa hanya task frontend dan uji runtime. Rincian di `backend-roadmap.md` (pemutakhiran register 21 November 2026).
+
+---
+
+### `S-PKB` — Paket B Navigasi SDM: Lima Entry Point Menu (kontrak `v30`, 23 November 2026)
+
+> **Catatan hitungan:** slice ini ditambahkan 23 November 2026 sesudah kontrak `v30` disetujui dan **belum dihitung** pada ringkasan jumlah slice, fase, dan status di bagian atas dokumen ini.
+
+| Aspek | Isi |
+| --- | --- |
+| **Current State** | Paket A merapikan sidebar SDM tetapi menunda Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, dan Riwayat Penyelesaian; menu Tindak Disiplin lama memanggil alamat backend yang tidak ada. Data disiplin di Employee 360 terbuka bagi atasan langsung, dan asesor dapat melihat serta mengisi evaluasi kandidat milik penilai lain |
+| **Target State** | Kelima pintu dapat dibuka sesuai hak akses; setiap angka Dashboard SDM dapat ditelusuri ke daftar nama; angka kontrak dashboard sama dengan layar Kontrak; butir disiplin berlabel "Tindak Disiplin" (`HRD-DEC-247`); dua celah privasi tertutup |
+| **Backend Impact** | Satu controller dashboard baca-saja baru (2 endpoint), `ContractRenewalBuckets`, filter `statuses` sanksi, isi disiplin Employee 360 menurut hak, pembatasan penilai evaluasi, hak baru `HrdWorkforceDashboard : Read` dan `CandidateEvaluation : ViewAll`. Task `BE-HRD-453` s.d. `BE-HRD-462` |
+| **Frontend Impact** | Empat halaman baru (`/hr/dashboard`, `/hr/recruitment/screenings`, `/hr/recruitment/evaluations`, `/hrd/relations/sanctions/history`), perubahan layar Sanksi dan Employee 360, pensiun halaman Tindak Disiplin lama, empat butir menu baru dan satu label diganti. Task `FE-HRD-401` s.d. `FE-HRD-409` |
+| **Database Impact** | Tidak ada. Hanya membaca tabel yang sudah ada |
+| **Dependency** | `S-D2` (penapisan, evaluasi), `S-C4` (kontrak kerja), `S-C1` (lisensi, SPK/RKK), `S-C2` (radar sertifikat), `S-C5` (sanksi, insiden), Paket A navigasi |
+| **Blocking Decision** | Tidak ada. G1 (kontrak `v30`) dan G2 (`HRD-Q-234`) tertutup 23 November 2026; pemberian dua hak baru hanya menahan rilis |
+| **QBE Impact** | `EXTEND` di `WorkforceCore`, `LifecycleManagement`, `EmployeeRelationManagement`, `RecruitmentManagement`; `NEW CODE` untuk controller, service, DTO, konstanta dashboard dan berkas hak eksplisit `ViewAll`; tanpa entity baru |
+| **Migration Risk** | Tidak ada. Risiko rilis: recruiter kehilangan visibilitas evaluasi bila `ViewAll` belum diberikan; atasan langsung tidak lagi melihat disiplin di Employee 360 (disengaja) |
+| **Acceptance Criteria** | `AT-HRD-PKB-01` s.d. `AT-HRD-PKB-26` lulus; angka layar Kontrak sebelum dan sesudah refactor sama; uji browser akun positif dan negatif untuk kelima pintu |
+| **Release Status** | `PLANNED` — `MVP-74` (backend privasi + filter status), `MVP-75` (backend dashboard + layar worklist), `MVP-76` (layar dashboard + menu); belum ada task yang dikerjakan |

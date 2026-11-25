@@ -212,7 +212,7 @@ VR-PAY-24 mewajibkan PDF slip berproteksi sandi. Layar lama menjanjikan "Passwor
 | Field | Isi |
 |---|---|
 | Pemilik | BE |
-| Status | 🟡 18 Nov 2026 (putaran 2) — tabel `HrdOvertimeSetting`, migration `20261118100000_AddHrdOvertimeSetting` **ditulis tetapi belum dijalankan**, layanan menyimpan ke tabel + log audit, layar bisa diubah; tinggal menjalankan migration dan uji live — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) bagian 8.1, [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) bagian 5.2 |
+| Status | 🟡 18 Nov 2026 (putaran 2; migration diperbarui 21 Nov 2026) — tabel `HrdOvertimeSetting`, migration `20261118100000_AddHrdOvertimeSetting` sudah diterapkan 21 November 2026 ke DB dev `QuilvianNewDevHamzah`, layanan menyimpan ke tabel + log audit, layar bisa diubah; tinggal uji live — [laporan BE](../task/report/backend/register-masalah-hr-perbaikan-backend.md) bagian 8.1, [laporan FE](../task/report/frontend/register-masalah-hr-perbaikan-frontend.md) bagian 5.2 |
 | Sumber | Laporan [FE-HRD-R35](../task/report/frontend/FE-HRD-R35.md); `backend-unfinished-work.md` Kelompok C |
 
 `OvertimeSettingService` menyimpan parameter di memori statis (`_cachedSettings`). Akibatnya pengaturan hilang saat server dimulai ulang, berbeda antar-instans, dan tidak teraudit. Karena itu layar **Pengaturan Lembur** dibuat baca-saja. `[Tags("HR Overtime - Settings")]`, `/api/v1/corporate/human-resource/overtime-settings`. **Rekomendasi:** simpan di tabel DB beserta jejak audit.

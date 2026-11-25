@@ -19,7 +19,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         Task<WorkflowInstanceDetailV2ResponseDto?> GetInstanceDetailAsync(Guid id);
         Task<WorkflowInstanceV2ResponseDto> CancelInstanceAsync(Guid id, CancelWorkflowRequestDto request, Guid currentUserId);
         Task<QuilvianSystemBackend.Responses.PagedResult<WorkflowInstanceV2ResponseDto>> GetMyRequestsAsync(
-            Guid employeeId, string? status, string? requestType, DateTime? startDate, DateTime? endDate, int pageNumber, int pageSize);
+            Guid userId, Guid employeeId, string? status, string? requestType, DateTime? startDate, DateTime? endDate, int pageNumber, int pageSize);
     }
 
     public class WorkflowInstanceCreationService : IWorkflowInstanceCreationService
@@ -44,9 +44,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             _notificationGateway = notificationGateway;
         }
 
+        // BE-HRD-447: pembuatan instance generik (engine V2 lama) dihentikan.
+        private static readonly bool GenericCreationEnabled = false;
+
         public async Task<WorkflowInstanceV2ResponseDto> CreateInstanceAsync(CreateWorkflowInstanceRequestDto request, Guid currentUserId)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
+
+            // BE-HRD-447 (kontrak v29 §35.1, VR-WF-29, HRD-DEC-229): permohonan generik tidak lagi dibuat di sini; permohonan
+            // dibuat dari layar modul lewat engine WorkflowService. Implementasi lama dipertahankan sampai endpoint dihapus.
+            if (!GenericCreationEnabled)
+            {
+                throw new WorkflowModuleManagedException(WorkflowInstanceOwnership.CreateFromModuleMessage);
+            }
             if (string.IsNullOrWhiteSpace(request.RequestType))
                 throw new InvalidOperationException("Tipe permohonan alur kerja wajib diisi (VR-WF-01)");
             if (request.ReferenceId == Guid.Empty)
@@ -260,6 +270,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             var result = new WorkflowInstanceDetailV2ResponseDto
             {
                 Id = instance.Id,
+                IsModuleManaged = instance.WorkflowDefinitionId != Guid.Empty &&
+                    !instance.StepInstances.Any(s => s.ApproverAssignments.Any(a => a.ApproverEmployeeId != null)),
                 WorkflowNumber = instance.RequestNumber,
                 RequestType = instance.ReferenceType,
                 ReferenceType = instance.ReferenceType,
@@ -378,6 +390,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             var instance = await _context.TrxWorkflowInstances.FindAsync(id);
             if (instance == null) throw new KeyNotFoundException("Tiket alur kerja tidak ditemukan");
 
+            // BE-HRD-447 (VR-WF-29): pembatalan permohonan modul ikut menarik workflow lewat layar modulnya (mis. SPPD INT-HR-110).
+            if (await WorkflowInstanceOwnership.IsModuleManagedAsync(_context, id))
+            {
+                throw new WorkflowModuleManagedException(WorkflowInstanceOwnership.CancelFromModuleMessage);
+            }
+
             if (instance.WorkflowStatus == "Approved" || instance.WorkflowStatus == "Completed")
             {
                 throw new InvalidOperationException("Tiket alur kerja yang sudah disetujui final tidak dapat dibatalkan (HRD-DEC-186)");
@@ -414,17 +432,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         }
 
         public async Task<QuilvianSystemBackend.Responses.PagedResult<WorkflowInstanceV2ResponseDto>> GetMyRequestsAsync(
-            Guid employeeId, string? status, string? requestType, DateTime? startDate, DateTime? endDate, int pageNumber, int pageSize)
+            Guid userId, Guid employeeId, string? status, string? requestType, DateTime? startDate, DateTime? endDate, int pageNumber, int pageSize)
         {
             var query = _context.TrxWorkflowInstances
                 .Include(w => w.RequestedByEmployee)
                     .ThenInclude(e => e!.PrimaryDepartment)
                 .AsNoTracking();
 
-            if (employeeId != Guid.Empty)
+            // BE-HRD-447 (kontrak v29 §35.1): permohonan engine sering tanpa id pegawai, jadi dicocokkan juga lewat akun pemohon.
+            // Tanpa akun maupun pegawai, tidak ada yang ditampilkan (sebelumnya seluruh tiket ikut tampil).
+            if (userId == Guid.Empty && employeeId == Guid.Empty)
             {
-                query = query.Where(w => w.RequestedByEmployeeId == employeeId);
+                return new QuilvianSystemBackend.Responses.PagedResult<WorkflowInstanceV2ResponseDto>
+                {
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalData = 0,
+                    TotalPage = 0,
+                    Items = new List<WorkflowInstanceV2ResponseDto>()
+                };
             }
+
+            query = query.Where(w =>
+                (userId != Guid.Empty && w.RequestedByUserId == userId) ||
+                (employeeId != Guid.Empty && w.RequestedByEmployeeId == employeeId));
 
             if (!string.IsNullOrWhiteSpace(status))
             {
@@ -475,7 +506,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     IsOverdue = w.IsOverdue,
                     CompletedAt = w.CompletedAt,
                     CancelledAt = w.CancelledAt,
-                    CancellationReason = w.CancellationReason
+                    CancellationReason = w.CancellationReason,
+                    IsModuleManaged = w.WorkflowDefinitionId != Guid.Empty &&
+                        !w.StepInstances.Any(s => s.ApproverAssignments.Any(a => a.ApproverEmployeeId != null))
                 })
                 .ToListAsync();
 

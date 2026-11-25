@@ -367,12 +367,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 entity.PracticeLocation = NormalizeNullableText(request.PracticeLocation);
                 entity.IssueDate = NormalizeUtcDate(request.IssueDate);
                 entity.ExpiredDate = NormalizeUtcDate(request.ExpiredDate);
-                entity.VerificationStatus = request.VerificationStatus;
                 entity.IsPrimary = request.IsPrimary;
-                entity.IsVerified = request.IsVerified;
-                entity.VerifiedAt = request.IsVerified ? entity.VerifiedAt ?? now : null;
-                entity.VerifiedByUserId = request.IsVerified ? entity.VerifiedByUserId ?? actorUserId : null;
-                entity.VerificationNotes = NormalizeNullableText(request.VerificationNotes);
+                // BE-HRD-427: status verifikasi TIDAK diambil dari body PUT (IsVerified/VerificationStatus/VerificationNotes
+                // diabaikan); hanya PATCH /verify dan PSV yang boleh mengubahnya.
                 entity.BlocksSchedulingWhenInvalid = request.BlocksSchedulingWhenInvalid;
                 entity.BlocksClinicalServiceWhenInvalid = request.BlocksClinicalServiceWhenInvalid;
                 entity.FilePath = NormalizeNullableText(request.FilePath);
@@ -381,6 +378,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 entity.IsActive = request.IsActive;
                 entity.UpdateDateTime = now;
                 entity.UpdateBy = actorUserId;
+
+                // BE-HRD-427: perubahan data substantif (jenis, nomor, penerbit, lokasi praktik, tanggal, berkas) pada
+                // lisensi yang sudah diverifikasi membatalkan verifikasi dan PSV — data baru wajib diperiksa ulang.
+                if ((entity.IsVerified || entity.IsPsvVerified) && HasSubstantiveLicenseChange(entity))
+                {
+                    entity.IsVerified = false;
+                    entity.VerifiedAt = null;
+                    entity.VerifiedByUserId = null;
+                    entity.IsPsvVerified = false;
+                    entity.PsvVerifiedAt = null;
+                    entity.VerificationStatus = CredentialVerificationStatus.PendingVerification;
+                    entity.VerificationNotes = "Data lisensi diubah sesudah diverifikasi; menunggu verifikasi ulang.";
+                }
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
@@ -489,6 +499,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             if (request.IsVerified && entity.ExpiredDate.Date < DateTime.UtcNow.Date)
                 return BadRequest(ApiResponse<object>.Fail(400, "Lisensi yang sudah kedaluwarsa tidak dapat diverifikasi sebagai valid."));
 
+            // BE-HRD-427: dokumen wajib (menurut master jenis lisensi) harus tersedia sebelum dinyatakan terverifikasi.
+            var verifyMaster = await FindLicenseTypeAsync(entity.LicenseTypeId, cancellationToken);
+            if (request.IsVerified && verifyMaster?.RequiresDocument == true && string.IsNullOrWhiteSpace(entity.FilePath))
+                return BadRequest(ApiResponse<object>.Fail(400, "Dokumen lisensi wajib tersedia sebelum data diverifikasi."));
+
+            if (!request.IsVerified && string.IsNullOrWhiteSpace(request.VerificationNotes))
+                return BadRequest(ApiResponse<object>.Fail(400, "Alasan penolakan verifikasi wajib diisi."));
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -501,11 +519,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 return BadRequest(ApiResponse<object>.Fail(400, "Pegawai dilarang memverifikasi dokumen lisensi milik sendiri (anti-self-verification)."));
             }
             entity.IsVerified = request.IsVerified;
-            if (request.VerificationStatus.HasValue)
-                entity.VerificationStatus = request.VerificationStatus.Value;
+            // BE-HRD-427: status mengikuti keputusan (Verified/Rejected), tidak bisa dibuat bertentangan lewat body.
+            entity.VerificationStatus = request.IsVerified
+                ? CredentialVerificationStatus.Verified
+                : CredentialVerificationStatus.Rejected;
             entity.VerifiedAt = request.IsVerified ? now : null;
             entity.VerifiedByUserId = request.IsVerified ? actorUserId : null;
             entity.VerificationNotes = NormalizeNullableText(request.VerificationNotes);
+            if (!request.IsVerified)
+            {
+                // Dokumen yang ditolak tidak boleh tetap lolos gate klinis lewat status PSV lama.
+                entity.IsPsvVerified = false;
+                entity.PsvVerifiedAt = null;
+            }
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
@@ -703,9 +729,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             if (request.LicenseTypeId.HasValue && master == null)
                 return (false, "Master jenis lisensi tidak ditemukan atau tidak aktif.");
 
-            if (request.IsVerified && master?.RequiresDocument == true && string.IsNullOrWhiteSpace(request.FilePath))
-                return (false, "Dokumen lisensi wajib tersedia sebelum data diverifikasi.");
-
             var requirementId = NormalizeNullableGuid(request.CredentialingRequirementId);
             if (requirementId.HasValue)
             {
@@ -733,6 +756,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 return (false, "Jenis dan nomor lisensi yang sama sudah tersedia untuk workforce ini.");
 
             return (true, null);
+        }
+
+        /// <summary>BE-HRD-427: apakah PUT mengubah data lisensi yang menjadi dasar verifikasi.</summary>
+        private bool HasSubstantiveLicenseChange(WfpCredentialLicense entity)
+        {
+            var entry = _dbContext.Entry(entity);
+            return new[]
+            {
+                nameof(WfpCredentialLicense.LicenseTypeId),
+                nameof(WfpCredentialLicense.LicenseType),
+                nameof(WfpCredentialLicense.LicenseNumber),
+                nameof(WfpCredentialLicense.Issuer),
+                nameof(WfpCredentialLicense.PracticeLocation),
+                nameof(WfpCredentialLicense.IssueDate),
+                nameof(WfpCredentialLicense.ExpiredDate),
+                nameof(WfpCredentialLicense.FilePath)
+            }.Any(name =>
+            {
+                var property = entry.Property(name);
+                return property.IsModified && !Equals(property.OriginalValue, property.CurrentValue);
+            });
         }
 
         private async Task<MstLicenseType?> FindLicenseTypeAsync(Guid? id, CancellationToken cancellationToken)

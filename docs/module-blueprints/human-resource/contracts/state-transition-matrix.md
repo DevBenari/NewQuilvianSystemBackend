@@ -2707,3 +2707,111 @@ Sinkronisasi bersifat idempoten: pemanggilan berulang atas status workflow yang 
 | Ubah SPPD `Submitted` (yang punya workflow), `Approved`, `Rejected`, atau status lanjutan | `409` (`VR-TRV-27`) |
 | Ajukan SPPD `Rejected`, `Cancelled`, `Approved`, atau `Submitted` yang sudah punya workflow | `409` (`VR-TRV-26`, `VR-TRV-28`) |
 | Uang muka atau settlement untuk SPPD tanpa `ApprovedAt` | `409` (`VR-TRV-30`, `VR-TRV-31`) |
+
+---
+
+## 33. Matriks Transisi Status Amandemen Slice `S-A7-V2`: Kotak Masuk Terpadu di atas Engine Workflow (Kontrak `v29`, approved 20 November 2026)
+
+Dasar: `HRD-DEC-229`, `HRD-DEC-232`, `HRD-DEC-234`. Siklus instance dan tahap engine (`WorkflowStatus`, `StepStatus`) **tidak berubah**. Bagian ini hanya menetapkan dua hal: (1) aksi dari kotak terpadu memakai transisi engine yang sudah ada, dan (2) transisi baru pada **penugasan** (`TrxWorkflowApproverAssignment.AssignmentStatus`) untuk eskalasi dan Plh. Transisi bagian 28 yang dijalankan `WorkflowApprovalActionService` (`Pending → Approved/Rejected/ReturnedForRevision` per tahap, langsung di tabel) **tidak berlaku lagi** untuk instance engine.
+
+### 33.1 Aksi kotak terpadu → transisi engine
+
+| Aksi di kotak terpadu | Diteruskan ke | Transisi instance engine | Efek pada modul |
+| --- | --- | --- | --- |
+| Setujui | `WorkflowService.ApproveAsync` | Tahap selesai bila syarat mode terpenuhi (33.3); instance `Completed` pada tahap terakhir | Penangan modul dipanggil sesudah commit (contoh SPPD → `Approved`) |
+| Tolak | `WorkflowService.RejectAsync` (alasan berkode) | Mengikuti `RejectAction` alasan: `CloseRequest` → `Rejected`; `ReturnToRequester` → `RevisionRequested`; `CancelRequest` → `Cancelled` | Penangan modul dipanggil |
+| Kembalikan | `WorkflowService.RequestRevisionAsync` | `RevisionRequested` | Penangan modul dipanggil (contoh SPPD → `NeedRevision`) |
+| Setujui Massal | `WorkflowService.ApproveAsync` per butir | Sama dengan Setujui, per butir | Sama, per butir |
+
+### 33.2 Siklus penugasan (`AssignmentStatus`) — tambahan
+
+```mermaid
+stateDiagram-v2
+    [*] --> Available : Tahap aktif (engine)
+    Available --> Approved : Penyetuju/Plh menyetujui
+    Available --> Rejected : Penyetuju/Plh menolak
+    Available --> RevisionRequested : Penyetuju/Plh mengembalikan
+    Available --> Skipped : Kembaran eskalasi sudah memutuskan
+    state "Eskalasi" as E
+    Available --> E : DueAt lewat (worker) / eskalasi manual
+    E --> Available : Penugasan atasan dibuat (penugasan awal tetap Available)
+```
+
+| Dari | Kejadian | Ke | Pelaku | Syarat | Efek samping |
+| --- | --- | --- | --- | --- | --- |
+| `Available`/`InProgress` (wajib, terbuka) | `DueAt` lewat | Tetap; **penugasan baru** `Available` untuk atasan satu tingkat | Worker eskalasi (aksi sistem) | `VR-WF-31` | Penugasan baru: `EscalatedFromAssignmentId` = penugasan awal, `IsRequired = false`, `DueAt` baru = sekarang + `EscalationAfterHours` tahap; aksi `Escalate` dicatat di jejak workflow; notifikasi ke penyetuju awal dan atasan |
+| Sama | Eskalasi manual HR | Sama, untuk pejabat tujuan | HR Admin (`WorkflowSlaMatrix : ManualEscalate`) | `VR-WF-31` | Sama; alasan eskalasi dicatat |
+| Penugasan awal atau kembaran eskalasinya `Available` | Salah satunya memutuskan (Setujui/Tolak/Kembalikan) | Yang memutuskan → status keputusan; kembarannya → `Skipped` | Penyetuju / atasan hasil eskalasi / Plh | `VR-WF-30` | Kembaran ditutup agar tidak ada keputusan ganda |
+| `Available` milik pejabat P | Plh D bertindak atas delegasi aktif | Status keputusan | Plh D | `VR-WF-30`; D bukan pemohon | Jejak aksi menyimpan pelaku D dan pejabat definitif P (`VR-WF-25`) |
+
+### 33.3 Syarat tahap selesai (engine) dengan eskalasi
+
+Engine menilai tahap selesai dari penugasan **wajib** (`IsRequired = true`). Penugasan hasil eskalasi tidak wajib (`IsRequired = false`), tetapi menjadi **pengganti setara** penugasan asalnya. Sebuah penugasan wajib dihitung disetujui bila ia sendiri **atau** penugasan eskalasi turunannya berstatus `Approved`.
+
+| Mode tahap | Tanpa eskalasi | Dengan eskalasi (contoh: 2 penyetuju wajib A, B; A dieskalasi ke A') |
+| --- | --- | --- |
+| `Any` | Satu penugasan wajib disetujui | A **atau** A' **atau** B menyetujui → tahap selesai |
+| `All` / `Sequential` | Semua penugasan wajib disetujui | (A **atau** A') **dan** B menyetujui → tahap selesai |
+| `Percentage` | Persentase penugasan wajib disetujui | Pasangan A/A' dihitung sebagai satu suara |
+
+### 33.4 Transisi terlarang
+
+| Percobaan | Hasil |
+| --- | --- |
+| Memutuskan penugasan yang kembarannya sudah memutuskan | `409` pesan engine "Assignment belum tersedia atau sudah diproses." |
+| Eskalasi kedua atas penugasan yang sama | Dilewati (`VR-WF-31`); atasan hasil eskalasi dapat dieskalasi lagi bila penugasannya sendiri lewat `DueAt` |
+| Persetujuan otomatis karena waktu habis | Tidak pernah terjadi (`VR-WF-11`, `HRD-DEC-185`) |
+| Aksi kotak terpadu pada instance engine V2 lama | Tidak tampil di antrean; aksi lewat path 35.2 untuk tahap engine lama menjawab `403` (tidak ada penugasan engine) |
+
+---
+
+## 34. Matriks Transisi Status Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v30`, approved 23 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `last_changed_in` | `v30` — 22 November 2026 |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`) |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `input_revision` | Decision log revision `42` bagian 57 |
+
+Paket B **tidak menambah status dan tidak menambah transisi**. Bagian ini mengunci klasifikasi turunan (dihitung saat dibaca, tidak disimpan) yang dipakai layar Paket B, supaya backend dan frontend memakai arti yang sama.
+
+### 34.1 Kelompok Dashboard SDM
+
+| Panel | Kelompok (`bucket`) | Arti yang dapat diuji |
+| --- | --- | --- |
+| `EMPLOYEE_OVERVIEW` | `ACTIVE` | `MstEmployee.IsActive = true` dan tidak terhapus |
+| | `NEW_THIS_MONTH` | `JoinDate` pada bulan dan tahun tanggal operasional |
+| | `LEFT_THIS_MONTH` | `ResignDate` pada bulan dan tahun tanggal operasional |
+| `PROFESSION` | `{professionId}` / `UNASSIGNED` | Pegawai aktif dengan profesi tersebut / tanpa profesi |
+| `ACTIVE_STATUS` | `ACTIVE` / `INACTIVE` | `IsActive = true` / `false` |
+| `CONTRACT_EXPIRY` | `ALL`, `H60`, `H14`, `H7`, `PENDING_DECISION`, `OVERDUE` | Didefinisikan **hanya** oleh `ContractRenewalBuckets` (sama dengan `renewal-summary`); `ALL` = kontrak berjalan yang berakhir dalam 60 hari (`HRD-DEC-245`) |
+| `DOCUMENT_EXPIRY` | `EXPIRED`, `WITHIN_30`, `DAYS_31_60`, `DAYS_61_90` | Sisa hari dihitung dari tanggal kedaluwarsa dokumen terhadap tanggal operasional: `< 0` atau hari ini = `EXPIRED`; 1–30; 31–60; 61–90 (pemetaan tingkat radar: kamus data 31.2) |
+
+### 34.2 Arti "Selesai" pada Riwayat Penyelesaian (`HRD-DEC-242`)
+
+| Sumber | Status yang termasuk | Status yang tidak termasuk |
+| --- | --- | --- |
+| Sanksi (`HrdDisciplinarySanction.Status`) | `Expired`, `RevokedOnAppeal` | `Active` |
+| Insiden (`HrdDisciplinaryIncidentReport.Status`) | `ResolvedNoSanction` | `Reported`, `Investigating`, `SanctionRecommended` (insiden yang berlanjut ke sanksi muncul lewat sanksinya) |
+
+Status sanksi tetap diubah oleh mekanisme yang sudah ada: worker `Active → Expired` saat `ValidUntil` lewat, dan banding yang dikabulkan `Active → RevokedOnAppeal`. Paket B tidak menambah jalur ubah status.
+
+### 34.3 Jalur evaluasi Tes/Wawancara (`HRD-DEC-241`, `HRD-ASM-96`)
+
+| `track` | `EvaluationType` yang termasuk | Diisi lewat |
+| --- | --- | --- |
+| `HR` | `HrInterview` | `POST /{id}/submit-hr` |
+| `CLINICAL` | `ClinicalAssessment`, `UserInterview` | `POST /{id}/submit-clinical` |
+
+`pendingOnly = true` berarti evaluasi yang belum memiliki rekomendasi. Status kandidat sesudah veto klinis (`ASSESSMENT_FAILED`, `HRD-DEC-077`) tidak berubah oleh Paket B.
+
+### 34.4 Status penapisan Seleksi Administrasi (`HRD-DEC-244`)
+
+| Status `ScreeningStatus` | Label layar |
+| --- | --- |
+| `Pending` | Menunggu |
+| `Passed` | Lolos |
+| `Rejected` | Gugur |
+
+Transisi penapisan tetap seperti kontrak `S-D2`; tidak ada perubahan.

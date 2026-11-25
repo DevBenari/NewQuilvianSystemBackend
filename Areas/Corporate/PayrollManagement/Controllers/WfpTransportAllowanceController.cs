@@ -201,96 +201,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 "Detail transport allowance workforce berhasil diambil."));
         }
 
+        /// <summary>
+        /// PAY-BE-FIX-022: penetapan transportasi BARU tidak lagi dibuat dari jalur ini. Transportasi ditetapkan lewat Tambah Tunjangan
+        /// (POST allowance-assignments/from-policy) sehingga masuk ke satu sumber data dan satu jalur hitung. Jalur ini hanya mengelola
+        /// penetapan lama yang sudah ada (baca, ubah, nonaktifkan); data historis tidak dihapus. Endpoint dan izin Create dipertahankan
+        /// agar pemetaan Akses Role tidak berubah.
+        /// </summary>
         [HttpPost]
-        [AccessAction("Create", "Create Workforce Transport Allowance", Description = "Membuat transport allowance workforce", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessAction("Create", "Create Workforce Transport Allowance", Description = "Membuat transport allowance workforce (dinonaktifkan; gunakan Tambah Tunjangan)", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("WorkforceTransportAllowance", "Create")]
-        public async Task<IActionResult> Create(
-            Guid workforceProfileId,
-            [FromBody] CreateWfpTransportAllowanceRequest? request,
-            CancellationToken cancellationToken)
+        public IActionResult Create(Guid workforceProfileId, [FromBody] CreateWfpTransportAllowanceRequest? request)
         {
-            if (request == null)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Data transport allowance workforce wajib diisi."));
-            }
-
-            if (!await WorkforceProfileExistsAsync(workforceProfileId, cancellationToken))
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Profil tenaga kerja tidak ditemukan."));
-            }
-
-            if (await _dbContext.Set<PrlTransportAllowance>().AnyAsync(x =>
-                    x.WorkforceProfileId == workforceProfileId && !x.IsDelete,
-                    cancellationToken))
-            {
-                return Conflict(ApiResponse<object>.Fail(
-                    StatusCodes.Status409Conflict,
-                    "Transport allowance untuk workforce ini sudah tersedia."));
-            }
-
-            var validation = await ValidateRequestAsync(
-                workforceProfileId,
-                request,
-                cancellationToken);
-
-            if (!validation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data transport allowance workforce tidak valid."));
-            }
-
-            var entity = new PrlTransportAllowance
-            {
-                Id = Guid.NewGuid(),
-                WorkforceProfileId = workforceProfileId,
-                EmployeeId = NormalizeGuid(request.EmployeeId),
-                OrganizationAssignmentId = NormalizeGuid(request.OrganizationAssignmentId),
-                TransportAllowancePolicyId = NormalizeGuid(request.TransportAllowancePolicyId),
-                PayrollComponentId = NormalizeGuid(request.PayrollComponentId),
-                AllowanceStatus = NormalizeStatus(request.AllowanceStatus),
-                CurrencyCode = NormalizeCurrencyCode(request.CurrencyCode),
-                MonthlyAmount = request.MonthlyAmount,
-                PerAttendanceAmount = request.PerAttendanceAmount,
-                MaximumMonthlyAmount = request.MaximumMonthlyAmount,
-                AccruedAmount = request.AccruedAmount,
-                UsedAmount = request.UsedAmount,
-                PaidAmount = request.PaidAmount,
-                RemainingAmount = request.RemainingAmount,
-                EffectiveStartDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveStartDate),
-                EffectiveEndDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate),
-                Description = NormalizeText(request.Description),
-                IsActive = true,
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = GetCurrentUserId(),
-                IsDelete = false,
-                IsCancel = false
-            };
-
-            _dbContext.Set<PrlTransportAllowance>().Add(entity);
-
-            try
-            {
-                await _dbContext.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateException ex)
-            {
-                await TryLogErrorAsync("WorkforceTransportAllowance.Create", "Gagal menyimpan transport allowance workforce.", ex, new { entity.Id, entity.WorkforceProfileId });
-                var mapped = TryMapDatabaseException(ex);
-                if (mapped != null) return mapped;
-                throw;
-            }
-
-            await TryLogInfoAsync(
-                "WorkforceTransportAllowance.Create",
-                "Membuat transport allowance workforce.",
-                new { entity.Id, entity.WorkforceProfileId });
-
-            return await BuildPersistedDetailResultAsync(workforceProfileId, entity, cancellationToken);
+            return Conflict(ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict,
+                "Penetapan transportasi baru dibuat lewat Tambah Tunjangan pada Detail Profil Penggajian. Jalur ini hanya untuk mengelola penetapan lama."));
         }
 
         [HttpPut("{id:guid}")]
@@ -334,6 +258,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     StatusCodes.Status400BadRequest,
                     validation.ErrorMessage ?? "Data transport allowance workforce tidak valid."));
             }
+
+            var unifiedConflict = await CheckUnifiedTransportConflictAsync(workforceProfileId, request, request.IsActive, cancellationToken);
+            if (unifiedConflict != null) return unifiedConflict;
 
             entity.EmployeeId = NormalizeGuid(request.EmployeeId);
             entity.OrganizationAssignmentId = NormalizeGuid(request.OrganizationAssignmentId);
@@ -649,6 +576,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 UpdateBy = entity.UpdateBy == Guid.Empty ? null : entity.UpdateBy,
                 UpdateByName = GetUserDisplayName(entity.UpdateBy)
             };
+        }
+
+        /// <summary>
+        /// PAY-BE-FIX-022: transportasi bulanan dibayar dari SATU sumber. Penetapan transportasi lama yang aktif dan bermetode FixedMonthly
+        /// ditolak bila pegawai sudah punya penetapan Transportasi berbasis Kebijakan Tunjangan umum yang beririsan (mesin hitung akan
+        /// membayarnya dua kali). Menonaktifkan penetapan lama tidak pernah diblokir oleh pemeriksaan ini.
+        /// </summary>
+        private async Task<IActionResult?> CheckUnifiedTransportConflictAsync(
+            Guid workforceProfileId,
+            CreateWfpTransportAllowanceRequest request,
+            bool isActive,
+            CancellationToken cancellationToken)
+        {
+            if (!isActive || !string.Equals(request.AllowanceStatus?.Trim(), "Active", StringComparison.OrdinalIgnoreCase))
+                return null;
+            if (!await TransportAllowanceSourceGuard.IsPaidMonthlyPolicyAsync(_dbContext, request.TransportAllowancePolicyId, cancellationToken))
+                return null;
+
+            var start = PayrollDateNormalizer.ToUtcDate(request.EffectiveStartDate);
+            var end = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate);
+            if (!await TransportAllowanceSourceGuard.HasUnifiedTransportAsync(_dbContext, workforceProfileId, start, end, cancellationToken))
+                return null;
+
+            return Conflict(ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict,
+                "Pegawai sudah memiliki tunjangan Transportasi lewat Tambah Tunjangan (berbasis kebijakan) pada periode yang beririsan. Nonaktifkan salah satunya agar tidak terbayar dua kali."));
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
