@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Services;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.PhysicalInventory.Services;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Services;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Valuation.Services;
 
@@ -31,6 +32,8 @@ public static class AssetManagementServiceCollectionExtensions
         services.Configure<AssetAccountingDispatchOptions>(configuration.GetSection(AssetAccountingDispatchOptions.SectionName));
         services.AddScoped<AssetValuationParameterQueryService>();
         services.AddScoped<AssetValuationParameterService>();
+        services.AddScoped<AssetSubledgerSetupService>();
+        services.AddScoped<AssetDepreciationRunService>();
         services.AddScoped<AssetAccountingEventService>();
         services.AddScoped<AssetBookService>();
 
@@ -49,6 +52,13 @@ public static class AssetManagementServiceCollectionExtensions
         services.AddScoped<AssetMovementDocumentService>();
         services.AddScoped<AssetTransferService>();
         services.AddScoped<AssetLoanService>();
+        services.AddScoped<MovementQueryService>();
+        services.AddScoped<StockTakeMatchingService>();
+        services.AddScoped<StockTakeFollowUpService>();
+        services.AddScoped<StockTakeDocumentService>();
+        services.AddScoped<StockTakeSessionService>();
+        services.AddScoped<StockTakeScanService>();
+        services.AddScoped<StockTakeQueryService>();
         services.Configure<AssetDailyStatusWorkerOptions>(configuration.GetSection(AssetDailyStatusWorkerOptions.SectionName));
         services.AddHostedService<AssetDailyStatusWorker>();
 

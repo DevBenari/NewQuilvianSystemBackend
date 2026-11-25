@@ -52,7 +52,7 @@ selama opname berlaku.
 | Kemampuan | Alasan | Pengganti |
 |---|---|---|
 | Pemindaian luring (tanpa sinyal) | Tidak diputuskan; butuh penyimpanan lokal dan sinkronisasi | Pindaian gagal kirim tetap terlihat dengan tombol kirim ulang; ruangan tanpa sinyal dicatat lewat ketik nomor setelah tersambung |
-| Pemindai barcode/genggam khusus | Label memakai QR (`AST-DEC-010`) | Kamera HP/tablet |
+| Pemindai barcode/genggam khusus | Label memakai QR (`AST-DEC-010`) | Kamera tablet (`AST-FE-007`) |
 
 ## 9. Alur bisnis target
 
@@ -108,7 +108,7 @@ pemindaian.
 |---|---|
 | `NFR-INV-001` | Simpan pindaian < 1 detik pada jaringan RS |
 | `NFR-INV-002` | Tutup pemindaian 5.000 aset < 30 detik |
-| `NFR-INV-003` | Layar pemindaian dapat dipakai di HP lebar 360 px |
+| `NFR-INV-003` | Layar pemindaian nyaman dipakai di tablet lebar ±768 px dan tetap berfungsi di laptop/desktop lewat input manual (`AST-FE-007`) |
 
 ## 18. Skenario UAT
 
@@ -119,7 +119,7 @@ pemindaian.
 | `UAT-INV-03` | Opname IGD berjalan | Ajukan mutasi aset IGD | Ditolak | AST-10 |
 | `UAT-INV-04` | Selisih tanpa catatan | Ajukan verifikasi | Ditolak | AST-10 |
 | `UAT-INV-05` | Verifikasi selesai | Proses usulan beda unit | Mutasi koreksi terbentuk | AST-10 |
-| `UAT-INV-06` | HP tanpa izin kamera | Pindai | Pesan; ketik nomor berhasil | AST-10 |
+| `UAT-INV-06` | Tablet tanpa izin kamera | Pindai | Pesan; ketik nomor berhasil | AST-10 |
 
 ## 19. Definition of Done
 
@@ -129,7 +129,7 @@ pemindaian.
 | Penahanan unit berlaku dua arah | `UAT-INV-02`, `UAT-INV-03` |
 | Data aset tidak berubah tanpa alur pemiliknya | `AT-INV-07` |
 | Seluruh usulan dapat diproses atau diabaikan | `AT-INV-08..10` |
-| Pemindaian kamera bekerja di HP | `AT-INV-13`, `UAT-INV-06` |
+| Pemindaian kamera bekerja di tablet | `AT-INV-13`, `UAT-INV-06` |
 
 ## 20. Urutan pengiriman dan pertanyaan terbuka
 

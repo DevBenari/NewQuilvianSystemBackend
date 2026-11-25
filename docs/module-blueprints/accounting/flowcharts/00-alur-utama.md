@@ -66,3 +66,4 @@ flowchart TD
 | [`03-tutup-bulan.md`](03-tutup-bulan.md) | Penutupan bulan beserta penolakan dan pembukaan kembali |
 | [`04-tutup-tahun.md`](04-tutup-tahun.md) | Penutupan tahun dan koreksinya |
 | [`05-jurnal-berulang.md`](05-jurnal-berulang.md) | Penerbitan jurnal berulang bulanan |
+| [`06-laporan-keuangan.md`](06-laporan-keuangan.md) | Membaca laba rugi dan neraca lalu menelusurinya ke buku besar, jurnal, dan asal *(finishing, 24 November 2026, `draft`)* |

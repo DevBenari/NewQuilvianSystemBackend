@@ -1,4 +1,5 @@
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Services;
 
@@ -35,6 +36,7 @@ public static class AssetMovementMessages
     public const string ProcessLockedFormat = "Aset {0} sedang dalam proses {1}.";
     public const string SingleSourceUnit = "Satu mutasi hanya untuk aset dari satu unit asal.";
     public const string SameUnit = "Unit tujuan harus berbeda dari unit asal. Untuk pindah ruangan gunakan penyerahan.";
+    public const string UnitInStockTakeFormat = "Aset sedang dalam inventarisasi. Pengajuan dapat dilakukan setelah inventarisasi unit {0} selesai.";
     public const string ItemCount = "Pilih 1 sampai 200 aset.";
     public const string ReasonNote = "Alasan mutasi wajib diisi, paling panjang 1000 karakter.";
     public const string CorrectsTransferRequired = "Mutasi koreksi wajib merujuk mutasi asal yang sudah diserahterimakan.";
@@ -73,6 +75,20 @@ public static class AssetMovementMessages
     public const string LoanCreateScope = "Pinjaman hanya dapat diajukan untuk unit Anda atau atas aset milik unit Anda.";
     public const string LoanCancelScope = "Hanya pengaju atau Kepala Unit pemilik yang dapat membatalkan pinjaman ini.";
     public const string ExtensionClosedOnReturn = "Pinjaman sudah dikembalikan sebelum perpanjangan diputuskan.";
+}
+
+public static class AssetMovementStockTake
+{
+    public static async Task EnsureNotHeldAsync(AssetStockTakeGate gate, IEnumerable<Guid> organizationUnitIds, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(gate);
+        if (await gate.FindUnitNameInStockTakeAsync(organizationUnitIds, cancellationToken) is { } unitName)
+        {
+            throw AssetManagementException.Conflict(
+                AssetMovementErrorCodes.UnitInStockTake,
+                string.Format(AssetMovementMessages.UnitInStockTakeFormat, unitName));
+        }
+    }
 }
 
 public static class AssetMovementLabels

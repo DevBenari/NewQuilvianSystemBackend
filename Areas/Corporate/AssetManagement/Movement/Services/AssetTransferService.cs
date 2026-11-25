@@ -110,7 +110,7 @@ public sealed partial class AssetTransferService
             var assets = await LockAssetsAsync(assetIds, entity.LegalEntityId, cancellationToken);
             var sourceUnitId = EnsureEligibleAndSingleSource(assets, targetUnitId);
             actor.EnsureCanAccessUnit(sourceUnitId);
-            await _stockTakeGate.EnsureUnitsNotInStockTakeAsync([sourceUnitId, targetUnitId], cancellationToken);
+            await AssetMovementStockTake.EnsureNotHeldAsync(_stockTakeGate, [sourceUnitId, targetUnitId], cancellationToken);
 
             var now = DateTime.UtcNow;
             var autoUnitApproval = actor.IsHeadOfUnit(sourceUnitId);

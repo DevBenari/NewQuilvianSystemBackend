@@ -735,3 +735,23 @@ layanan dan tanpa mengisi data lama.
 | `JT` | Jurnal Tutup Tahun | `JT` | `true` | `true` |
 
 Ditambahkan lewat seeder yang sudah ada, bukan lewat migration data.
+
+
+## 20. Finishing ACC-FIN-005 + 008 — nol tabel dan kolom berubah *(24 November 2026, **`approved`**, `GATE-DESAIN-1124`)*
+
+Slice buku besar, laba rugi, dan neraca **hanya membaca**. Tidak ada tabel `Baru` maupun
+`Diperbarui`. Kolom `Sudah ada` di bawah ini menjadi tumpuan aturan laporan, sehingga mengubah arti
+atau nilainya kelak wajib memeriksa ulang laporan (`02-backend-architecture.md` bagian 25).
+
+| Tabel | Kolom yang dipakai | Dipakai untuk |
+|---|---|---|
+| `AccJournalLine` | `JournalId`, `AccountId`, `CostCenterId`, `DebitAmount`, `CreditAmount`, `LineNumber`, `Description` (sensitif) | Seluruh angka; saringan unit biaya |
+| `AccJournal` | `LegalEntityId`, `JournalStatus`, `AccountingDate`, `AccountingPeriodId`, `JournalTypeId`, `JournalNumber`, `DocumentNumber`, `ReversalOfJournalId` | Hanya `Posted`; rentang tanggal; tahun buku belum ditutup; pengecualian `JT`; asal Koreksi |
+| `AccJournalType` | `JournalTypeCode` | Mengenali `JT` |
+| `AccChartOfAccount` | `AccountType`, `ParentAccountId`, `AccountCode`, `AccountName`, `IsActive` | Kelompok laporan, hierarki, urutan |
+| `AccAccountingPeriod` | `FiscalYear`, `PeriodMonth`, `PeriodCode`, `StartDate`, `EndDate` | Kolom berjalan, YTD, pembanding |
+| `AccAccountingEvent` | `JournalId`, `SourceModule`, `SourceTransactionId`, `IsDelete` | Asal Kejadian |
+| `AccRecurringJournalRun` → `AccRecurringJournalTemplate` | `JournalId`, `TemplateId` → `TemplateName` | Asal Jurnal Berulang |
+| `MstCostCenter` (HR) | `Id`, `LegalEntityId`, `CostCenterCode`, `CostCenterName`, `IsDelete` | Saringan dan label unit |
+
+`NormalBalance` sengaja **tidak** dipakai (`ACC-DEC-145`).

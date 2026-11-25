@@ -49,6 +49,7 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Models;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.PhysicalInventory.Models;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Models;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Valuation.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -730,6 +731,11 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<AstAssetBook> AstAssetBooks { get; set; }
         public DbSet<AstAssetValueEntry> AstAssetValueEntries { get; set; }
         public DbSet<AstAccountingOutbox> AstAccountingOutboxes { get; set; }
+        public DbSet<AstDepreciationRun> AstDepreciationRuns { get; set; }
+        public DbSet<AstDepreciationRunLine> AstDepreciationRunLines { get; set; }
+        public DbSet<AstValueChangeRequest> AstValueChangeRequests { get; set; }
+        public DbSet<AstSubledgerAccountSetup> AstSubledgerAccountSetups { get; set; }
+        public DbSet<AstUnitCostCenter> AstUnitCostCenters { get; set; }
         #endregion CORPORATE - ASSET MANAGEMENT - VALUATION
 
         #region CORPORATE - ASSET MANAGEMENT - MOVEMENT
@@ -739,6 +745,15 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<AstLoanItem> AstLoanItems { get; set; }
         public DbSet<AstLoanExtension> AstLoanExtensions { get; set; }
         #endregion CORPORATE - ASSET MANAGEMENT - MOVEMENT
+
+        #region CORPORATE - ASSET MANAGEMENT - PHYSICAL INVENTORY
+        public DbSet<AstStockTakeSession> AstStockTakeSessions { get; set; }
+        public DbSet<AstStockTakeTeamMember> AstStockTakeTeamMembers { get; set; }
+        public DbSet<AstStockTakeExpectedItem> AstStockTakeExpectedItems { get; set; }
+        public DbSet<AstStockTakeScan> AstStockTakeScans { get; set; }
+        public DbSet<AstStockTakeResult> AstStockTakeResults { get; set; }
+        public DbSet<AstStockTakeFollowUp> AstStockTakeFollowUps { get; set; }
+        #endregion CORPORATE - ASSET MANAGEMENT - PHYSICAL INVENTORY
 
         #endregion CORPORATE
 

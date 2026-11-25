@@ -11,7 +11,7 @@
 | ID | Layar | Menu | Endpoint |
 |---|---|---|---|
 | `SCR-AST-INV-01` | Jadwal Inventaris | 7.1 | `GET/POST/PUT /physical-inventory/stock-takes` |
-| `SCR-AST-INV-02` | Pemeriksaan Fisik (layar pemindaian, ramah HP/tablet) | 7.2 | `/{id}/start`, `/{id}/scans`, `/{id}/findings`, `/{id}/expected-items`, `GET /register/assets/by-number/{nomor}` |
+| `SCR-AST-INV-02` | Pemeriksaan Fisik (layar pemindaian, ramah tablet; `AST-FE-007`) | 7.2 | `/{id}/start`, `/{id}/scans`, `/{id}/findings`, `/{id}/expected-items`, `GET /register/assets/by-number/{nomor}` |
 | `SCR-AST-INV-03` | Pencocokan Data | 7.3 | `/{id}/close-counting`, `/{id}/reopen-counting`, `/{id}/results` |
 | `SCR-AST-INV-04` | Selisih Inventaris (hasil bukan Sesuai + usulan) | 7.4 | `/{id}/results?category=…`, `/physical-inventory/follow-ups` |
 | `SCR-AST-INV-05` | Verifikasi Hasil | 7.5 | `/{id}/submit`, `/{id}/verify` |
@@ -52,7 +52,8 @@ Peta seluruh modul: [`../02-module-map.md`](../02-module-map.md) 3.1. Butir mili
 | Temuan | Formulir keterangan + foto | `POST /{id}/findings` | `AssetStockTake : Scan` | — |
 | Belum dipindai | Daftar | `GET /{id}/expected-items?scanned=false` | `AssetStockTake : Read` | "Semua aset sudah dipindai." |
 
-Layar harus dapat dipakai satu tangan di HP (lebar ≥ 360 px). Tata letak rinci `DEV_DISCRETION`.
+Layar harus nyaman dipakai di tablet (lebar ±768 px, sentuhan) dan tetap berfungsi di laptop/desktop lewat input
+nomor manual (`AST-FE-007`, menggantikan acuan HP 360 px). Tata letak rinci `DEV_DISCRETION`.
 
 ### 3.2 Pencocokan, Selisih, Verifikasi — `SCR-AST-INV-03..05`
 
@@ -88,6 +89,6 @@ penyimpanan luring).
 
 | Keputusan | Owner | Status |
 |---|---|---|
-| Pemindaian lewat kamera browser + input manual cadangan | Rizki | `approved` (`AST-FE-003`) |
-| Pustaka pemindai | Task frontend | `DEV_DISCRETION` dengan syarat: berjalan di Chrome/Safari HP, tanpa layanan luar |
+| Pemindaian lewat kamera browser tablet + input manual cadangan | Rizki | `approved` (`AST-FE-007`, menggantikan `AST-FE-003`) |
+| Pustaka pemindai | Task frontend | `DEV_DISCRETION` dengan syarat: berjalan di Chrome/Safari tablet, tanpa layanan luar |
 | Tata letak | — | `DEV_DISCRETION` |

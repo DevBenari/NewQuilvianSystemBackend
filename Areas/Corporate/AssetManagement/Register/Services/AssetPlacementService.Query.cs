@@ -290,6 +290,24 @@ public sealed partial class AssetPlacementService
         };
     }
 
+    public async Task<IReadOnlyList<string>> FindPendingHandoverNumbersForUnitAsync(Guid organizationUnitId, int maxNumbers, CancellationToken cancellationToken = default)
+    {
+        if (organizationUnitId == Guid.Empty || maxNumbers < 1)
+        {
+            return [];
+        }
+
+        return await _context.AstAssetHandovers
+            .AsNoTracking()
+            .Where(x => !x.IsDelete && x.Status == HandoverStatus.Diserahkan &&
+                        (x.TargetOrganizationUnitId == organizationUnitId ||
+                         x.Items.Any(i => !i.IsDelete && i.Asset!.CurrentOrganizationUnitId == organizationUnitId)))
+            .OrderBy(x => x.HandedOverAt)
+            .Select(x => x.HandoverNumber)
+            .Take(maxNumbers)
+            .ToListAsync(cancellationToken);
+    }
+
     private IQueryable<AstAssetHandover> ScopedHandovers(AssetActor actor)
     {
         var query = _context.AstAssetHandovers.AsNoTracking().Where(x => !x.IsDelete);

@@ -270,3 +270,53 @@ layar Akses Role, karena hak yang dicari tidak pernah ada untuk diberikan.
 
 **Nilai uang dan keterangan jurnal tetap tidak boleh masuk catatan `LoggerService`.** Aturan
 `02-backend-architecture.md` bagian 11 berlaku penuh di Phase 2.
+
+
+---
+
+## `ACC-PERMISSION-0.8` — buku besar, laba rugi, dan neraca *(**`approved`** Rizki 24 November 2026, `GATE-DESAIN-1124`)*
+
+Dasar: `ACC-DEC-150`, `155`; kontrak `ACC-API-0.17`. **Nol Resource baru, nol Action baru**, nol
+pemberian hak baru di Akses Role.
+
+### Hak akses per endpoint
+
+| Endpoint | Resource | Action | Atribut | Pembacaan dicatat? |
+|---|---|---|---|---|
+| `GET /general-ledger/movements` *(diperluas)* | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | Tidak |
+| `GET /general-ledger/movements/summary` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | Tidak |
+| `GET /general-ledger/movements/export` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — unduhan |
+| `GET /general-ledger/trial-balance/export` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — unduhan |
+| `GET /general-ledger/income-statement` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — `ACC-DEC-032` |
+| `GET /general-ledger/income-statement/export` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — unduhan |
+| `GET /general-ledger/balance-sheet` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — `ACC-DEC-032` |
+| `GET /general-ledger/balance-sheet/export` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — unduhan |
+
+Kedelapan endpoint berada di `GeneralLedgerController` yang sudah ada, di bawah atribut kelas
+`[AccessController(moduleCode: "ACCOUNTING_GENERAL_LEDGER", ...)]`. Tidak ada controller baru, sehingga
+Akses Role tetap menampilkan satu modul akses, bukan dua. Setiap action baru diberi
+`[AccessAction("Read", "Read General Ledger", ...)]` dengan keterangan masing-masing, mengikuti pola
+tiga action yang ada.
+
+Peran yang memegang `GeneralLedger : Read` tidak berubah: keenam peran Phase 1 dan `Accounting
+Director` sesuai matriks bagian 2 dan Phase 2.
+
+### Isi catatan
+
+| Aksi logger | Kapan | Muatan | Dilarang masuk |
+|---|---|---|---|
+| `FinancialStatement.IncomeStatement` | Laba rugi dibuka | `LegalEntityId`, `PeriodCode`, `CostCenterId`, `IncludeZeroAccounts`, `StatusCode`, jumlah baris | Seluruh nominal, nama akun |
+| `FinancialStatement.BalanceSheet` | Neraca dibuka | `LegalEntityId`, `PeriodCode`, `IncludeZeroAccounts`, `StatusCode`, jumlah baris, `IsBalanced` | Seluruh nominal, termasuk `Difference` |
+| `GeneralLedger.Export` | Salah satu dari empat CSV diunduh | Jenis laporan, `LegalEntityId`, `PeriodCode` atau `DateFrom`/`DateTo`, `AccountId`, `CostCenterId`, jumlah baris | Seluruh nominal, keterangan baris, isi berkas |
+
+Pelaku dibaca `LoggerService` dari klaim permintaan, seperti log neraca saldo yang ada. Permintaan
+yang gagal dicatat `WarningAsync` dengan muatan yang sama.
+
+### Aturan yang tidak dapat diwakili matriks
+
+1. Tombol **Unduh CSV** dan **Cetak** hanya tampil bagi pemegang `GeneralLedger : Read`, tetapi
+   penolakan sesungguhnya di backend: memanggil alamat unduhan langsung tanpa hak → `403`.
+2. Kolom **Asal** buku besar hanya menyebut modul dan nomor transaksi sumber, **tidak pernah**
+   pengenal pasien (`ACC-DEC-056`).
+3. Tautan Asal ke Kotak Masuk Kejadian tunduk pada hak `AccountingEvent : Read` di layar itu sendiri;
+   pengguna tanpa hak itu tetap melihat label Asal, tetapi membuka tautannya ditolak layar tujuan.
