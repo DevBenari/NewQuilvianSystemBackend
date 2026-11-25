@@ -1780,7 +1780,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 matched.ContractType?.IsProbationApplicable ?? false,
                 matched.DocumentPath,
                 matched.DocumentFileName,
-                handoff?.Offer?.OfferedBaseSalary);
+                handoff?.Offer?.OfferedBasicSalary);
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateDirectSupervisorCandidateAsync(
@@ -2238,7 +2238,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 OfferNumber = offer?.OfferNumber,
                 OfferStatus = offer?.Status.ToString(),
                 CandidateId = candidate?.Id,
-                CandidateNumber = candidate?.CandidateNumber,
+                CandidateNumber = candidate?.CandidateCode,
                 VacancyTitle = vacancy?.Title,
                 RequisitionNumber = requisition?.RequisitionNumber,
                 IsRehire = candidate?.IsRehire ?? false,
@@ -2282,6 +2282,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 .Select(j => new { j.Id, j.JobDescriptionCode, j.Purpose })
                 .FirstOrDefaultAsync(cancellationToken);
 
+            var empLocation = await _dbContext.MstEmployees
+                .AsNoTracking()
+                .Where(e => e.WorkforceProfileId == c.WorkforceProfileId && !e.IsDelete)
+                .Select(e => e.WorkLocation)
+                .FirstOrDefaultAsync(cancellationToken);
+            var docLocation = !string.IsNullOrWhiteSpace(empLocation)
+                ? empLocation
+                : await _dbContext.MstDoctors
+                    .AsNoTracking()
+                    .Where(d => d.WorkforceProfileId == c.WorkforceProfileId && !d.IsDelete)
+                    .Select(d => d.WorkLocation)
+                    .FirstOrDefaultAsync(cancellationToken);
+
             var supItem = c.Items.FirstOrDefault(i => !i.IsDelete && i.SystemItemCode == EmploymentLifecycleValueConstants.ItemDirectSupervisorAssigned);
             var placementSummary = new OnboardingPlacementSummaryDto
             {
@@ -2292,7 +2305,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 DepartmentName = c.OrganizationUnit?.Department?.DepartmentName,
                 PositionId = c.PositionId,
                 PositionTitle = c.Position?.PositionName ?? "-",
-                WorkLocation = requisition?.WorkLocation ?? c.HospitalSite?.SiteName ?? "-",
+                WorkLocation = docLocation ?? c.HospitalSite?.SiteName ?? "-",
                 HasActiveOrganizationAssignment = hasOrgAssign,
                 HasActivePositionAssignment = hasPosAssign,
                 JobDescriptionId = jobDesc?.Id,
