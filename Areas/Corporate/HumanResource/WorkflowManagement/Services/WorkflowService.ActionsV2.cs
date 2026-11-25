@@ -948,10 +948,43 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             }
         }
 
-        public async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> WithdrawAsync(
+        public Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> WithdrawAsync(
             Guid workflowInstanceId,
             WorkflowWithdrawRequest request,
+            CancellationToken cancellationToken = default) =>
+            WithdrawCoreAsync(workflowInstanceId, request, null, cancellationToken);
+
+        /// <summary>
+        /// Menarik instance <b>atas nama</b> pemohonnya, untuk dokumen modul yang ditarik dari layar
+        /// modul atau ditutup proses terjadwal (contoh: penilaian masa percobaan yang masa percobaannya
+        /// habis, <c>HRD-DEC-085</c> butir 9). Hanya dipanggil service server; tidak ada endpoint.
+        /// </summary>
+        /// <remarks>
+        /// Berbeda dari <see cref="WithdrawAsync"/>, instance yang sedang dikembalikan ke pemohon
+        /// (<c>RevisionRequested</c>/<c>Returned</c>) juga dapat ditarik, karena dokumen modulnya boleh
+        /// ditarik pada status itu. Pemohon tetap harus sama dengan pemohon instance.
+        /// </remarks>
+        public Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> WithdrawOnBehalfAsync(
+            Guid workflowInstanceId,
+            Guid requesterUserId,
+            WorkflowWithdrawRequest request,
             CancellationToken cancellationToken = default)
+        {
+            if (requesterUserId == Guid.Empty)
+            {
+                return Task.FromResult(WorkflowServiceResult<WorkflowInstanceDetailResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pemohon workflow wajib diisi."));
+            }
+
+            return WithdrawCoreAsync(workflowInstanceId, request, requesterUserId, cancellationToken);
+        }
+
+        private async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> WithdrawCoreAsync(
+            Guid workflowInstanceId,
+            WorkflowWithdrawRequest request,
+            Guid? onBehalfOfUserId,
+            CancellationToken cancellationToken)
         {
             if (workflowInstanceId == Guid.Empty || request == null || string.IsNullOrWhiteSpace(request.Reason))
             {
@@ -963,7 +996,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             HumanResourceUserContextDto actorContext;
             try
             {
-                actorContext = await _humanResourceContextService.GetCurrentAsync(cancellationToken);
+                actorContext = onBehalfOfUserId.HasValue
+                    ? await _humanResourceContextService.GetByUserIdAsync(onBehalfOfUserId.Value, cancellationToken)
+                    : await _humanResourceContextService.GetCurrentAsync(cancellationToken);
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -1016,10 +1051,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                         "Workflow definition tidak mengizinkan withdraw oleh pemohon.");
                 }
 
-                if (!string.Equals(
+                var isInProgress = string.Equals(
                     instance.WorkflowStatus,
                     WorkflowValueConstants.WorkflowStatus.InProgress,
-                    StringComparison.OrdinalIgnoreCase))
+                    StringComparison.OrdinalIgnoreCase);
+                var isReturnedToRequester = onBehalfOfUserId.HasValue &&
+                    (string.Equals(instance.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.RevisionRequested, StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(instance.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Returned, StringComparison.OrdinalIgnoreCase));
+
+                if (!isInProgress && !isReturnedToRequester)
                 {
                     await transaction.RollbackAsync(cancellationToken);
                     return WorkflowServiceResult<WorkflowInstanceDetailResponse>.Fail(

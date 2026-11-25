@@ -385,6 +385,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 CreateBy = actorId
             };
 
+            var previousProbationRowVersion = probation.RowVersion;
             probation.ProbationStatus = ProbationStatus.AwaitingDecision;
             probation.RowVersion = Guid.NewGuid();
             probation.UpdateDateTime = DateTime.UtcNow;
@@ -393,13 +394,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             _dbContext.HrdProbationAssessments.Add(assessment);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            // Pemicu alur persetujuan T15
-            var workflowInstanceId = await _workflowIntegrationService.StartProbationAssessmentWorkflowAsync(
+            // Pemicu alur persetujuan T15 (B6). Gagal tertutup: penilaian dihapus lunak dan masa percobaan dikembalikan
+            // ke keadaan semula (termasuk RowVersion) agar atasan dapat mengajukan ulang tanpa memuat ulang halaman.
+            var workflow = await _workflowIntegrationService.StartProbationAssessmentWorkflowAsync(
                 assessment.Id,
                 actorId,
                 cancellationToken);
 
-            assessment.WorkflowInstanceId = workflowInstanceId;
+            if (!workflow.Success)
+            {
+                assessment.IsDelete = true;
+                assessment.DeleteDateTime = DateTime.UtcNow;
+                assessment.DeleteBy = actorId;
+                probation.ProbationStatus = ProbationStatus.Running;
+                probation.RowVersion = previousProbationRowVersion;
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                return RecruitmentResult<ProbationAssessmentResponse>.Fail(workflow.Message, workflow.StatusCode);
+            }
+
+            assessment.WorkflowInstanceId = workflow.WorkflowInstanceId;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return RecruitmentResult<ProbationAssessmentResponse>.Created(MapToAssessmentResponse(assessment, user.Identity?.Name));
@@ -435,6 +448,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             {
                 return RecruitmentResult<ProbationAssessmentResponse>.BadRequest(
                     $"Hanya penilaian berstatus Returned (Minta Revisi) yang dapat diubah. Status saat ini: {assessment.AssessmentStatus}.");
+            }
+
+            if (assessment.SubmittedByUserId != actorId)
+            {
+                return RecruitmentResult<ProbationAssessmentResponse>.Forbidden(
+                    "Hanya pengaju yang dapat memperbaiki dan mengajukan ulang penilaian ini.");
             }
 
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -479,26 +498,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
             assessment.Result = request.Result;
             assessment.ReasonText = request.ReasonText.Trim();
-            assessment.AssessmentStatus = ProbationAssessmentStatus.Submitted;
-            assessment.SubmittedAt = DateTime.UtcNow;
-            assessment.SubmittedByUserId = actorId;
             assessment.RowVersion = Guid.NewGuid();
             assessment.UpdateDateTime = DateTime.UtcNow;
             assessment.UpdateBy = actorId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // B6: instance yang dikembalikan diajukan ulang (pengaju yang sama); penilaian lama tanpa instance
+            // (dibuat sebelum integrasi) dikirim sebagai instance baru.
+            var workflow = await _workflowIntegrationService.InstanceExistsAsync(assessment.WorkflowInstanceId, cancellationToken)
+                ? await _workflowIntegrationService.ResubmitAsync(
+                    assessment.WorkflowInstanceId!.Value,
+                    "Penilaian diperbaiki dan diajukan ulang.",
+                    cancellationToken)
+                : await _workflowIntegrationService.StartProbationAssessmentWorkflowAsync(assessment.Id, actorId, cancellationToken);
+
+            if (!workflow.Success)
+            {
+                // Isian perbaikan tersimpan; penilaian tetap Dikembalikan sehingga dapat dicoba lagi.
+                return RecruitmentResult<ProbationAssessmentResponse>.Fail(workflow.Message, workflow.StatusCode);
+            }
+
+            assessment.WorkflowInstanceId = workflow.WorkflowInstanceId ?? assessment.WorkflowInstanceId;
+            assessment.AssessmentStatus = ProbationAssessmentStatus.Submitted;
+            assessment.SubmittedAt = DateTime.UtcNow;
+            assessment.RowVersion = Guid.NewGuid();
 
             probation.ProbationStatus = ProbationStatus.AwaitingDecision;
             probation.RowVersion = Guid.NewGuid();
             probation.UpdateDateTime = DateTime.UtcNow;
             probation.UpdateBy = actorId;
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            var wfId = await _workflowIntegrationService.StartProbationAssessmentWorkflowAsync(
-                assessment.Id,
-                actorId,
-                cancellationToken);
-
-            assessment.WorkflowInstanceId = wfId;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return RecruitmentResult<ProbationAssessmentResponse>.Ok(MapToAssessmentResponse(assessment, user.Identity?.Name));
@@ -534,6 +564,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             {
                 return RecruitmentResult<ProbationAssessmentResponse>.BadRequest(
                     $"Penilaian tidak dapat ditarik karena berstatus {assessment.AssessmentStatus}.");
+            }
+
+            // B6: instance T15 ikut ditarik dari Kotak Masuk penyetuju.
+            var workflow = await _workflowIntegrationService.WithdrawAsync(
+                assessment.WorkflowInstanceId,
+                actorId,
+                string.IsNullOrWhiteSpace(request?.Reason) ? "Penilaian masa percobaan ditarik oleh pengaju." : request!.Reason!,
+                cancellationToken);
+            if (!workflow.Success)
+            {
+                return RecruitmentResult<ProbationAssessmentResponse>.Fail(workflow.Message, workflow.StatusCode);
             }
 
             assessment.AssessmentStatus = ProbationAssessmentStatus.Withdrawn;

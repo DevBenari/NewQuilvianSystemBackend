@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -1224,15 +1225,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             if (query.StartDate.HasValue)
             {
+                var startUtc = InpDateRangeHelper.NormalizeStartUtc(query.StartDate.Value);
                 filtered = filtered.Where(x =>
-                    (x.Episode!.AdmittedAt ?? x.Episode.CreateDateTime) >= query.StartDate.Value);
+                    (x.Episode!.AdmittedAt ?? x.Episode.CreateDateTime) >= startUtc);
             }
 
             if (query.EndDate.HasValue)
             {
-                var exclusiveEnd = query.EndDate.Value.Date.AddDays(1);
-                filtered = filtered.Where(x =>
-                    (x.Episode!.AdmittedAt ?? x.Episode.CreateDateTime) < exclusiveEnd);
+                var (endUtc, isExclusive) = InpDateRangeHelper.ResolveEndUtc(query.EndDate.Value);
+                filtered = isExclusive
+                    ? filtered.Where(x => (x.Episode!.AdmittedAt ?? x.Episode.CreateDateTime) < endUtc)
+                    : filtered.Where(x => (x.Episode!.AdmittedAt ?? x.Episode.CreateDateTime) <= endUtc);
             }
 
             if (query.RequiresIsolation.HasValue)

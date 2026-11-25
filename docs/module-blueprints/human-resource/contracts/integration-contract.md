@@ -533,6 +533,14 @@ sama; sambungan berupa pemanggilan service, bukan HTTP, kecuali disebut lain.
 | `INT-HR-34` | 05 → Administrator/IT | Permintaan akses kerja `WorkAccess` muncul di layar permintaan akses; IT memberi peran lewat layar peran yang sudah ada lalu menandai selesai | Tidak — kerja manusia | Permintaan tetap `Requested` dan tampil di daftar | Satu permintaan per kasus |
 | `INT-HR-35` | 04 Rekrutmen → 05 | Tawaran memuat jenis dan lama kontrak; draf kontrak pertama menyalinnya (`HRD-DEC-095`) | Ya | Tawaran tanpa jenis kontrak tidak dapat diajukan (`VR-ONB-50`) | — |
 
+> **Amandemen `INT-HR-30` (25 Nov 2026, perbaikan B6 —
+> `docs/PLANNING_PERSETUJUAN_T15_T18_KONTRAK_DAN_MASA_KERJA.md`).** Jenis langkah tidak dikunci di kode: setiap RS
+> mengatur langkah `T15`–`T18` di layar Langkah Workflow. Konfigurasi bawaan DB dev = satu langkah sumber **Jabatan**
+> (`Position`) Kepala Bagian SDM, `AllowSelfApproval = false`, ditambah tiga alasan penolakan `CloseRequest` per jenis.
+> `SiteHr` tetap sah dipakai bila role Identity `SiteHr` dan `HospitalSiteId` penempatan kelak tersedia. Jenis rujukan
+> instance: `WorkforceProbationAssessment`, `WorkforceContractDecision`, `WorkforceContractCorrection`,
+> `WorkforceInitialContractBatch`; hasil diteruskan penangan `HrdEmploymentLifecycleWorkflowLifecycleHandler`.
+
 **Kesiapan integrasi.**
 
 | Sambungan | Keadaan pihak lawan hari ini | Memblokir |

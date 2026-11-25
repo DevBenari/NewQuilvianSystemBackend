@@ -1742,6 +1742,9 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowReferenceLifecycleHandler>(sp => sp.GetRequiredService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelWorkflowLifecycleHandler>());
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IBusinessTravelWorkflowReconciliationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelWorkflowReconciliationService>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelWorkflowReconciliationWorker>();
+    // B6 (INT-HR-30, PLANNING_PERSETUJUAN_T15_T18_KONTRAK_DAN_MASA_KERJA.md): penangan workflow T15–T18 sub-modul 05.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleWorkflowLifecycleHandler>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowReferenceLifecycleHandler>(sp => sp.GetRequiredService<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleWorkflowLifecycleHandler>());
 
 
     //billing - master data
