@@ -12,24 +12,25 @@
 **Legenda tanda status:** ✅ selesai · 🟡 sebagian · ⛔ terblokir · tanpa tanda = belum dikerjakan.
 
 `V-FE` dan `DoD-FE` sama dengan `../../register/roadmap/frontend-roadmap.md`; tambahan untuk `FE-AST-016`:
-pemindaian diuji pada HP lewat HTTPS.
+pemindaian diuji di PC kantor dengan Playwright (viewport tablet, sentuhan, kamera tiruan berisi QR di `localhost`);
+tablet sungguhan lewat HTTPS menjadi bagian UAT (`AST-FE-007`, 2026-11-23).
 
 ## Grafik Urutan Dependency
 
 Dipotong menjadi dua blok karena lebar; `FE-AST-017` muncul lagi sebagai sambungan blok kedua.
 
 ```text
-                   BE-AST-021 [BE] ─┐    BE-AST-022 [BE] ─┐    BE-AST-023 [BE] ─┐
+                BE-AST-021 [BE] ✅ ─┐ BE-AST-022 [BE] ✅ ─┐ BE-AST-023 [BE] ✅ ─┐
                                     │                     │                     │
-FE-AST-001 [FE-REG] ────────────────┴─> FE-AST-015 ───────┴─> FE-AST-016 ───────┴─> FE-AST-017
+FE-AST-001 [FE-REG] ────────────────┴─> FE-AST-015 ✅ ────┴─> FE-AST-016 ✅ ────┴─> FE-AST-017 ✅
 ```
 
 ```text
-                  BE-AST-024 [BE] ─┐
+               BE-AST-024 [BE] ✅ ─┐
                                    │
-         FE-AST-017 ─┬─────────────┴─> FE-AST-018
-                     │
-FE-AST-010 [FE-REG] ─┘
+         FE-AST-017 ✅ ─┬──────────┴─> FE-AST-018 ✅
+                        │
+FE-AST-010 [FE-REG] ────┘
 ```
 
 `[BE]` = task backend pada `backend-roadmap.md` sub-modul ini · `[FE-REG]` = task frontend sub-modul
@@ -55,30 +56,30 @@ Pasangan prasyarat→task: **9** (sama dengan kolom `Dependency`).
 
 ## Kartu task
 
-### `FE-AST-015` — Jadwal dan detail sesi
+### ✅ `FE-AST-015` — Jadwal dan detail sesi
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 23 November 2026.** Route `stock-take/schedules` (daftar, jadwalkan, detail, ubah), penyusun tim dari base component (`UI GATE` REUSE 9, COMPOSE 1, NEW 0), peringatan proses penahan sebelum dan sesudah mulai ditolak, grup menu "Inventaris & Pemeriksaan Fisik" + "Jadwal Inventaris". ESLint 19 berkas 0/0; build Rizki `BUILD_ID` 11:25:04; Playwright **16/16** (SuperAdmin + LOKET). `UAT-INV-02` milik tim UAT — [`FE-AST-015.md`](../task/report/frontend/FE-AST-015.md) |
 | Acceptance criteria | 1. Jadwalkan dengan unit, ruangan opsional, tanggal, tim dan ketua. 2. Mulai menampilkan daftar proses yang menahan bila ditolak. 3. Grup menu "Inventaris & Pemeriksaan Fisik" dan butir "Jadwal Inventaris" terdaftar |
 
-### `FE-AST-016` — Pemindaian QR
+### ✅ `FE-AST-016` — Pemindaian QR
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
-| Acceptance criteria | 1. Skema §3.1; dapat dipakai satu tangan di HP 360 px. 2. Kamera ditolak → input nomor manual tetap bekerja. 3. Nomor tak dikenal → formulir temuan. 4. Pindaian gagal kirim tetap terlihat dengan tombol kirim ulang. 5. Butir menu "Pemeriksaan Fisik" |
+| **Status** | ✅ **SELESAI 23 November 2026.** Kelima kriteria terpetakan ke source dan teruji: Playwright **16/16** di PC (viewport tablet 768×1024 + sentuhan, kamera tiruan Edge berisi QR nomor aset nyata; `AT-INV-13`, `38`, temuan, kirim ulang, menu). ESLint 0/0; build Rizki `BUILD_ID` 15:02:39 memuat perbaikan `qr-scanner.jsx` (React 19 mengabaikan `defaultProps` pustaka pemindai). Tablet sungguhan dan `UAT-INV-06` milik tim UAT — [`FE-AST-016.md`](../task/report/frontend/FE-AST-016.md) |
+| Acceptance criteria | 1. Skema §3.1; nyaman dipakai di tablet ±768 px (`AST-FE-007`; semula HP 360 px). 2. Kamera ditolak → input nomor manual tetap bekerja. 3. Nomor tak dikenal → formulir temuan. 4. Pindaian gagal kirim tetap terlihat dengan tombol kirim ulang. 5. Butir menu "Pemeriksaan Fisik" |
 
-### `FE-AST-017` — Pencocokan sampai tindak lanjut
+### ✅ `FE-AST-017` — Pencocokan sampai tindak lanjut
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 23 November 2026.** Satu view + hook empat varian (`stock-take/{matching,discrepancies,verification,reports}?sessionId=`), kolom hasil dengan chip usulan dan aksi baris sesuai hak, empat butir menu; `UI GATE` REUSE 9, NEW 0. ESLint 11 berkas 0/0; build Rizki `BUILD_ID` 15:31:41; Playwright **12/12** di build produksi: tutup pemindaian, ajukan ditolak tanpa catatan, catatan dari menu baris, ajukan, tombol verifikasi tersembunyi bagi anggota tim, verifikasi, proses usulan menampilkan `AST-PNY-000016`, cetak berita acara. Abaikan dan draft temuan diuji di API (`BE-AST-023`). `UAT-INV-01`, `04`, `05` milik tim UAT — [`FE-AST-017.md`](../task/report/frontend/FE-AST-017.md) |
 | Acceptance criteria | 1. `SCR-AST-INV-03..06`. 2. Tombol verifikasi tersembunyi bagi anggota tim. 3. Proses usulan menampilkan nomor dokumen tujuan. 4. Empat butir menu terdaftar |
 
-### `FE-AST-018` — Kartu 1.5 dan laporan
+### ✅ `FE-AST-018` — Kartu 1.5 dan laporan
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 24 November 2026.** Bagian dashboard "Inventaris Tertunda" (dua kartu bertautan ke tab baru Jadwal Inventaris: Lewat Jadwal, Selisih Belum Ditindaklanjuti), varian `report` pada daftar sesi di `/reports/stock-takes` dengan kolom hitungan kategori dan usulan serta Ekspor Excel, menu "Laporan Inventaris"; `UI GATE` REUSE 4, NEW 0. ESLint 11 berkas 0/0; build Rizki `BUILD_ID` 08:51:56; Playwright **15/15** + uji hak akses **6/6** (policy sementara dipulihkan). Label menu "Laporan Inventaris" (kriteria menulis "Inventaris") — [`FE-AST-018.md`](../task/report/frontend/FE-AST-018.md) |
 | Acceptance criteria | 1. Kartu "Inventaris Tertunda" disisipkan ke dashboard tanpa mengubah kartu lain. 2. Laporan dan ekspor. 3. Butir menu "Inventaris" pada grup Laporan |

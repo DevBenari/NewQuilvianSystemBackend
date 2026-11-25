@@ -69,3 +69,71 @@ public sealed class DepreciationPolicyGroupResponse
     public DepreciationPolicyResponse? Current { get; set; }
     public DepreciationPolicyResponse? Upcoming { get; set; }
 }
+
+public sealed class SubledgerAccountSetupRequest
+{
+    public string? CostControlAccountCode { get; set; }
+    public string? AccumulatedDepreciationControlAccountCode { get; set; }
+    public string? AccumulatedImpairmentControlAccountCode { get; set; }
+}
+
+public sealed class SubledgerAccountRefResponse
+{
+    public string Code { get; set; } = string.Empty;
+    public string? Name { get; set; }
+    public bool IsKnown { get; set; }
+    public bool IsControlAccount { get; set; }
+}
+
+public sealed class SubledgerAccountSetupResponse
+{
+    public Guid AssetGroupId { get; set; }
+    public string InventoryCode { get; set; } = string.Empty;
+    public string GroupName { get; set; } = string.Empty;
+    public string CategoryName { get; set; } = string.Empty;
+    public bool IsDepreciable { get; set; }
+    public bool IsActive { get; set; }
+    public bool IsConfigured { get; set; }
+    public SubledgerAccountRefResponse? CostControlAccount { get; set; }
+    public SubledgerAccountRefResponse? AccumulatedDepreciationControlAccount { get; set; }
+    public SubledgerAccountRefResponse? AccumulatedImpairmentControlAccount { get; set; }
+    public List<string> Warnings { get; set; } = [];
+    public Guid? UpdatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+}
+
+public sealed class UnitCostCenterQuery
+{
+    public string? Search { get; set; }
+    public bool? UnclearOnly { get; set; }
+}
+
+public sealed class UnitCostCenterRequest
+{
+    public Guid? CostCenterId { get; set; }
+}
+
+public sealed class UnitCostCenterResponse
+{
+    public Guid OrganizationUnitId { get; set; }
+    public string UnitCode { get; set; } = string.Empty;
+    public string UnitName { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty;
+    public string SourceName { get; set; } = string.Empty;
+    public bool IsMapped { get; set; }
+    public bool IsUnclear { get; set; }
+    public int ActiveCostCenterCount { get; set; }
+    public Guid? CostCenterId { get; set; }
+    public string? CostCenterCode { get; set; }
+    public string? CostCenterName { get; set; }
+    public string? UnclearReason { get; set; }
+}
+
+public sealed class CostCenterOptionResponse
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public Guid? OrganizationUnitId { get; set; }
+    public string? UnitName { get; set; }
+}

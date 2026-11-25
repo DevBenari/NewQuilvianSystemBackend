@@ -114,3 +114,11 @@ public sealed class AssetPlacementListItemResponse
 }
 
 public sealed record AssetPlacementTarget(Guid OrganizationUnitId, Guid LocationId, Guid CustodianEmployeeId);
+
+public sealed record AssetHandoverStockTakeRequest(
+    Guid AssetId,
+    Guid TargetLocationId,
+    Guid TargetCustodianEmployeeId,
+    Guid SourceDocumentId,
+    string? Notes,
+    Guid ActorUserId);

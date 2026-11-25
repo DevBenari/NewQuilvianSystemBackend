@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.PhysicalInventory.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Security;
 
@@ -53,6 +54,7 @@ public sealed class AssetAttachmentAccessService
             AssetUtilizationService.UtilizationOwnerType => await CanOpenUtilizationAsync(attachment.Id, attachment.OwnerId, actor, entity.LegalEntityId, cancellationToken),
             AssetConditionService.ConditionReportDocumentType => await CanOpenConditionReportAsync(attachment.Id, attachment.OwnerId, actor, entity.LegalEntityId, cancellationToken),
             AssetImportService.ImportOwnerType => await CanOpenImportAsync(attachment.Id, attachment.OwnerId, cancellationToken),
+            StockTakeScanService.ScanOwnerType => await CanOpenStockTakeScanAsync(attachment.Id, attachment.OwnerId, actor, cancellationToken),
             _ => (bool?)null
         };
 
@@ -122,6 +124,24 @@ public sealed class AssetAttachmentAccessService
             (actor.EmployeeId is { } employeeId && report.CurrentCustodianEmployeeId == employeeId) ||
             report.ReportedBy == actor.UserId;
         return await HasAccessAsync(AssetConditionService.PermissionResource) && visible;
+    }
+
+    private async Task<bool?> CanOpenStockTakeScanAsync(Guid attachmentId, Guid scanId, AssetActor actor, CancellationToken cancellationToken)
+    {
+        var scan = await _context.AstStockTakeScans
+            .AsNoTracking()
+            .Where(x => x.Id == scanId && !x.IsDelete && x.PhotoAttachmentId == attachmentId)
+            .Select(x => new { x.SessionId, x.Session!.OrganizationUnitId, x.Session.CreateBy })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (scan == null)
+        {
+            return null;
+        }
+
+        var visible = actor.CanAccessUnit(scan.OrganizationUnitId) || scan.CreateBy == actor.UserId ||
+            (actor.EmployeeId is { } employeeId &&
+             await _context.AstStockTakeTeamMembers.AsNoTracking().AnyAsync(x => x.SessionId == scan.SessionId && x.EmployeeId == employeeId && !x.IsDelete, cancellationToken));
+        return await HasAccessAsync(StockTakeSessionService.PermissionResource) && visible;
     }
 
     private async Task<bool?> CanOpenImportAsync(Guid attachmentId, Guid batchId, CancellationToken cancellationToken)

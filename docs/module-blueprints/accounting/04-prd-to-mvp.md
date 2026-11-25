@@ -994,3 +994,106 @@ tujuannya menunjukkan kemajuan Phase 2 tanpa menunggu Yasmin, ketiga gelombang i
 penyempurnaan, bukan bentuk yang belum diputuskan, sehingga seluruh epic boleh masuk gelombang
 pengiriman. `POST-MVP` sendiri sengaja dipisahkan justru karena ia yang bergantung pada
 `ACC-XM-001`.
+
+
+---
+
+## 30. Finishing ACC-FIN-005 + 008 — buku besar, laba rugi, dan neraca *(24 November 2026, **`approved`** Rizki, `GATE-DESAIN-1124`)*
+
+Dasar: `ACC-DEC-141`..`155`; `02-backend-architecture.md` bagian 25; `03-frontend-architecture.md`
+bagian 15; kontrak `ACC-API-0.17`, `ACC-VALIDATION-0.12`, `ACC-PERMISSION-0.8`; gerbang
+`evidence/19`.
+
+### 30.1 Batas rilis slice
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Petugas memilih satu periode akuntansi pada layar Laba Rugi atau Neraca, atau satu akun pada Buku Besar |
+| **Titik akhir** | Petugas membaca laporan beserta pembandingnya, menelusuri angka sampai rincian jurnal dan asalnya, lalu mengunduh CSV atau mencetaknya |
+| **Bukan bagian slice** | Mengubah jurnal, menutup periode, atau menyimpan laporan |
+
+### 30.2 Kemampuan `MUST HAVE`
+
+| ID | Kemampuan | Asal kemampuan |
+|---|---|---|
+| `MH-FIN-1` | Buku besar dapat disaring unit biaya, menampilkan saldo awal dan akhir, asal jurnal, dan tautan ke jurnal | `ACC-FIN-005` di [peta kemampuan finishing](finishing/01-capability-map-finishing.md) — `Extend` |
+| `MH-FIN-2` | Laba rugi per periode dan YTD dengan pembanding tahun lalu | `ACC-FIN-008` — `Extend` |
+| `MH-FIN-3` | Neraca per akhir periode dengan pembanding akhir tahun buku lalu | `ACC-FIN-008` — `Extend` |
+| `MH-FIN-4` | CSV untuk buku besar, neraca saldo, laba rugi, neraca; cetak laba rugi dan neraca | `ACC-FIN-005`, `008` |
+
+### 30.3 Yang ditunda
+
+| Kemampuan | Alasan | Pengganti selama ditunda |
+|---|---|---|
+| Rasio keuangan | Pembeda aset lancar belum ada (`U-05`) | Dihitung manual dari CSV neraca dan laba rugi |
+| Analisis target pendapatan | Konflik anggaran `C-02` | Tidak ada |
+| Laporan pajak | Data pajak milik Finance dan Payroll | Laporan di modul pemiliknya |
+| Laba rugi per pusat laba | ACC-FIN-003 | Saringan unit biaya dengan catatan keterbatasannya (`ACC-DEC-147`) |
+| Berkas `.xlsx` | Dependency baru (`ACC-DEC-149`) | CSV |
+
+### 30.4 Epic dan functional requirement
+
+| FR | Epic | Requirement | Disposisi | Keputusan |
+|---|---|---|---|---|
+| `FR-FIN-001` | E-FIN-1 Buku besar | Saringan unit biaya; saldo awal dan berjalan dari baris unit itu saja | `EXTEND` | `147` |
+| `FR-FIN-002` | E-FIN-1 | Ringkasan saldo awal, debit, kredit, saldo akhir untuk seluruh rentang | `EXTEND` | `141` |
+| `FR-FIN-003` | E-FIN-1 | Kolom Asal lima jenis; nomor jurnal membuka rincian jurnal; asal kejadian membuka rincian kejadian | `EXTEND` | `148` |
+| `FR-FIN-004` | E-FIN-1 | Unduh CSV seluruh mutasi sesuai saringan; ditolak di atas 50.000 baris | `MISSING / NEW` | `149` |
+| `FR-FIN-005` | E-FIN-1 | Buku besar menerima saringan awal dari tautan laporan | `EXTEND` | `148` |
+| `FR-FIN-010` | E-FIN-2 Laba rugi | Kolom periode, YTD, dan pembanding tahun lalu; pembanding tidak ada tampil `—` | `MISSING / NEW` | `144` |
+| `FR-FIN-011` | E-FIN-2 | Jurnal `JT` dan pembaliknya tidak dihitung | `MISSING / NEW` | `142` |
+| `FR-FIN-012` | E-FIN-2, E-FIN-3 | Tanda per kelompok; hierarki bagan akun; akun nol tersembunyi dengan pilihan menampilkan | `MISSING / NEW` | `145`, `146` |
+| `FR-FIN-013` | E-FIN-2 | Saringan unit biaya dengan catatan tetap | `MISSING / NEW` | `147` |
+| `FR-FIN-014` | E-FIN-2, E-FIN-3 | Unduh CSV dan Cetak | `MISSING / NEW` | `149` |
+| `FR-FIN-015` | E-FIN-2, E-FIN-3 | Pembacaan dan unduhan dicatat tanpa nominal | `MISSING / NEW` | `155` |
+| `FR-FIN-020` | E-FIN-3 Neraca | Saldo per akhir periode dan pembanding akhir tahun buku lalu | `MISSING / NEW` | `144` |
+| `FR-FIN-021` | E-FIN-3 | Baris Laba Tahun Berjalan dan Laba Tahun Lalu Belum Ditutup beserta peringatan | `MISSING / NEW` | `143` |
+| `FR-FIN-022` | E-FIN-3 | Status seimbang; tidak seimbang tetap tampil dengan selisihnya | `MISSING / NEW` | `154` |
+| `FR-FIN-030` | E-FIN-4 Neraca saldo | Unduh CSV | `MISSING / NEW` | `153` |
+| `FR-FIN-040` | E-FIN-5 Menu | Butir Laba Rugi dan Neraca sesudah Neraca Saldo | `MISSING / NEW` | `152` |
+| `FR-FIN-041` | Semua | Hanya jurnal `Posted`; hak `GeneralLedger : Read` ditegakkan backend | `EXISTING / REUSE` | `141`, `150` |
+
+Nol epic berstatus `OPEN DECISION`.
+
+### 30.5 Skenario UAT
+
+Skenario `F1`..`F20` dirinci per langkah di `testing/acceptance-test-matrix.md` bagian 4.
+
+| Epic | Jalur berhasil | Jalur gagal |
+|---|---|---|
+| E-FIN-1 | `F10`, `F13`, `F15` | `F12` (unit biaya badan hukum lain), `F19` (unduhan > 50.000 baris) |
+| E-FIN-2 | `F2`, `F3`, `F6`, `F11` | `F16` (tanpa hak), `F7` (pembanding tidak ada) |
+| E-FIN-3 | `F4`, `F5`, `F8`, `F14` | `F16`, neraca tidak seimbang (`ACC-DEC-154`) |
+| E-FIN-4 | `F18` | `F16` |
+| E-FIN-5 | Kedua butir menu membuka layarnya | Pengguna tanpa hak → `AccessDeniedGate` |
+
+### 30.6 Definition of Done slice
+
+| # | Butir | Bukti |
+|---:|---|---|
+| 1 | Kedelapan endpoint berdiri dengan path, method, dan hak persis `ACC-API-0.17` | Swagger |
+| 2 | Nol tabel, kolom, migration, hak, controller, dan baris `Program.cs` baru | Diff |
+| 3 | `F6`: laba rugi YTD periode terakhir tahun buku cocok dengan neraca saldo periode itu di luar `JT` | Tangkapan dua layar |
+| 4 | `F4`: neraca seimbang dengan baris laba belum ditutup | Tangkapan layar |
+| 5 | CSV keempat laporan terbuka rapi sebagai angka di Excel komputer rumah sakit (`F20`, `evidence/19` butir 14b) | Tangkapan Excel |
+| 6 | Log pembacaan dan unduhan tanpa nominal (`F17`) | Kutipan log |
+| 7 | Kedua butir menu terjangkau | Tangkapan sidebar |
+| 8 | `npm run lint` nol galat pada berkas tersentuh; build backend dijalankan Rizki | Keluaran perintah |
+| 9 | Laporan task BE dan FE tertulis; status Implementation, Developer Verification, dan UAT dipisah | `task/report/` |
+
+### 30.7 Urutan pengiriman
+
+Kartu backend dan frontend berpasangan, supaya uji cukup sekali dari layar.
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `FIN-0` | Backend: buku besar diperluas, ringkasan, pembantu CSV, CSV buku besar dan neraca saldo — lalu frontend Buku Besar dan tombol unduh Neraca Saldo | — |
+| `FIN-1` | Backend: laba rugi dan neraca beserta CSV-nya — lalu frontend Laba Rugi, Neraca, dan menu | `FIN-0` (pembantu CSV, tautan ke Buku Besar) |
+| `POST-SLICE` | Rasio, target pendapatan, laporan pajak, pusat laba | Bagian 30.3 |
+
+### 30.8 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? | Pemilik |
+|---|---|:---:|---|
+| `C-05` | Jenis akun anak berbeda dari induk | Tidak — aturan cadangan `ACC-DEC-146` butir 5 | Rizki + pemilik proses akuntansi |
+| `U-01` | Isi ClickUp `z8m132yv7x`, `z8m132yv84` | Tidak | Rizki |
