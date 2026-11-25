@@ -46,6 +46,33 @@ public static class PayrollRunReviewBlockCodes
     public const string OtherReasons = "OTHER_REASONS";
 }
 
+/// <summary>Mode pengesahan run. Normal = pengesahan final (perilaku lama); Conditional = pengesahan bersyarat, PPh belum final (PAY-BE-FIX-032).</summary>
+public static class PayrollRunApprovalModes
+{
+    public const string Normal = "Normal";
+    public const string Conditional = "Conditional";
+}
+
+/// <summary>
+/// Badan aksi Approve (PAY-BE-FIX-032). Tanpa badan atau tanpa <see cref="ApprovalMode"/> = pengesahan normal (perilaku lama). Mode
+/// <c>Conditional</c> memakai izin PayrollRun:Approve yang sama dan HANYA mencatat persetujuan administratif: status run tetap Submitted,
+/// tidak ada pengunci, konfirmasi potongan ke Finance, pembekuan snapshot, atau pembayaran.
+/// </summary>
+public sealed class PayrollRunApproveRequest
+{
+    /// <summary>Token versi run yang dilihat klien (<c>rowVersion</c>). Kosong = tanpa pemeriksaan; berbeda = 409.</summary>
+    [MaxLength(40)] public string? ExpectedRowVersion { get; set; }
+
+    /// <summary><c>Normal</c> (bawaan) atau <c>Conditional</c>.</summary>
+    [MaxLength(20)] public string? ApprovalMode { get; set; }
+
+    /// <summary>Alasan pengesahan bersyarat; wajib pada mode Conditional.</summary>
+    [MaxLength(1500)] public string? Reason { get; set; }
+
+    /// <summary>Pernyataan bahwa sebagian PPh belum final dan pengesahan ini tidak mengesahkan pajak, posting Finance, atau pembayaran.</summary>
+    public bool AcknowledgeProvisionalTax { get; set; }
+}
+
 /// <summary>
 /// Badan aksi Submit (PAY-BE-FIX-030). Tanpa badan atau tanpa <see cref="SubmissionMode"/> = pengajuan normal (perilaku lama). Mode
 /// <c>ReviewOnly</c> memakai izin PayrollRun:Submit yang sama dan diperiksa ulang penuh oleh backend; bukan jalan pintas pengesahan.
@@ -106,6 +133,12 @@ public class PayrollRunListItemResponse
 
     /// <summary>Total PPh sementara (estimasi) saat diajukan untuk review; null bila bukan pengajuan review. BUKAN TotalTax resmi. Aditif.</summary>
     public decimal? ProvisionalTaxTotal { get; set; }
+
+    /// <summary>PAY-BE-FIX-032: true bila run sudah disahkan bersyarat (administratif; PPh tetap BELUM FINAL, status run tetap Submitted). Aditif.</summary>
+    public bool IsConditionallyApproved { get; set; }
+
+    /// <summary>Referensi pengesahan bersyarat (mis. CA-PR-202612-XXXX-1); null bila belum. Aditif.</summary>
+    public string? ConditionalApprovalReference { get; set; }
 
     /// <summary>
     /// Token konkurensi optimistik turunan (tick waktu pembaruan). Kirim kembali sebagai <c>expectedRowVersion</c> pada aksi run
@@ -213,6 +246,96 @@ public class PayrollRunEmployeeResponse
     /// Null pada penerima lain. Aditif.
     /// </summary>
     public PayrollRunProvisionalTaxResponse? ProvisionalTax { get; set; }
+
+    /// <summary>
+    /// PAY-BE-FIX-032: FINAL_VALID | PROVISIONAL_ESTIMATE | INCOMPLETE_NO_ESTIMATE | NOT_APPLICABLE. Kosong bila penerima belum dihitung.
+    /// Nilai yang tidak diketahui bukan Rp0: lihat <see cref="OfficialTaxAmount"/>. Aditif.
+    /// </summary>
+    public string TaxFinalityStatus { get; set; } = string.Empty;
+
+    /// <summary>PPh resmi penerima hanya bila FINAL_VALID (termasuk VALID_ZERO = 0 yang sah); null bila belum final. Aditif.</summary>
+    public decimal? OfficialTaxAmount { get; set; }
+}
+
+/// <summary>Jejak pengesahan bersyarat (administratif) dari penanda tersimpan pada run. PPh tetap BELUM FINAL.</summary>
+public sealed class PayrollRunConditionalApprovalResponse
+{
+    public string Reference { get; set; } = string.Empty;
+
+    /// <summary>CONDITIONAL.</summary>
+    public string ApprovalMode { get; set; } = "CONDITIONAL";
+    public DateTime ApprovedAt { get; set; }
+    public Guid ApprovedByUserId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public int AffectedEmployeeCount { get; set; }
+
+    /// <summary>Jumlah PPh resmi (FINAL_VALID) penerima pada run saat pengesahan bersyarat.</summary>
+    public decimal ConfirmedTaxTotal { get; set; }
+
+    /// <summary>Jumlah estimasi PPh sementara; BUKAN kewajiban pajak.</summary>
+    public decimal ProvisionalTaxTotal { get; set; }
+    public string? PolicyVersion { get; set; }
+    public List<int> MissingTaxMonths { get; set; } = new();
+    public bool FollowUpRequired { get; set; }
+
+    /// <summary>PENDING_HISTORY_COMPLETION sampai run dikembalikan, dihitung ulang dengan histori lengkap, dan diajukan ulang.</summary>
+    public string ReconciliationStatus { get; set; } = string.Empty;
+    public string TaxFinalStatus { get; set; } = "BELUM_FINAL";
+}
+
+/// <summary>
+/// Ringkasan PPh run untuk Finance (PAY-BE-FIX-032). BACA-SAJA dan INFORMATIF: bukan jurnal, bukan utang pajak, bukan instruksi potong.
+/// Nominal estimasi tidak pernah menjadi kewajiban final. Belum ada consumer Finance yang terverifikasi; tidak ada pengiriman otomatis.
+/// </summary>
+public sealed class PayrollRunTaxSummaryResponse
+{
+    public Guid RunId { get; set; }
+    public string RunNumber { get; set; } = string.Empty;
+    public string PeriodCode { get; set; } = string.Empty;
+    public string PeriodName { get; set; } = string.Empty;
+    public string RunStatus { get; set; } = string.Empty;
+
+    /// <summary>FINAL bila seluruh penerima FINAL_VALID/NOT_APPLICABLE dan run disahkan final; BELUM_FINAL selain itu.</summary>
+    public string TaxFinalStatus { get; set; } = "BELUM_FINAL";
+
+    /// <summary>INFORMATIONAL_ONLY. Posting kewajiban PPh hanya lewat kontrak Finance/Accounting yang belum disepakati.</summary>
+    public string UsageMode { get; set; } = "INFORMATIONAL_ONLY";
+
+    /// <summary>Selalu false pada versi ini: tidak ada kontrak posting yang disetujui.</summary>
+    public bool IsPostingEligible { get; set; }
+    public string UsageNotice { get; set; } = string.Empty;
+    public string? ConditionalApprovalReference { get; set; }
+    public string ReconciliationStatus { get; set; } = string.Empty;
+    public int AffectedEmployeeCount { get; set; }
+    public decimal ConfirmedTaxTotal { get; set; }
+    public decimal ProvisionalTaxTotal { get; set; }
+    public List<string> PolicyVersions { get; set; } = new();
+    public List<int> MissingTaxMonths { get; set; } = new();
+    public List<PayrollRunTaxSummaryEmployeeResponse> Employees { get; set; } = new();
+}
+
+public sealed class PayrollRunTaxSummaryEmployeeResponse
+{
+    public Guid WorkforceProfileId { get; set; }
+    public Guid? EmployeeId { get; set; }
+    public string EmployeeNumber { get; set; } = string.Empty;
+    public string EmployeeName { get; set; } = string.Empty;
+    public int? TaxYear { get; set; }
+    public int? TaxMonth { get; set; }
+    public string? TaxArticle { get; set; }
+    public string? CalculationMode { get; set; }
+    public string TaxFinalityStatus { get; set; } = string.Empty;
+    public string? ResultStatus { get; set; }
+
+    /// <summary>PPh resmi hanya bila FINAL_VALID; null bila belum final (bukan Rp0).</summary>
+    public decimal? ConfirmedTaxAmount { get; set; }
+
+    /// <summary>Estimasi proksi bila tersedia; BUKAN kewajiban pajak.</summary>
+    public decimal? ProvisionalTaxAmount { get; set; }
+    public string? ProvisionalMethod { get; set; }
+    public string? PolicyVersion { get; set; }
+    public List<int> MissingTaxMonths { get; set; } = new();
+    public string? Explanation { get; set; }
 }
 
 /// <summary>
@@ -259,6 +382,9 @@ public sealed class PayrollRunProvisionalTaxSummaryResponse
 
     /// <summary>Jumlah PPh sementara penerima yang estimasinya tersedia. BUKAN TotalTax resmi.</summary>
     public decimal TotalProvisionalTax { get; set; }
+
+    /// <summary>PAY-BE-FIX-032: jumlah PPh resmi (FINAL_VALID) seluruh penerima run; null-safe 0 bila tidak ada. Dihitung backend, bukan klien. Aditif.</summary>
+    public decimal ConfirmedTaxTotal { get; set; }
     public decimal TotalEstimatedNetPay { get; set; }
     public string Method { get; set; } = string.Empty;
     public List<string> PolicyVersions { get; set; } = new();
@@ -648,6 +774,21 @@ public sealed class PayrollRunDetailResponse : PayrollRunListItemResponse
 
     /// <summary>Jejak pengajuan review-only; null bila run tidak diajukan dengan PPh sementara. Aditif.</summary>
     public PayrollRunReviewOnlyResponse? ReviewOnlySubmission { get; set; }
+
+    /// <summary>
+    /// PAY-BE-FIX-032: true bila run Submitted review-only dapat disahkan bersyarat (administratif): satu-satunya masalah adalah histori PPh
+    /// belum lengkap dan syarat lain terpenuhi. BUKAN pengesahan final: <see cref="CanApproveFinal"/> tetap false. Aditif.
+    /// </summary>
+    public bool CanApproveConditionally { get; set; }
+
+    /// <summary>Alasan <see cref="CanApproveConditionally"/> false (teks siap tampil). Aditif.</summary>
+    public List<string> ApproveConditionallyBlockReasons { get; set; } = new();
+
+    /// <summary>NONE | CONDITIONAL. CONDITIONAL tidak pernah berarti pajak final. Aditif.</summary>
+    public string TaxApprovalStatus { get; set; } = "NONE";
+
+    /// <summary>Jejak pengesahan bersyarat; null bila belum. Aditif.</summary>
+    public PayrollRunConditionalApprovalResponse? ConditionalApproval { get; set; }
 
     /// <summary>Ringkasan PPh sementara; null bila tidak ada penerima dengan penahan histori PPh. Aditif.</summary>
     public PayrollRunProvisionalTaxSummaryResponse? ProvisionalTax { get; set; }
