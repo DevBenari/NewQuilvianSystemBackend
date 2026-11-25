@@ -3,10 +3,10 @@
 ```yaml
 plan_id: PLAN-REPAIR-EPS-045
 issue: ../issue/issue-045-daftar-pasien-rawat-inap-error-500.md
-status_rencana: MENUNGGU_PERSETUJUAN
+status_rencana: DISETUJUI_IMPLEMENTASI_SELESAI_MENUNGGU_BUILD_MANDIRI
 tanggal_rencana: "2026-11-25"
-diputuskan_oleh: null
-tanggal_keputusan: null
+diputuskan_oleh: "Pemilik (USER)"
+tanggal_keputusan: "2026-11-25"
 basis_source_backend: "38b614eff7f27da3095a1c9b1cf31926e63d072f (MHamzah)"
 basis_source_frontend: "32d67d384cf7f63ff1ad424a0206c53a15fdfcd8 (HamzahV2)"
 ```
@@ -17,11 +17,11 @@ basis_source_frontend: "32d67d384cf7f63ff1ad424a0206c53a15fdfcd8 (HamzahV2)"
 
 | ID perbaikan | Menutup | Ringkasan | Area | Prioritas | Task ID | Status | Bukti |
 | --- | --- | --- | --- | :---: | --- | --- | --- |
-| `FIX-EPS-045-01` | `ISS-EPS-045-02` | Normalkan `StartDate` dan `EndDate` ke UTC (WIB `Asia/Jakarta`) lewat `AppDateTimeHelper` pada `InpEpisodeService.Reads.cs` | Backend | 1 | — | ⛔ TERBLOKIR — menunggu K-01, K-02 & otorisasi tulis backend | — |
-| `FIX-EPS-045-02` | `ISS-EPS-045-T1` | Normalkan parameter filter tanggal ke UTC lewat `AppDateTimeHelper` pada `InpCensusQueryService`, `InpDischargeService` (`Closure` & `Departure`), dan `InpIntegrationReplayService` | Backend | 2 | — | ⛔ TERBLOKIR — menunggu K-01, K-02 & otorisasi tulis backend | — |
-| `FIX-EPS-045-03` | `ISS-EPS-045-T2` | Tambah batas `min`/`max` pada `FilterDatePicker` dan cegah baris lama tampil saat query daftar episode gagal | Frontend | 3 | — | ⛔ TERBLOKIR — menunggu K-03 & otorisasi tulis frontend | — |
+| `FIX-EPS-045-01` | `ISS-EPS-045-02` | Normalkan `StartDate` dan `EndDate` ke UTC (WIB `Asia/Jakarta`) via `InpDateRangeHelper` (`AppDateTimeHelper`) pada `InpEpisodeService.Reads.cs` | Backend | 1 | — | 🟡 IMPLEMENTASI SELESAI (MENUNGGU BUILD MANDIRI) | [InpDateRangeHelper.cs](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/Areas/HealthServices/InPatientManagement/Helpers/InpDateRangeHelper.cs), [InpEpisodeService.Reads.cs:422-436](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/Areas/HealthServices/InPatientManagement/Services/InpEpisodeService.Reads.cs#L422-L436) — 0 compiler error C# sebelum `MSB3027` file lock `PID 9064`; build penuh & uji runtime dilewati atas instruksi pemilik |
+| `FIX-EPS-045-02` | `ISS-EPS-045-T1` | Normalkan parameter filter tanggal ke UTC via `InpDateRangeHelper` pada `InpCensusQueryService`, `InpDischargeService` (`Closure` & `Departure`), `InpIntegrationReplayService`, dan `InpMedicalRecordDocumentSource` | Backend | 2 | — | 🟡 IMPLEMENTASI SELESAI (MENUNGGU BUILD MANDIRI) | [InpCensusQueryService.cs:1226-1240](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/Areas/HealthServices/InPatientManagement/Services/InpCensusQueryService.cs#L1226-L1240), [InpDischargeService.Closure.cs:599-612](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/Areas/HealthServices/InPatientManagement/Services/InpDischargeService.Closure.cs#L599-L612), [InpDischargeService.Departure.cs:69-80](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/Areas/HealthServices/InPatientManagement/Services/InpDischargeService.Departure.cs#L69-L80), [InpIntegrationReplayService.cs:19-31](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/Areas/HealthServices/InPatientManagement/Services/InpIntegrationReplayService.cs#L19-L31), [InpMedicalRecordDocumentSource.cs:295-338](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/Areas/HealthServices/InPatientManagement/Services/InpMedicalRecordDocumentSource.cs#L295-L338) |
+| `FIX-EPS-045-03` | `ISS-EPS-045-T2` | Tambah batas `min`/`max` pada `FilterDatePicker` dan cegah baris lama tampil saat query daftar episode gagal | Frontend | 3 | — | 🟡 IMPLEMENTASI SELESAI (MENUNGGU BUILD MANDIRI) | [inpatient-episode-worklist-view.jsx:336-349](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/QuilvianSystemFrontendDev/src/components/view/health-services/inpatient-management/inpatient-episode-worklist-view.jsx#L336-L349), [use-inpatient-episode-worklist.jsx:253-254,519-520](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/QuilvianSystemFrontendDev/src/lib/hooks/health-services/inpatient-management/use-inpatient-episode-worklist.jsx#L253-L254); `check-css-usage` 0 temuan, `npm run lint:errors` PASS, `inpatient-episode-worklist.test.mjs` 23/23 PASS; `npm run build` dihentikan atas instruksi pemilik |
 
-**Ringkasan: 0 dari 3 perbaikan selesai; menunggu persetujuan pemilik dan deklarasi mode tulis.**
+**Ringkasan: 3 dari 3 perbaikan sudah selesai diimplementasikan di source Backend dan Frontend setelah disetujui pemilik (`K-01=A`, `K-02=A`, `K-03=Ya`); build penuh (`dotnet build` & `npm run build`) serta verifikasi runtime pasca-build ditangguhkan untuk dikerjakan mandiri oleh pemilik sesuai instruksi (*"skip build, nanti saya build secara mandiri saja"*).**
 
 ---
 
@@ -251,11 +251,11 @@ K-03 (keputusan pemilik + TASK MODE: FRONTEND, opsional)
 
 ## 6. Keputusan pemilik yang dibutuhkan
 
-| No | Keputusan | Pilihan | Rekomendasi | Menahan perbaikan |
+| No | Keputusan | Pilihan | Keputusan Pemilik (`2026-11-25`) | Menahan perbaikan |
 | ---: | --- | --- | --- | --- |
-| K-01 | Cakupan perbaikan backend: hanya `InpEpisodeService.Reads.cs` atau seluruh 5 layanan `InPatientManagement` yang berpola sama? | Seluruh 5 layanan / Hanya `InpEpisodeService.Reads.cs` | **(Recommended)** Seluruh 5 layanan `InPatientManagement` sekaligus | `FIX-EPS-045-01`, `FIX-EPS-045-02` |
-| K-02 | Zona waktu interpretasi tanggal `YYYY-MM-DD` pada query daftar: WIB (`Asia/Jakarta` via `AppDateTimeHelper`) atau UTC tengah malam? | WIB (`Asia/Jakarta`) / UTC | **(Recommended)** WIB (`Asia/Jakarta`) via `AppDateTimeHelper` | `FIX-EPS-045-01`, `FIX-EPS-045-02` |
-| K-03 | Apakah perbaikan UX ringan frontend (`min`/`max` date picker & pengosongan baris stale saat gagal) ikut dikerjakan? | Ya / Fokus backend saja | Backend dulu, frontend opsional sesuai izin | `FIX-EPS-045-03` |
+| K-01 | Cakupan perbaikan backend: hanya `InpEpisodeService.Reads.cs` atau seluruh layanan `InPatientManagement` yang berpola sama? | Seluruh layanan / Hanya `InpEpisodeService.Reads.cs` | **Dipilih Opsi A** (*"iya perbaiki semua ya"*) | Tidak ada |
+| K-02 | Zona waktu interpretasi tanggal `YYYY-MM-DD` pada query daftar: WIB (`Asia/Jakarta` via `AppDateTimeHelper`) atau UTC tengah malam? | WIB (`Asia/Jakarta`) / UTC | **Dipilih Opsi A** (*"iya saya setujui"*) | Tidak ada |
+| K-03 | Apakah perbaikan UX ringan frontend (`min`/`max` date picker & pengosongan baris stale saat gagal) ikut dikerjakan? | Ya / Fokus backend saja | **Disetujui (Ya)** (*"iya perbaiki juga"*) | Tidak ada |
 
 ---
 
@@ -280,3 +280,4 @@ Tidak ada dokumen arsitektur, skema tampilan, maupun kontrak API yang perlu diub
 | Tanggal | Perubahan | Oleh |
 | --- | --- | --- |
 | 2026-11-25 | Rencana perbaikan dibuat (`FIX-EPS-045-01` s.d. `FIX-EPS-045-03`), menunggu keputusan pemilik (`K-01` s.d. `K-03`) dan otorisasi tulis | `diagnose-module-issue` |
+| 2026-11-25 | Disetujui pemilik (`K-01=A`, `K-02=A`, `K-03=Ya`); implementasi BE (`InpDateRangeHelper` + 6 layanan) & FE selesai; lint/CSS/unit test FE lulus; build penuh BE & FE ditangguhkan untuk build mandiri sesuai instruksi pemilik | Agent (Implementation) |

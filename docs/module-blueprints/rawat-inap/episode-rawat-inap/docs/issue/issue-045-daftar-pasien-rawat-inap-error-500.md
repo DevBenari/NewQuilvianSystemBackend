@@ -7,7 +7,7 @@ submodule: episode-rawat-inap
 layar: "Rawat Inap — Daftar Pasien Rawat Inap (/health-services/inpatient-management/episodes, FE-INP-16)"
 sumber_laporan: "Laporan pengguna 25-11-2026: 2 butir keluhan disertai 1 screenshot layar dan 1 capture Network DevTools (request GET ke server api-dev mengembalikan HTTP 500)"
 tanggal_issue: "2026-11-25"
-status: TERBUKA
+status: SELESAI_IMPLEMENTASI_MENUNGGU_BUILD_MANDIRI
 keparahan_tertinggi: Blocker
 source_sha_backend: "38b614eff7f27da3095a1c9b1cf31926e63d072f (MHamzah)"
 source_sha_frontend: "32d67d384cf7f63ff1ad424a0206c53a15fdfcd8 (HamzahV2)"
@@ -35,10 +35,10 @@ Menu **Daftar Pasien Rawat Inap** (`FE-INP-16`) mengalami dua gejala yang dilapo
 
 | ID | No. laporan | Judul | Jenis | Area | Keparahan | Status bukti | ID perbaikan |
 | --- | :---: | --- | --- | --- | :---: | --- | --- |
-| `ISS-EPS-045-01` | 1 | Halaman awal menampilkan `TOTAL EPISODE 0` tanpa galat karena server `dev` mengembalikan nol baris | `DATA` / `PERLU_KONFIRMASI` | Data Lingkungan `dev` (`QuilvianNewDevMaster`) | Medium | `DARI-CAPTURE` + `SUDAH-VERIFIKASI` di source + `DUGAAN` isi DB `dev` | — (verifikasi data via `SELECT`) |
-| `ISS-EPS-045-02` | 2 | Pencarian dengan penyaring tanggal (`startDate` / `endDate`) gagal HTTP 500 akibat tanggal tanpa zona waktu ditolak PostgreSQL | `BUG` | Backend (`InpEpisodeService.Reads.cs`) | Blocker | `SUDAH-VERIFIKASI` di source & `DARI-CAPTURE` | `FIX-EPS-045-01` |
-| `ISS-EPS-045-T1` | — | Pola cacat tanggal tanpa zona waktu yang sama persis ada di layar `Pasien Sedang Dirawat` (Census), `Daftar Pantau`, dan `Integration Outbox` | `BUG` | Backend (`InpCensusQueryService.cs`, `InpDischargeService.Closure.cs`, `InpDischargeService.Departure.cs`, `InpIntegrationReplayService.cs`) | High | `SUDAH-VERIFIKASI` di source backend | `FIX-EPS-045-02` |
-| `ISS-EPS-045-T2` | — | Saat permintaan terfilter gagal 500, tabel daftar episode tetap menyisakan data lama (stale) sementara kartu ringkasan menghilang, dan pemilih tanggal belum saling membatasi rentang | `BUG` (UX) | Frontend (`use-inpatient-episode-worklist.jsx`, `inpatient-episode-worklist-view.jsx`) | Low | `SUDAH-VERIFIKASI` di source frontend | `FIX-EPS-045-03` |
+| `ISS-EPS-045-01` | 1 | Halaman awal menampilkan `TOTAL EPISODE 0` tanpa galat karena database `QuilvianNewDevMaster` memang berisi nol baris saat capture terjadi | `DATA` | Data Lingkungan `dev` (`QuilvianNewDevMaster`) | Medium | `DARI-CAPTURE` + `SUDAH-VERIFIKASI` di source & audit DB read-only | — (bukan cacat kueri; selisih isi DB `QuilvianNewDevMaster` vs `QuilvianNewDevHamzah`) |
+| `ISS-EPS-045-02` | 2 | Pencarian dengan penyaring tanggal (`startDate` / `endDate`) gagal HTTP 500 akibat tanggal tanpa zona waktu ditolak PostgreSQL | `BUG` | Backend (`InpEpisodeService.Reads.cs`) | Blocker | `SUDAH-VERIFIKASI` di source & `DARI-CAPTURE` | `FIX-EPS-045-01` (`SELESAI_KODE`) |
+| `ISS-EPS-045-T1` | — | Pola cacat tanggal tanpa zona waktu yang sama persis ada di layar `Pasien Sedang Dirawat` (Census), `Daftar Pantau`, `Integration Outbox`, dan sumber dokumen RM | `BUG` | Backend (`InpCensusQueryService.cs`, `InpDischargeService.Closure.cs`, `InpDischargeService.Departure.cs`, `InpIntegrationReplayService.cs`, `InpMedicalRecordDocumentSource.cs`) | High | `SUDAH-VERIFIKASI` di source backend | `FIX-EPS-045-02` (`SELESAI_KODE`) |
+| `ISS-EPS-045-T2` | — | Saat permintaan terfilter gagal 500, tabel daftar episode tetap menyisakan data lama (stale) sementara kartu ringkasan menghilang, dan pemilih tanggal belum saling membatasi rentang | `BUG` (UX) | Frontend (`use-inpatient-episode-worklist.jsx`, `inpatient-episode-worklist-view.jsx`) | Low | `SUDAH-VERIFIKASI` di source frontend | `FIX-EPS-045-03` (`SELESAI_KODE`) |
 
 ---
 
@@ -52,7 +52,7 @@ Menu **Daftar Pasien Rawat Inap** (`FE-INP-16`) mengalami dua gejala yang dilapo
 | **Jenis** | `DATA` / `PERLU_KONFIRMASI` |
 | **Area** | Data Lingkungan `dev` (bukan cacat kueri tanpa penyaring) |
 | **Keparahan** | Medium |
-| **Status bukti** | `DARI-CAPTURE` + `SUDAH-VERIFIKASI` di source; `DUGAAN` mengenai jumlah baris di database remote `api-dev` |
+| **Status bukti** | `DARI-CAPTURE` + `SUDAH-VERIFIKASI` di source & audit DB read-only `2026-11-25` |
 | **Perbaikan** | Tidak ada perubahan kode untuk muat awal; verifikasi data di database sasaran |
 
 **Apa yang terjadi.**  
@@ -65,12 +65,10 @@ Penelusuran alur dari layar hingga database membuktikan tidak ada penyaring ters
 2. `SUDAH-VERIFIKASI` — Fungsi `buildEpisodeWorklistQuery` pada [inpatient-episode-worklist-utils.jsx:77-106](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/QuilvianSystemFrontendDev/src/utils/health-services/inpatient-management/inpatient-episode-worklist-utils.jsx#L77-L106) hanya mengirim `pageNumber=1`, `pageSize=25`, `sortBy=createDateTime`, dan `sortDirection=desc` saat penyaring kosong.
 3. `SUDAH-VERIFIKASI` — Di backend, `BuildFilteredEpisodeQuery` pada [InpEpisodeService.Reads.cs:383-438](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/Areas/HealthServices/InPatientManagement/Services/InpEpisodeService.Reads.cs#L383-L438) hanya menyaring `!x.IsDelete` ketika tidak ada parameter penyaring yang diisi. Tidak ada filter global (*`HasQueryFilter`*) pada `InpEpisode` di `Repositories/` (`SUDAH-VERIFIKASI`), dan fungsi pengguguran otomatis `ExpireDueDraftEpisodesAsync` ([InpEpisodeService.cs:1099-1108](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/Areas/HealthServices/InPatientManagement/Services/InpEpisodeService.cs#L1099-L1108)) hanya mengubah status menjadi `Cancelled` tanpa menyetel `IsDelete = true` — sehingga episode yang gugur pun tetap dihitung pada kartu `BATAL`.
 4. `DARI-CAPTURE` — Karena tampilan pada screenshot memperlihatkan keenam kartu ringkasan bernilai `0` (bukan teks *"Ringkasan tidak tersedia."* yang muncul bila `GET /episodes/summary` gagal) dan tidak menampilkan banner merah `InformationAlert` ([inpatient-episode-worklist-view.jsx:290-305](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/QuilvianSystemFrontendDev/src/components/view/health-services/inpatient-management/inpatient-episode-worklist-view.jsx#L290-L305)), permintaan `GET /episodes` dan `GET /episodes/summary` tanpa `startDate` tersebut mengembalikan `200 OK` dengan `0` data.
-5. `DUGAAN` — Database yang tersambung ke `api-dev.quilvian-mmchospital.com` (`QuilvianNewDevMaster`) saat itu memang memiliki `0` baris `InpEpisode` yang bernilai `IsDelete = false` (berbeda dengan database pengembangan lokal `QuilvianNewDevHamzah` yang dipakai saat uji coba sebelumnya). **Cara membuktikan:** jalankan query pembacaan berikut pada database `QuilvianNewDevMaster`:
-   ```sql
-   SELECT COUNT(*) AS total_non_delete,
-          COUNT(*) FILTER (WHERE "IsDelete" = true) AS total_soft_delete
-   FROM public."InpEpisode";
-   ```
+5. `SUDAH-VERIFIKASI` (Audit DB read-only `2026-11-25`) — Pemeriksaan `SELECT` pada database memastikan penyebab data `0` di screenshot adalah perbedaan isi database antar lingkungan:
+   - **`QuilvianNewDevHamzah`** (database lokal di `appsettings.Development.json`): berisi **49 baris** `InpEpisode` aktif (`IsDelete = false`, `0` terhapus), dibuat pada `17–28 Okt 2026` UTC (`23 Admitted`, `4 DischargePending`, `7 Closed`, `15 Cancelled`); `MstInpatientSetting` default aktif (`DraftEpisodeExpiryHours = 24`).
+   - **`QuilvianNewDevMaster`** (database tim `dev`): saat pemeriksaan berisi **1 baris** `InpEpisode` aktif (`status = 0 / Draft`, `IsDelete = false`, `IsCancel = false`) yang baru dibuat pada **`25/11/2026 07:25:12 UTC` (`14:25:12 WIB`)**. Karena capture error pengguna terjadi pada **`2026-11-25T14:08:50+07:00`** (sekitar 16 menit *sebelum* episode `Draft` tersebut dibuat), tabel `"InpEpisode"` di `QuilvianNewDevMaster` saat screenshot diambil memang berisi **`0`** baris.
+   - Database lain di server yang sama: `QuilvianRelease040_Rehearsal` memiliki `6` baris lama (Sep 2026), sedangkan pada `QuilvianNewDev`, `QuilvianDev`, dan `QuilvianSystemDev` tabel `public."InpEpisode"` tidak ada.
 
 **Apakah ini menyimpang dari desain?**  
 Perilaku layar dan query muat awal **sesuai desain** (`05-skema-tampilan.md:977-980`, `IA-INP-03`): daftar kerja memang harus menampilkan seluruh status tanpa filter bawaan, dan menampilkan pesan kosong informatif bila belum ada episode sama sekali. Jika pengguna mengharapkan data uji yang sebelumnya dibuat di lokal (`QuilvianNewDevHamzah`), itu adalah perbedaan isi database antar lingkungan (`DATA`), bukan bug kode muat awal.
@@ -192,17 +190,17 @@ Kosongkan tampilan baris (atau tampilkan penanda error tanpa baris usang) saat p
 
 ### Untuk pelapor
 
-| No | Pertanyaan | Kenapa ditanyakan | Dampak bila belum dijawab |
+| No | Pertanyaan | Jawaban / Bukti Terverifikasi (`2026-11-25`) | Status |
 | ---: | --- | --- | --- |
-| P-01 | Pada lingkungan `api-dev` (`dev.quilvian-mmchospital.com`), apakah memang sudah pernah dilakukan admisi rawat inap sebelumnya di database `QuilvianNewDevMaster`, atau sebelumnya pengujian dilakukan di database lokal (`QuilvianNewDevHamzah`)? | Screenshot muat awal tanpa penyaring memperlihatkan seluruh 6 kartu ringkasan bernilai `0` tanpa banner galat, sedangkan kode query tanpa filter tidak menyembunyikan status mana pun | Menentukan apakah gejala #1 murni karena database `dev` belum berisi episode (`DATA`) atau ada kondisi data khusus di `QuilvianNewDevMaster` (mis. semua baris bertanda `IsDelete = true`) |
+| P-01 | Apakah di `QuilvianNewDevMaster` memang belum ada admisi rawat inap, atau data uji ada di `QuilvianNewDevHamzah`? | Terjawab lewat audit DB read-only: data `49` episode uji (`17–28 Okt 2026`) tersimpan di `QuilvianNewDevHamzah`, sedangkan `QuilvianNewDevMaster` saat `14:08:50 WIB` (waktu screenshot) masih berisi `0` baris `InpEpisode` dan baru memiliki `1` episode `Draft` pada `14:25:12 WIB` | `TERJAWAB` |
 
 ### Untuk pemilik
 
-| No | Keputusan | Pilihan | Rekomendasi | Menahan perbaikan |
+| No | Keputusan | Pilihan | Keputusan Pemilik (`2026-11-25`) | Menahan perbaikan |
 | ---: | --- | --- | --- | --- |
-| K-01 | Apakah perbaikan normalisasi tanggal ke UTC (WIB `Asia/Jakarta`) diterapkan hanya pada `InpEpisodeService.Reads.cs` atau sekaligus pada seluruh layanan `InPatientManagement` yang berpola cacat sama (`InpCensusQueryService`, `InpDischargeService`, `InpIntegrationReplayService`)? | (A) Perbaiki seluruh 5 layanan `InPatientManagement` sekaligus / (B) Hanya `InpEpisodeService.Reads.cs` | **(Recommended)** Pilih A — perbaiki seluruh layanan `InPatientManagement` yang menerima filter tanggal `DateTime?` agar layar *Pasien Sedang Dirawat* dan *Daftar Pantau* tidak ikut gagal 500 | `FIX-EPS-045-01`, `FIX-EPS-045-02` |
-| K-02 | Apakah konvensi batas tanggal filter di `InpEpisodeService.Reads.cs` dan `InpCensusQueryService.cs` menggunakan hari kalender operasional WIB (`Asia/Jakarta`, UTC+7) melalui `AppDateTimeHelper`? | (A) Ya, tanggal polos `YYYY-MM-DD` dibaca sebagai `00:00 WIB` s.d. akhir hari WIB lalu dikonversi ke UTC (`2026-11-01T17:00:00Z` s.d. `< 2026-11-02T17:00:00Z`) / (B) Dianggap UTC tengah malam (`2026-11-02T00:00:00Z`) | **(Recommended)** Pilih A — selaras dengan `AppDateTimeHelper.OperationalDateToUtc`, kolom tampilan `Admisi Dibuka` di layar (WIB), dan standar modul lain (`BbkBloodOrderService`, `LabDashboardService`, `OptReportService`) | `FIX-EPS-045-01`, `FIX-EPS-045-02` |
-| K-03 | Apakah perbaikan UX frontend ringan (`FIX-EPS-045-T2`: batas `min`/`max` pada `FilterDatePicker` dan tidak menampilkan data lama saat query gagal) ikut dikerjakan? | Ya, kerjakan sekaligus di FE / Tidak perlu, fokus perbaikan backend saja | Fokus backend lebih dulu (`FIX-EPS-045-01` & `02`); `FIX-EPS-045-03` dapat dikerjakan opsional bila target tulis frontend diizinkan | `FIX-EPS-045-03` |
+| K-01 | Cakupan normalisasi tanggal ke UTC (WIB `Asia/Jakarta`) pada layanan `InPatientManagement` | (A) Perbaiki seluruh layanan `InPatientManagement` sejenis sekaligus / (B) Hanya `InpEpisodeService.Reads.cs` | **Dipilih Opsi A** (*"iya perbaiki semua ya"*) | Tidak ada (`FIX-EPS-045-01`, `FIX-EPS-045-02` diimplementasikan) |
+| K-02 | Konvensi batas tanggal filter `YYYY-MM-DD` menggunakan hari operasional WIB (`Asia/Jakarta`, UTC+7) via `AppDateTimeHelper` | (A) Ya, WIB via `AppDateTimeHelper` / (B) UTC tengah malam | **Dipilih Opsi A** (*"iya saya setujui"*) | Tidak ada (`FIX-EPS-045-01`, `FIX-EPS-045-02` diimplementasikan) |
+| K-03 | Ikut mengerjakan perbaikan UX frontend ringan (`min`/`max` `FilterDatePicker` dan tidak menampilkan data lama saat query gagal) | Ya, kerjakan sekaligus di FE / Tidak perlu | **Disetujui (Ya)** (*"iya perbaiki juga"*) | Tidak ada (`FIX-EPS-045-03` diimplementasikan) |
 
 ---
 
@@ -220,3 +218,4 @@ Pola cacat **`DateTimeKind.Unspecified` terhadap kolom `timestamp with time zone
 | Tanggal | Perubahan | Oleh |
 | --- | --- | --- |
 | 2026-11-25 | Dokumen issue dibuat dari laporan pengguna (screenshot layar kosong `0` + capture HTTP 500 `GET /episodes?startDate=2026-11-02`), disertai temuan tambahan pada layanan Rawat Inap sejenis | `diagnose-module-issue` |
+| 2026-11-25 | Audit DB read-only mengonfirmasi `QuilvianNewDevHamzah` (49 baris Okt 2026) vs `QuilvianNewDevMaster` (0 baris saat screenshot `14:08 WIB`, 1 `Draft` baru pada `14:25 WIB`); pemilik menyetujui `K-01=A`, `K-02=A`, `K-03=Ya`, seluruh perbaikan kode BE & FE telah diimplementasikan (build penuh dilewati atas instruksi pemilik) | Agent (Implementation) |
