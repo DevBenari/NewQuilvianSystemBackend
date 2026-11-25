@@ -372,6 +372,7 @@ baca dan unduhan yang sama. Tidak ada aturan yang menulis data.
 | `VAL-GL-07` | `CostCenterId` pada neraca **diabaikan**, tidak ditolak | — | — | Layar lama yang terlanjur mengirimnya tetap menerima neraca utuh |
 | `VAL-GL-08` | Periode pembanding yang tidak ada **bukan** galat | `200` | `ComparisonUnavailableReason`: "Periode {nama} belum ada di sistem." | Tahun buku pertama 2026 → pembanding `null` |
 | `VAL-GL-09` | Neraca tidak seimbang **bukan** galat (`ACC-DEC-154`) | `200` | `IsBalanced = false`, `Difference` terisi | Selisih Rp 100 → laporan tetap tampil |
+| `VAL-GL-10` *(delta `ACC-DEC-157`, approved Rizki 25 November 2026)* | Unduhan neraca saldo paling banyak 50.000 baris akun — batas yang sama dengan buku besar | `422` | "Neraca saldo terlalu banyak untuk diunduh sekaligus ({n} baris akun)." | Dalam praktik tidak tercapai: jumlah baris = jumlah akun yang bergerak, misalnya 112 |
 
 **Yang sengaja tidak divalidasi:** status periode. Periode `Open`, `Closing`, `Closed` maupun yang
 dibuka kembali boleh dilaporkan (`ACC-DEC-144` butir 5), karena yang dihitung tetap hanya jurnal

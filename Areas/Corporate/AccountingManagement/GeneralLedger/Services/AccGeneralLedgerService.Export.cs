@@ -9,7 +9,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
 {
     public partial class AccGeneralLedgerService
     {
-        private const int BatasBarisUnduhanBukuBesar = 50000;
+        private const int BatasBarisUnduhan = 50000;
 
         public async Task<AccountingServiceResult<LedgerExportFile>> BuildMovementCsvAsync(
             LedgerMovementQuery query,
@@ -22,14 +22,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
 
             var jumlah = await konteks.DalamRentang.CountAsync(ct);
 
-            if (jumlah > BatasBarisUnduhanBukuBesar)
-            {
-                return AccountingServiceResult<LedgerExportFile>.Fail(
-                    StatusCodes.Status422UnprocessableEntity,
-                    $"Mutasi terlalu banyak untuk diunduh sekaligus ({jumlah:N0} baris). Persempit rentang tanggal.");
-            }
+            if (jumlah > BatasBarisUnduhan)
+                return TolakMutasiTerlaluBanyak($"{jumlah:N0} baris");
 
-            var semua = await UrutkanMutasi(konteks.DalamRentang).ToListAsync(ct);
+            var semua = await UrutkanMutasi(konteks.DalamRentang)
+                .Take(BatasBarisUnduhan + 1)
+                .ToListAsync(ct);
+
+            if (semua.Count > BatasBarisUnduhan)
+                return TolakMutasiTerlaluBanyak($"lebih dari {BatasBarisUnduhan:N0} baris");
             var mutasi = await PetakanMutasiAsync(semua, konteks.SaldoPembuka, ct);
 
             var namaBadanHukum = await NamaBadanHukumAsync(query.LegalEntityId, ct);
@@ -119,6 +120,97 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
             return AccountingServiceResult<LedgerExportFile>.Ok(
                 berkas, $"Buku besar akun {konteks.Akun.AccountCode} berhasil diunduh.");
         }
+
+        public async Task<AccountingServiceResult<LedgerExportFile>> BuildTrialBalanceCsvAsync(
+            TrialBalanceQuery query,
+            CancellationToken ct = default)
+        {
+            var neraca = await GetTrialBalanceAsync(query, ct);
+
+            if (!neraca.Success || neraca.Data is null)
+                return AccountingServiceResult<LedgerExportFile>.Fail(neraca.StatusCode, neraca.Message);
+
+            var data = neraca.Data;
+
+            if (data.Rows.Count > BatasBarisUnduhan)
+            {
+                return AccountingServiceResult<LedgerExportFile>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    $"Neraca saldo terlalu banyak untuk diunduh sekaligus ({data.Rows.Count:N0} baris akun).");
+            }
+
+            var namaBadanHukum = await NamaBadanHukumAsync(query.LegalEntityId, ct);
+
+            var kepala = new List<IReadOnlyList<string>>
+            {
+                AccLedgerCsv.BarisKepala("Laporan", "Neraca Saldo"),
+                AccLedgerCsv.BarisKepala("Badan Hukum", namaBadanHukum),
+                AccLedgerCsv.BarisKepala("Periode", $"{data.PeriodName} ({data.PeriodCode})"),
+                AccLedgerCsv.BarisKepala("Diunduh", AccLedgerCsv.WaktuUnduh())
+            };
+
+            var kolom = new[]
+            {
+                AccLedgerCsv.Teks("Kode Akun"),
+                AccLedgerCsv.Teks("Nama Akun"),
+                AccLedgerCsv.Teks("Saldo Awal"),
+                AccLedgerCsv.Teks("Debit"),
+                AccLedgerCsv.Teks("Kredit"),
+                AccLedgerCsv.Teks("Saldo Akhir")
+            };
+
+            var isi = new List<IReadOnlyList<string>>();
+
+            foreach (var baris in data.Rows)
+            {
+                isi.Add(new[]
+                {
+                    AccLedgerCsv.Teks(baris.AccountCode),
+                    AccLedgerCsv.Teks(baris.AccountName),
+                    AccLedgerCsv.Angka(baris.OpeningBalance),
+                    AccLedgerCsv.Angka(baris.TotalDebit),
+                    AccLedgerCsv.Angka(baris.TotalCredit),
+                    AccLedgerCsv.Angka(baris.ClosingBalance)
+                });
+            }
+
+            isi.Add(new[]
+            {
+                string.Empty,
+                AccLedgerCsv.Teks("Total"),
+                string.Empty,
+                AccLedgerCsv.Angka(data.TotalDebit),
+                AccLedgerCsv.Angka(data.TotalCredit),
+                string.Empty
+            });
+
+            isi.Add(new[]
+            {
+                string.Empty,
+                AccLedgerCsv.Teks("Status"),
+                AccLedgerCsv.Teks(data.IsBalanced
+                    ? "Seimbang"
+                    : $"Tidak seimbang, selisih {AccLedgerCsv.Angka(data.TotalDebit - data.TotalCredit)}"),
+                string.Empty,
+                string.Empty,
+                string.Empty
+            });
+
+            var berkas = new LedgerExportFile
+            {
+                Content = AccLedgerCsv.Tulis(kepala, kolom, isi),
+                FileName = $"neraca-saldo_{SegmenNamaBerkas(data.PeriodCode)}.csv",
+                RowCount = data.Rows.Count
+            };
+
+            return AccountingServiceResult<LedgerExportFile>.Ok(
+                berkas, $"Neraca saldo {data.PeriodName} berhasil diunduh.");
+        }
+
+        private static AccountingServiceResult<LedgerExportFile> TolakMutasiTerlaluBanyak(string jumlah)
+            => AccountingServiceResult<LedgerExportFile>.Fail(
+                StatusCodes.Status422UnprocessableEntity,
+                $"Mutasi terlalu banyak untuk diunduh sekaligus ({jumlah}). Persempit rentang tanggal.");
 
         private static IReadOnlyList<string> BarisRingkasMutasi(
             string label,

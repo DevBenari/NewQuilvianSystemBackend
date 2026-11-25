@@ -331,8 +331,9 @@ Rizki menempel MASTER PRD finishing `ACC-FIN-PRD-001` (29 kebutuhan, 7 wave). De
 | Slice pertama | Buku besar + laba rugi + neraca: `ACC-DEC-141`..`155` (decision log revisi 19), gerbang `evidence/19` `READY_FOR_DOMAIN_DESIGN`, desain **approved** `GATE-DESAIN-1124` (manifest revisi 18, bagian *Amendment 24 November 2026*) |
 | Dampak data | Nol tabel, kolom, migration, hak, dan baris `Program.cs` baru |
 | Roadmap | [backend](roadmap/backend-roadmap-finishing.md), [frontend](roadmap/frontend-roadmap-finishing.md), [traceability](roadmap/requirement-traceability-finishing.md) — revisi 1 `APPROVED`. `FIN-0`: `BE/FE-ACC-FIN-005-01`, `BE/FE-ACC-FIN-008-01`. `FIN-1`: `BE/FE-ACC-FIN-008-02`, `008-03`. Sisa ACC-FIN-008 ⛔: `008-04` (`U-05`), `008-05` (`C-02`), `008-06` (`U-07`) |
-| Berikutnya | Review roadmap oleh Rizki → `build-module-backend` `BE-ACC-FIN-005-01` → `build-module-frontend` `FE-ACC-FIN-005-01`, dan seterusnya berpasangan |
-| Commit | Belum — seluruh berkas dokumen di working tree |
+| Kemajuan | **`FIN-0` selesai (development) 25 November 2026:** `BE/FE-ACC-FIN-005-01` ✅, `BE/FE-ACC-FIN-008-01` ✅. Bukti uji di `QuilvianSystemFrontendDev/test-with-agy/accounting/`; register hasil di `testing/acceptance-test-matrix.md` bagian 4 |
+| Berikutnya | `FIN-1`: `BE-ACC-FIN-008-02` (laba rugi) → `FE-ACC-FIN-008-02`, lalu `008-03` (neraca) |
+| Commit | 005-01 di-commit 24 November 2026 (BE `bafbacaa`, FE `ff46618d8`); 008-01 dan penguatan 005-01 belum di-commit |
 
 ### TITIK LANJUT — 5 Oktober 2026: jawaban atas surat Finance 22 dan permintaan kode sewa
 

@@ -1347,3 +1347,4 @@ dikembalikan sebagai `ApiResponse` JSON biasa, bukan berkas.
 | `404` | Akun atau periode tidak ditemukan | "Periode akuntansi tidak ditemukan." (pesan lama) |
 | `409` | Penjaga badan hukum `IsDefault` tidak lolos (perilaku lama) | — |
 | `422` | Unduhan buku besar melebihi 50.000 baris | "Mutasi terlalu banyak untuk diunduh sekaligus (64.120 baris). Persempit rentang tanggal." |
+| `422` *(delta `ACC-DEC-157`, 25 November 2026)* | Unduhan neraca saldo melebihi 50.000 baris akun (`VAL-GL-10`) | "Neraca saldo terlalu banyak untuk diunduh sekaligus (50.120 baris akun)." |

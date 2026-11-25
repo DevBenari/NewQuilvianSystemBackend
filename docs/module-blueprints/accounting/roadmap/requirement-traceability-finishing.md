@@ -18,7 +18,7 @@ requirement_source: MASTER PRD ACC-FIN-PRD-001 (24 Nov 2026) - rujukan sementara
 
 | Kebutuhan PRD | ClickUp | Bagian yang direncanakan | Bagian yang belum | Status sesudah `FIN-0` + `FIN-1` selesai |
 |---|---|---|---|---|
-| ACC-FIN-005 General Ledger Enhancement | `z8m132yv7x` (Transaksi) | Seluruh butir PRD ACC-FIN-005 **kecuali** "validasi konsistensi saldo" lintas laporan — dipenuhi lewat `F6` sebagai uji, bukan fitur | — | **Selesai** bila `BE-ACC-FIN-005-01` dan `FE-ACC-FIN-005-01` lulus |
+| ACC-FIN-005 General Ledger Enhancement | `z8m132yv7x` (Transaksi) | Seluruh butir PRD ACC-FIN-005 **kecuali** "validasi konsistensi saldo" lintas laporan — dipenuhi lewat `F6` sebagai uji, bukan fitur | — | **Selesai (development)** 25 November 2026 — `BE-ACC-FIN-005-01` ✅ dan `FE-ACC-FIN-005-01` ✅; UAT milik tim UAT |
 | ACC-FIN-008 Financial Reports | `z8m132yv84` (Laporan Keuangan) | Trial Balance (+CSV), Income Statement, Balance Sheet | Financial Ratio Analysis, Revenue Target Analysis, Tax Report | **Sebagian** — tidak boleh ditandai selesai |
 
 **Catatan untuk ClickUp.** Task ClickUp tidak diubah statusnya oleh agent (PRD bagian 11). Bila Rizki
@@ -29,18 +29,18 @@ diputuskan.
 
 | Requirement | Decision | Desain | Kontrak | Task BE | Task FE | UAT | Bukti | Status |
 |---|---|---|---|---|---|---|---|---|
-| `FR-FIN-001` Saringan unit biaya buku besar | `147` | BE §25.5; FE §15.4 | `ACC-API-0.17` movements; `VAL-GL-01` | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F10`, `F12` | JSON, tangkapan | [BE 🟡](../task/report/backend/BE-ACC-FIN-005-01.md) uji API 12/12; [FE ✅](../task/report/frontend/FE-ACC-FIN-005-01.md) uji layar 14/14 |
-| `FR-FIN-002` Ringkasan saldo | `141` | BE §25.5 | movements/summary | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F10`, `F15` | JSON, tangkapan | [BE 🟡](../task/report/backend/BE-ACC-FIN-005-01.md) uji API 12/12; [FE ✅](../task/report/frontend/FE-ACC-FIN-005-01.md) uji layar 14/14 |
-| `FR-FIN-003` Asal jurnal dan tautan | `148` | BE §25.5; FE §15.4 | movements (11 field) | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F13` | JSON, tangkapan | [BE 🟡](../task/report/backend/BE-ACC-FIN-005-01.md) uji API 12/12; [FE ✅](../task/report/frontend/FE-ACC-FIN-005-01.md) uji layar 14/14 |
-| `FR-FIN-004` CSV buku besar | `149`, `155` | BE §25.7 | movements/export; `VAL-GL-06` | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F15`, `F19`, `F20` | Berkas, Excel, log | [BE 🟡](../task/report/backend/BE-ACC-FIN-005-01.md) uji API 12/12; [FE ✅](../task/report/frontend/FE-ACC-FIN-005-01.md) uji layar 14/14 |
+| `FR-FIN-001` Saringan unit biaya buku besar | `147` | BE §25.5; FE §15.4 | `ACC-API-0.17` movements; `VAL-GL-01` | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F10`, `F12` | JSON, tangkapan | [BE ✅](../task/report/backend/BE-ACC-FIN-005-01.md) uji API 12/12, uji ulang 25 Nov; [FE ✅](../task/report/frontend/FE-ACC-FIN-005-01.md) uji layar 14/14 |
+| `FR-FIN-002` Ringkasan saldo | `141` | BE §25.5 | movements/summary | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F10`, `F15` | JSON, tangkapan | [BE ✅](../task/report/backend/BE-ACC-FIN-005-01.md) uji API 12/12, uji ulang 25 Nov; [FE ✅](../task/report/frontend/FE-ACC-FIN-005-01.md) uji layar 14/14 |
+| `FR-FIN-003` Asal jurnal dan tautan | `148` | BE §25.5; FE §15.4 | movements (11 field) | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F13` | JSON, tangkapan | [BE ✅](../task/report/backend/BE-ACC-FIN-005-01.md) uji API 12/12, uji ulang 25 Nov; [FE ✅](../task/report/frontend/FE-ACC-FIN-005-01.md) uji layar 14/14 |
+| `FR-FIN-004` CSV buku besar | `149`, `155` | BE §25.7 | movements/export; `VAL-GL-06` | `BE-ACC-FIN-005-01` | `FE-ACC-FIN-005-01` | `F15`, `F19`, `F20` | Berkas, Excel, log | [BE ✅](../task/report/backend/BE-ACC-FIN-005-01.md) uji API 12/12, uji ulang 25 Nov; [FE ✅](../task/report/frontend/FE-ACC-FIN-005-01.md) uji layar 14/14 |
 | `FR-FIN-005` Masuk dari laporan | `148` butir 4 | FE §15.4 | — (frontend) | — | `FE-ACC-FIN-005-01` | `F14` | Tangkapan | [FE ✅](../task/report/frontend/FE-ACC-FIN-005-01.md) U6, U8 |
-| `FR-FIN-030` CSV neraca saldo | `153`, `155` | BE §25.7; FE §15.5 | trial-balance/export | `BE-ACC-FIN-008-01` | `FE-ACC-FIN-008-01` | `F18`, `F20` | Berkas, log | Belum |
+| `FR-FIN-030` CSV neraca saldo | `153`, `155` | BE §25.7; FE §15.5 | trial-balance/export | `BE-ACC-FIN-008-01` | `FE-ACC-FIN-008-01` | `F18`, `F20` | Berkas, log | [BE ✅](../task/report/backend/BE-ACC-FIN-008-01.md) uji API 8/8; [FE ✅](../task/report/frontend/FE-ACC-FIN-008-01.md) uji layar 11/11; `F20` belum (UAT) |
 | `FR-FIN-010` Kolom periode, YTD, pembanding | `144` | BE §25.6 | income-statement | `BE-ACC-FIN-008-02` | `FE-ACC-FIN-008-02` | `F6`, `F7` | JSON, tangkapan | Belum |
 | `FR-FIN-011` Pengecualian `JT` | `142` | BE §25.6 | income-statement | `BE-ACC-FIN-008-02` | `FE-ACC-FIN-008-02` | `F2`, `F3` | JSON | Belum |
 | `FR-FIN-012` Tanda, hierarki, akun nol | `145`, `146` | BE §25.6 | income-statement, balance-sheet | `BE-ACC-FIN-008-02`, `008-03` | `FE-ACC-FIN-008-02`, `008-03` | `F8`, `F9` | Tangkapan | Belum |
 | `FR-FIN-013` Unit biaya laba rugi | `147` butir 2 | BE §25.6 | income-statement | `BE-ACC-FIN-008-02` | `FE-ACC-FIN-008-02` | `F11` | Tangkapan | Belum |
 | `FR-FIN-014` CSV dan Cetak laporan | `149` | BE §25.7; FE §15.6–15.7 | /export | `BE-ACC-FIN-008-02`, `008-03` | `FE-ACC-FIN-008-02`, `008-03` | `F20` | Berkas, tangkapan cetak | Belum |
-| `FR-FIN-015` Log pembacaan dan unduhan | `155` | BE §25.7 | `ACC-PERMISSION-0.8` | `BE-ACC-FIN-005-01`, `008-01`..`03` | — | `F17` | Kutipan log | Belum |
+| `FR-FIN-015` Log pembacaan dan unduhan | `155` | BE §25.7 | `ACC-PERMISSION-0.8` | `BE-ACC-FIN-005-01`, `008-01`..`03` | — | `F17` | Kutipan log | Sebagian — log unduhan buku besar ([BE-005-01](../task/report/backend/BE-ACC-FIN-005-01.md) A12) dan neraca saldo ([BE-008-01](../task/report/backend/BE-ACC-FIN-008-01.md) B8) terbukti tanpa nominal; laba rugi dan neraca menunggu `008-02`/`008-03` |
 | `FR-FIN-020` Neraca dan pembanding | `144` | BE §25.6 | balance-sheet | `BE-ACC-FIN-008-03` | `FE-ACC-FIN-008-03` | `F4` | JSON, tangkapan | Belum |
 | `FR-FIN-021` Dua baris laba belum ditutup | `143` | BE §25.6 | balance-sheet | `BE-ACC-FIN-008-03` | `FE-ACC-FIN-008-03` | `F4`, `F5` | JSON, tangkapan | Belum |
 | `FR-FIN-022` Status seimbang | `154` | BE §25.6 | balance-sheet; `VAL-GL-09` | `BE-ACC-FIN-008-03` | `FE-ACC-FIN-008-03` | `F4` | Tangkapan | Belum |

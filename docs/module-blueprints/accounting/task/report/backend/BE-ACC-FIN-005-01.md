@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit backend saat dikerjakan | `74255d59` (branch `rizkiG`) |
 | Tanggal | 24 November 2026 |
-| Status | 🟡 **SEBAGIAN** — source lengkap untuk AC-1..AC-8, QBE Strict `PASS`, **build `PASS`** (Rizki, 24 November 2026; DLL 15:19:56 WIB). **Uji runtime oleh agent 24 November 2026 15.35–15.50 WIB: AC-1..AC-7 terbukti**; AC-8 (`> 50.000` baris → `422`) terpetakan ke source tetapi `NOT FEASIBLE` di data dev (2 baris per akun) — menunggu keputusan pengecualian pemilik |
+| Status | ✅ **SELESAI (development)** — AC-1..AC-7 `RUNTIME VERIFIED` (24 November 2026); AC-8 `SOURCE VERIFIED` + runtime `WAIVED` (`ACC-DEC-156`). Penguatan source AC-8 di-build Rizki (DLL 25 November 2026 09:01:06 WIB) dan diuji ulang 25 November 2026: unduhan API (B7) dan unduhan layar U1–U10 10/10, isi CSV identik dengan 24 November (bagian 9). UAT belum dijalankan — milik tim UAT |
 
 ### Backend Governance Preflight
 
@@ -140,7 +140,7 @@ kesepakatan kerja Rizki).
 | AC-5 CSV sesuai bagian 25.7 dan nama berkasnya | **Terpenuhi** — A6/A7: `text/csv`, BOM `EF BB BF`, `;`, `0,00`/`1000000,00`, kepala laporan, saldo awal dan akhir; nama `buku-besar_4001_awal-akhir.csv` | `AccLedgerCsv`, `BuildMovementCsvAsync` |
 | AC-6 Satu log `GeneralLedger.Export` tanpa nominal | **Terpenuhi** — A12: 3 baris log sesi uji di `Logs/quilvian-backend-20261124.json`, berisi `UserId` superadmin dan saringan, tanpa nominal; unduhan gagal tercatat `WRN` | `ExportMovements`: muatan berisi jenis laporan, saringan, status, jumlah baris |
 | AC-7 Unit biaya badan hukum lain → `400` | **Terpenuhi** — A8: unit acak dan `CC-MMC-00001` dengan badan hukum `LE-MDC-001` → `400` pada ketiga endpoint | `SiapkanMutasiAsync` |
-| AC-8 > 50.000 baris → `422` | **Belum terbukti** — terpetakan ke `BuildMovementCsvAsync`; `F19` `NOT FEASIBLE` di data dev | `BuildMovementCsvAsync` |
+| AC-8 > 50.000 baris → `422` | `SOURCE VERIFIED` (tujuh butir, bagian 8) + runtime `WAIVED` (`ACC-DEC-156`) | `BuildMovementCsvAsync`, `TolakMutasiTerlaluBanyak` |
 | DoD: laporan, roadmap, traceability | Terpenuhi | Berkas ini; roadmap dan traceability bertanda 🟡 |
 
 ## 7. Catatan penutup
@@ -154,3 +154,60 @@ kesepakatan kerja Rizki).
 | Interupsi | `NONE` |
 | Status Git | `M` `GeneralLedgerController.cs`, `GeneralLedgerDtos.cs`, `AccGeneralLedgerService.cs`; `??` `Enums/`, `AccGeneralLedgerService.Export.cs`, `AccGeneralLedgerService.Movement.cs`, `AccLedgerCsv.cs`; ditambah laporan ini dan baris status roadmap/traceability |
 | Langkah berikutnya | Rizki menjalankan `dotnet build -p:RunAnalyzers=false`; perhatikan galat pada ketiga berkas `AccGeneralLedgerService*.cs` dan `GeneralLedgerController.cs`. Sesudah lulus: `FE-ACC-FIN-005-01`, lalu uji bersama dari layar (`F10`, `F12`, `F13`, `F15`, `F16`, `F19`) dan task ini dinaikkan ke ✅ |
+
+## 8. Pengerjaan ulang 25 November 2026 — verifikasi source AC-8 (`ACC-DEC-156`)
+
+Rizki mengecualikan bukti runtime `F19` karena data dev paling banyak 2 baris per akun, dengan syarat tujuh butir terbukti
+dari source. Pemeriksaan menemukan satu celah (butir 5), yang ditutup pada pengerjaan ulang ini.
+
+### 8.1 Hasil pemeriksaan source
+
+| # | Syarat | Bukti source | Hasil |
+|---:|---|---|---|
+| 1 | 50.000 baris masih boleh | Pemeriksaan `jumlah > BatasBarisUnduhan` dan `semua.Count > BatasBarisUnduhan` dengan `BatasBarisUnduhan = 50000`: tepat 50.000 lolos | `SOURCE VERIFIED` |
+| 2 | Lebih dari 50.000 ditolak `422` | `TolakMutasiTerlaluBanyak` → `StatusCodes.Status422UnprocessableEntity` | `SOURCE VERIFIED` |
+| 3 | Hitungan mengikuti seluruh saringan | `CountAsync` atas `KonteksMutasi.DalamRentang` dari `SiapkanMutasiAsync`: badan hukum + jurnal `Posted` (`BarisDisahkan`), akun, unit biaya, tanggal awal dan akhir — saringan yang sama dengan daftar dan ringkasan | `SOURCE VERIFIED` |
+| 4 | Batas diterapkan sebelum CSV dibentuk | Kedua pemeriksaan berada sebelum `PetakanMutasiAsync` dan `AccLedgerCsv.Tulis` | `SOURCE VERIFIED` |
+| 5 | Tidak ada pemuatan tanpa batas | **Celah ditemukan:** semula `ToListAsync` sesudah hitungan tidak dibatasi, sehingga jurnal yang disahkan di antara hitung dan muat dapat membuat baris termuat sedikit melebihi 50.000. **Ditutup:** `.Take(BatasBarisUnduhan + 1)` lalu `semua.Count > BatasBarisUnduhan` → `422`. Pemuatan kini paling banyak 50.001 baris | `SOURCE VERIFIED` sesudah perbaikan |
+| 6 | Pesan dapat dipahami | "Mutasi terlalu banyak untuk diunduh sekaligus (64.120 baris). Persempit rentang tanggal." — atau "(lebih dari 50.000 baris)" pada jalur pemeriksaan kedua | `SOURCE VERIFIED` |
+| 7 | Tidak ada jalur ekspor lain | `BuildMovementCsvAsync` hanya dipanggil `GeneralLedgerController.ExportMovements`; `GET /movements` dibatasi 200 baris per halaman; `GET /movements/summary` hanya mengembalikan jumlah | `SOURCE VERIFIED` |
+
+### 8.2 Boundary test 49.999 / 50.000 / 50.001
+
+**Tidak disiapkan.** Tiga alasan, ketiganya dari aturan proyek, bukan karena dilewati:
+
+1. Proyek test backend dihapus 11 September 2026 atas perintah atasan, dan berkas `.cs` di folder `Tests/` merusak build web.
+2. Kesepakatan kerja Rizki: agent tidak menulis atau menjalankan unit test.
+3. Batasnya berada di dalam method yang membutuhkan `ApplicationDbContext`; mengujinya tanpa database menuntut pemecahan kode hanya demi test.
+
+`F19` tetap tercatat sebagai uji runtime **ditunda** di `testing/acceptance-test-matrix.md` bagian 4 untuk UAT atau verifikasi
+kinerja mendatang.
+
+### 8.3 Perubahan source
+
+| Berkas | Perubahan |
+|---|---|
+| `GeneralLedger/Services/AccGeneralLedgerService.Export.cs` | Konstanta `BatasBarisUnduhanBukuBesar` → `BatasBarisUnduhan` (juga dipakai CSV neraca saldo, `ACC-DEC-157`); pemuatan `.Take(BatasBarisUnduhan + 1)` + pemeriksaan ulang; pesan penolakan dipusatkan di `TolakMutasiTerlaluBanyak`. Pesan jalur pertama tidak berubah |
+
+Nol baris komentar baru. Nol perubahan kontrak.
+
+### 8.4 Status per kosakata verifikasi
+
+| Butir | Status |
+|---|---|
+| AC-1..AC-7 | `RUNTIME VERIFIED` — uji 24 November 2026 (bagian 5) |
+| AC-8 | `SOURCE VERIFIED` + runtime `WAIVED` (`ACC-DEC-156`) |
+| Penguatan butir 5 | `RUNTIME VERIFIED` untuk jalur normal (≤ 50.000 baris) — bagian 9. Jalur > 50.000 tetap `WAIVED` (`ACC-DEC-156`) |
+| UAT | Belum dijalankan — milik tim UAT. Tidak ditulis `UAT PASSED` |
+
+## 9. Uji ulang 25 November 2026 sesudah build penguatan
+
+| Hal | Isi |
+| --- | --- |
+| Build | `QuilvianSystemBackend.dll` 25 November 2026 09:01:06 WIB (Rizki), memuat `.Take(BatasBarisUnduhan + 1)` dan `TolakMutasiTerlaluBanyak` |
+| A6 diganti B7 (`fin-008-01-20261125/01-uji-api.mjs`, 09.09–09.10 WIB) | `GET movements/export` akun 4001 → `200`, BOM, tepat 2 baris mutasi; baris akhir `;;;;;;"Saldo akhir";0,00;2000000,00;-2000000,00` sama dengan `movements/summary`. **PASS** |
+| U4 beserta U1–U10 (`fin-005-01-ujiulang-20261125/03-uji-layar.mjs`, 09.15 WIB, skrip 24 November disalin tanpa diubah ke folder baru agar bukti 24 November tidak tertimpa) | 10/10. Unduhan layar `buku-besar_4001_awal-akhir.csv` identik dengan berkas 24 November kecuali baris "Diunduh". **PASS** |
+| Log | Unduhan B7 tercatat `GeneralLedger.Export` INF "Buku besar akun 4001 berhasil diunduh." tanpa nominal |
+| Peringatan EF di log | `The query uses a row limiting operator ('Skip'/'Take') without an 'OrderBy' operator` muncul satu kali pada sesi uji pukul 09:08:46 WIB, sesaat sebelum log `GeneralLedger.TrialBalance`. Sumbernya bukan kueri ekspor buku besar, yang memakai `UrutkanMutasi` sebelum `Take`. Dicatat, tidak diubah |
+
+**DoD.** AC-1..AC-7 terbukti di runtime; AC-8 dikecualikan dari runtime atas keputusan owner (`ACC-DEC-156`) dan tujuh butir source-nya terbukti; laporan, roadmap, dan traceability diperbarui → ✅.

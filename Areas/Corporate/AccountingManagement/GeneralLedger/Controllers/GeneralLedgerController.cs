@@ -125,6 +125,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
             return ToActionResult(hasil);
         }
 
+        [HttpGet("trial-balance/export")]
+        [AccessAction("Read", "Read General Ledger", Description = "Mengunduh neraca saldo sebagai CSV", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("GeneralLedger", "Read")]
+        public async Task<IActionResult> ExportTrialBalance([FromQuery] TrialBalanceQuery query, CancellationToken ct)
+        {
+            var hasil = await _service.BuildTrialBalanceCsvAsync(query, ct);
+
+            var muatan = new
+            {
+                JenisLaporan = "NeracaSaldo",
+                query.LegalEntityId,
+                query.PeriodCode,
+                hasil.StatusCode,
+                JumlahBaris = hasil.Data?.RowCount
+            };
+
+            if (!hasil.Success)
+            {
+                await _loggerService.WarningAsync(LogCategory, "GeneralLedger.Export", hasil.Message, muatan);
+                return ToActionResult(hasil);
+            }
+
+            await _loggerService.InfoAsync(LogCategory, "GeneralLedger.Export", hasil.Message, muatan);
+
+            return File(hasil.Data!.Content, AccLedgerCsv.ContentType, hasil.Data.FileName);
+        }
+
         [HttpGet("account-balance/{accountId:guid}")]
         [AccessAction("Read", "Read General Ledger", Description = "Melihat saldo satu akun", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("GeneralLedger", "Read")]
