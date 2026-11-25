@@ -12,6 +12,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Mo
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Security;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services
 {
@@ -19,38 +20,99 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IHrdLifecycleAttachmentService _attachmentService;
+        private readonly AccessPermissionService? _permissionService;
 
         public HrdClinicalPreceptorshipService(
             ApplicationDbContext dbContext,
-            IHrdLifecycleAttachmentService attachmentService)
+            IHrdLifecycleAttachmentService attachmentService,
+            AccessPermissionService? permissionService = null)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _attachmentService = attachmentService ?? throw new ArgumentNullException(nameof(attachmentService));
+            _permissionService = permissionService;
         }
 
-        private static Guid GetUserId(ClaimsPrincipal user)
+        private static Guid GetUserId(ClaimsPrincipal? user)
         {
-            var sub = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                   ?? user.FindFirst("sub")?.Value;
+            var sub = user?.FindFirst("user_id")?.Value
+                   ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                   ?? user?.FindFirst("sub")?.Value;
             return Guid.TryParse(sub, out var guid) ? guid : Guid.Empty;
         }
 
-        private static bool IsHrOrAdmin(ClaimsPrincipal user)
+        private async Task<bool> HasAccessAsync(ClaimsPrincipal? user, string controller, string action)
         {
-            return user.IsInRole("Admin") ||
-                   user.IsInRole("Administrator") ||
-                   user.IsInRole("SuperAdmin") ||
-                   user.IsInRole("HR") ||
-                   user.IsInRole("HRAdmin") ||
-                   user.IsInRole("HRManager");
+            if (user?.Identity?.IsAuthenticated != true) return false;
+            if (_permissionService != null)
+            {
+                return await _permissionService.HasAccessAsync(user, controller, action);
+            }
+            return user.HasClaim("Permission", $"{controller}:{action}");
         }
 
-        private static Guid? GetUserUnitId(ClaimsPrincipal user)
+        private async Task<HashSet<Guid>> GetManagedUnitIdsAsync(ClaimsPrincipal? user, CancellationToken cancellationToken)
         {
-            var unitClaim = user.FindFirst("OrganizationUnitId")?.Value
-                         ?? user.FindFirst("UnitId")?.Value
-                         ?? user.FindFirst("unit_id")?.Value;
-            return Guid.TryParse(unitClaim, out var guid) ? guid : null;
+            var userId = GetUserId(user);
+            if (userId == Guid.Empty) return new HashSet<Guid>();
+
+            var callerProfileId = await _dbContext.Users
+                .AsNoTracking()
+                .Where(u => u.Id == userId && u.IsActive)
+                .Select(u => u.WorkforceProfileId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (!callerProfileId.HasValue || callerProfileId.Value == Guid.Empty)
+            {
+                return new HashSet<Guid>();
+            }
+
+            var today = OnboardingCasePolicy.OperationalToday().ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var roots = await _dbContext.WfpOrganizationAssignments
+                .AsNoTracking()
+                .Where(x => x.WorkforceProfileId == callerProfileId.Value &&
+                            x.IsManagerialAssignment &&
+                            x.IsActive &&
+                            !x.IsDelete &&
+                            !x.IsCancel &&
+                            x.OrganizationUnitId.HasValue &&
+                            x.EffectiveStartDate <= today &&
+                            (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= today))
+                .Select(x => x.OrganizationUnitId!.Value)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            if (roots.Count == 0) return new HashSet<Guid>();
+
+            var units = await _dbContext.MstOrganizationUnits
+                .AsNoTracking()
+                .Where(u => !u.IsDelete)
+                .Select(u => new { u.Id, u.ParentOrganizationUnitId })
+                .ToListAsync(cancellationToken);
+
+            var childrenByParent = units
+                .Where(u => u.ParentOrganizationUnitId.HasValue)
+                .GroupBy(u => u.ParentOrganizationUnitId!.Value)
+                .ToDictionary(g => g.Key, g => g.Select(c => c.Id).ToList());
+
+            var result = new HashSet<Guid>(roots);
+            var queue = new Queue<Guid>(roots);
+            while (queue.Count > 0)
+            {
+                var cur = queue.Dequeue();
+                if (!childrenByParent.TryGetValue(cur, out var children)) continue;
+                foreach (var ch in children)
+                {
+                    if (result.Add(ch)) queue.Enqueue(ch);
+                }
+            }
+            return result;
+        }
+
+        private async Task<bool> CanViewAllUnitsAsync(ClaimsPrincipal? user)
+        {
+            return await HasAccessAsync(user, "WorkforceOnboardingCase", OnboardingCasePermissions.ReadAllUnits)
+                || await HasAccessAsync(user, "WorkforceEmploymentContract", EmploymentContractPermissions.ReadAllUnits)
+                || await HasAccessAsync(user, "WorkforceOnboardingCase", "DeclareReady");
         }
 
         public async Task<RecruitmentResult<PagedResult<ClinicalPreceptorshipListItemResponse>>> GetPagedAsync(
@@ -58,6 +120,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             ClaimsPrincipal user,
             CancellationToken cancellationToken = default)
         {
+            query ??= new ClinicalPreceptorshipQuery();
             var dbQuery = _dbContext.HrdClinicalPreceptorships
                 .Include(p => p.OnboardingCase)
                 .Include(p => p.WorkforceProfile)
@@ -65,15 +128,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 .Include(p => p.Preceptors.Where(pr => !pr.IsDelete && !pr.AssignedUntil.HasValue))
                     .ThenInclude(pr => pr.PreceptorWorkforceProfile)
                 .Where(p => !p.IsDelete)
+                .AsNoTracking()
                 .AsQueryable();
 
-            if (!IsHrOrAdmin(user))
+            if (!await CanViewAllUnitsAsync(user))
             {
-                var userUnitId = GetUserUnitId(user);
-                if (userUnitId.HasValue)
-                {
-                    dbQuery = dbQuery.Where(p => p.OrganizationUnitId == userUnitId.Value);
-                }
+                var managedUnits = await GetManagedUnitIdsAsync(user, cancellationToken);
+                var userId = GetUserId(user);
+                var callerProfileId = userId == Guid.Empty
+                    ? null
+                    : await _dbContext.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.WorkforceProfileId).FirstOrDefaultAsync(cancellationToken);
+
+                var unitList = managedUnits.ToList();
+                dbQuery = dbQuery.Where(p =>
+                    (unitList.Count > 0 && unitList.Contains(p.OrganizationUnitId)) ||
+                    (callerProfileId.HasValue && p.WorkforceProfileId == callerProfileId.Value) ||
+                    (callerProfileId.HasValue && p.Preceptors.Any(pr => !pr.IsDelete && !pr.AssignedUntil.HasValue && pr.PreceptorWorkforceProfileId == callerProfileId.Value)));
             }
 
             if (query.PreceptorshipStatus.HasValue)
@@ -156,10 +226,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 return RecruitmentResult<ClinicalPreceptorshipResponse>.NotFound("Data pendampingan klinis tidak ditemukan.");
             }
 
-            if (!IsHrOrAdmin(user))
+            if (!await CanViewAllUnitsAsync(user))
             {
-                var userUnitId = GetUserUnitId(user);
-                if (userUnitId.HasValue && p.OrganizationUnitId != userUnitId.Value)
+                var managedUnits = await GetManagedUnitIdsAsync(user, cancellationToken);
+                var userId = GetUserId(user);
+                var callerProfileId = userId == Guid.Empty
+                    ? null
+                    : await _dbContext.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.WorkforceProfileId).FirstOrDefaultAsync(cancellationToken);
+
+                var canReadThis = managedUnits.Contains(p.OrganizationUnitId)
+                    || (callerProfileId.HasValue && p.WorkforceProfileId == callerProfileId.Value)
+                    || (callerProfileId.HasValue && p.Preceptors.Any(pr => !pr.IsDelete && !pr.AssignedUntil.HasValue && pr.PreceptorWorkforceProfileId == callerProfileId.Value));
+
+                if (!canReadThis)
                 {
                     return RecruitmentResult<ClinicalPreceptorshipResponse>.Forbidden(
                         "Anda tidak memiliki wewenang untuk melihat pendampingan klinis di luar unit kerja Anda.");
@@ -190,13 +269,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     "Preceptor tidak boleh diri pegawai itu sendiri (VR-ONB-08).");
             }
 
-            // Validasi VR-ONB-08: Preceptor harus tenaga klinis aktif di unit yang sama
+            // Validasi VR-ONB-08: Preceptor harus profil aktif
             var preceptorProfile = await _dbContext.MstWorkforceProfiles
+                .AsNoTracking()
                 .FirstOrDefaultAsync(w => w.Id == preceptorWorkforceProfileId && !w.IsDelete, cancellationToken);
 
-            if (preceptorProfile == null)
+            if (preceptorProfile == null || !preceptorProfile.IsActive)
             {
-                return RecruitmentResult<ClinicalPreceptorshipResponse>.NotFound("Profil tenaga kesehatan preceptor tidak ditemukan.");
+                return RecruitmentResult<ClinicalPreceptorshipResponse>.Unprocessable("Profil tenaga kesehatan preceptor tidak ditemukan atau belum aktif (VR-ONB-08).");
             }
 
             // Cek apakah pendampingan klinis sudah pernah dibuat untuk kasus ini
@@ -283,14 +363,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 return RecruitmentResult<ClinicalPreceptorshipResponse>.NotFound("Data pendampingan klinis tidak ditemukan.");
             }
 
-            if (!IsHrOrAdmin(user))
+            var managedUnits = await GetManagedUnitIdsAsync(user, cancellationToken);
+            if (!managedUnits.Contains(p.OrganizationUnitId))
             {
-                var userUnitId = GetUserUnitId(user);
-                if (userUnitId.HasValue && p.OrganizationUnitId != userUnitId.Value)
-                {
-                    return RecruitmentResult<ClinicalPreceptorshipResponse>.Forbidden(
-                        "Anda hanya dapat mengganti preceptor untuk unit kerja Anda.");
-                }
+                return RecruitmentResult<ClinicalPreceptorshipResponse>.Forbidden(
+                    "Penggantian preceptor hanya dapat dilakukan oleh Kepala Unit terkait (VR-ONB-08 / HRD-DEC-087).");
+            }
+
+            if (p.PreceptorshipStatus == PreceptorshipStatus.Independent || p.PreceptorshipStatus == PreceptorshipStatus.Cancelled)
+            {
+                return RecruitmentResult<ClinicalPreceptorshipResponse>.Unprocessable(
+                    $"Preceptor tidak dapat diganti karena status pendampingan saat ini adalah '{p.PreceptorshipStatus}'.");
             }
 
             // Validasi VR-ONB-08: Preceptor bukan pegawai itu sendiri
@@ -301,11 +384,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             }
 
             var preceptorProfile = await _dbContext.MstWorkforceProfiles
+                .AsNoTracking()
                 .FirstOrDefaultAsync(w => w.Id == request.NewPreceptorWorkforceProfileId && !w.IsDelete, cancellationToken);
 
-            if (preceptorProfile == null)
+            if (preceptorProfile == null || !preceptorProfile.IsActive)
             {
-                return RecruitmentResult<ClinicalPreceptorshipResponse>.NotFound("Profil preceptor baru tidak ditemukan.");
+                return RecruitmentResult<ClinicalPreceptorshipResponse>.Unprocessable("Profil preceptor baru tidak ditemukan atau belum aktif (VR-ONB-08).");
             }
 
             // Tutup preceptor aktif sebelumnya
@@ -355,14 +439,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 return RecruitmentResult<ClinicalPreceptorshipResponse>.NotFound("Data pendampingan klinis tidak ditemukan.");
             }
 
-            if (!IsHrOrAdmin(user))
+            var managedUnits = await GetManagedUnitIdsAsync(user, cancellationToken);
+            if (!managedUnits.Contains(p.OrganizationUnitId))
             {
-                var userUnitId = GetUserUnitId(user);
-                if (userUnitId.HasValue && p.OrganizationUnitId != userUnitId.Value)
-                {
-                    return RecruitmentResult<ClinicalPreceptorshipResponse>.Forbidden(
-                        "Anda hanya dapat menyatakan siap mandiri untuk unit kerja Anda.");
-                }
+                return RecruitmentResult<ClinicalPreceptorshipResponse>.Forbidden(
+                    "Pernyataan Siap Mandiri hanya dapat dilakukan oleh Kepala Unit terkait tanpa persetujuan HRD (HRD-DEC-087).");
             }
 
             // Validasi VR-ONB-60: Siap Mandiri hanya sah saat status Accompanied (didampingi)

@@ -1270,6 +1270,8 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.TalentPoolService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IHiringHandoffService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.HiringHandoffService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.HiringHandoffService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IRecruitmentJourneyService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.RecruitmentJourneyService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.RecruitmentJourneyService>();
 
     // Slice S-C4-ONB: Onboarding & Manajemen Siklus Kontrak Pegawai (MVP-14)
     // BE-HRD-065: Sinkronisasi 5 Isian Kepegawaian & Penulisan Kontrak Satu Pintu

@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Mo
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Security;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services
 {
@@ -17,20 +18,61 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IEmployeeUserAccountService _userAccountService;
+        private readonly AccessPermissionService? _permissionService;
 
         public HrdOnboardingAccessService(
             ApplicationDbContext dbContext,
-            IEmployeeUserAccountService userAccountService)
+            IEmployeeUserAccountService userAccountService,
+            AccessPermissionService? permissionService = null)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _userAccountService = userAccountService ?? throw new ArgumentNullException(nameof(userAccountService));
+            _permissionService = permissionService;
         }
 
-        private static Guid GetUserId(ClaimsPrincipal user)
+        private static Guid GetUserId(ClaimsPrincipal? user)
         {
-            var sub = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                   ?? user.FindFirst("sub")?.Value;
+            var sub = user?.FindFirst("user_id")?.Value
+                   ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                   ?? user?.FindFirst("sub")?.Value;
             return Guid.TryParse(sub, out var guid) ? guid : Guid.Empty;
+        }
+
+        private async Task<bool> HasAccessAsync(ClaimsPrincipal? user, string controller, string action)
+        {
+            if (user?.Identity?.IsAuthenticated != true) return false;
+            if (_permissionService != null)
+            {
+                return await _permissionService.HasAccessAsync(user, controller, action);
+            }
+            return user.HasClaim("Permission", $"{controller}:{action}");
+        }
+
+        private async Task<bool> CanViewAllAccessRequestsAsync(ClaimsPrincipal? user)
+        {
+            return await HasAccessAsync(user, "WorkforceOnboardingAccessRequest", "Complete")
+                || await HasAccessAsync(user, "WorkforceOnboardingAccessRequest", "Retry")
+                || await HasAccessAsync(user, "WorkforceOnboardingCase", OnboardingCasePermissions.ReadAllUnits)
+                || await HasAccessAsync(user, "WorkforceOnboardingCase", "DeclareReady");
+        }
+
+        private async Task<HashSet<Guid>> GetManagedUnitIdsAsync(ClaimsPrincipal? user, CancellationToken cancellationToken)
+        {
+            var userId = GetUserId(user);
+            if (userId == Guid.Empty) return new HashSet<Guid>();
+            var wfpId = await _dbContext.Users.AsNoTracking().Where(u => u.Id == userId && u.IsActive).Select(u => u.WorkforceProfileId).FirstOrDefaultAsync(cancellationToken);
+            if (!wfpId.HasValue) return new HashSet<Guid>();
+
+            var today = OnboardingCasePolicy.OperationalToday().ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var roots = await _dbContext.WfpOrganizationAssignments
+                .AsNoTracking()
+                .Where(x => x.WorkforceProfileId == wfpId.Value && x.IsManagerialAssignment && x.IsActive && !x.IsDelete && !x.IsCancel &&
+                            x.OrganizationUnitId.HasValue && x.EffectiveStartDate <= today && (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= today))
+                .Select(x => x.OrganizationUnitId!.Value)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            return new HashSet<Guid>(roots);
         }
 
         public async Task<RecruitmentResult<PagedResult<OnboardingAccessListItemResponse>>> GetPagedAsync(
@@ -46,8 +88,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 .Include(r => r.OnboardingCase)
                 .Include(r => r.WorkforceProfile)
                 .Include(r => r.CompletedByUser)
+                .Where(r => !r.IsDelete)
                 .AsNoTracking()
                 .AsQueryable();
+
+            if (!await CanViewAllAccessRequestsAsync(user))
+            {
+                var managedUnits = (await GetManagedUnitIdsAsync(user, cancellationToken)).ToList();
+                var userId = GetUserId(user);
+                var callerWfp = userId == Guid.Empty ? null : await _dbContext.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.WorkforceProfileId).FirstOrDefaultAsync(cancellationToken);
+                dbQuery = dbQuery.Where(r =>
+                    (managedUnits.Count > 0 && r.OnboardingCase != null && managedUnits.Contains(r.OnboardingCase.OrganizationUnitId)) ||
+                    (callerWfp.HasValue && r.WorkforceProfileId == callerWfp.Value));
+            }
+
+            if (query.OnboardingCaseId.HasValue)
+            {
+                dbQuery = dbQuery.Where(r => r.OnboardingCaseId == query.OnboardingCaseId.Value);
+            }
 
             if (query.RequestType.HasValue)
             {
@@ -137,9 +195,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
-            if (r == null)
+            if (r == null || r.IsDelete)
             {
                 return RecruitmentResult<OnboardingAccessListItemResponse>.NotFound("Permintaan akses onboarding tidak ditemukan.");
+            }
+
+            if (!await CanViewAllAccessRequestsAsync(user))
+            {
+                var managedUnits = await GetManagedUnitIdsAsync(user, cancellationToken);
+                var userId = GetUserId(user);
+                var callerWfp = userId == Guid.Empty ? null : await _dbContext.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.WorkforceProfileId).FirstOrDefaultAsync(cancellationToken);
+                var allowed = (r.OnboardingCase != null && managedUnits.Contains(r.OnboardingCase.OrganizationUnitId))
+                    || (callerWfp.HasValue && r.WorkforceProfileId == callerWfp.Value);
+                if (!allowed)
+                {
+                    return RecruitmentResult<OnboardingAccessListItemResponse>.Forbidden("Anda tidak memiliki wewenang melihat permintaan akses di luar unit kerja Anda.");
+                }
             }
 
             var response = MapToResponse(r);
@@ -163,11 +234,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     .ThenInclude(c => c!.Position)
                 .Include(x => x.WorkforceProfile)
                 .Include(x => x.CompletedByUser)
-                .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
-            if (accessRequest == null)
+            if (accessRequest == null || accessRequest.IsDelete)
             {
                 return RecruitmentResult<OnboardingAccessListItemResponse>.NotFound("Permintaan akses onboarding tidak ditemukan.");
+            }
+
+            if (accessRequest.OnboardingCase?.CaseStatus == OnboardingCaseStatus.Cancelled)
+            {
+                return RecruitmentResult<OnboardingAccessListItemResponse>.Unprocessable(
+                    "Pembuatan akun tidak dapat diulang karena kasus onboarding telah dibatalkan.");
+            }
+
+            if (accessRequest.OnboardingCase?.CaseStatus == OnboardingCaseStatus.Cancelled)
+            {
+                return RecruitmentResult<OnboardingAccessListItemResponse>.Unprocessable(
+                    "Permintaan akses tidak dapat diselesaikan karena kasus onboarding telah dibatalkan.");
             }
 
             // VR-ONB-76: Tandai selesai hanya untuk WorkAccess berstatus Requested
@@ -214,9 +297,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 .Include(x => x.CompletedByUser)
                 .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
-            if (accessRequest == null)
+            if (accessRequest == null || accessRequest.IsDelete)
             {
                 return RecruitmentResult<OnboardingAccessListItemResponse>.NotFound("Permintaan akses onboarding tidak ditemukan.");
+            }
+
+            if (accessRequest.OnboardingCase?.CaseStatus == OnboardingCaseStatus.Cancelled)
+            {
+                return RecruitmentResult<OnboardingAccessListItemResponse>.Unprocessable(
+                    "Pembuatan akun tidak dapat diulang karena kasus onboarding telah dibatalkan.");
             }
 
             // VR-ONB-77: Ulang hanya untuk AccountCreation berstatus Failed
@@ -271,14 +360,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             }
             else
             {
-                accessRequest.FailureMessage = accountResult.Message;
+                accessRequest.FailureMessage = OnboardingCasePolicy.SanitizeAccountFailureMessage(accountResult.Message);
                 accessRequest.UpdateDateTime = DateTime.UtcNow;
                 accessRequest.UpdateBy = actorId;
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
                 return RecruitmentResult<OnboardingAccessListItemResponse>.BadRequest(
-                    $"Gagal membuat ulang akun pengguna: {accountResult.Message}");
+                    $"Gagal membuat ulang akun pengguna: {accessRequest.FailureMessage}");
             }
         }
 

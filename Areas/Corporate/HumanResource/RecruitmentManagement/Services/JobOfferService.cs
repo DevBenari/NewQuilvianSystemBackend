@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -9,6 +10,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -17,10 +19,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     public class JobOfferService : IJobOfferService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly NumberSeriesAllocator? _numberSeriesAllocator;
 
-        public JobOfferService(ApplicationDbContext dbContext)
+        public JobOfferService(
+            ApplicationDbContext dbContext,
+            NumberSeriesAllocator? numberSeriesAllocator = null)
         {
             _dbContext = dbContext;
+            _numberSeriesAllocator = numberSeriesAllocator;
         }
 
         public async Task<RecruitmentResult<PagedResult<JobOfferListItemResponse>>> GetPagedAsync(
@@ -122,6 +128,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var application = await _dbContext.HrdCandidateApplications
                 .Include(a => a.Candidate)
                 .Include(a => a.Vacancy)
+                    .ThenInclude(v => v!.Requisition)
+                .Include(a => a.Screening)
+                .Include(a => a.Evaluations)
                 .FirstOrDefaultAsync(a => a.Id == request.ApplicationId && !a.IsDelete, cancellationToken);
 
             if (application == null)
@@ -129,20 +138,43 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<JobOfferResponse>.NotFound("Lamaran tidak ditemukan.");
             }
 
-            // Aturan Bisnis VR-REC-13: Hanya kandidat yang lolos evaluasi (tanpa veto klinis) yang dapat menerima penawaran
-            if (application.StageStatus == "ASSESSMENT_FAILED" || application.StageStatus == "REJECTED_ADMINISTRATION")
+            if (application.Vacancy == null || application.Vacancy.IsDelete
+                || application.Vacancy.Status == JobVacancyStatus.Draft
+                || application.Vacancy.Status == JobVacancyStatus.Cancelled)
             {
                 return RecruitmentResult<JobOfferResponse>.Unprocessable(
-                    "Pembuatan penawaran ditolak: Kandidat telah dinyatakan gugur seleksi atau terkena veto klinis (VR-REC-13).");
+                    "Pembuatan penawaran ditolak: lowongan terkait tidak aktif atau masih berstatus draf/dibatalkan.");
             }
 
-            var hasClinicalVeto = await _dbContext.HrdCandidateEvaluations
-                .AnyAsync(e => e.ApplicationId == request.ApplicationId && e.IsClinicalVetoApplied && !e.IsDelete, cancellationToken);
+            // Validasi menyeluruh urutan seleksi administrasi + HR/Klinis + bebas veto klinis (VR-REC-12, VR-REC-13, HRD-DEC-077)
+            var prereq = RecruitmentJourneyPolicy.EvaluateOfferPrerequisites(
+                application,
+                application.Vacancy,
+                application.Screening,
+                application.Evaluations,
+                application.Candidate);
 
-            if (hasClinicalVeto)
+            if (!prereq.CanCreateOffer)
             {
-                return RecruitmentResult<JobOfferResponse>.Unprocessable(
-                    "Pembuatan penawaran ditolak secara permanen karena adanya Hak Veto Klinis Mutlak dari Asesor Medis (VR-REC-11, HRD-DEC-077).");
+                return RecruitmentResult<JobOfferResponse>.Unprocessable(prereq.BlockingMessage!);
+            }
+
+            if (application.Vacancy.QuotaSeats > 0)
+            {
+                var filledSeats = await _dbContext.HrdCandidateHiringHandoffs
+                    .Include(h => h.Offer)
+                        .ThenInclude(o => o!.Application)
+                    .CountAsync(h => !h.IsDelete
+                                     && h.Status != HandoffStatus.Cancelled
+                                     && h.Offer != null
+                                     && h.Offer.Application != null
+                                     && h.Offer.Application.VacancyId == application.VacancyId, cancellationToken);
+
+                if (filledSeats >= application.Vacancy.QuotaSeats)
+                {
+                    return RecruitmentResult<JobOfferResponse>.Unprocessable(
+                        $"Kuota kursi lowongan ({application.Vacancy.QuotaSeats}) telah terpenuhi penuh.");
+                }
             }
 
             // Cek apakah sudah ada offer aktif untuk lamaran ini
@@ -199,11 +231,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 ? JobOfferApprovalTier.Tier14Exceptional
                 : JobOfferApprovalTier.Tier13Standard;
 
-            // Auto-numbering OfferNumber
-            var todayPrefix = $"OFR-{DateTime.UtcNow:yyyyMMdd}";
-            var countToday = await _dbContext.HrdJobOffers
-                .CountAsync(o => o.OfferNumber.StartsWith(todayPrefix), cancellationToken);
-            var offerNumber = $"{todayPrefix}-{(countToday + 1):D4}";
+            // Auto-numbering OfferNumber atomik melalui NumberSeriesAllocator
+            var dateCode = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, RecruitmentJourneyPolicy.JakartaTimeZone)
+                .ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+            var offerPrefix = $"OFR-{dateCode}-";
+            var existingOfferNumbers = await _dbContext.HrdJobOffers
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(o => o.OfferNumber.StartsWith(offerPrefix))
+                .Select(o => o.OfferNumber)
+                .ToListAsync(cancellationToken);
+
+            var offerNumber = await RecruitmentJourneyPolicy.AllocateSequenceAsync(
+                _numberSeriesAllocator,
+                existingOfferNumbers,
+                "HRD_JOB_OFFER",
+                "OFR",
+                userId,
+                cancellationToken);
 
             var offer = new HrdJobOffer
             {
@@ -323,11 +368,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var offer = await _dbContext.HrdJobOffers
                 .Include(o => o.Approvals)
                 .Include(o => o.Application)
+                    .ThenInclude(a => a!.Candidate)
                 .FirstOrDefaultAsync(o => o.Id == id && !o.IsDelete, cancellationToken);
 
             if (offer == null)
             {
                 return RecruitmentResult<JobOfferResponse>.NotFound("Surat penawaran kerja tidak ditemukan.");
+            }
+
+            if (offer.Application != null && RecruitmentJourneyPolicy.IsTerminalApplication(offer.Application, offer.Application.Candidate))
+            {
+                return RecruitmentResult<JobOfferResponse>.Unprocessable(
+                    "Penawaran kerja tidak dapat dikirim karena lamaran atau kandidat berada pada status terminal/gugur.");
             }
 
             // Aturan Bisnis VR-REC-15, HRD-DEC-079: Penawaran hanya dapat dikirim jika telah disetujui penuh oleh seluruh penyetuju
@@ -337,11 +389,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     $"Penawaran kerja belum dapat dikirimkan kepada kandidat karena status saat ini adalah '{offer.Status}'. Surat penawaran wajib disetujui penuh sebelum pengiriman (VR-REC-15).");
             }
 
-            offer.Status = JobOfferStatus.SentConditional;
-            if (request.ExpiryDate.HasValue && request.ExpiryDate.Value > DateTime.UtcNow)
+            var effectiveExpiry = (request.ExpiryDate.HasValue && request.ExpiryDate.Value > DateTime.UtcNow)
+                ? request.ExpiryDate.Value
+                : offer.ExpiryDate;
+
+            if (DateTime.UtcNow > effectiveExpiry)
             {
-                offer.ExpiryDate = request.ExpiryDate.Value;
+                return RecruitmentResult<JobOfferResponse>.Unprocessable(
+                    "Masa berlaku penawaran sudah kedaluwarsa. Perpanjang ExpiryDate terlebih dahulu sebelum mengirim penawaran.");
             }
+
+            offer.Status = JobOfferStatus.SentConditional;
+            offer.ExpiryDate = effectiveExpiry;
             offer.RowVersion = Guid.NewGuid();
             offer.UpdateDateTime = DateTime.UtcNow;
             offer.UpdateBy = userId;
@@ -376,10 +435,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<JobOfferResponse>.NotFound("Surat penawaran kerja tidak ditemukan.");
             }
 
-            if (offer.Status != JobOfferStatus.SentConditional && offer.Status != JobOfferStatus.FinalOfferSent && offer.Status != JobOfferStatus.Approved)
+            if (offer.Status != JobOfferStatus.SentConditional && offer.Status != JobOfferStatus.FinalOfferSent)
             {
                 return RecruitmentResult<JobOfferResponse>.Unprocessable(
-                    $"Respons kandidat hanya dapat dicatat saat penawaran berstatus terkirim atau disetujui. Status saat ini: '{offer.Status}'.");
+                    $"Respons kandidat hanya dapat dicatat setelah penawaran dikirimkan kepada kandidat (SentConditional atau FinalOfferSent). Status saat ini: '{offer.Status}'.");
             }
 
             if (DateTime.UtcNow > offer.ExpiryDate)
@@ -391,6 +450,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 return RecruitmentResult<JobOfferResponse>.Unprocessable("Masa berlaku surat penawaran telah kedaluwarsa (Expired). Respons kandidat tidak dapat diterima.");
+            }
+
+            if (offer.Status == JobOfferStatus.SentConditional &&
+                request.ResponseStatus != JobOfferStatus.ConditionalAccepted &&
+                request.ResponseStatus != JobOfferStatus.ConditionalRejected)
+            {
+                return RecruitmentResult<JobOfferResponse>.Unprocessable(
+                    "Untuk penawaran bersyarat terkirim (SentConditional), respons yang sah hanya ConditionalAccepted atau ConditionalRejected.");
+            }
+
+            if (offer.Status == JobOfferStatus.FinalOfferSent &&
+                request.ResponseStatus != JobOfferStatus.FinalAccepted &&
+                request.ResponseStatus != JobOfferStatus.FinalRejected)
+            {
+                return RecruitmentResult<JobOfferResponse>.Unprocessable(
+                    "Untuk penawaran final terkirim (FinalOfferSent), respons yang sah hanya FinalAccepted atau FinalRejected.");
             }
 
             if (request.ResponseStatus == JobOfferStatus.ConditionalAccepted || request.ResponseStatus == JobOfferStatus.FinalAccepted)

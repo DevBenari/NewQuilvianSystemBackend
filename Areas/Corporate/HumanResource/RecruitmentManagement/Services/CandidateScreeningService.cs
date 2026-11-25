@@ -122,12 +122,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var userId = GetUserId(user);
 
             var application = await _dbContext.HrdCandidateApplications
+                .Include(a => a.Candidate)
                 .Include(a => a.Vacancy)
                 .FirstOrDefaultAsync(a => a.Id == request.ApplicationId && !a.IsDelete, cancellationToken);
 
             if (application == null)
             {
                 return RecruitmentResult<CandidateScreeningResponse>.NotFound("Lamaran tidak ditemukan.");
+            }
+
+            if (RecruitmentJourneyPolicy.IsTerminalApplication(application, application.Candidate))
+            {
+                return RecruitmentResult<CandidateScreeningResponse>.Unprocessable(
+                    "Penapisan berkas tidak dapat diinisiasi karena lamaran atau kandidat berada pada status terminal/gugur.");
             }
 
             var existingScreening = await _dbContext.HrdCandidateScreenings
@@ -185,13 +192,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<CandidateScreeningResponse>.NotFound("Lamaran terkait tidak ditemukan.");
             }
 
+            if (screening.Status != ScreeningStatus.Pending)
+            {
+                return RecruitmentResult<CandidateScreeningResponse>.Conflict(
+                    $"Penapisan berkas untuk lamaran ini sudah selesai diputuskan dengan status '{screening.Status}' dan tidak dapat dievaluasi ulang.");
+            }
+
+            if (RecruitmentJourneyPolicy.IsTerminalApplication(app, app.Candidate))
+            {
+                return RecruitmentResult<CandidateScreeningResponse>.Unprocessable(
+                    "Evaluasi penapisan berkas ditolak karena lamaran atau kandidat telah berstatus terminal/gugur.");
+            }
+
             var isClinical = app.Vacancy?.IsClinical ?? screening.IsStrRequired;
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-            // Ambil seluruh dokumen pelamar untuk evaluasi (urut terbaru lebih dulu agar deterministik)
+            // Ambil dokumen pelamar untuk lamaran ini (prioritaskan dokumen yang terikat langsung pada ApplicationId)
             var documents = await _dbContext.HrdCandidateDocuments
-                .Where(d => d.CandidateId == app.CandidateId && !d.IsDelete)
-                .OrderByDescending(d => d.CreateDateTime)
+                .Where(d => d.CandidateId == app.CandidateId
+                            && (d.ApplicationId == null || d.ApplicationId == app.Id)
+                            && !d.IsDelete)
+                .OrderByDescending(d => d.ApplicationId == app.Id)
+                .ThenByDescending(d => d.CreateDateTime)
                 .ThenByDescending(d => d.Id)
                 .ToListAsync(cancellationToken);
 

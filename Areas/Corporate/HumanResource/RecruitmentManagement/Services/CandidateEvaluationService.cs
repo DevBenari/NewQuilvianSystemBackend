@@ -198,7 +198,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var userId = GetUserId(user);
 
             var application = await _dbContext.HrdCandidateApplications
+                .Include(a => a.Candidate)
                 .Include(a => a.Vacancy)
+                .Include(a => a.Screening)
                 .FirstOrDefaultAsync(a => a.Id == request.ApplicationId && !a.IsDelete, cancellationToken);
 
             if (application == null)
@@ -206,10 +208,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<CandidateEvaluationResponse>.NotFound("Lamaran tidak ditemukan.");
             }
 
-            // Validasi: tidak boleh menjadwalkan jika lamaran sudah gugur
-            if (application.StageStatus == "ASSESSMENT_FAILED" || application.StageStatus == "REJECTED_ADMINISTRATION")
+            // Validasi urutan & terminal: tidak boleh menjadwalkan jika lamaran gugur atau belum lolos screening (HRD-DEC-076)
+            if (RecruitmentJourneyPolicy.IsTerminalApplication(application, application.Candidate))
             {
-                return RecruitmentResult<CandidateEvaluationResponse>.Unprocessable("Lamaran telah dinyatakan gugur dan tidak dapat dijadwalkan sesi evaluasi baru.");
+                return RecruitmentResult<CandidateEvaluationResponse>.Unprocessable("Lamaran telah dinyatakan gugur atau terminal dan tidak dapat dijadwalkan sesi evaluasi baru.");
+            }
+
+            if (application.Screening == null || application.Screening.IsDelete || application.Screening.Status != ScreeningStatus.Passed)
+            {
+                return RecruitmentResult<CandidateEvaluationResponse>.Unprocessable(
+                    "Sesi evaluasi belum dapat dijadwalkan sebelum Seleksi Administrasi (Screening) dinyatakan Lulus (Passed) (HRD-DEC-076).");
+            }
+
+            var isClinical = application.Vacancy?.IsClinical ?? false;
+            if (!isClinical && request.EvaluationType == EvaluationType.ClinicalAssessment)
+            {
+                return RecruitmentResult<CandidateEvaluationResponse>.Unprocessable(
+                    "Sesi Uji Kompetensi Klinis hanya berlaku untuk lowongan posisi klinis.");
+            }
+
+            if (request.EvaluatorUserId == Guid.Empty)
+            {
+                return RecruitmentResult<CandidateEvaluationResponse>.Unprocessable("EvaluatorUserId wajib diisi dengan identitas penilai yang sah.");
             }
 
             var evaluation = new HrdCandidateEvaluation
@@ -246,6 +266,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var evaluation = await _dbContext.HrdCandidateEvaluations
                 .Include(e => e.Application)
                     .ThenInclude(a => a!.Vacancy)
+                .Include(e => e.Application)
+                    .ThenInclude(a => a!.Candidate)
+                .Include(e => e.Application)
+                    .ThenInclude(a => a!.Screening)
                 .FirstOrDefaultAsync(e => e.Id == evaluationId && !e.IsDelete, cancellationToken);
 
             if (evaluation == null)
@@ -264,9 +288,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<CandidateEvaluationResponse>.NotFound("Lamaran terkait tidak ditemukan.");
             }
 
-            if (app.StageStatus == "ASSESSMENT_FAILED")
+            if (RecruitmentJourneyPolicy.IsTerminalApplication(app, app.Candidate))
             {
-                return RecruitmentResult<CandidateEvaluationResponse>.Conflict("Lamaran ini telah dikunci karena gugur evaluasi sebelumnya.");
+                return RecruitmentResult<CandidateEvaluationResponse>.Conflict("Lamaran ini telah dikunci karena gugur/terminal pada tahap sebelumnya.");
+            }
+
+            if (app.Screening == null || app.Screening.IsDelete || app.Screening.Status != ScreeningStatus.Passed)
+            {
+                return RecruitmentResult<CandidateEvaluationResponse>.Unprocessable(
+                    "Nilai Wawancara HR tidak dapat dikirim sebelum Seleksi Administrasi dinyatakan Lulus.");
+            }
+
+            if (RecruitmentJourneyPolicy.IsEvaluationSubmitted(evaluation))
+            {
+                return RecruitmentResult<CandidateEvaluationResponse>.Conflict("Nilai evaluasi pada sesi ini sudah dikirim sebelumnya.");
             }
 
             evaluation.Score = request.Score;
@@ -279,8 +314,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             evaluation.UpdateDateTime = DateTime.UtcNow;
             evaluation.UpdateBy = userId;
 
-            // Evaluasi kesiapan melangkah ke offering
-            await CheckAndAdvanceApplicationStageAsync(app, cancellationToken);
+            if (request.Recommendation == EvaluationRecommendation.NotRecommended)
+            {
+                app.StageStatus = "ASSESSMENT_FAILED";
+                app.Notes = "Tidak direkomendasikan pada hasil Wawancara HR.";
+                app.UpdateDateTime = DateTime.UtcNow;
+                app.UpdateBy = userId;
+            }
+            else
+            {
+                // Evaluasi kesiapan melangkah ke offering hanya jika seluruh syarat lulus telah dikirim
+                await CheckAndAdvanceApplicationStageAsync(app, cancellationToken);
+            }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             return await LoadResponseAsync(evaluation.Id, cancellationToken);
@@ -299,6 +344,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     .ThenInclude(a => a!.Vacancy)
                 .Include(e => e.Application)
                     .ThenInclude(a => a!.Candidate)
+                .Include(e => e.Application)
+                    .ThenInclude(a => a!.Screening)
                 .FirstOrDefaultAsync(e => e.Id == evaluationId && !e.IsDelete, cancellationToken);
 
             if (evaluation == null)
@@ -324,6 +371,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<CandidateEvaluationResponse>.NotFound("Lamaran terkait tidak ditemukan.");
             }
 
+            if (RecruitmentJourneyPolicy.IsTerminalApplication(app, app.Candidate))
+            {
+                return RecruitmentResult<CandidateEvaluationResponse>.Conflict("Lamaran ini telah dikunci karena gugur atau terminal pada tahap sebelumnya.");
+            }
+
+            if (app.Screening == null || app.Screening.IsDelete || app.Screening.Status != ScreeningStatus.Passed)
+            {
+                return RecruitmentResult<CandidateEvaluationResponse>.Unprocessable(
+                    "Asesmen klinis tidak dapat dikirim sebelum Seleksi Administrasi dinyatakan Lulus.");
+            }
+
+            if (RecruitmentJourneyPolicy.IsEvaluationSubmitted(evaluation))
+            {
+                return RecruitmentResult<CandidateEvaluationResponse>.Conflict("Nilai asesmen klinis pada sesi ini sudah dikirim sebelumnya.");
+            }
+
             evaluation.Score = request.Score;
             evaluation.Recommendation = request.Recommendation;
             evaluation.EvaluationDate = DateTime.UtcNow;
@@ -340,13 +403,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     ? "VETO KLINIS MUTLAK: Kandidat tidak memenuhi standar kompetensi klinis rumah sakit (VR-REC-11)."
                     : request.VetoReason.Trim();
 
-                // Kunci lamaran: status gagal permanen
+                // Kunci lamaran yang bersangkutan saja; jangan memutus lamaran aktif lain milik kandidat yang sama
                 app.StageStatus = "ASSESSMENT_FAILED";
                 app.Notes = $"Gugur evaluasi klinis. Alasan veto: {evaluation.VetoReason}";
                 app.UpdateDateTime = DateTime.UtcNow;
                 app.UpdateBy = userId;
 
-                if (app.Candidate != null)
+                var hasOtherActiveApplications = await _dbContext.HrdCandidateApplications
+                    .AnyAsync(a => a.CandidateId == app.CandidateId
+                                   && a.Id != app.Id
+                                   && !a.IsDelete
+                                   && a.CurrentStage != ApplicationStage.Rejected
+                                   && a.CurrentStage != ApplicationStage.Withdrawn
+                                   && a.StageStatus != "REJECTED_ADMINISTRATION"
+                                   && a.StageStatus != "ASSESSMENT_FAILED"
+                                   && a.StageStatus != "MCU_UNFIT_OFFER_REVOKED", cancellationToken);
+
+                if (!hasOtherActiveApplications && app.Candidate != null)
                 {
                     app.Candidate.Status = CandidateStatus.Rejected;
                     app.Candidate.UpdateDateTime = DateTime.UtcNow;
@@ -358,7 +431,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 evaluation.IsClinicalVetoApplied = false;
                 evaluation.VetoReason = null;
 
-                // Evaluasi kesiapan melangkah ke offering jika kedua evaluasi selesai
+                evaluation.UpdateDateTime = DateTime.UtcNow;
+                evaluation.UpdateBy = userId;
+
+                // Evaluasi kesiapan melangkah ke offering hanya jika kedua evaluasi telah dikirim dan lulus
                 await CheckAndAdvanceApplicationStageAsync(app, cancellationToken);
             }
 
@@ -371,34 +447,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
 
         private async Task CheckAndAdvanceApplicationStageAsync(HrdCandidateApplication app, CancellationToken cancellationToken)
         {
-            var isClinical = app.Vacancy?.IsClinical ?? false;
+            var screening = app.Screening ?? await _dbContext.HrdCandidateScreenings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.ApplicationId == app.Id && !s.IsDelete, cancellationToken);
 
             var allEvals = await _dbContext.HrdCandidateEvaluations
                 .Where(e => e.ApplicationId == app.Id && !e.IsDelete)
                 .ToListAsync(cancellationToken);
 
-            var hrEval = allEvals.FirstOrDefault(e => e.EvaluationType == EvaluationType.HrInterview);
-            var clinicalEval = allEvals.FirstOrDefault(e => e.EvaluationType == EvaluationType.ClinicalAssessment || e.EvaluationType == EvaluationType.UserInterview);
-
-            if (isClinical)
+            var prereq = RecruitmentJourneyPolicy.EvaluateOfferPrerequisites(app, app.Vacancy, screening, allEvals, app.Candidate);
+            if (prereq.CanCreateOffer)
             {
-                // Aturan Bisnis VR-REC-12: Posisi klinis wajib menyelesaikan KEDUA evaluasi
-                if (hrEval != null && hrEval.Recommendation != EvaluationRecommendation.NotRecommended &&
-                    clinicalEval != null && clinicalEval.Recommendation != EvaluationRecommendation.NotRecommended &&
-                    !clinicalEval.IsClinicalVetoApplied)
-                {
-                    app.CurrentStage = ApplicationStage.Offering;
-                    app.StageStatus = "EvaluationPassedReadyForOffer";
-                }
-            }
-            else
-            {
-                // Posisi non-klinis: cukup evaluasi HR (atau user) yang lulus
-                if (hrEval != null && hrEval.Recommendation != EvaluationRecommendation.NotRecommended)
-                {
-                    app.CurrentStage = ApplicationStage.Offering;
-                    app.StageStatus = "EvaluationPassedReadyForOffer";
-                }
+                app.CurrentStage = ApplicationStage.Offering;
+                app.StageStatus = "EvaluationPassedReadyForOffer";
+                app.UpdateDateTime = DateTime.UtcNow;
             }
         }
 

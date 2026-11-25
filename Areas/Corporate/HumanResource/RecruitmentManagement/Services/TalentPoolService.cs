@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -7,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -15,10 +17,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     public class TalentPoolService : ITalentPoolService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly NumberSeriesAllocator? _numberSeriesAllocator;
 
-        public TalentPoolService(ApplicationDbContext dbContext)
+        public TalentPoolService(
+            ApplicationDbContext dbContext,
+            NumberSeriesAllocator? numberSeriesAllocator = null)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+            _numberSeriesAllocator = numberSeriesAllocator;
         }
 
         private static Guid GetUserId(ClaimsPrincipal user)
@@ -222,11 +228,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 ? JobOfferApprovalTier.Tier14Exceptional
                 : JobOfferApprovalTier.Tier13Standard;
 
+            // Alokasi ApplicationNumber & OfferNumber secara atomik (menghindari nomor kosong atau tabrakan)
+            var dateCode = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, RecruitmentJourneyPolicy.JakartaTimeZone)
+                .ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+            var appPrefix = $"APP-{dateCode}-";
+            var existingAppNumbers = await _dbContext.HrdCandidateApplications
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(a => a.ApplicationNumber.StartsWith(appPrefix))
+                .Select(a => a.ApplicationNumber)
+                .ToListAsync(cancellationToken);
+
+            var applicationNumber = await RecruitmentJourneyPolicy.AllocateSequenceAsync(
+                _numberSeriesAllocator,
+                existingAppNumbers,
+                "HRD_CANDIDATE_APPLICATION",
+                "APP",
+                userId,
+                cancellationToken);
+
             // Aturan Bisnis VR-REC-19, AT-HRD-D2-10: Fast-Track Promotion
             // Buat berkas lamaran baru yang langsung melangkah ke tahap Offering tanpa tes ulang
             var newApp = new HrdCandidateApplication
             {
                 Id = Guid.NewGuid(),
+                ApplicationNumber = applicationNumber,
                 CandidateId = pool.CandidateId,
                 VacancyId = request.TargetVacancyId,
                 ApplicationDate = DateTime.UtcNow,
@@ -238,13 +264,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             };
             await _dbContext.HrdCandidateApplications.AddAsync(newApp, cancellationToken);
 
-            // Auto-numbering offer OFR-yyyyMMdd-XXXX
+            // Auto-numbering offer OFR-yyyyMMdd-XXXX secara atomik
             var today = DateTime.UtcNow;
-            var todayStr = today.ToString("yyyyMMdd");
-            var countToday = await _dbContext.HrdJobOffers
-                .CountAsync(o => o.OfferNumber.StartsWith($"OFR-{todayStr}-"), cancellationToken);
+            var offerPrefix = $"OFR-{dateCode}-";
+            var existingOfferNumbers = await _dbContext.HrdJobOffers
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(o => o.OfferNumber.StartsWith(offerPrefix))
+                .Select(o => o.OfferNumber)
+                .ToListAsync(cancellationToken);
 
-            var offerNumber = $"OFR-{todayStr}-{(countToday + 1):D4}";
+            var offerNumber = await RecruitmentJourneyPolicy.AllocateSequenceAsync(
+                _numberSeriesAllocator,
+                existingOfferNumbers,
+                "HRD_JOB_OFFER",
+                "OFR",
+                userId,
+                cancellationToken);
 
             var newOffer = new HrdJobOffer
             {

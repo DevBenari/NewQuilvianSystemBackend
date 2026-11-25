@@ -5,7 +5,7 @@
 | Tanggal | 25 November 2026 |
 | Modul | Human Resource — Layanan Mandiri Pegawai (ESS) & Side Profil |
 | Repository terdampak | `QuilvianSystemFrontendDev` (frontend saja; backend tidak diubah) |
-| Status | Rencana — koreksi atas penerapan sebelumnya, menunggu persetujuan |
+| Status | Selesai diimplementasikan dan terverifikasi (25 November 2026) |
 | Alur kerja | Analisis → Planning → Implementasi → Testing |
 | Dokumen terkait | Mengoreksi & menggantikan penempatan side menu kiri pada `PLANNING_PEMINDAHAN_MENU_WORKSPACE_KE_SIDE_MENU_LAYANAN_MANDIRI.md` |
 
@@ -255,4 +255,25 @@ Base URL: `api/v1/system`
 
 ## 10. Hasil implementasi
 
-*(Akan diisi sesudah planning disetujui, diimplementasikan, dan diuji.)*
+Seluruh koreksi telah diimplementasikan dan diverifikasi pada repository `QuilvianSystemFrontendDev` (backend tidak diubah):
+
+1. **Pembersihan side menu kiri (`src/utils/menu-sidebar/menu-items.jsx`)**: Blok pohon menu induk `Layanan Saya` (`key: "selfServices"`) dihapus dari posisi di bawah `Dashboard`, sehingga sidebar kiri kembali bersih langsung dari `Dashboard` ke pemisah `Administrator` sambil menjaga struktur menu SDM (`corporateHumanResource`) tanpa duplikasi layanan pribadi.
+2. **Menu terstruktur di Side Profil (`src/lib/constants/self-services/self-service-profile-menu.js`, `src/components/view/settings/sidebar-profile/user-profile-sidebar.jsx`, dan `profile.css`)**:
+   - Memindahkan seluruh 9 bagian / 29 rute langsung (28 rute bekas Workspace + pintasan *Ajukan Cuti Baru* `?form=baru`) ke dalam Side Profil beserta integrasi item *Presensi Saya* (badge kehadiran harian), *Profil Dokter* (muncul di kelompok *Praktik Klinis* khusus akun dokter), dan *Ganti Password* (*Akun & Keamanan*).
+   - Menambahkan kotak pencarian cepat (`Cari layanan mandiri...`), kelompok akordeon (terbuka default untuk *Kehadiran & Jadwal*, *Cuti & Lembur*, dan kelompok yang memuat rute aktif), highlight rute aktif (`aria-current="page"`), reset pencarian saat menutup panel, serta penyaringan fail-closed memakai `useEffectivePermissions`, `filterMenuItemsByPermission`, `useSystemFeatures`, dan `adaptPayrollMenuItems` (`corporateMyCobClaims` tersembunyi bila BPJS nonaktif).
+3. **Unit test (`tests/unit/`)**: `self-service-side-menu.test.mjs` (`SM-01..SM-05`), `employee-self-service-profile-change.test.mjs` (`ESS-002`, `ESS-003`), dan `self-service-menu-dedup.test.mjs` (`ESS-DEDUP-04`) diperbarui agar menegaskan `menu-items.jsx` bersih dari `Ruang Kerja Saya` maupun `Layanan Saya`, serta menguji struktur 29 rute Side Profil, izin akses, BPJS COB, pencarian, dan penanda rute aktif.
+
+### Ringkasan hasil verifikasi & uji browser
+
+| Pemeriksaan | Hasil | Detail singkat |
+| --- | --- | --- |
+| ESLint + CRLF (`menu-items.jsx`, `user-profile-sidebar.jsx`, `profile.css`, unit test) | **0 error**, CRLF utuh | 4 warning pra-eksis pada hooks awal `user-profile-sidebar.jsx`; seluruh berkas CRLF memiliki `LF_only = 0` |
+| `check-css-usage.mjs` (`user-profile-sidebar.jsx`) | **0 temuan baru** | Hanya 1 temuan pra-eksis (`profile-avatar-initials`) |
+| `cek-rute.ps1 -FromMenu` | **3 pre-existing `TIDAK`** | Seluruh menu `menu-items.jsx` valid (3 rute `TIDAK` hanya pra-eksis di modul registrasi & kebijakan BPJS lama) |
+| Unit test terarah (`SM`, `ESS`, `ESS-DEDUP`, `HR`, `BPJS`) | **39 PASS**, 3 pra-eksis | `SM-01..05`, `ESS-001..003,005`, `ESS-DEDUP-01..04`, `HR-01..16` lulus; gagal pra-eksis: `ESS-004`, `bpjs:119`, `bpjs:263`. Baseline `npm run test:unit`: 5.398 PASS / 149 FAIL vs HEAD 5.204 PASS / 186 FAIL (0 regresi layanan mandiri) |
+| `npm run build` (`next build` + `prepare-standalone.mjs`) | **Lulus (`exit 0`)** | 935 halaman statis terkompilasi penuh tanpa error Suspense/`useSearchParams`; standalone bundle siap |
+| Chrome CDP — SuperAdmin (`sm-1125-01-superadmin.mjs`) | **37 PASS / 0 FAIL** | Sidebar kiri bersih, 9 bagian & 29 item di Side Profil diklik langsung menuju App Router + drawer menutup otomatis, pencarian live, highlight rute aktif, guard BPJS di `/ess/claims/cob-submission`, `Ganti Password`, serta redirect `/self-services` & `/corporate/hrd/self-service` |
+| Chrome CDP — Pegawai & Akun Terbatas (`sm-1125-02-pegawai-guard.mjs`) | **14 PASS / 0 FAIL** | Form 5 halaman baru + intersepsi `page.route` (`sourceChannel: "Web"`), penyembunyian grup `Cuti & Lembur` + `Riwayat Permohonan` di Side Profil untuk akun terbatas (`bukanAtasan_nonAdmin`), guard `Akses terbatas`, `/payroll/my-payslips`, serta Side Profil di 390 px |
+| Responsif 390 px (`sm-1125-diag-mobile.mjs`) | **6 / 6 LULUS** | Beranda (`/hrd/self-service`) dan ke-5 halaman baru memiliki `offenders: []` (`rootScroll: 360`, `rootClient: 360`) |
+
+Artefak skrip dan tangkapan layar uji tersimpan di `QuilvianSystemFrontendDev/test-with-agy/scripts/sm-1125-*` dan `QuilvianSystemFrontendDev/test-with-agy/screenshots/sm-1125/`.

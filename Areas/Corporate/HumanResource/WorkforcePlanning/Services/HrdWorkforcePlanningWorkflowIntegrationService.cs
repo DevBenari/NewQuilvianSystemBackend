@@ -93,6 +93,38 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
             return submitResult;
         }
 
+        public async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> ResubmitWorkflowAsync(
+            Guid workflowInstanceId,
+            string? comment,
+            CancellationToken cancellationToken = default)
+        {
+            var workflowService = _serviceProvider.GetRequiredService<WorkflowService>();
+            return await workflowService.SubmitAsync(
+                workflowInstanceId,
+                new WorkflowSubmitRequest
+                {
+                    Comment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim()
+                },
+                cancellationToken);
+        }
+
+        public async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> WithdrawWorkflowAsync(
+            Guid workflowInstanceId,
+            Guid requesterUserId,
+            string reason,
+            CancellationToken cancellationToken = default)
+        {
+            var workflowService = _serviceProvider.GetRequiredService<WorkflowService>();
+            return await workflowService.WithdrawOnBehalfAsync(
+                workflowInstanceId,
+                requesterUserId,
+                new WorkflowWithdrawRequest
+                {
+                    Reason = string.IsNullOrWhiteSpace(reason) ? "Ditarik kembali oleh pemohon." : reason.Trim()
+                },
+                cancellationToken);
+        }
+
         public async Task<WorkflowReferenceLifecycleSynchronizationResult> SynchronizeAsync(
             TrxWorkflowInstance workflow,
             Guid actorUserId,

@@ -55,7 +55,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
             var now = DateTime.UtcNow;
             var normalizedStatus = (context.WorkflowStatus ?? string.Empty).Trim();
 
-            if (string.Equals(normalizedStatus, "Approved", StringComparison.OrdinalIgnoreCase) ||
+            if (string.Equals(normalizedStatus, "Draft", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalizedStatus, "InProgress", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalizedStatus, "Submitted", StringComparison.OrdinalIgnoreCase))
+            {
+                return WorkforcePlanningApplyResult.AlreadyFinal(previousStatus);
+            }
+
+            if (string.Equals(normalizedStatus, "Completed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalizedStatus, "Approved", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(normalizedStatus, "FinalApproved", StringComparison.OrdinalIgnoreCase))
             {
                 // Idempoten (kriteria 5)
@@ -144,14 +152,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                                         (!a.EffectiveEndDate.HasValue || a.EffectiveEndDate.Value >= effectiveDateTime))
                             .CountAsync(cancellationToken);
 
-                        var claimedSeatsFte = (decimal)await _dbContext.HrdHeadcountRequestSeats
+                        var activeStatuses = new[]
+                        {
+                            HeadcountRequestStatus.Submitted,
+                            HeadcountRequestStatus.ReadyForRecruitment,
+                            HeadcountRequestStatus.PartiallyFulfilled
+                        };
+
+                        var claimedSeatsFte = await _dbContext.HrdHeadcountRequestSeats
                             .Where(s => !s.IsDelete &&
                                         s.HeadcountRequestId != entity.Id &&
                                         (s.SeatStatus == HeadcountSeatStatus.Open || s.SeatStatus == HeadcountSeatStatus.Linked) &&
                                         s.HeadcountRequest != null &&
+                                        !s.HeadcountRequest.IsDelete &&
+                                        activeStatuses.Contains(s.HeadcountRequest.RequestStatus) &&
                                         s.HeadcountRequest.OrganizationUnitId == entity.OrganizationUnitId &&
                                         s.HeadcountRequest.PositionId == entity.PositionId)
-                            .CountAsync(cancellationToken);
+                            .SumAsync(s => (decimal?)s.SeatFte, cancellationToken) ?? 0m;
 
                         var availableRemaining = formationQty - filledFte - claimedSeatsFte;
                         if (entity.RequestedQuantity > availableRemaining)
@@ -207,7 +224,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
             }
 
             if (string.Equals(normalizedStatus, "Returned", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(normalizedStatus, "ReturnedForRevision", StringComparison.OrdinalIgnoreCase))
+                string.Equals(normalizedStatus, "ReturnedForRevision", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalizedStatus, "RevisionRequested", StringComparison.OrdinalIgnoreCase))
             {
                 entity.RequestStatus = HeadcountRequestStatus.Returned;
                 entity.UpdateDateTime = now;
@@ -220,6 +238,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
             if (string.Equals(normalizedStatus, "Rejected", StringComparison.OrdinalIgnoreCase))
             {
                 entity.RequestStatus = HeadcountRequestStatus.Rejected;
+                entity.UpdateDateTime = now;
+                entity.UpdateBy = context.ActorUserId;
+                entity.RowVersion = Guid.NewGuid();
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                return WorkforcePlanningApplyResult.Success(previousStatus, entity.RequestStatus.ToString(), statusChanged: true);
+            }
+
+            if (string.Equals(normalizedStatus, "Withdrawn", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalizedStatus, "Cancelled", StringComparison.OrdinalIgnoreCase))
+            {
+                if (entity.RequestStatus == HeadcountRequestStatus.Withdrawn)
+                {
+                    return WorkforcePlanningApplyResult.AlreadyFinal(previousStatus);
+                }
+
+                entity.RequestStatus = HeadcountRequestStatus.Withdrawn;
+                entity.WithdrawnAt ??= now;
                 entity.UpdateDateTime = now;
                 entity.UpdateBy = context.ActorUserId;
                 entity.RowVersion = Guid.NewGuid();

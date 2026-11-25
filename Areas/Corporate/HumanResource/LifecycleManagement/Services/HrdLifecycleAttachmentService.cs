@@ -41,8 +41,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 return (false, "Format berkas tidak diizinkan. Hanya PDF, JPG, atau PNG yang diterima (VR-ONB-09).", null, null, null, null);
             }
 
+            if (!string.IsNullOrWhiteSpace(file.ContentType))
+            {
+                var baseMime = file.ContentType.Split(';')[0].Trim().ToLowerInvariant();
+                if (Array.IndexOf(AllowedContentTypes, baseMime) < 0 && baseMime != "application/octet-stream")
+                {
+                    return (false, "Tipe konten berkas tidak diizinkan. Hanya PDF, JPG, atau PNG yang diterima (VR-ONB-09).", null, null, null, null);
+                }
+            }
+
+            await using (var inspectStream = file.OpenReadStream())
+            {
+                if (!OnboardingCasePolicy.HasValidAttachmentSignature(ext, inspectStream))
+                {
+                    return (false, "Isi berkas tidak sesuai dengan format PDF, JPG, atau PNG yang sah (VR-ONB-09).", null, null, null, null);
+                }
+            }
+
+            var safeOriginalFileName = Path.GetFileName(file.FileName);
+            var safeSubFolder = subFolder.Replace("..", string.Empty).Trim('/', '\\');
+
             var rootPath = _environment.ContentRootPath ?? AppContext.BaseDirectory;
-            var relativeDir = Path.Combine("uploads", "human-resource", "lifecycle", subFolder);
+            var relativeDir = Path.Combine("uploads", "human-resource", "lifecycle", safeSubFolder);
             var absoluteDir = Path.Combine(rootPath, relativeDir);
 
             if (!Directory.Exists(absoluteDir))
@@ -59,8 +79,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 await file.CopyToAsync(fileStream, cancellationToken);
             }
 
-            var contentType = !string.IsNullOrWhiteSpace(file.ContentType) ? file.ContentType : "application/octet-stream";
-            return (true, null, relativeFilePath, file.FileName, contentType, file.Length);
+            var contentType = ext switch
+            {
+                ".pdf" => "application/pdf",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                _ => "application/octet-stream"
+            };
+            return (true, null, relativeFilePath, safeOriginalFileName, contentType, file.Length);
         }
 
         public Task<(bool Exists, Stream? Stream, string? ContentType, string? FileName)> GetAttachmentStreamAsync(
