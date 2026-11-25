@@ -31,6 +31,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models
         /// <summary>Salinan <see cref="MstAllowanceType.PayrollComponentId"/> saat penetapan dibuat; null bila jenis tunjangan tidak punya komponen.</summary>
         public Guid? PayrollComponentId { get; set; }
 
+        /// <summary>Direct (penetapan langsung lama) atau Policy (berbasis Kebijakan Tunjangan; PAY-BE-FIX-021). Data lama semuanya Direct.</summary>
+        [Required, MaxLength(20)]
+        public string AssignmentSource { get; set; } = WorkforceAllowanceAssignmentSources.Direct;
+
+        /// <summary>Kebijakan sumber nilai; null untuk Direct. Terisi bersama <see cref="AllowancePolicyGradeRateId"/> dan <see cref="SalaryGradeId"/> bila Policy.</summary>
+        public Guid? AllowancePolicyId { get; set; }
+
+        /// <summary>Tarif per Grade Gaji yang dipakai saat penetapan (provenance; tidak diikuti otomatis bila tarif kemudian berubah).</summary>
+        public Guid? AllowancePolicyGradeRateId { get; set; }
+
+        /// <summary>Grade Gaji efektif pegawai yang dipakai memilih tarif saat penetapan dibuat. Perubahan grade kemudian tidak mengubah baris ini.</summary>
+        public Guid? SalaryGradeId { get; set; }
+
         /// <summary>FixedAmount atau PercentageOfBaseSalary (<see cref="SalaryStructureAllowanceCalculationMethods"/>), diturunkan dari master (Fixed / Percentage).</summary>
         [Required, MaxLength(30)]
         public string CalculationMethod { get; set; } = SalaryStructureAllowanceCalculationMethods.FixedAmount;
@@ -75,6 +88,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models
 
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public MstAllowanceType? AllowanceType { get; set; }
+        public PrlAllowancePolicy? AllowancePolicy { get; set; }
+        public PrlAllowancePolicyGradeRate? AllowancePolicyGradeRate { get; set; }
+        public MstSalaryGrade? SalaryGrade { get; set; }
     }
 
     /// <summary>Status siklus <see cref="PrlWorkforceAllowance.AllowanceStatus"/> (kolom string; tanpa enum database).</summary>

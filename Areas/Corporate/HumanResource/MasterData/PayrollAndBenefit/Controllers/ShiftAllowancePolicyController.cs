@@ -123,6 +123,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
             [FromQuery] Guid? allowanceTypeId,
+            [FromQuery] Guid? salaryGradeId,
+            [FromQuery] Guid? salaryStructureId,
             [FromQuery] Guid? shiftId,
             [FromQuery] Guid? shiftGroupId,
             [FromQuery] string? calculationMethod,
@@ -142,6 +144,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
             if (allowanceTypeId.HasValue)
                 query = query.Where(x => x.AllowanceTypeId == allowanceTypeId.Value);
+
+            // Filter cakupan TERSIMPAN (PAY-BE-FIX-019): Grade Gaji dan Struktur Gaji; kebijakan lama tanpa cakupan tidak ikut bila filter dipakai.
+            if (salaryGradeId.HasValue)
+                query = query.Where(x => x.SalaryGradeId == salaryGradeId.Value);
+
+            if (salaryStructureId.HasValue)
+                query = query.Where(x => x.SalaryStructureId == salaryStructureId.Value);
 
             if (shiftId.HasValue)
                 query = query.Where(x => x.ShiftId == shiftId.Value);
@@ -187,6 +196,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     OrganizationUnitId = x.OrganizationUnitId,
                     EmployeeCategoryId = x.EmployeeCategoryId,
                     EmploymentTypeId = x.EmploymentTypeId,
+                    EmployeeGradeId = x.EmployeeGradeId,
+                    EmployeeGradeName = x.EmployeeGrade != null ? x.EmployeeGrade.GradeName : null,
+                    SalaryGradeId = x.SalaryGradeId,
+                    SalaryGradeName = x.SalaryGrade != null ? x.SalaryGrade.SalaryGradeName : null,
+                    SalaryStructureId = x.SalaryStructureId,
+                    SalaryStructureName = x.SalaryStructure != null ? x.SalaryStructure.SalaryStructureName : null,
                     ShiftAllowancePolicyCode = x.ShiftAllowancePolicyCode,
                     ShiftAllowancePolicyName = x.ShiftAllowancePolicyName,
                     CalculationMethod = x.CalculationMethod,
@@ -290,6 +305,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public async Task<IActionResult> GetById(Guid id)
         {
             var entity = await BuildBaseQuery()
+                .Include(x => x.EmployeeGrade)
+                .Include(x => x.SalaryGrade)
+                .Include(x => x.SalaryStructure)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
             if (entity == null)
@@ -309,6 +327,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     OrganizationUnitId = entity.OrganizationUnitId,
                     EmployeeCategoryId = entity.EmployeeCategoryId,
                     EmploymentTypeId = entity.EmploymentTypeId,
+                    EmployeeGradeId = entity.EmployeeGradeId,
+                    EmployeeGradeName = entity.EmployeeGrade?.GradeName,
+                    SalaryGradeId = entity.SalaryGradeId,
+                    SalaryGradeName = entity.SalaryGrade?.SalaryGradeName,
+                    SalaryStructureId = entity.SalaryStructureId,
+                    SalaryStructureName = entity.SalaryStructure?.SalaryStructureName,
                     ShiftAllowancePolicyCode = entity.ShiftAllowancePolicyCode,
                     ShiftAllowancePolicyName = entity.ShiftAllowancePolicyName,
                     CalculationMethod = entity.CalculationMethod,
@@ -375,6 +399,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 OrganizationUnitId = NormalizeGuid(request.OrganizationUnitId),
                 EmployeeCategoryId = NormalizeGuid(request.EmployeeCategoryId),
                 EmploymentTypeId = NormalizeGuid(request.EmploymentTypeId),
+                EmployeeGradeId = NormalizeGuid(request.EmployeeGradeId),
+                SalaryGradeId = NormalizeGuid(request.SalaryGradeId),
+                SalaryStructureId = NormalizeGuid(request.SalaryStructureId),
                 ShiftAllowancePolicyName = request.ShiftAllowancePolicyName.Trim(),
                 CalculationMethod = NormalizeMethod(request.CalculationMethod),
                 CurrencyCode = NormalizeCurrencyCode(request.CurrencyCode),
@@ -478,6 +505,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             entity.OrganizationUnitId = NormalizeGuid(request.OrganizationUnitId);
             entity.EmployeeCategoryId = NormalizeGuid(request.EmployeeCategoryId);
             entity.EmploymentTypeId = NormalizeGuid(request.EmploymentTypeId);
+            entity.EmployeeGradeId = NormalizeGuid(request.EmployeeGradeId);
+            entity.SalaryGradeId = NormalizeGuid(request.SalaryGradeId);
+            entity.SalaryStructureId = NormalizeGuid(request.SalaryStructureId);
             entity.ShiftAllowancePolicyName = request.ShiftAllowancePolicyName.Trim();
             entity.CalculationMethod = NormalizeMethod(request.CalculationMethod);
             entity.CurrencyCode = NormalizeCurrencyCode(request.CurrencyCode);
@@ -691,6 +721,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             {
                 return (false, StatusCodes.Status400BadRequest, "Tipe kepegawaian tidak ditemukan atau tidak aktif.");
             }
+
+            var scopeMessage = await AllowancePolicyScopeValidator.ValidateAsync(
+                _dbContext,
+                NormalizeGuid(request.EmployeeGradeId),
+                NormalizeGuid(request.SalaryGradeId),
+                NormalizeGuid(request.SalaryStructureId),
+                null,
+                NormalizeGuid(request.HospitalSiteId),
+                startDate,
+                endDate);
+            if (scopeMessage is not null)
+                return (false, StatusCodes.Status400BadRequest, scopeMessage);
 
             var normalizedName = request.ShiftAllowancePolicyName.Trim().ToLower();
 

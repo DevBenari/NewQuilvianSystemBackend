@@ -156,8 +156,24 @@ public sealed class PayrollRunsController : ControllerBase
     [AccessAction("Submit", "Submit Payroll Run", AccessType = AccessTypes.Update, SortOrder = 5)]
     [AccessPermission("PayrollRun", "Submit")]
     public Task<IActionResult> Submit(
-        Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] PayrollRunActionRequest? request, CancellationToken cancellationToken) =>
-        Run(() => _service.SubmitAsync(id, request?.ExpectedRowVersion, CurrentUserId(), cancellationToken), "Payroll run berhasil diajukan.");
+        Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] PayrollRunSubmitRequest? request, CancellationToken cancellationToken)
+    {
+        // PAY-BE-FIX-030: mode pengajuan eksplisit pada izin Submit yang sama. Tanpa badan/mode = pengajuan normal (perilaku lama).
+        var mode = string.IsNullOrWhiteSpace(request?.SubmissionMode) ? PayrollRunSubmissionModes.Normal : request!.SubmissionMode!.Trim();
+        if (string.Equals(mode, PayrollRunSubmissionModes.ReviewOnly, StringComparison.OrdinalIgnoreCase))
+        {
+            return Run(
+                () => _service.SubmitForReviewAsync(
+                    id, request?.ExpectedRowVersion, request?.Reason, request?.AcknowledgeProvisionalTax ?? false, CurrentUserId(), cancellationToken),
+                "Payroll run berhasil diajukan untuk review dengan PPh sementara. PPh belum final dan run belum dapat disahkan.");
+        }
+
+        if (!string.Equals(mode, PayrollRunSubmissionModes.Normal, StringComparison.OrdinalIgnoreCase))
+            return Task.FromResult<IActionResult>(BadRequest(
+                ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Mode pengajuan tidak dikenali. Gunakan Normal atau ReviewOnly.")));
+
+        return Run(() => _service.SubmitAsync(id, request?.ExpectedRowVersion, CurrentUserId(), cancellationToken), "Payroll run berhasil diajukan.");
+    }
 
     [HttpPost("{id:guid}/return")]
     [AccessAction("Return", "Return Payroll Run", AccessType = AccessTypes.Update, SortOrder = 6)]
