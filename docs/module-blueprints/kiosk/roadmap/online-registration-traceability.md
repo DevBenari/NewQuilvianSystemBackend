@@ -66,10 +66,10 @@ Kolom **Status** diisi task builder sesudah laporan task ada (`✅`, `🟡`, `�
 
 | Keputusan | Task |
 | --- | --- |
-| `KSK-DSN-PO-001`, `002`, `003`, `014` | `BE-KSK-PO-001` (`014` juga `BE-KSK-PO-007` ✅ 2026-11-25) |
+| `KSK-DSN-PO-001`, `002`, `003`, `014` | `BE-KSK-PO-001` ✅ 2026-11-19 ([laporan](../task/report/backend/BE-KSK-PO-001.md)) (`014` juga `BE-KSK-PO-007` ✅ 2026-11-25) |
 | `KSK-DSN-PO-004`, `011`, `012` | `BE-KSK-PO-005` ✅ 2026-11-20, `FE-KSK-PO-002` ✅ 2026-11-20 ([laporan](../task/report/frontend/FE-KSK-PO-002.md)), `FE-KSK-PO-003` ✅ 2026-11-20 ([laporan](../task/report/frontend/FE-KSK-PO-003.md)) |
-| `KSK-DSN-PO-005`, `013` | `BE-KSK-PO-004` |
-| `KSK-DSN-PO-006`, `007` | `BE-KSK-PO-003` |
+| `KSK-DSN-PO-005`, `013` | `BE-KSK-PO-004` ✅ 2026-11-19 ([laporan](../task/report/backend/BE-KSK-PO-004.md)) |
+| `KSK-DSN-PO-006`, `007` | `BE-KSK-PO-003` ✅ 2026-11-19 ([laporan](../task/report/backend/BE-KSK-PO-003.md)) |
 | `KSK-DSN-PO-008`, `010` | `BE-KSK-PO-006` ✅ 2026-11-25, `007` ✅ 2026-11-25 ([laporan](../task/report/backend/BE-KSK-PO-007.md)) |
 | `KSK-DSN-PO-009` | `BE-KSK-PO-002` ✅ 2026-11-20 |
 | `KSK-DSN-PO-015` | `BE-KSK-PO-008` ✅ 2026-11-23 |
