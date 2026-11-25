@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Services;
 
@@ -19,6 +20,7 @@ public sealed class ProcurementTypeService
     public async Task<PagedResult<ProcurementTypeResponse>> GetPagedAsync(ProcurementReferenceQuery request, CancellationToken cancellationToken)
     {
         var query = _dbContext.MstProcurementTypes.AsNoTracking().Where(x => !x.IsDelete);
+        query = query.WhereCreatedWithin(ProcurementPeriodFilter.Resolve(request.StartDate, request.EndDate, request.CustomPeriod));
         if (request.IsActive.HasValue) query = query.Where(x => x.IsActive == request.IsActive.Value);
         if (!string.IsNullOrWhiteSpace(request.Search))
         {

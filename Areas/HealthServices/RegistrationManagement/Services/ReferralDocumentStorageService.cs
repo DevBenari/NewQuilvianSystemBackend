@@ -270,9 +270,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         }
 
         /// <summary>
+        /// Membuka berkas tersimpan dari path relatif terhadap root privat, dengan penjaga path yang
+        /// sama dengan <see cref="OpenAsync"/>. Dipakai berkas rujukan Pendaftaran Online
+        /// (kiosk Amendment PO, <c>BE-KSK-PO-009</c>).
+        /// </summary>
+        internal (string? Error, bool NotFound, Stream? Stream) OpenStoredFile(string storagePath)
+        {
+            var rootError = TryResolvePrivateRoot(out var privateRoot);
+
+            if (rootError != null)
+                return (rootError, false, null);
+
+            var physical = Path.GetFullPath(Path.Combine(privateRoot, storagePath));
+
+            if (!physical.StartsWith(privateRoot, StringComparison.OrdinalIgnoreCase) || !File.Exists(physical))
+                return ("Berkas surat rujukan tidak ditemukan di penyimpanan.", true, null);
+
+            return (null, false, File.OpenRead(physical));
+        }
+
+        /// <summary>
         /// Root privat absolut. Ditolak bila kosong atau berada di dalam folder publik.
         /// </summary>
-        private string? TryResolvePrivateRoot(out string privateRoot)
+        internal string? TryResolvePrivateRoot(out string privateRoot)
         {
             privateRoot = string.Empty;
             var configured = _configuration["FileStorage:PrivateRootPath"];
@@ -309,7 +329,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return full.EndsWith(Path.DirectorySeparatorChar) ? full : full + Path.DirectorySeparatorChar;
         }
 
-        private static (string ContentType, string Extension)? DetectContentType(byte[] bytes)
+        internal static (string ContentType, string Extension)? DetectContentType(byte[] bytes)
         {
             if (bytes.Length >= 4 && bytes[0] == 0x25 && bytes[1] == 0x50 && bytes[2] == 0x44 && bytes[3] == 0x46)
                 return ("application/pdf", ".pdf");
@@ -324,7 +344,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return null;
         }
 
-        private static string SanitizeFileName(string? fileName, string extension)
+        internal static string SanitizeFileName(string? fileName, string extension)
         {
             var name = Path.GetFileName(fileName ?? string.Empty).Trim();
 
@@ -337,7 +357,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return name.Length > 255 ? name[^255..] : name;
         }
 
-        private static void DeleteFiles(IEnumerable<string> paths)
+        internal static void DeleteFiles(IEnumerable<string> paths)
         {
             foreach (var path in paths)
             {

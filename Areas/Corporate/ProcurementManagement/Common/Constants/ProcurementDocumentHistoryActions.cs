@@ -25,5 +25,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string Activate = "ACTIVATE";
         public const string Deactivate = "DEACTIVATE";
         public const string ConvertToPackage = "CONVERT_TO_PACKAGE";
+
+        // Manajemen vendor (BE-PBJ-VD-003; PBJ-VD-PERM 1.0 bagian 5): kategori vendor ditambah atau dilepas.
+        public const string CategoryAdd = "CATEGORY_ADD";
+        public const string CategoryRemove = "CATEGORY_REMOVE";
+
+        // Dokumen legalitas vendor (BE-PBJ-VD-004): diverifikasi petugas selain pengunggah (PBJ-DEC-046).
+        public const string Verify = "VERIFY";
+
+        // Jejak dokumen legalitas pada riwayat vendor (PBJ_VENDOR), di samping riwayat dokumennya sendiri.
+        public const string DocumentAdd = "DOCUMENT_ADD";
+        public const string DocumentVerify = "DOCUMENT_VERIFY";
+        public const string DocumentReject = "DOCUMENT_REJECT";
+        public const string DocumentCancel = "DOCUMENT_CANCEL";
+
+        // Status Dibatasi vendor (BE-PBJ-VD-006; PBJ-DEC-047).
+        public const string Restrict = "RESTRICT";
+        public const string RestrictionLift = "RESTRICTION_LIFT";
+
+        // Penilaian vendor (BE-PBJ-VD-008; PBJ-DEC-049): finalisasi oleh orang lain, dan jejaknya di riwayat vendor.
+        public const string Finalize = "FINALIZE";
+        public const string EvaluationFinal = "EVALUATION_FINAL";
+        public const string EvaluationSupersede = "EVALUATION_SUPERSEDE";
+
+        // Usulan blokir/buka blokir vendor pada riwayat vendor (BE-PBJ-VD-007; PBJ-VD-PERM 1.0 bagian 5).
+        public const string StatusRequestSubmit = "STATUS_REQUEST_SUBMIT";
+        public const string StatusRequestReject = "STATUS_REQUEST_REJECT";
+        public const string VendorBlock = "VENDOR_BLOCK";
+        public const string VendorUnblock = "VENDOR_UNBLOCK";
     }
 }

@@ -129,6 +129,7 @@ public sealed class PackagePlansController : ControllerBase
     {
         try { return Ok(ApiResponse<T>.Ok(await command(), message)); }
         catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
+        catch (ProcurementPeriodFilterException exception) { return UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message, new { code = exception.Code })); }
         catch (ProcurementPlanningForbiddenException exception) { return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(403, exception.Message)); }
         catch (ProcurementPlanningConflictException exception)
         {

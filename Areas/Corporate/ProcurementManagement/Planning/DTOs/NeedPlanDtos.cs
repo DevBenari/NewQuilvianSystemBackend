@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.DTOs;
 
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.DTOs;
 
@@ -9,6 +10,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.D
 
 public sealed class NeedPlanQuery
 {
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+    [MaxLength(20)] public string? CustomPeriod { get; set; }
     /// <summary>Cari nomor rencana.</summary>
     public string? Search { get; set; }
     public Guid? DepartmentId { get; set; }
@@ -148,6 +152,7 @@ public sealed class NeedPlanOptionValue
 
 public sealed class NeedPlanFilterMetadataResponse
 {
+    public List<ProcurementPeriodOptionResponse> CustomPeriods { get; set; } = ProcurementPeriodOptionResponse.Defaults();
     public NeedPlanQuery DefaultFilter { get; set; } = new();
     public List<NeedPlanOptionValue> StatusOptions { get; set; } = new();
     public List<NeedPlanOptionValue> SortOptions { get; set; } = new();

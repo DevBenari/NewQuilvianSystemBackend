@@ -82,3 +82,64 @@ artifact_hashes:                     # sha256, 12 karakter pertama — dihitung 
 ## Bukti input
 
 - [evidence/2026-09-30-prd-revisi-kiosk.md](evidence/2026-09-30-prd-revisi-kiosk.md) — register requirement PRD Tim Bisnis beserta temuan audit awal.
+
+## Revisi 2 — Amendment PO: Pendaftaran Pasien Online dan Check-in Kiosk (`2026-11-19`)
+
+| Field | Nilai |
+| --- | --- |
+| `revision` | `2` |
+| `status` | `approved` — Sukma Giri Pratama, 19 Nov 2026 (`KSK-DEC-054`). Revisi 1 (blok YAML di atas) tetap `approved` dan tidak berubah |
+| `blueprint_shape` | `SINGLE`, `shape_decided_by: USER_CONFIRMED` (`KSK-DEC-028`) |
+| Scope | Diperluas menjadi "layanan mandiri pasien: perangkat kiosk dan halaman publik" (`KSK-DEC-026`) |
+| `contract_versions` | `KSK-CONTRACT-v2` (`approved` 2026-11-19, aditif dari `v1`): bagian *Amendment PO* pada kelima berkas `contracts/` (`last_changed_in` `v2` pada bagian itu saja) |
+| `decision_revision` | `KSK-DEC-026` s.d. `053` (`approved`; `049` `superseded` oleh `053`), `KSK-PO-FE-001` s.d. `005`, `KSK-PO-AS-002`, `003` |
+| `requirement_readiness` | `READY_FOR_DOMAIN_DESIGN` 8/8 slice — [02-requirement-completeness-assessment-pendaftaran-online.md](02-requirement-completeness-assessment-pendaftaran-online.md) (`KSK-RCG-002` r2) |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — satu bounded context Registration, billing nihil, keselamatan klinis terbatas pada identifikasi yang sudah diputuskan (`KSK-RCG-002` §9.7) |
+| Capability | [01-capability-impact-scan-pendaftaran-online.md](01-capability-impact-scan-pendaftaran-online.md) (`CAP-PO-01` s.d. `37`). `01-existing-capability-map.md` r1 **stale** untuk area Amendment PO |
+| `backend_source_sha` | `5e777833` (`sukmagp`) |
+| `frontend_source_sha` | `5f18e9f04` (`sukmagpV2`) |
+| Artefak | `02` *Amendment PO* (PO.1–PO.15), `03` *Amendment PO* (PO-FE.1–7), `04` *Amendment PO* (PO-1–20), `data/data-dictionary.md` *Amendment PO* (PO-D.1–7), `contracts/*` *Amendment PO*, `testing/acceptance-test-matrix.md` *Amendment PO* (PO-T.1–4), [flowcharts/pendaftaran-pasien-online.md](flowcharts/pendaftaran-pasien-online.md), [flowcharts/check-in-pasien-online.md](flowcharts/check-in-pasien-online.md), [flowcharts/pendaftaran-online-petugas-dan-penutupan.md](flowcharts/pendaftaran-online-petugas-dan-penutupan.md), bagian baru di `flowcharts/00-alur-utama.md` |
+| `approved_by` / `approved_at` | Sukma Giri Pratama / 2026-11-19 — seluruh `KSK-DSN-PO-001` s.d. `017` dan letak menu `KSK-PO-FE-005` (`KSK-DEC-054`) |
+| Migration | `AddRegOnlineRegistration` (tiga tabel baru). Dibuat dan dijalankan hanya dengan persetujuan terpisah |
+| Go-live | Menunggu `KSK-PO-OQ-010` (domain publik dan IP asli), `015` (akun SMTP), `016` (kunci Turnstile), serta centang Akses Role `OnlineRegistration` |
+| Roadmap | r1 — [online-registration-backend-roadmap.md](roadmap/online-registration-backend-roadmap.md) (`KSK-PO-RM-BE-001`, `BE-KSK-PO-001` s.d. `010`), [online-registration-frontend-roadmap.md](roadmap/online-registration-frontend-roadmap.md) (`KSK-PO-RM-FE-001`, `FE-KSK-PO-001` s.d. `008`), [online-registration-traceability.md](roadmap/online-registration-traceability.md) (`KSK-PO-TRACE-001`). `approved` — Sukma Giri Pratama, 2026-11-19 (`KSK-DEC-055`) |
+
+`artifact_hashes` (SHA-256, 12 karakter awal, 2026-11-19, dihitung sebelum approval; sesudah approval hanya label status yang berubah; hash `00-interview-decisions.md` dihitung sesudah catatan desain ditambahkan, sedangkan hash `blueprint-manifest.md` tidak dicatat karena berkas ini memuat tabel ini sendiri):
+
+```yaml
+  00-interview-decisions.md: af1c911b138a
+  01-capability-impact-scan-pendaftaran-online.md: e948a162a09c
+  02-requirement-completeness-assessment-pendaftaran-online.md: e99597a158da
+  02-backend-architecture.md: 8f7d19927959
+  03-frontend-architecture.md: 47f1a9a9a220
+  04-prd-to-mvp.md: 2c77035bb3ea
+  data/data-dictionary.md: 4cf45d1a5b84
+  contracts/api-contract.md: 210adf186d70
+  contracts/integration-contract.md: a4e9b51f5625
+  contracts/permission-audit-matrix.md: cf0eec2975fc
+  contracts/state-transition-matrix.md: 364e284545e0
+  contracts/validation-matrix.md: 161674b4c08f
+  flowcharts/00-alur-utama.md: 13056d9c8f0e
+  flowcharts/pendaftaran-pasien-online.md: be194bec0fed
+  flowcharts/check-in-pasien-online.md: 18609076c51f
+  flowcharts/pendaftaran-online-petugas-dan-penutupan.md: ea366609af74
+  testing/acceptance-test-matrix.md: a98148d12e4c
+```
+
+## Revisi 2.1 — Faskes perujuk mitra di halaman publik (`2026-11-25`, `approved`)
+
+| Field | Nilai |
+| --- | --- |
+| `revision` | `2.1` (aditif di atas revisi 2) |
+| `status` | `approved` — Sukma Giri Pratama, 25 Nov 2026 (`KSK-DEC-058`). Revisi 2 tetap `approved` |
+| `blueprint_shape` | `SINGLE` (tidak berubah) |
+| `contract_versions` | `KSK-CONTRACT-v2.1` (`approved` 2026-11-25): `contracts/api-contract.md` (baris `GET /public/options/referral-institutions` dan *Perubahan v2.1*), `contracts/validation-matrix.md` (`KSK-VAL-PO-073`, `074`). Tiga berkas kontrak lain tidak berubah dan tetap `last_changed_in` `v2` |
+| `decision_revision` | `KSK-DEC-056` (arahan Cetak Antrean tetap; tanpa perubahan desain), `KSK-DEC-057` (faskes perujuk mitra) — `approved` Sukma 2026-11-25 |
+| Desain | `KSK-DSN-PO-018` (`approved`); `02` PO.4.5 dan PO.15; `03` wilayah Data Rujukan; `04` `FR-KSK-PO-015`, `043`; flowchart pendaftaran pasien online; `testing/acceptance-test-matrix.md` tiga baris `KSK-DEC-057` |
+| Skema | Tidak berubah. Tanpa migration |
+| `backend_source_sha` | `356bf463` (`sukmagp`) |
+| `frontend_source_sha` | `7bba5cd1c` (`sukmagpV2`) |
+| Impact scan | Terbatas, read-only, 2026-11-25: `OnlineRegistrationPublicService.GetReferralInstitutionOptionsAsync` (saringan `IsActive` saja), validasi faskes saat kirim (`OnlineRegistrationPublicService.Submit` — cek aktif saja), `ReferralPartnerEligibility.IsEligibleOn`/`FindEligibleAsync` (dipakai `EncounterReferralService`, partner options RJ), hook frontend `use-online-registration-referral-institutions.js`. Urutan langkah Rujukan: Data Kunjungan → Data Rujukan, sehingga `visitDate` tersedia |
+| Kompatibilitas | Query wajib baru pada satu endpoint publik; konsumen tunggal halaman publik → backend dan frontend dirilis bersama |
+| `approved_by` / `approved_at` | Sukma Giri Pratama / 2026-11-25 (`KSK-DEC-058`) |
+| Verifikasi kesiapan | `READY_WITH_CONDITIONS` — 2026-11-25, audit revisi 2 dan 2.1 pada backend `827fdd33` dan frontend `6cd211e92`: build 20/20 task, baris uji PO-T 49/52 penuh dan 3 sebagian; go-live menunggu K1–K5 (kunci Turnstile, proxy/IP asli, migration produksi, Akses Role, uji kiosk fisik) — [testing/readiness-report.md](testing/readiness-report.md) |

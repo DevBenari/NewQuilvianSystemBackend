@@ -40,6 +40,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string PlanningModuleCode = "CORPORATE_PROCUREMENT_MANAGEMENT_PLANNING";
         public const string PlanningModuleName = "Corporate Procurement Management Planning";
 
+        /// <summary>Kode modul layar Akses Role untuk manajemen vendor (BE-PBJ-VD-001, PBJ-VD-PERM 1.0).</summary>
+        public const string VendorModuleCode = "CORPORATE_PROCUREMENT_MANAGEMENT_VENDOR";
+        public const string VendorModuleName = "Corporate Procurement Management Vendor";
+
         public const string ReadAction = "Read";
         public const string CreateAction = "Create";
         public const string UpdateAction = "Update";
@@ -52,6 +56,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string ReviseAction = "Revise";
         public const string VerifyAction = "Verify";
         public const string CancelApprovedAction = "CancelApproved";
+        /// <summary>Membatasi dan mencabut Dibatasi vendor (PBJ-DEC-047).</summary>
+        public const string RestrictAction = "Restrict";
+        /// <summary>Memfinalkan penilaian vendor (PBJ-DEC-049).</summary>
+        public const string FinalizeAction = "Finalize";
 
         public const string ReadAllUnitsAction = "ReadAllUnits";
 
@@ -66,5 +74,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string FundSourceResource = "ProcurementFundSource";
         public const string ProcurementTypeResource = "ProcurementType";
         public const string AttachmentResource = "ProcurementAttachment";
+
+        // Manajemen vendor (BE-PBJ-VD-001, PBJ-VD-PERM 1.0 bagian 2).
+        public const string VendorResource = "ProcurementVendor";
+        public const string VendorDocumentResource = "ProcurementVendorDocument";
+        public const string VendorStatusRequestResource = "ProcurementVendorStatusRequest";
+        public const string VendorEvaluationResource = "ProcurementVendorEvaluation";
+        public const string VendorDocumentTypeResource = "ProcurementVendorDocumentType";
+        public const string CategoryDocumentRequirementResource = "ProcurementCategoryDocumentRequirement";
+        public const string EvaluationCriterionResource = "ProcurementEvaluationCriterion";
     }
 }
