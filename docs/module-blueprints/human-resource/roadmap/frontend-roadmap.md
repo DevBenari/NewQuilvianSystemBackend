@@ -7987,3 +7987,15 @@ BE-HRD-463 ✅ [BE] ───────────────┴─> FE-HRD-
 * **Verifikasi**: `npm run lint:errors`; `npm run test:unit`; `npm run build`; uji manual.
 * **Risiko / pemilik**: bila `BE-HRD-463` belum terpasang, ketiga baris menampilkan "-". UI Lead HR.
 * **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-414.md`, tanda status diperbarui.
+
+---
+
+## 33. Amandemen Submenu Pelamar — Wizard Pendaftaran Pelamar 5 Langkah (`FIN-HRD-REC-WIZ-02` s.d. `FIN-HRD-REC-WIZ-04`, 25 November 2026)
+
+> **Catatan keterlacakan**: Label kerja lokal `FIN-HRD-REC-WIZ-02..04` pada slice `S-D2` (merujuk `REG-WIZ-01..10`) ditambahkan di bawah submenu **Pelamar** (`/hr/recruitment/candidates`, menambah `/hr/recruitment/candidates/create`) tanpa mengubah 8 item sidebar Rekrutmen. Task canonical existing (`FE-HRD-048`, `FE-HRD-049`, `FE-HRD-057`) tetap utuh.
+
+| Task Lokal | Lingkup & Output Nyata | Hubungan Canonical | Status | Bukti |
+| --- | --- | --- | --- | --- |
+| `FIN-HRD-REC-WIZ-02` | Route full-page `/hr/recruitment/candidates/create`, penggantian modal menjadi *Daftarkan Pelamar*, Step 1 pemilihan lowongan `Published`/Tanpa Lowongan, Step 2 lookup exact NIK (`AbortController`) + indikasi Rehire `MstEmployee`, Step 3 checkpoint persisten `POST/PUT` (`RowVersion` 409) & resume `?candidateId=` tanpa PII di browser storage. | Pelengkap submenu Pelamar atas `FE-HRD-048`, `FE-HRD-049`, `FE-HRD-057` (`S-D2`) | ✅ **IMPLEMENTED** (`check-css-usage` 0 temuan, `eslint --max-warnings=0`, `npm run lint:errors` exit 0, unit `6/6`, build `935/935`) | [FIN-HRD-REC-WIZ-02-03](../task/report/frontend/FIN-HRD-REC-WIZ-02-03.md) |
+| `FIN-HRD-REC-WIZ-03` | Step 4 arsip server + unggah multi-berkas `HrAttachmentField` + retry `key` idempoten & peringatan kepatuhan STR (`VR-REC-07/08`, termasuk perbaikan `isDateOnlyExpired` di detail kandidat), Step 5 NIK tersamar + links ubah + final submit `/apply` + timeout recovery + success panel & navigasi Seleksi. | Lanjutan `FIN-HRD-REC-WIZ-02`, konsumsi `FIN-HRD-REC-WIZ-01` | ✅ **IMPLEMENTED** | [FIN-HRD-REC-WIZ-02-03](../task/report/frontend/FIN-HRD-REC-WIZ-02-03.md) |
+| `FIN-HRD-REC-WIZ-04` | Verifikasi end-to-end API (`6/6 PASS`) & Chromium headed (`12/12` skenario, `0` HTTP 5xx, `0` pageError) mencakup `UAT-01..30`. Jalur Tanpa Lowongan, Rehire, RBAC, upload fisik/metadata, `RowVersion`, & responsif teruji langsung (`LIVE_BE`); jalur lowongan aktif memakai `page.route` atas `0` lowongan `Published` di DB dev. | Gerbang QA Submenu Pelamar (`UAT-01..30`) | 🟡 **PARTIAL (Blocked Live Vacancy DB)** — skenario lowongan aktif `ROUTE_INJECTED` sambil menunggu 1 lowongan klinis & 1 non-klinis `Published` nyata di DB dev | [Laporan Live Testing Pelamar](../testing/test-by-agy/laporan-live-testing-pelamar.md) |

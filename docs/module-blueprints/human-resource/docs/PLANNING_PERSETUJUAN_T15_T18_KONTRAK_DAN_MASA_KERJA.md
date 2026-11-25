@@ -5,7 +5,7 @@
 | Tanggal | 25 November 2026 |
 | Modul | Human Resource — sub-modul 05 Siklus Kepegawaian, menu **Kontrak & Masa Kerja** (Perjanjian Kerja, Perpanjangan Kontrak, Masa Percobaan, Perubahan Status Kerja) dan **Kotak Masuk Persetujuan** |
 | Repository terdampak | `NewQuilvianSystemBackend` (utama) dan `QuilvianSystemFrontendDev` |
-| Status | Disetujui dan diimplementasikan 25 November 2026 (Fase 0–4). Fase 5 (uji ujung-ke-ujung dengan backend baru) menunggu izin restart backend dan penulisan DB dev — lihat bagian 10 |
+| Status | Disetujui dan diimplementasikan 25 November 2026 (Fase 0–5, termasuk uji ujung-ke-ujung dengan backend baru di DB dev) — hasil di bagian 10 |
 | Alur kerja | Analisis → Planning → Implementasi → Testing |
 | Kode temuan | **B6** pada panduan uji manual menu Kontrak & Masa Kerja (25 Nov 2026) |
 
@@ -401,7 +401,8 @@ termasuk pembersih itu dan dicatat terpisah.
 | Teks konfirmasi Tarik Usulan | Lewat `message` ConfirmModal | Ditulis sebagai isi modal | Temuan uji browser: `ConfirmModal` tidak menampilkan `message` bila modal punya isi lain |
 | Lampiran penilaian masa percobaan | Tidak disebut | Keterangan "Opsional" diganti "Wajib untuk hasil Tidak Lulus" + tanda wajib | Menutup temuan lama (keterangan bertentangan dengan `VR-ONB-56`) |
 | Peta kepatuhan H-7 | Di layar Perpanjangan Kontrak | Dipindah ke konstanta bersama `NOTICE_COMPLIANCE` | Dipakai juga oleh panel Keputusan Terakhir |
-| Fase 5 | Uji ujung-ke-ujung dengan backend baru | **Belum dijalankan** | Backend yang berjalan masih kode lama; restart dan penulisan DB dev butuh izin terpisah |
+| Fase 5 | Uji ujung-ke-ujung dengan backend baru | Dijalankan sesudah izin pengguna: backend di terminal VS Code dihentikan, dibangun ulang ke `bin`, dan dijalankan ulang dengan `dotnet run --no-build` | — |
+| Catatan Penyetuju di panel Keputusan Terakhir | Menampilkan `DecisionNote` | Bagian `[Pemberitahuan: …]` disaring | Temuan Fase 5: backend lama (BE-HRD-419) menempelkan log pemberitahuan ke `DecisionNote`; memindahkannya ke kolom sendiri butuh migration (di luar cakupan) |
 
 ### 10.2 Konfigurasi DB dev (Fase 0, lewat API, diizinkan bersama persetujuan rencana)
 
@@ -423,12 +424,34 @@ Bagian SDM, `AllowSelfApproval = false`, aktif, dan 3 alasan penolakan `CloseReq
 | Uji browser (Chrome headed, data GET tiruan, semua POST/PUT/DELETE dicegat) | 15/15 kasus fungsional PASS: Kotak Masuk (label T16, ringkasan + tautan, payload approve, Tolak wajib alasan, regresi SPPD), Detail Perjanjian Kerja (Dikembalikan, Perbaiki & Ajukan Ulang → PUT sesuai DTO, Tarik → DELETE, Disetujui + H-7, bukti wajib, notify + bukti multipart `file`), Masa Percobaan (Dikembalikan, `VR-ONB-56`, PUT multipart dengan `RowVersion`), Batch Dikembalikan → ajukan ulang. Satu bug aplikasi ditemukan dan diperbaiki (teks konfirmasi Tarik Usulan) |
 | Tampilan dan ponsel 390 px | 3/3 PASS: panel Keputusan Terakhir desktop, detail kontrak 390 px tanpa elemen melebar, dialog ringkasan Kotak Masuk 390 px muat di layar |
 
+| **Fase 5 — uji ujung-ke-ujung nyata** (backend baru, tanpa tiruan, menulis DB dev pada pegawai contoh `[SEED-SDM-1125]`) | **18/18 PASS** sesudah perbaikan skrip (R03 tercakup oleh D02; lihat 10.4). Rincian di 10.4 |
+
 Skrip dan screenshot: `QuilvianSystemFrontendDev/test-with-agy/scripts/b6-1125-*.mjs`,
 `QuilvianSystemFrontendDev/test-with-agy/screenshots/b6-1125/`.
 
-### 10.4 Sisa pekerjaan
+### 10.4 Uji ujung-ke-ujung Fase 5 (25 November 2026, `b6-1125-03-e2e.mjs`, `b6-1125-04-cek-rizky.mjs`)
 
-1. **Fase 5** — restart backend dengan kode baru, lalu uji ujung-ke-ujung bagian 8 no. 13–19 dengan akun Yudha,
-   Hartini, Endang, dan Novi (menulis DB dev pada data `[SEED-SDM-1125]`).
-2. Proyek uji HR di HEAD perlu diperbaiki pemilik modul payroll (berkas `WorkforcePayrollData*Tests.cs` dan
+| Kode | Alur | Hasil |
+| --- | --- | --- |
+| R01 | Yudha mengajukan Perpanjang 12 bulan kontrak Rizky (`CDA-2026-000002`) | PASS — instance T16 nyata dibuat; panel "Diajukan" tetap ada sesudah muat ulang |
+| R02 | Pengaju tidak mendapat tugas sendiri | PASS |
+| R03 | Kotak Masuk Hartini: baris T16 + ringkasan | Isi dialog benar (ringkasan Rizky, periode, tautan); cek label gagal karena teks baris terlipat — label yang sama lulus di D02 |
+| R04 | Hartini menyetujui | PASS — usulan Disetujui, kontrak lanjutan `KTR/RSMMC/2025/0118-R1` berstatus Draft mulai 06 Des 2026 |
+| R05–R06 | Yudha mencatat pemberitahuan + bukti PDF | PASS — kepatuhan H-7 **Tepat Waktu**; panel menampilkan catatan penyetuju bersih |
+| D01–D05 | Desi: ajukan → Minta Revisi (catatan) → Perbaiki & Ajukan Ulang (instance sama) → Tolak dengan alasan server → tombol Keputusan Kontrak kembali aktif | 5/5 PASS (`CDA-2026-000004`; percobaan pertama `CDA-2026-000003` berurutan Submit → RequestRevision → Submit → Reject di riwayat workflow) |
+| P01–P02 | Endang menilai Bagas Lulus (`PBA-2026-000001`) → Hartini menyetujui | PASS — masa percobaan berstatus Lulus |
+| N01 | Novi membuka kontrak | PASS — 403 |
+
+Log backend selama uji: tidak ada galat; peringatan hanya penolakan akses yang memang diharapkan.
+
+**Data uji yang ditulis ke DB dev:** usulan `CDA-2026-000002` (Disetujui) + kontrak lanjutan `-R1` (Draf) dan bukti
+pemberitahuan, usulan `CDA-2026-000003` dan `CDA-2026-000004` (Ditolak), penilaian `PBA-2026-000001` (Disetujui,
+masa percobaan Bagas menjadi Lulus), serta instance workflow T15/T16 beserta riwayatnya. Pembersih (belum dijalankan):
+`test-with-agy/scripts/sdm-1125-cleanup-b6.sql` lalu `sdm-1125-cleanup.sql`.
+
+### 10.5 Sisa pekerjaan
+
+1. Proyek uji HR di HEAD perlu diperbaiki pemilik modul payroll (berkas `WorkforcePayrollData*Tests.cs` dan
    `btrim` di harness SQLite).
+2. Log pemberitahuan sebaiknya disimpan di kolom sendiri, bukan ditempelkan ke `DecisionNote` (perlu migration).
+3. Perubahan belum di-commit.

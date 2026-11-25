@@ -5,7 +5,7 @@
 | Tanggal | 25 November 2026 |
 | Modul | Human Resource — Layanan Mandiri Pegawai (ESS) |
 | Repository terdampak | `QuilvianSystemFrontendDev` (frontend saja; backend tidak diubah) |
-| Status | Rencana — keputusan bagian 4 berisi rekomendasi dan menunggu persetujuan |
+| Status | Selesai diimplementasikan dan terverifikasi (25 November 2026) |
 | Alur kerja | Analisis → Planning → Implementasi → Testing |
 | Dokumen terkait | `PLANNING_RUANG_KERJA_SAYA_LAYANAN_MANDIRI.md` (workspace `/self-services` yang digantikan), `PLANNING_MENU_SIDEBAR_TANPA_DUPLIKAT_LAYANAN_MANDIRI.md`, `PLANNING_IMPLEMENTASI_STRUKTUR_MENU_SDM_QUILVIAN_V2.md` |
 
@@ -370,4 +370,23 @@ Base URL: `api/v1/self-services/human-resource/resignation-requests`
 
 ## 10. Hasil implementasi (diisi setelah implementasi dan testing)
 
-*(Bagian ini akan diisi oleh fase `quilvian-testing` setelah rencana disetujui dan diimplementasikan.)*
+Seluruh perubahan sisi frontend telah selesai dikerjakan di repository `QuilvianSystemFrontendDev` (tanpa mengubah source backend):
+
+1. **Rute App Router & guard layar baru**: 5 halaman baru (`attendance-dispensation`, `schedule-change`, `leave-cancellation`, `leave-recall`, `resignation`) dibuat di bawah `src/app/self-services/human-resource/`, view terkait diberi guard `canRead` + `InformationAlert` serta pesan/channel `"Web"`.
+2. **Pemulihan portal & penghapusan Workspace**: `/hrd/self-service` memulihkan `UnifiedEssPortalView` (`Beranda Layanan Saya`), `/self-services` dan `/corporate/hrd/self-service` dialihkan (`redirect`) ke `/hrd/self-service`, tautan internal (`leave-employee-view.jsx`, `overtime-constants.js`, `approval-constants.js`, `use-payroll-payslip-detail.js`, `schedule-employee-view.jsx`) mengarah ke rute langsung melalui `SELF_SERVICE_ROUTES`, dan seluruh berkas shell Workspace lama pada Bagian 6.3 telah dihapus.
+3. **Side menu & panel profil kanan**: `src/utils/menu-sidebar/menu-items.jsx` mengganti `Ruang Kerja Saya` menjadi menu induk `Layanan Saya` dengan 9 bagian / 28 rute langsung (menjaga key `corporateMyCobClaims` dan memperbaiki izin `Lembur Saya`); `user-profile-sidebar.jsx` menghapus tombol `Ruang Kerja Saya`, mengganti subjudul menjadi `"Pintasan pengajuan layanan mandiri"`, dan menautkan langsung `ESS_ROUTES`.
+
+### Ringkasan hasil verifikasi & testing
+
+| Pemeriksaan | Hasil | Detail singkat |
+| --- | --- | --- |
+| `cek-rute.ps1 -FromMenu` | Lulus (`0` missing di Layanan Saya) | Seluruh 28 rute baru di bawah `Layanan Saya` berstatus `ADA` (3 status `TIDAK` pra-eksis hanya pada rute modul lain di luar Layanan Saya) |
+| ESLint (`npx eslint` atas 22 berkas baru/diubah) | 0 error | 5 warning pra-eksis di `user-profile-sidebar.jsx` dan `use-payroll-payslip-detail.js`; seluruh berkas berubah bersih CRLF (`LF_only = 0`) |
+| `check-css-usage.mjs` (9 berkas JSX disentuh) | 0 temuan baru | Hanya 3 temuan pra-eksis pada `user-profile-sidebar.jsx` |
+| Unit test terarah (`SM`, `ESS`, `ESS-DEDUP`, `HR`) | 28 PASS, 1 pra-eksis | `SM-01..04`, `ESS-001..003,005`, `ESS-DEDUP-01..04`, `HR-01..16` lulus; `ESS-004` gagal pra-eksis; perbandingan full `npm run test:unit` vs `HEAD` tidak memunculkan regresi layanan mandiri |
+| `npm run build` (`next build` + `prepare-standalone`) | Lulus (`exit 0`) | Seluruh 5 route baru terkompilasi sebagai halaman statis App Router |
+| Browser Chrome CDP (`sm-1125-01-superadmin.mjs`) | **41 PASS / 0 FAIL** | 28 klik menu langsung tanpa workspace shell/404, pencarian menu, guard BPJS di `/ess/claims/cob-submission`, panel profil + 7 pintasan, redirect `/self-services` & `/corporate/hrd/self-service` |
+| Browser Chrome CDP (`sm-1125-02-pegawai-guard.mjs`) | **14 PASS / 0 FAIL** | Validasi & submit berintersep `page.route` (`sourceChannel: "Web"`) pada 5 halaman baru, penyembunyian grup tanpa izin untuk akun terbatas + guard `Akses terbatas`, `/payroll/my-payslips`, drawer 390 px |
+| Responsif 390 px (`sm-1125-diag-mobile.mjs`) | **6 / 6 LULUS** | Beranda Layanan Saya dan 5 halaman baru: `offenders: []` (`rootScroll: 360`, `rootClient: 360`) |
+
+Artefak skrip dan tangkapan layar uji tersimpan di `QuilvianSystemFrontendDev/test-with-agy/scripts/sm-1125-*` dan `QuilvianSystemFrontendDev/test-with-agy/screenshots/sm-1125/`.

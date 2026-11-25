@@ -28,6 +28,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var dbQuery = _dbContext.HrdJobVacancies
                 .AsNoTracking()
                 .Include(v => v.Requisition)
+                    .ThenInclude(r => r!.Position)
+                .Include(v => v.Requisition)
+                    .ThenInclude(r => r!.OrganizationUnit)
+                .Include(v => v.Requisition)
+                    .ThenInclude(r => r!.HospitalSite)
                 .Where(v => !v.IsDelete);
 
             if (query.RequisitionId.HasValue && query.RequisitionId.Value != Guid.Empty)
@@ -67,7 +72,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     VacancyNumber = v.VacancyNumber,
                     RequisitionId = v.RequisitionId,
                     RequisitionNumber = v.Requisition != null ? v.Requisition.RequisitionNumber : null,
+                    PositionName = v.Requisition != null && v.Requisition.Position != null ? v.Requisition.Position.PositionName : null,
+                    OrganizationUnitName = v.Requisition != null && v.Requisition.OrganizationUnit != null ? v.Requisition.OrganizationUnit.UnitName : null,
+                    HospitalSiteName = v.Requisition != null && v.Requisition.HospitalSite != null ? v.Requisition.HospitalSite.SiteName : null,
                     Title = v.Title,
+                    Description = v.Description,
                     QuotaSeats = v.QuotaSeats,
                     IsClinical = v.IsClinical,
                     PublishDate = v.PublishDate,
@@ -96,6 +105,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var v = await _dbContext.HrdJobVacancies
                 .AsNoTracking()
                 .Include(x => x.Requisition)
+                    .ThenInclude(r => r!.Position)
+                .Include(x => x.Requisition)
+                    .ThenInclude(r => r!.OrganizationUnit)
+                .Include(x => x.Requisition)
+                    .ThenInclude(r => r!.HospitalSite)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
             if (v == null)
@@ -305,6 +319,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 VacancyNumber = v.VacancyNumber,
                 RequisitionId = v.RequisitionId,
                 RequisitionNumber = v.Requisition?.RequisitionNumber,
+                PositionName = v.Requisition?.Position?.PositionName,
+                OrganizationUnitName = v.Requisition?.OrganizationUnit?.UnitName,
+                HospitalSiteName = v.Requisition?.HospitalSite?.SiteName,
                 Title = v.Title,
                 Description = v.Description,
                 QuotaSeats = v.QuotaSeats,

@@ -188,9 +188,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var isClinical = app.Vacancy?.IsClinical ?? screening.IsStrRequired;
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-            // Ambil seluruh dokumen pelamar untuk evaluasi
+            // Ambil seluruh dokumen pelamar untuk evaluasi (urut terbaru lebih dulu agar deterministik)
             var documents = await _dbContext.HrdCandidateDocuments
                 .Where(d => d.CandidateId == app.CandidateId && !d.IsDelete)
+                .OrderByDescending(d => d.CreateDateTime)
+                .ThenByDescending(d => d.Id)
                 .ToListAsync(cancellationToken);
 
             var strDoc = documents.FirstOrDefault(d => d.DocumentType == DocumentType.StrCertificate);

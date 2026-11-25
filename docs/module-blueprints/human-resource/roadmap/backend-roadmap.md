@@ -8822,3 +8822,13 @@ BE-HRD-464 ✅
 * **Verifikasi**: `dotnet build`; QBE Strict pada berkas yang diubah; uji API bila backend boleh dijalankan.
 * **Risiko / pemilik**: unit lama yang terhubung ke departemen nonaktif tidak bisa disimpan ulang sebelum departemennya diganti — disengaja. Technical Owner HR.
 * **DoD**: AC terbukti, laporan `task/report/backend/BE-HRD-464.md`.
+
+---
+
+## 33. Amandemen Submenu Pelamar — Kesiapan Backend Wizard 5 Langkah (`FIN-HRD-REC-WIZ-01`, 25 November 2026)
+
+> **Catatan keterlacakan**: Pelaksanaan direct-task dari master instruksi [`INSTRUKSI_AGENT_HRD_MULTI_STEP_PENDAFTARAN_PELAMAR.md`](../docs/instruksi/INSTRUKSI_AGENT_HRD_MULTI_STEP_PENDAFTARAN_PELAMAR.md) memakai label kerja lokal `FIN-HRD-REC-WIZ-01..04` pada slice `S-D2` (Rekrutmen & Seleksi). Status task canonical existing (`BE-HRD-054`, `BE-HRD-055`) tidak ditandai ulang secara sepihak.
+
+| Task Lokal | Lingkup & Output Nyata | Hubungan Canonical | Status | Bukti |
+| --- | --- | --- | --- | --- |
+| `FIN-HRD-REC-WIZ-01` | Penambahan properti nama relasi read-only (`PositionName`, `OrganizationUnitName`, `HospitalSiteName`, `Description`) pada `JobVacancyDtos` / `JobVacancyService`; penggantian `CountAsync() + 1` di `CandidateService` (`RegisterAsync`, `ApplyVacancyAsync`) ke `NumberSeriesAllocator`; validasi biodata, mapping konflik unik/concurrency `409`, pemeriksaan ownership `HrAttachmentStorage` & idempotensi `(candidateId, filePath)` pada `UploadDocumentAsync`; serta pengurutan deterministik dokumen terbaru pada `CandidateScreeningService.EvaluateScreeningAsync`. Tanpa endpoint baru dan tanpa migration. | Pelengkap terarah atas `BE-HRD-054`, `BE-HRD-055` (`MSL-15` tahap 2) | 🟡 **IMPLEMENTED (Partial Live Apply)** — `QBE Strict PASS`, `dotnet build 0 Error(s)`, `6/6 BE API` lulus; `/apply` pada lowongan `Published` nyata terblokir `0` lowongan di DB dev; kebijakan prioritas multi-STR di luar urutan terbaru tercatat `PENDING_OWNER_DECISION` | [FIN-HRD-REC-WIZ-01](../task/report/backend/FIN-HRD-REC-WIZ-01.md), [UAT Pelamar](../testing/test-by-agy/laporan-live-testing-pelamar.md) |
