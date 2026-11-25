@@ -5,7 +5,7 @@
 * **Nama Task**: Engine Radar Kedaluwarsa Bertingkat (H-90/60/30) & Penyiaran Notifikasi Massal (`TrainingExpiryRadarService`)
 * **Modul / Sub-Modul**: Human Resource / Sub-modul 16: Learning, Training & Competency Management
 * **Slice Delivery**: `S-C2` (Kontrak API `v20`)
-* **Status**: `✅ Selesai (2026-11-09)`
+* **Status**: `✅ Selesai (2026-11-18)` — `AT-HRD-TRN-04` terbukti lewat harness sesuai kontrak (ke staf, kanal dalam aplikasi); lihat bagian "Pengerjaan Ulang 18 November 2026" di akhir laporan
 * **File Implementasi Utama**:
   - `NewQuilvianSystemBackend/Areas/Corporate/HumanResource/LearningAndDevelopment/Services/ITrainingExpiryRadarService.cs`
   - `NewQuilvianSystemBackend/Areas/Corporate/HumanResource/LearningAndDevelopment/Services/TrainingExpiryRadarService.cs`
@@ -203,3 +203,58 @@ Status 🟡 sampai migration tabel `HrdNotification` dijalankan dan `AT-HRD-TRN-
 ## Pembaruan 11 November 2026 — Status Migration
 
 Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.
+
+## Pengerjaan Ulang 18 November 2026 — `AT-HRD-TRN-04` lewat harness
+
+| Field | Nilai |
+| --- | --- |
+| Task mode | `BACKEND` (instruksi pengguna 18 November 2026 "lanjut BE-HRD-240") |
+| Commit backend saat dikerjakan | `a17a2bc3` (branch `yoga`) + perubahan task lain yang belum di-commit |
+| Backend Governance Preflight | Area `Corporate`; Module `HumanResource` / `LearningAndDevelopment` (radar) dan `HrServiceManagement` (pusat pemberitahuan); prefix `Trx`/`Hrd` (berkas lama); keberlakuan `TOUCHED LEGACY` hanya sebagai objek uji — **tidak ada source yang diubah**; tanpa migration |
+| Status | ✅ Selesai — `AT-HRD-TRN-04` terbukti lewat harness dengan layanan radar dan pusat pemberitahuan yang sesungguhnya |
+
+### Keputusan pemilik (18 November 2026)
+
+| Pertanyaan | Keputusan |
+| --- | --- |
+| Cara membuktikan | Uji harness tanpa menulis basis data. devYoga punya 0 sertifikat pelatihan, dan lewat API sertifikat selalu terbit berlaku minimal satu tahun sehingga tidak dapat masuk zona radar 90 hari |
+| Matriks menyebut kepala ruangan dan WhatsApp | **Ikuti kontrak**: API Contract mengunci siaran "ke staf"; keputusan fase H-30 menaruh peringatan bagi Kepala Ruangan di dashboard-nya; kanal WhatsApp/email belum ada di platform dan dicatat sebagai kanal yang diminta. Frasa "dan kepala ruangannya" serta "WhatsApp" pada matriks `AT-HRD-TRN-04` dicatat untuk disegarkan pada pass blueprint |
+
+### Perubahan
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Tests/QuilvianSystemBackend.HumanResourceTests/TrainingExpiryRadarBroadcastTests.cs` (baru) | 6 uji (5 fakta + 1 teori dua baris) atas `TrainingExpiryRadarService` dan `HrdNotificationService` sesungguhnya; hub SignalR diganti pengganti yang gagal, karena dorongan realtime hanya kenyamanan dan kegagalannya ditangkap service |
+
+### Verifikasi
+
+Data uji: Ani (kedaluwarsa 2 hari lalu, berakun), Budi (20 dan 80 hari lagi, berakun), Citra (45 hari, akun nonaktif), Dodi (75 hari, tanpa akun), Eko (120 hari), Fani (kedaluwarsa tetapi sertifikat nonaktif).
+
+| Skenario | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| Zona radar (`VR-TRN-09`, bagian `AT-HRD-TRN-03`) | 5 sertifikat dipantau: H-90 2, H-60 1, H-30 1, kedaluwarsa 1; Eko (di luar 90 hari) dan Fani (nonaktif) tidak ikut; Ani `OVERDUE_H0` sisa −2 hari | `PASS` | `Radar_mengelompokkan_zona_H90_H60_H30_dan_kedaluwarsa` |
+| `AT-HRD-TRN-04`: siaran semua zona, kanal diminta ESS + WhatsApp | 4 staf penerima, 2 pemberitahuan (Ani, Budi); Citra dan Dodi dihitung penerima tetapi tidak menerima (akun nonaktif / tanpa akun); pesan "2 pemberitahuan dalam aplikasi terkirim ke 4 staf (5 sertifikat) … Kanal email/WhatsApp belum tersedia" | `PASS` | `TRN04_siaran_massal_satu_pemberitahuan_per_staf_berakun` |
+| — Isi pemberitahuan | Ani: "…sudah kedaluwarsa", prioritas `High`; Budi: satu pemberitahuan memuat kedua sertifikat berurutan (20 lalu 80 hari lagi), prioritas `Normal`; kategori `TRAINING`, kanal `InApp`, kanal diminta `ESS,WHATSAPP`, tautan `/self-service/training/my-certificates` | `PASS` | idem |
+| Siaran ulang hari yang sama | 4 penerima, 0 pemberitahuan baru; tetap 2 baris | `PASS` | `Siaran_ulang_hari_yang_sama_tidak_dobel` |
+| Filter zona | `OVERDUE_ONLY` → 1 (Ani); `H30_AND_OVERDUE` (bawaan) → 2 (Ani, Budi) | `PASS` | `Filter_zona_membatasi_penerima` |
+| Radar kosong | 0 penerima, 0 pemberitahuan, pesan "Tidak ada staf dengan sertifikat pelatihan wajib pada zona radar yang dipilih." | `PASS` | `Radar_kosong_tidak_mengirim_apa_pun` |
+| Kontrol negatif (berkas service dipulihkan identik tiap putaran) | K1 kunci anti-duplikat dikosongkan → uji siaran ulang gagal; K2 dikelompokkan per sertifikat → 4 uji gagal; K3 filter `OVERDUE_ONLY` diabaikan → uji filter gagal | `PASS` | Keluaran `dotnet test` |
+| Proyek uji HR (`dotnet test -p:RunAnalyzers=False`, build penuh) | 284/284 lulus (278 + 6 baru); build 0 galat | `PASS` | Keluaran `dotnet test` |
+| Uji lewat API devYoga | Tidak dijalankan atas keputusan pemilik (tidak ada sertifikat di zona radar) | `NOT RUN` | — |
+
+### Acceptance criteria
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| Worker radar mengevaluasi tanggal masa berlaku secara akurat | Terpenuhi untuk evaluasinya: worker `TRN-W1` memanggil `GetExpiringRadarSummaryAsync` yang zonanya terbukti di harness | Uji zona; pembacaan kode worker |
+| `GET …/certificates/expiring-radar` dan `POST …/broadcast-alerts` berfungsi deterministik | Terpenuhi (harness) | Uji zona, siaran, siaran ulang, filter |
+| `AT-HRD-TRN-04` | Terpenuhi lewat harness sesuai kontrak (ke staf, kanal dalam aplikasi), diterima pemilik 18 November 2026 | Bagian verifikasi |
+
+### Catatan
+
+| Hal | Isi |
+| --- | --- |
+| Selisih dengan *Outcome* kartu (tidak diubah) | Worker `MandatoryTrainingExpiryRadarWorker` hanya menulis ringkasan zona ke log setiap 12 jam: tidak mengubah status menjadi `ExpiringSoon`, tidak mencatat event audit `MandatoryTrainingExpiryRadarTriggered`, dan tidak mengirim pemberitahuan otomatis. Siaran hanya terjadi bila Admin Diklat menekan tombol. Butir ini di luar acceptance criteria task; perlu task tersendiri bila diinginkan |
+| Pengamatan | Kunci anti-duplikat memuat filter zona, sehingga siaran dengan filter berbeda pada hari yang sama dapat mengirim pemberitahuan kedua ke staf yang sama. `CustomMessagePrefix` pada DTO tidak dipakai service |
+| Perubahan sampingan | `NONE`; tidak ada source dan data devYoga yang diubah |
+| Status Git | 1 berkas uji baru, laporan ini, roadmap/traceability/indeks uji. Tidak ada commit |

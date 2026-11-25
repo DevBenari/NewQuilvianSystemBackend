@@ -17,20 +17,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         displayName: "Jadwal Pemotongan Payroll",
         AreaName = "Corporate",
         ControllerName = "PayrollDeductionSchedule",
-        Description = "Sinkronisasi piutang keuangan, simulasi, dan eksekusi pemotongan gaji",
+        Description = "Sinkronisasi piutang keuangan, jadwal angsuran, dan eksekusi pemotongan gaji",
         SortOrder = 42)]
     public class PayrollDeductionScheduleController : ControllerBase
     {
         private readonly IFinanceDeductionSyncService _syncService;
+        private readonly IFinanceInstallmentScheduleService _financeScheduleService;
         private readonly IPayrollDeductionEngineService _engineService;
         private readonly ILogger<PayrollDeductionScheduleController> _logger;
 
         public PayrollDeductionScheduleController(
             IFinanceDeductionSyncService syncService,
+            IFinanceInstallmentScheduleService financeScheduleService,
             IPayrollDeductionEngineService engineService,
             ILogger<PayrollDeductionScheduleController> logger)
         {
             _syncService = syncService;
+            _financeScheduleService = financeScheduleService;
             _engineService = engineService;
             _logger = logger;
         }
@@ -79,6 +82,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         }
 
         /// <summary>
+        /// Jadwal angsuran potongan pegawai yang dibaca LANGSUNG dari Finance AR (perjanjian dan angsuran per periode), tanpa
+        /// sinkronisasi dan tanpa mengubah data apa pun. Disertai jadwal HRD lama yang bukan salinan perjanjian Finance (PAY-BE-FIX-029).
+        /// </summary>
+        [HttpGet("schedules/finance")]
+        [AccessAction("Read", "Melihat Jadwal Pemotongan", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("PayrollDeductionSchedule", "Read")]
+        [Tags("HR Deductions - Cashier Vouchers & Schedules")]
+        public async Task<IActionResult> GetFinanceSchedules([FromQuery] FinanceInstallmentScheduleFilterDto filter, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await _financeScheduleService.GetAsync(filter, cancellationToken);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Mengambil jadwal cicilan pemotongan aktif untuk seorang pegawai urut prioritas 1-4.
         /// </summary>
         [HttpGet("schedules/employee/{employeeId:guid}")]
@@ -91,18 +115,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             return Ok(result);
         }
 
-        /// <summary>
-        /// Simulasi evaluasi batas hard-cap 50% Gross Pay dan alokasi prioritas 1-4 untuk pegawai (DED-B1, DED-B2, PP 36/2021).
-        /// </summary>
-        [HttpGet("engine/simulate")]
-        [AccessAction("Read", "Melihat Jadwal Pemotongan", AccessType = AccessTypes.Read, SortOrder = 2)]
-        [AccessPermission("PayrollDeductionSchedule", "Read")]
-        [Tags("HR Deductions - Engine")]
-        public async Task<IActionResult> SimulateDeductions([FromQuery] Guid employeeId, [FromQuery] decimal grossPay, CancellationToken cancellationToken)
-        {
-            var result = await _engineService.SimulateEmployeeDeductionsAsync(employeeId, grossPay, cancellationToken);
-            return Ok(result);
-        }
+        // PAY-BE-FIX-029: endpoint publik GET engine/simulate dipensiunkan. Perhitungan batas potongan tidak dihapus: tetap dipakai
+        // ExecutePayrollDeductionsAsync lewat metode internal engine.
 
         /// <summary>
         /// Eksekusi pemotongan gaji pada payroll run berjalan dengan penegakan hard-cap 50% dan pencatatan carry-over (DED-B1, DED-B3).

@@ -187,6 +187,17 @@ public class DrugStockMutationQuery
     public int PageSize { get; set; } = 25;
 }
 
+/// <summary>Saringan pemantauan stok yang menyentuh reorder point.</summary>
+public class DrugLowStockQuery
+{
+    public Guid? DrugId { get; set; }
+    public Guid? StorageLocationId { get; set; }
+    public string? Search { get; set; }
+
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 25;
+}
+
 // ===================================================================== tanggapan
 
 public class DrugBatchResponse
@@ -219,6 +230,11 @@ public class DrugStockBalanceResponse
 
     public Guid StorageLocationId { get; set; }
     public string StorageLocationName { get; set; } = string.Empty;
+
+    /// <summary>Posisi fisik di dalam lokasi, disalin dari master lokasi; untuk penelusuran barang.</summary>
+    public string? RackCode { get; set; }
+    public string? ShelfCode { get; set; }
+    public string? BinCode { get; set; }
 
     public DrugStockStatus Status { get; set; }
     public decimal QuantityOnHand { get; set; }
@@ -283,6 +299,42 @@ public class DrugStockMutationResponse
     public string? ActorName { get; set; }
 
     public DateTime OccurredAt { get; set; }
+}
+
+/// <summary>
+/// Satu kebijakan stok obat per lokasi yang saldonya sudah menyentuh reorder point.
+/// </summary>
+/// <remarks>
+/// Angka ambang disalin apa adanya dari kebijakan stok. Jumlah usulan pembelian sengaja tidak
+/// dihitung di sini karena aturan rekomendasi pengisian ulang belum diputuskan.
+/// </remarks>
+public class DrugLowStockResponse
+{
+    public Guid StockPolicyId { get; set; }
+    public string StockPolicyCode { get; set; } = string.Empty;
+
+    public Guid DrugId { get; set; }
+    public string DrugCode { get; set; } = string.Empty;
+    public string DrugName { get; set; } = string.Empty;
+
+    public Guid StorageLocationId { get; set; }
+    public string StorageLocationName { get; set; } = string.Empty;
+
+    /// <summary>Saldo fisik berstatus siap pakai; inilah yang dibandingkan dengan reorder point.</summary>
+    public decimal QuantityOnHand { get; set; }
+    public decimal QuantityReserved { get; set; }
+    public decimal QuantityAvailable { get; set; }
+
+    public decimal ReorderPointQuantity { get; set; }
+    public decimal MinimumStockQuantity { get; set; }
+    public decimal SafetyStockQuantity { get; set; }
+    public decimal MaximumStockQuantity { get; set; }
+
+    /// <summary>
+    /// Satuan kebijakan berbeda dari satuan stok obat. Saldonya tidak dibandingkan karena
+    /// angkanya tidak sebanding; kebijakannya perlu diperbaiki lebih dahulu.
+    /// </summary>
+    public bool IsUnitMismatch { get; set; }
 }
 
 /// <summary>Satu batch yang ikut dipakai memenuhi sebuah pengeluaran.</summary>

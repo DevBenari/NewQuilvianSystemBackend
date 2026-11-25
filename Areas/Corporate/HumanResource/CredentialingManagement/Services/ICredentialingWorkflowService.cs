@@ -25,10 +25,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         /// <summary>
         /// Pengisian lembar asesmen portofolio klinis oleh anggota panel Mitra Bestari (BE-HRD-213)
         /// </summary>
+        /// <param name="assessorWorkforceProfileId">Profil tenaga kerja akun pengirim (klaim token). MSL-16: dipakai menegakkan VR-CRD-15.</param>
         Task<bool> SubmitPeerReviewAssessmentAsync(
             SubmitPeerReviewAssessmentDto request,
             Guid assessorUserId,
-            CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default,
+            Guid? assessorWorkforceProfileId = null);
 
         /// <summary>
         /// Pelaksanaan dan pengesahan Berita Acara Sidang Pleno Komite Kredensial (BE-HRD-213)

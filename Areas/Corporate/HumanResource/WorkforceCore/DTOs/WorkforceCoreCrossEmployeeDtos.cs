@@ -30,6 +30,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public string? ApprovedByUserName { get; set; }
         public DateTime? ApprovedAt { get; set; }
         public bool IsApproved { get; set; }
+
+        /// <summary>True bila Payroll mensyaratkan penetapan disetujui (Payroll:Policy:RequireApprovedSalaryAssignment); false (bawaan) = penetapan aktif dipakai walau belum disetujui. Aditif.</summary>
+        public bool ApprovalRequired { get; set; }
+
+        /// <summary>Approved | PendingApproval: hanya fakta persetujuan manual (sama dengan IsApproved), bukan kelayakan Payroll. Aditif (PAY-BE-FIX-010).</summary>
+        public string ApprovalStatus { get; set; } = string.Empty;
+
+        /// <summary>Asal wewenang untuk Payroll: ManualApproved | AutoByPolicy | PendingApproval. AutoByPolicy bukan persetujuan manual. Aditif (PAY-BE-FIX-010).</summary>
+        public string AuthorizationStatus { get; set; } = string.Empty;
+
+        /// <summary>Current | Scheduled | Expired | Inactive | NotPrimary, terpisah dari asal persetujuan. Aditif (PAY-BE-FIX-010).</summary>
+        public string OperationalStatusCode { get; set; } = string.Empty;
+
+        /// <summary>True bila penetapan ini sedang berlaku sebagai penetapan utama dan boleh dipakai Payroll menurut kebijakan. Aditif (PAY-BE-FIX-010).</summary>
+        public bool IsPayrollUsable { get; set; }
         public string? Description { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }
@@ -54,5 +69,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public string PaymentFrequency { get; set; } = "Monthly";
         public DateTime EffectiveStartDate { get; set; }
         public DateTime? EffectiveEndDate { get; set; }
+    }
+
+    /// <summary>
+    /// Response uraian tugas efektif per pegawai berdasarkan tanggal acuan.
+    /// Mengacu pada WfpPositionAssignment efektif pada tanggal as-of (HRD-DEC-047).
+    /// </summary>
+    public class EmployeeEffectiveJobDescriptionResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+        public string EmployeeName { get; set; } = string.Empty;
+        public string ProfileCode { get; set; } = string.Empty;
+        public Guid? PositionId { get; set; }
+        public string? PositionName { get; set; }
+        public Guid? DepartmentId { get; set; }
+        public string? DepartmentName { get; set; }
+        public Guid? OrganizationUnitId { get; set; }
+        public string? OrganizationUnitName { get; set; }
+        public DateTime AsOfDate { get; set; }
+        public QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs.JobDescriptionDetailResponse? JobDescription { get; set; }
+        public List<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs.JobDescriptionHistoryResponse> VersionHistory { get; set; } = new();
+        public bool HasEffectiveJobDescription => JobDescription != null;
     }
 }

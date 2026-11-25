@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -64,6 +65,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             _dbContext = dbContext;
             _loggerService = loggerService;
         }
+
+        // Klasifikasi dasar upah iuran BPJS (IsFixedAllowance, IncludeInBpjsWageBase) tidak lagi dikelola (PAY-BE-FIX-007): kolom dipertahankan sebagai data historis dan tidak dibaca, ditulis, maupun dikembalikan oleh kontrak ini.
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<AllowanceTypeFilterMetadataResponse>), StatusCodes.Status200OK)]
@@ -199,6 +202,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             [FromQuery] string? allowanceCategory,
             [FromQuery] string? calculationMethod,
             [FromQuery] bool onlyActive = true,
+            [FromQuery] bool eligibleForWorkforceAssignment = false,
+            [FromQuery] bool prioritizeWorkforceEligible = false,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25,
@@ -208,8 +213,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            var baseQuery = _dbContext.Set<MstAllowanceType>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            var includeEligibilityMeta = eligibleForWorkforceAssignment || prioritizeWorkforceEligible;
+            int? totalMasterCount = null;
+            int? totalActiveMasterCount = null;
+            int? totalEligibleCount = null;
+            if (includeEligibilityMeta)
+            {
+                totalMasterCount = await baseQuery.CountAsync(cancellationToken);
+                totalActiveMasterCount = await baseQuery.CountAsync(x => x.IsActive, cancellationToken);
+                totalEligibleCount = await WorkforceAllowanceEligibilityRules
+                    .ApplyEligibleForWorkforceAssignmentFilter(baseQuery, _dbContext)
+                    .CountAsync(cancellationToken);
+            }
+
             var query = ApplyFilter(
-                BuildBaseQuery(),
+                baseQuery,
                 payrollComponentId,
                 allowanceCategory,
                 calculationMethod,
@@ -217,32 +239,102 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 null,
                 null,
                 null,
-                onlyActive ? true : null,
+                onlyActive || eligibleForWorkforceAssignment ? true : null,
                 search);
+
+            if (eligibleForWorkforceAssignment)
+            {
+                query = WorkforceAllowanceEligibilityRules.ApplyEligibleForWorkforceAssignmentFilter(query, _dbContext);
+            }
 
             var totalData = await query.CountAsync(cancellationToken);
 
-            var items = await query
-                .OrderBy(x => x.AllowanceTypeName)
-                .ThenBy(x => x.AllowanceTypeCode)
+            var orderedQuery = prioritizeWorkforceEligible && !eligibleForWorkforceAssignment
+                ? WorkforceAllowanceEligibilityRules.OrderByWorkforceEligibilityFirst(query, _dbContext)
+                : query
+                    .OrderBy(x => x.AllowanceTypeName)
+                    .ThenBy(x => x.AllowanceTypeCode);
+
+            var rows = await orderedQuery
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new AllowanceTypeOptionResponse
+                .Select(x => new
                 {
-                    Id = x.Id,
-                    PayrollComponentId = x.PayrollComponentId,
+                    x.Id,
+                    x.PayrollComponentId,
                     PayrollComponentName = x.PayrollComponent != null
                         ? x.PayrollComponent.PayrollComponentName
                         : null,
+                    x.AllowanceTypeCode,
+                    x.AllowanceTypeName,
+                    x.AllowanceCategory,
+                    x.CalculationMethod,
+                    x.CurrencyCode,
+                    x.DefaultAmount,
+                    x.DefaultPercentage,
+                    x.MaximumAmount,
+                    x.IsActive,
+                    x.IsRecurring,
+                    x.RequiresApproval,
+                    x.EffectiveStartDate,
+                    x.EffectiveEndDate,
+                    HasActivePolicy = !eligibleForWorkforceAssignment && (
+                        x.ShiftAllowancePolicies.Any(p => p.IsActive && !p.IsDelete)
+                        || x.OnCallAllowancePolicies.Any(p => p.IsActive && !p.IsDelete)
+                        || x.HazardAllowancePolicies.Any(p => p.IsActive && !p.IsDelete)
+                        || (x.PayrollComponentId != null
+                            && _dbContext.PrlTransportAllowancePolicies.Any(p =>
+                                p.PayrollComponentId == x.PayrollComponentId && p.IsActive && !p.IsDelete))),
+                    HasInvalidPayrollComponent = !eligibleForWorkforceAssignment
+                        && x.PayrollComponentId != null
+                        && (x.PayrollComponent == null || !x.PayrollComponent.IsActive || x.PayrollComponent.IsDelete)
+                })
+                .ToListAsync(cancellationToken);
+
+            var items = rows.Select(x =>
+            {
+                var ineligibleReason = eligibleForWorkforceAssignment
+                    ? null
+                    : WorkforceAllowanceEligibilityRules.EvaluateIneligibilityReason(
+                        x.AllowanceTypeName,
+                        x.AllowanceCategory,
+                        x.CalculationMethod,
+                        x.IsActive,
+                        x.IsRecurring,
+                        x.HasActivePolicy,
+                        x.HasInvalidPayrollComponent);
+
+                var isPolicy = string.Equals(x.AllowanceCategory, "Transport", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(x.CalculationMethod, "PolicyBased", StringComparison.OrdinalIgnoreCase)
+                    || x.HasActivePolicy;
+                var policySource = string.Equals(x.AllowanceCategory, "Transport", StringComparison.OrdinalIgnoreCase)
+                    ? "TransportPolicy"
+                    : (x.HasActivePolicy ? "ActivePolicy" : null);
+
+                return new AllowanceTypeOptionResponse
+                {
+                    Id = x.Id,
+                    PayrollComponentId = x.PayrollComponentId,
+                    PayrollComponentName = x.PayrollComponentName,
                     AllowanceTypeCode = x.AllowanceTypeCode,
                     AllowanceTypeName = x.AllowanceTypeName,
                     AllowanceCategory = x.AllowanceCategory,
                     CalculationMethod = x.CalculationMethod,
                     CurrencyCode = x.CurrencyCode,
                     DefaultAmount = x.DefaultAmount,
-                    DefaultPercentage = x.DefaultPercentage
-                })
-                .ToListAsync(cancellationToken);
+                    DefaultPercentage = x.DefaultPercentage,
+                    MaximumAmount = x.MaximumAmount,
+                    IsRecurring = x.IsRecurring,
+                    RequiresApproval = x.RequiresApproval,
+                    EffectiveStartDate = x.EffectiveStartDate,
+                    EffectiveEndDate = x.EffectiveEndDate,
+                    IsEligibleForWorkforceAssignment = ineligibleReason == null,
+                    IneligibleReason = ineligibleReason,
+                    IsDirectlyAssignable = ineligibleReason == null,
+                    IsPolicyBased = isPolicy,
+                    PolicySource = policySource
+                };
+            }).ToList();
 
             return Ok(ApiResponse<AllowanceTypeOptionPagedResponse>.Ok(
                 new AllowanceTypeOptionPagedResponse
@@ -251,6 +343,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     PageSize = pageSize,
                     TotalData = totalData,
                     TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                    TotalMasterCount = totalMasterCount,
+                    TotalActiveMasterCount = totalActiveMasterCount,
+                    TotalEligibleCount = totalEligibleCount,
                     Items = items
                 },
                 "Data pilihan allowance type berhasil diambil."));

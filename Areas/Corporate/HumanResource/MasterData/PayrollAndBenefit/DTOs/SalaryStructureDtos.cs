@@ -68,6 +68,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public string CurrencyCode { get; set; } = string.Empty;
         public string PaymentFrequency { get; set; } = string.Empty;
         public decimal DefaultBaseSalary { get; set; }
+        public decimal? MinimumBaseSalary { get; set; }
+        public decimal? MaximumBaseSalary { get; set; }
         public bool IsDefault { get; set; }
     }
 

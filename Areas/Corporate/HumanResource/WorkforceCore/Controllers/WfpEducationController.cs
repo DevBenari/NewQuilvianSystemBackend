@@ -491,6 +491,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Pendidikan workforce tidak ditemukan."));
 
             var actorUserId = GetCurrentUserId();
+
+            // Guard FIN-HRD-04-BE-008: Segregasi tugas pembuat vs pemverifikasi pendidikan
+            if (request.IsVerified && entity.CreateBy == actorUserId)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Petugas verifikasi pendidikan harus berbeda dari pembuat/pengunggah data (segregasi tugas / dual-actor verification).",
+                    "SELF_VERIFICATION_PROHIBITED"
+                ));
+            }
+
             entity.IsVerified = request.IsVerified;
             entity.VerifiedAt = request.IsVerified ? DateTime.UtcNow : null;
             entity.VerifiedByUserId = request.IsVerified ? actorUserId : null;
@@ -679,7 +690,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 CountryName = x.Country?.CountryName,
                 CertificateNumber = x.CertificateNumber,
                 FilePath = x.FilePath,
-                FileUrl = BuildPublicFileUrl(x.FilePath),
+                // BE-HRD-397: berkas ijazah hanya lewat endpoint unduh yang memeriksa hak akses.
+                FileUrl = BuildProtectedFileUrl(x.WorkforceProfileId, x.Id, x.FilePath),
                 FileContentType = x.FileContentType,
                 HasFile = !string.IsNullOrWhiteSpace(x.FilePath),
                 IsHighestEducation = x.IsHighestEducation,
@@ -792,6 +804,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             Guid actorUserId,
             CancellationToken cancellationToken)
         {
+            // BE-HRD-394: dua permintaan "jadikan pendidikan tertinggi" yang bersamaan untuk pegawai
+            // yang sama diantrekan, sehingga tepat satu pendidikan tertinggi tersisa. Semua pemanggil
+            // berada di dalam transaksi, jadi kunci bertahan sampai commit.
+            if (_dbContext.Database.IsNpgsql() && _dbContext.Database.CurrentTransaction != null)
+            {
+                await _dbContext.Database.ExecuteSqlRawAsync(
+                    "SELECT pg_advisory_xact_lock(hashtext({0}));",
+                    [$"WFP_HIGHEST_EDUCATION_{workforceProfileId}"],
+                    cancellationToken);
+            }
+
             var rows = await _dbContext.Set<WfpEducation>()
                 .Where(x =>
                     x.WorkforceProfileId == workforceProfileId &&
@@ -868,20 +891,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             if (path != null && System.IO.File.Exists(path)) System.IO.File.Delete(path);
         }
 
-        private string? BuildPublicFileUrl(string? filePath)
+        /// <summary>
+        /// Tautan berkas pendidikan menunjuk endpoint unduh terlindungi (BE-HRD-397); jalur statis
+        /// /uploads/human-resource/workforce/** tidak lagi disajikan tanpa login.
+        /// </summary>
+        private static string? BuildProtectedFileUrl(Guid workforceProfileId, Guid educationId, string? filePath)
         {
             if (string.IsNullOrWhiteSpace(filePath)) return null;
             if (filePath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || filePath.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return filePath;
-            var baseUrl = _configuration["FileStorage:PublicBaseUrl"];
-            return !string.IsNullOrWhiteSpace(baseUrl)
-                ? $"{baseUrl.TrimEnd('/')}/{filePath.TrimStart('/')}"
-                : $"{Request.Scheme}://{Request.Host}/{filePath.TrimStart('/')}";
+            return $"/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/educations/{educationId}/file";
         }
 
+        // BE-HRD-401: riwayat pegawai yang sudah dinonaktifkan (offboarding/purnatugas) tetap dapat dibuka; hanya profil terhapus yang dianggap tidak ada.
         private async Task<bool> WorkforceProfileExistsAsync(Guid workforceProfileId, CancellationToken cancellationToken)
         {
             return workforceProfileId != Guid.Empty && await _dbContext.MstWorkforceProfiles.AsNoTracking()
-                .AnyAsync(x => x.Id == workforceProfileId && x.IsActive && !x.IsDelete, cancellationToken);
+                .AnyAsync(x => x.Id == workforceProfileId && !x.IsDelete, cancellationToken);
         }
 
         private async Task<Dictionary<Guid, string>> GetActorNameMapAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken)

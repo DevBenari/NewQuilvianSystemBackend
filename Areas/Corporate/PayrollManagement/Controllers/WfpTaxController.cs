@@ -1,13 +1,16 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Services.Security;
 using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
@@ -44,24 +47,44 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
         };
 
         private const string LogCategory = "Corporate.HumanResource.PayrollManagement";
+        private const string Resource = "WorkforceTaxProfile";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly AccessPermissionService _accessPermissionService;
+        private readonly PayrollStatutoryPolicyResolver _policyResolver;
 
         public WfpTaxController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            AccessPermissionService accessPermissionService,
+            PayrollStatutoryPolicyResolver policyResolver)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _accessPermissionService = accessPermissionService;
+            _policyResolver = policyResolver;
         }
+
+        /// <summary>Nominal PPh manual bersifat sensitif: hanya pemilik izin ViewAmount yang melihat dan menuliskannya.</summary>
+        private Task<bool> CanViewAmountAsync() => _accessPermissionService.HasAccessAsync(User, Resource, "ViewAmount");
+
+        /// <summary>
+        /// Persetujuan nominal PPh manual adalah izin tersendiri (ApproveManualAmount): menetapkan nominal (Update, ViewAmount) bukan
+        /// persetujuan. Diisi sebelum memetakan respons; hanya bantuan tampilan, setiap keputusan diperiksa ulang di Backend.
+        /// </summary>
+        private bool _canDecideManualAmount;
+
+        private async Task LoadDecisionCapabilityAsync() =>
+            _canDecideManualAmount = await _accessPermissionService.HasAccessAsync(User, Resource, "ApproveManualAmount");
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<WfpTaxFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Workforce Tax Profile", Description = "Melihat metadata filter profil pajak workforce", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkforceTaxProfile", "Read")]
-        public IActionResult GetFilterMetadata()
+        public async Task<IActionResult> GetFilterMetadata(CancellationToken cancellationToken)
         {
+            var availability = await _policyResolver.GetAvailabilityAsync(DateTime.UtcNow, cancellationToken);
             var result = new WfpTaxFilterMetadataResponse
             {
                 DefaultFilter = new WfpTaxDefaultFilterResponse(),
@@ -78,9 +101,48 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     .Select(x => new WfpTaxStringOptionResponse
                     {
                         Value = x,
-                        Label = x == "GrossUp" ? "Gross Up" : x
+                        Label = x == "GrossUp" ? "Gross Up" : x,
+                        // Metode GrossUp belum memiliki formula yang sah: dikenali, tetapi belum dapat dipakai bersama nominal manual.
+                        IsSupported = x != TaxMethodKinds.GrossUp,
+                        Note = x == TaxMethodKinds.GrossUp ? PayrollTaxInsuranceRules.GrossUpUnavailable : null
                     })
                     .ToList(),
+                TaxArticleOptions = new List<WfpTaxStringOptionResponse>
+                {
+                    new() { Value = TaxArticles.Pph21, Label = "PPh Pasal 21", Note = "Subjek pajak dalam negeri." },
+                    new() { Value = TaxArticles.Pph26, Label = "PPh Pasal 26", Note = "Hanya subjek pajak luar negeri yang memenuhi ketentuan; bukan otomatis karena berkewarganegaraan asing." }
+                },
+                RecipientTaxCategoryOptions = new List<WfpTaxStringOptionResponse>
+                {
+                    new() { Value = TaxRecipientCategories.PermanentEmployee, Label = "Pegawai Tetap" },
+                    new() { Value = TaxRecipientCategories.NonPermanentEmployee, Label = "Pegawai Tidak Tetap", Note = "Perhitungan otomatis belum tersedia (harian/mingguan/satuan); gunakan Nominal Manual Disetujui atau Tidak Berlaku dengan dasar yang sah." },
+                    new() { Value = TaxRecipientCategories.NonEmployeeExpert, Label = "Bukan Pegawai / Tenaga Ahli", Note = "Dokter tidak otomatis pegawai tetap; tentukan sesuai hubungan kerja aktual." }
+                },
+                CalculationModeOptions = new List<WfpTaxStringOptionResponse>
+                {
+                    new()
+                    {
+                        Value = TaxCalculationModes.AutoRegulatory,
+                        Label = "Otomatis Sesuai Peraturan",
+                        IsSupported = true,
+                        Note = "Dihitung dari kebijakan tarif PPh berversi yang disahkan Finance. Tanpa kebijakan yang berlaku pada periode, payroll run menahan perhitungan (Menunggu Verifikasi Kebijakan). Tidak tersedia untuk pegawai tidak tetap dan metode GrossUp."
+                    },
+                    new()
+                    {
+                        Value = TaxCalculationModes.ApprovedManualAmount,
+                        Label = "Nominal Manual Disetujui",
+                        Note = "Wajib dasar penetapan dan hanya untuk pemegang izin melihat nominal."
+                    },
+                    new()
+                    {
+                        Value = TaxCalculationModes.ExemptOrNotApplicable,
+                        Label = "Tidak Berlaku / Dikecualikan",
+                        Note = "Wajib alasan dan dasar aturan. Bukan karena hasil hitung nol."
+                    }
+                },
+                TaxPolicyApproved = availability.TaxApproved,
+                TaxPolicyVersion = availability.TaxVersion,
+                TaxPolicyStatusLabel = availability.TaxApproved ? "Kebijakan tarif PPh disahkan" : StatutoryPolicyLabels.AwaitingVerification,
                 SortOptions = new List<WfpTaxSortOptionResponse>
                 {
                     new() { Value = "taxStatus", Label = "Status pajak" },
@@ -127,6 +189,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 PreviousEmployerProfile = await query.CountAsync(x => x.HasPreviousEmployer, cancellationToken),
                 EmployerBorneTaxProfile = await query.CountAsync(x => x.IsEmployerBorneTax, cancellationToken)
             };
+
+            // Konfigurasi dinilai pada tanggal hari ini oleh aturan yang sama dengan mesin hitung (bukan perbandingan nominal).
+            var today = DateTime.UtcNow.Date;
+            var rows = await query.ToListAsync(cancellationToken);
+            result.ConfiguredProfile = rows.Count(x => PayrollTaxInsuranceRules.AssessTax(PayrollTaxConfigFacts.From(x), 0m, today, today).IsConfigured);
+            result.NotConfiguredProfile = rows.Count - result.ConfiguredProfile;
 
             return Ok(ApiResponse<WfpTaxSummaryResponse>.Ok(
                 result,
@@ -181,13 +249,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
+            var includeAmounts = await CanViewAmountAsync();
+            await LoadDecisionCapabilityAsync();
             var result = new PagedResult<WfpTaxResponse>
             {
                 PageNumber = pageNumber,
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = rows.Select(MapResponse).ToList()
+                Items = rows.Select(x => MapResponse(x, includeAmounts)).ToList()
             };
 
             return Ok(ApiResponse<PagedResult<WfpTaxResponse>>.Ok(
@@ -214,11 +284,41 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     "Profil pajak workforce tidak ditemukan."));
             }
 
-            var result = MapDetailResponse(entity);
+            await LoadDecisionCapabilityAsync();
+            var result = MapDetailResponse(entity, await CanViewAmountAsync());
 
             return Ok(ApiResponse<WfpTaxDetailResponse>.Ok(
                 result,
                 "Detail profil pajak workforce berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Pintu izin nominal (pola ViewAmount di repo): endpoint ini sengaja ada agar kemampuan "melihat nominal PPh manual" muncul di layar
+        /// Akses Role. Pemilik izin ini juga melihat dan menuliskan nominal pada detail; tanpa izin, nominalnya null.
+        /// </summary>
+        [HttpGet("{id:guid}/amount")]
+        [ProducesResponseType(typeof(ApiResponse<WfpTaxDetailResponse>), StatusCodes.Status200OK)]
+        [AccessAction("ViewAmount", "View Workforce Tax Profile Amount", Description = "Melihat nominal PPh manual yang disetujui pada profil pajak workforce", AccessType = AccessTypes.Read, SortOrder = 5)]
+        [AccessPermission("WorkforceTaxProfile", "ViewAmount")]
+        public async Task<IActionResult> GetTaxProfileAmount(
+            Guid workforceProfileId,
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var entity = await BuildBaseQuery(workforceProfileId)
+                .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Profil pajak workforce tidak ditemukan."));
+            }
+
+            await LoadDecisionCapabilityAsync();
+            return Ok(ApiResponse<WfpTaxDetailResponse>.Ok(
+                MapDetailResponse(entity, includeAmounts: true),
+                "Nominal profil pajak workforce berhasil diambil."));
         }
 
         [HttpPost]
@@ -246,7 +346,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     "Profil pajak untuk workforce ini sudah tersedia."));
             }
 
-            var validation = await ValidateRequestAsync(request, null, cancellationToken);
+            var canViewAmount = await CanViewAmountAsync();
+            if (request.ApprovedManualAmount.HasValue && !canViewAmount)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Menetapkan nominal PPh manual membutuhkan izin melihat nominal (ViewAmount)."));
+            }
+
+            var validation = await ValidateRequestAsync(request, null, request.ApprovedManualAmount, cancellationToken);
             if (!validation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
@@ -264,16 +372,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 IsCancel = false
             };
 
-            ApplyRequest(entity, request);
+            ApplyRequest(entity, request, request.ApprovedManualAmount);
 
             _dbContext.Set<PrlTax>().Add(entity);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            await _loggerService.InfoAsync(
+            // Audit: identitas, konfigurasi, dan aktor. Nominal manual TIDAK dicatat; hanya penanda ada atau tidaknya.
+            await _loggerService.AuditAsync(
                 LogCategory,
                 "WorkforceTaxProfile.Create",
                 "Membuat profil pajak workforce.",
-                new { entity.Id, entity.WorkforceProfileId });
+                AuditSnapshot(entity, null));
 
             return await GetTaxProfileById(workforceProfileId, entity.Id, cancellationToken);
         }
@@ -302,7 +411,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     "Profil pajak workforce tidak ditemukan."));
             }
 
-            var validation = await ValidateRequestAsync(request, id, cancellationToken);
+            var canViewAmount = await CanViewAmountAsync();
+            if (request.ApprovedManualAmount.HasValue && !canViewAmount)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Menetapkan nominal PPh manual membutuhkan izin melihat nominal (ViewAmount)."));
+            }
+
+            // Pemanggil tanpa ViewAmount tidak pernah melihat nominal sehingga tidak dapat mengirimnya kembali: nominal yang sudah
+            // disetujui dipertahankan selama skema tetap APPROVED_MANUAL_AMOUNT, bukan terhapus diam-diam.
+            var requestedMode = PayrollTaxInsuranceRules.NormalizeCode(request.CalculationMode);
+            var effectiveManualAmount = request.ApprovedManualAmount;
+            if (!canViewAmount && requestedMode == TaxCalculationModes.ApprovedManualAmount)
+                effectiveManualAmount = entity.ApprovedManualAmount;
+
+            var validation = await ValidateRequestAsync(request, id, effectiveManualAmount, cancellationToken);
             if (!validation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
@@ -310,11 +434,107 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     validation.ErrorMessage ?? "Data profil pajak tidak valid."));
             }
 
-            ApplyRequest(entity, request);
+            var before = AuditSnapshot(entity, null);
+            ApplyRequest(entity, request, effectiveManualAmount);
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "WorkforceTaxProfile.Update",
+                "Mengubah profil pajak workforce.",
+                AuditSnapshot(entity, before));
+
+            return await GetTaxProfileById(workforceProfileId, entity.Id, cancellationToken);
+        }
+
+        /// <summary>
+        /// Menyetujui nominal PPh manual. Izin tersendiri (ApproveManualAmount) dan bukan pengganti Update/ViewAmount: pemberi persetujuan
+        /// harus melihat nominal yang disetujuinya (ViewAmount) dan tidak boleh orang yang menetapkannya. Nominal yang belum disetujui
+        /// tidak dipakai payroll.
+        /// </summary>
+        [HttpPost("{id:guid}/manual-amount/approve")]
+        [ProducesResponseType(typeof(ApiResponse<WfpTaxDetailResponse>), StatusCodes.Status200OK)]
+        [AccessAction("ApproveManualAmount", "Approve Workforce Tax Manual Amount", Description = "Menyetujui atau menolak nominal PPh manual yang ditetapkan HRD; harus berbeda dari penetap dan membutuhkan izin melihat nominal", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("WorkforceTaxProfile", "ApproveManualAmount")]
+        public Task<IActionResult> ApproveManualAmount(
+            Guid workforceProfileId,
+            Guid id,
+            [FromBody] WfpTaxManualAmountDecisionRequest? request,
+            CancellationToken cancellationToken) =>
+            DecideManualAmountAsync(workforceProfileId, id, approve: true, request?.Note, cancellationToken);
+
+        [HttpPost("{id:guid}/manual-amount/reject")]
+        [ProducesResponseType(typeof(ApiResponse<WfpTaxDetailResponse>), StatusCodes.Status200OK)]
+        [AccessAction("ApproveManualAmount", "Approve Workforce Tax Manual Amount", Description = "Menyetujui atau menolak nominal PPh manual yang ditetapkan HRD; harus berbeda dari penetap dan membutuhkan izin melihat nominal", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("WorkforceTaxProfile", "ApproveManualAmount")]
+        public Task<IActionResult> RejectManualAmount(
+            Guid workforceProfileId,
+            Guid id,
+            [FromBody] WfpTaxManualAmountDecisionRequest? request,
+            CancellationToken cancellationToken) =>
+            DecideManualAmountAsync(workforceProfileId, id, approve: false, request?.Note, cancellationToken);
+
+        private async Task<IActionResult> DecideManualAmountAsync(
+            Guid workforceProfileId,
+            Guid id,
+            bool approve,
+            string? note,
+            CancellationToken cancellationToken)
+        {
+            var entity = await _dbContext.Set<PrlTax>()
+                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete, cancellationToken);
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Profil pajak workforce tidak ditemukan."));
+            }
+
+            if (!await CanViewAmountAsync())
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Memutuskan nominal PPh manual membutuhkan izin melihat nominal (ViewAmount)."));
+            }
+
+            if (entity.CalculationMode != TaxCalculationModes.ApprovedManualAmount
+                || entity.ManualAmountApprovalStatus != ManualAmountApprovalStatuses.Pending)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Hanya nominal PPh manual yang menunggu persetujuan yang dapat diputuskan."));
+            }
+
+            var actor = GetCurrentUserId();
+            if (entity.ManualAmountSubmittedByUserId.HasValue && entity.ManualAmountSubmittedByUserId.Value == actor)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Penetap nominal tidak boleh menyetujui atau menolak nominal yang ditetapkannya sendiri."));
+            }
+
+            var trimmedNote = NormalizeNullableText(note);
+            if (!approve && trimmedNote == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan penolakan nominal PPh manual wajib diisi."));
+            }
+
+            entity.ManualAmountApprovalStatus = approve ? ManualAmountApprovalStatuses.Approved : ManualAmountApprovalStatuses.Rejected;
+            entity.ManualAmountDecidedAt = DateTime.UtcNow;
+            entity.ManualAmountDecidedByUserId = actor;
+            entity.ManualAmountDecisionNote = trimmedNote;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = actor;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                approve ? "WorkforceTaxProfile.ApproveManualAmount" : "WorkforceTaxProfile.RejectManualAmount",
+                approve ? "Menyetujui nominal PPh manual profil pajak workforce." : "Menolak nominal PPh manual profil pajak workforce.",
+                AuditSnapshot(entity, null));
 
             return await GetTaxProfileById(workforceProfileId, entity.Id, cancellationToken);
         }
@@ -352,13 +572,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     "EffectiveEndDate tidak boleh lebih kecil dari EffectiveStartDate."));
             }
 
+            var before = AuditSnapshot(entity, null);
             entity.IsActive = request.IsActive;
-            entity.EffectiveEndDate = request.EffectiveEndDate?.Date;
+            entity.EffectiveEndDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate);
             entity.Description = NormalizeNullableText(request.Description) ?? entity.Description;
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "WorkforceTaxProfile.UpdateStatus",
+                "Mengubah status profil pajak workforce.",
+                AuditSnapshot(entity, before));
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -399,6 +626,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "WorkforceTaxProfile.Delete",
+                "Menghapus profil pajak workforce.",
+                AuditSnapshot(entity, null));
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -492,10 +725,58 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             };
         }
 
-        private WfpTaxResponse MapResponse(PrlTax entity)
+        /// <summary>Ringkasan aman untuk audit: konfigurasi dan aktor, tanpa nominal manual, NPWP, atau data pribadi.</summary>
+        private object AuditSnapshot(PrlTax entity, object? before) => new
         {
+            entity.Id,
+            entity.WorkforceProfileId,
+            entity.TaxArticle,
+            entity.RecipientTaxCategory,
+            entity.CalculationMode,
+            entity.TaxMethod,
+            entity.IsActive,
+            HasApprovedManualAmount = entity.ApprovedManualAmount.HasValue,
+            entity.ManualAmountApprovalStatus,
+            HasTreatyRate = entity.TreatyRatePercent.HasValue,
+            HasDecisionBasis = !string.IsNullOrWhiteSpace(entity.DecisionBasis),
+            HasExemptionReason = !string.IsNullOrWhiteSpace(entity.ExemptionReason),
+            entity.PolicyVersion,
+            entity.EffectiveStartDate,
+            entity.EffectiveEndDate,
+            Before = before,
+            ActorUserId = GetCurrentUserId()
+        };
+
+        private WfpTaxResponse MapResponse(PrlTax entity, bool includeAmounts)
+        {
+            var today = DateTime.UtcNow.Date;
+            var assessment = PayrollTaxInsuranceRules.AssessTax(PayrollTaxConfigFacts.From(entity), 0m, today, today);
+            var article = PayrollTaxInsuranceRules.NormalizeCode(entity.TaxArticle);
+            var category = PayrollTaxInsuranceRules.NormalizeCode(entity.RecipientTaxCategory);
+
             return new WfpTaxResponse
             {
+                TaxArticle = entity.TaxArticle,
+                RecipientTaxCategory = entity.RecipientTaxCategory,
+                CalculationMode = entity.CalculationMode,
+                PolicyVersion = entity.PolicyVersion,
+                ExemptionReason = entity.ExemptionReason,
+                DecisionBasis = entity.DecisionBasis,
+                AmountsVisible = includeAmounts,
+                HasApprovedManualAmount = entity.ApprovedManualAmount.HasValue,
+                ApprovedManualAmount = includeAmounts ? entity.ApprovedManualAmount : null,
+                ManualAmountApprovalStatus = entity.ManualAmountApprovalStatus,
+                ManualAmountSubmittedAt = entity.ManualAmountSubmittedAt,
+                ManualAmountDecidedAt = entity.ManualAmountDecidedAt,
+                ManualAmountDecisionNote = entity.ManualAmountDecisionNote,
+                CanDecideManualAmount = _canDecideManualAmount && includeAmounts
+                    && entity.ManualAmountApprovalStatus == ManualAmountApprovalStatuses.Pending
+                    && entity.ManualAmountSubmittedByUserId != GetCurrentUserId(),
+                TreatyRatePercent = entity.TreatyRatePercent,
+                TreatyBasis = entity.TreatyBasis,
+                ConfigurationStatus = assessment.ConfigurationStatus,
+                ConfigurationIssues = assessment.Issues.ToList(),
+                IsPtkpRelevant = PayrollTaxInsuranceRules.IsPtkpRelevant(article, category),
                 Id = entity.Id,
                 WorkforceProfileId = entity.WorkforceProfileId,
                 WorkforceProfileCode = entity.WorkforceProfile?.ProfileCode ?? string.Empty,
@@ -522,12 +803,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             };
         }
 
-        private WfpTaxDetailResponse MapDetailResponse(PrlTax entity)
+        private WfpTaxDetailResponse MapDetailResponse(PrlTax entity, bool includeAmounts)
         {
-            var response = MapResponse(entity);
+            var response = MapResponse(entity, includeAmounts);
 
             return new WfpTaxDetailResponse
             {
+                TaxArticle = response.TaxArticle,
+                RecipientTaxCategory = response.RecipientTaxCategory,
+                CalculationMode = response.CalculationMode,
+                PolicyVersion = response.PolicyVersion,
+                ExemptionReason = response.ExemptionReason,
+                DecisionBasis = response.DecisionBasis,
+                AmountsVisible = response.AmountsVisible,
+                HasApprovedManualAmount = response.HasApprovedManualAmount,
+                ApprovedManualAmount = response.ApprovedManualAmount,
+                ManualAmountApprovalStatus = response.ManualAmountApprovalStatus,
+                ManualAmountSubmittedAt = response.ManualAmountSubmittedAt,
+                ManualAmountDecidedAt = response.ManualAmountDecidedAt,
+                ManualAmountDecisionNote = response.ManualAmountDecisionNote,
+                CanDecideManualAmount = response.CanDecideManualAmount,
+                TreatyRatePercent = response.TreatyRatePercent,
+                TreatyBasis = response.TreatyBasis,
+                ConfigurationStatus = response.ConfigurationStatus,
+                ConfigurationIssues = response.ConfigurationIssues,
+                IsPtkpRelevant = response.IsPtkpRelevant,
                 Id = response.Id,
                 WorkforceProfileId = response.WorkforceProfileId,
                 WorkforceProfileCode = response.WorkforceProfileCode,
@@ -560,6 +860,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             CreateWfpTaxRequest request,
             Guid? currentId,
+            decimal? effectiveManualAmount,
             CancellationToken cancellationToken)
         {
             if (!AllowedTaxStatuses.Contains(request.TaxStatus.Trim()))
@@ -597,6 +898,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 return (false, "EffectiveEndDate tidak boleh lebih kecil dari EffectiveStartDate.");
             }
 
+            // Jenis PPh, kategori penerima, metode pajak, dan skema hitung adalah konsep terpisah; kombinasi dan syaratnya dijaga aturan
+            // yang sama dengan mesin hitung. Ketiga atribut baru kosong berarti belum dikonfigurasi (kompatibel dengan klien lama).
+            var configurationErrors = PayrollTaxInsuranceRules.ValidateTaxConfiguration(
+                PayrollTaxInsuranceRules.NormalizeCode(request.TaxArticle),
+                PayrollTaxInsuranceRules.NormalizeCode(request.RecipientTaxCategory),
+                PayrollTaxInsuranceRules.NormalizeCode(request.CalculationMode),
+                request.TaxMethod.Trim(),
+                request.IsTaxResident,
+                NormalizeNullableText(request.ExemptionReason),
+                NormalizeNullableText(request.DecisionBasis),
+                effectiveManualAmount,
+                request.TreatyRatePercent,
+                NormalizeNullableText(request.TreatyBasis));
+            if (configurationErrors.Count > 0)
+                return (false, string.Join(" ", configurationErrors));
+
+            // PAY-BE-FIX-015: nominal manual adalah pengecualian terkontrol untuk masa pajak tertentu (mis. masa pajak terakhir tanpa riwayat), bukan
+            // tetapan permanen. Tanpa batas masa berlaku, nominal yang sama akan dipakai lagi pada periode berikutnya (mis. Januari tahun depan).
+            if (PayrollTaxInsuranceRules.NormalizeCode(request.CalculationMode) == TaxCalculationModes.ApprovedManualAmount
+                && (!request.EffectiveStartDate.HasValue || !request.EffectiveEndDate.HasValue))
+            {
+                return (false, "Nominal PPh manual wajib dibatasi masa berlakunya: isi tanggal mulai dan tanggal berakhir yang mencakup masa pajak yang dimaksud. Nominal tidak boleh berlaku tanpa batas waktu.");
+            }
+
             var npwpNumber = NormalizeNullableText(request.NpwpNumber);
             if (npwpNumber != null &&
                 await _dbContext.Set<PrlTax>().AnyAsync(
@@ -611,8 +936,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             return (true, null);
         }
 
-        private void ApplyRequest(PrlTax entity, CreateWfpTaxRequest request)
+        private void ApplyRequest(PrlTax entity, CreateWfpTaxRequest request, decimal? effectiveManualAmount)
         {
+            // Nilai sebelum diubah: perubahan skema, nominal, metode, atau dasar membatalkan persetujuan nominal manual sebelumnya.
+            var previousMode = entity.CalculationMode;
+            var previousAmount = entity.ApprovedManualAmount;
+            var previousBasis = entity.DecisionBasis;
+            var previousMethod = entity.TaxMethod;
+
             entity.NpwpNumber = NormalizeNullableText(request.NpwpNumber);
             entity.TaxStatus = NormalizeAllowedValue(AllowedTaxStatuses, request.TaxStatus);
             entity.TaxMethod = NormalizeAllowedValue(AllowedTaxMethods, request.TaxMethod);
@@ -621,12 +952,57 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             entity.IsNpwpRegistered = request.IsNpwpRegistered;
             entity.IsTaxResident = request.IsTaxResident;
             entity.HasPreviousEmployer = request.HasPreviousEmployer;
-            entity.IsEmployerBorneTax = request.IsEmployerBorneTax;
+            // Pajak ditanggung pemberi kerja adalah akibat metode Net, bukan isian terpisah: diturunkan Backend supaya keduanya tidak
+            // dapat saling bertentangan.
+            entity.IsEmployerBorneTax = string.Equals(entity.TaxMethod, TaxMethodKinds.Net, StringComparison.OrdinalIgnoreCase);
+            entity.TaxArticle = PayrollTaxInsuranceRules.NormalizeCode(request.TaxArticle);
+            entity.RecipientTaxCategory = PayrollTaxInsuranceRules.NormalizeCode(request.RecipientTaxCategory);
+            entity.CalculationMode = PayrollTaxInsuranceRules.NormalizeCode(request.CalculationMode);
+            entity.PolicyVersion = NormalizeNullableText(request.PolicyVersion);
+            entity.ExemptionReason = entity.CalculationMode == TaxCalculationModes.ExemptOrNotApplicable
+                ? NormalizeNullableText(request.ExemptionReason)
+                : null;
+            entity.DecisionBasis = NormalizeNullableText(request.DecisionBasis);
+            entity.ApprovedManualAmount = entity.CalculationMode == TaxCalculationModes.ApprovedManualAmount
+                ? effectiveManualAmount
+                : null;
+            // Tarif P3B hanya bermakna untuk PPh Pasal 26 dan hanya bersama dasarnya.
+            entity.TreatyRatePercent = entity.TaxArticle == TaxArticles.Pph26 ? request.TreatyRatePercent : null;
+            entity.TreatyBasis = entity.TreatyRatePercent.HasValue ? NormalizeNullableText(request.TreatyBasis) : null;
+
+            // Persetujuan tersendiri atas nominal manual: nominal baru atau yang berubah (juga perubahan dasar/metode/skema) menunggu
+            // persetujuan pengguna lain. Pemanggil tanpa ViewAmount mengirim ulang nominal yang sama sehingga tidak mereset persetujuan.
+            if (entity.CalculationMode == TaxCalculationModes.ApprovedManualAmount)
+            {
+                var changed = previousMode != entity.CalculationMode
+                    || previousAmount != entity.ApprovedManualAmount
+                    || !string.Equals(previousBasis, entity.DecisionBasis, StringComparison.Ordinal)
+                    || !string.Equals(previousMethod, entity.TaxMethod, StringComparison.OrdinalIgnoreCase)
+                    || entity.ManualAmountApprovalStatus is null;
+                if (changed)
+                {
+                    entity.ManualAmountApprovalStatus = ManualAmountApprovalStatuses.Pending;
+                    entity.ManualAmountSubmittedAt = DateTime.UtcNow;
+                    entity.ManualAmountSubmittedByUserId = GetCurrentUserId();
+                    entity.ManualAmountDecidedAt = null;
+                    entity.ManualAmountDecidedByUserId = null;
+                    entity.ManualAmountDecisionNote = null;
+                }
+            }
+            else
+            {
+                entity.ManualAmountApprovalStatus = null;
+                entity.ManualAmountSubmittedAt = null;
+                entity.ManualAmountSubmittedByUserId = null;
+                entity.ManualAmountDecidedAt = null;
+                entity.ManualAmountDecidedByUserId = null;
+                entity.ManualAmountDecisionNote = null;
+            }
             entity.PreviousEmployerTaxableIncome = request.PreviousEmployerTaxableIncome;
             entity.PreviousEmployerTaxPaid = request.PreviousEmployerTaxPaid;
             entity.AnnualNonTaxableIncome = request.AnnualNonTaxableIncome;
-            entity.EffectiveStartDate = request.EffectiveStartDate?.Date;
-            entity.EffectiveEndDate = request.EffectiveEndDate?.Date;
+            entity.EffectiveStartDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveStartDate);
+            entity.EffectiveEndDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate);
             entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
         }

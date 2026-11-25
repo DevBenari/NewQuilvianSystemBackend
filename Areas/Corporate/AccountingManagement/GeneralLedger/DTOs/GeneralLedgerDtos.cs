@@ -1,3 +1,5 @@
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.Enums;
+
 namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.DTOs
 {
     public class LedgerMovementQuery
@@ -13,6 +15,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
         public DateTime? DateFrom { get; set; }
 
         public DateTime? DateTo { get; set; }
+
+        public Guid? CostCenterId { get; set; }
     }
 
     /// <summary>
@@ -37,6 +41,62 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
         /// <c>AccChartOfAccountService.HitungSaldoAsync</c>.
         /// </summary>
         public decimal RunningBalance { get; set; }
+
+        public Guid JournalId { get; set; }
+
+        public string JournalTypeCode { get; set; } = string.Empty;
+
+        public string? DocumentNumber { get; set; }
+
+        public Guid? CostCenterId { get; set; }
+
+        public string? CostCenterCode { get; set; }
+
+        public string? CostCenterName { get; set; }
+
+        public LedgerSourceKind SourceKind { get; set; }
+
+        public string SourceLabel { get; set; } = string.Empty;
+
+        public Guid? AccountingEventId { get; set; }
+
+        public Guid? RecurringTemplateId { get; set; }
+
+        public Guid? ReversalOfJournalId { get; set; }
+    }
+
+    public class LedgerMovementSummaryResponse
+    {
+        public Guid AccountId { get; set; }
+
+        public string AccountCode { get; set; } = string.Empty;
+
+        public string AccountName { get; set; } = string.Empty;
+
+        public Guid? CostCenterId { get; set; }
+
+        public string? CostCenterCode { get; set; }
+
+        public string? CostCenterName { get; set; }
+
+        public decimal OpeningBalance { get; set; }
+
+        public decimal TotalDebit { get; set; }
+
+        public decimal TotalCredit { get; set; }
+
+        public decimal ClosingBalance { get; set; }
+
+        public int LineCount { get; set; }
+    }
+
+    public class LedgerExportFile
+    {
+        public byte[] Content { get; set; } = Array.Empty<byte>();
+
+        public string FileName { get; set; } = string.Empty;
+
+        public int RowCount { get; set; }
     }
 
     public class TrialBalanceQuery

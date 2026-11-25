@@ -101,6 +101,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .HasForeignKey(x => x.OriginalApproverWorkforceProfileId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // BE-HRD-440 (kontrak v29, data dictionary 30.2): tautan penugasan eskalasi ke penugasan asal.
+            entity.HasOne(x => x.EscalatedFromAssignment)
+                .WithMany()
+                .HasForeignKey(x => x.EscalatedFromAssignmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.EscalatedFromAssignmentId);
+
             entity.HasIndex(x => new
             {
                 x.WorkflowStepInstanceId,

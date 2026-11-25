@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -32,13 +33,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
     [Tags("Corporate / Payroll Management / Master Data / Payroll Component Category")]
     public class PayrollComponentCategoryController : ControllerBase
     {
-        private static readonly HashSet<string> AllowedComponentGroups = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "Earning",
-            "Deduction",
-            "EmployerContribution",
-            "Information"
-        };
+        // PAY-BE-FIX-023: ComponentGroup tidak lagi dipilih pengguna. Katalog lima kategori ada di PayrollComponentCategoryCatalog;
+        // kelompok teknis diturunkan dari sana saat membuat kategori dan TIDAK pernah ditimpa pada kategori yang sudah ada.
+        private sealed record CategoryRow(Guid Id, string Name, string Group, bool IsActive);
 
         private const string LogCategory = "Corporate.HumanResource.MasterData";
         private const string CodePrefix = "PCC-RSMMC-";
@@ -61,24 +58,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [AccessPermission("PayrollComponentCategory", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
+            var rows = await LoadCategoryRowsAsync();
+
             var result = new PayrollComponentCategoryFilterMetadataResponse
             {
                 DefaultFilter = new PayrollComponentCategoryDefaultFilterResponse(),
-                ComponentGroupOptions = AllowedComponentGroups
-                    .OrderBy(x => x)
-                    .Select(x => new PayrollMasterStringOptionResponse
-                    {
-                        Value = x,
-                        Label = BuildComponentGroupLabel(x)
-                    })
-                    .ToList(),
+                CoreCategoryOptions = BuildCoreCategoryOptions(rows),
                 CustomPeriods = BuildPeriodOptions(),
                 SortOptions = new List<PayrollMasterSortOptionResponse>
                 {
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
                     new() { Value = "componentCategoryCode", Label = "Kode kategori" },
                     new() { Value = "componentCategoryName", Label = "Nama kategori" },
-                    new() { Value = "componentGroup", Label = "Kelompok komponen" },
                     new() { Value = "sortOrder", Label = "Urutan" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
@@ -103,17 +94,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [AccessPermission("PayrollComponentCategory", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var query = BuildBaseQuery();
+            // Dihitung dari data yang benar-benar tersimpan; tidak ada angka bawaan "lima".
+            var rows = await LoadCategoryRowsAsync();
+            var core = rows.Count(r => PayrollComponentCategoryCatalog.IsOperational(r.Name, r.Group));
 
             var result = new PayrollComponentCategorySummaryResponse
             {
-                TotalCategory = await query.CountAsync(),
-                ActiveCategory = await query.CountAsync(x => x.IsActive),
-                InactiveCategory = await query.CountAsync(x => !x.IsActive),
-                EarningCategory = await query.CountAsync(x => x.ComponentGroup == "Earning"),
-                DeductionCategory = await query.CountAsync(x => x.ComponentGroup == "Deduction"),
-                EmployerContributionCategory = await query.CountAsync(x => x.ComponentGroup == "EmployerContribution"),
-                InformationCategory = await query.CountAsync(x => x.ComponentGroup == "Information")
+                TotalCategory = rows.Count,
+                ActiveCategory = rows.Count(r => r.IsActive),
+                InactiveCategory = rows.Count(r => !r.IsActive),
+                CoreCategory = core,
+                LegacyCategory = rows.Count - core,
+                MissingCoreCategory = BuildCoreCategoryOptions(rows).Count(o => o.Status == "Missing")
             };
 
             return Ok(ApiResponse<PayrollComponentCategorySummaryResponse>.Ok(
@@ -129,7 +121,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
-            [FromQuery] string? componentGroup,
             [FromQuery] bool? affectsGrossPay,
             [FromQuery] bool? affectsTaxableIncome,
             [FromQuery] bool? affectsTakeHomePay,
@@ -148,7 +139,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             var query = ApplyDateFilter(BuildBaseQuery(), startDate, endDate, customPeriod);
             query = ApplyStandardFilter(
                 query,
-                componentGroup,
                 affectsGrossPay,
                 affectsTaxableIncome,
                 affectsTakeHomePay,
@@ -187,6 +177,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 })
                 .ToListAsync();
 
+            items.ForEach(Decorate);
+
             var result = new ResponsePayrollComponentCategoryPagedResult
             {
                 PageNumber = pageNumber,
@@ -206,8 +198,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [AccessAction("Read", "Read Payroll Component Category", Description = "Melihat pilihan payroll component category", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PayrollComponentCategory", "Read")]
         public async Task<IActionResult> GetPayrollComponentCategoryOptions(
-            [FromQuery] string? componentGroup,
             [FromQuery] bool onlyActive = true,
+            [FromQuery] bool operationalOnly = true,
+            [FromQuery] Guid? includeCategoryId = null,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
@@ -218,7 +211,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
             var query = ApplyStandardFilter(
                 BuildBaseQuery(),
-                componentGroup,
                 null,
                 null,
                 null,
@@ -226,13 +218,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 onlyActive ? true : null,
                 search);
 
-            var totalData = await query.CountAsync();
-
-            var items = await query
+            var candidates = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.ComponentCategoryName)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
                 .Select(x => new PayrollComponentCategoryOptionResponse
                 {
                     Id = x.Id,
@@ -241,6 +229,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     ComponentGroup = x.ComponentGroup
                 })
                 .ToListAsync();
+
+            foreach (var candidate in candidates)
+            {
+                candidate.CategoryKey = PayrollComponentCategoryCatalog.FindByName(candidate.ComponentCategoryName)?.Key;
+                candidate.IsOperational = PayrollComponentCategoryCatalog.IsOperational(
+                    candidate.ComponentCategoryName, candidate.ComponentGroup);
+            }
+
+            // Pilihan untuk komponen baru hanya kategori operasional. Kategori yang sedang dipakai komponen yang diubah (includeCategoryId)
+            // tetap ikut agar komponen lama tidak kehilangan tampilan kategorinya.
+            if (operationalOnly)
+            {
+                candidates = candidates
+                    .Where(c => c.IsOperational || (includeCategoryId.HasValue && c.Id == includeCategoryId.Value))
+                    .ToList();
+            }
+
+            var totalData = candidates.Count;
+            var items = candidates
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
 
             return Ok(ApiResponse<PayrollComponentCategoryOptionPagedResponse>.Ok(
                 new PayrollComponentCategoryOptionPagedResponse
@@ -304,6 +314,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     "Payroll component category tidak ditemukan."));
             }
 
+            Decorate(data);
+
             return Ok(ApiResponse<PayrollComponentCategoryDetailResponse>.Ok(
                 data,
                 "Detail payroll component category berhasil diambil."));
@@ -317,27 +329,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public async Task<IActionResult> CreatePayrollComponentCategory(
             [FromBody] CreatePayrollComponentCategoryRequest request)
         {
-            var validation = await ValidateRequestAsync(null, request);
+            var validation = await ValidateCreateAsync(request);
 
-            if (!validation.IsValid)
+            if (!validation.IsValid || validation.Entry is null)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     validation.ErrorMessage ?? "Data payroll component category tidak valid."));
             }
 
+            var entry = validation.Entry;
+
             var entity = new MstPayrollComponentCategory
             {
                 Id = Guid.NewGuid(),
                 ComponentCategoryCode = await GenerateCodeAsync(),
-                ComponentCategoryName = request.ComponentCategoryName.Trim(),
-                ComponentGroup = NormalizeComponentGroup(request.ComponentGroup),
+                // Nama kanonik dan kelompok teknis berasal dari katalog, bukan dari klien.
+                ComponentCategoryName = entry.Name,
+                ComponentGroup = entry.ComponentGroup,
                 AffectsGrossPay = request.AffectsGrossPay,
                 AffectsTaxableIncome = request.AffectsTaxableIncome,
                 AffectsTakeHomePay = request.AffectsTakeHomePay,
                 IsEmployerCost = request.IsEmployerCost,
-                Description = NormalizeNullableString(request.Description),
-                SortOrder = request.SortOrder,
+                Description = NormalizeNullableString(request.Description) ?? entry.Description,
+                SortOrder = request.SortOrder != 0 ? request.SortOrder : entry.SortOrder,
                 IsActive = true,
                 CreateDateTime = DateTime.UtcNow,
                 CreateBy = GetCurrentUserId(),
@@ -387,7 +402,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     "Payroll component category tidak ditemukan."));
             }
 
-            var validation = await ValidateRequestAsync(id, request);
+            var validation = await ValidateUpdateAsync(entity, request);
 
             if (!validation.IsValid)
             {
@@ -396,8 +411,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     validation.ErrorMessage ?? "Data payroll component category tidak valid."));
             }
 
-            entity.ComponentCategoryName = request.ComponentCategoryName.Trim();
-            entity.ComponentGroup = NormalizeComponentGroup(request.ComponentGroup);
+            // ComponentGroup sengaja TIDAK ditimpa: kelompok kategori yang sudah ada tidak pernah dikonversi otomatis.
+            entity.ComponentCategoryName = validation.NormalizedName;
             entity.AffectsGrossPay = request.AffectsGrossPay;
             entity.AffectsTaxableIncome = request.AffectsTaxableIncome;
             entity.AffectsTakeHomePay = request.AffectsTakeHomePay;
@@ -517,7 +532,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
         private static IQueryable<MstPayrollComponentCategory> ApplyStandardFilter(
             IQueryable<MstPayrollComponentCategory> query,
-            string? componentGroup,
             bool? affectsGrossPay,
             bool? affectsTaxableIncome,
             bool? affectsTakeHomePay,
@@ -525,9 +539,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             bool? isActive,
             string? search)
         {
-            if (!string.IsNullOrWhiteSpace(componentGroup))
-                query = query.Where(x => x.ComponentGroup == componentGroup.Trim());
-
             if (affectsGrossPay.HasValue)
                 query = query.Where(x => x.AffectsGrossPay == affectsGrossPay.Value);
 
@@ -550,7 +561,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 query = query.Where(x =>
                     x.ComponentCategoryCode.ToLower().Contains(keyword) ||
                     x.ComponentCategoryName.ToLower().Contains(keyword) ||
-                    x.ComponentGroup.ToLower().Contains(keyword) ||
                     (x.Description != null && x.Description.ToLower().Contains(keyword)));
             }
 
@@ -577,10 +587,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     ? query.OrderByDescending(x => x.ComponentCategoryCode)
                     : query.OrderBy(x => x.ComponentCategoryCode),
 
-                "componentgroup" => descending
-                    ? query.OrderByDescending(x => x.ComponentGroup)
-                    : query.OrderBy(x => x.ComponentGroup),
-
                 "sortorder" => descending
                     ? query.OrderByDescending(x => x.SortOrder)
                     : query.OrderBy(x => x.SortOrder),
@@ -595,32 +601,131 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             };
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
-            Guid? excludeId,
+        private async Task<(bool IsValid, string? ErrorMessage, PayrollComponentCategoryCatalogEntry? Entry)> ValidateCreateAsync(
             CreatePayrollComponentCategoryRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.ComponentCategoryName))
-                return (false, "Nama payroll component category wajib diisi.");
+                return (false, "Nama payroll component category wajib diisi.", null);
 
-            if (!AllowedComponentGroups.Contains(request.ComponentGroup.Trim()))
-                return (false, "ComponentGroup tidak valid.");
+            var entry = PayrollComponentCategoryCatalog.FindByName(request.ComponentCategoryName);
 
-            var normalizedName = request.ComponentCategoryName.Trim().ToLower();
+            if (entry is null)
+            {
+                var allowed = string.Join(", ", PayrollComponentCategoryCatalog.All.Select(x => x.Name));
+                return (false, $"Kategori '{PayrollComponentCategoryCatalog.NormalizeName(request.ComponentCategoryName)}' bukan kategori komponen operasional. Pilih salah satu: {allowed}.", null);
+            }
 
-            var duplicateQuery = _dbContext.Set<MstPayrollComponentCategory>()
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.ComponentCategoryName.ToLower() == normalizedName &&
-                    x.ComponentGroup == request.ComponentGroup.Trim());
+            if (!string.IsNullOrWhiteSpace(request.ComponentGroup)
+                && !string.Equals(request.ComponentGroup.Trim(), entry.ComponentGroup, StringComparison.OrdinalIgnoreCase))
+            {
+                return (false, $"Kelompok komponen ditentukan otomatis dari kategori {entry.Name} dan tidak dapat ditentukan dari permintaan.", null);
+            }
 
-            if (excludeId.HasValue)
-                duplicateQuery = duplicateQuery.Where(x => x.Id != excludeId.Value);
+            if (await NameExistsAsync(entry.Name, null))
+                return (false, $"Kategori {entry.Name} sudah ada.", null);
 
-            if (await duplicateQuery.AnyAsync())
-                return (false, "Nama kategori sudah digunakan pada kelompok komponen tersebut.");
+            return (true, null, entry);
+        }
 
-            return (true, null);
+        private async Task<(bool IsValid, string? ErrorMessage, string NormalizedName)> ValidateUpdateAsync(
+            MstPayrollComponentCategory entity,
+            UpdatePayrollComponentCategoryRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.ComponentCategoryName))
+                return (false, "Nama payroll component category wajib diisi.", string.Empty);
+
+            var normalizedName = PayrollComponentCategoryCatalog.NormalizeName(request.ComponentCategoryName);
+            var current = PayrollComponentCategoryCatalog.FindByName(entity.ComponentCategoryName);
+            var target = PayrollComponentCategoryCatalog.FindByName(normalizedName);
+
+            if (current is not null)
+            {
+                // Kategori inti: nama dikunci agar label tidak melenceng dari katalog (tabel belum punya kunci stabil).
+                if (target is null || !string.Equals(target.Key, current.Key, StringComparison.Ordinal))
+                    return (false, $"Nama kategori {current.Name} dikunci dan tidak dapat diubah.", string.Empty);
+
+                normalizedName = current.Name;
+            }
+            else if (target is not null)
+            {
+                return (false, $"Nama '{target.Name}' dicadangkan untuk kategori inti. Tambahkan kategori itu lewat Tambah Kategori; kategori lama tidak dapat diganti namanya menjadi nama tersebut.", string.Empty);
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.ComponentGroup)
+                && !string.Equals(request.ComponentGroup.Trim(), entity.ComponentGroup, StringComparison.OrdinalIgnoreCase))
+            {
+                return (false, "Kelompok komponen ditentukan otomatis oleh sistem dan tidak dapat diubah dari permintaan.", string.Empty);
+            }
+
+            if (await NameExistsAsync(normalizedName, entity.Id))
+                return (false, "Nama kategori sudah digunakan.", string.Empty);
+
+            return (true, null, normalizedName);
+        }
+
+        private async Task<bool> NameExistsAsync(string name, Guid? excludeId)
+        {
+            var rows = await BuildBaseQuery()
+                .Select(x => new { x.Id, x.ComponentCategoryName })
+                .ToListAsync();
+
+            return rows.Any(x =>
+                (!excludeId.HasValue || x.Id != excludeId.Value)
+                && PayrollComponentCategoryCatalog.NamesMatch(x.ComponentCategoryName, name));
+        }
+
+        private async Task<List<CategoryRow>> LoadCategoryRowsAsync()
+        {
+            return await BuildBaseQuery()
+                .Select(x => new CategoryRow(x.Id, x.ComponentCategoryName, x.ComponentGroup, x.IsActive))
+                .ToListAsync();
+        }
+
+        private static List<PayrollComponentCategoryCoreOptionResponse> BuildCoreCategoryOptions(IReadOnlyCollection<CategoryRow> rows)
+        {
+            return PayrollComponentCategoryCatalog.All.Select(entry =>
+            {
+                var matches = rows
+                    .Where(r => PayrollComponentCategoryCatalog.NamesMatch(r.Name, entry.Name))
+                    .ToList();
+                var sameGroup = matches
+                    .Where(r => string.Equals((r.Group ?? string.Empty).Trim(), entry.ComponentGroup, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                var ready = sameGroup.FirstOrDefault(r => r.IsActive);
+                var chosen = ready ?? sameGroup.FirstOrDefault() ?? matches.FirstOrDefault();
+
+                var status = matches.Count == 0
+                    ? "Missing"
+                    : ready is not null
+                        ? "Ready"
+                        : sameGroup.Count > 0
+                            ? "Inactive"
+                            : "GroupMismatch";
+
+                return new PayrollComponentCategoryCoreOptionResponse
+                {
+                    Key = entry.Key,
+                    Value = entry.Name,
+                    Label = entry.Name,
+                    ComponentGroup = entry.ComponentGroup,
+                    DefaultAffectsGrossPay = entry.AffectsGrossPay,
+                    DefaultAffectsTaxableIncome = entry.AffectsTaxableIncome,
+                    DefaultAffectsTakeHomePay = entry.AffectsTakeHomePay,
+                    DefaultSortOrder = entry.SortOrder,
+                    DefaultDescription = entry.Description,
+                    Status = status,
+                    AvailableForCreate = matches.Count == 0,
+                    ExistingCategoryId = chosen?.Id
+                };
+            }).ToList();
+        }
+
+        private static void Decorate(PayrollComponentCategoryResponse item)
+        {
+            var entry = PayrollComponentCategoryCatalog.FindByName(item.ComponentCategoryName);
+            item.CategoryKey = entry?.Key;
+            item.IsNameLocked = entry is not null;
+            item.IsOperational = PayrollComponentCategoryCatalog.IsOperational(item.ComponentCategoryName, item.ComponentGroup);
         }
 
         private async Task<string> GenerateCodeAsync()
@@ -643,12 +748,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             return Guid.TryParse(value, out var id)
                 ? id
                 : Guid.Empty;
-        }
-
-        private static string NormalizeComponentGroup(string value)
-        {
-            return AllowedComponentGroups.First(x =>
-                x.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
         private static string? NormalizeNullableString(string? value)
@@ -731,18 +830,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 new() { Value = "last7days", Label = "7 hari terakhir" },
                 new() { Value = "thismonth", Label = "Bulan ini" },
                 new() { Value = "lastmonth", Label = "Bulan lalu" }
-            };
-        }
-
-        private static string BuildComponentGroupLabel(string value)
-        {
-            return value switch
-            {
-                "Earning" => "Pendapatan",
-                "Deduction" => "Potongan",
-                "EmployerContribution" => "Kontribusi Pemberi Kerja",
-                "Information" => "Informasi",
-                _ => value
             };
         }
     }

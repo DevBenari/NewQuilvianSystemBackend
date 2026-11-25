@@ -1742,3 +1742,121 @@ Argumen ke-1 `[AccessPermission]` sama persis dengan `ControllerName = "Workforc
 Simpan yang tidak mengubah apa pun tidak menulis log. Jejak pelaku juga tersimpan pada kolom `UpdateBy`/`UpdateDateTime`, `ApprovedByUserId`/`ApprovedAt`, dan `VerifiedByUserId`/`VerifiedAt` tabel yang diubah.
 
 **Privasi:** gaji pokok dan nomor rekening lengkap hanya keluar dari `GET /{workforceProfileId}` (hak `Update`). Daftar memakai `accountNumberMasked`. Log aplikasi tidak memuat kolom bertanda **Sensitif**.
+
+---
+
+## 32. Matriks Hak Akses & Jejak Audit Amandemen Slice `S-D5`: Persetujuan SPPD lewat Workflow (Kontrak `v28`, approved 19 November 2026)
+
+Dasar: `HRD-DEC-224`, `HRD-DEC-228`; fakta `HRD-TF-076`, `HRD-TF-078`. Bagian 29 tetap berlaku untuk yang tidak disebut.
+
+### 32.1 Hak akses yang berubah
+
+| Hak (bagian 29.1) | Wujud di source | Perubahan v28 |
+| --- | --- | --- |
+| `Hrd.BusinessTravel.Request.Create` | `[AccessPermission("BusinessTravelRequest", "Create")]` | Kini juga menjaga `POST /requests/{id}/submit` (Ajukan). Hanya pemohon SPPD (`WorkforceProfileId` milik pengguna) yang boleh mengajukan; pengguna lain mendapat `403` |
+| `Hrd.BusinessTravel.Request.Edit` | `[AccessPermission("BusinessTravelRequest", "Update")]` | Tidak berubah; ruang ubah dipersempit oleh `VR-TRV-27` |
+| `Hrd.BusinessTravel.Request.Cancel` | `[AccessPermission("BusinessTravelRequest", "Cancel")]` | Tidak berubah; pembatalan saat menunggu menarik workflow |
+| `Hrd.BusinessTravel.Request.Approve` | **Tidak** menjadi `[AccessPermission]` modul | Diwujudkan sebagai penugasan approver pada definisi `BUSINESS_TRAVEL_REQUEST` di Master Workflow (bawaan: atasan langsung pemohon). Siapa pun yang tidak ditugaskan workflow tidak dapat menyetujui, walaupun memegang jabatan Kepala Ruangan |
+| Hak kotak masuk persetujuan | Hak Workflow V2 yang sudah ada (`S-A7-V2`) | Tidak berubah; SPPD tampil sebagai jenis dokumen "Perjalanan Dinas" |
+
+Pemisahan tugas: penyetuju tidak boleh pemohon sendiri (`AllowSelfApproval = false` pada tahap bawaan).
+
+### 32.2 Dua belas event `HRD_TRV_*` dan sumber datanya
+
+Jejak audit tetap diturunkan dari cap waktu tabel oleh `TravelAuditTrailService` (tanpa tabel audit baru). Kolom "Dulu" menunjukkan nama di source `d7d4eb3b`.
+
+| No | Event (nama matriks) | Dulu | Sumber data | Pelaku | Isi pesan (contoh) |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `HRD_TRV_REQUEST_SUBMITTED` | `HRD_TRV_REQUEST_CREATED` (dari `CreateDateTime`) | `TrxBusinessTravelRequest.SubmittedAt` | `SubmittedByUserId` | "SPPD diajukan ke Surabaya, berangkat 2026-12-01." |
+| 2 | `HRD_TRV_REQUEST_APPROVED` | `HRD_TRV_REQUEST_APPROVAL` (dari `TrxBusinessTravelApproval` yang tidak pernah ditulis) | `TrxBusinessTravelRequest.ApprovedAt` | `ApprovedByUserId` | "SPPD disetujui. Anggaran disetujui 5.000.000." |
+| 3 | `HRD_TRV_ADVANCE_REQUESTED` | `HRD_TRV_ADVANCE_SUBMITTED` | `TrxTravelAdvanceRequest.SubmittedAt` | `SubmittedByUserId` | Tidak berubah |
+| 4 | `HRD_TRV_ADVANCE_PAID` | sama | `TrxTravelAdvanceRequest.PaidAt` | — | Tidak berubah |
+| 5 | `HRD_TRV_SETTLEMENT_SUBMITTED` | sama | `TrxTravelSettlement.SubmittedAt` | `SubmittedByUserId` | Tidak berubah |
+| 6 | `HRD_TRV_MISSING_RECEIPT_DECLARED` | **tidak ada** | `TrxTravelExpenseItem` dengan `IsMissingReceiptDeclared = true`; waktu `UpdateDateTime ?? CreateDateTime` | `MissingReceiptApprovedBy` | "Deklarasi tanpa nota 350.000: {alasan}." |
+| 7 | `HRD_TRV_SETTLEMENT_VERIFIED` | sama | `TrxTravelSettlement.VerifiedAt` | `VerifiedByUserId` | Tidak berubah |
+| 8 | `HRD_TRV_SETTLEMENT_CLOSED` | sama | `TrxTravelSettlement.SettledAt` | — | Tidak berubah |
+| 9 | `HRD_TRV_SPPD_FROZEN_OVERDUE` | `HRD_TRV_SETTLEMENT_DEFAULTED` | `TrxTravelSettlement.DefaultedAt` (diisi worker TRV-W2 saat tunggakan > 14 hari) | Sistem | "Hak SPPD dibekukan: settlement menunggak lebih dari 14 hari." |
+| 10 | `HRD_TRV_PAYROLL_DEDUCTION_TRIGGERED` | **tidak ada** | `TrxPayrollDeductionSchedule` dengan `ExternalReferenceId = "TRV-ADV-{advanceId:N}"`; waktu `CreateDateTime` | Sistem | "Potongan payroll DED-TRV-… dijadwalkan sebesar 1.200.000." |
+| 11 | `HRD_TRV_ATTENDANCE_SYNCED` | **tidak ada** | `TrxTravelAttendanceLink.SyncedAt` per tanggal | Pelaku persetujuan | "Presensi Hadir Dinas Luar tanggal 2026-12-01." |
+| 12 | `HRD_TRV_ROSTER_LOCK_APPLIED` | **tidak ada** | SPPD dengan `HasScheduleConflict = true` dan status `Approved` atau lanjutan; waktu = `SyncedAt` paling awal tautan presensinya | Pelaku persetujuan | "Gembok roster dipasang 2026-12-01 s.d. 2026-12-03." |
+
+Event tambahan yang sudah ada dan **tetap** dicatat (bukan bagian dari 12, tidak bertentangan dengan matriks): `HRD_TRV_ADVANCE_APPROVED`, `HRD_TRV_ADVANCE_REJECTED`, `HRD_TRV_ADVANCE_SETTLED`. Event tambahan baru: `HRD_TRV_REQUEST_CREATED` (dari `CreateDateTime`, membedakan Draft dari pengajuan) dan `HRD_TRV_REQUEST_REJECTED` (dari `RejectedAt`/`RejectedByUserId`).
+
+Data sensitif: pesan tidak memuat nomor rekening, gaji, atau isi alasan medis. Alasan deklarasi tanpa nota dipotong 200 karakter.
+
+---
+
+## 33. Matriks Hak Akses & Jejak Audit Amandemen Slice `S-A7-V2`: Kotak Masuk Terpadu di atas Engine Workflow (Kontrak `v29`, approved 20 November 2026)
+
+Dasar: `HRD-DEC-229` s.d. `HRD-DEC-234`. Bagian 28 tetap berlaku untuk yang tidak disebut. **Tidak ada string `[AccessPermission]` baru.**
+
+### 33.1 Hak akses yang berubah
+
+| Hak | Wujud di source | Perubahan v29 |
+| --- | --- | --- |
+| Lihat antrean | `[AccessPermission("WorkflowInboxInstance", "ViewInbox")]` | Tetap; isi antrean kini penugasan engine milik pengguna dan pejabat yang mendelegasikan kepadanya |
+| Lihat detail | `[AccessPermission("WorkflowInboxInstance", "ViewInstanceDetail")]` | Tetap; blok `myAction` hanya terisi untuk pemegang penugasan atau Plh-nya |
+| Setujui / Tolak / Kembalikan | `[AccessPermission("WorkflowApprovalAction", "ApproveRequest"/"RejectRequest"/"ReturnForRevision")]` | Hak menjadi **gerbang pertama** saja. Gerbang kedua yang menentukan adalah penugasan engine (`AssignedApproverUserId`) atau delegasi aktif (`VR-WF-30`). Memegang hak tanpa penugasan tetap `403` |
+| Setujui massal | `[AccessPermission("WorkflowApprovalAction", "BulkApprove")]` | Tetap; kelayakan per butir `VR-WF-32` |
+| Buat instance generik | `[AccessPermission("WorkflowInboxInstance", "CreateInstance")]` | Endpoint dihentikan (`409`); hak dibiarkan terdaftar sampai endpoint dihapus |
+| Batal / kirim ulang generik | `[AccessPermission("WorkflowInboxInstance", "CancelMyInstance")]`, `[AccessPermission("WorkflowApprovalAction", "ResubmitRevision")]` | Hanya untuk instance engine lama; instance modul `409` (`VR-WF-29`) |
+| Eskalasi manual | `[AccessPermission("WorkflowSlaMatrix", "ManualEscalate")]` | Tetap; kini menambah penugasan engine |
+| Kotak masuk lama | `[AccessPermission("ApprovalInbox", "*")]` | Tetap sampai dipensiunkan (`HRD-DEC-231`) |
+
+Pemisahan tugas: pemohon tidak pernah boleh memutuskan permohonannya sendiri, baik sebagai penyetuju, atasan hasil eskalasi, maupun Plh (`VR-WF-02`, `VR-WF-30`, `VR-WF-31`).
+
+### 33.2 Jejak audit
+
+Jejak keputusan tetap dicatat engine di `TrxApprovalAction` (tabel yang sama dengan engine lama; tanpa tabel baru). Ruas `DigitalSignatureHash` tidak lagi diisi untuk aksi baru.
+
+| Kejadian | Tempat | Isi | Pelaku |
+| --- | --- | --- | --- |
+| Setujui/Tolak/Kembalikan dari kotak terpadu | `TrxApprovalAction` (engine) | Jenis aksi, status sebelum/sesudah, komentar, `ActionReasonId` untuk Tolak | Pengguna (`ActualActionByUserId`); bila Plh: `IsDelegated = true`, `ApprovalDelegationId`, `DelegatedFromUserId` = pejabat definitif, `ActionEmployeeId`/`OnBehalfOfEmployeeId` (`VR-WF-25`) |
+| Eskalasi otomatis | `TrxApprovalAction`, `ActionType = "Escalate"`, `IsSystemAction = true` | "Dieskalasi ke {nama atasan}: lewat batas waktu {DueAt}." | Sistem |
+| Eskalasi manual | Sama, `IsSystemAction = false` | Alasan eskalasi dari HR | HR Admin |
+| Kembaran eskalasi ditutup | Status penugasan `Skipped` + aksi `Skip` | "Ditutup karena {nama} sudah memutuskan." | Sistem |
+| Persetujuan massal | Satu `TrxApprovalAction` per butir yang disetujui; ringkasan batch hanya dikembalikan di respons (tidak disimpan) | `batchNote` sebagai komentar | Pengguna |
+
+Data sensitif: komentar dan alasan tidak ditulis ke custom logger (`LoggerService`). Nilai `DigitalSignatureHash` lama dibiarkan sebagai data historis.
+
+---
+
+## 34. Matriks Hak Akses & Jejak Audit Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v30`, approved 23 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `last_changed_in` | `v30` — 22 November 2026 |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`) |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `input_revision` | Decision log revision `42` bagian 57 |
+
+### 34.1 Hak akses per layar
+
+| Layar / aksi | String hak akses persis | Status hak | Peran yang lazim diberi (diatur admin, bukan kode) |
+| --- | --- | --- | --- |
+| Dashboard SDM — lihat ringkasan dan daftar nama | `[AccessPermission("HrdWorkforceDashboard", "Read")]` | **Baru** | Manajer SDM, Admin HRD (`HRD-ASM-91`) |
+| Seleksi Administrasi — lihat daftar | `[AccessPermission("CandidateScreening", "Read")]` | Sudah ada | Recruiter HR |
+| Seleksi Administrasi — tandai Lolos/Gugur | `[AccessPermission("CandidateScreening", "Evaluate")]` | Sudah ada | Recruiter HR |
+| Tes/Wawancara — lihat daftar (yang ditugaskan) | `[AccessPermission("CandidateEvaluation", "Read")]` | Sudah ada | Recruiter HR, Kepala Unit / Asesor |
+| Tes/Wawancara — lihat semua evaluasi | `CandidateEvaluation : ViewAll` (`AccessExplicitPermission`, tanpa endpoint sendiri) | **Baru** | Recruiter HR, Manajer SDM |
+| Tes/Wawancara — isi wawancara HR | `[AccessPermission("CandidateEvaluation", "Evaluate")]` | Sudah ada | Recruiter HR |
+| Tes/Wawancara — isi uji klinis/teknis | `[AccessPermission("CandidateEvaluation", "EvaluateClinical")]` + harus penilai yang ditugaskan (`VR-PKB-08`) | Sudah ada | Kepala Unit / Asesor |
+| Tindak Disiplin — daftar sanksi seluruh pegawai | `[AccessPermission("EmployeeDisciplinary", "ViewSanctions")]` | Sudah ada | HR Relations, Manajer SDM (`HRD-DEC-238` butir 4) |
+| Riwayat Penyelesaian — sanksi selesai | `[AccessPermission("EmployeeDisciplinary", "ViewSanctions")]` | Sudah ada | Idem |
+| Riwayat Penyelesaian — insiden ditutup tanpa sanksi | `[AccessPermission("EmployeeDisciplinary", "ViewIncidents")]` | Sudah ada | Idem; bila tidak dimiliki, bagian insiden disembunyikan |
+| Employee 360 — buka profil | `[AccessPermission("HrdEmployee360", "Read")]` | Sudah ada | HR, atasan langsung |
+| Employee 360 — bagian disiplin terisi | `EmployeeDisciplinary : ViewSanctions` (diperiksa di controller 360) | Sudah ada, **perilaku baru** | HR Relations, Manajer SDM; atasan langsung **tidak** (`HRD-ASM-94`) |
+
+Kasus whistleblower tetap memakai `Hrd.Disciplinary.WhistleblowerReview` (`HRD-DEC-172`) dan tidak tampil di layar Paket B mana pun.
+
+### 34.2 Privasi
+
+| Data | Aturan |
+| --- | --- |
+| Daftar nama Dashboard SDM | Hanya nomor, nama, profesi, keterangan dokumen/kontrak, tanggal. Pemegang `HrdWorkforceDashboard : Read` dapat melihat nama pemilik dokumen kedaluwarsa walaupun tidak memegang `ProfessionalLicense : Read`; ini disengaja karena tindak lanjutnya tugas Manajer SDM. Nomor lisensi tidak ditampilkan lengkap: `detailLabel` hanya menyebut jenis dokumen dan 4 karakter terakhir nomornya |
+| Gaji, NIK, data kesehatan, data disiplin | Tidak pernah ada di respons dashboard |
+| Data disiplin Employee 360 | Hanya untuk `ViewSanctions` (`VR-PKB-09`) |
+
+### 34.3 Jejak audit
+
+Paket B tidak menambah event audit. Seluruh endpoint baru atau yang diubah bersifat baca-saja, kecuali `submit-clinical` yang sudah tercatat oleh mekanisme rekrutmen existing; penolakan `403` dari `VR-PKB-07`/`08` dicatat oleh logging permintaan standar tanpa isi formulir. Kolom sensitif tidak boleh masuk custom logger.

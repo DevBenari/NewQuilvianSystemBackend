@@ -57,6 +57,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
         public Guid? NotificationRecordedByUserId { get; set; }
 
+
+        /// <summary>BE-HRD-419: berkas bukti pemberitahuan tertulis H-7 (artefak yang dapat diperiksa).</summary>
+
+        [MaxLength(500)]
+
+        public string? NoticeEvidencePath { get; set; }
+
+
+        [MaxLength(255)]
+
+        public string? NoticeEvidenceFileName { get; set; }
+
+
+        public DateTime? NoticeEvidenceUploadedAt { get; set; }
+
+
+        public Guid? NoticeEvidenceUploadedByUserId { get; set; }
+
         public Guid? EmployeeSeparationId { get; set; }
 
         [ConcurrencyCheck]

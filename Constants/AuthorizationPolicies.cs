@@ -35,6 +35,8 @@ namespace QuilvianSystemBackend.Constants
 
         public const string NurseViewDisplayRead = "NurseViewDisplayRead";
 
+        public const string NurseViewBedTabletAccess = "NurseViewBedTabletAccess";
+
         /// <summary>
         /// Himpunan policy yang diterima invarian naked endpoint sebagai otorisasi alternatif
         /// yang sah. Endpoint tanpa <c>[AccessPermission]</c> yang memakai salah satu policy ini
@@ -46,7 +48,8 @@ namespace QuilvianSystemBackend.Constants
                 KioskRead,
                 QueueDisplayRuntimeRead,
                 QueueDisplayRead,
-                NurseViewDisplayRead
+                NurseViewDisplayRead,
+                NurseViewBedTabletAccess
             };
 
         public static bool IsApprovedAlternativeAuthorization(string? policyName) =>

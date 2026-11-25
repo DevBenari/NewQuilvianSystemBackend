@@ -22,5 +22,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         Task<RecruitmentResult<ProbationAssessmentResponse>> WithdrawAssessmentAsync(Guid probationId, Guid assessmentId, WithdrawAssessmentRequest request, ClaimsPrincipal user, CancellationToken cancellationToken = default);
         Task<(bool Exists, Stream? Stream, string? ContentType, string? FileName)> DownloadEvidenceAsync(Guid probationId, Guid assessmentId, CancellationToken cancellationToken = default);
         Task<RecruitmentResult<bool>> ApplyAssessmentDecisionAsync(Guid assessmentId, Guid deciderUserId, bool isApproved, string? decisionNote, CancellationToken cancellationToken = default);
+        Task<RecruitmentResult<HrdProbationSummaryResponse>> GetProbationSummaryAsync(Guid? hospitalSiteId, CancellationToken cancellationToken = default);
     }
 }

@@ -8,7 +8,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
     {
         public void Configure(EntityTypeBuilder<MstShiftAllowancePolicy> entity)
         {
-            entity.ToTable("MstShiftAllowancePolicy", "public");
+            // Nama constraint/indeks sama persis dengan DDL cakupan Grade Gaji (laporan PAY-BE-FIX-018).
+            entity.ToTable("MstShiftAllowancePolicy", "public", table =>
+                table.HasCheckConstraint(
+                    "CK_MstShiftAllowancePolicy_StructureRequiresGrade",
+                    "\"SalaryStructureId\" IS NULL OR \"SalaryGradeId\" IS NOT NULL"));
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.AllowanceTypeId).IsRequired();
@@ -70,6 +74,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .HasForeignKey(x => x.EmploymentTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.EmployeeGrade).WithMany().HasForeignKey(x => x.EmployeeGradeId)
+                .HasConstraintName("FK_MstShiftAllowancePolicy_EmployeeGrade").OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.SalaryGrade).WithMany().HasForeignKey(x => x.SalaryGradeId)
+                .HasConstraintName("FK_MstShiftAllowancePolicy_SalaryGrade").OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.SalaryStructure).WithMany().HasForeignKey(x => x.SalaryStructureId)
+                .HasConstraintName("FK_MstShiftAllowancePolicy_SalaryStructure").OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(x => x.ShiftAllowancePolicyCode)
                 .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
@@ -79,6 +90,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasIndex(x => new { x.ShiftId, x.ShiftGroupId });
             entity.HasIndex(x => new { x.HospitalSiteId, x.OrganizationUnitId });
             entity.HasIndex(x => new { x.EmployeeCategoryId, x.EmploymentTypeId });
+            entity.HasIndex(x => new { x.SalaryGradeId, x.SalaryStructureId, x.IsActive, x.IsDelete })
+                .HasDatabaseName("IX_MstShiftAllowancePolicy_SalaryGrade_SalaryStructure");
+            entity.HasIndex(x => x.SalaryStructureId).HasDatabaseName("IX_MstShiftAllowancePolicy_SalaryStructureId");
+            entity.HasIndex(x => x.EmployeeGradeId).HasDatabaseName("IX_MstShiftAllowancePolicy_EmployeeGradeId");
             entity.HasIndex(x => new { x.Priority, x.IsDefault, x.IsActive, x.IsDelete });
             entity.HasIndex(x => new { x.EffectiveStartDate, x.EffectiveEndDate, x.IsActive, x.IsDelete });
         }

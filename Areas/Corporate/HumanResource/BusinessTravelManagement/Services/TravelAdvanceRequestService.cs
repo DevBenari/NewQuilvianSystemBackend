@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Models;
 using QuilvianSystemBackend.Repositories;
@@ -69,14 +71,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 throw new KeyNotFoundException("Permohonan perjalanan dinas tidak ditemukan");
             }
 
-            if (travel.TravelStatus == "Cancelled" || travel.TravelStatus == "Rejected")
+            if (travel.TravelStatus == BusinessTravelRequestStatuses.Cancelled || travel.TravelStatus == BusinessTravelRequestStatuses.Rejected)
             {
                 throw new InvalidOperationException("Tidak dapat mengajukan uang muka untuk perjalanan dinas yang dibatalkan atau ditolak");
             }
 
-            // VR-TRV-02: Hard-cap maksimal 80% dari pagu anggaran yang disetujui (HRD-DEC-189)
-            var budgetLimit = travel.ApprovedBudgetAmount > 0 ? travel.ApprovedBudgetAmount : travel.EstimatedTotalAmount;
-            var maxAllowedAdvance = budgetLimit * 0.80m;
+            // VR-TRV-30 (kontrak v28, HRD-DEC-226/227): uang muka hanya untuk SPPD yang sudah disetujui lewat workflow.
+            // SPPD lama berstatus "Submitted" tanpa persetujuan harus diajukan dan disetujui lebih dulu.
+            if (!travel.ApprovedAt.HasValue)
+            {
+                throw new BusinessTravelRequestException(
+                    StatusCodes.Status409Conflict,
+                    "SPPD belum disetujui. Ajukan SPPD dan tunggu persetujuan sebelum mengajukan uang muka.");
+            }
+
+            // VR-TRV-02: Hard-cap maksimal 80% dari anggaran yang disetujui (HRD-DEC-189); anggaran disetujui = estimasi (HRD-DEC-226).
+            var maxAllowedAdvance = travel.ApprovedBudgetAmount * 0.80m;
 
             if (dto.RequestedAmount > maxAllowedAdvance)
             {

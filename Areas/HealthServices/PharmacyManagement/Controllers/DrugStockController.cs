@@ -121,6 +121,27 @@ public class DrugStockController : ControllerBase
     }
 
     /// <summary>
+    /// Stok yang sudah menyentuh reorder point pada kebijakan stok per lokasi.
+    /// </summary>
+    /// <remarks>
+    /// Hanya membaca. Yang dibandingkan adalah saldo fisik berstatus siap pakai terhadap reorder
+    /// point kebijakan aktif yang menunjuk satu lokasi. Kebijakan yang satuannya berbeda dari
+    /// satuan stok obat ikut tampil dengan <c>isUnitMismatch = true</c> tanpa dibandingkan.
+    /// </remarks>
+    [HttpGet("low-stock")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<DrugLowStockResponse>>), StatusCodes.Status200OK)]
+    [AccessAction("Read", "Read Drug Stock",
+        Description = "Memantau stok obat yang menyentuh reorder point", AccessType = AccessTypes.Read, SortOrder = 10)]
+    [AccessPermission("DrugStock", "Read")]
+    public async Task<IActionResult> GetLowStock([FromQuery] DrugLowStockQuery query,
+        CancellationToken cancellationToken)
+    {
+        var data = await _service.GetLowStockAsync(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<DrugLowStockResponse>>.Ok(data,
+            "Pemantauan stok di bawah reorder point berhasil diambil."));
+    }
+
+    /// <summary>
     /// Kartu stok: seluruh pergerakan yang pernah terjadi.
     /// </summary>
     /// <remarks>

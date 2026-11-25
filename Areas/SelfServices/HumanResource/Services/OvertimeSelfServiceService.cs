@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
@@ -518,7 +519,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
                 EmployeeName = employeeContext.EmployeeName,
                 OvertimeDate = request.OvertimeDate,
                 PlannedEndDate = endAt > startAt
-                    ? DateOnly.FromDateTime(endAt)
+                    ? ToWibDate(endAt)
                     : request.OvertimeDate,
                 PlannedStartAt = startAt,
                 PlannedEndAt = endAt,
@@ -554,7 +555,9 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
             if (rawMinutes > 24 * 60)
                 AddIssue(response, "INTERVAL_TOO_LONG", "Satu pengajuan lembur tidak boleh melebihi 24 jam.", true, "plannedEndAt");
 
-            if (DateOnly.FromDateTime(startAt) != request.OvertimeDate)
+            // BE-HRD-FIX-003: tanggal lembur adalah tanggal kalender WIB dari jam mulai. Sebelumnya dibandingkan dengan tanggal
+            // UTC, sehingga lembur yang mulai 00.00–06.59 WIB selalu ditolak OVERTIME_DATE_MISMATCH.
+            if (ToWibDate(startAt) != request.OvertimeDate)
                 AddIssue(response, "OVERTIME_DATE_MISMATCH", "OvertimeDate harus sama dengan tanggal PlannedStartAt.", true, "overtimeDate");
 
             var category = NormalizeToken(request.OvertimeCategory, OvertimeValueConstants.OvertimeCategory.All);
@@ -752,7 +755,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
                             EffectiveDate = effectiveDate,
                             MinutePosition = 0,
                             EligibleMinutes = rounded,
-                            OccurrenceTime = TimeOnly.FromDateTime(startAt)
+                            // BE-HRD-FIX-004: rentang jam tarif (mis. tarif malam) diisi dalam jam WIB.
+                            OccurrenceTime = TimeOnly.FromDateTime(AppDateTimeHelper.UtcToLocal(startAt))
                         },
                         cancellationToken);
 
@@ -1322,12 +1326,13 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
             return date.AddDays(-offset);
         }
 
-        private static DateTime NormalizeUtc(DateTime value) => value.Kind switch
-        {
-            DateTimeKind.Utc => value,
-            DateTimeKind.Local => value.ToUniversalTime(),
-            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
-        };
+        // BE-HRD-FIX-003: nilai tanpa zona dibaca sebagai jam dinding WIB, sama dengan AppDateTimeHelper.ToUtc. Sebelumnya dibaca
+        // sebagai UTC, sehingga "19:00" tanpa zona tersimpan sebagai 02.00 WIB keesokan harinya.
+        private static DateTime NormalizeUtc(DateTime value) =>
+            DateTime.SpecifyKind(AppDateTimeHelper.ToUtc(value), DateTimeKind.Utc);
+
+        private static DateOnly ToWibDate(DateTime utc) =>
+            DateOnly.FromDateTime(AppDateTimeHelper.UtcToLocal(utc));
 
         private static string SerializeValidation(MyOvertimePreviewResponse response) =>
             JsonSerializer.Serialize(response, new JsonSerializerOptions

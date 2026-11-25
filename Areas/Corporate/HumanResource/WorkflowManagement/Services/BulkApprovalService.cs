@@ -10,7 +10,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 {
     public interface IBulkApprovalService
     {
-        Task<BulkApproveResultDto> ExecuteBulkApprovalAsync(BulkApproveRequestDto request, Guid currentEmployeeId);
+        Task<BulkApproveResultDto> ExecuteBulkApprovalAsync(BulkApproveRequestDto request, Guid currentEmployeeId, Guid currentUserId);
     }
 
     public class BulkApprovalService : IBulkApprovalService
@@ -29,7 +29,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             _antiSelfApprovalGuard = antiSelfApprovalGuard;
         }
 
-        public async Task<BulkApproveResultDto> ExecuteBulkApprovalAsync(BulkApproveRequestDto request, Guid currentEmployeeId)
+        public async Task<BulkApproveResultDto> ExecuteBulkApprovalAsync(BulkApproveRequestDto request, Guid currentEmployeeId, Guid currentUserId)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
 
@@ -93,11 +93,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
                 try
                 {
+                    // BE-HRD-444: butir diteruskan ke engine lewat adapter; kelayakan VR-WF-32 dan PIN batch menjadi lingkup BE-HRD-445.
                     var actionRes = await _actionService.ApproveAsync(stepId, new ApproveActionRequestDto
                     {
-                        Note = request.BatchNote ?? "Disetujui melalui persetujuan massal bersyarat (Bulk Approval)",
-                        PinSignature = request.PinSignature
-                    }, currentEmployeeId);
+                        Note = request.BatchNote ?? "Disetujui melalui persetujuan massal bersyarat (Bulk Approval)"
+                    }, currentUserId);
 
                     if (actionRes.Success)
                     {

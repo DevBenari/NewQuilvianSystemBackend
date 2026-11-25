@@ -16,12 +16,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
     }
 
     /// <summary>
-    /// Satu orang pada daftar. Sengaja tanpa gaji pokok dan tanpa nomor rekening lengkap: nominal dan nomor rekening hanya dimuat lewat
-    /// detail untuk pemegang hak ubah.
+    /// Satu orang pada daftar monitoring read-only Data Penggajian Pegawai (HRD). Seluruh data dibaca dari Master Karyawan,
+    /// Master Dokter, WfpSalaryAssignment, dan WfpBankAccount yang berlaku pada tanggal acuan. Nominal gaji hanya terisi bagi
+    /// pemegang izin ViewAmount (null bila tidak berwenang atau belum ada penetapan gaji yang berlaku; tidak pernah diganti 0).
+    /// Nomor rekening selalu disamarkan.
     /// </summary>
     public class WorkforcePayrollDataItemResponse
     {
         public Guid WorkforceProfileId { get; set; }
+
+        /// <summary>Id MstEmployee untuk tautan menuju Master Karyawan (null untuk Dokter).</summary>
+        public Guid? EmployeeId { get; set; }
+
+        /// <summary>Id MstDoctor untuk tautan menuju Master Dokter (null untuk Karyawan/Perawat).</summary>
+        public Guid? DoctorId { get; set; }
 
         /// <summary>Karyawan, Perawat (karyawan yang profesinya perawat), atau Dokter.</summary>
         public string PersonType { get; set; } = string.Empty;
@@ -33,16 +41,50 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
 
         public bool HasApprovedSalaryAssignment { get; set; }
         public bool HasPendingSalaryAssignment { get; set; }
-        public string? SalaryStructureName { get; set; }
-        public DateTime? SalaryEffectiveStartDate { get; set; }
+        public bool HasSalaryConflict { get; set; }
 
-        /// <summary>"Belum ada", "Belum terverifikasi", atau "Terverifikasi".</summary>
+        public Guid? SalaryAssignmentId { get; set; }
+        public Guid? SalaryStructureId { get; set; }
+        public string? SalaryStructureName { get; set; }
+        public Guid? SalaryGradeId { get; set; }
+        public string? SalaryGradeCode { get; set; }
+        public string? SalaryGradeName { get; set; }
+
+        /// <summary>Benar bila pemanggil berwenang melihat nominal (WorkforcePayrollData : ViewAmount).</summary>
+        public bool AmountsVisible { get; set; }
+
+        /// <summary>Nominal gaji pokok dari penetapan gaji utama yang berlaku; null bila tanpa izin ViewAmount atau belum tersedia.</summary>
+        public decimal? BaseSalary { get; set; }
+
+        public decimal? GradeMinimum { get; set; }
+        public decimal? GradeMaximum { get; set; }
+        public decimal? StructureMinimum { get; set; }
+        public decimal? StructureMaximum { get; set; }
+        public decimal? EffectiveMinimum { get; set; }
+        public decimal? EffectiveMaximum { get; set; }
+        public string? SalaryRangeText { get; set; }
+
+        public string? CurrencyCode { get; set; }
+        public string? PaymentFrequency { get; set; }
+
+        /// <summary>Disetujui, Menunggu Persetujuan HRD, Konflik Penetapan Gaji, Belum Berlaku, Sudah Berakhir, atau Belum Ada.</summary>
+        public string SalaryStatus { get; set; } = string.Empty;
+
+        public DateTime? SalaryEffectiveStartDate { get; set; }
+        public DateTime? SalaryEffectiveEndDate { get; set; }
+
+        public Guid? BankAccountId { get; set; }
+
+        /// <summary>"Belum ada", "Belum terverifikasi", "Terverifikasi", "Belum berlaku", atau "Kedaluwarsa".</summary>
         public string BankStatus { get; set; } = string.Empty;
 
         public string? BankName { get; set; }
 
-        /// <summary>Nomor rekening disamarkan, hanya empat karakter terakhir yang tampak.</summary>
+        /// <summary>Nomor rekening disamarkan di Backend; hanya empat karakter terakhir yang tampak.</summary>
         public string? AccountNumberMasked { get; set; }
+
+        public bool BankIsVerified { get; set; }
+        public DateTime? BankVerifiedAt { get; set; }
 
         public bool IsComplete { get; set; }
         public List<string> Issues { get; set; } = new();
@@ -56,15 +98,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public int Complete { get; set; }
     }
 
-    /// <summary>Isian satu orang untuk diubah. Bagian yang belum ada bernilai null.</summary>
+    /// <summary>
+    /// Rincian read-only data penggajian satu orang. Bagian penetapan gaji dan rekening bernilai null bila belum ada yang berlaku
+    /// pada tanggal acuan. Nominal hanya dikirim bagi pemegang izin ViewAmount dan nomor rekening selalu disamarkan.
+    /// </summary>
     public class WorkforcePayrollDataDetailResponse
     {
         public Guid WorkforceProfileId { get; set; }
+        public Guid? EmployeeId { get; set; }
+        public Guid? DoctorId { get; set; }
         public string PersonType { get; set; } = string.Empty;
         public string Number { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string? DepartmentName { get; set; }
         public string? PositionName { get; set; }
+
+        public bool AmountsVisible { get; set; }
+        public string SalaryStatus { get; set; } = string.Empty;
+        public string BankStatus { get; set; } = string.Empty;
+        public bool IsComplete { get; set; }
+        public List<string> Issues { get; set; } = new();
+
         public WorkforcePayrollSalaryDetail? Salary { get; set; }
         public WorkforcePayrollBankDetail? BankAccount { get; set; }
     }
@@ -75,11 +129,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public Guid SalaryStructureId { get; set; }
         public string SalaryStructureCode { get; set; } = string.Empty;
         public string SalaryStructureName { get; set; } = string.Empty;
+        public Guid SalaryGradeId { get; set; }
         public string SalaryGradeCode { get; set; } = string.Empty;
-        public decimal GradeMinimum { get; set; }
-        public decimal GradeMaximum { get; set; }
-        public decimal BaseSalary { get; set; }
+        public string? SalaryGradeName { get; set; }
+
+        /// <summary>Null bila pemanggil tidak berwenang ViewAmount.</summary>
+        public decimal? GradeMinimum { get; set; }
+
+        /// <summary>Null bila pemanggil tidak berwenang ViewAmount.</summary>
+        public decimal? GradeMaximum { get; set; }
+
+        public decimal? StructureMinimum { get; set; }
+        public decimal? StructureMaximum { get; set; }
+        public decimal? EffectiveMinimum { get; set; }
+        public decimal? EffectiveMaximum { get; set; }
+        public string? SalaryRangeText { get; set; }
+
+        /// <summary>Nominal gaji pokok dari WfpSalaryAssignment; null bila pemanggil tidak berwenang ViewAmount.</summary>
+        public decimal? BaseSalary { get; set; }
+
+        public string CurrencyCode { get; set; } = "IDR";
+        public string PaymentFrequency { get; set; } = string.Empty;
         public DateTime EffectiveStartDate { get; set; }
+        public DateTime? EffectiveEndDate { get; set; }
         public bool IsApproved { get; set; }
         public DateTime? ApprovedAt { get; set; }
     }
@@ -89,55 +161,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public Guid Id { get; set; }
         public Guid? BankId { get; set; }
         public string? BankName { get; set; }
-        public string AccountNumber { get; set; } = string.Empty;
+
+        /// <summary>Nomor rekening disamarkan di Backend; endpoint monitoring tidak pernah mengirim nomor rekening lengkap.</summary>
+        public string AccountNumberMasked { get; set; } = string.Empty;
+
         public string AccountHolderName { get; set; } = string.Empty;
+        public bool IsPayrollAccount { get; set; }
+        public bool IsPrimary { get; set; }
         public bool IsVerified { get; set; }
-    }
-
-    /// <summary>
-    /// Simpan data penggajian satu orang. Bagian <see cref="Salary"/> dan <see cref="BankAccount"/> bersifat sendiri-sendiri: bagian
-    /// yang null tidak disentuh. Persetujuan dan verifikasi hanya diterima dari pemegang hak yang sesuai (diputuskan controller).
-    /// </summary>
-    public class UpdateWorkforcePayrollDataRequest
-    {
-        public UpdateWorkforcePayrollSalaryRequest? Salary { get; set; }
-        public UpdateWorkforcePayrollBankRequest? BankAccount { get; set; }
-
-        /// <summary>Menyetujui penetapan gaji utama sesudah disimpan. Tanpa ini, perubahan atas penetapan yang sudah disetujui menunggu persetujuan ulang.</summary>
-        public bool ApproveSalaryAssignment { get; set; }
-
-        /// <summary>Menandai rekening payroll terverifikasi sesudah disimpan. Tanpa ini, perubahan nomor atau pemilik rekening menunggu verifikasi ulang.</summary>
-        public bool MarkBankAccountVerified { get; set; }
-    }
-
-    public class UpdateWorkforcePayrollSalaryRequest
-    {
-        public Guid SalaryStructureId { get; set; }
-        public decimal BaseSalary { get; set; }
+        public DateTime? VerifiedAt { get; set; }
         public DateTime? EffectiveStartDate { get; set; }
+        public DateTime? EffectiveEndDate { get; set; }
     }
 
-    public class UpdateWorkforcePayrollBankRequest
-    {
-        public Guid? BankId { get; set; }
-        public string? AccountNumber { get; set; }
-        public string? AccountHolderName { get; set; }
-    }
-
-    public class WorkforcePayrollDataSaveResponse
-    {
-        public Guid WorkforceProfileId { get; set; }
-
-        /// <summary>"Tidak diubah", "Dibuat", "Diperbarui", atau "Disetujui".</summary>
-        public string SalaryAssignment { get; set; } = "Tidak diubah";
-
-        /// <summary>"Tidak diubah", "Dibuat", "Diperbarui", atau "Terverifikasi".</summary>
-        public string BankAccount { get; set; } = "Tidak diubah";
-
-        public List<string> Warnings { get; set; } = new();
-    }
-
-    /// <summary>Galat bisnis yang dijelaskan ke petugas. <see cref="StatusCode"/> 400 untuk isian yang ditolak, 404 untuk orang yang tidak ditemukan.</summary>
+    /// <summary>Galat bisnis pembacaan monitoring (404 untuk orang yang tidak ditemukan atau tidak aktif).</summary>
     public sealed class WorkforcePayrollDataException : Exception
     {
         public int StatusCode { get; }

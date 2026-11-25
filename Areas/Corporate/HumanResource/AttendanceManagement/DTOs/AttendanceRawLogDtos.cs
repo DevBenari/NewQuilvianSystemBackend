@@ -123,6 +123,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public Guid? DoctorId { get; set; }
     }
 
+    /// <summary>
+    /// Hasil pelepasan scan tertahan (AwaitingDeviceRegistration) sesudah mesin didaftarkan atau diaktifkan
+    /// (HRD-DEC-212, INT-HR-103).
+    /// </summary>
+    public class AttendanceRawLogReleaseResponse
+    {
+        public Guid AttendanceDeviceId { get; set; }
+        public string AttendanceDeviceCode { get; set; } = string.Empty;
+
+        /// <summary>Jumlah scan tertahan yang cocok dengan identitas mesin.</summary>
+        public int HeldLogCount { get; set; }
+
+        /// <summary>Scan yang kini siap dihitung (identitas pegawai cocok).</summary>
+        public int MatchedCount { get; set; }
+
+        /// <summary>Scan yang dilepas tetapi identitas pegawainya belum ditemukan.</summary>
+        public int PendingCount { get; set; }
+
+        /// <summary>Scan ganda dari scan yang sudah diterima lewat mesin terdaftar; tidak dihitung dua kali.</summary>
+        public int DuplicateCount { get; set; }
+
+        /// <summary>Scan yang ditolak karena rumah sakit atau lokasi scan tidak sesuai dengan mesin.</summary>
+        public int RejectedCount { get; set; }
+
+        /// <summary>Scan yang identitas pegawainya gagal dicocokkan ulang.</summary>
+        public int ErrorCount { get; set; }
+
+        /// <summary>Job hitung ulang kehadiran yang dijadwalkan untuk tanggal terkait.</summary>
+        public int ScheduledReprocessJobCount { get; set; }
+    }
+
     public class AttendanceRawLogFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";

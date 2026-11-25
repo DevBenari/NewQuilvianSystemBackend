@@ -109,6 +109,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         [Required]
         public Guid CatalogId { get; set; }
 
+        public string? PrivilegeCode { get; set; }
+
+        public string? PrivilegeName { get; set; }
+
         [Required]
         public SupervisionLevel RecommendedSupervisionLevel { get; set; } = SupervisionLevel.Level1_Independent;
 

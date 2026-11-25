@@ -7,10 +7,14 @@ public sealed class PayrollCompensationQuery
     /// <summary>Karyawan | Dokter.</summary>
     public string? PersonType { get; set; }
 
-    /// <summary>Active | Suspended | OnHold | Terminated (PrlPayroll.PayrollStatus).</summary>
+    /// <summary>
+    /// Active | Suspended | OnHold | Terminated (PrlPayroll.PayrollStatus, hanya untuk profil yang BENAR-BENAR ada) atau
+    /// NotPrepared (nilai virtual: orang HRD yang belum punya profil payroll; tidak pernah disimpan ke database). Kosong berarti semua.
+    /// Active hanya mengembalikan profil aktif berstatus Active, bukan semua orang yang aktif di HRD.
+    /// </summary>
     public string? PayrollStatus { get; set; }
 
-    /// <summary>Siap | Bermasalah — kesiapan data penghasilan untuk dihitung.</summary>
+    /// <summary>Siap | Bermasalah — kesiapan memproses penghasilan. Orang tanpa profil payroll selalu Bermasalah.</summary>
     public string? Readiness { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 20;
@@ -18,21 +22,77 @@ public sealed class PayrollCompensationQuery
 
 /// <summary>
 /// Ringkasan penghasilan satu penerima payroll (karyawan atau dokter): profil penggajian, penetapan gaji yang berlaku, rekening, dan
-/// kelengkapan. Identitas penerima tetap milik HRD (WorkforceProfileId); modul ini tidak membuat identitas ganda. Nominal gaji hanya
-/// terisi bila pemanggil memiliki izin ViewAmount (kolom nominal null bila tidak berwenang); rekening dan NPWP selalu disamarkan.
+/// kelengkapan. Populasi berangkat dari HRD (pegawai dan dokter aktif), BUKAN dari profil payroll, sehingga orang yang belum punya
+/// profil operasional tetap tampil dengan <see cref="PayrollProfileId"/> null. Identitas penerima tetap milik HRD
+/// (WorkforceProfileId); modul ini tidak membuat identitas ganda. Nominal gaji hanya terisi bila pemanggil memiliki izin ViewAmount
+/// (kolom nominal null bila tidak berwenang atau tidak tersedia, tidak pernah diganti nol); rekening dan NPWP selalu disamarkan.
+///
+/// Tiga hal berbeda dan tidak boleh dianggap sama: terdaftar di HRD (selalu benar untuk baris di sini), punya profil payroll operasional
+/// (<see cref="HasPayrollProfile"/>), dan siap diproses (<see cref="IsReady"/>).
 /// </summary>
 public class PayrollCompensationListItemResponse
 {
     public Guid WorkforceProfileId { get; set; }
+
+    /// <summary>Null bila profil operasional payroll belum ada.</summary>
     public Guid? PayrollProfileId { get; set; }
+
+    /// <summary>
+    /// Profil operasional payroll (PrlPayroll) sudah ada, apa pun statusnya. Berbeda dari <c>HasPayrollProfile</c> pada Kelengkapan Data
+    /// Payroll, yang bernilai benar hanya bila profil operasional (aktif, eligible, Active).
+    /// </summary>
+    public bool HasPayrollProfile { get; set; }
 
     /// <summary>Karyawan | Dokter.</summary>
     public string PersonType { get; set; } = string.Empty;
     public string Number { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public string PayrollStatus { get; set; } = string.Empty;
+
+    /// <summary>Status pada profil yang ada (Active | Suspended | OnHold | Terminated); null bila profil belum ada. Tidak pernah dipalsukan menjadi Active.</summary>
+    public string? PayrollStatus { get; set; }
+
+    /// <summary>Eligible pada profil yang ada; false bila profil belum ada (bukan penilaian "tidak eligible").</summary>
     public bool IsPayrollEligible { get; set; }
     public string? PayrollGroupCode { get; set; }
+
+    /// <summary>
+    /// Siap | Akan disiapkan otomatis | Menunggu data HRD | Perlu perhatian. Kosakata dan aturan sama dengan Kelengkapan Data Payroll
+    /// (PayrollReadinessEvaluator).
+    /// </summary>
+    public string PayrollProfileStatus { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Profil payroll ada DAN operasional pada hari ini: aktif, eligible, berstatus Active, sedang berlaku (bukan masa depan atau sudah
+    /// berakhir), dan tidak konflik dengan profil lain. False untuk orang tanpa profil, profil nonaktif, Suspended/OnHold/Terminated,
+    /// atau profil yang belum/tidak lagi berlaku. Berbeda dari <see cref="HasPayrollProfile"/> (hanya keberadaan) dan dari
+    /// <see cref="IsReady"/> (kesiapan memproses seluruhnya).
+    /// </summary>
+    public bool OperationalProfileReady { get; set; }
+
+    /// <summary>
+    /// Status penetapan gaji utama HRD: Belum Ada Penetapan Gaji | Menunggu Persetujuan HRD | Disetujui | Belum Berlaku |
+    /// Sudah Berakhir | Konflik Penetapan Gaji. "Disetujui" hanya bila penetapan yang berlaku HARI INI sudah disetujui; penetapan masa
+    /// depan atau yang sudah berakhir tidak pernah dianggap berlaku.
+    /// </summary>
+    public string SalaryStatus { get; set; } = string.Empty;
+
+    /// <summary>Sumber HRD lengkap: gaji utama berlaku, disetujui, tidak konflik, dan rekening payroll terverifikasi.</summary>
+    public bool HrdComplete { get; set; }
+
+    /// <summary>Lengkap | Belum lengkap | Tidak aktif di HRD (hanya pada detail orang yang sudah tidak aktif).</summary>
+    public string HrdDataStatus { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Sudah ditetapkan (konfigurasi PPh HRD sah dan berlaku) | Belum ditetapkan. Nama historis: sejak PAY-BE-FIX-007 hanya PPh yang
+    /// dinilai; asuransi swasta dan iuran BPJS bukan syarat. Diturunkan dari status konfigurasi eksplisit, bukan dari nominal nol.
+    /// </summary>
+    public string TaxInsuranceStatus { get; set; } = string.Empty;
+
+    /// <summary>NOT_CONFIGURED | CONFIGURED | NOT_EFFECTIVE | ERROR untuk konfigurasi PPh (Profil Pajak HRD).</summary>
+    public string TaxConfigurationStatus { get; set; } = string.Empty;
+
+    /// <summary>Kekurangan konfigurasi PPh yang sebenarnya; kosong bila lengkap.</summary>
+    public List<string> TaxConfigurationIssues { get; set; } = new();
 
     public Guid? SalaryAssignmentId { get; set; }
     public DateTime? SalaryEffectiveStartDate { get; set; }
@@ -48,9 +108,44 @@ public class PayrollCompensationListItemResponse
     /// <summary>Terverifikasi | Belum terverifikasi | Belum ada.</summary>
     public string BankStatus { get; set; } = string.Empty;
     public bool HasTaxProfile { get; set; }
-    public bool HasInsuranceProfile { get; set; }
+
+    /// <summary>
+    /// Siap diproses: sumber HRD lengkap, profil payroll operasional (aktif, eligible, Active), profil pajak ada, dan tetapan PPh dan
+    /// iuran sudah ditetapkan (bukan sekadar nol bawaan). Orang tanpa profil payroll tidak pernah siap. Lebih ketat daripada
+    /// <c>IsComplete</c> pada Kelengkapan Data Payroll, yang menganggap profil yang akan disiapkan otomatis cukup untuk ikut payroll run.
+    /// </summary>
     public bool IsReady { get; set; }
+
+    /// <summary>Penghalang kesiapan yang benar-benar ditemukan pada orang ini; kosong bila <see cref="IsReady"/>.</summary>
     public List<string> Issues { get; set; } = new();
+
+    /// <summary>Catatan yang tidak menghalangi, mis. profil akan disiapkan otomatis saat payroll run dipersiapkan.</summary>
+    public List<string> Notes { get; set; } = new();
+}
+
+/// <summary>
+/// Ringkasan populasi Profil Penggajian (seluruh pegawai dan dokter aktif dari HRD, tidak dipengaruhi filter daftar). Tiga angka utama
+/// punya definisi berbeda dan tidak boleh disamakan: total SDM HRD, profil payroll aktif (operasional), dan siap diproses.
+/// </summary>
+public sealed class PayrollCompensationSummaryResponse
+{
+    /// <summary>Pegawai dan dokter aktif di HRD.</summary>
+    public int TotalPeople { get; set; }
+
+    /// <summary>Orang yang profil payroll operasionalnya sudah ada (apa pun statusnya).</summary>
+    public int WithPayrollProfile { get; set; }
+
+    /// <summary>Orang dengan profil payroll aktif, eligible, dan berstatus Active (ikut payroll run).</summary>
+    public int ActivePayrollProfiles { get; set; }
+
+    /// <summary>Orang yang belum punya profil payroll (belum disiapkan). Selalu <c>TotalPeople - WithPayrollProfile</c>.</summary>
+    public int NotPrepared { get; set; }
+
+    /// <summary>Orang yang sumber HRD-nya lengkap.</summary>
+    public int HrdComplete { get; set; }
+
+    /// <summary>Orang yang siap diproses (<c>IsReady</c>); jumlah yang sama dengan filter "Siap" pada daftar.</summary>
+    public int Ready { get; set; }
 }
 
 public sealed class PayrollCompensationSalaryHistoryResponse
@@ -63,7 +158,39 @@ public sealed class PayrollCompensationSalaryHistoryResponse
     public bool IsPrimary { get; set; }
     public bool IsActive { get; set; }
     public bool IsApproved { get; set; }
+
+    /// <summary>Approved | PendingApproval (WfpSalaryAssignmentRules). Penetapan aktif yang belum disetujui adalah PendingApproval.</summary>
+    public string ApprovalStatus { get; set; } = string.Empty;
+
+    /// <summary>
+    /// True bila Payroll saat ini mensyaratkan penetapan disetujui (Payroll:Policy:RequireApprovedSalaryAssignment). False (bawaan): penetapan
+    /// aktif dipakai payroll walaupun belum disetujui, sehingga PendingApproval di sini bersifat informasi. Aditif.
+    /// </summary>
+    public bool ApprovalRequired { get; set; }
+
     public DateTime? ApprovedAt { get; set; }
+
+    /// <summary>Nama pengesah bila persetujuan manual tercatat; null bila belum ada persetujuan manual atau nama tidak dapat ditentukan. Aditif (PAY-BE-FIX-010).</summary>
+    public string? ApprovedByUserName { get; set; }
+
+    /// <summary>
+    /// Asal wewenang untuk Payroll: ManualApproved | AutoByPolicy | PendingApproval (WfpSalaryAuthorizationStatuses). AutoByPolicy berarti sah
+    /// menurut kebijakan Payroll tanpa persetujuan manual; ia bukan persetujuan oleh seseorang, jadi ApprovedAt/ApprovedByUserName tetap
+    /// kosong dan IsApproved tetap false. Aditif (PAY-BE-FIX-010).
+    /// </summary>
+    public string AuthorizationStatus { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Keadaan operasional pada tanggal acuan, terpisah dari asal persetujuan: Current | Scheduled | Expired | Inactive | NotPrimary
+    /// (WfpSalaryOperationalStatuses). Aditif (PAY-BE-FIX-010).
+    /// </summary>
+    public string OperationalStatusCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// True bila penetapan ini sedang berlaku sebagai penetapan utama dan boleh dipakai Payroll menurut kebijakan (Current dan bukan
+    /// PendingApproval). Aturan yang sama dengan pembaca Payroll. Aditif (PAY-BE-FIX-010).
+    /// </summary>
+    public bool IsPayrollUsable { get; set; }
 
     /// <summary>Null bila pemanggil tidak memiliki izin ViewAmount.</summary>
     public decimal? BaseSalary { get; set; }
@@ -86,6 +213,17 @@ public sealed class PayrollCompensationBankResponse
 /// <summary>Detail penghasilan satu penerima: ringkasan ditambah riwayat penetapan gaji dan rekening (disamarkan).</summary>
 public sealed class PayrollCompensationDetailResponse : PayrollCompensationListItemResponse
 {
+    // Informasi operasional dari profil payroll; seluruhnya null bila profil belum ada.
+    public string? PayrollNumber { get; set; }
+    public string? PaymentFrequency { get; set; }
+    public DateTime? PayrollProfileEffectiveStartDate { get; set; }
+    public DateTime? PayrollProfileEffectiveEndDate { get; set; }
+
+    // Penempatan organisasi primer HRD yang berlaku hari ini; null bila HRD belum mengisinya. Hanya dibaca.
+    public string? OrganizationUnitName { get; set; }
+    public string? DepartmentName { get; set; }
+    public string? PositionName { get; set; }
+
     public string? TaxStatus { get; set; }
     public bool IsNpwpRegistered { get; set; }
 

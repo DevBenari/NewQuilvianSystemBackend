@@ -21,13 +21,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
         Task<RecruitmentResult<PagedResult<EmploymentContractResponse>>> GetPagedAsync(
             EmploymentContractQuery query,
-            CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default,
+            ClaimsPrincipal? user = null);
 
         Task<RecruitmentResult<EmploymentContractResponse>> GetByIdAsync(
             Guid id,
-            CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default,
+            ClaimsPrincipal? user = null);
 
         Task<RecruitmentResult<EmploymentContractPrintDataResponse>> GetPrintDataAsync(
+            Guid id,
+            ClaimsPrincipal user,
+            CancellationToken cancellationToken = default);
+
+        Task<RecruitmentResult<ContractSalaryDetailResponse>> GetSalaryDetailAsync(
             Guid id,
             ClaimsPrincipal user,
             CancellationToken cancellationToken = default);
@@ -40,7 +47,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
         Task<(bool Exists, Stream? Stream, string? ContentType, string? FileName)> DownloadScanAsync(
             Guid id,
-            CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default,
+            ClaimsPrincipal? user = null);
 
         // --- BE-HRD-080: Keputusan Kontrak T16 & Batas 5 Tahun PKWT ---
 
@@ -72,6 +80,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             Guid decisionId,
             ClaimsPrincipal user,
             CancellationToken cancellationToken = default);
+
+        Task<RecruitmentResult<ContractDecisionResponse>> UploadNoticeEvidenceAsync(
+
+            Guid contractId,
+
+            Guid decisionId,
+
+            Microsoft.AspNetCore.Http.IFormFile? file,
+
+            System.Security.Claims.ClaimsPrincipal user,
+
+            CancellationToken cancellationToken = default);
+
 
         Task<RecruitmentResult<ContractDecisionResponse>> RecordEmployeeNotifiedAsync(
             Guid contractId,
@@ -128,6 +149,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             Guid contractId,
             UploadLegacyContractDocumentRequest request,
             ClaimsPrincipal user,
+            CancellationToken cancellationToken = default);
+
+        // --- FIN-HRD-08: Worklist Keputusan & Ringkasan Dashboard ---
+
+        Task<RecruitmentResult<PagedResult<ContractDecisionResponse>>> GetDecisionsPagedAsync(
+            ContractDecisionQuery query,
+            ClaimsPrincipal user,
+            CancellationToken cancellationToken = default);
+
+        Task<RecruitmentResult<EmploymentContractSummaryResponse>> GetContractSummaryAsync(
+            Guid? hospitalSiteId,
+            CancellationToken cancellationToken = default);
+
+        Task<RecruitmentResult<ContractRenewalSummaryResponse>> GetRenewalSummaryAsync(
+            Guid? hospitalSiteId,
+            CancellationToken cancellationToken = default);
+
+        Task<RecruitmentResult<EmploymentStatusChangeSummaryResponse>> GetConversionSummaryAsync(
+            Guid? hospitalSiteId,
             CancellationToken cancellationToken = default);
     }
 }

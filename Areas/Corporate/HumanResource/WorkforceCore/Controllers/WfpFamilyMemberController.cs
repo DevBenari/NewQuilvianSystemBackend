@@ -341,6 +341,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             if (!validation.IsValid)
                 return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage!));
 
+            // Guard FIN-HRD-04-BE-006 / HRD-DEC-052: Guard data keluarga yang memengaruhi pajak/benefit
+            var oldRelationship = entity.Relationship?.Trim() ?? string.Empty;
+            var newRelationship = request.Relationship?.Trim() ?? string.Empty;
+            var oldIdentity = entity.IdentityNumber?.Trim() ?? string.Empty;
+            var newIdentity = Normalize(request.IdentityNumber) ?? string.Empty;
+            var oldMarital = entity.MaritalStatusText?.Trim() ?? string.Empty;
+            var newMarital = Normalize(request.MaritalStatusText) ?? string.Empty;
+
+            var isRelationshipChanged = !string.IsNullOrEmpty(oldRelationship) && !string.Equals(oldRelationship, newRelationship, StringComparison.OrdinalIgnoreCase);
+            var isIdentityChanged = !string.IsNullOrEmpty(oldIdentity) && !string.Equals(oldIdentity, newIdentity, StringComparison.OrdinalIgnoreCase);
+            var isMaritalChanged = !string.IsNullOrEmpty(oldMarital) && !string.Equals(oldMarital, newMarital, StringComparison.OrdinalIgnoreCase);
+            // BE-HRD-392: jenis identitas ikut dikunci bila nomor identitas anggota keluarga sudah ada.
+            var isIdentityTypeChanged = !string.IsNullOrEmpty(oldIdentity) && !string.Equals(
+                entity.IdentityType?.Trim() ?? string.Empty,
+                Normalize(request.IdentityType) ?? string.Empty,
+                StringComparison.OrdinalIgnoreCase);
+
+            if (isRelationshipChanged || isIdentityChanged || isMaritalChanged || isIdentityTypeChanged)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan relasi keluarga, nomor identitas, atau status perkawinan merupakan data sensitif yang memengaruhi pajak dan benefit (HRD-DEC-052). Perubahan data ini wajib diajukan melalui Menu 06 Pengajuan Perubahan Data.",
+                    "SENSITIVE_FAMILY_MEMBER_LOCKED"
+                ));
+            }
+
             entity.Relationship = request.Relationship.Trim();
             entity.FullName = request.FullName.Trim();
             entity.Gender = request.Gender;
@@ -507,11 +533,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             return (true, null);
         }
 
+        // BE-HRD-401: riwayat pegawai yang sudah dinonaktifkan (offboarding/purnatugas) tetap dapat dibuka; hanya profil terhapus yang dianggap tidak ada.
         private async Task<bool> WorkforceProfileExistsAsync(Guid id)
         {
             return await _dbContext.Set<MstWorkforceProfile>()
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == id && x.IsActive && !x.IsDelete);
+                .AnyAsync(x => x.Id == id && !x.IsDelete);
         }
 
         private IActionResult WorkforceProfileNotFound() =>

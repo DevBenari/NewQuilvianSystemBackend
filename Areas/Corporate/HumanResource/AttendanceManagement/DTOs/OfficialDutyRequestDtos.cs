@@ -67,8 +67,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
     public class ApproveOfficialDutyRequest
     {
-        [Required]
-        public Guid ApproverWorkforceProfileId { get; set; }
+        public Guid? ApproverWorkforceProfileId { get; set; }
 
         [MaxLength(500)]
         public string? ApprovalNote { get; set; }
@@ -76,8 +75,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
     public class RejectOfficialDutyRequest
     {
-        [Required]
-        public Guid ApproverWorkforceProfileId { get; set; }
+        public Guid? ApproverWorkforceProfileId { get; set; }
 
         [Required, MaxLength(500)]
         public string RejectionReason { get; set; } = string.Empty;

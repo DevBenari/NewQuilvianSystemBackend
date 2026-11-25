@@ -37,4 +37,54 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         H7 = 4,                     // 1 - 7 hari (Peringatan Darurat Direktur)
         ExpiredH0 = 5               // 0 hari / Lewat (Fail-Closed Block Order SIMRS & Penjadwalan)
     }
+
+    /// <summary>
+    /// FIN-HRD-09-BE-001: Adapter semantik tunggal untuk SupervisionLevel.
+    /// Mencegah ambiguitas penomoran level antara legacy numerik dan semantik rumah sakit.
+    /// </summary>
+    public static class SupervisionLevelHelper
+    {
+        public const string SemanticIndependent = "INDEPENDENT";
+        public const string SemanticSupervised = "SUPERVISED";
+        public const string SemanticProctored = "PROCTORED";
+        public const string SemanticDenied = "DENIED";
+
+        public const string CodeIndependent = "Level1_Independent";
+        public const string CodeSupervised = "Level2_UnderSupervision";
+        public const string CodeProctored = "Level3_Proctored";
+        public const string CodeDenied = "Level4_NotPermitted";
+
+        public static string ToSemanticCode(this SupervisionLevel level) => level switch
+        {
+            SupervisionLevel.Level1_Independent => SemanticIndependent,
+            SupervisionLevel.Level2_UnderSupervision => SemanticSupervised,
+            SupervisionLevel.Level3_Proctored => SemanticProctored,
+            SupervisionLevel.Level4_NotPermitted => SemanticDenied,
+            _ => SemanticDenied
+        };
+
+        public static string ToIndonesianLabel(this SupervisionLevel level) => level switch
+        {
+            SupervisionLevel.Level1_Independent => "Mandiri",
+            SupervisionLevel.Level2_UnderSupervision => "Supervisi",
+            SupervisionLevel.Level3_Proctored => "Bimbingan Langsung (Proctored)",
+            SupervisionLevel.Level4_NotPermitted => "Tidak Diizinkan",
+            _ => "Tidak Diketahui"
+        };
+
+        public static SupervisionLevel FromSemanticCode(string? code)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return SupervisionLevel.Level4_NotPermitted;
+
+            var upper = code.Trim().ToUpperInvariant();
+            return upper switch
+            {
+                SemanticIndependent or "LEVEL1_INDEPENDENT" or "MANDIRI" or "1" => SupervisionLevel.Level1_Independent,
+                SemanticSupervised or "LEVEL2_UNDERSUPERVISION" or "SUPERVISI" or "2" => SupervisionLevel.Level2_UnderSupervision,
+                SemanticProctored or "LEVEL3_PROCTORED" or "PROCTORED" or "BIMBINGAN" or "3" => SupervisionLevel.Level3_Proctored,
+                SemanticDenied or "LEVEL4_NOTPERMITTED" or "TIDAK DIIZINKAN" or "DITOLAK" or "4" => SupervisionLevel.Level4_NotPermitted,
+                _ => SupervisionLevel.Level4_NotPermitted
+            };
+        }
+    }
 }

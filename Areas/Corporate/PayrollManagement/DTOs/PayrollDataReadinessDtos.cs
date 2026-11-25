@@ -3,7 +3,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 /// <summary>
 /// Kelengkapan data payroll per pegawai dan dokter aktif. Berbeda dari Profil Penggajian (PayrollCompensation) yang bersumber dari
 /// profil payroll, daftar ini bersumber dari POPULASI pegawai dan dokter (master HRD), sehingga orang yang belum punya profil tetap
-/// tampil. Payroll hanya MEMBACA data HRD (penetapan gaji dan rekening); satu-satunya yang ditulis Payroll adalah profil payroll.
+/// tampil. Payroll hanya MEMBACA data HRD (penetapan gaji, rekening, penempatan); profil operasional payroll (PrlPayroll) disiapkan
+/// otomatis saat payroll run dipersiapkan, bukan lewat impor. Pembacaan di sini tidak pernah membuat atau mengubah data.
 /// </summary>
 public sealed class PayrollDataReadinessQuery
 {
@@ -12,13 +13,17 @@ public sealed class PayrollDataReadinessQuery
     /// <summary>"Karyawan" atau "Dokter" (nilai sama dengan layar Profil Penggajian).</summary>
     public string? PersonType { get; set; }
 
-    /// <summary>"Lengkap" atau "Belum lengkap"; kosong berarti semua.</summary>
+    /// <summary>"Lengkap" atau "Belum lengkap"; kosong berarti semua. Mengikuti <c>IsComplete</c>.</summary>
     public string? Completeness { get; set; }
 
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 25;
 }
 
+/// <summary>
+/// Tiga hal yang dinilai terpisah: (1) kelengkapan sumber HRD (<see cref="HrdComplete"/>), (2) status profil operasional internal
+/// Payroll (<see cref="PayrollProfileStatus"/>), dan (3) kesiapan mengikuti proses Payroll (<see cref="IsComplete"/>).
+/// </summary>
 public sealed class PayrollDataReadinessItemResponse
 {
     public Guid WorkforceProfileId { get; set; }
@@ -26,102 +31,96 @@ public sealed class PayrollDataReadinessItemResponse
     public string Number { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Profil payroll ada, aktif, eligible, dan berstatus Active (milik Payroll).</summary>
+    /// <summary>Profil payroll ada, aktif, eligible, dan berstatus Active (milik Payroll). Sama dengan <c>PayrollProfileStatus = "Siap"</c>.</summary>
     public bool HasPayrollProfile { get; set; }
 
-    /// <summary>Ada penetapan gaji utama aktif yang sudah disetujui (data HRD, hanya dibaca).</summary>
+    /// <summary>Ada penetapan gaji utama aktif yang berlaku saat ini dan sudah disetujui (data HRD, hanya dibaca).</summary>
     public bool HasApprovedSalaryAssignment { get; set; }
 
-    /// <summary>Ada penetapan gaji utama aktif yang masih menunggu persetujuan HRD.</summary>
+    /// <summary>Ada penetapan gaji utama aktif yang berlaku saat ini dan masih menunggu persetujuan HRD.</summary>
     public bool HasPendingSalaryAssignment { get; set; }
 
-    /// <summary>"Belum ada", "Belum terverifikasi", atau "Terverifikasi" (rekening bertanda rekening payroll di HRD).</summary>
+    /// <summary>"Belum ada", "Belum terverifikasi", atau "Terverifikasi" (rekening payroll aktif yang berlaku di HRD).</summary>
     public string BankStatus { get; set; } = string.Empty;
 
+    /// <summary>
+    /// (1) Sumber HRD lengkap: penetapan gaji utama yang berlaku sudah disetujui dan rekening payroll sudah terverifikasi. Seluruh
+    /// pemilik datanya HRD; Payroll tidak melengkapinya.
+    /// </summary>
+    public bool HrdComplete { get; set; }
+
+    /// <summary>
+    /// (2) Profil operasional internal Payroll: "Siap" (aktif dan ikut payroll run), "Akan disiapkan otomatis" (belum ada, dan akan
+    /// dibuat saat payroll run dipersiapkan karena penetapan gaji dan rekening sudah ada di HRD), "Menunggu data HRD" (belum ada dan
+    /// belum dapat disiapkan sampai penetapan gaji atau rekening ada di HRD), atau "Perlu perhatian" (profil ada tetapi tidak aktif,
+    /// tidak eligible, atau bukan Active; tidak diaktifkan otomatis).
+    /// </summary>
+    public string PayrollProfileStatus { get; set; } = string.Empty;
+
+    /// <summary>Status konfigurasi PPh: "Sudah ditetapkan" atau "Belum ditetapkan".</summary>
+    public string TaxStatus { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Nama historis: sama dengan <see cref="TaxStatus"/>. Sejak PAY-BE-FIX-007 hanya konfigurasi PPh yang dinilai; asuransi swasta dan
+    /// iuran BPJS bukan syarat. Tidak memengaruhi <see cref="IsComplete"/>.
+    /// </summary>
+    public string TaxInsuranceStatus { get; set; } = string.Empty;
+
+    /// <summary>NOT_CONFIGURED | CONFIGURED | NOT_EFFECTIVE | ERROR untuk konfigurasi PPh (Profil Pajak HRD).</summary>
+    public string TaxConfigurationStatus { get; set; } = string.Empty;
+
+    /// <summary>Kekurangan konfigurasi PPh yang sebenarnya (mis. jenis PPh atau kategori belum ditentukan); kosong bila lengkap.</summary>
+    public List<string> TaxConfigurationIssues { get; set; } = new();
+
+    /// <summary>
+    /// (3) Siap mengikuti proses Payroll: tidak ada penghalang. Benar bila <see cref="HrdComplete"/> dan profil "Siap" atau "Akan
+    /// disiapkan otomatis". Tidak mencakup tetapan PPh (lihat <see cref="TaxStatus"/>).
+    /// </summary>
     public bool IsComplete { get; set; }
+
+    /// <summary>Penghalang kesiapan; kosong bila <see cref="IsComplete"/>.</summary>
     public List<string> Issues { get; set; } = new();
+
+    /// <summary>Catatan yang tidak menghalangi, mis. profil akan disiapkan otomatis atau tetapan PPh dan iuran belum ditetapkan.</summary>
+    public List<string> Notes { get; set; } = new();
 }
 
 public sealed class PayrollDataReadinessSummaryResponse
 {
     public int TotalPeople { get; set; }
+
+    /// <summary>Orang dengan profil payroll "Siap".</summary>
     public int WithPayrollProfile { get; set; }
+
     public int WithApprovedSalaryAssignment { get; set; }
     public int WithVerifiedBankAccount { get; set; }
+
+    /// <summary>Orang yang siap mengikuti proses Payroll (<c>IsComplete</c>); jumlah yang sama dengan filter "Lengkap" pada daftar.</summary>
     public int Complete { get; set; }
-}
 
-/// <summary>
-/// Impor profil payroll: satu baris per orang membuat profil payroll bila belum ada. Struktur, grade, penetapan gaji, dan rekening
-/// DIAMBIL dari data HRD (hanya dibaca); baris yang data HRD-nya belum lengkap ditolak. Semua atau tidak sama sekali: satu baris
-/// bermasalah membatalkan seluruh impor. <see cref="DryRun"/> hanya memeriksa.
-/// </summary>
-public sealed class ImportPayrollDataRequest
-{
-    public bool DryRun { get; set; }
-    public List<ImportPayrollDataRow> Rows { get; set; } = new();
-}
+    /// <summary>Orang yang sumber HRD-nya lengkap.</summary>
+    public int HrdComplete { get; set; }
 
-public sealed class ImportPayrollDataRow
-{
-    /// <summary>Nomor pegawai (MstEmployee.EmployeeNumber) atau nomor dokter (MstDoctor.DoctorNumber).</summary>
-    public string? PersonNumber { get; set; }
+    /// <summary>Orang yang profil payroll-nya akan disiapkan otomatis saat payroll run dipersiapkan.</summary>
+    public int ProfilesToPrepare { get; set; }
 
-    /// <summary>Opsional. Kode Cost Center untuk laporan beban gaji.</summary>
-    public string? CostCenterCode { get; set; }
+    /// <summary>Orang yang profil payroll-nya ada tetapi tidak aktif, tidak eligible, atau bukan Active.</summary>
+    public int ProfilesNeedAttention { get; set; }
 
-    /// <summary>Tetapan PPh bulanan pada profil payroll (mesin tidak punya rumus tarif).</summary>
-    public decimal TaxAmount { get; set; }
+    /// <summary>
+    /// Orang yang konfigurasi PPh-nya di HRD belum ditetapkan secara sah dan berlaku (jenis PPh, kategori, atau skema
+    /// perhitungan belum ditentukan, belum/tidak berlaku, atau tidak sah). Bukan perbandingan nominal nol.
+    /// </summary>
+    public int TaxNotSet { get; set; }
 
-    /// <summary>Tetapan iuran karyawan (BPJS/asuransi) bulanan pada profil payroll.</summary>
-    public decimal InsuranceAmount { get; set; }
-}
+    /// <summary>Nama historis: sama dengan <see cref="TaxNotSet"/> (hanya PPh).</summary>
+    public int TaxInsuranceNotSet { get; set; }
 
-public sealed class PayrollDataImportResult
-{
-    public bool DryRun { get; set; }
-    public int RowCount { get; set; }
-    public int PayrollProfilesCreated { get; set; }
-
-    /// <summary>Profil yang sudah ada dan dilewati.</summary>
-    public int PayrollProfilesSkipped { get; set; }
-
-    /// <summary>Hasil per baris saat impor sah (atau uji kering lolos).</summary>
-    public List<PayrollDataImportRowResult> Rows { get; set; } = new();
-
-    /// <summary>Baris bermasalah saat impor dibatalkan (400). Kosong pada impor yang sah.</summary>
-    public List<PayrollDataImportFailedRow> FailedRows { get; set; } = new();
-}
-
-public sealed class PayrollDataImportRowResult
-{
-    /// <summary>Nomor baris pada kiriman, mulai dari 1.</summary>
-    public int RowNumber { get; set; }
-
-    public string PersonNumber { get; set; } = string.Empty;
-    public string PersonName { get; set; } = string.Empty;
-
-    /// <summary>"Dibuat" atau "Sudah ada (dilewati)".</summary>
-    public string PayrollProfile { get; set; } = string.Empty;
-
-    /// <summary>Status penetapan gaji utama di HRD saat profil dibuat; kosong bila profil dilewati.</summary>
-    public string SalaryAssignment { get; set; } = string.Empty;
-
-    /// <summary>Status rekening payroll di HRD saat profil dibuat; kosong bila profil dilewati.</summary>
-    public string BankAccount { get; set; } = string.Empty;
-
-    public List<string> Warnings { get; set; } = new();
-}
-
-public sealed class PayrollDataImportFailedRow
-{
-    /// <summary>Nomor baris pada kiriman, mulai dari 1.</summary>
-    public int RowNumber { get; set; }
-
-    public string Reason { get; set; } = string.Empty;
-}
-
-public sealed class PayrollDataImportException(string message, PayrollDataImportResult result) : Exception(message)
-{
-    public PayrollDataImportResult Result { get; } = result;
+    /// <summary>
+    /// Ketersediaan kebijakan tarif PPh berversi yang disahkan dan berlaku hari ini. "Menunggu Verifikasi Kebijakan" berarti PPh
+    /// otomatis menahan payroll run walaupun konfigurasi per orang sudah lengkap.
+    /// </summary>
+    public bool TaxPolicyApproved { get; set; }
+    public string? TaxPolicyVersion { get; set; }
+    public string TaxPolicyStatusLabel { get; set; } = string.Empty;
 }

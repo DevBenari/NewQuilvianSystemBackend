@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 
@@ -110,7 +111,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             {
                 return NotFound(ApiResponse<string>.Fail(404, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<string>.Fail(500, $"Terjadi kegagalan saat inisiasi FPPE: {ex.Message}"));
             }
@@ -173,7 +174,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<string>.Fail(500, $"Terjadi kegagalan saat pencatatan kasus: {ex.Message}"));
             }
@@ -188,6 +189,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<FppeCaseLogResponseDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
+        [ProducesResponseType(typeof(ApiResponse<string>), 403)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
         public async Task<IActionResult> VerifyCaseLog(
             [FromRoute] Guid logId,
@@ -201,7 +203,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
             try
             {
-                var verifiedLog = await _proctoringService.VerifyCaseLogAsync(logId, request, cancellationToken);
+                var currentProctor = User.GetWorkforceProfileId() ?? Guid.Empty;
+                var verifiedLog = await _proctoringService.VerifyCaseLogAsync(logId, request, currentProctor, cancellationToken);
                 return Ok(ApiResponse<FppeCaseLogResponseDto>.Ok(verifiedLog, "Kasus klinis terproctoring berhasil diverifikasi oleh Dokter Proctor pendamping."));
             }
             catch (KeyNotFoundException ex)
@@ -212,9 +215,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
-            catch (Exception ex)
+            catch (UnauthorizedAccessException ex)
             {
-                return StatusCode(500, ApiResponse<string>.Fail(500, $"Terjadi kegagalan saat verifikasi proctor: {ex.Message}"));
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(StatusCodes.Status403Forbidden, ex.Message));
             }
         }
         #endregion
@@ -257,7 +260,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<string>.Fail(500, $"Terjadi kegagalan saat pengesahan pleno: {ex.Message}"));
             }
@@ -291,7 +294,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<string>.Fail(500, $"Terjadi kegagalan saat sinkronisasi kewenangan klinis: {ex.Message}"));
             }

@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Mode
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using PayrollDateNormalizer = QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services.PayrollDateNormalizer;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -133,11 +134,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 RunType = command.RunType,
                 RunStatus = "Draft",
                 CurrencyCode = "IDR",
-                PeriodStartDateSnapshot = period.StartDate,
-                PeriodEndDateSnapshot = period.EndDate,
-                AttendanceCutoffDateSnapshot = period.AttendanceCutoffDate,
-                VariableInputCutoffDateSnapshot = period.VariableInputCutoffDate,
-                PaymentDateSnapshot = period.PaymentDate,
+                // Kolom snapshot berjenis timestamptz; tanggal periode berkolom date terbaca Unspecified (PayrollDateNormalizer).
+                PeriodStartDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.StartDate),
+                PeriodEndDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.EndDate),
+                AttendanceCutoffDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.AttendanceCutoffDate),
+                VariableInputCutoffDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.VariableInputCutoffDate),
+                PaymentDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.PaymentDate),
                 ConfigurationSnapshotJson = settingSnapshotJson,
                 Notes = command.Notes,
                 IsLocked = false,

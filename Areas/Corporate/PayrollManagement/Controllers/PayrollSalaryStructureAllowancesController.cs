@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Services.Security;
 
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers;
 
@@ -26,20 +27,47 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers;
 [Tags("Corporate / Payroll Management / Master Data / Salary Structure Allowance")]
 public sealed class PayrollSalaryStructureAllowancesController : ControllerBase
 {
-    private readonly PayrollSalaryStructureAllowanceService _service;
+    private const string Resource = "SalaryStructureAllowance";
 
-    public PayrollSalaryStructureAllowancesController(PayrollSalaryStructureAllowanceService service)
+    private readonly PayrollSalaryStructureAllowanceService _service;
+    private readonly AccessPermissionService _accessPermissionService;
+
+    public PayrollSalaryStructureAllowancesController(
+        PayrollSalaryStructureAllowanceService service,
+        AccessPermissionService accessPermissionService)
     {
         _service = service;
+        _accessPermissionService = accessPermissionService;
     }
+
+    /// <summary>Izin nominal menurut Akses Role. Tanpa izin ini nominal, persen, dan batas maksimum null di setiap respons (bukan nol).</summary>
+    private Task<bool> CanViewAmountAsync() => _accessPermissionService.HasAccessAsync(User, Resource, "ViewAmount");
 
     [HttpGet]
     [AccessAction("Read", "Read Salary Structure Allowance", Description = "Melihat tunjangan tetap satu struktur gaji", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("SalaryStructureAllowance", "Read")]
     public Task<IActionResult> List(Guid salaryStructureId, CancellationToken cancellationToken) =>
         PayrollControllerSupport.RunAsync(
-            () => _service.ListAsync(salaryStructureId, cancellationToken),
+            async () =>
+            {
+                var canViewAmount = await CanViewAmountAsync();
+                var items = await _service.ListAsync(salaryStructureId, cancellationToken);
+                return PayrollSalaryStructureAllowanceService.ApplyAmountVisibility(items, canViewAmount);
+            },
             "Tunjangan struktur gaji berhasil dimuat.");
+
+    /// <summary>
+    /// Pintu izin nominal (pola ViewAmount di repo): endpoint ini sengaja ada agar kemampuan "melihat nominal tunjangan struktur" muncul
+    /// di layar Akses Role. Pemilik izin ini juga melihat nominal pada daftar dan pada respons tambah/ubah.
+    /// </summary>
+    [HttpGet("{id:guid}/amount")]
+    [AccessAction("ViewAmount", "View Salary Structure Allowance Amount", Description = "Melihat nominal dan persentase tunjangan tetap struktur gaji", AccessType = AccessTypes.Read, SortOrder = 5)]
+    [AccessPermission("SalaryStructureAllowance", "ViewAmount")]
+    public Task<IActionResult> GetAmount(Guid salaryStructureId, Guid id, CancellationToken cancellationToken) =>
+        PayrollControllerSupport.RunAsync(
+            async () => PayrollSalaryStructureAllowanceService.ApplyAmountVisibility(
+                await _service.GetAmountAsync(salaryStructureId, id, cancellationToken), canViewAmount: true),
+            "Nominal tunjangan struktur gaji berhasil dimuat.");
 
     [HttpPost]
     [AccessAction("Create", "Create Salary Structure Allowance", Description = "Menambah jenis tunjangan ke struktur gaji", AccessType = AccessTypes.Create, SortOrder = 2)]
@@ -49,7 +77,9 @@ public sealed class PayrollSalaryStructureAllowancesController : ControllerBase
         [FromBody] CreateSalaryStructureAllowanceRequest request,
         CancellationToken cancellationToken) =>
         PayrollControllerSupport.RunAsync(
-            () => _service.CreateAsync(salaryStructureId, request, PayrollControllerSupport.CurrentUserId(User), cancellationToken),
+            async () => PayrollSalaryStructureAllowanceService.ApplyAmountVisibility(
+                await _service.CreateAsync(salaryStructureId, request, PayrollControllerSupport.CurrentUserId(User), cancellationToken),
+                await CanViewAmountAsync()),
             "Tunjangan berhasil ditambahkan ke struktur gaji.");
 
     [HttpPut("{id:guid}")]
@@ -61,7 +91,9 @@ public sealed class PayrollSalaryStructureAllowancesController : ControllerBase
         [FromBody] UpdateSalaryStructureAllowanceRequest request,
         CancellationToken cancellationToken) =>
         PayrollControllerSupport.RunAsync(
-            () => _service.UpdateAsync(salaryStructureId, id, request, PayrollControllerSupport.CurrentUserId(User), cancellationToken),
+            async () => PayrollSalaryStructureAllowanceService.ApplyAmountVisibility(
+                await _service.UpdateAsync(salaryStructureId, id, request, PayrollControllerSupport.CurrentUserId(User), cancellationToken),
+                await CanViewAmountAsync()),
             "Tunjangan struktur gaji berhasil diperbarui.");
 
     [HttpDelete("{id:guid}")]
@@ -71,8 +103,9 @@ public sealed class PayrollSalaryStructureAllowancesController : ControllerBase
         Guid salaryStructureId,
         Guid id,
         [FromQuery] string? expectedRowVersion,
+        [FromQuery] bool acknowledgeUsedInPayroll,
         CancellationToken cancellationToken) =>
         PayrollControllerSupport.RunAsync(
-            () => _service.DeleteAsync(salaryStructureId, id, expectedRowVersion, PayrollControllerSupport.CurrentUserId(User), cancellationToken),
+            () => _service.DeleteAsync(salaryStructureId, id, expectedRowVersion, acknowledgeUsedInPayroll, PayrollControllerSupport.CurrentUserId(User), cancellationToken),
             "Tunjangan berhasil dihapus dari struktur gaji.");
 }

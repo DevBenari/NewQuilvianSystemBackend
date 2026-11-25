@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using QuilvianSystemBackend.Services.Security;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -10,6 +12,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManageme
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Controllers
 {
@@ -151,14 +154,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             }
         }
 
-        /// <summary>
-        /// Mengajukan settlement biaya perjalanan dinas dan melampirkan kuitansi riil (Kontrak v25)
-        /// </summary>
         [HttpPost]
         [AccessAction("Submit", "Menyerahkan Pertanggungjawaban Dinas", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("BusinessTravelSettlement", "Submit")]
         [ProducesResponseType(typeof(ApiResponse<TravelSettlementResponseDto>), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<TravelSettlementResponseDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<TravelSettlementResponseDto>), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> SubmitSettlement([FromBody] SubmitTravelSettlementDto dto)
         {
             try
@@ -167,7 +168,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _settlementService.SubmitSettlementAsync(dto, userId);
                 return StatusCode(StatusCodes.Status201Created, ApiResponse<TravelSettlementResponseDto>.Ok(result, "Pertanggungjawaban settlement berhasil diserahkan"));
             }
-            catch (Exception ex)
+            catch (BusinessTravelRequestException ex)
+            {
+                return StatusCode(ex.StatusCode, ApiResponse<TravelSettlementResponseDto>.Fail(ex.StatusCode, ex.Message));
+            }
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelSettlementResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -189,7 +194,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _settlementService.VerifySettlementAsync(id, dto, userId);
                 return Ok(ApiResponse<TravelSettlementResponseDto>.Ok(result, "Verifikasi kuitansi settlement berhasil disimpan"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelSettlementResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -211,9 +216,81 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _settlementService.CloseSettlementAsync(id, dto, userId);
                 return Ok(ApiResponse<TravelSettlementResponseDto>.Ok(result, "Penyelesaian kas settlement berhasil disahkan"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelSettlementResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Unggah struk/bukti pengeluaran perjalanan dinas (MSL-15, DEC-FER-02 opsi A, 18 Nov 2026). Multipart: <c>file</c>; query <c>category</c>
+        /// ("travel-receipt"). Jawaban berisi <c>key</c> yang disimpan di kolom lampiran fitur. PDF/JPG/PNG/WEBP/Word/Excel, maks 10 MB.
+        /// </summary>
+        [HttpPost("attachments")]
+        [AccessAction("Submit", "Mengajukan Settlement Dinas", AccessType = AccessTypes.Create, SortOrder = 30)]
+        [AccessPermission("BusinessTravelSettlement", "Submit")]
+        [Tags("Corporate - HRD Business Travel Settlements")]
+        [RequestSizeLimit(HrAttachmentStorage.DefaultMaximumFileSizeBytes + 1024 * 1024)]
+        [ProducesResponseType(typeof(ApiResponse<HrStoredAttachment>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UploadAttachment(
+            [FromForm] IFormFile file,
+            [FromQuery] string? category,
+            [FromServices] HrAttachmentStorage storage,
+            CancellationToken cancellationToken = default)
+        {
+            var resolvedCategory = string.IsNullOrWhiteSpace(category) ? "travel-receipt" : category.Trim();
+            if (!new[] { "travel-receipt" }.Contains(resolvedCategory))
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Jenis lampiran tidak dikenal untuk fitur ini."));
+            }
+
+            try
+            {
+                var stored = await storage.SaveAsync(resolvedCategory, User.GetUserId(), file, cancellationToken);
+                return StatusCode(StatusCodes.Status201Created, ApiResponse<HrStoredAttachment>.Ok(stored, "Lampiran berhasil diunggah."));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Unduh struk/bukti pengeluaran perjalanan dinas (MSL-15). Boleh untuk pengunggah, atau pemegang hak Verify, Close pada fitur ini.
+        /// Lampiran milik orang lain tanpa hak dijawab 404 agar keberadaannya tidak bocor.
+        /// </summary>
+        [HttpGet("attachments/download")]
+        [AccessAction("Read", "Melihat Settlement Dinas", AccessType = AccessTypes.Read, SortOrder = 31)]
+        [AccessPermission("BusinessTravelSettlement", "Read")]
+        [Tags("Corporate - HRD Business Travel Settlements")]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DownloadAttachment(
+            [FromQuery] string key,
+            [FromServices] HrAttachmentStorage storage,
+            [FromServices] AccessPermissionService accessPermissionService)
+        {
+            var category = HrAttachmentStorage.CategoryOf(key);
+            if (category == null || !new[] { "travel-receipt" }.Contains(category))
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Lampiran tidak ditemukan."));
+            }
+
+            try
+            {
+                var attachment = storage.Open(key, category);
+                var allowed = attachment.OwnerUserId == User.GetUserId() || await accessPermissionService.HasAccessAsync(User, "BusinessTravelSettlement", "Verify") || await accessPermissionService.HasAccessAsync(User, "BusinessTravelSettlement", "Close");
+                if (!allowed)
+                {
+                    return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Lampiran tidak ditemukan."));
+                }
+
+                return PhysicalFile(attachment.PhysicalPath, attachment.ContentType, attachment.DownloadName);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
         }
     }

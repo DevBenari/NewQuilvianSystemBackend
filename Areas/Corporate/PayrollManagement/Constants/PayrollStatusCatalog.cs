@@ -55,6 +55,8 @@ public static class PayrollEngineComponentCodes
     public const string StructureAllowance = "PAY_STRUCTURE_ALLOWANCE";
     /// <summary>Tunjangan transport bulanan tetap (PGJ-C1, PRL-DEC-46). SourceId = PrlTransportAllowance.Id.</summary>
     public const string TransportAllowance = "PAY_TRANSPORT_ALLOWANCE";
+    /// <summary>Satu baris per penetapan tunjangan khusus pegawai berstatus Approved. SourceId = PrlWorkforceAllowance.Id.</summary>
+    public const string WorkforceAllowance = "PAY_WORKFORCE_ALLOWANCE";
     public const string Overtime = "PAY_OVERTIME";
     public const string AttendanceAllowance = "PAY_ATTENDANCE_ALLOWANCE";
     public const string VariableEarning = "PAY_VARIABLE_EARNING";
@@ -79,4 +81,5 @@ public static class PayrollEngineComponentSources
 {
     public const string SalaryStructureAllowance = "SalaryStructureAllowance";
     public const string TransportAllowance = "TransportAllowance";
+    public const string WorkforceAllowance = "WorkforceAllowance";
 }

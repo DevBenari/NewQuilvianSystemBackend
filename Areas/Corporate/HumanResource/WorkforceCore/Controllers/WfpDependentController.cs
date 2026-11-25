@@ -357,6 +357,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                     validation.ErrorMessage ?? "Data tanggungan workforce tidak valid."));
             }
 
+            // Guard FIN-HRD-04-BE-007 / HRD-DEC-052: Guard tanggungan pajak, benefit, dan asuransi dari mutasi langsung
+            var isSensitiveChanged = (entity.IsTaxDependent != request.IsTaxDependent) ||
+                (entity.IsBenefitEligible != request.IsBenefitEligible) ||
+                (entity.IsInsuranceEligible != request.IsInsuranceEligible) ||
+                // BE-HRD-393: mengosongkan relasi anggota keluarga juga termasuk perubahan relasi.
+                (entity.FamilyMemberId != NormalizeNullableGuid(request.FamilyMemberId));
+
+            if (isSensitiveChanged)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan status tanggungan pajak, kelayakan benefit, kelayakan asuransi, atau relasi anggota keluarga merupakan data sensitif yang memengaruhi pajak dan benefit (HRD-DEC-052). Perubahan wajib melalui pengajuan perubahan data berbukti yang disetujui Menu 06.",
+                    "SENSITIVE_DEPENDENT_LOCKED"
+                ));
+            }
+
             var normalizedStatus = NormalizeDependentStatus(request.DependentStatus);
             entity.FamilyMemberId = NormalizeNullableGuid(request.FamilyMemberId);
             entity.BenefitPlanId = NormalizeNullableGuid(request.BenefitPlanId);
@@ -696,11 +712,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             return (true, null);
         }
 
+        // BE-HRD-401: riwayat pegawai yang sudah dinonaktifkan (offboarding/purnatugas) tetap dapat dibuka; hanya profil terhapus yang dianggap tidak ada.
         private async Task<bool> WorkforceProfileExistsAsync(Guid workforceProfileId, CancellationToken cancellationToken)
         {
             return workforceProfileId != Guid.Empty && await _dbContext.MstWorkforceProfiles
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == workforceProfileId && x.IsActive && !x.IsDelete, cancellationToken);
+                .AnyAsync(x => x.Id == workforceProfileId && !x.IsDelete, cancellationToken);
         }
 
         private async Task<Dictionary<Guid, string>> GetActorNameMapAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken)

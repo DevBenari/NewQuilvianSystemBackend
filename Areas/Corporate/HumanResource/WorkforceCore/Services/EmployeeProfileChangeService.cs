@@ -186,7 +186,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 [BuildFieldKey("WfpEmergencyContact", "Address")] =
                     new("WfpEmergencyContact", "EmergencyContact", "Address", "Alamat kontak darurat", "String", false),
                 [BuildFieldKey("WfpEmergencyContact", "Description")] =
-                    new("WfpEmergencyContact", "EmergencyContact", "Description", "Keterangan kontak darurat", "String", false)
+                    new("WfpEmergencyContact", "EmergencyContact", "Description", "Keterangan kontak darurat", "String", false),
+
+                // WfpFamilyMember (Keluarga)
+                [BuildFieldKey("WfpFamilyMember", "Relationship")] =
+                    new("WfpFamilyMember", "FamilyMember", "Relationship", "Hubungan keluarga", "String", true),
+                [BuildFieldKey("WfpFamilyMember", "FullName")] =
+                    new("WfpFamilyMember", "FamilyMember", "FullName", "Nama anggota keluarga", "String", true),
+                [BuildFieldKey("WfpFamilyMember", "IdentityNumber")] =
+                    new("WfpFamilyMember", "FamilyMember", "IdentityNumber", "Nomor identitas keluarga", "String", true),
+                [BuildFieldKey("WfpFamilyMember", "MaritalStatusText")] =
+                    new("WfpFamilyMember", "FamilyMember", "MaritalStatusText", "Status pernikahan keluarga", "String", true),
+
+                // WfpDependent (Tanggungan)
+                [BuildFieldKey("WfpDependent", "IsTaxDependent")] =
+                    new("WfpDependent", "Dependent", "IsTaxDependent", "Tanggungan pajak", "Boolean", true),
+                [BuildFieldKey("WfpDependent", "IsBenefitEligible")] =
+                    new("WfpDependent", "Dependent", "IsBenefitEligible", "Kelayakan benefit", "Boolean", true),
+                [BuildFieldKey("WfpDependent", "IsInsuranceEligible")] =
+                    new("WfpDependent", "Dependent", "IsInsuranceEligible", "Kelayakan asuransi", "Boolean", true)
             };
 
         private readonly ApplicationDbContext _dbContext;
@@ -1339,6 +1357,30 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
 
             try
             {
+                // BE-HRD-390: apply tepat sekali. Dua klik "Terapkan" yang bersamaan diantrekan per
+                // permintaan; yang kedua membaca ulang status sesudah yang pertama commit dan ditolak 409.
+                if (_dbContext.Database.IsNpgsql())
+                {
+                    await _dbContext.Database.ExecuteSqlRawAsync(
+                        "SELECT pg_advisory_xact_lock(hashtext({0}));",
+                        [$"HRD_PROFILE_CHANGE_APPLY_{entity.Id}"],
+                        cancellationToken);
+                }
+
+                var currentStatus = await _dbContext.Set<TrxEmployeeProfileChangeRequest>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == entity.Id)
+                    .Select(x => x.RequestStatus)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (currentStatus != "Approved")
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return EmployeeProfileChangeServiceResult<EmployeeProfileChangeApplyResponse>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Permintaan ini sudah diterapkan atau statusnya berubah. Muat ulang data.");
+                }
+
                 foreach (var item in planResult.Data)
                 {
                     item.Property.SetValue(item.Target, item.ConvertedValue);
@@ -1357,6 +1399,16 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                     {
                         var exists = await _dbContext.Set<WfpEmergencyContact>().AnyAsync(x => x.Id == ec.Id, cancellationToken);
                         if (!exists) _dbContext.Set<WfpEmergencyContact>().Add(ec);
+                    }
+                    else if (item.Target is WfpFamilyMember fam && !_dbContext.Set<WfpFamilyMember>().Local.Any(x => x.Id == fam.Id))
+                    {
+                        var exists = await _dbContext.Set<WfpFamilyMember>().AnyAsync(x => x.Id == fam.Id, cancellationToken);
+                        if (!exists) _dbContext.Set<WfpFamilyMember>().Add(fam);
+                    }
+                    else if (item.Target is WfpDependent dep && !_dbContext.Set<WfpDependent>().Local.Any(x => x.Id == dep.Id))
+                    {
+                        var exists = await _dbContext.Set<WfpDependent>().AnyAsync(x => x.Id == dep.Id, cancellationToken);
+                        if (!exists) _dbContext.Set<WfpDependent>().Add(dep);
                     }
                 }
 
@@ -2602,6 +2654,34 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>
+        /// BE-HRD-390: record anak profil (alamat, rekening, kontak darurat, keluarga, tanggungan) yang
+        /// dirujuk lewat TargetEntityId wajib milik profil pegawai pada permintaan yang sama dan belum
+        /// dihapus. Tanpa penjaga ini, pengajuan untuk pegawai A dapat mengubah rekening pegawai B.
+        /// </summary>
+        private static TargetResolution? GuardTargetOwnership(
+            Guid ownerWorkforceProfileId,
+            bool isDeleted,
+            MstWorkforceProfile workforceProfile,
+            string targetLabel)
+        {
+            if (ownerWorkforceProfileId != workforceProfile.Id)
+            {
+                return TargetResolution.Fail(
+                    StatusCodes.Status400BadRequest,
+                    $"Data {targetLabel} yang dirujuk bukan milik pegawai pada permintaan ini.");
+            }
+
+            if (isDeleted)
+            {
+                return TargetResolution.Fail(
+                    StatusCodes.Status409Conflict,
+                    $"Data {targetLabel} yang dirujuk sudah dihapus.");
+            }
+
+            return null;
+        }
+
         private static TargetResolution ResolveTarget(
             MstWorkforceProfile workforceProfile,
             MstEmployee employee,
@@ -2657,7 +2737,21 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 WfpAddress? address = null;
                 if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
                 {
-                    address = dbContext.Set<WfpAddress>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                    var existingWfpAddress = dbContext.Set<WfpAddress>().FirstOrDefault(x => x.Id == targetId);
+                    if (existingWfpAddress != null)
+                    {
+                        var ownershipFailure = GuardTargetOwnership(
+                            existingWfpAddress.WorkforceProfileId,
+                            existingWfpAddress.IsDelete,
+                            workforceProfile,
+                            "alamat");
+                        if (ownershipFailure != null)
+                        {
+                            return ownershipFailure;
+                        }
+
+                        address = existingWfpAddress;
+                    }
                 }
 
                 if (address == null)
@@ -2691,7 +2785,21 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 WfpBankAccount? bank = null;
                 if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
                 {
-                    bank = dbContext.Set<WfpBankAccount>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                    var existingWfpBankAccount = dbContext.Set<WfpBankAccount>().FirstOrDefault(x => x.Id == targetId);
+                    if (existingWfpBankAccount != null)
+                    {
+                        var ownershipFailure = GuardTargetOwnership(
+                            existingWfpBankAccount.WorkforceProfileId,
+                            existingWfpBankAccount.IsDelete,
+                            workforceProfile,
+                            "rekening bank");
+                        if (ownershipFailure != null)
+                        {
+                            return ownershipFailure;
+                        }
+
+                        bank = existingWfpBankAccount;
+                    }
                 }
 
                 if (bank == null)
@@ -2725,7 +2833,21 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 WfpEmergencyContact? contact = null;
                 if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
                 {
-                    contact = dbContext.Set<WfpEmergencyContact>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                    var existingWfpEmergencyContact = dbContext.Set<WfpEmergencyContact>().FirstOrDefault(x => x.Id == targetId);
+                    if (existingWfpEmergencyContact != null)
+                    {
+                        var ownershipFailure = GuardTargetOwnership(
+                            existingWfpEmergencyContact.WorkforceProfileId,
+                            existingWfpEmergencyContact.IsDelete,
+                            workforceProfile,
+                            "kontak darurat");
+                        if (ownershipFailure != null)
+                        {
+                            return ownershipFailure;
+                        }
+
+                        contact = existingWfpEmergencyContact;
+                    }
                 }
 
                 if (contact == null)
@@ -2743,6 +2865,102 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 }
 
                 return TargetResolution.Ok(contact, "WfpEmergencyContact", contact.Id);
+            }
+
+            if (normalizedName == "WfpFamilyMember")
+            {
+                var targetId = targetEntityId.HasValue && targetEntityId.Value != Guid.Empty
+                    ? targetEntityId.Value
+                    : Guid.NewGuid();
+
+                if (instanceCache != null && instanceCache.TryGetValue(targetId, out var cached) && cached is WfpFamilyMember cachedFam)
+                {
+                    return TargetResolution.Ok(cachedFam, "WfpFamilyMember", targetId);
+                }
+
+                WfpFamilyMember? fam = null;
+                if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
+                {
+                    var existingWfpFamilyMember = dbContext.Set<WfpFamilyMember>().FirstOrDefault(x => x.Id == targetId);
+                    if (existingWfpFamilyMember != null)
+                    {
+                        var ownershipFailure = GuardTargetOwnership(
+                            existingWfpFamilyMember.WorkforceProfileId,
+                            existingWfpFamilyMember.IsDelete,
+                            workforceProfile,
+                            "anggota keluarga");
+                        if (ownershipFailure != null)
+                        {
+                            return ownershipFailure;
+                        }
+
+                        fam = existingWfpFamilyMember;
+                    }
+                }
+
+                if (fam == null)
+                {
+                    fam = new WfpFamilyMember
+                    {
+                        Id = targetId,
+                        WorkforceProfileId = workforceProfile.Id
+                    };
+                }
+
+                if (instanceCache != null)
+                {
+                    instanceCache[targetId] = fam;
+                }
+
+                return TargetResolution.Ok(fam, "WfpFamilyMember", fam.Id);
+            }
+
+            if (normalizedName == "WfpDependent")
+            {
+                var targetId = targetEntityId.HasValue && targetEntityId.Value != Guid.Empty
+                    ? targetEntityId.Value
+                    : Guid.NewGuid();
+
+                if (instanceCache != null && instanceCache.TryGetValue(targetId, out var cached) && cached is WfpDependent cachedDep)
+                {
+                    return TargetResolution.Ok(cachedDep, "WfpDependent", targetId);
+                }
+
+                WfpDependent? dep = null;
+                if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
+                {
+                    var existingWfpDependent = dbContext.Set<WfpDependent>().FirstOrDefault(x => x.Id == targetId);
+                    if (existingWfpDependent != null)
+                    {
+                        var ownershipFailure = GuardTargetOwnership(
+                            existingWfpDependent.WorkforceProfileId,
+                            existingWfpDependent.IsDelete,
+                            workforceProfile,
+                            "tanggungan");
+                        if (ownershipFailure != null)
+                        {
+                            return ownershipFailure;
+                        }
+
+                        dep = existingWfpDependent;
+                    }
+                }
+
+                if (dep == null)
+                {
+                    dep = new WfpDependent
+                    {
+                        Id = targetId,
+                        WorkforceProfileId = workforceProfile.Id
+                    };
+                }
+
+                if (instanceCache != null)
+                {
+                    instanceCache[targetId] = dep;
+                }
+
+                return TargetResolution.Ok(dep, "WfpDependent", dep.Id);
             }
 
             return TargetResolution.Fail(
@@ -3061,6 +3279,22 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 normalized.Equals("EmergencyContacts", StringComparison.OrdinalIgnoreCase))
             {
                 return "WfpEmergencyContact";
+            }
+
+            if (normalized.Equals("WfpFamilyMember", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("WfpFamilyMembers", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("FamilyMember", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("FamilyMembers", StringComparison.OrdinalIgnoreCase))
+            {
+                return "WfpFamilyMember";
+            }
+
+            if (normalized.Equals("WfpDependent", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("WfpDependents", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("Dependent", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("Dependents", StringComparison.OrdinalIgnoreCase))
+            {
+                return "WfpDependent";
             }
 
             return normalized;

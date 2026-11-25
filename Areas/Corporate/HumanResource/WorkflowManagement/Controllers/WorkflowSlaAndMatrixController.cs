@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Ser
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Controllers
 {
@@ -74,7 +75,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 var result = await _matrixService.ConfigureMatrixAsync(request);
                 return Ok(ApiResponse<WorkflowMatrixResponseDto>.Ok(result, "Konfigurasi matriks alur kerja berhasil diperbarui"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<WorkflowMatrixResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -117,7 +118,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             {
                 return BadRequest(ApiResponse<WorkflowInstanceV2ResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<WorkflowInstanceV2ResponseDto>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }

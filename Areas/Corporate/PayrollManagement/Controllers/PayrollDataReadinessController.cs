@@ -10,10 +10,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers;
 
 /// <summary>
 /// Kelengkapan data payroll pegawai dan dokter. Daftar bersumber dari master pegawai dan dokter di HRD, bukan dari profil payroll,
-/// sehingga orang yang belum punya profil tetap tampil. Payroll hanya MEMBACA data HRD (penetapan gaji dan rekening); satu-satunya
-/// yang ditulis adalah profil payroll lewat impor, yang mengambil struktur, grade, penetapan gaji, dan rekening dari data HRD dan
-/// menolak baris yang data HRD-nya belum lengkap. Impor semua atau tidak sama sekali dan mendukung uji kering.
-/// Seluruh akses data lewat <see cref="PayrollDataReadinessService"/>.
+/// sehingga orang yang belum punya profil tetap tampil. Payroll hanya MEMBACA data HRD (penetapan gaji, rekening, penempatan).
+/// Profil operasional payroll disiapkan otomatis saat payroll run dipersiapkan, tanpa impor; kedua GET di sini murni baca dan tidak
+/// pernah membuat profil. Seluruh akses data lewat <see cref="PayrollDataReadinessService"/>.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -24,7 +23,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers;
     displayName: "Payroll Data Readiness",
     AreaName = "Corporate",
     ControllerName = "PayrollDataReadiness",
-    Description = "Kelengkapan data payroll pegawai dan dokter (profil, penetapan gaji, rekening dari HRD) beserta impor profil payroll",
+    Description = "Kelengkapan data payroll pegawai dan dokter (profil, penetapan gaji, rekening dari HRD)",
     SortOrder = 65)]
 [Tags("Corporate / Payroll Management / Payroll Data Readiness")]
 public sealed class PayrollDataReadinessController : ControllerBase
@@ -35,8 +34,6 @@ public sealed class PayrollDataReadinessController : ControllerBase
     {
         _service = service;
     }
-
-    private Guid CurrentUserId() => PayrollControllerSupport.CurrentUserId(User);
 
     [HttpGet]
     [AccessAction("Read", "Read Payroll Data Readiness", Description = "Melihat kelengkapan data payroll pegawai dan dokter", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -57,29 +54,20 @@ public sealed class PayrollDataReadinessController : ControllerBase
     }
 
     /// <summary>
-    /// Impor profil payroll, semua atau tidak sama sekali: bila ada baris gagal, respons 400 membawa daftar baris di
-    /// <c>errors.failedRows</c>. <c>DryRun = true</c> hanya memeriksa dan menghitung hasilnya tanpa menyimpan.
+    /// Impor profil payroll dari berkas dipensiunkan: profil operasional kini disiapkan otomatis dari data HRD saat payroll run dibuka
+    /// atau dihitung. Endpoint ini hanya menjawab 410 Gone supaya klien lama mendapat pesan yang jelas; ia tidak membaca isi kiriman,
+    /// tidak membuat atau mengubah data apa pun. Atribut hak akses dipertahankan agar registri Akses Role tidak berubah mendadak.
+    /// Proses lain yang namanya mirip, <c>POST payroll-runs/{id}/import-hrd</c> (kehadiran, cuti, lembur ke satu payroll run), tidak
+    /// terkait dan tidak berubah.
     /// </summary>
     [HttpPost("import")]
-    [AccessAction("Import", "Import Payroll Data", Description = "Membuat profil payroll banyak pegawai sekaligus dari data HRD yang sudah lengkap (semua atau tidak sama sekali), termasuk uji kering", AccessType = AccessTypes.Create, SortOrder = 2)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status410Gone)]
+    [AccessAction("Import", "Import Payroll Data (dihentikan)", Description = "Dihentikan: profil payroll disiapkan otomatis dari data HRD saat payroll run dipersiapkan. Endpoint hanya menjawab 410 dan tidak menulis data", AccessType = AccessTypes.Create, SortOrder = 2)]
     [AccessPermission("PayrollDataReadiness", "Import")]
-    public async Task<IActionResult> Import([FromBody] ImportPayrollDataRequest request, CancellationToken cancellationToken)
+    public IActionResult Import()
     {
-        try
-        {
-            var result = await _service.ImportAsync(request, CurrentUserId(), cancellationToken);
-            var message = result.DryRun
-                ? "Pemeriksaan lolos. Belum ada data yang tersimpan."
-                : "Profil payroll berhasil dimuat.";
-            return Ok(ApiResponse<PayrollDataImportResult>.Ok(result, message));
-        }
-        catch (PayrollDataImportException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message, ex.Result));
-        }
-        catch (Exception ex) when (PayrollControllerSupport.IsHandled(ex))
-        {
-            return PayrollControllerSupport.Failure(ex);
-        }
+        return StatusCode(StatusCodes.Status410Gone, ApiResponse<object>.Fail(
+            StatusCodes.Status410Gone,
+            "Impor profil payroll sudah tidak tersedia. Profil payroll disiapkan otomatis dari data HRD saat payroll run dipersiapkan; lengkapi penetapan gaji dan rekening di HRD."));
     }
 }

@@ -63,7 +63,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             var contractType = await _dbContext.MstContractTypes
                 .FirstOrDefaultAsync(c => c.Id == contract.ContractTypeId && !c.IsDelete, cancellationToken);
 
-            if (contractType == null || !contractType.IsProbationApplicable)
+            // UU 27/2026 Pasal 86: PKWT DILARANG mensyaratkan masa percobaan walau master mengizinkan
+            if (contractType == null || !contractType.IsProbationApplicable || contractType.RequiresEndDate || contract.EndDate.HasValue)
             {
                 return null;
             }
@@ -588,6 +589,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 return RecruitmentResult<bool>.NotFound("Masa percobaan induk tidak ditemukan.");
             }
 
+            // HRD-DEC-031 / FIN-HRD-08-BE-006: Maker-Checker guard
+            if (assessment.SubmittedByUserId == deciderUserId)
+            {
+                return RecruitmentResult<bool>.BadRequest(
+                    "Pembuat pengajuan evaluasi masa percobaan tidak dapat memberikan persetujuan atau keputusan sendiri (Prinsip Maker-Checker HRD-DEC-031).");
+            }
+
+            // Guard terhadap masa percobaan yang sudah diselesaikan otomatis
+            if (probation.ProbationStatus == ProbationStatus.PassedAutomatically)
+            {
+                return RecruitmentResult<bool>.BadRequest(
+                    "Masa percobaan telah diselesaikan secara otomatis oleh sistem (PassedAutomatically) dan tidak dapat diproses lagi.");
+            }
+
+            // Idempotency: jika sudah berstatus final
+            if (assessment.AssessmentStatus == ProbationAssessmentStatus.Approved ||
+                assessment.AssessmentStatus == ProbationAssessmentStatus.Rejected)
+            {
+                return RecruitmentResult<bool>.Ok(true, "Keputusan penilaian sudah pernah diterapkan sebelumnya.");
+            }
+
             if (isApproved)
             {
                 // VR-ONB-58: Persetujuan sesudah tanggal akhir ditolak
@@ -687,6 +709,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 DecisionNote = a.DecisionNote,
                 RowVersion = a.RowVersion
             };
+        }
+
+        public async Task<RecruitmentResult<HrdProbationSummaryResponse>> GetProbationSummaryAsync(
+            Guid? hospitalSiteId,
+            CancellationToken cancellationToken = default)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var query = _dbContext.HrdProbations.AsNoTracking().Where(p => !p.IsDelete);
+
+            var runningCount = await query.CountAsync(p => p.ProbationStatus == ProbationStatus.Running, cancellationToken);
+            var dueSoonCount = await query.CountAsync(p => p.ProbationStatus == ProbationStatus.Running && p.ReminderFromDate <= today && p.EndDate >= today, cancellationToken);
+            var awaitingDecisionCount = await query.CountAsync(p => p.ProbationStatus == ProbationStatus.AwaitingDecision, cancellationToken);
+            var completedCount = await query.CountAsync(p => p.ProbationStatus == ProbationStatus.Passed || p.ProbationStatus == ProbationStatus.PassedAutomatically || p.ProbationStatus == ProbationStatus.Failed, cancellationToken);
+
+            return RecruitmentResult<HrdProbationSummaryResponse>.Ok(new HrdProbationSummaryResponse
+            {
+                RunningCount = runningCount,
+                DueSoonCount = dueSoonCount,
+                AwaitingDecisionCount = awaitingDecisionCount,
+                CompletedCount = completedCount
+            });
         }
     }
 }

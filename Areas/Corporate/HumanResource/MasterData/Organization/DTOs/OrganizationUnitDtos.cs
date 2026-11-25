@@ -18,6 +18,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         public Guid LegalEntityId { get; set; }
         public Guid? HospitalSiteId { get; set; }
         public Guid? ParentOrganizationUnitId { get; set; }
+        public string? ParentUnitName { get; set; }
         public Guid? DepartmentId { get; set; }
         public string UnitCode { get; set; } = string.Empty;
         public string UnitName { get; set; } = string.Empty;
@@ -43,12 +44,34 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         public string? UpdateByName { get; set; }
     }
 
+    public class OrganizationUnitHierarchyNodeResponse
+    {
+        public Guid Id { get; set; }
+        public Guid LegalEntityId { get; set; }
+        public Guid? HospitalSiteId { get; set; }
+        public Guid? ParentOrganizationUnitId { get; set; }
+        public string? ParentUnitName { get; set; }
+        public Guid? DepartmentId { get; set; }
+        public string UnitCode { get; set; } = string.Empty;
+        public string UnitName { get; set; } = string.Empty;
+        public string UnitType { get; set; } = string.Empty;
+        public int LevelNumber { get; set; }
+        public bool IsOperationalUnit { get; set; }
+        public DateTime? EffectiveStartDate { get; set; }
+        public DateTime? EffectiveEndDate { get; set; }
+        public string? Description { get; set; }
+        public bool IsActive { get; set; }
+        public int ChildCount { get; set; }
+        public List<OrganizationUnitHierarchyNodeResponse> Children { get; set; } = new();
+    }
+
     public class OrganizationUnitOptionResponse
     {
         public Guid Id { get; set; }
         public Guid LegalEntityId { get; set; }
         public Guid? HospitalSiteId { get; set; }
         public Guid? ParentOrganizationUnitId { get; set; }
+        public string? ParentUnitName { get; set; }
         public Guid? DepartmentId { get; set; }
         public string UnitCode { get; set; } = string.Empty;
         public string UnitName { get; set; } = string.Empty;
@@ -83,6 +106,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         public Guid? LegalEntityId { get; set; }
         public Guid? HospitalSiteId { get; set; }
         public Guid? ParentOrganizationUnitId { get; set; }
+        public string? ParentUnitName { get; set; }
         public Guid? DepartmentId { get; set; }
         public string? UnitType { get; set; }
         public bool? IsOperationalUnit { get; set; }
@@ -119,6 +143,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
 
         public Guid? HospitalSiteId { get; set; }
         public Guid? ParentOrganizationUnitId { get; set; }
+        public string? ParentUnitName { get; set; }
         public Guid? DepartmentId { get; set; }
 
         [Required]

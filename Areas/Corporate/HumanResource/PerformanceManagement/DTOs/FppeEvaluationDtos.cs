@@ -157,7 +157,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// </summary>
     public class VerifyFppeCaseLogRequestDto
     {
-        [Required(ErrorMessage = "ID Dokter Proctor yang memverifikasi wajib diisi.")]
+        /// <summary>Opsional sejak 18 Nov 2026 (MSL-06): server memakai identitas proctor dari token; bila diisi, wajib sama.</summary>
         public Guid ProctorWorkforceId { get; set; }
 
         [Range(1, 5, ErrorMessage = "Skor keterampilan teknis wajib bernilai 1 s.d. 5.")]

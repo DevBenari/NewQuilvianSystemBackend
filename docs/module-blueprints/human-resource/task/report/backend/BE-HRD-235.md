@@ -5,7 +5,7 @@
 * **Nama Task**: Pembangunan Layanan Penetapan 4 Putusan Sah Sidang Rekredensialing, Penandatanganan Digital SHA-256, dan Dispatcher Sinkronisasi Wewenang Klinis ke Modul SIMRS EMR
 * **Modul / Sub-Modul**: Human Resource / Sub-modul 15: OPPE, FPPE & Recredentialing
 * **Slice Delivery**: `S-C1-OPPE` (Kontrak API `v19`)
-* **Status**: `✅ Selesai (2026-11-09)`
+* **Status**: `✅ Selesai (2026-11-18)` — `AT-HRD-OPP-22` terbukti lewat harness dan cacat level dispatcher diperbaiki; lihat bagian "Pengerjaan Ulang 18 November 2026" di akhir laporan
 * **File Implementasi Utama**:
   - `NewQuilvianSystemBackend/Areas/Corporate/HumanResource/PerformanceManagement/DTOs/RecredentialingQualityDtos.cs`
   - `NewQuilvianSystemBackend/Areas/Corporate/HumanResource/PerformanceManagement/Services/IRecredentialingCompositeProvider.cs`
@@ -179,3 +179,65 @@ Status 🟡: migration `20261110050000` (tabel putusan/log) belum dijalankan; `A
 ## Pembaruan 11 November 2026 — Status Migration
 
 Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.
+
+## Pengerjaan Ulang 18 November 2026 — `AT-HRD-OPP-22` dan level menurut putusan
+
+| Field | Nilai |
+| --- | --- |
+| Task mode | `BACKEND` (instruksi pengguna 18 November 2026 "lanjutkan task yang belum selesai berikutnya"); pemilik memilih bukti harness tanpa menulis basis data |
+| Commit backend saat dikerjakan | `a17a2bc3` (branch `yoga`) + perubahan task lain yang belum di-commit |
+| Backend Governance Preflight | Area `Corporate`; Module `HumanResource` / `PerformanceManagement`; prefix registry `Hrd` (putusan, log) dan `Wfp` (`WfpClinicalPrivilege`); keberlakuan `NEW CODE` (dispatcher Gelombang 2); QBE berlaku `QBE-SVC-001`, `QBE-VAL-001`, `QBE-TXN-001`; tanpa entity baru, tanpa migration |
+| Status | ✅ Selesai — `AT-HRD-OPP-22` terbukti lewat uji harness dengan resolver Laboratorium dan Kamar Operasi yang sesungguhnya; satu cacat `VR-OPP-21`/`22` diperbaiki |
+
+### Mengapa harness, bukan API devYoga
+
+devYoga hanya punya empat baris `WfpClinicalPrivilege`, semuanya milik dokter UAT Laboratorium (dr. Bima Sp.PK dan dr. Nabila Sp.MK). Putusan `Revoked` tidak dapat dibatalkan lewat aplikasi, sehingga uji API akan mencabut wewenang dokter UAT secara permanen kecuali dipulihkan langsung di basis data. Pemilik roadmap memilih bukti harness (18 November 2026).
+
+### Cacat yang ditemukan
+
+`DispatchSimrsPrivilegeRequestDto.Level` dipilih pemanggil dan **bawaannya 4**, sedangkan dispatcher tidak mencocokkannya dengan putusan. Akibatnya:
+
+| Kiriman | Akibat sebelum perbaikan | Aturan yang dilanggar |
+| --- | --- | --- |
+| Putusan `Revoked` tanpa menyebut level | Diterapkan sebagai level 4: blokir dibuka, wewenang mandiri dipulihkan | `VR-OPP-22` (Revoked = hard-stop) |
+| Putusan `Restricted` dengan level 4 | Tanpa kewajiban supervisi | `VR-OPP-21` (Restricted = level 3) |
+
+### Perubahan
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/Corporate/HumanResource/PerformanceManagement/Services/SimrsClinicalPrivilegeDispatcher.cs` | Level wajib menurut putusan (`RequiredLevelFor`): `Revoked` = 1, `Restricted` = 3, `RenewAsIs`/`Upgrade` = 4, sesuai deskripsi putusan pada DTO. Level yang tidak cocok ditolak `InvalidOperationException` (400 lewat controller) dengan pesan "Level 4 tidak sesuai putusan Revoked: putusan ini wajib dikirim sebagai level 1. Tidak ada wewenang yang diubah (VR-OPP-21, VR-OPP-22)."; tanpa baris berubah dan tanpa log. CRLF dipertahankan; +19 baris. Endpoint ini belum dipanggil frontend mana pun, jadi tidak ada konsumen yang patah |
+| `Tests/QuilvianSystemBackend.HumanResourceTests/RecredentialingSimrsDispatchTests.cs` (baru) | 6 uji memakai `RecredentialingQualityService`, `SimrsClinicalPrivilegeDispatcher`, `LabClinicalPrivilegeResolver`, `OperatingRoomCredentialResolver`, dan `RecredentialingQualityController` yang sesungguhnya |
+
+### Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `AT-HRD-OPP-22`: dr. Bima (LAB-VAL-PK, LAB-REL-PK aktif) — sebelum putusan | Validasi dan rilis Lab diizinkan; kamar operasi `Valid` | `PASS` | `OPP22_Revoked_mengunci_Laboratorium_dan_Kamar_Operasi_seketika` |
+| — Putusan `Revoked` disahkan lalu dikirim level 1 | Log `SYNCED` 200, `IsHardStopBlocked`; kedua baris `Revoked`, blokir layanan dan penjadwalan, `RevokedByUserId` = ketua komite; status dokter `Revoked` | `PASS` | idem |
+| — Sesudah dikirim | Validasi dan rilis Lab **ditolak** dengan pesan; kamar operasi `Invalid` (fail-closed) | `PASS` | idem |
+| Putusan `Revoked` dikirim level 4, 3, 2, dan lewat controller tanpa level | Ditolak (400 lewat controller); baris tetap `Active`, 0 log, Lab tetap diizinkan | `PASS` (perbaikan) | `Revoked_dengan_level_selain_1_ditolak_tanpa_perubahan` |
+| `Restricted` level 3, lalu `Upgrade` level 4 (level yang salah ditolak) | Level 3: aktif dengan supervisi, Lab diizinkan, kamar operasi `Valid`; `Upgrade`: supervisi dicabut | `PASS` | `Restricted_level_3_supervisi_lalu_Upgrade_level_4_mengangkat_supervisi` |
+| `Revoked` lalu `RenewAsIs` level 4 | Tetap `Revoked` dan terblokir (pemulihan lewat kredensialing ulang) | `PASS` | `Revoked_tidak_dipulihkan_oleh_RenewAsIs_level_4` |
+| Dokter tanpa baris wewenang; putusan fiktif | `NO_PRIVILEGE_ROWS` 404 berpesan; putusan fiktif `KeyNotFoundException` | `PASS` | `Tanpa_baris_wewenang_tercatat_404_dan_putusan_fiktif_ditolak` |
+| Kontrol negatif (berkas dipulihkan identik tiap putaran) | K1 pemeriksaan level dimatikan → 2 uji gagal; K2 efek level 1 dikosongkan → `AT-HRD-OPP-22` dan uji "tidak dipulihkan" gagal | `PASS` | Keluaran `dotnet test` |
+| Proyek uji HR (`dotnet test -p:RunAnalyzers=False`, build penuh) | 278/278 lulus (272 + 6 baru); build 0 galat | `PASS` | Keluaran `dotnet test` |
+| Pemeriksa QBE | Dua pemanggilan `ReportOnly` dengan probe kontrol: probe kena 2 `QBE-CODE-002` + 2 `QBE-SVC-001`, dispatcher tanpa temuan; `Strict` atas dispatcher: 0 VIOLATION, 0 REVIEW, PASS; probe dihapus | `PASS` | Keluaran pemeriksa |
+| Uji lewat API devYoga | Tidak dijalankan atas keputusan pemilik (alasan di atas) | `NOT RUN` | — |
+
+### Acceptance criteria
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| Putusan rekredensialing terkirim ke database SIMRS EMR | Terpenuhi (harness) | Baris `WfpClinicalPrivilege` diperbarui dan log `SYNCED` |
+| Menu order dan peresepan dokter seketika terkunci jika status Revoked | Terpenuhi (harness) | Resolver Lab dan kamar operasi sesungguhnya menolak; Revoked tidak dapat terkirim sebagai level lunak |
+| `AT-HRD-OPP-22` | Terpenuhi lewat harness, diterima pemilik roadmap 18 November 2026 | Bagian verifikasi |
+
+### Catatan
+
+| Hal | Isi |
+| --- | --- |
+| Pengamatan (tidak diubah) | Level 1 juga mengisi `IsActive = false`, sedangkan resolver Lab hanya membaca baris aktif; dokter tetap ditolak, tetapi alasannya tampil sebagai "tidak ditunjuk", bukan "dicabut". Resolver kamar operasi membaca semua baris dan menolak dengan benar. Mengubahnya memengaruhi modul lain yang membaca `IsActive`, jadi diserahkan ke pemilik roadmap |
+| Risiko tersisa | Putusan fiktif menghasilkan `KeyNotFoundException` yang ditangkap controller sebagai 500, bukan 404 (perilaku lama, tidak disentuh) |
+| Perubahan sampingan | `NONE`. Probe QBE dihapus; tidak ada data devYoga yang ditulis |
+| Status Git | 1 berkas source diubah, 1 berkas uji baru, laporan ini, roadmap/traceability/indeks uji. Tidak ada commit |

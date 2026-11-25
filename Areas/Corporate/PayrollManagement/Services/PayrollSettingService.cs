@@ -1,7 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 using QuilvianSystemBackend.Repositories;
 using System.Text.Json;
 
@@ -27,7 +31,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         {
             var setting = await GetOrCreateDefaultSettingAsync(cancellationToken);
 
-            return MapToDto(setting);
+            var dto = MapToDto(setting);
+            await ApplyPolicyStatusAsync(dto, cancellationToken);
+            return dto;
+        }
+
+        /// <summary>Menandai ketersediaan kebijakan tarif PPh yang disahkan dan berlaku hari ini. Murni baca.</summary>
+        private async Task ApplyPolicyStatusAsync(HrdPayrollSettingDto dto, CancellationToken cancellationToken)
+        {
+            var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+            var tax = await _context.Set<PrlTaxPolicy>().AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive && x.PolicyStatus == StatutoryPolicyStatuses.Approved
+                    && x.EffectiveStartDate <= today && (x.EffectiveEndDate == null || x.EffectiveEndDate >= today))
+                .OrderByDescending(x => x.EffectiveStartDate)
+                .Select(x => x.PolicyVersion)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            dto.TaxPolicyApproved = tax is not null;
+            dto.TaxPolicyVersion = tax;
         }
 
         public async Task<HrdPayrollSettingDto> UpdateSettingAsync(
@@ -38,16 +59,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             var setting = await GetOrCreateDefaultSettingAsync(cancellationToken);
 
             setting.SettingName = command.SettingName;
-            setting.BpjsKesehatanCapAmount = command.BpjsKesehatanCapAmount;
-            setting.BpjsKesehatanEmployeeRate = command.BpjsKesehatanEmployeeRate;
-            setting.BpjsKesehatanEmployerRate = command.BpjsKesehatanEmployerRate;
-            setting.BpjsKetenagakerjaanJpCapAmount = command.BpjsKetenagakerjaanJpCapAmount;
-            setting.BpjsKetenagakerjaanJpEmployeeRate = command.BpjsKetenagakerjaanJpEmployeeRate;
-            setting.BpjsKetenagakerjaanJpEmployerRate = command.BpjsKetenagakerjaanJpEmployerRate;
-            setting.BpjsKetenagakerjaanJhtEmployeeRate = command.BpjsKetenagakerjaanJhtEmployeeRate;
-            setting.BpjsKetenagakerjaanJhtEmployerRate = command.BpjsKetenagakerjaanJhtEmployerRate;
-            setting.BpjsKetenagakerjaanJkkRate = command.BpjsKetenagakerjaanJkkRate;
-            setting.BpjsKetenagakerjaanJkmRate = command.BpjsKetenagakerjaanJkmRate;
+
+            // Kolom BPJS pada HrdPayrollSetting (LEGACY_PERSISTED) tidak pernah disentuh: tidak dibaca dari command dan tidak ditimpa,
+            // sehingga nilai yang sudah tersimpan tetap utuh sebagai data historis.
             setting.VarianceThresholdPercentage = command.VarianceThresholdPercentage;
             setting.VarianceThresholdAmount = command.VarianceThresholdAmount;
             setting.MonthlyCutoffDay = command.MonthlyCutoffDay;
@@ -61,7 +75,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             _logger.LogInformation("Parameter master penggajian berhasil diperbarui oleh {UserId}.", actorUserId);
 
-            return MapToDto(setting);
+            var updated = MapToDto(setting);
+            await ApplyPolicyStatusAsync(updated, cancellationToken);
+            return updated;
         }
 
         public async Task<string> GetSettingSnapshotJsonAsync(CancellationToken cancellationToken = default)
@@ -82,16 +98,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 {
                     Id = Guid.NewGuid(),
                     SettingName = "Standar Penggajian Rumah Sakit",
-                    BpjsKesehatanCapAmount = 12000000m,
-                    BpjsKesehatanEmployeeRate = 1.00m,
-                    BpjsKesehatanEmployerRate = 4.00m,
-                    BpjsKetenagakerjaanJpCapAmount = 10042300m,
-                    BpjsKetenagakerjaanJpEmployeeRate = 1.00m,
-                    BpjsKetenagakerjaanJpEmployerRate = 2.00m,
-                    BpjsKetenagakerjaanJhtEmployeeRate = 2.00m,
-                    BpjsKetenagakerjaanJhtEmployerRate = 3.70m,
-                    BpjsKetenagakerjaanJkkRate = 0.89m,
-                    BpjsKetenagakerjaanJkmRate = 0.30m,
                     VarianceThresholdPercentage = 20.00m,
                     VarianceThresholdAmount = 2000000m,
                     MonthlyCutoffDay = 20,
@@ -115,16 +121,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Id = entity.Id,
             HospitalSiteId = entity.HospitalSiteId,
             SettingName = entity.SettingName,
-            BpjsKesehatanCapAmount = entity.BpjsKesehatanCapAmount,
-            BpjsKesehatanEmployeeRate = entity.BpjsKesehatanEmployeeRate,
-            BpjsKesehatanEmployerRate = entity.BpjsKesehatanEmployerRate,
-            BpjsKetenagakerjaanJpCapAmount = entity.BpjsKetenagakerjaanJpCapAmount,
-            BpjsKetenagakerjaanJpEmployeeRate = entity.BpjsKetenagakerjaanJpEmployeeRate,
-            BpjsKetenagakerjaanJpEmployerRate = entity.BpjsKetenagakerjaanJpEmployerRate,
-            BpjsKetenagakerjaanJhtEmployeeRate = entity.BpjsKetenagakerjaanJhtEmployeeRate,
-            BpjsKetenagakerjaanJhtEmployerRate = entity.BpjsKetenagakerjaanJhtEmployerRate,
-            BpjsKetenagakerjaanJkkRate = entity.BpjsKetenagakerjaanJkkRate,
-            BpjsKetenagakerjaanJkmRate = entity.BpjsKetenagakerjaanJkmRate,
             VarianceThresholdPercentage = entity.VarianceThresholdPercentage,
             VarianceThresholdAmount = entity.VarianceThresholdAmount,
             MonthlyCutoffDay = entity.MonthlyCutoffDay,
