@@ -10,14 +10,14 @@
 | Roadmap | [online-registration-backend-roadmap.md](../../../roadmap/online-registration-backend-roadmap.md) — kartu `BE-KSK-PO-007` |
 | Trace | `KSK-DEC-034`, `036`, `039`, `046`, `048`; `INV-PO-02`, `06`; `KSK-DSN-PO-008`, `010`, `014`; `KSK-VAL-PO-046` s.d. `055`; PO-S.1 baris ketiga |
 | Contract version | `KSK-CONTRACT-v2` — `approved` (Sukma Giri Pratama, 2026-11-19, `KSK-DEC-054`) |
-| Dependency | `BE-KSK-PO-006` 🟡 (penolakan runtime terbukti; `200` runtime menunggu 2026-11-21) |
+| Dependency | `BE-KSK-PO-006` ✅ 2026-11-25 |
 | Klasifikasi | `HIGH` — mengubah jalur bersama pembuatan kunjungan (`CreateEncounterCoreAsync`), tanpa migration |
 | Task mode | `BACKEND` |
 | Target tulis | `Areas/HealthServices/RegistrationManagement/{Controllers,DTOS,Services}` |
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit backend saat dikerjakan | `c91db4b5` (`sukmagp`) |
-| Tanggal | 2026-11-20 |
-| Status | 🟡 Sebagian — penolakan kanal dan token, normalisasi, serta regresi tiga kanal terbukti di runtime. Jalur sukses (status Menjadi Kunjungan, consent, berkas rujukan, riwayat) dan tabrakan terbukti di harness dengan jam palsu. Runtime `200` lewat controller, `409` jadwal/kuota (`053`/`054`), dan pasien baru menunggu hari kunjungan data uji, 2026-11-21 |
+| Tanggal | 2026-11-20; runtime hari H 2026-11-25 |
+| Status | ✅ Selesai — penolakan dan regresi tiga kanal terbukti di runtime 2026-11-20; jalur sukses pasien lama dan pasien baru, rujukan + berkas, consent, `052`, `053`, `054`, `055`, dan kuota tepat penuh oleh pendaftaran sendiri terbukti di runtime hari H 2026-11-25 |
 
 **Backend Governance Preflight**
 
@@ -188,25 +188,25 @@ Pendaftaran online paling cepat H+1, dan token hanya terbit pada hari kunjungan.
 | R4 (tambahan 2) | Sesudah delapan penolakan: status 1, `RowVersion` sama, tanpa kunjungan, riwayat tetap 1 | `PASS` | `po007_test.py today` |
 | G1–G3 (tambahan 3, DoD regresi) | Tanpa field baru, 2026-11-20: RJ petugas `200` sumber 1 walk-in; kiosk `200` sumber 2 `IsFromKiosk`; IGD `200` jenis 2 | `PASS` | `po007_test.py today` (3 kunjungan uji di `po007_ledger.json`) |
 | L1 log | 0 `ERR`/`FTL`; 21 nilai sensitif (kode, NIK, No. RM, tanggal lahir, kontak) dan token uji: 0 temuan; penolakan tercatat sebagai `Rule` + `RegistrationId` | `PASS` | Pemeriksaan log |
-| D1–D6 runtime `200` lewat controller | Pasien lama `0001`: verifikasi → kunjungan `200`, sumber 7, status 2, riwayat `CHECKED_IN`, token dipakai ulang `409`, kode diverifikasi ulang `404` | `NOT RUN` | Menunggu 2026-11-21; skrip siap `po007_test.py dday` |
-| Runtime pasien baru, rujukan + berkas, consent, `052` | Butuh token hari H dan master dari kiosk Pasien Baru (`0005`/`0006`) | `NOT RUN` | Menunggu 2026-11-21 |
-| Runtime `409` `053`/`054` (AC 13) | Pemetaan ada di controller; butuh token hari H lalu jadwal dinonaktifkan atau dipenuhi | `NOT RUN` | Menunggu 2026-11-21 |
+| C1–C6 runtime hari H pasien lama (Data uji `PO-20261125-0001` s.d. `0009` semula bertanggal 2026-11-26; dengan izin pemilik (2026-11-25, AskUserQuestion) tanggal kunjungannya dipindah ke 2026-11-25 lewat satu `UPDATE` 9 baris pada `RegOnlineRegistration` (tanggal, jadwal padanan yang dibuat lewat API, `RowVersion` baru) supaya token hari H dapat terbit hari itu (`po025_shift.py`)) | 6/6 PASS: C1 token lama sesudah verifikasi ulang `400` `046`; C2 poli diganti `400` `048`, status tetap 1; C3 check-in `200`, kunjungan sumber 7, appointment, kiosk, bukan walk-in; C4 pendaftaran status 2, nomor kunjungan, `checkedInAt`, riwayat `CHECKED_IN` sumber Kiosk 1→2; C5 token sama dipakai lagi `409` `055`; C6 kode diverifikasi lagi `404` | `PASS` | `po025_dday.py`, `po025-dday.log` |
+| C7–C10, C13–C15 runtime hari H pasien baru | 7/7 PASS: C7 master dibuat lewat `POST patients/kiosk` dengan NIK pendaftaran; C8 check-in `200`, pendaftaran status 2, No. RM terisi; C9 kunjungan `isReferral`, sumber 7; C13 rujukan kunjungan 2 dokumen, `CaptureSource` 3; C14 general consent kunjungan ada, `SignedAt` sama dengan waktu tanda tangan online; C15 kedua berkas (PDF, PNG) terbuka dari kunjungan; C10 master NIK berbeda `400` `052`, status tetap 1 | `PASS` | `po025-dday.log` |
+| C11, C12, C16 runtime hari H jadwal dan kuota | 3/3 PASS: C11 jadwal dinonaktifkan sesudah verifikasi `409` `053`, status tetap 1; C12 kuota jadwal 2/2 diturunkan ke 1 (terisi pendaftaran lain) `409` `054`, status tetap 1; C16 kuota dikembalikan 2/2 (terisi pendaftaran itu sendiri dan satu lainnya) → check-in `200`, kuota terpakai tetap 2 | `PASS` | `po025-dday.log`. Dua kunjungan regresi uji 20 Nov (`ENC-RSMMC-00399`, `00400`) dibatalkan lewat API karena memblokir pasien uji (aturan kunjungan aktif) |
 | `dotnet test` | — | `NOT RUN` | Tidak ada project test (pola Bank Darah) |
 
 ## 6. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| AC 7 (sisi backend): kunjungan `IsAppointment`, sumber 7, status 2; kode sekali pakai | **Sebagian** | Harness C1, P25, T5. Runtime D1–D6 menunggu 2026-11-21 |
-| AC 9: pasien baru dengan master baru atau NIK lama | **Sebagian** | Harness C2, P26, Q3 (kedua kasus memakai NIK master yang sama). Runtime menunggu |
-| AC 13: jadwal tidak berlaku → `409` `053` | **Belum terbukti** | Kode ada (`OnlineCheckInScheduleConflict`, cek awal dan cek ulang di transaksi). Runtime menunggu |
-| AC 14: consent melekat dengan `SignedAt` asli | **Sebagian** | Harness C2b. Runtime menunggu |
-| AC 17 (sisi backend): NIK master berbeda → `400` `052` | **Sebagian** | Harness P18. Runtime menunggu |
+| AC 7 (sisi backend): kunjungan `IsAppointment`, sumber 7, status 2; kode sekali pakai | Terpenuhi | Harness C1, P25, T5; runtime C3–C6 |
+| AC 9: pasien baru dengan master baru atau NIK lama | Terpenuhi | Harness C2, P26, Q3; runtime C7–C8 (master baru dari endpoint kiosk Pasien Baru) |
+| AC 13: jadwal tidak berlaku → `409` `053` | Terpenuhi | Runtime C11 |
+| AC 14: consent melekat dengan `SignedAt` asli | Terpenuhi | Harness C2b; runtime C14 |
+| AC 17 (sisi backend): NIK master berbeda → `400` `052` | Terpenuhi | Harness P18; runtime C10 |
 | `KSK-VAL-PO-046` s.d. `049`, `052`, `055` | Terpenuhi (harness + runtime sebagian) | P1–P24, T1–T5; R1–R2e |
 | `KSK-VAL-PO-050`, `051` | Di luar backend | Layar kiosk (`FE-KSK-PO-006`) |
-| `KSK-VAL-PO-053`, `054` | **Belum terbukti** | Menunggu runtime hari H |
-| Tambahan (1): kuota tepat penuh oleh pendaftaran itu sendiri | **Sebagian** | Harness Q1–Q3 (rumus jalur kunjungan); runtime menunggu |
-| Tambahan (2): kegagalan di transaksi membatalkan kunjungan, status tetap 1 | **Sebagian** | Harness T1–T4, runtime R4. Rollback controller pada tabrakan nyata menunggu runtime |
+| `KSK-VAL-PO-053`, `054` | Terpenuhi | Runtime C11, C12 |
+| Tambahan (1): kuota tepat penuh oleh pendaftaran itu sendiri | Terpenuhi | Harness Q1–Q3; runtime C16 |
+| Tambahan (2): kegagalan di transaksi membatalkan kunjungan, status tetap 1 | Terpenuhi | Harness T1–T4; runtime R4, C2, C10–C12 (status tetap 1 sesudah penolakan) |
 | Tambahan (3): kunjungan biasa tanpa field baru sama seperti sebelumnya | Terpenuhi | G1–G3, R3–R3b |
 | DoD: regresi RJ/kiosk/IGD satu kunjungan per kanal | Terpenuhi | G1–G3 |
 
@@ -214,12 +214,12 @@ Pendaftaran online paling cepat H+1, dan token hanya terbit pada hari kunjungan.
 
 | Hal | Isi |
 | --- | --- |
-| Yang belum | Pada **2026-11-21**: (1) `po006_test.py dday` lalu `po007_test.py dday` (pasien lama `0001`); (2) pasien baru `0005`/`0006`: master dari kiosk Pasien Baru, kartu baru bila ada, check-in, periksa consent dan dokumen rujukan; (3) `052` dengan `PatientId` pasien lain; (4) `053` (nonaktifkan jadwal uji sesudah verifikasi) dan `054` (jadwal uji penuh). Sesudah PASS, task ini dapat ditandai ✅ |
-| Peringatan untuk runtime besok | Pasien `p1` punya kunjungan 2026-11-23 dari uji `BE-KSK-PO-008`. Bila aturan kunjungan aktif menolak kunjungan kedua, check-in `0001` akan `400` karena aturan RJ, bukan karena task ini. Bila terjadi, pakai pendaftaran pasien lain |
+| Yang belum | Tidak ada. Runtime hari H terbukti 2026-11-25 tanpa perubahan source |
+| Catatan runtime | Aturan kunjungan aktif berlaku pada check-in: dua pasien uji sempat ditolak `400` "Pasien masih memiliki kunjungan aktif …" karena kunjungan regresi 20 Nov; perilaku ini benar dan ditampilkan apa adanya di kiosk |
 | Keputusan pemilik | Faskes perujuk non-mitra (bagian 3.5) |
 | Risiko tersisa | Jalur bersama kunjungan bertambah satu cabang. Cabang itu hanya aktif bila field check-in diisi, dan regresi tiga kanal PASS |
-| Data uji | 3 kunjungan regresi 2026-11-20 (RJ, kiosk, IGD; id di `po007_ledger.json` scratchpad). Dibersihkan bersama data uji modul |
+| Data uji | 3 kunjungan regresi 2026-11-20 (2 dibatalkan 2026-11-25), kunjungan check-in 2026-11-25 dan 2 master pasien uji di `po025_dday_ledger.json`, jadwal uji `TEST-PO025`/`TEST-PO026`. Dibersihkan bersama data uji modul |
 | Perubahan sampingan | `NONE` di repository. Harness, skrip uji, dan log ada di scratchpad |
-| Migration/DB | Tidak ada migration. Tidak ada eksekusi DB langsung; semua tulis lewat API |
-| Status Git | Milik task ini: 1 berkas baru (`OnlineRegistrationCheckInService.Encounter.cs`) dan perubahan pada `PatientEncounterController.cs`, `PatientEncounterDtos.cs`, `OnlineRegistrationCheckInService.cs`, ditambah laporan ini dan tanda roadmap. Tidak ada commit |
-| Langkah berikutnya | `FE-KSK-PO-005` (check-in pasien lama di kiosk) dan `FE-KSK-PO-006` (pasien baru) memakai kontrak ini; runtime ✅ BE-006/BE-007 pada 2026-11-21 |
+| Migration/DB | Tidak ada migration. Satu `UPDATE` data uji 9 baris atas izin eksplisit pemilik 2026-11-25 (tanggal kunjungan); tulis lain lewat API |
+| Status Git | Source task ini sudah di-commit pemilik (`a30d9f68`). Pembaruan 2026-11-25 hanya laporan, roadmap, traceability, dan `MODULE-STATUS.md`. Agent tidak membuat commit |
+| Langkah berikutnya | `FE-KSK-PO-006` (check-in pasien baru di kiosk) memakai kontrak ini |

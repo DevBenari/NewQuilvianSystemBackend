@@ -117,6 +117,9 @@ Turnstile memakai kunci uji resmi Cloudflare di lingkungan dev (selalu lolos ata
 | AC 15 | Berkas 8 MB; berkas `.exe` berganti nama `.pdf` | Integ | `400` `KSK-VAL-PO-029` / `030` |
 | `KSK-DSN-PO-013` | Jadwal `IsAllowKioskRegistration = false` | Integ | Tidak muncul di opsi; dikirim langsung → `409` |
 | `KSK-DEC-035` | Kartu milik pasien lain dikirim | Integ | `400` `KSK-VAL-PO-025` |
+| `KSK-DEC-057` (`v2.1`) | Cari faskes dengan `visitDate` sebelum dan sesudah akhir perjanjian mitra; faskes bukan mitra | Integ + E2E | Mitra muncul hanya pada tanggal perjanjian berlaku; non-mitra tidak pernah muncul; tanpa `visitDate` → `400` `KSK-VAL-PO-074` |
+| `KSK-DEC-057` (`v2.1`) | Kirim pendaftaran rujukan dengan faskes non-mitra (request langsung) | Integ | `400` `KSK-VAL-PO-073`; tidak ada pendaftaran tersimpan |
+| `KSK-DEC-057` (`v2.1`) | Ubah tanggal kunjungan sesudah memilih faskes | E2E | Pilihan faskes dikosongkan; pencarian ulang memakai tanggal baru |
 
 ### PO-T.2 Check-in kiosk
 

@@ -79,12 +79,12 @@ Pesan "hubungi petugas" **tidak pernah** menyebut alasannya (meninggal, diblokir
 | Field | Nilai |
 | --- | --- |
 | Set kontrak | `KSK-CONTRACT-v2` |
-| `last_changed_in` | `v2` (bagian ini saja) |
-| Status | `approved` |
+| `last_changed_in` | `v2.1` untuk `KSK-VAL-PO-073` dan `074`; sisanya `v2` (bagian ini saja) |
+| Status | `v2` `approved` (2026-11-19); `v2.1` `approved` (2026-11-25, `KSK-DEC-058`) |
 | Owner | Sukma Giri Pratama |
 | `approved_by` / `approved_at` | Sukma Giri Pratama / 2026-11-19 (`KSK-DEC-054`) |
 | `input_revision` | `00-interview-decisions.md` §13; `02-backend-architecture.md` *Amendment PO* |
-| Traceability | `KSK-DEC-031` s.d. `053`; AC 1–20 |
+| Traceability | `KSK-DEC-031` s.d. `053`; AC 1–20; `v2.1`: `KSK-DEC-057` |
 
 Backend selalu memvalidasi ulang. Kode `FE` berarti layar menolak tanpa mengirim request. Pesan publik tidak pernah menyebut bagian data pasien yang salah.
 
@@ -117,6 +117,8 @@ Backend selalu memvalidasi ulang. Kode `FE` berarti layar menolak tanpa mengirim
 | `KSK-VAL-PO-025` | Penjamin | Kartu yang dipilih bukan milik pasien atau tidak aktif | "Kartu penjamin tidak dapat dipakai. Pilih kartu lain atau Tunai." | `400` |
 | `KSK-VAL-PO-026` | Kartu baru | Penyedia kosong atau nomor polis kosong/lebih dari 50 karakter | "Lengkapi penyedia asuransi dan nomor kartu." | `400` / `FE` |
 | `KSK-VAL-PO-027` | Rujukan | Faskes perujuk kosong atau tidak dikenal | "Pilih faskes perujuk." | `400` / `FE` |
+| `KSK-VAL-PO-073` | Rujukan (`v2.1`, `KSK-DEC-057`) | Faskes perujuk bukan mitra, atau perjanjian kerja samanya tidak berlaku pada tanggal kunjungan pendaftaran (aturan `DEC-FRJ-001`) | "Faskes perujuk ini belum bekerja sama dengan rumah sakit untuk tanggal kunjungan Anda. Pilih faskes lain, atau daftar di loket pendaftaran." | `400` |
+| `KSK-VAL-PO-074` | Cari faskes (`v2.1`, `KSK-DEC-057`) | `visitDate` kosong, salah format, atau di luar H+1 s.d. H+30 saat mencari faskes | "Pilih tanggal kunjungan lebih dulu." | `400` / `FE` |
 | `KSK-VAL-PO-028` | Rujukan | Tanggal surat rujukan di masa depan | "Tanggal surat rujukan tidak boleh melewati hari ini." | `400` / `FE` |
 | `KSK-VAL-PO-029` | Berkas rujukan | Lebih dari 5 MB | "Ukuran berkas maksimal 5 MB." | `400` / `FE` |
 | `KSK-VAL-PO-030` | Berkas rujukan | Bukan PDF/JPG/PNG (diperiksa dari isi berkas), atau lebih dari 3 berkas | "Unggah PDF, JPG, atau PNG, paling banyak 3 berkas." | `400` / `FE` |

@@ -125,3 +125,20 @@ artifact_hashes:                     # sha256, 12 karakter pertama — dihitung 
   flowcharts/pendaftaran-online-petugas-dan-penutupan.md: ea366609af74
   testing/acceptance-test-matrix.md: a98148d12e4c
 ```
+
+## Revisi 2.1 — Faskes perujuk mitra di halaman publik (`2026-11-25`, `approved`)
+
+| Field | Nilai |
+| --- | --- |
+| `revision` | `2.1` (aditif di atas revisi 2) |
+| `status` | `approved` — Sukma Giri Pratama, 25 Nov 2026 (`KSK-DEC-058`). Revisi 2 tetap `approved` |
+| `blueprint_shape` | `SINGLE` (tidak berubah) |
+| `contract_versions` | `KSK-CONTRACT-v2.1` (`approved` 2026-11-25): `contracts/api-contract.md` (baris `GET /public/options/referral-institutions` dan *Perubahan v2.1*), `contracts/validation-matrix.md` (`KSK-VAL-PO-073`, `074`). Tiga berkas kontrak lain tidak berubah dan tetap `last_changed_in` `v2` |
+| `decision_revision` | `KSK-DEC-056` (arahan Cetak Antrean tetap; tanpa perubahan desain), `KSK-DEC-057` (faskes perujuk mitra) — `approved` Sukma 2026-11-25 |
+| Desain | `KSK-DSN-PO-018` (`approved`); `02` PO.4.5 dan PO.15; `03` wilayah Data Rujukan; `04` `FR-KSK-PO-015`, `043`; flowchart pendaftaran pasien online; `testing/acceptance-test-matrix.md` tiga baris `KSK-DEC-057` |
+| Skema | Tidak berubah. Tanpa migration |
+| `backend_source_sha` | `356bf463` (`sukmagp`) |
+| `frontend_source_sha` | `7bba5cd1c` (`sukmagpV2`) |
+| Impact scan | Terbatas, read-only, 2026-11-25: `OnlineRegistrationPublicService.GetReferralInstitutionOptionsAsync` (saringan `IsActive` saja), validasi faskes saat kirim (`OnlineRegistrationPublicService.Submit` — cek aktif saja), `ReferralPartnerEligibility.IsEligibleOn`/`FindEligibleAsync` (dipakai `EncounterReferralService`, partner options RJ), hook frontend `use-online-registration-referral-institutions.js`. Urutan langkah Rujukan: Data Kunjungan → Data Rujukan, sehingga `visitDate` tersedia |
+| Kompatibilitas | Query wajib baru pada satu endpoint publik; konsumen tunggal halaman publik → backend dan frontend dirilis bersama |
+| `approved_by` / `approved_at` | Sukma Giri Pratama / 2026-11-25 (`KSK-DEC-058`) |

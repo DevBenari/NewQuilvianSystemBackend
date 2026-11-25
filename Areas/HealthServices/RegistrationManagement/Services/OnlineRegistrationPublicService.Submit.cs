@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -74,6 +75,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         public const string PayerUnavailableMessage = "Kartu penjamin tidak dapat dipakai. Pilih kartu lain atau Tunai.";
         public const string NewInsuranceIncompleteMessage = "Lengkapi penyedia asuransi dan nomor kartu.";
         public const string ReferralInstitutionRequiredMessage = "Pilih faskes perujuk.";
+        public const string ReferralInstitutionNotPartnerMessage =
+            "Faskes perujuk ini belum bekerja sama dengan rumah sakit untuk tanggal kunjungan Anda. Pilih faskes lain, atau daftar di loket pendaftaran.";
         public const string ReferralDateInFutureMessage = "Tanggal surat rujukan tidak boleh melewati hari ini.";
         public const string ConsentIncompleteMessage = "Lengkapi persetujuan umum dan tanda tangan.";
         public const string SignatureTooLargeMessage = "Tanda tangan terlalu besar. Silakan ulangi.";
@@ -837,12 +840,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 return new SubmitError("KSK-VAL-PO-026", NewInsuranceIncompleteMessage);
             }
 
-            if (draft.ReferralInstitutionId.HasValue &&
-                !await _dbContext.Set<MstReferralInstitution>()
-                    .AsNoTracking()
-                    .AnyAsync(x => x.Id == draft.ReferralInstitutionId.Value && x.IsActive && !x.IsDelete, cancellationToken))
+            if (draft.ReferralInstitutionId.HasValue)
             {
-                return new SubmitError("KSK-VAL-PO-027", ReferralInstitutionRequiredMessage);
+                var institutionId = draft.ReferralInstitutionId.Value;
+
+                if (!await _dbContext.Set<MstReferralInstitution>()
+                        .AsNoTracking()
+                        .AnyAsync(x => x.Id == institutionId && x.IsActive && !x.IsDelete, cancellationToken))
+                {
+                    return new SubmitError("KSK-VAL-PO-027", ReferralInstitutionRequiredMessage);
+                }
+
+                // KSK-DEC-057 / KSK-DSN-PO-018: hanya faskes mitra dengan perjanjian yang berlaku pada tanggal
+                // kunjungan, aturan yang sama dengan RJ-VAL-PM-17 di jalur kunjungan (DEC-FRJ-001).
+                var partnerDate = DateOnly.FromDateTime(draft.VisitDate.Date);
+                if (!await _dbContext.Set<MstReferralInstitution>()
+                        .AsNoTracking()
+                        .Where(x => x.Id == institutionId)
+                        .Where(ReferralPartnerEligibility.IsEligibleOn(partnerDate))
+                        .AnyAsync(cancellationToken))
+                {
+                    return new SubmitError("KSK-VAL-PO-073", ReferralInstitutionNotPartnerMessage);
+                }
             }
 
             return null;

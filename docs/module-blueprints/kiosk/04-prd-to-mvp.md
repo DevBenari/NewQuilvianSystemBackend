@@ -431,6 +431,7 @@ Antrean di loket pendaftaran pagi hari berkurang karena pasien yang sudah merenc
 | `FR-KSK-PO-012` | Kirim pendaftaran multipart: validasi, kode, nomor, berkas, consent, riwayat | `MISSING / NEW` |
 | `FR-KSK-PO-013` | `TurnstileVerificationService` (fail-closed) dan `SmtpEmailSender` | `MISSING / NEW` |
 | `FR-KSK-PO-014` | `PatientNameMasker` bersama | `EXTEND` (dipindah dari `QueueDisplayRuntimeController`) |
+| `FR-KSK-PO-015` | **`v2.1` (`KSK-DEC-057`, `058`)** — opsi faskes publik hanya faskes mitra pada `visitDate` (wajib); kirim menolak faskes non-mitra `KSK-VAL-PO-073` | `EXTEND` (`ReferralPartnerEligibility`) |
 
 ### EPIC KSK-PO-03 — Check-in backend
 
@@ -454,6 +455,7 @@ Antrean di loket pendaftaran pagi hari berkurang karena pasien yang sudah merenc
 | `FR-KSK-PO-040` | Route publik di tiga daftar dan CSP Turnstile | `EXTEND` |
 | `FR-KSK-PO-041` | Langkah Data Pasien publik dan Selesai publik (kode, email, WhatsApp) | `MISSING / NEW` |
 | `FR-KSK-PO-042` | Langkah RJ dipakai ulang lewat hook dan service publik | `EXTEND` (`CAP-PO-22`) |
+| `FR-KSK-PO-043` | **`v2.1` (`KSK-DEC-057`, `058`)** — Data Rujukan mencari faskes dengan `visitDate`, pesan kosong khusus faskes mitra, pilihan faskes dikosongkan bila tanggal kunjungan berubah, `KSK-VAL-PO-073` ditampilkan | `EXTEND` |
 
 ### EPIC KSK-PO-06 — Check-in kiosk frontend
 

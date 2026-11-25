@@ -421,6 +421,8 @@ Email dikirim **sesudah** transaksi pendaftaran selesai. Kegagalannya tidak memb
 | Verifikasi & Konfirmasi | Ringkasan dan captcha | — |
 | Selesai | Nomor pendaftaran, kode, tanggal, poli, dokter, jam, status email, tombol WhatsApp | `KSK-DEC-042`, `KSK-PO-FE-003` |
 
+**Faskes perujuk mitra (`v2.1`, `KSK-DEC-057`, `KSK-DSN-PO-018`, disetujui `KSK-DEC-058`).** Langkah Data Rujukan datang sesudah Data Kunjungan, sehingga tanggal kunjungan sudah diketahui saat faskes dicari. `GetReferralInstitutionOptionsAsync` menerima `visitDate` dan menambahkan saringan `ReferralPartnerEligibility.IsEligibleOn(visitDate)` (kelas `MasterData` yang sudah ada, dipakai jalur kunjungan RJ). Validasi kirim (`POST /public`) memeriksa faskes yang dikirim dengan aturan yang sama pada tanggal kunjungan pendaftaran dan menolak `400` `KSK-VAL-PO-073`. Check-in tidak berubah: `EncounterReferralService.ValidateForCreateAsync` tetap memeriksa `RJ-VAL-PM-17` pada hari H. Perubahan jadwal oleh petugas (`PUT {id}/schedule`) tidak memeriksa ulang faskes; bila perjanjian tidak berlaku pada tanggal baru, check-in ditolak `RJ-VAL-PM-17` dan pasien diarahkan ke loket. Tidak ada tabel, kolom, migration, atau endpoint baru.
+
 ### PO.4.6 Check-in di kiosk (`KSK-DEC-033`, `036`, `040`, `046`, `048`, `053`, `CAP-PO-15`, `CAP-PO-36`, `CAP-PO-37`)
 
 Check-in dua langkah, mengikuti pola Reservasi Prioritas yang sudah terhubung ke jalur kunjungan (`PatientEncounterController.cs:966-990`, `:1181-1200`):
@@ -871,3 +873,4 @@ Tanpa folder `Tests/` baru. Bukti per task: `dotnet build`, `dotnet ef migration
 | `KSK-DSN-PO-015` | Layanan penutupan harian tersendiri | `CAP-PO-17` |
 | `KSK-DSN-PO-016` | Ubah jadwal hanya di poli yang sama; kode tetap | `GATE-PO-13`, `KSK-PO-AS-003` |
 | `KSK-DSN-PO-017` | Resource `OnlineRegistration` (`Read`, `Update`, `Cancel`) | `KSK-PO-AS-002` |
+| `KSK-DSN-PO-018` | **`v2.1`, disetujui `KSK-DEC-058`** — Opsi faskes publik dan validasi kirim memakai `ReferralPartnerEligibility.IsEligibleOn(visitDate)` yang sudah ada; `visitDate` wajib pada opsi faskes; check-in tetap `RJ-VAL-PM-17` (fail-closed); tanpa perubahan skema | `KSK-DEC-057`, laporan `BE-KSK-PO-007` §3.5 |

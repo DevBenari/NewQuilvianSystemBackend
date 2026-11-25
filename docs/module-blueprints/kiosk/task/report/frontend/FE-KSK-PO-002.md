@@ -18,7 +18,7 @@
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit frontend saat dikerjakan | `508c8beb8` (`sukmagpV2`) + perubahan `FE-KSK-PO-001` yang belum di-commit |
 | Commit backend yang dijadikan rujukan | `93f0fa1b` (`sukmagp`) + perubahan `BE-KSK-PO-008`/`010` yang belum di-commit |
-| Tanggal | 2026-11-20 |
+| Tanggal | 2026-11-20; rework 2026-11-23 (format No. RM, bagian 9) |
 | Status | ✅ Selesai — AC 1, AC 2 (tampilan), dan kriteria tambahan 1–3 terbukti di browser |
 
 ## 1. Keadaan yang ditemukan di awal
@@ -188,3 +188,31 @@ Skrip dan tangkapan layar ada di scratchpad sesi (`fe-po002/public-flow.cjs`, `r
 - Tidak ada commit, push, migration, atau eksekusi database.
 
 **Task berikutnya:** `FE-KSK-PO-003` (Data Rujukan, General Consent, Verifikasi + Kirim, Selesai). Dependency `FE-KSK-PO-002` ✅ dan `BE-KSK-PO-005` ✅ sudah terpenuhi.
+
+## 9. Rework 2026-11-23 — format No. Rekam Medis
+
+**Masalah dari pemilik (Sukma, 2026-11-23).** Di langkah Data Pasien untuk pasien lama, pilihan Jenis Identitas "No. Rekam Medis" menerima angka polos seperti `00000001`. No. RM rumah sakit ditulis per 2 digit bertanda hubung, misalnya `00-00-00-01`, sama dengan pola RJ (`toMedicalRecordSearch` di `outpatient-registration.utils.js`). Pasien yang menyalin No. RM dari kartu berobat melihat bentuk yang berbeda.
+
+**Perilaku sesudah perbaikan.** Saat pasien mengetik `00000001`, isian langsung tampil `00-00-00-01`. Huruf, spasi, titik, dan tanda hubung yang diketik sendiri dibuang lalu disusun ulang per 2 digit. Batasnya tetap 20 digit (`KSK-VAL-PO-002`), sehingga isian paling panjang 29 karakter. NIK tidak berubah: 16 digit angka tanpa format. Contoh pada isian menjadi "Contoh: 00-00-00-01".
+
+**Kontrak.** Tidak ada delta. Backend `NormalizeMedicalRecordNumber` sudah membuang spasi, titik, dan tanda hubung sebelum validasi dan pencocokan, sehingga nilai berformat diterima apa adanya. Validator frontend `validateOnlineMedicalRecordNumber` juga sudah membuang tanda hubung.
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/utils/online-registration/online-registration.utils.js` | Fungsi baru `formatOnlineMedicalRecordNumber` (angka saja, paling banyak 20 digit, digabung per 2 digit dengan `-`) |
+| `src/lib/constants/online-registration/online-registration.constants.js` | Batas `MEDICAL_RECORD_INPUT_MAX_LENGTH: 29` (20 digit + 9 tanda hubung) |
+| `src/components/view/online-registration/online-registration-patient-step.jsx` | Field `identityValue`: `numberOnly` hanya untuk NIK; No. RM diformat lewat `onValueChange` → `setValue`; `maxLength` No. RM 29; placeholder "Contoh: 00-00-00-01" |
+
+| Elemen | Keputusan | Bukti |
+| --- | --- | --- |
+| Isian No. RM | `REUSE` `EmergencyTextField` (`BaseTextField`) dengan `onValueChange` yang sudah ada; tanpa komponen atau props base baru | `base-text-field.jsx` (`onValueChange`, `numberOnly`, `maxLength`) |
+
+`UI GATE: PASS` — tidak ada elemen `NEW` maupun `EXTEND`.
+
+| Verifikasi | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| ESLint 3 berkas yang diubah | 0 error, 0 warning | `PASS` | Keluaran eslint |
+| Uji browser HP 375 px, dev server 3000, request 7184 dialihkan ke 7185 | 11/11 PASS: NIK tetap angka; ganti ke No. RM mengosongkan isian dan placeholder `00-00-00-01`; ketik `00000001` → `00-00-00-01`; hapus satu digit → `00-00-00-0`; huruf dan tanda hubung ketikan dibuang; tempel `12.34 56-78` → `12-34-56-78`; batas 20 digit (29 karakter); No. RM pasien uji diketik tanpa tanda hubung tampil berformat; Periksa Data dengan nilai berformat → "Data pasien ditemukan" (request membawa nilai berformat); No. RM tidak tampil sebagai teks; tanpa `pageerror` | `PASS` | `scratchpad/fe-po002/mrn-format.cjs`, `mrn-format-375.png` |
+| `AUTOMATED TEST` | `SKIPPED (opsional)` — repository tidak memakai test runner untuk komponen ini | — | `test-policy.md` |
+
+Risiko: kursor melompat ke akhir isian bila pasien menyunting digit di tengah, karena nilai disusun ulang setiap ketikan. No. RM pendek, jadi dampaknya kecil. Status task tetap ✅. Tidak ada commit.

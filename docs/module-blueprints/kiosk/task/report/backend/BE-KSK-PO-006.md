@@ -16,8 +16,8 @@
 | Target tulis | `Areas/HealthServices/RegistrationManagement/{Controllers,DTOS,Enums,Services}`, `Program.cs` |
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit backend saat dikerjakan | `a86001e2` (`sukmagp`) |
-| Tanggal | 2026-11-20 |
-| Status | 🟡 Sebagian — seluruh jalur penolakan terbukti di runtime; jalur sukses (`200`, token, paket) terbukti di harness dengan jam palsu. Runtime `200` menunggu hari kunjungan data uji, 2026-11-21 |
+| Tanggal | 2026-11-20; runtime hari H 2026-11-25 |
+| Status | ✅ Selesai — penolakan terbukti di runtime 2026-11-20; jalur sukses (`200`, token, paket pasien lama dan baru, Lupa Kode NIK dan No. RM) terbukti di runtime hari H 2026-11-25 |
 
 **Backend Governance Preflight**
 
@@ -130,7 +130,7 @@ Akun uji: seed SuperAdmin dari `appsettings.Development.json` (kredensial tidak 
 | R6 AC 10 Lupa Kode | NIK pasien lama, No. RM pasien lama, NIK 5 pasien baru → `409` menyebut tanggal; NIK yang tidak pernah tersimpan → `404`; tanggal lahir salah → `404` | `PASS` | `po006_test.py today` |
 | RL1–RL2 batas laju (backend dijalankan ulang dengan batas bawaan) | Permintaan 1–10 `404`, ke-11 `429` "Terlalu banyak percobaan. Silakan coba lagi sebentar."; tanpa login tetap `401` | `PASS` | `po006_test.py rate` |
 | L1 log dua run | 21 nilai sensitif (kode, NIK, No. RM, tanggal lahir, kontak): 0 temuan; satu-satunya `ERR` adalah scheduler absensi HR yang tidak terkait | `PASS` | Pemeriksaan log |
-| D1–D4 runtime `200` pada hari kunjungan | Belum dapat dijalankan: tanggal kunjungan data uji 2026-11-21 | `NOT RUN` | Skrip siap: `po006_test.py dday` |
+| V1–V6 runtime hari H 2026-11-25 (Data uji `PO-20261125-0001` s.d. `0009` semula bertanggal 2026-11-26; dengan izin pemilik (2026-11-25, AskUserQuestion) tanggal kunjungannya dipindah ke 2026-11-25 lewat satu `UPDATE` 9 baris pada `RegOnlineRegistration` (tanggal, jadwal padanan yang dibuat lewat API, `RowVersion` baru) supaya token hari H dapat terbit hari itu (`po025_shift.py`)) | 6/6 PASS: V1 tanggal lahir salah `404` seragam; V2 kode + tanggal lahir `200`, token 43 karakter, `expiresAt` terisi; V3 paket pasien lama: `patientId` = pasien, tanpa NIK pindai, kontak, kode, maupun NIK, nama tersamar; V4 Lupa Kode NIK `200` pendaftaran sama; V5 Lupa Kode No. RM berformat `00-00-00-00` `200`; V6 paket pasien baru: `identityNumberForScan` = NIK pendaftaran, `patientId` kosong, kontak email, rujukan 2 berkas, consent | `PASS` | `po025_dday.py`, `po025-dday.log` |
 | `403` akun non-kiosk | Tidak diuji ulang; policy `KioskRead` yang sama sudah terbukti di `BE-KSK-002` | `NOT RUN` | — |
 | `dotnet test` | — | `NOT RUN` | Tidak ada project test (pola Bank Darah) |
 
@@ -139,19 +139,19 @@ Akun uji: seed SuperAdmin dari `appsettings.Development.json` (kredensial tidak 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
 | AC 8: sebelum hari H ditolak dengan tanggal; tanggal lahir salah ditolak pesan umum | Terpenuhi | R4, R5, R5b, harness H5a, H6 |
-| AC 10: Lupa Kode NIK/No. RM + tanggal lahir menemukan pendaftaran hari ini | **Sebagian** | Pencarian terbukti di runtime (R6, `409` karena belum hari H); hasil `200` pada hari H baru di harness (H4a–H4c) |
+| AC 10: Lupa Kode NIK/No. RM + tanggal lahir menemukan pendaftaran hari ini | Terpenuhi | Runtime R6 (`409` sebelum hari H), V4–V5 (`200` hari H); harness H4a–H4c |
 | Tambahan (1): kode berstatus akhir → `404` identik | Terpenuhi | Harness H5c; runtime 2026-11-20: kode pendaftaran Dibatalkan (`BE-KSK-PO-010` X2) dan Didaftarkan lewat Jalur Lain (`BE-KSK-PO-008` J3) → `404` pesan seragam |
 | Tambahan (2): belum hari H → `409` menyebut tanggal | Terpenuhi | R4, R5, R6 |
-| Tambahan (3): paket tanpa kode; `identityNumberForScan` hanya pasien baru | Terpenuhi lewat harness | H1c, H3. Runtime menunggu D2–D3 |
+| Tambahan (3): paket tanpa kode; `identityNumberForScan` hanya pasien baru | Terpenuhi | Harness H1c, H3; runtime V3, V6 |
 | DoD: verifier otorisasi PASS (`KSK-DSN-006`) | Terpenuhi | Bagian 5 |
 
 ## 7. Catatan penutup
 
 | Hal | Isi |
 | --- | --- |
-| Yang belum | Runtime `200` (token tersimpan dan paket) memakai pendaftaran uji `PO-20261120-*` pada **2026-11-21** dengan `po006_test.py dday`. Sesudah PASS, task ini dapat ditandai ✅ |
+| Yang belum | Tidak ada. Runtime hari H terbukti 2026-11-25 tanpa perubahan source |
 | Peringatan | Batas laju dihitung per akun. Bila beberapa kiosk berbagi satu akun, kuota 10/menit ikut terbagi |
 | Risiko tersisa | Kode 8 karakter dari 31 simbol (sekitar 8,5 × 10¹¹ kemungkinan) masih ditopang tanggal lahir dan batas laju; tebakan hanya mungkin dari kiosk yang login |
 | Perubahan sampingan | `NONE` di repository. Harness, skrip uji, dan log berada di scratchpad |
-| Status Git | Milik task ini: 4 berkas baru (controller, service, DTO, enum) dan perubahan pada `OnlineRegistrationPublicService.cs` serta `Program.cs`; ditambah perubahan task sebelumnya yang belum di-commit. Tidak ada commit |
-| Langkah berikutnya | `BE-KSK-PO-007` (check-in menjadi kunjungan) memakai `ComputeTokenHash`; atau `BE-KSK-PO-008`/`009` yang boleh paralel |
+| Status Git | Source task ini sudah di-commit pemilik. Pembaruan 2026-11-25 hanya laporan, roadmap, traceability, dan `MODULE-STATUS.md`. Agent tidak membuat commit |
+| Langkah berikutnya | Tidak ada untuk task ini. Kontrak dipakai `FE-KSK-PO-005` dan `FE-KSK-PO-006` |

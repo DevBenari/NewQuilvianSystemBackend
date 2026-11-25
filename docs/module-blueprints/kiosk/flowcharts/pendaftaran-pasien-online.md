@@ -56,7 +56,7 @@ flowchart TD
 | Isi data pasien baru | Pasien | NIK, nama, tanggal lahir, jenis kelamin | — | Pesan per kolom |
 | Isi kontak | Pasien | No. WA atau email | — | Kolom wajib diisi salah satu |
 | Pilih jadwal | Pasien | Tanggal H+1 s.d. H+30, poli, jadwal | Jadwal dengan sisa kuota | Jadwal penuh tidak dapat dipilih; pasien memilih yang lain |
-| Data rujukan | Pasien | Faskes perujuk, surat rujukan maks. 5 MB | — | Berkas terlalu besar ditolak; pasien memilih berkas lain |
+| Data rujukan | Pasien | Faskes perujuk (hanya faskes mitra pada tanggal kunjungan, `KSK-DEC-057`), surat rujukan maks. 5 MB | — | Berkas terlalu besar ditolak; pasien memilih berkas lain. Faskes perujuk tidak ada di daftar → pasien daftar di loket |
 | Persetujuan umum | Pasien baru atau walinya | Klausul dan tanda tangan | — | Tombol lanjut tetap terkunci |
 | Kirim | Pasien | Ringkasan dan captcha | Pendaftaran berstatus Menunggu Check-in, kode, email | Kuota habis atau sudah terdaftar: kembali ke langkah jadwal. Captcha atau batas percobaan: coba lagi nanti |
 | Email | Sistem | Alamat email | Email berisi kode | Pendaftaran tetap tersimpan; kode tetap tampil; Lupa Kode tersedia di kiosk |

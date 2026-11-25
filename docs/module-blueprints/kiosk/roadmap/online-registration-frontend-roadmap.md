@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Roadmap ID | `KSK-PO-RM-FE-001` |
-| Revision | `1` |
-| Status | `approved` — Sukma Giri Pratama, 2026-11-19 (`KSK-DEC-055`). Wewenang implementasi `GRANTED` untuk seluruh task; pembuatan dan penerapan migration tetap memerlukan konfirmasi terpisah |
+| Revision | `1.1` — menambah `FE-KSK-PO-009` (revisi blueprint 2.1, `KSK-DEC-057`) |
+| Status | `approved` — Sukma Giri Pratama, 2026-11-19 (`KSK-DEC-055`); r1.1 Sukma Giri Pratama, 2026-11-25 (`KSK-DEC-058`). Wewenang implementasi `GRANTED` untuk seluruh task; pembuatan dan penerapan migration tetap memerlukan konfirmasi terpisah |
 | Blueprint | `KSK-BP-001` revisi `2`, `approved` (Sukma Giri Pratama, 2026-11-19, `KSK-DEC-054`), bentuk `SINGLE` |
 | Cakupan | `EPIC KSK-PO-05` s.d. `KSK-PO-07`, rilis `MVP-1` s.d. `MVP-3` (`04-prd-to-mvp.md` PO-20) |
-| SHA baseline | FE `5f18e9f04` (`sukmagpV2`), BE `5e777833` (`sukmagp`) |
-| Kontrak masukan | `KSK-CONTRACT-v2` `approved` (hash per berkas sama dengan [online-registration-backend-roadmap.md](online-registration-backend-roadmap.md)) |
+| SHA baseline | FE `5f18e9f04` (`sukmagpV2`), BE `5e777833` (`sukmagp`); r1.1: FE `7bba5cd1c`, BE `356bf463` |
+| Kontrak masukan | `KSK-CONTRACT-v2` `approved`; r1.1: `KSK-CONTRACT-v2.1` `approved` (`KSK-DEC-058`) (hash per berkas sama dengan [online-registration-backend-roadmap.md](online-registration-backend-roadmap.md)) |
 | Masukan desain | `03-frontend-architecture.md` PO-FE.1–7 (`8a5befef750f`), `testing/acceptance-test-matrix.md` PO-T (`d97bb3d86834`), flowchart `pendaftaran-pasien-online.md`, `check-in-pasien-online.md`, `pendaftaran-online-petugas-dan-penutupan.md` |
 | Wewenang UI | `KSK-PO-FE-001` s.d. `005`. Rupa, tata letak, bentuk modal, dan kalimat email/WhatsApp `DEV_DISCRETION`; letak menu terkunci (`KSK-DEC-054`) |
 | Owner | Sukma Giri Pratama |
@@ -38,26 +38,31 @@ BE-KSK-PO-004 ✅ [BE] ─> FE-KSK-PO-001 ✅ ─> FE-KSK-PO-002 ✅ ─┬─> 
                                                                │
 BE-KSK-PO-005 ✅ [BE] ─────────────────────────────────────────┘
 
-BE-KSK-PO-007 🟡 [BE] ─> FE-KSK-PO-005 ─┬─> FE-KSK-PO-006
-                                        │
-FE-KSK-PO-004 ✅ ───────────────────────┘
+BE-KSK-PO-007 ✅ [BE] ─> FE-KSK-PO-005 ✅ ─┬─> FE-KSK-PO-006 ✅
+                                           │
+FE-KSK-PO-004 ✅ ──────────────────────────┘
 
 BE-KSK-PO-009 ✅ [BE] ─> FE-KSK-PO-007 ✅ ─┬─> FE-KSK-PO-008 ✅
                                            │
 BE-KSK-PO-010 ✅ [BE] ─────────────────────┘
+
+BE-KSK-PO-011 ✅ [BE] ─┬─> FE-KSK-PO-009 ✅
+                       │
+FE-KSK-PO-003 ✅ ──────┘
 ```
 
-`[BE]` = task backend pada [online-registration-backend-roadmap.md](online-registration-backend-roadmap.md), cermin baca-saja.
+`[BE]` = task backend pada [online-registration-backend-roadmap.md](online-registration-backend-roadmap.md), cermin baca-saja. Blok keempat menyambung `FE-KSK-PO-003` dari blok pertama.
 
-Pasangan prasyarat → task: 10 (`BE-004→FE-001`, `FE-001→FE-002`, `FE-002→FE-003`, `BE-005→FE-003`, `BE-007→FE-005`, `FE-005→FE-006`, `FE-004→FE-006`, `BE-009→FE-007`, `FE-007→FE-008`, `BE-010→FE-008`), sama dengan isi kolom `Dependency`.
+Pasangan prasyarat → task: 12 (`BE-004→FE-001`, `FE-001→FE-002`, `FE-002→FE-003`, `BE-005→FE-003`, `BE-007→FE-005`, `FE-005→FE-006`, `FE-004→FE-006`, `BE-009→FE-007`, `FE-007→FE-008`, `BE-010→FE-008`, `BE-011→FE-009`, `FE-003→FE-009`), sama dengan isi kolom `Dependency`.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
 | 1 | — untuk `FE-KSK-PO-004`; prasyarat backend `[BE]` untuk lainnya | `FE-KSK-PO-004`; `FE-KSK-PO-001` (setelah `BE-KSK-PO-004`); `FE-KSK-PO-005` (setelah `BE-KSK-PO-007`); `FE-KSK-PO-007` (setelah `BE-KSK-PO-009`) |
 | 2 | Gelombang 1 yang ditunggunya | `FE-KSK-PO-002` (`FE-KSK-PO-001`); `FE-KSK-PO-006` (`FE-KSK-PO-005`, `FE-KSK-PO-004`); `FE-KSK-PO-008` (`FE-KSK-PO-007`, `BE-KSK-PO-010`) |
 | 3 | `FE-KSK-PO-002`, `BE-KSK-PO-005` | `FE-KSK-PO-003` |
+| 4 (r1.1) | `FE-KSK-PO-003`, `BE-KSK-PO-011` | `FE-KSK-PO-009` |
 
-**Gelombang rilis produk:** `MVP-1` = `FE-KSK-PO-001` s.d. `003`; `MVP-2` = `FE-KSK-PO-004` s.d. `006`; `MVP-3` = `FE-KSK-PO-007`, `008`.
+**Gelombang rilis produk:** `MVP-1` = `FE-KSK-PO-001` s.d. `003`; `MVP-2` = `FE-KSK-PO-004` s.d. `006`; `MVP-3` = `FE-KSK-PO-007`, `008`; r1.1 `FE-KSK-PO-009` dirilis bersama `BE-KSK-PO-011`.
 
 ## Tabel task
 
@@ -71,6 +76,7 @@ Pasangan prasyarat → task: 10 (`BE-004→FE-001`, `FE-001→FE-002`, `FE-002�
 | `FE-KSK-PO-006` | Check-in pasien baru | `FR-KSK-PO-051`; `KSK-DEC-032`, `039`, `048`, `053` | Endpoint kiosk pasien, dokumen identitas, kartu asuransi | Helper kiosk Pasien Baru, `findExistingKioskPatientByIdentity` | View dan hook check-in | `FE-KSK-PO-005`, `FE-KSK-PO-004` | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
 | `FE-KSK-PO-007` | Daftar Pendaftaran Online dan butir menu | `FR-KSK-PO-060`; `KSK-DEC-050`; `KSK-PO-FE-005` | Grup *Online Registration* `GET` | Pola layar Reservasi Prioritas | Route, slice, service, hook, view, `menu-items.jsx` | `BE-KSK-PO-009` | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
 | `FE-KSK-PO-008` | Detail, Ubah Jadwal, Ubah Kontak, Batalkan | `FR-KSK-PO-061`; `KSK-DEC-051`, `052` | Grup *Online Registration* `GET {id}`, `PUT`, `POST cancel` | Detail RP, `ConfirmModal` | Route detail, view, modal, hook | `FE-KSK-PO-007`, `BE-KSK-PO-010` | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
+| `FE-KSK-PO-009` | Data Rujukan: faskes mitra pada tanggal kunjungan | `FR-KSK-PO-043`; `KSK-DEC-057` | `v2.1`: `GET /public/options/referral-institutions` (`visitDate`); `KSK-VAL-PO-073`, `074` | `use-online-registration-referral-institutions.js`, langkah rujukan RJ | Hook pencarian faskes, service publik, langkah Data Rujukan | `FE-KSK-PO-003`, `BE-KSK-PO-011` | Baris uji `KSK-DEC-057` (E2E) | Uji browser HP 375 px | — Pemilik: implementer | Kriteria terbukti |
 
 ## Kartu task
 
@@ -94,7 +100,7 @@ Pasangan prasyarat → task: 10 (`BE-004→FE-001`, `FE-001→FE-002`, `FE-002�
 
 | Field | Isi |
 | --- | --- |
-| Status | ✅ 2026-11-20 — ESLint 12 berkas 0 error/0 warning, `lint:errors` PASS, `build` PASS (854/854, `ƒ /online-registration`); Playwright HP 375 px tiga jenis pasien 38/38 PASS (urutan langkah = menu RJ untuk Pribadi/Asuransi/Rujukan, validasi `KSK-VAL-PO-001` s.d. `009`, `020`, `026`, pencocokan pasien lama + captcha sekali pakai → nama tersamar, `404` pesan umum, kartu milik pasien tersamar dan kartu asuransi baru, hari ini dan > H+30 tidak dapat dipilih, kartu jadwal dengan sisa kuota, URL/storage tanpa data pasien, semua request hanya grup publik); regresi menu RJ petugas 13/13 PASS (satu pasien lama per jenis sampai Verifikasi, tanpa menyimpan). UI GATE 8 elemen: REUSE 3, EXTEND 3 (prop opsional, bawaan tetap), COMPOSE 2, NEW 0. Penjamin Pasien Rujukan baru dapat diuji di layar sesudah Data Rujukan (`FE-KSK-PO-003`); langkah `FE-KSK-PO-003` sementara berisi penanda "disiapkan pada tahap berikutnya" — [laporan](../task/report/frontend/FE-KSK-PO-002.md) |
+| Status | ✅ 2026-11-20; rework 2026-11-23: isian No. RM pasien lama terformat `00-00-00-01` (ESLint 3 berkas 0 error, browser 375 px 11/11 PASS termasuk pencocokan dengan nilai berformat; laporan bagian 9) — ESLint 12 berkas 0 error/0 warning, `lint:errors` PASS, `build` PASS (854/854, `ƒ /online-registration`); Playwright HP 375 px tiga jenis pasien 38/38 PASS (urutan langkah = menu RJ untuk Pribadi/Asuransi/Rujukan, validasi `KSK-VAL-PO-001` s.d. `009`, `020`, `026`, pencocokan pasien lama + captcha sekali pakai → nama tersamar, `404` pesan umum, kartu milik pasien tersamar dan kartu asuransi baru, hari ini dan > H+30 tidak dapat dipilih, kartu jadwal dengan sisa kuota, URL/storage tanpa data pasien, semua request hanya grup publik); regresi menu RJ petugas 13/13 PASS (satu pasien lama per jenis sampai Verifikasi, tanpa menyimpan). UI GATE 8 elemen: REUSE 3, EXTEND 3 (prop opsional, bawaan tetap), COMPOSE 2, NEW 0. Penjamin Pasien Rujukan baru dapat diuji di layar sesudah Data Rujukan (`FE-KSK-PO-003`); langkah `FE-KSK-PO-003` sementara berisi penanda "disiapkan pada tahap berikutnya" — [laporan](../task/report/frontend/FE-KSK-PO-002.md) |
 | Outcome | Langkah Data Pasien publik (lama: NIK/No. RM + tanggal lahir + captcha → nama tersamar; baru: NIK, nama, tanggal lahir, jenis kelamin; kolom No. WA/email); Jenis Pasien; Data Kunjungan (tanggal H+1 s.d. H+30, poli, kartu jadwal dengan sisa kuota); Penjamin (kartu milik pasien tersamar, kartu asuransi baru, Tunai). Urutan langkah per jenis pasien sama dengan menu RJ |
 | Requirement/decision | `FR-KSK-PO-041`, `042`; `KSK-DEC-029`, `031`, `035`, `043`, `047`; `KSK-PO-FE-001`, `002`; `KSK-DSN-PO-004`, `012`, `013` |
 | Kontrak | Grup publik `GET options/*`, `POST patient-match`; `KSK-VAL-PO-001` s.d. `012`, `020` s.d. `026` (sisi `FE`) |
@@ -138,11 +144,11 @@ Pasangan prasyarat → task: 10 (`BE-004→FE-001`, `FE-001→FE-002`, `FE-002�
 | Risiko/pemilik | Regresi kiosk Pasien Baru. Pemilik: implementer |
 | DoD | Kriteria 1–3 terbukti |
 
-### `FE-KSK-PO-005` — Layar Check-in: kode/Lupa Kode, ringkasan, pasien lama, tiket
+### ✅ `FE-KSK-PO-005` — Layar Check-in: kode/Lupa Kode, ringkasan, pasien lama, tiket
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ 2026-11-25 — ESLint berkas task 0 error, `lint:errors` PASS, `build` PASS (856/856, `○ /kiosk/registration/online-check-in`); uji browser kiosk 1920×1080 dan 1080×1920 36/36 PASS: 26 skenario layar dan jalur gagal (kartu beranda hanya aktif dengan `kioskCanAppointment`, validasi `040`, `404` seragam, `409` dengan tanggal untuk kode dan Lupa Kode, ketukan ganda 1 request, batas waktu 120 detik → beranda, ringkasan, `053`, `046`, tiket + Cetak Ulang, paket pasien baru) dan 10 skenario jalur sukses nyata (data uji dipindah ke tanggal hari ini dengan izin pemilik (satu `UPDATE` 9 baris)): kode → antrean `P005`, Lupa Kode NIK → antrean `P010`, tiket layar = tiket thermal, cetak otomatis 1×, pendaftaran status 2. Belum: cetak di printer thermal kiosk fisik — [laporan](../task/report/frontend/FE-KSK-PO-005.md) |
 | Outcome | Route `/kiosk/registration/online-check-in`; pilihan "Saya punya kode" atau "Lupa Kode"; verifikasi; ringkasan; check-in pasien lama lewat `POST patient-encounters/kiosk` dengan `onlineRegistrationId` dan token; tiket dicetak; kartu "Check-in Pasien Online" di beranda diberi route; pembersihan sesi dan batas waktu tanpa sentuhan |
 | Requirement/decision | `FR-KSK-PO-050`; `KSK-DEC-033`, `036`, `040`, `046` |
 | Kontrak | Grup *Online Registration Check-In*; `POST patient-encounters/kiosk`; `KSK-VAL-PO-040` s.d. `048`, `053` s.d. `055` |
@@ -154,11 +160,11 @@ Pasangan prasyarat → task: 10 (`BE-004→FE-001`, `FE-001→FE-002`, `FE-002�
 | Risiko/pemilik | Token habis saat pasien lambat. Pemilik: implementer |
 | DoD | Kriteria terbukti |
 
-### `FE-KSK-PO-006` — Check-in pasien baru
+### ✅ `FE-KSK-PO-006` — Check-in pasien baru
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ 2026-11-25 — ESLint berkas task 0 error, `lint:errors` PASS, `build` PASS (856/856, `○ /kiosk/registration/online-check-in`); uji browser kiosk dengan backend uji 7185 nyata dan agen pemindai tiruan (payload OCR yang dibaca parser kiosk) 15/15 PASS: langkah Pindai Kartu hanya KTP/KIA (`050`), NIK tidak terbaca `051` dan berbeda `052` menonaktifkan Check-in, NIK terkunci, master baru dari kartu + kontak online lalu dokumen identitas, NIK lama memakai master yang ada, kegagalan dokumen identitas di tengah lalu coba lagi tanpa master ganda (master 0 → 1), dua check-in pasien baru `200` sampai tiket; regresi alur pasien lama `FE-KSK-PO-005` 11/11 PASS. Dikecualikan: uji dengan pemindai Plustek fisik — [laporan](../task/report/frontend/FE-KSK-PO-006.md) |
 | Outcome | Untuk paket pasien baru: langkah pindai dengan NIK terkunci dan hanya KTP/KIA; bandingkan NIK dengan `identityNumberForScan`; cari pasien lewat `findExistingKioskPatientByIdentity`; bila belum ada, buat master dan dokumen identitas lewat endpoint kiosk Pasien Baru; buat kartu asuransi baru bila ada; lalu check-in |
 | Requirement/decision | `FR-KSK-PO-051`; `KSK-DEC-032`, `039`, `048`, `053` |
 | Kontrak | `POST patients/kiosk`, `patient-identity-documents/kiosk`, `patient-insurances/kiosk` (existing); `POST patient-encounters/kiosk`; `KSK-VAL-PO-050` s.d. `052` |
@@ -200,6 +206,22 @@ Pasangan prasyarat → task: 10 (`BE-004→FE-001`, `FE-001→FE-002`, `FE-002�
 | Acceptance criteria | AC 19, 20 (tampilan). Tambahan: bentuk modal/drawer `DEV_DISCRETION` dicatat di laporan |
 | Verifikasi | Uji browser: pindah tanggal, jadwal penuh, poli lain, ubah kontak, batal, `RowVersion` basi |
 | Risiko/pemilik | — Pemilik: implementer |
+| DoD | Kriteria terbukti |
+
+### ✅ `FE-KSK-PO-009` — Data Rujukan: faskes mitra pada tanggal kunjungan
+
+| Field | Isi |
+| --- | --- |
+| Status | ✅ 2026-11-25 — ESLint berkas task 0 error 0 warning, `lint:errors` PASS, `build` PASS (856/856, `ƒ /online-registration`); uji browser HP 375 px terhadap backend uji 7185 14/14 PASS: pencarian faskes membawa `visitDate`, hanya mitra berlaku muncul (Setiabudi muncul; Kebayoran kedaluwarsa dan Karet Semanggi nonaktif tidak), pesan kosong faskes mitra, tanggal diganti 26 → 27 Nov mengosongkan pilihan faskes dan pencarian ulang memakai tanggal baru, kembali tanpa ganti tanggal tidak mengosongkan, penolakan `073` tampil di Verifikasi lalu pasien kembali ke Data Rujukan, alur Pasien Pribadi tetap. `073` diuji dengan respons tiruan (jalur normal tidak dapat memilih non-mitra; `073` nyata dibuktikan `BE-KSK-PO-011`). Tanpa test otomatis (opsional) — [laporan](../task/report/frontend/FE-KSK-PO-009.md) |
+| Outcome | Pencarian faskes di langkah Data Rujukan mengirim `visitDate` dari langkah Data Kunjungan; hasil kosong menampilkan "Faskes mitra tidak ditemukan untuk tanggal kunjungan ini. Bila faskes perujuk Anda tidak ada, silakan daftar di loket pendaftaran."; pilihan faskes dikosongkan bila tanggal kunjungan berubah sesudah faskes dipilih; penolakan kirim `KSK-VAL-PO-073` tampil dan pasien dapat kembali ke Data Rujukan |
+| Requirement/decision | `FR-KSK-PO-043`; `KSK-DEC-057`, `058` |
+| Kontrak | `KSK-CONTRACT-v2.1`: `GET /public/options/referral-institutions` (`search`, `visitDate`); `KSK-VAL-PO-073`, `074` |
+| Reuse | `use-online-registration-referral-institutions.js`, langkah Data Rujukan RJ yang dipakai `FE-KSK-PO-003` |
+| Cakupan | Hook pencarian faskes, service publik, hook/langkah Data Rujukan halaman publik |
+| Dependency | `FE-KSK-PO-003`, `BE-KSK-PO-011` |
+| Acceptance criteria | Baris uji `KSK-DEC-057` (E2E) di PO-T.1: pencarian hanya faskes mitra pada tanggal kunjungan; ubah tanggal sesudah memilih faskes → pilihan dikosongkan; pesan kosong khusus faskes mitra. Tambahan: alur Pasien Pribadi/Asuransi tidak berubah |
+| Verifikasi | Uji browser HP 375 px terhadap backend uji; lint + build |
+| Risiko/pemilik | Harus dirilis bersama `BE-KSK-PO-011`. Pemilik: implementer |
 | DoD | Kriteria terbukti |
 
 ## Coverage gap

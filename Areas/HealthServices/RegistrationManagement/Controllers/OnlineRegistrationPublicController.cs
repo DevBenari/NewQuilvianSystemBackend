@@ -97,7 +97,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return Respond(await _publicService.GetInsuranceProviderOptionsAsync(cancellationToken));
         }
 
-        /// <summary>Cari faskes perujuk (minimal 3 huruf, paling banyak 20 baris).</summary>
+        /// <summary>
+        /// Cari faskes perujuk mitra yang perjanjiannya berlaku pada <paramref name="visitDate"/> (minimal 3 huruf,
+        /// paling banyak 20 baris; <c>KSK-DEC-057</c>). Tanpa <paramref name="visitDate"/> yang sah → <c>400</c>.
+        /// </summary>
         [HttpGet("options/referral-institutions")]
         [EnableRateLimiting(OptionsRateLimitPolicy)]
         [ProducesResponseType(typeof(ApiResponse<List<OnlineRegistrationReferralInstitutionOption>>), StatusCodes.Status200OK)]
@@ -105,10 +108,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> GetReferralInstitutionOptions(
             [FromQuery] string? search,
+            [FromQuery] DateTime? visitDate,
             CancellationToken cancellationToken = default)
         {
             MarkNoStore();
-            return Respond(await _publicService.GetReferralInstitutionOptionsAsync(search, cancellationToken));
+            return Respond(await _publicService.GetReferralInstitutionOptionsAsync(search, visitDate, cancellationToken));
         }
 
         /// <summary>Mencocokkan pasien lama dengan NIK/No. RM dan tanggal lahir (<c>KSK-DEC-031</c>).</summary>

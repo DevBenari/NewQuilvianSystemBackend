@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Roadmap ID | `KSK-PO-RM-BE-001` |
-| Revision | `1` |
-| Status | `approved` — Sukma Giri Pratama, 2026-11-19 (`KSK-DEC-055`). Wewenang implementasi `GRANTED` untuk seluruh task; pembuatan dan penerapan migration tetap memerlukan konfirmasi terpisah |
+| Revision | `1.1` — menambah `BE-KSK-PO-011` (revisi blueprint 2.1, `KSK-DEC-057`) |
+| Status | `approved` — Sukma Giri Pratama, 2026-11-19 (`KSK-DEC-055`); r1.1 Sukma Giri Pratama, 2026-11-25 (`KSK-DEC-058`). Wewenang implementasi `GRANTED` untuk seluruh task; pembuatan dan penerapan migration tetap memerlukan konfirmasi terpisah |
 | Blueprint | `KSK-BP-001` revisi `2`, `approved` (Sukma Giri Pratama, 2026-11-19, `KSK-DEC-054`), bentuk `SINGLE` |
 | Cakupan | `EPIC KSK-PO-01` s.d. `KSK-PO-04` (sisi backend), rilis `MVP-0` s.d. `MVP-3` (`04-prd-to-mvp.md` PO-20). `POST-MVP` tidak direncanakan |
-| SHA baseline | BE `5e777833` (`sukmagp`), FE `5f18e9f04` (`sukmagpV2`) |
-| Kontrak masukan | `KSK-CONTRACT-v2` `approved`, bagian *Amendment PO*. Hash berkas sesudah approval: `api-contract.md` `1aca969a678d`, `state-transition-matrix.md` `2df4865bd7a1`, `validation-matrix.md` `f37f0f6b4746`, `integration-contract.md` `d8cab335cd07`, `permission-audit-matrix.md` `b031ae6f062d` |
+| SHA baseline | BE `5e777833` (`sukmagp`), FE `5f18e9f04` (`sukmagpV2`); r1.1: BE `356bf463`, FE `7bba5cd1c` |
+| Kontrak masukan | `KSK-CONTRACT-v2` `approved`, bagian *Amendment PO*; r1.1: `KSK-CONTRACT-v2.1` `approved` (`KSK-DEC-058`, *Perubahan v2.1* pada `api-contract.md`, `KSK-VAL-PO-073`, `074`). Hash berkas sesudah approval: `api-contract.md` `1aca969a678d`, `state-transition-matrix.md` `2df4865bd7a1`, `validation-matrix.md` `f37f0f6b4746`, `integration-contract.md` `d8cab335cd07`, `permission-audit-matrix.md` `b031ae6f062d` |
 | Masukan desain | `02-backend-architecture.md` PO.1–PO.15 (`0b8b3e654f26`), `data/data-dictionary.md` PO-D (`e5034ab703ae`), `04-prd-to-mvp.md` PO-10, PO-20 (`edccb4141345`), `testing/acceptance-test-matrix.md` PO-T (`d97bb3d86834`) |
 | Owner | Sukma Giri Pratama |
 | Nama berkas | `online-registration-backend-roadmap.md`, karena `roadmap/backend-roadmap.md` sudah dimiliki revisi 1 (`KSK-RM-BE-001`). Pola sama dengan `rawat-jalan/roadmap/priority-reservation-backend-roadmap.md` |
@@ -33,20 +33,22 @@
 ## Grafik Urutan Dependency
 
 ```text
-BE-KSK-PO-001 ✅ ─> BE-KSK-PO-002 ✅ ─┬─> BE-KSK-PO-004 ✅ ─> BE-KSK-PO-005 ✅ ─┬─> BE-KSK-PO-006 🟡
+BE-KSK-PO-001 ✅ ─> BE-KSK-PO-002 ✅ ─┬─> BE-KSK-PO-004 ✅ ─> BE-KSK-PO-005 ✅ ─┬─> BE-KSK-PO-006 ✅
                                       │                                         │
 BE-KSK-PO-003 ✅ ─────────────────────┘                                         ├─> BE-KSK-PO-008 ✅
                                                                                 │
                                                                                 └─> BE-KSK-PO-009 ✅
 
-BE-KSK-PO-006 🟡 ─> BE-KSK-PO-007 🟡
+BE-KSK-PO-006 ✅ ─> BE-KSK-PO-007 ✅
 
 BE-KSK-PO-009 ✅ ─> BE-KSK-PO-010 ✅
+
+BE-KSK-PO-005 ✅ ─> BE-KSK-PO-011 ✅
 ```
 
-Blok kedua dan ketiga menyambung rantai dari `BE-KSK-PO-006` dan `BE-KSK-PO-009` pada blok pertama, karena satu baris tidak muat 100 karakter.
+Blok kedua s.d. keempat menyambung rantai dari `BE-KSK-PO-006`, `BE-KSK-PO-009`, dan `BE-KSK-PO-005` pada blok pertama, karena satu baris tidak muat 100 karakter.
 
-Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→005`, `005→006`, `005→008`, `005→009`, `006→007`, `009→010`), sama dengan isi kolom `Dependency`.
+Pasangan prasyarat → task: 10 (`001→002`, `002→004`, `003→004`, `004→005`, `005→006`, `005→008`, `005→009`, `006→007`, `009→010`, `005→011`), sama dengan isi kolom `Dependency`.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
@@ -54,7 +56,7 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | 2 | `BE-KSK-PO-001` | `BE-KSK-PO-002` |
 | 3 | `BE-KSK-PO-002`, `BE-KSK-PO-003` | `BE-KSK-PO-004` |
 | 4 | `BE-KSK-PO-004` | `BE-KSK-PO-005` |
-| 5 | `BE-KSK-PO-005` | `BE-KSK-PO-006`, `BE-KSK-PO-008`, `BE-KSK-PO-009` — boleh paralel |
+| 5 | `BE-KSK-PO-005` | `BE-KSK-PO-006`, `BE-KSK-PO-008`, `BE-KSK-PO-009`, `BE-KSK-PO-011` (r1.1) — boleh paralel |
 | 6 | `BE-KSK-PO-006` / `BE-KSK-PO-009` | `BE-KSK-PO-007`, `BE-KSK-PO-010` |
 
 **Gelombang rilis produk** (`04-prd-to-mvp.md` PO-20) berbeda dari gelombang teknis:
@@ -65,6 +67,7 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | `MVP-1` | `BE-KSK-PO-003`, `004`, `005` | Development boleh jalan. Go-live menunggu `KSK-PO-OQ-010`, `015`, `016` |
 | `MVP-2` | `BE-KSK-PO-006`, `007` | — |
 | `MVP-3` | `BE-KSK-PO-009`, `010` | Boleh dikerjakan paralel dengan `MVP-2` sesudah `005` |
+| `MVP-1` (r1.1) | `BE-KSK-PO-011` | Perubahan perilaku halaman publik (`KSK-DEC-057`); dirilis bersama `FE-KSK-PO-009` karena query `visitDate` wajib |
 
 `BE-KSK-PO-002`, `007`, dan `008` sama-sama mengubah `PatientEncounterController.CreateEncounterCoreAsync`. Kerjakan berurutan atau pada branch yang sama agar tidak terjadi konflik di blok transaksi yang sama.
 
@@ -82,6 +85,7 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | `BE-KSK-PO-008` | Penutupan Jalur Lain dan Tidak Datang | `FR-KSK-PO-003`, `004`; `KSK-DEC-037`, `045`; `KSK-DSN-PO-015` | PO-S.1 | `CloseForEncounterAsync` RP, `OutpatientPriorityReservationClosureHostedService` | `OnlineRegistrationService`, hosted service, `PatientEncounterController`, `Program.cs` | `BE-KSK-PO-005` | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
 | `BE-KSK-PO-009` | Daftar, ringkasan, detail, berkas untuk petugas | `FR-KSK-PO-030`, `032` (Resource); `KSK-DEC-050`; `KSK-DSN-PO-017` | Grup *Online Registration* (`GET`) | `OutpatientPriorityReservationController#GetAll`, `summary`, detail | `OnlineRegistrationController`, `OnlineRegistrationService` | `BE-KSK-PO-005` | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
 | `BE-KSK-PO-010` | Ubah jadwal, ubah kontak, batal | `FR-KSK-PO-031`, `032`; `KSK-DEC-051`, `052`; `KSK-DSN-PO-016` | Grup *Online Registration* (`PUT`, `POST cancel`) | `CancelAsync` RP, `RowVersion` | `OnlineRegistrationController`, `OnlineRegistrationService` | `BE-KSK-PO-009` | Lihat kartu | Lihat kartu | Lihat kartu | Lihat kartu |
+| `BE-KSK-PO-011` | Faskes perujuk mitra di halaman publik | `FR-KSK-PO-015`; `KSK-DEC-057`; `KSK-DSN-PO-018` | `v2.1`: `GET /public/options/referral-institutions` (`visitDate` wajib), `POST /public`; `KSK-VAL-PO-073`, `074` | `ReferralPartnerEligibility.IsEligibleOn`/`FindEligibleAsync` | `OnlineRegistrationPublicService` (opsi faskes, validasi kirim), controller publik (query), DTO opsi bila perlu | `BE-KSK-PO-005` | Tiga baris uji `KSK-DEC-057` di PO-T.1 | Runtime HTTP | Data perjanjian mitra uji. Pemilik: implementer | Kriteria terbukti; tanpa migration |
 
 ## Kartu task
 
@@ -166,11 +170,11 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | Risiko/pemilik | Unggah berkas tanpa login. Pemilik: implementer + Sukma Giri Pratama |
 | DoD | Seluruh kriteria terbukti; log tanpa data sensitif |
 
-### 🟡 `BE-KSK-PO-006` — Verifikasi check-in kiosk
+### ✅ `BE-KSK-PO-006` — Verifikasi check-in kiosk
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 2026-11-20 — build PASS, QBE Strict PASS, verifier otorisasi PASS (fallback 68 tetap, 0 endpoint telanjang baru); runtime di 7185 17/17 PASS (`401` tanpa login, `400` `KSK-VAL-PO-040`/`043`, `404` seragam, `409` "Check-in hanya dapat dilakukan pada 21 Nov 2026." untuk kode dan Lupa Kode, `429` tepat di permintaan ke-11 per akun, `no-store`); harness jam palsu 26/26 PASS (token 256 bit, hash, 15 menit, paket, 404 status akhir); log bersih. **Belum:** runtime `200` (token + paket) karena data uji baru jatuh hari H pada 2026-11-21 (`po006_test.py dday`); kode berstatus akhir kini terbukti juga di runtime (`404` untuk Dibatalkan di `BE-KSK-PO-010` X2 dan Jalur Lain di `BE-KSK-PO-008` J3) — [laporan](../task/report/backend/BE-KSK-PO-006.md) |
+| Status | ✅ 2026-11-25 — build PASS, QBE Strict PASS, verifier otorisasi PASS (2026-11-20); runtime penolakan 17/17 PASS (2026-11-20); harness 26/26 PASS; runtime hari H 2026-11-25 6/6 PASS (data uji dipindah ke tanggal hari ini dengan izin pemilik (satu `UPDATE` 9 baris)): tanggal lahir salah `404` seragam, kode + tanggal lahir `200` token 43 karakter, paket pasien lama tanpa kode/NIK/kontak dengan nama tersamar, Lupa Kode NIK dan No. RM berformat `200`, paket pasien baru dengan `identityNumberForScan`, kontak, rujukan 2 berkas, consent. DoD dikecualikan: `dotnet test` (tanpa project test) — [laporan](../task/report/backend/BE-KSK-PO-006.md) |
 | Outcome | `POST online-registrations/kiosk/check-in/verify` (`KioskRead`, tanpa `[AccessAction]`): mode kode atau identitas + tanggal lahir; status dan tanggal hari ini (WIB); token 256 bit, hash disimpan, berlaku `CheckInTokenMinutes`; paket check-in; policy `OnlineRegistrationCheckIn` per akun kiosk |
 | Requirement/decision | `FR-KSK-PO-020`; `KSK-DEC-033`, `040`; `KSK-DSN-PO-008` |
 | Kontrak | Grup *Online Registration Check-In*; `KSK-VAL-PO-040` s.d. `045` |
@@ -182,11 +186,11 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | Risiko/pemilik | Tebak kode di kiosk; ditopang tanggal lahir, hari H, dan rate limit. Pemilik: implementer |
 | DoD | Kriteria terbukti; verifier otorisasi PASS (aturan `KSK-DSN-006`) |
 
-### 🟡 `BE-KSK-PO-007` — Check-in menjadi kunjungan
+### ✅ `BE-KSK-PO-007` — Check-in menjadi kunjungan
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 2026-11-20 — build PASS (0 error, 0 warning baru), QBE Strict PASS (4 berkas, 0 temuan), verifier otorisasi PASS (fallback 68 tetap, 0 endpoint telanjang baru); runtime di 7185 14/14 PASS (`400` `KSK-VAL-PO-047` dari `/admin`, `400` `046` untuk token salah/kosong/id tak dikenal, sumber 7 tanpa check-in `400`, pendaftaran tidak berubah, regresi RJ/kiosk/IGD tanpa field baru `200`); harness jam palsu 44/44 PASS (`046`, `048`, `049`, `052`, `055`, normalisasi sumber 7/appointment/rujukan, kuota tepat penuh oleh pendaftaran sendiri, status 2 + `EncounterId` + token dihapus, consent dengan `SignedAt` asli, 2 dokumen rujukan dengan `StoragePath` sama, `CaptureSource = 3`, riwayat `CHECKED_IN`, tabrakan → konflik, status tetap 1); log bersih. **Belum:** runtime `200` lewat controller (pasien lama, pasien baru, rujukan + berkas, consent), `052`, dan `409` `053`/`054` (AC 13) karena token hanya terbit pada hari kunjungan data uji, 2026-11-21 (`po007_test.py dday`). Delta: `POST ''` adalah alias kiosk, penolakan `047` di `/admin`; kuota memakai pengecualian `BE-KSK-PO-008`, bukan ubah status lebih dulu. Keputusan pemilik terbuka: faskes perujuk non-mitra — [laporan](../task/report/backend/BE-KSK-PO-007.md) |
+| Status | ✅ 2026-11-25 — build PASS, QBE Strict PASS (4 berkas, 0 temuan), verifier otorisasi PASS (2026-11-20); runtime penolakan dan regresi tiga kanal 14/14 PASS (2026-11-20); harness 44/44 PASS; runtime hari H 2026-11-25 16/16 PASS (data uji dipindah ke tanggal hari ini dengan izin pemilik (satu `UPDATE` 9 baris)): pasien lama `200` sumber 7 appointment kiosk, status 2 + riwayat `CHECKED_IN`, token dipakai ulang `409` `055`, kode sekali pakai `404`, token lama `046`, poli diganti `048`; pasien baru dengan master dari `POST patients/kiosk` `200`, rujukan 2 dokumen `CaptureSource` 3 dapat dibuka, consent `SignedAt` asli; NIK master berbeda `052`; jadwal dinonaktifkan `409` `053`; kuota penuh `409` `054`; kuota tepat penuh oleh pendaftaran sendiri `200` tanpa kuota ganda. Delta: `POST ''` alias kiosk, penolakan `047` di `/admin`. Keputusan pemilik terbuka (bukan syarat task): faskes perujuk non-mitra di halaman publik. DoD dikecualikan: `dotnet test` (tanpa project test) — [laporan](../task/report/backend/BE-KSK-PO-007.md) |
 | Outcome | `PatientEncounterCreateRequest` + `OnlineRegistrationId`, `OnlineRegistrationCheckInToken`; tolak dari kanal petugas; `PrepareCheckInAsync` sebelum transaksi (token, status, hari H, poli/jadwal/dokter, `IsAppointment`, pasien lama `PatientId`, pasien baru NIK master, pembayaran, kartu, faskes); di dalam transaksi `CompleteCheckInInTransactionAsync` (status Menjadi Kunjungan sebelum validasi kuota kunjungan, `EncounterId`, `RegPatientGeneralConsent` dari consent tampungan dengan `SignedAt` asli, `RegEncounterReferralDocument` menunjuk `StoragePath` yang sama, hapus hash token, riwayat `CHECKED_IN`); `RegistrationSource = 7`, `CaptureSource = 3` |
 | Requirement/decision | `FR-KSK-PO-021`; `KSK-DEC-034`, `036`, `039`, `046`, `048`; `INV-PO-02`, `06`; `KSK-DSN-PO-008`, `010`, `014` |
 | Kontrak | `api-contract.md` *Patient Encounter (diperluas)*; `KSK-VAL-PO-046` s.d. `055`; PO-S.1 baris ketiga |
@@ -245,6 +249,22 @@ Pasangan prasyarat → task: 9 (`001→002`, `002→004`, `003→004`, `004→00
 | Verifikasi | Runtime HTTP; kuota sebelum/sesudah lewat `doctor-schedule-quotas`; kode lama dicoba di verifikasi kiosk sesudah pindah tanggal |
 | Risiko/pemilik | Pertukaran kuota. Pemilik: implementer |
 | DoD | Kriteria terbukti; log tanpa kontak |
+
+### ✅ `BE-KSK-PO-011` — Faskes perujuk mitra di halaman publik
+
+| Field | Isi |
+| --- | --- |
+| Status | ✅ 2026-11-25 — build PASS (0 error, 0 warning di berkas yang diubah), QBE Strict PASS (3 berkas, 0 temuan), verifier otorisasi PASS (fallback 68 tetap, 0 endpoint telanjang baru); runtime di 7185 10/10 PASS: tanpa/di luar H+1..H+30 `visitDate` → `400` `KSK-VAL-PO-074`, mitra berlaku muncul, mitra uji s.d. 5 Des muncul pada 5 Des dan tidak pada 6 Des, mitra kedaluwarsa/nonaktif tidak muncul, kirim dengan perjanjian berakhir sebelum tanggal kunjungan `400` `KSK-VAL-PO-073` tanpa tersimpan, mitra berlaku `200`. Dikecualikan: faskes `IsPartner = false` (API master selalu menyimpan mitra; tidak ada di DB dev), `dotnet test` (tanpa project test). Tanpa migration — [laporan](../task/report/backend/BE-KSK-PO-011.md) |
+| Outcome | `GET /public/options/referral-institutions` mewajibkan `visitDate` (H+1 s.d. H+30, `400` `KSK-VAL-PO-074` bila tidak sah) dan hanya mengembalikan faskes aktif, mitra, dengan perjanjian yang berlaku pada tanggal itu (`ReferralPartnerEligibility.IsEligibleOn`). `POST /public` menolak faskes yang bukan mitra pada tanggal kunjungan pendaftaran (`400` `KSK-VAL-PO-073`). Check-in tidak berubah (`RJ-VAL-PM-17` tetap) |
+| Requirement/decision | `FR-KSK-PO-015`; `KSK-DEC-057`, `058`; `KSK-DSN-PO-018`; `DEC-FRJ-001` |
+| Kontrak | `KSK-CONTRACT-v2.1` — *Perubahan v2.1* pada `api-contract.md`; `KSK-VAL-PO-073`, `074` |
+| Reuse | `ReferralPartnerEligibility` (`Areas/HealthServices/MasterData/Services`), pola saringan `partner-options` RJ |
+| Cakupan | `OnlineRegistrationPublicService` (opsi faskes, validasi kirim), `OnlineRegistrationPublicController` (query `visitDate`) |
+| Dependency | `BE-KSK-PO-005` |
+| Acceptance criteria | Tiga baris uji `KSK-DEC-057` di PO-T.1: (1) mitra muncul hanya pada tanggal perjanjian berlaku, non-mitra tidak pernah muncul, tanpa `visitDate` → `400` `074`; (2) kirim dengan faskes non-mitra → `400` `073`, tidak ada pendaftaran tersimpan. Tambahan: pendaftaran dengan faskes mitra tetap `200`; batas laju dan validasi `search` tidak berubah |
+| Verifikasi | Runtime HTTP ke backend uji; data uji faskes mitra dan non-mitra dibaca dari master yang ada (tanpa eksekusi DB langsung); build, QBE Strict, verifier otorisasi |
+| Risiko/pemilik | Query wajib baru memutus konsumen lama; konsumen tunggal halaman publik dirilis bersama `FE-KSK-PO-009`. Pemilik: implementer |
+| DoD | Kriteria terbukti; tanpa migration; log tanpa data pasien |
 
 ## Tindak lanjut di luar task
 

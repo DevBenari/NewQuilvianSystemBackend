@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
@@ -62,6 +63,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         public const string ServiceUnavailableMessage =
             "Layanan sedang tidak tersedia. Silakan coba lagi atau daftar di loket pendaftaran.";
+
+        /// <summary><c>KSK-VAL-PO-074</c>: cari faskes tanpa tanggal kunjungan yang sah.</summary>
+        public const string ReferralVisitDateRequiredMessage = "Pilih tanggal kunjungan lebih dulu.";
 
         public const string VisitDateOutOfRangeMessage =
             "Pendaftaran online hanya untuk besok sampai 30 hari ke depan. Untuk berobat hari ini, silakan daftar di kiosk rumah sakit.";
@@ -212,12 +216,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 "Daftar penyedia asuransi berhasil diambil.");
         }
 
+        /// <summary>
+        /// Faskes perujuk untuk halaman publik: hanya faskes mitra yang perjanjiannya berlaku pada tanggal kunjungan
+        /// (<c>KSK-DEC-057</c>, <c>KSK-DSN-PO-018</c>; aturan sama dengan <c>RJ-VAL-PM-17</c>). <paramref name="visitDate"/>
+        /// wajib dan harus H+1 s.d. H+30 (<c>KSK-VAL-PO-074</c>).
+        /// </summary>
         public async Task<OnlineRegistrationPublicResult<List<OnlineRegistrationReferralInstitutionOption>>> GetReferralInstitutionOptionsAsync(
             string? search,
+            DateTime? visitDate,
             CancellationToken cancellationToken = default)
         {
             if (!_options.Enabled)
                 return Disabled<List<OnlineRegistrationReferralInstitutionOption>>();
+
+            if (!visitDate.HasValue || !IsVisitDateAllowed(visitDate.Value))
+            {
+                return OnlineRegistrationPublicResult<List<OnlineRegistrationReferralInstitutionOption>>.Fail(
+                    OnlineRegistrationPublicOutcome.Invalid,
+                    ReferralVisitDateRequiredMessage);
+            }
 
             var keyword = search?.Trim() ?? string.Empty;
 
@@ -230,11 +247,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
             var pattern = "%" + keyword.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
 
+            var partnerDate = DateOnly.FromDateTime(visitDate.Value.Date);
+
             var institutions = await _dbContext.Set<MstReferralInstitution>()
                 .AsNoTracking()
+                .Where(ReferralPartnerEligibility.IsEligibleOn(partnerDate))
                 .Where(x =>
-                    x.IsActive &&
-                    !x.IsDelete &&
                     (EF.Functions.ILike(x.InstitutionName, pattern, "\\") ||
                      EF.Functions.ILike(x.InstitutionCode, pattern, "\\")))
                 .OrderBy(x => x.InstitutionName)

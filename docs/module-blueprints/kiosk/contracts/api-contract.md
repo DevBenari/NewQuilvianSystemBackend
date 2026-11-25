@@ -153,11 +153,11 @@ Perubahan pada `PatientEncounterCreateRequest` untuk route kiosk: **tidak ada fi
 | Field | Nilai |
 | --- | --- |
 | Set kontrak | `KSK-CONTRACT-v2` |
-| `last_changed_in` | `v2` (bagian ini saja; bagian di atas tetap `v1`) |
-| Status | `approved` |
+| `last_changed_in` | `v2.1` untuk baris `GET /options/referral-institutions` dan *Perubahan v2.1* di bawah; seluruh bagian lain tetap `v2` (bagian di atas tetap `v1`) |
+| Status | `v2` `approved` (2026-11-19); `v2.1` `approved` (2026-11-25, `KSK-DEC-058`) |
 | Owner | Sukma Giri Pratama |
-| `approved_by` / `approved_at` | Sukma Giri Pratama / 2026-11-19 (`KSK-DEC-054`) |
-| `input_revision` | `00-interview-decisions.md` §13 (`KSK-DEC-026` s.d. `053`); `02-backend-architecture.md` *Amendment PO*; impact scan `CAP-PO-01` s.d. `37` |
+| `approved_by` / `approved_at` | Sukma Giri Pratama / 2026-11-19 (`KSK-DEC-054`) untuk `v2`; Sukma Giri Pratama / 2026-11-25 (`KSK-DEC-058`) untuk `v2.1` |
+| `input_revision` | `00-interview-decisions.md` §13 (`KSK-DEC-026` s.d. `053`; `v2.1`: `KSK-DEC-057`); `02-backend-architecture.md` *Amendment PO*; impact scan `CAP-PO-01` s.d. `37` |
 | Dampak kompatibilitas | **Aditif**: tiga grup endpoint baru dan dua field opsional baru pada `POST patient-encounters/kiosk`. **Perubahan perilaku tanpa perubahan bentuk**: hitungan kuota (`doctor-schedule-quotas`, opsi jadwal kiosk, validasi kunjungan) kini ikut menghitung pendaftaran online Menunggu Check-in; kunjungan Rawat Jalan menutup pendaftaran online pasien pada tanggal yang sama |
 | Traceability | AC 1–20 §13.9; `KSK-DEC-029` s.d. `053`; `KSK-DSN-PO-001` s.d. `017` |
 
@@ -173,7 +173,7 @@ Contract version: `v2` — status `approved`. Tanpa login. Seluruh respons `Cach
 | `GET` | `/options/clinics` | Poli yang punya jadwal online pada tanggal itu | Tanpa login, `OnlineRegistrationPublicOptions` | Query `visitDate` | `ApiResponse<List<OnlineRegistrationClinicOption>>` (`id`, `name`) | **Rencana (belum tersedia)** |
 | `GET` | `/options/doctor-schedules` | Jadwal dokter beserta sisa kuota appointment | Tanpa login, `OnlineRegistrationPublicOptions` | Query `clinicId`, `visitDate` | `ApiResponse<List<OnlineRegistrationScheduleOption>>` (`id`, `doctorName`, `startTime`, `endTime`, `sessionName`, `remainingAppointmentQuota`, `isFull`) | **Rencana (belum tersedia)** |
 | `GET` | `/options/insurance-providers` | Penyedia asuransi untuk kartu baru | Tanpa login, `OnlineRegistrationPublicOptions` | — | `ApiResponse<List<OnlineRegistrationInsuranceProviderOption>>` (`id`, `name`) | **Rencana (belum tersedia)** |
-| `GET` | `/options/referral-institutions` | Cari faskes perujuk | Tanpa login, `OnlineRegistrationPublicOptions` | Query `search` (min. 3 karakter) | `ApiResponse<List<OnlineRegistrationReferralInstitutionOption>>` (`id`, `code`, `name`), maks. 20 baris | **Rencana (belum tersedia)** |
+| `GET` | `/options/referral-institutions` | Cari faskes perujuk **mitra** yang perjanjiannya berlaku pada tanggal kunjungan (`v2.1`, `KSK-DEC-057`) | Tanpa login, `OnlineRegistrationPublicOptions` | Query `search` (min. 3 karakter) dan `visitDate` (`v2.1`: wajib, `yyyy-MM-dd`, H+1 s.d. H+30) | `ApiResponse<List<OnlineRegistrationReferralInstitutionOption>>` (`id`, `code`, `name`), maks. 20 baris, hanya faskes mitra pada `visitDate` | **Diperbarui (rencana `v2.1`)** — bentuk respons tetap |
 | `POST` | `/patient-match` | Mencocokkan pasien lama | Tanpa login, `OnlineRegistrationPublicMatch`, captcha | `OnlineRegistrationPatientMatchRequest` | `ApiResponse<OnlineRegistrationPatientMatchResponse>` (`maskedName`, `payers[]`: `id`, `payerKind`, `providerName`, `maskedNumber`) | **Rencana (belum tersedia)** |
 | `POST` | `` | Mengirim pendaftaran online | Tanpa login, `OnlineRegistrationPublicSubmit`, captcha | `multipart/form-data`: `payload` (JSON `OnlineRegistrationSubmitRequest`), `referralDocuments` (0–3 berkas) | `ApiResponse<OnlineRegistrationSubmitResponse>` (`registrationNumber`, `code`, `visitDate`, `clinicName`, `doctorName`, `startTime`, `endTime`, `emailStatus`, `whatsAppNumber`) | **Rencana (belum tersedia)** |
 
@@ -207,6 +207,29 @@ Arti kode status bagi pasien:
 | `409` | Kuota habis, sudah ada pendaftaran atau kunjungan pada tanggal itu, jadwal tidak lagi tersedia |
 | `429` | Terlalu banyak percobaan dari jaringan ini, coba lagi nanti |
 | `503` | Layanan captcha tidak dapat dihubungi; coba lagi atau daftar di loket |
+
+### Perubahan `v2.1` (draft) — faskes perujuk mitra (`KSK-DEC-057`)
+
+Contract version: `v2.1` — status `approved` (`KSK-DEC-058`). Dampak kompatibilitas: **menambah query wajib** pada satu endpoint publik dan **satu penolakan baru** saat kirim. Bentuk request dan respons lain tidak berubah. Konsumen satu-satunya adalah halaman publik (`FE-KSK-PO-002`/`003`), sehingga backend dan frontend dirilis bersama.
+
+| Endpoint | Sebelum (`v2`) | Sesudah (`v2.1`) | Kode status baru |
+| --- | --- | --- | --- |
+| `GET /public/options/referral-institutions` | Semua faskes aktif yang cocok dengan `search` | Hanya faskes aktif, berstatus mitra, dengan perjanjian yang berlaku pada `visitDate` (aturan RJ `DEC-FRJ-001`, sama dengan pemeriksaan `RJ-VAL-PM-17` di jalur kunjungan). `visitDate` wajib | `400` `KSK-VAL-PO-074` bila `visitDate` kosong, salah format, atau di luar H+1 s.d. H+30 |
+| `POST /public` | Faskes perujuk cukup aktif (`KSK-VAL-PO-027`) | Faskes perujuk juga harus mitra pada tanggal kunjungan pendaftaran | `400` `KSK-VAL-PO-073` |
+| `POST patient-encounters/kiosk` (check-in) | Tidak berubah | Tidak berubah: `RJ-VAL-PM-17` tetap memeriksa faskes pada hari H (fail-closed), misalnya bila perjanjian berakhir sesudah pendaftaran dibuat | — |
+
+Contoh: Puskesmas Setiabudi mitra dengan perjanjian berlaku sampai 30 Nov 2026.
+
+```http
+GET /api/v1/health-services/registration-management/online-registrations/public/options/referral-institutions?search=setia&visitDate=2026-11-28
+→ 200 { "data": [ { "id": "…", "code": "PKM-SB", "name": "Puskesmas Setiabudi" } ] }
+
+GET …/options/referral-institutions?search=setia&visitDate=2026-12-02
+→ 200 { "data": [] }
+
+GET …/options/referral-institutions?search=setia
+→ 400 { "message": "Pilih tanggal kunjungan lebih dulu." }
+```
 
 ### Health Services / Registration Management / Online Registration Check-In
 
