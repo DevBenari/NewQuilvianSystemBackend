@@ -51,6 +51,48 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
         public FinancialStatementAmountsResponse NetIncome { get; set; } = new();
     }
 
+    public class BalanceSheetQuery
+    {
+        public Guid LegalEntityId { get; set; }
+
+        public string? PeriodCode { get; set; }
+
+        public bool IncludeZeroAccounts { get; set; }
+    }
+
+    public class BalanceSheetResponse
+    {
+        public Guid LegalEntityId { get; set; }
+
+        public string PeriodCode { get; set; } = string.Empty;
+
+        public string PeriodName { get; set; } = string.Empty;
+
+        public int FiscalYear { get; set; }
+
+        public DateTime AsOfDate { get; set; }
+
+        public bool ComparisonAvailable { get; set; }
+
+        public DateTime? ComparisonAsOfDate { get; set; }
+
+        public string? ComparisonUnavailableReason { get; set; }
+
+        public List<FinancialStatementSectionResponse> Sections { get; set; } = new();
+
+        public FinancialStatementAmountsResponse TotalLiabilitiesAndEquity { get; set; } = new();
+
+        public bool IsBalanced { get; set; }
+
+        public bool? ComparisonIsBalanced { get; set; }
+
+        public decimal Difference { get; set; }
+
+        public decimal? ComparisonDifference { get; set; }
+
+        public List<int> UnclosedFiscalYears { get; set; } = new();
+    }
+
     public class FinancialStatementSectionResponse
     {
         public AccountType AccountType { get; set; }

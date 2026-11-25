@@ -213,6 +213,65 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
             return File(hasil.Data!.Content, AccLedgerCsv.ContentType, hasil.Data.FileName);
         }
 
+        [HttpGet("balance-sheet")]
+        [AccessAction("Read", "Read General Ledger", Description = "Melihat neraca", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("GeneralLedger", "Read")]
+        public async Task<IActionResult> GetBalanceSheet([FromQuery] BalanceSheetQuery query, CancellationToken ct)
+        {
+            var hasil = await _service.GetBalanceSheetAsync(query, ct);
+
+            var muatan = new
+            {
+                JenisLaporan = "Neraca",
+                query.LegalEntityId,
+                query.PeriodCode,
+                query.IncludeZeroAccounts,
+                hasil.StatusCode,
+                JumlahBaris = hasil.Data?.Sections.Sum(x => x.Rows.Count)
+            };
+
+            if (hasil.Success)
+            {
+                await _loggerService.InfoAsync(
+                    LogCategory, "FinancialStatement.BalanceSheet", hasil.Message, muatan);
+            }
+            else
+            {
+                await _loggerService.WarningAsync(
+                    LogCategory, "FinancialStatement.BalanceSheet", hasil.Message, muatan);
+            }
+
+            return ToActionResult(hasil);
+        }
+
+        [HttpGet("balance-sheet/export")]
+        [AccessAction("Read", "Read General Ledger", Description = "Mengunduh neraca sebagai CSV", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("GeneralLedger", "Read")]
+        public async Task<IActionResult> ExportBalanceSheet([FromQuery] BalanceSheetQuery query, CancellationToken ct)
+        {
+            var hasil = await _service.BuildBalanceSheetCsvAsync(query, ct);
+
+            var muatan = new
+            {
+                JenisLaporan = "Neraca",
+                query.LegalEntityId,
+                query.PeriodCode,
+                query.IncludeZeroAccounts,
+                hasil.StatusCode,
+                JumlahBaris = hasil.Data?.RowCount
+            };
+
+            if (!hasil.Success)
+            {
+                await _loggerService.WarningAsync(LogCategory, "GeneralLedger.Export", hasil.Message, muatan);
+                return ToActionResult(hasil);
+            }
+
+            await _loggerService.InfoAsync(LogCategory, "GeneralLedger.Export", hasil.Message, muatan);
+
+            return File(hasil.Data!.Content, AccLedgerCsv.ContentType, hasil.Data.FileName);
+        }
+
         [HttpGet("account-balance/{accountId:guid}")]
         [AccessAction("Read", "Read General Ledger", Description = "Melihat saldo satu akun", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("GeneralLedger", "Read")]

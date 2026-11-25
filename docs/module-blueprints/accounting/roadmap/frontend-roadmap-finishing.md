@@ -49,7 +49,7 @@ flowchart LR
         BEACCFIN00501["✅ BE-ACC-FIN-005-01<br/>Buku besar diperluas dan CSV"]:::luar
         BEACCFIN00801["✅ BE-ACC-FIN-008-01<br/>CSV neraca saldo"]:::luar
         BEACCFIN00802["✅ BE-ACC-FIN-008-02<br/>Laba rugi periode dan YTD"]:::luar
-        BEACCFIN00803["BE-ACC-FIN-008-03<br/>Neraca dengan laba belum ditutup"]:::luar
+        BEACCFIN00803["✅ BE-ACC-FIN-008-03<br/>Neraca dengan laba belum ditutup"]:::luar
         BEACCFIN00804["⛔ BE-ACC-FIN-008-04<br/>Rasio keuangan"]:::luar
         BEACCFIN00805["⛔ BE-ACC-FIN-008-05<br/>Analisis target pendapatan"]:::luar
         BEACCFIN00806["⛔ BE-ACC-FIN-008-06<br/>Laporan pajak"]:::luar
