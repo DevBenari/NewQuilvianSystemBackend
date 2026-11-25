@@ -58,7 +58,7 @@ flowchart LR
     FEACCFIN00501["✅ FE-ACC-FIN-005-01<br/>Buku besar bertelusur dan berunduh"]:::selesai
     FEACCFIN00801["✅ FE-ACC-FIN-008-01<br/>Tombol unduh neraca saldo"]:::selesai
     FEACCFIN00802["✅ FE-ACC-FIN-008-02<br/>Layar laba rugi dan menunya"]:::selesai
-    FEACCFIN00803["FE-ACC-FIN-008-03<br/>Layar neraca dan menunya"]:::belum
+    FEACCFIN00803["✅ FE-ACC-FIN-008-03<br/>Layar neraca dan menunya"]:::selesai
     FEACCFIN00804["⛔ FE-ACC-FIN-008-04<br/>Layar rasio keuangan"]:::terblokir
     FEACCFIN00805["⛔ FE-ACC-FIN-008-05<br/>Layar target pendapatan"]:::terblokir
     FEACCFIN00806["⛔ FE-ACC-FIN-008-06<br/>Layar laporan pajak"]:::terblokir
@@ -112,7 +112,7 @@ subgraph adalah cermin baca-saja; tandanya disalin dari `backend-roadmap-finishi
 | ✅ `FE-ACC-FIN-005-01` | Buku besar bersaring unit biaya, berringkasan, bertautan ke jurnal dan kejadian, dapat diunduh, dan menerima saringan dari tautan laporan | `FR-FIN-001`..`005`; `ACC-DEC-147`, `148`, `149` | `ACC-API-0.17` movements, summary, export | `general-ledger-view.jsx`, `use-general-ledger.jsx`, token rute privat | Kartu | `BE-ACC-FIN-005-01` | AC-1..AC-8 | Layar `F10`, `F13`, `F14`, `F15`, `F19` | Saringan dari alamat; Rizki | Kartu |
 | ✅ `FE-ACC-FIN-008-01` | Neraca saldo dapat diunduh CSV | `FR-FIN-030`; `ACC-DEC-153` | `trial-balance/export` | `trial-balance-view.jsx`, pengunduh dari `005-01` | Kartu | `BE-ACC-FIN-008-01`, `FE-ACC-FIN-005-01` | AC-1..AC-4 | `F18` | Rendah; Rizki | Kartu |
 | ✅ `FE-ACC-FIN-008-02` | Layar laba rugi bertingkat dengan pembanding, YTD, saringan unit biaya, telusur, unduh, cetak, dan butir menu | `FR-FIN-010`..`015`, `040`; `ACC-DEC-142`..`147`, `149`, `152` | `income-statement`, `/export` | Pola `trial-balance-view.jsx`; pengunduh dan tautan buku besar dari `005-01` | Kartu | `BE-ACC-FIN-008-02`, `FE-ACC-FIN-005-01` | AC-1..AC-11 | `F2`, `F6`, `F7`, `F8`, `F9`, `F11`, `F14`, `F16` | Tabel enam kolom angka; Rizki | Kartu |
-| `FE-ACC-FIN-008-03` | Layar neraca bertingkat dengan baris laba, peringatan, status seimbang, telusur, unduh, cetak, dan butir menu | `FR-FIN-012`, `014`, `020`..`022`, `040`; `ACC-DEC-143`..`146`, `149`, `152`, `154` | `balance-sheet`, `/export` | Komponen tabel laporan dari `008-02` | Kartu | `BE-ACC-FIN-008-03`, `FE-ACC-FIN-008-02` | AC-1..AC-9 | `F4`, `F5`, `F8`, `F14`, `F16` | Rendah; Rizki | Kartu |
+| ✅ `FE-ACC-FIN-008-03` | Layar neraca bertingkat dengan baris laba, peringatan, status seimbang, telusur, unduh, cetak, dan butir menu | `FR-FIN-012`, `014`, `020`..`022`, `040`; `ACC-DEC-143`..`146`, `149`, `152`, `154` | `balance-sheet`, `/export` | Komponen tabel laporan dari `008-02` | Kartu | `BE-ACC-FIN-008-03`, `FE-ACC-FIN-008-02` | AC-1..AC-9 | `F4`, `F5`, `F8`, `F14`, `F16` | Rendah; Rizki | Kartu |
 | ⛔ `FE-ACC-FIN-008-04` | Layar rasio keuangan | ACC-FIN-008 (PRD) | Belum dirancang | — | — | `BE-ACC-FIN-008-04`, `FE-ACC-FIN-008-03` | — | — | `U-05` | — |
 | ⛔ `FE-ACC-FIN-008-05` | Layar target pendapatan | ACC-FIN-008 (PRD) | Belum dirancang | — | — | `BE-ACC-FIN-008-05`, `FE-ACC-FIN-008-02` | — | — | `C-02` | — |
 | ⛔ `FE-ACC-FIN-008-06` | Layar laporan pajak | ACC-FIN-008 (PRD) | Belum dirancang | — | — | `BE-ACC-FIN-008-06` | — | — | `U-07` | — |
@@ -353,7 +353,9 @@ cetak; berkas CSV; laporan `task/report/frontend/FE-ACC-FIN-008-02.md`.
 
 ---
 
-## `FE-ACC-FIN-008-03` — Layar neraca dan menunya
+## ✅ `FE-ACC-FIN-008-03` — Layar neraca dan menunya
+
+**Status:** ✅ SELESAI (development), 25 November 2026. AC-1..AC-9 terbukti: uji layar Playwright agent terhadap `next dev` Rizki 14/14 (masuk lewat klik menu; AC-4 tidak seimbang lewat simulasi `route.fulfill` karena data dev selalu seimbang), ESLint 11 berkas 0/0, kompilasi `next dev` 200, `UI GATE` REUSE 8 COMPOSE 1 NEW 0. Regresi Laba Rugi 15/16 — L12 berubah angka karena data uji 2020, bukan regresi kode. `npm run build` `PASS` (Rizki, `.next/BUILD_ID` 11:11:15 WIB). UAT belum dijalankan — milik tim UAT. Bukti: [laporan FE-ACC-FIN-008-03](../task/report/frontend/FE-ACC-FIN-008-03.md).
 
 **Gelombang pengiriman:** `FIN-1`. **Prasyarat:** `BE-ACC-FIN-008-03`, `FE-ACC-FIN-008-02`.
 
