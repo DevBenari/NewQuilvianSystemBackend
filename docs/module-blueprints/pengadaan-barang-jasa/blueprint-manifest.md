@@ -9,14 +9,14 @@ entity_prefix: Prc             # PBJ-DEC-035 — terdaftar ACTIVE di registry 20
 module_area: Areas/Corporate/ProcurementManagement   # PBJ-DEC-035
 revision: 2                   # rev 2 = desain sub-modul perencanaan-permintaan (12 Nov 2026); PBJ-DEC-035..058 dibawa versi kontrak sub-modul
 status: partial               # DITURUNKAN: perencanaan-permintaan dan manajemen-vendor approved, dua NOT_STARTED
-current_phase: PBJ-PH-007     # audit kesiapan: perencanaan-permintaan dan manajemen-vendor READY_WITH_CONDITIONS; sign-off menunggu syarat masing-masing (vendor K-4 selesai 2026-11-19)
+current_phase: PBJ-PH-007     # audit kesiapan: perencanaan-permintaan dan manajemen-vendor READY_WITH_CONDITIONS; sign-off menunggu syarat masing-masing (vendor K-3 dan K-4 selesai)
 blueprint_shape: COMPOSITE      # PBJ-DEC-004; sub-modul: perencanaan-permintaan, pemilihan-penyedia, manajemen-vendor, kontrak-pelaksanaan (folder dibuat oleh design-business-module)
 shape_decided_by: USER_CONFIRMED
 created_at: 2026-11-12
-updated_at: 2026-11-19
-last_verified_at: 2026-11-19   # verify-module-readiness: manajemen-vendor READY_WITH_CONDITIONS (perencanaan-permintaan 2026-11-17), modul NOT_READY
-backend_source_sha: a6df5619f4ce72c04a929ac43e7e08b7c40332e4   # branch sukmagp; perubahan manajemen-vendor belum di-commit
-frontend_source_sha: b1b360efa8990caafa389c38d3ce0346b2cdff50  # branch sukmagpV2; perubahan manajemen-vendor belum di-commit
+updated_at: 2026-11-26
+last_verified_at: 2026-11-26   # pemeriksaan ulang read-only kedua sub-modul: tetap READY_WITH_CONDITIONS, modul tetap NOT_READY (readiness-report bagian 9)
+backend_source_sha: c97642bbc67a5ea813df00902a523fbd01e299e9   # branch sukmagp HEAD 2026-11-26, bersih; kode Pengadaan terakhir di 5e777833
+frontend_source_sha: 3e538667994feba533d2c93a142a6f333092066d  # branch sukmagpV2 HEAD 2026-11-26, bersih; kode Pengadaan terakhir di af8a430ac
 skill_suite_version: quilvian-engineering-skills 1.19.1
 input_revision_hash: BRD-PRD-PBJ-1.0-DRAFT-2026-11-12   # dokumen BRD & PRD v1.0 dari pengguna (lihat 00-business-overview.md)
 decision_revision: 17         # PBJ-DEC-001..065, PBJ-FE-004

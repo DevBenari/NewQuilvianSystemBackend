@@ -15,12 +15,12 @@ owners:
   frontend_authority: PBJ-FE-001 (approved), PBJ-FE-002 (DEV_DISCRETION)
 approved_by: Pengguna sesi (Product Owner Pengadaan)
 approved_at: 2026-11-12
-backend_commit_sha: 9f396063025f71d86f466553cfd8ccfda6e2a545   # branch sukmagp, 2026-11-16
-frontend_commit_sha: 608e46ba4dcb69dd73d0e4ca0600311abfe8ceaa  # branch sukmagpV2, 2026-11-16
+backend_commit_sha: 5e7778334faa85210c81513327da9a7fa6425a86   # branch sukmagp; commit terakhir yang menyentuh kode Pengadaan. Sejak 9f396063: BE-PBJ-012 (a6df5619) + tambahan aditif manajemen-vendor di Common. Diperiksa ulang di HEAD c97642bb 2026-11-26
+frontend_commit_sha: af8a430aca6ac8946dc44e0980f9d370b2e2716b  # branch sukmagpV2; sejak 608e46ba4: FE-PBJ-009 (b1b360efa) + perluasan komponen bersama oleh manajemen-vendor. Diperiksa ulang di HEAD 3e5386679 2026-11-26
 requirement_readiness: READY_FOR_DOMAIN_DESIGN    # 02-requirement-completeness-assessment.md rev 2
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN   # administratif; tanpa data klinis/billing
-last_verified_at: 2026-11-17
-readiness: READY_WITH_CONDITIONS   # testing/readiness-report.md; syarat K-1..K-4 terbuka, K-5 dan K-6 selesai 2026-11-17
+last_verified_at: 2026-11-26   # pemeriksaan ulang read-only (git, hash, SELECT dev); build/runtime tidak diulang — readiness-report bagian 9
+readiness: READY_WITH_CONDITIONS   # testing/readiness-report.md; syarat K-1..K-4 terbuka (dicek ulang 2026-11-26), K-5 dan K-6 selesai 2026-11-17
 contract_versions:
   set: "1.0"
   api-contract: PBJ-PP-API 1.4 (approved, PBJ-DEC-037, PBJ-DEC-040..042, PBJ-DEC-055)
