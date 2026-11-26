@@ -6683,3 +6683,180 @@ Sampai langkah 3 selesai, transaksi Stock Opname **tidak boleh** dianggap siap.
 **Berkas sementara di luar repo** (scratchpad, tidak untuk di-commit): proyek uji `srq-isolated-tests` dan `pharmacy-all-isolated`, skrip `visual-opname.cjs`, dan tangkapan layar.
 
 **Jangan ikut di-commit:** `SeedData/ICD10/*`, `Storage/uploads/*`, `tests/e2e/zz-*.mjs`, `test-results/.last-run.json`.
+
+
+# STOCK OPNAME — TRANSAKSI SESI DAN INTEGRASI HALAMAN (FIN-LGS-091 s.d. FIN-LGS-094)
+
+**Tanggal:** 26 November 2026
+**Basis kode:** backend `Ikbal` HEAD `3b9c6f84` (tanpa perubahan backend pada tahap 092–094); frontend `Ikbalv2` HEAD `1fa534644` + perubahan lokal yang belum di-commit (bagian 7).
+
+**Status: READY FOR OWNER REVIEW — BLOCKED_SCHEMA.**
+
+Kode transaksi Stock Opname sudah lengkap dari backend sampai layar. Namun tabel `PhmStockOpname` dan `PhmStockOpnameLine` belum dimigrasi, sehingga di lingkungan mana pun setiap endpoint sesi menjawab `503 PHM039` dan halaman tetap berjalan dalam **mode terbatas**. Transaksi **belum boleh dianggap operasional** sampai migrasi dijalankan pihak berwenang dan UAT di DEV lulus.
+
+**Yang tidak dilakukan pada tahap 092–094:** migrasi, akses basis data (operasional maupun lokal), `dotnet build`, `npm run build`, `npm run dev`, perubahan modul lain, commit, push, merge, PR. Server backend dan frontend lokal yang masih berjalan dari tahap sebelumnya dihentikan di awal tahap ini.
+
+## 1. FIN-LGS-091 — Backend transaksi (sudah di `3b9c6f84`)
+
+Ringkasan, karena rinciannya ada di commit:
+
+- **Dua tabel** sesuai rancangan FIN-LGS-089: `PhmStockOpname` (kepala sesi) dan `PhmStockOpnameLine` (baris saldo dan baris temuan).
+- **`StockOpnameController`**, route `api/v1/health-services/pharmacy-management/stock-opnames`, 13 endpoint:
+
+| Metode | Path | Izin | Fungsi |
+| --- | --- | --- | --- |
+| GET | `availability` | `StockOpname:Read` | `READY` / `BLOCKED_SCHEMA` |
+| GET | `/` | `StockOpname:Read` | Daftar sesi (saring status, lokasi; paginasi) |
+| GET | `{id}` | `StockOpname:Read` | Detail sesi + penanda `canEdit`, `canSubmit`, `canDecide`, `canCancel` |
+| GET | `{id}/report` | `StockOpname:Read` | Berita acara, hanya sesi Selesai |
+| POST | `/` | `StockOpname:Create` | Buat sesi: potret saldo lokasi, nomor `SOP-000001` dari `NumberSeriesAllocator` |
+| PUT | `{id}/counts` | `StockOpname:Create` | Simpan hasil hitung |
+| POST | `{id}/lines/{lineId}/refresh` | `StockOpname:Create` | Muat ulang baris yang saldonya bergerak |
+| POST / DELETE | `{id}/findings`, `{id}/findings/{lineId}` | `StockOpname:Create` | Catat / hapus temuan |
+| POST | `{id}/submit`, `{id}/cancel` | `StockOpname:Create` | Ajukan / batalkan |
+| POST | `{id}/approve` | `StockOpname:Approve` | Setujui dan posting penyesuaian sekali ke Kartu Stok (sumber `StockOpname`) |
+| POST | `{id}/reject` | `StockOpname:Approve` | Tolak, wajib beralasan, final |
+
+- **Aturan yang dijaga backend:**
+  - larangan self-approval (`PHM067`): pembuat, pengaju, dan penghitung baris tidak boleh memutus;
+  - izin `StockOpname:Approve` eksplisit, tanpa jalan pintas SuperAdmin (`PHM056`);
+  - pemeriksaan perubahan saldo saat keputusan (`PHM055`);
+  - toleransi selisih 0;
+  - versi sesi (`PHM057`);
+  - satu sesi aktif per lokasi (`PHM053`);
+  - posting sekali (pemeriksaan service + indeks unik mutasi);
+  - audit setiap tindakan lewat `LoggerService`.
+- **Hasil uji (dijalankan sebelum commit `3b9c6f84`, tidak diulang pada tahap ini karena `dotnet build`/`dotnet test` dilarang):**
+  - uji Logistik terisolasi 172/172 lulus, termasuk 15 uji transaksi baru;
+  - seluruh uji Farmasi yang terkompilasi 932/953; 21 yang gagal ada di Finance/Workforce, bukan Logistik;
+  - `PermissionMatrixTests`: 25 controller, 168 endpoint, 92 pasangan izin.
+
+## 2. FIN-LGS-092 s.d. 094 — Fitur frontend yang selesai
+
+### 2.1 Pengalih mode di halaman Stock Opname
+
+Halaman bertanya ke `GET stock-opnames/availability` setiap kali dibuka.
+
+| Jawaban backend | Yang tampil | Tombol transaksi |
+| --- | --- | --- |
+| Sedang memeriksa | "Memeriksa kesiapan Stock Opname..." | Tidak ada |
+| `READY` | **Mode transaksi**: Daftar Opname, Lembar Hitung, Verifikasi, Berita Acara (sesi tersimpan) | Aktif menurut izin dan penanda backend |
+| `BLOCKED_SCHEMA` (jawaban availability, atau `PHM039` dari tindakan apa pun) | Mode terbatas, judul "tabel Stock Opname belum dimigrasi (BLOCKED_SCHEMA)" | Nonaktif dengan alasan |
+| 403 | Mode terbatas, judul "izin transaksi Stock Opname belum dimiliki" (`StockOpname:Read`) | Nonaktif |
+| 404 | Mode terbatas, judul "endpoint transaksi Stock Opname belum tersedia" | Nonaktif |
+| Galat lain | Mode terbatas, "kesiapan tidak dapat diperiksa" + pesan backend | Nonaktif |
+
+Mode terbatas punya tombol **Periksa kesiapan lagi**. Contoh: setelah migrasi diterapkan di DEV, pengguna cukup menekan tombol itu (atau membuka ulang halaman) untuk pindah ke mode transaksi, tanpa perubahan kode.
+
+### 2.2 Panel Verifikasi (mode transaksi)
+
+- Ringkasan selisih: baris saldo, cocok, lebih, kurang, hitung ulang, temuan.
+- Tabel baris yang akan diposting (hanya lebih/kurang), dengan stok sistem, stok fisik, penyesuaian, dan status Kartu Stok ("Diposting saat disetujui" atau "Sudah diposting").
+- Tabel temuan tanpa saldo, dengan keterangan bahwa temuan tidak menambah stok.
+- Kolom **alasan keputusan** (maks. 500 karakter; wajib untuk Tolak).
+- Tombol **Setujui & Posting Penyesuaian** dan **Tolak**, masing-masing dengan konfirmasi di layar.
+
+Tombol keputusan **nonaktif** bila salah satu berlaku, dan alasannya ditampilkan:
+
+1. sesi tidak berstatus Diajukan;
+2. pengguna belum memegang `StockOpname:Approve` (atau daftar izin belum termuat);
+3. pengguna adalah pembuat, pengaju, atau penghitung sesi (petunjuk self-approval);
+4. backend menyatakan `canDecide = false`, misalnya ada baris yang saldonya bergerak (teks dari `decisionBlockedReason`).
+
+Ketiga pemeriksaan di layar hanya petunjuk. Backend tetap memeriksa ulang izin, self-approval, dan perubahan saldo saat tombol ditekan; jawaban galatnya ditampilkan apa adanya.
+
+### 2.3 Panel Berita Acara resmi
+
+- Hanya tampil untuk sesi berstatus **Selesai**; sesi lain mendapat keterangan "belum dapat diterbitkan".
+- Isi dari `GET stock-opnames/{id}/report`: nomor dokumen, lokasi, tanggal, cakupan status, waktu selesai, pembuat, penghitung, penyetuju, catatan penyetuju, ringkasan, jumlah penyesuaian yang diposting, tabel penyesuaian, dan tabel temuan.
+- Tanda tangan diisi nama dari backend.
+- Tombol **Cetak Berita Acara** memakai dialog cetak peramban. Aturan `@media print` hanya mencetak dokumen; tombol dan menu tidak ikut.
+- Tanda "Draf — bukan dokumen resmi" tetap hanya ada di mode terbatas.
+
+### 2.4 Pesan hasil tindakan
+
+- Pesan berhasil muncul **hanya setelah backend menjawab sukses**; layar tidak pernah menampilkan transaksi yang belum tersimpan sebagai berhasil.
+- Pesan galat memakai teks backend, ditambah petunjuk tindak lanjut untuk:
+  - `PHM055`: saldo bergerak; data dimuat ulang, tolak lalu hitung ulang;
+  - `PHM057`: sesi diubah orang lain; data dimuat ulang;
+  - `PHM067`: minta pengguna lain;
+  - `PHM056`: izin diberikan lewat Akses Role.
+- Membuka sesi dari daftar langsung menuju tab yang sesuai: Dihitung → Lembar Hitung; Diajukan/Ditolak → Verifikasi; Selesai → Berita Acara.
+
+## 3. Integrasi API dan izin
+
+| Kebutuhan | Endpoint / izin | Lokasi di frontend |
+| --- | --- | --- |
+| Kesiapan | `GET availability` | `use-stock-opname-session.jsx`, `describeAvailabilityError` |
+| Daftar, detail, berita acara | `GET /`, `GET {id}`, `GET {id}/report` | hook yang sama |
+| Hitung, temuan, ajukan, batal | `PUT counts`, `POST refresh/findings/submit/cancel`, `DELETE findings` | hook + panel Lembar Hitung |
+| Keputusan | `POST approve`, `POST reject` | hook + panel Verifikasi |
+| Izin tampilan | `usePermission("StockOpname", "Create" / "Approve")` | panel Lembar Hitung dan Verifikasi |
+| Petunjuk self-approval | `createdByUserId`, `submittedByUserId`, `lines[].countedByUserId` dibandingkan dengan pengguna masuk | `isUserInvolvedInSession` |
+
+Tidak ada endpoint backend baru dan tidak ada perubahan kontrak. Frontend membaca `errors.code` (bentuk `ApiResponse.Fail`) dengan cadangan `data.code`.
+
+## 4. Hasil pemeriksaan aktual
+
+| Pemeriksaan | Perintah | Hasil |
+| --- | --- | --- |
+| Uji unit Logistik frontend (5 berkas) | `node --test --import ./tests/helpers/register.mjs` pada berkas uji bertanda FIN-LGS/LGS | **94/94 lulus** (86 sebelumnya + 8 baru) |
+| Uji unit Stock Opname saja | `tests/unit/stock-opname.test.mjs` | 19/19 lulus |
+| ESLint | berkas Stock Opname, LogisticsWorkspace, hook, util, konstanta, service, uji | 0 galat, 0 peringatan |
+| Build backend / frontend | — | **Tidak dijalankan** (dilarang pada tahap ini) |
+| Pemeriksaan browser | — | **MANUAL TEST: NOT FEASIBLE**: `npm run dev` dilarang pada tahap ini. Panel baru belum dilihat di peramban; perlu dicek pada UAT DEV |
+| Uji backend | — | Tidak diulang; tidak ada perubahan backend sejak `3b9c6f84` |
+
+Delapan uji baru:
+
+1. kesiapan membedakan 403, 404, dan galat lain, serta `BLOCKED_SCHEMA`;
+2. mode transaksi hanya untuk `READY`;
+3. petunjuk self-approval: pembuat, pengaju, penghitung (tanpa beda huruf besar/kecil);
+4. baris yang diposting hanya lebih/kurang, temuan tidak pernah;
+5. aturan alasan keputusan;
+6. syarat nonaktif tombol keputusan;
+7. pesan berhasil hanya sesudah jawaban backend, dan petunjuk kode galat;
+8. berita acara hanya dari sesi Selesai, dapat dicetak, dan tanpa tanda draf.
+
+## 5. Blocker yang tersisa
+
+| No. | Blocker | Pemilik | Dampak bila belum selesai |
+| --- | --- | --- | --- |
+| 1 | **Migrasi** tabel `PhmStockOpname` dan `PhmStockOpnameLine` (termasuk indeks unik bersaring dan check constraint). `dotnet ef` tidak dapat dijalankan di PC ini | Pihak berwenang (DBA / pemegang migrasi) | Semua endpoint sesi menjawab `503 PHM039`; halaman tetap mode terbatas |
+| 2 | **Izin** `StockOpname:Read`, `StockOpname:Create`, `StockOpname:Approve` ke jabatan yang tepat lewat Akses Role, setelah registry izin terisi saat backend start | Admin akses | Tanpa Read: mode terbatas (403). Tanpa Create: tidak bisa membuat/menghitung. Tanpa Approve: tombol keputusan nonaktif |
+| 3 | **Penegakan indeks unik di PostgreSQL** (satu sesi aktif per lokasi; anti-posting-ganda) baru terbukti setelah migrasi. Harness SQLite melepas indeks unik bersaring, jadi yang teruji baru konfigurasinya; lapisan service sudah teruji | Diverifikasi saat UAT | Risiko rendah, karena service juga menolak |
+| 4 | **UAT di DEV**: opname satu lokasi kecil, stok bergerak saat menghitung, tolak lalu hitung ulang, temuan, cetak berita acara, lalu cek Kartu Stok dan rekonsiliasi | Pemilik + petugas gudang | Belum ada bukti runtime untuk panel baru |
+| 5 | **Keputusan go-live** | Pemilik | — |
+
+Sebaiknya migrasi dibuat terpisah dan lebih dulu, supaya migrasi orang lain di cabang `Ikbal` tidak ikut membawa dua tabel ini.
+
+## 6. Keterbatasan yang tetap tercatat
+
+- Petunjuk self-approval di layar memakai `userId` dari sesi login. Bila nilai itu kosong, petunjuk ini tidak menonaktifkan tombol, tetapi backend tetap menolak dengan `PHM067`.
+- Cetak memakai dialog peramban; tidak ada berkas PDF dari server.
+- Pemeriksaan di atas hanya uji unit dan pemeriksaan statis atas kode sumber; perilaku render panel belum diuji di peramban pada tahap ini.
+
+## 7. Daftar berkas yang berubah pada tahap 092–094
+
+**Backend** (`Ikbal`): hanya berkas laporan ini.
+
+| Status | Berkas |
+| --- | --- |
+| Ubah | `docs/module-blueprints/logistik/task/report/FIN-LGS-LAPORAN-FINISHING.md` |
+
+**Frontend** (`Ikbalv2`, basis `1fa534644`): 10 berkas.
+
+| Status | Berkas | Isi |
+| --- | --- | --- |
+| Baru | `src/components/view/health-services/pharmacy-management/stock-opname-view/session/stock-opname-session-review-panel.jsx` | Panel Verifikasi |
+| Baru | `src/components/view/health-services/pharmacy-management/stock-opname-view/session/stock-opname-session-report-panel.jsx` | Berita acara resmi + cetak |
+| Baru | `src/components/view/health-services/pharmacy-management/stock-opname-view/session/stock-opname-session-workspace.jsx` | Tab mode transaksi, pesan hasil, tab menurut status |
+| Ubah | `src/components/view/health-services/pharmacy-management/stock-opname-view/stock-opname-view.jsx` | Pengalih mode READY / BLOCKED_SCHEMA / 403 / 404 / galat |
+| Ubah | `src/components/view/health-services/pharmacy-management/stock-opname-view/session/stock-opname-session-list-panel.jsx` | "Buka" meneruskan baris sesi agar tab mengikuti status |
+| Ubah | `src/lib/hooks/health-services/pharmacy-management/use-stock-opname-session.jsx` | Sebab `UNAVAILABLE` (`reason`) |
+| Ubah | `src/lib/constants/health-services/pharmacy-management/stock-opname-constant.js` | `STOCK_OPNAME_UNAVAILABLE_REASON`, `STOCK_OPNAME_PERMISSION` |
+| Ubah | `src/utils/health-services/pharmacy-management/stock-opname-utils.js` | `describeAvailabilityError`, `isUserInvolvedInSession`, `getSessionDifferenceLines`, `validateDecisionReason` |
+| Ubah | `src/style/health-services/pharmacy-management/stock-opname.module.css` | Aturan cetak berita acara |
+| Ubah | `tests/unit/stock-opname.test.mjs` | 8 uji baru; daftar berkas Stock Opname diperluas |
+
+**Jangan ikut di-commit:** `SeedData/ICD10/*`, `Storage/uploads/*`, `tests/e2e/zz-*.mjs`, `test-results/.last-run.json`.
