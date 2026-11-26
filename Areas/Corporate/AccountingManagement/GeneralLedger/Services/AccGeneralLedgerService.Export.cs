@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using System.Globalization;
@@ -408,6 +410,102 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
             return AccountingServiceResult<LedgerExportFile>.Ok(
                 berkas, $"Neraca {data.PeriodName} berhasil diunduh.");
         }
+
+        public async Task<AccountingServiceResult<LedgerExportFile>> BuildFinancialRatioCsvAsync(
+            FinancialRatioQuery query,
+            CancellationToken ct = default)
+        {
+            var laporan = await GetFinancialRatiosAsync(query, ct);
+
+            if (!laporan.Success || laporan.Data is null)
+                return AccountingServiceResult<LedgerExportFile>.Fail(laporan.StatusCode, laporan.Message);
+
+            var data = laporan.Data;
+            var namaBadanHukum = await NamaBadanHukumAsync(query.LegalEntityId, ct);
+
+            var kepala = new List<IReadOnlyList<string>>
+            {
+                AccLedgerCsv.BarisKepala("Laporan", "Rasio Keuangan"),
+                AccLedgerCsv.BarisKepala("Badan Hukum", namaBadanHukum),
+                AccLedgerCsv.BarisKepala("Periode", $"{data.PeriodName} ({data.PeriodCode})"),
+                AccLedgerCsv.BarisKepala("Per Tanggal", AccLedgerCsv.Tanggal(data.AsOfDate)),
+                AccLedgerCsv.BarisKepala(
+                    "Pembanding",
+                    data.ComparisonAvailable && data.ComparisonAsOfDate.HasValue
+                        ? $"Per {AccLedgerCsv.Tanggal(data.ComparisonAsOfDate.Value)}"
+                        : data.ComparisonUnavailableReason),
+                AccLedgerCsv.BarisKepala("Diunduh", AccLedgerCsv.WaktuUnduh())
+            };
+
+            var kolom = new[]
+            {
+                "Rasio", "Rumus",
+                "Pembilang Kini", "Penyebut Kini", "Hasil Kini", "Status Kini", "Keterangan Kini",
+                "Pembilang Pembanding", "Penyebut Pembanding", "Hasil Pembanding", "Status Pembanding", "Keterangan Pembanding"
+            }.Select(AccLedgerCsv.Teks).ToArray();
+
+            var isi = new List<IReadOnlyList<string>>();
+
+            foreach (var r in data.Ratios)
+            {
+                var sel = new List<string> { AccLedgerCsv.Teks(r.Name), AccLedgerCsv.Teks(r.Formula) };
+                sel.AddRange(SelRasio(r.Current, r.Unit));
+                sel.AddRange(SelRasio(r.Comparison, r.Unit));
+                isi.Add(sel);
+            }
+
+            foreach (var celah in data.ClassificationGaps)
+            {
+                isi.Add(new[]
+                {
+                    AccLedgerCsv.Teks("Catatan"),
+                    AccLedgerCsv.Teks(
+                        $"{celah.AccountCode} {celah.AccountName}: " +
+                        (celah.GapKind == ClassificationGapKind.MissingReportClassification
+                            ? "klasifikasi laporan belum diisi"
+                            : "sub-klasifikasi aset lancar belum diisi"))
+                });
+            }
+
+            var berkas = new LedgerExportFile
+            {
+                Content = AccLedgerCsv.Tulis(kepala, kolom, isi),
+                FileName = $"rasio-keuangan_{SegmenNamaBerkas(data.PeriodCode)}.csv",
+                RowCount = data.Ratios.Count
+            };
+
+            return AccountingServiceResult<LedgerExportFile>.Ok(
+                berkas, $"Rasio keuangan {data.PeriodName} berhasil diunduh.");
+        }
+
+        private static IEnumerable<string> SelRasio(FinancialRatioValueResponse nilai, FinancialRatioUnit satuan)
+        {
+            static string Sel(decimal? angka) => angka.HasValue ? AccLedgerCsv.Angka(angka.Value) : string.Empty;
+
+            var hasil = nilai.Status == FinancialRatioStatus.Calculated && nilai.Value.HasValue
+                ? AccLedgerCsv.Teks(AccLedgerCsv.Angka(nilai.Value.Value) + (satuan == FinancialRatioUnit.Percent ? "%" : "x"))
+                : AccLedgerCsv.Teks(LabelStatusRasio(nilai.Status));
+
+            var keterangan = string.Join(" ", new[] { nilai.Reason, nilai.Note }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+            return new[]
+            {
+                Sel(nilai.Numerator),
+                Sel(nilai.Denominator),
+                hasil,
+                AccLedgerCsv.Teks(LabelStatusRasio(nilai.Status)),
+                AccLedgerCsv.Teks(keterangan)
+            };
+        }
+
+        private static string LabelStatusRasio(FinancialRatioStatus status) => status switch
+        {
+            FinancialRatioStatus.Calculated => "Dihitung",
+            FinancialRatioStatus.NotApplicable => "N/A",
+            FinancialRatioStatus.Unavailable => "Tidak dapat dihitung",
+            FinancialRatioStatus.Invalid => "Tidak sah",
+            _ => status.ToString()
+        };
 
         private static string StatusSeimbang(bool seimbang, decimal selisih)
             => seimbang ? "Seimbang" : $"Tidak seimbang, selisih {AccLedgerCsv.Angka(selisih)}";

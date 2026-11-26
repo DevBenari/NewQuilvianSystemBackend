@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.E
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
@@ -39,6 +40,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
             public AccountType AccountType { get; init; }
 
             public bool IsActive { get; init; }
+
+            public bool IsPostable { get; init; }
+
+            public AccountReportClassification? ReportClassification { get; init; }
+
+            public CurrentAssetCategory? CurrentAssetCategory { get; init; }
         }
 
         private sealed class LabaBelumDipindah
@@ -315,6 +322,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
 
             var selisih = NilaiLaporan.Selisih(aset.Total, totalLiabilitasEkuitas);
 
+            var celahKlasifikasi = SusunCelahKlasifikasi(akun, nilaiAkun);
+
             var hasil = new BalanceSheetResponse
             {
                 LegalEntityId = query.LegalEntityId,
@@ -338,7 +347,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
                 Difference = selisih.Kini,
                 ComparisonIsBalanced = selisih.Banding.HasValue ? selisih.Banding.Value == 0m : null,
                 ComparisonDifference = selisih.Banding,
-                UnclosedFiscalYears = labaKini.TahunBelumDitutup
+                UnclosedFiscalYears = labaKini.TahunBelumDitutup,
+                UnclassifiedAccountCount = celahKlasifikasi.Count,
+                ClassificationGaps = celahKlasifikasi
             };
 
             return AccountingServiceResult<BalanceSheetResponse>.Ok(
@@ -469,9 +480,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
                     AccountCode = x.AccountCode,
                     AccountName = x.AccountName,
                     AccountType = x.AccountType,
-                    IsActive = x.IsActive
+                    IsActive = x.IsActive,
+                    IsPostable = x.IsPostable,
+                    ReportClassification = x.ReportClassification,
+                    CurrentAssetCategory = x.CurrentAssetCategory
                 })
                 .ToListAsync(ct);
+        }
+
+        private static List<FinancialStatementClassificationGapResponse> SusunCelahKlasifikasi(
+            IReadOnlyList<AkunLaporan> akun,
+            IReadOnlyDictionary<Guid, NilaiLaporan> nilaiAkun)
+        {
+            var efektif = AccChartOfAccountClassification.Hitung(akun.Select(x => new AccChartOfAccountClassification.AkunKlasifikasi
+            {
+                Id = x.Id,
+                ParentAccountId = x.ParentAccountId,
+                AccountCode = x.AccountCode,
+                AccountName = x.AccountName,
+                AccountType = x.AccountType,
+                IsPostable = x.IsPostable,
+                ReportClassification = x.ReportClassification,
+                CurrentAssetCategory = x.CurrentAssetCategory
+            }));
+
+            return akun
+                .Where(x => AccChartOfAccountClassification.BerlakuUntuk(x.AccountType)
+                            && nilaiAkun.TryGetValue(x.Id, out var nilai)
+                            && (nilai.Kini != 0m || (nilai.Banding ?? 0m) != 0m)
+                            && efektif.TryGetValue(x.Id, out var klasifikasi)
+                            && klasifikasi.Gap.HasValue)
+                .OrderBy(x => x.AccountCode, StringComparer.Ordinal)
+                .Select(x => new FinancialStatementClassificationGapResponse
+                {
+                    AccountId = x.Id,
+                    AccountCode = x.AccountCode,
+                    AccountName = x.AccountName,
+                    AccountType = x.AccountType,
+                    GapKind = efektif[x.Id].Gap!.Value
+                })
+                .ToList();
         }
 
         private async Task<IQueryable<AccJournalLine>> BarisTanpaTutupTahunAsync(Guid legalEntityId, CancellationToken ct)

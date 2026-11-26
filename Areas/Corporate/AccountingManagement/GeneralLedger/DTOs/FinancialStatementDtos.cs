@@ -91,6 +91,95 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
         public decimal? ComparisonDifference { get; set; }
 
         public List<int> UnclosedFiscalYears { get; set; } = new();
+
+        public int UnclassifiedAccountCount { get; set; }
+
+        public List<FinancialStatementClassificationGapResponse> ClassificationGaps { get; set; } = new();
+    }
+
+    public class FinancialRatioQuery
+    {
+        public Guid LegalEntityId { get; set; }
+
+        public string? PeriodCode { get; set; }
+    }
+
+    public class FinancialRatioResponse
+    {
+        public Guid LegalEntityId { get; set; }
+
+        public string PeriodCode { get; set; } = string.Empty;
+
+        public string PeriodName { get; set; } = string.Empty;
+
+        public int FiscalYear { get; set; }
+
+        public DateTime AsOfDate { get; set; }
+
+        public DateTime YearToDateStartDate { get; set; }
+
+        public bool ComparisonAvailable { get; set; }
+
+        public DateTime? ComparisonAsOfDate { get; set; }
+
+        public string? ComparisonUnavailableReason { get; set; }
+
+        public bool IsBalanced { get; set; }
+
+        public bool? ComparisonIsBalanced { get; set; }
+
+        public List<FinancialStatementClassificationGapResponse> ClassificationGaps { get; set; } = new();
+
+        public List<FinancialStatementClassificationGapResponse> ComparisonClassificationGaps { get; set; } = new();
+
+        public List<FinancialRatioRowResponse> Ratios { get; set; } = new();
+    }
+
+    public class FinancialRatioRowResponse
+    {
+        public FinancialRatioCode Code { get; set; }
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Formula { get; set; } = string.Empty;
+
+        public FinancialRatioUnit Unit { get; set; }
+
+        public FinancialRatioValueResponse Current { get; set; } = new();
+
+        public FinancialRatioValueResponse Comparison { get; set; } = new();
+    }
+
+    public class FinancialRatioValueResponse
+    {
+        public FinancialRatioStatus Status { get; set; }
+
+        public decimal? Value { get; set; }
+
+        public decimal? Numerator { get; set; }
+
+        public decimal? Denominator { get; set; }
+
+        public decimal? DenominatorOpening { get; set; }
+
+        public decimal? DenominatorClosing { get; set; }
+
+        public string? Reason { get; set; }
+
+        public string? Note { get; set; }
+    }
+
+    public class FinancialStatementClassificationGapResponse
+    {
+        public Guid AccountId { get; set; }
+
+        public string AccountCode { get; set; } = string.Empty;
+
+        public string AccountName { get; set; } = string.Empty;
+
+        public AccountType AccountType { get; set; }
+
+        public ClassificationGapKind GapKind { get; set; }
     }
 
     public class FinancialStatementSectionResponse

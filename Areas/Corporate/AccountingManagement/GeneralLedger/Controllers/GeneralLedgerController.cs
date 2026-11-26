@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services;
 using QuilvianSystemBackend.Attributes;
@@ -227,13 +228,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
                 query.PeriodCode,
                 query.IncludeZeroAccounts,
                 hasil.StatusCode,
-                JumlahBaris = hasil.Data?.Sections.Sum(x => x.Rows.Count)
+                JumlahBaris = hasil.Data?.Sections.Sum(x => x.Rows.Count),
+                UnclassifiedAccountCount = hasil.Data?.UnclassifiedAccountCount
             };
 
             if (hasil.Success)
             {
                 await _loggerService.InfoAsync(
-                    LogCategory, "FinancialStatement.BalanceSheet", hasil.Message, muatan);
+                    LogCategory,
+                    "FinancialStatement.BalanceSheet",
+                    $"{hasil.Message} Akun bersaldo dengan klasifikasi belum lengkap: {hasil.Data?.UnclassifiedAccountCount ?? 0}.",
+                    muatan);
             }
             else
             {
@@ -257,6 +262,70 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
                 query.LegalEntityId,
                 query.PeriodCode,
                 query.IncludeZeroAccounts,
+                hasil.StatusCode,
+                JumlahBaris = hasil.Data?.RowCount
+            };
+
+            if (!hasil.Success)
+            {
+                await _loggerService.WarningAsync(LogCategory, "GeneralLedger.Export", hasil.Message, muatan);
+                return ToActionResult(hasil);
+            }
+
+            await _loggerService.InfoAsync(LogCategory, "GeneralLedger.Export", hasil.Message, muatan);
+
+            return File(hasil.Data!.Content, AccLedgerCsv.ContentType, hasil.Data.FileName);
+        }
+
+        [HttpGet("financial-ratios")]
+        [AccessAction("Read", "Read General Ledger", Description = "Melihat rasio keuangan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("GeneralLedger", "Read")]
+        public async Task<IActionResult> GetFinancialRatios([FromQuery] FinancialRatioQuery query, CancellationToken ct)
+        {
+            var hasil = await _service.GetFinancialRatiosAsync(query, ct);
+
+            var muatan = new
+            {
+                JenisLaporan = "RasioKeuangan",
+                query.LegalEntityId,
+                query.PeriodCode,
+                hasil.StatusCode
+            };
+
+            if (hasil.Success)
+            {
+                var kini = hasil.Data!.Ratios.Select(x => x.Current.Status).ToList();
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "FinancialStatement.Ratio",
+                    $"{hasil.Message} Kolom kini: dihitung {kini.Count(x => x == FinancialRatioStatus.Calculated)}, " +
+                    $"N/A {kini.Count(x => x == FinancialRatioStatus.NotApplicable)}, " +
+                    $"tidak dapat dihitung {kini.Count(x => x == FinancialRatioStatus.Unavailable)}, " +
+                    $"tidak sah {kini.Count(x => x == FinancialRatioStatus.Invalid)}.",
+                    muatan);
+            }
+            else
+            {
+                await _loggerService.WarningAsync(
+                    LogCategory, "FinancialStatement.Ratio", hasil.Message, muatan);
+            }
+
+            return ToActionResult(hasil);
+        }
+
+        [HttpGet("financial-ratios/export")]
+        [AccessAction("Read", "Read General Ledger", Description = "Mengunduh rasio keuangan sebagai CSV", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("GeneralLedger", "Read")]
+        public async Task<IActionResult> ExportFinancialRatios([FromQuery] FinancialRatioQuery query, CancellationToken ct)
+        {
+            var hasil = await _service.BuildFinancialRatioCsvAsync(query, ct);
+
+            var muatan = new
+            {
+                JenisLaporan = "RasioKeuangan",
+                query.LegalEntityId,
+                query.PeriodCode,
                 hasil.StatusCode,
                 JumlahBaris = hasil.Data?.RowCount
             };
