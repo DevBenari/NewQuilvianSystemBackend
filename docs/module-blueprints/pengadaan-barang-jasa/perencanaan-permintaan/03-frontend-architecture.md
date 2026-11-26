@@ -196,6 +196,22 @@ Sumber: `GET /plan-consolidations`. Bila kosong: "Belum ada rencana kebutuhan ya
 | `-16` Menunggu Persetujuan | `PENDING_APPROVAL` | Langkah saat ini | `GET /purchase-requests` |
 | `-17` Antrean Persetujuan | Tugas pengguna di `Wfl`, kategori Procurement | Jenis dokumen, nominal, SLA | Kotak masuk `Wfl` existing (`api/v1/corporate/human-resource/approval-inbox`) |
 
+### 4.7 Standar baris filter dan hero (`PBJ-FE-004`, `PBJ-DEC-056`, `057`)
+
+Setiap layar daftar memakai satu baris `DataFilter`: Tanggal awal, Tanggal akhir, Periode, 1–2 saringan relevan, Status, Pencarian, Jumlah baris, tombol ↻. Hero tidak berisi tombol kecuali pada halaman form/detail dokumen; tombol aksi daftar ada di `actions` `DataFilter` dengan varian `primary`. Pola rujukan: `administrator/master-data/supplier`.
+
+| Layar | Saringan relevan | Status | Tombol di filter |
+| --- | --- | --- | --- |
+| `-09` Daftar PR, `-15` Riwayat | Unit, Tahun anggaran | Status PR | "+ Buat PR" (pemegang `ProcurementRequest : Create`) |
+| `-14` Mendesak, `-16` Menunggu Persetujuan, `-11` Antrean Verifikasi | Unit, Tahun anggaran | Status PR (terkunci bila layar mengunci status) | — |
+| `-13` Pemeriksaan Stock | Unit, Sudah/belum dicek | Status PR | — |
+| `-02` Rencana Kebutuhan, `-05` Rencana Anggaran | Unit, Tahun anggaran | Status rencana | "+ Buat …" |
+| `-06` Rencana Paket | Jenis pengadaan, Tahun anggaran | Status rencana | "+ Buat …" |
+| `-18` Katalog | Jenis pengadaan, Kategori | Aktif/Nonaktif | "+ Tambah Barang/Jasa" |
+| `-19` Kategori & Sumber Dana | — | Aktif/Nonaktif | "+ Tambah …" |
+| `-17` Antrean Persetujuan | Jenis dokumen | Tampilan terbuka/riwayat | "Kotak Masuk Terpadu"; Periode dipetakan ke `period` kotak masuk `Wfl` (`all` bila kosong) — `PBJ-DEC-058` |
+| `-03` Konsolidasi (pengecualian) | Tahun, Kategori, Jenis | — | "Buat rencana paket dari pilihan"; tanpa Tanggal/Periode/Status/Jumlah baris |
+
 ## 5. Aksi per peran
 
 Diturunkan dari [`contracts/permission-audit-matrix.md`](contracts/permission-audit-matrix.md) bagian 3. Frontend

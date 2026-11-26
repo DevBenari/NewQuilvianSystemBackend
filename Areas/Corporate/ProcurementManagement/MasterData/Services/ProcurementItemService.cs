@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Services;
 
@@ -80,6 +81,7 @@ public sealed class ProcurementItemService
     public async Task<PagedResult<ProcurementItemResponse>> GetPagedAsync(ProcurementItemQuery request, CancellationToken cancellationToken)
     {
         var query = _dbContext.MstProcurementItems.AsNoTracking().Where(x => !x.IsDelete);
+        query = query.WhereCreatedWithin(ProcurementPeriodFilter.Resolve(request.StartDate, request.EndDate, request.CustomPeriod));
         if (request.IsActive.HasValue) query = query.Where(x => x.IsActive == request.IsActive.Value);
         if (request.ProcurementTypeId.HasValue) query = query.Where(x => x.ProcurementTypeId == request.ProcurementTypeId.Value);
         if (request.ItemCategoryId.HasValue) query = query.Where(x => x.ItemCategoryId == request.ItemCategoryId.Value);

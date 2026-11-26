@@ -307,3 +307,284 @@ Tidak ada epic berstatus `OPEN DECISION`.
 | `KSK-OQ-004` — catat amendment `FE-LAB-13`/`AC-93` di blueprint Laboratorium | Sukma | `MVP-2` tidak dapat dimulai | Ya — hanya `MVP-2` (keputusan sudah ada; tinggal pencatatan) |
 | `KSK-OQ-005` — catat `RWI-ENC-PAYER-001` v1.1.0 di blueprint rawat-inap | Sukma / Muhammad Hamzah | `MVP-3` BE tidak dapat dimulai | Ya — hanya `MVP-3` (keputusan sudah ada; tinggal pencatatan) |
 | Penunjukan security/privacy owner | Sukma | Tidak ada; dicatat sebagai kekosongan kepemilikan | Tidak |
+
+
+---
+
+# Amendment PO — PRD → MVP Pendaftaran Pasien Online dan Check-in Kiosk
+
+## PO-1 Identitas dokumen
+
+| Field | Nilai |
+| --- | --- |
+| Produk | Quilvian V2 — layanan mandiri pasien (perangkat kiosk dan halaman publik, `KSK-DEC-026`) |
+| Modul | Kiosk (`KSK-BP-001`), Amendment PO |
+| Status | `approved` — Sukma Giri Pratama, 19 Nov 2026 (`KSK-DEC-054`) — revisi blueprint `2` |
+| Repository target | `NewQuilvianSystemBackend` (`sukmagp`), `QuilvianSystemFrontendDev` (`sukmagpV2`) |
+| Baseline | BE `5e777833`, FE `5f18e9f04` |
+| Ringkasan cakupan | Pasien mendaftar Rawat Jalan sendiri tanpa login untuk H+1 s.d. H+30, menerima kode, lalu check-in di kiosk pada hari kunjungan. Petugas dapat melihat, mengubah jadwal/kontak, dan membatalkan |
+
+## PO-2 Ringkasan eksekutif
+
+Antrean di loket pendaftaran pagi hari berkurang karena pasien yang sudah merencanakan kunjungan mendaftar dari rumah. Kuota dokter mereka aman sejak mendaftar, dan saat datang mereka cukup memasukkan kode di kiosk untuk mendapat nomor antrean. Rumah sakit tetap memegang kendali: data pasien baru dari internet baru masuk rekam medis setelah KTP/KIA dipindai, dan petugas dapat membersihkan pendaftaran yang tidak sah.
+
+## PO-3 Masalah produk
+
+| Kondisi sekarang | Bukti |
+| --- | --- |
+| Tidak ada wadah pendaftaran online/appointment Rawat Jalan | `F-PO-1`, `CAP-PO-01` |
+| Kartu "Check-in Pasien Online" di beranda kiosk hanya menampilkan pemberitahuan | `F-PO-7`, `CAP-PO-24` |
+| Semua endpoint pilihan (poli, jadwal, kuota, kartu) memerlukan login | `CAP-PO-09` |
+| Backend belum dapat mengirim email maupun memeriksa captcha | `F-PO-8`, `CAP-PO-04`, `CAP-PO-05` |
+| Kuota dokter hanya dihitung dari kunjungan dan belum dikunci per jadwal | `CAP-PO-10`, `CAP-PO-34` |
+| Yang sudah ada dan dipakai ulang: jalur pembuatan kunjungan kiosk, pindai KTP/KIA, cetak tiket, pola endpoint publik dan penutupan Reservasi Prioritas, komponen langkah menu RJ | `CAP-PO-02`, `13`, `14`, `15`, `17`, `22`, `25` |
+
+## PO-4 Visi produk
+
+1. Pasien mengisi halaman online dengan langkah yang sama seperti petugas di menu RJ.
+2. Pendaftaran tersimpan sebagai Menunggu Check-in dan langsung memakai satu kuota appointment.
+3. Kode sampai ke pasien lewat layar, email, atau WhatsApp.
+4. Pada hari kunjungan, kiosk memeriksa kode dan tanggal lahir, memverifikasi KTP/KIA pasien baru, lalu menerbitkan kunjungan, nomor antrean, dan tiket lewat jalur kunjungan yang sama dengan petugas.
+5. Pendaftaran yang tidak dipakai, didaftarkan lewat jalur lain, atau dibatalkan petugas menutup sendiri dan melepas kuotanya.
+
+## PO-5 Batas MVP
+
+**Titik mulai:**
+
+1. Pasien membuka `/online-registration` dari tautan rumah sakit.
+2. Petugas membuka menu Pendaftaran Online.
+
+**Titik akhir:**
+
+1. Kunjungan Rawat Jalan terbit dengan `RegistrationSource = OnlineRegistration` dan tiket tercetak di kiosk.
+2. Atau pendaftaran berakhir sebagai Didaftarkan lewat Jalur Lain, Tidak Datang, atau Dibatalkan, dengan kuota dilepas dan riwayat tercatat.
+
+## PO-6 Pelaku sasaran
+
+| Pelaku | Tanggung jawab dalam MVP |
+| --- | --- |
+| Pasien atau wali (tanpa login) | Mendaftar, menyimpan kode, check-in di kiosk |
+| Akun perangkat kiosk | Menjalankan verifikasi dan check-in |
+| Petugas admisi RJ | Mencari, mengubah jadwal/kontak, membatalkan |
+| Admin Akses Role | Memberi `OnlineRegistration : Read/Update/Cancel` |
+| IT/infrastruktur | Domain publik, IP asli, akun SMTP, kunci Turnstile |
+| Sistem | Kuota, email, penutupan otomatis |
+
+## PO-7 Pemilihan kemampuan MVP
+
+| Kemampuan | ID kemampuan asal | Keputusan MVP |
+| --- | --- | --- |
+| Wadah pendaftaran online, status, riwayat | `CAP-PO-01`, `12` | Wajib; inti amendment |
+| Endpoint publik, batas laju, captcha | `CAP-PO-02`, `03`, `04`, `26` | Wajib; halaman publik tidak boleh dibuka tanpa perlindungan (`KSK-DEC-038`) |
+| Opsi publik poli, jadwal, kuota, penyedia asuransi, faskes | `CAP-PO-09` | Wajib; tanpa ini halaman tidak dapat diisi |
+| Pencocokan pasien lama tersamar | `CAP-PO-11` | Wajib (`KSK-DEC-031`) |
+| Kode, email, tombol WhatsApp | `CAP-PO-05`, `06`, `07`, `08` | Wajib (`KSK-DEC-041` s.d. `043`) |
+| Kuota memakai pendaftaran online dan dikunci per jadwal | `CAP-PO-10`, `34` | Wajib; tanpa ini kuota ganda (`INV-PO-02`) |
+| Consent, rujukan, kartu baru ditampung lalu dipindah saat check-in | `CAP-PO-18`, `19`, `20` | Wajib (`KSK-DEC-034`, `035`) |
+| Check-in kiosk, Lupa Kode, pindai KTP/KIA, tiket | `CAP-PO-13`, `14`, `15`, `24`, `25`, `28`, `36`, `37` | Wajib (`KSK-DEC-033`, `036`, `040`, `048`, `053`) |
+| Penutupan Tidak Datang dan Jalur Lain | `CAP-PO-16`, `17` | Wajib; tanpa ini kuota tertahan (`KSK-DEC-037`, `045`) |
+| Layar petugas: daftar, ubah, batal | `CAP-PO-30` s.d. `33`, `35` | Wajib (`KSK-DEC-050` s.d. `052`) |
+| Route publik dan CSP | `CAP-PO-21`, `29` | Wajib; tanpa ini halaman dialihkan ke login atau widget kosong |
+| Langkah menu RJ dipakai ulang | `CAP-PO-22`, `23` | Wajib (`KSK-DEC-029`) |
+
+## PO-8 Kemampuan yang ditunda
+
+| Kemampuan | ID kemampuan asal | Alasan ditunda | Pengganti selama MVP |
+| --- | --- | --- | --- |
+| WA otomatis lewat gateway | — (`KSK-DEC-042`) | Belum ada `platform-notification` dan gateway | Tombol WhatsApp yang dikirim pasien sendiri |
+| Pembatalan oleh pasien di halaman publik | — | Tidak diminta (`KSK-DEC-050`) | Pasien menelepon; petugas membatalkan |
+| Pemberitahuan otomatis sesudah petugas mengubah/membatalkan | — (`GATE-PO-12`) | Tidak diminta | Petugas menyampaikan langsung |
+| Kebijakan penghapusan data pendaftaran tidak terpakai | — (`GATE-PO-03`) | Menunggu aturan retensi RS | Data disimpan seperti catatan pendaftaran lain |
+| Cek kepesertaan BPJS online | — (`KSK-DEC-027`) | Di luar scope | Diperiksa petugas/kasir saat pasien datang |
+| Laporan rekap pendaftaran online | — | Tidak diminta | Ringkasan per status di layar petugas |
+
+## PO-9 Alur bisnis target
+
+`FLOW-KSK-PO-MVP-001`:
+
+1. Pasien membuka halaman online, memilih pasien lama atau baru.
+2. Pasien lama dicocokkan dengan NIK/No. RM + tanggal lahir; pasien baru mengisi NIK, nama, tanggal lahir, jenis kelamin.
+3. Pasien mengisi kontak, jenis pasien, jadwal H+1 s.d. H+30, rujukan (bila Rujukan), penjamin, dan consent (pasien baru).
+4. Pasien menyelesaikan captcha dan mengirim. Sistem menyimpan Menunggu Check-in, memakai kuota, menampilkan kode, dan mengirim email.
+5. Pada hari kunjungan, pasien memasukkan kode + tanggal lahir di kiosk, atau memakai Lupa Kode.
+6. Pasien baru memindai KTP/KIA; NIK harus sama; master dibuat dari hasil pindai atau No. RM lama dipakai.
+7. Kiosk membuat kunjungan appointment; sistem mengubah status menjadi Menjadi Kunjungan, menulis consent dan dokumen rujukan, lalu tiket tercetak.
+8. Pendaftaran yang tidak dipakai menjadi Tidak Datang pukul 00.05 hari berikutnya; yang didaftarkan lewat jalur lain menjadi Didaftarkan lewat Jalur Lain; petugas dapat mengubah atau membatalkan selama Menunggu Check-in.
+
+## PO-10 Epic dan functional requirement
+
+### EPIC KSK-PO-01 — Fondasi data, kuota, dan penutupan (backend)
+
+| FR | Requirement | Disposisi |
+| --- | --- | --- |
+| `FR-KSK-PO-001` | Tiga tabel `RegOnlineRegistration*`, lima enum baru, dua nilai enum tambahan, migration `AddRegOnlineRegistration` | `MISSING / NEW` |
+| `FR-KSK-PO-002` | `GetUsageAsync` menghitung pendaftaran Menunggu Check-in; kunci kuota per jadwal dan tanggal di jalur online dan `CreateEncounterCoreAsync` | `EXTEND` |
+| `FR-KSK-PO-003` | `CloseForEncounterAsync` di jalur kunjungan (pasien lama lewat `PatientId`, pasien baru lewat NIK) | `EXTEND` |
+| `FR-KSK-PO-004` | Penutupan harian Tidak Datang, idempoten, mengejar hari tertinggal | `MISSING / NEW` (pola `CAP-PO-17`) |
+
+### EPIC KSK-PO-02 — Halaman publik backend
+
+| FR | Requirement | Disposisi |
+| --- | --- | --- |
+| `FR-KSK-PO-010` | Empat endpoint opsi publik dengan field minimum dan batas laju | `EXTEND` |
+| `FR-KSK-PO-011` | Pencocokan pasien lama tersamar dengan captcha | `EXTEND` (logika `KioskPatientLookupService`) |
+| `FR-KSK-PO-012` | Kirim pendaftaran multipart: validasi, kode, nomor, berkas, consent, riwayat | `MISSING / NEW` |
+| `FR-KSK-PO-013` | `TurnstileVerificationService` (fail-closed) dan `SmtpEmailSender` | `MISSING / NEW` |
+| `FR-KSK-PO-014` | `PatientNameMasker` bersama | `EXTEND` (dipindah dari `QueueDisplayRuntimeController`) |
+| `FR-KSK-PO-015` | **`v2.1` (`KSK-DEC-057`, `058`)** — opsi faskes publik hanya faskes mitra pada `visitDate` (wajib); kirim menolak faskes non-mitra `KSK-VAL-PO-073` | `EXTEND` (`ReferralPartnerEligibility`) |
+
+### EPIC KSK-PO-03 — Check-in backend
+
+| FR | Requirement | Disposisi |
+| --- | --- | --- |
+| `FR-KSK-PO-020` | `POST online-registrations/kiosk/check-in/verify` dengan token 15 menit | `MISSING / NEW` |
+| `FR-KSK-PO-021` | `PrepareCheckInAsync` dan `CompleteCheckInInTransactionAsync` di `CreateEncounterCoreAsync` (consent, dokumen rujukan, `RegistrationSource = 7`) | `EXTEND` |
+
+### EPIC KSK-PO-04 — Layar petugas backend
+
+| FR | Requirement | Disposisi |
+| --- | --- | --- |
+| `FR-KSK-PO-030` | Daftar, ringkasan, detail, buka berkas | `MISSING / NEW` (pola `CAP-PO-31`) |
+| `FR-KSK-PO-031` | Ubah jadwal (poli sama, pertukaran kuota), ubah kontak | `MISSING / NEW` (`CAP-PO-32`) |
+| `FR-KSK-PO-032` | Batal dengan alasan; Resource `OnlineRegistration` | `MISSING / NEW` (`CAP-PO-30`, `33`) |
+
+### EPIC KSK-PO-05 — Halaman publik frontend
+
+| FR | Requirement | Disposisi |
+| --- | --- | --- |
+| `FR-KSK-PO-040` | Route publik di tiga daftar dan CSP Turnstile | `EXTEND` |
+| `FR-KSK-PO-041` | Langkah Data Pasien publik dan Selesai publik (kode, email, WhatsApp) | `MISSING / NEW` |
+| `FR-KSK-PO-042` | Langkah RJ dipakai ulang lewat hook dan service publik | `EXTEND` (`CAP-PO-22`) |
+| `FR-KSK-PO-043` | **`v2.1` (`KSK-DEC-057`, `058`)** — Data Rujukan mencari faskes dengan `visitDate`, pesan kosong khusus faskes mitra, pilihan faskes dikosongkan bila tanggal kunjungan berubah, `KSK-VAL-PO-073` ditampilkan | `EXTEND` |
+
+### EPIC KSK-PO-06 — Check-in kiosk frontend
+
+| FR | Requirement | Disposisi |
+| --- | --- | --- |
+| `FR-KSK-PO-050` | Layar Check-in: kode/Lupa Kode, ringkasan, check-in, tiket; kartu beranda diberi route | `MISSING / NEW` |
+| `FR-KSK-PO-051` | Varian langkah pindai: NIK terkunci, hanya KTP/KIA | `EXTEND` (`CAP-PO-37`) |
+
+### EPIC KSK-PO-07 — Layar petugas frontend
+
+| FR | Requirement | Disposisi |
+| --- | --- | --- |
+| `FR-KSK-PO-060` | Daftar dengan ringkasan, filter, pencarian; butir menu | `MISSING / NEW` (pola `CAP-PO-35`) |
+| `FR-KSK-PO-061` | Detail dengan riwayat, Ubah Jadwal, Ubah Kontak, Batalkan | `MISSING / NEW` |
+
+## PO-11 Model status yang diusulkan
+
+Menunggu Check-in → Menjadi Kunjungan / Didaftarkan lewat Jalur Lain / Tidak Datang / Dibatalkan. Invariant utama `INV-PO-01` s.d. `08` (`02-backend-architecture.md` PO.2). Rinciannya `contracts/state-transition-matrix.md` *Amendment PO*.
+
+## PO-12 Sasaran arsitektur
+
+| Dipakai ulang | Diperluas | Baru |
+| --- | --- | --- |
+| Jalur `POST patient-encounters/kiosk`, endpoint kiosk pasien/kartu, pindai KTP/KIA, cetak tiket, `NumberSeriesAllocator`, helper hash, pola endpoint publik RP, pola penutupan RP, komponen langkah RJ, pola layar admisi RP | `CreateEncounterCoreAsync`, `DoctorScheduleQuotaService`, `PatientEncounterCreateRequest`, dua enum, langkah pindai kiosk, kartu beranda, menu, route publik, CSP | Tiga tabel, tiga service, tiga controller, Turnstile, SMTP, hosted service, empat layar |
+
+## PO-13 Sasaran kemampuan API
+
+Rincian lengkap di `contracts/api-contract.md` *Amendment PO*. Seluruhnya **Rencana (belum tersedia)**.
+
+| Grup | Method | Path | Hak akses | Epic |
+| --- | --- | --- | --- | --- |
+| Online Registration Public | `GET` | `/options/clinics`, `/options/doctor-schedules`, `/options/insurance-providers`, `/options/referral-institutions` | Tanpa login | `EPIC KSK-PO-02` |
+| Online Registration Public | `POST` | `/patient-match`, `` | Tanpa login + captcha | `EPIC KSK-PO-02` |
+| Online Registration Check-In | `POST` | `/check-in/verify` | `KioskRead` | `EPIC KSK-PO-03` |
+| Patient Encounter | `POST` | `/kiosk` (+`onlineRegistrationId`, token) | `KioskRead` | `EPIC KSK-PO-03` |
+| Online Registration | `GET` | ``, `/summary`, `/{id}`, `/{id}/referral-documents/{documentId}` | `OnlineRegistration : Read` | `EPIC KSK-PO-04` |
+| Online Registration | `PUT` | `/{id}/schedule`, `/{id}/contact` | `OnlineRegistration : Update` | `EPIC KSK-PO-04` |
+| Online Registration | `POST` | `/{id}/cancel` | `OnlineRegistration : Cancel` | `EPIC KSK-PO-04` |
+
+## PO-14 Matriks kewenangan
+
+| Tindakan | Siapa | Permission |
+| --- | --- | --- |
+| Mendaftar online | Pasien/wali | Tanpa login, captcha, batas laju |
+| Check-in | Akun kiosk | `KioskRead` |
+| Melihat daftar/detail | Petugas | `[AccessPermission("OnlineRegistration", "Read")]` |
+| Mengubah jadwal/kontak | Petugas | `[AccessPermission("OnlineRegistration", "Update")]` |
+| Membatalkan | Petugas | `[AccessPermission("OnlineRegistration", "Cancel")]` |
+
+## PO-15 Batas integrasi dan billing
+
+| Yang **MUST NOT** dibuat modul ini | Pemilik |
+| --- | --- |
+| Tagihan atau biaya pendaftaran online | `billing-kasir`; tagihan lahir dari kunjungan seperti biasa |
+| Master pasien, kartu asuransi | Patient Management; dibuat lewat endpoint kiosk yang ada |
+| Aturan jadwal, kuota, jenis pasien, consent, rujukan | `rawat-jalan` (`KSK-DEC-026` syarat 2) |
+| Gateway WA/SMS, antrean notifikasi | `platform-notification` (belum ada) |
+| Cek kepesertaan BPJS | Di luar scope |
+
+## PO-16 Guardrail regulasi
+
+| Kewajiban | Penerapan |
+| --- | --- |
+| Identifikasi pasien dengan dua penanda | Pasien lama: No. RM/NIK + tanggal lahir. Check-in: kode + tanggal lahir. Pasien baru: NIK hasil pindai KTP/KIA |
+| UU PDP — minimisasi dan keamanan data pribadi | Data diri pasien baru minimum (`KSK-DSN-PO-004`); halaman publik hanya data tersamar; kolom sensitif tidak masuk log; rahasia tidak di repository |
+| Persetujuan umum | Ditandatangani online, ditulis ke consent kunjungan dengan waktu tanda tangan asli (`KSK-DEC-034`) |
+| Rekam medis | Master hanya dari dokumen identitas terverifikasi (`INV-PO-06`) |
+
+## PO-17 Kebutuhan non-fungsional
+
+| ID | Kebutuhan |
+| --- | --- |
+| `NFR-PO-001` | Atomik: check-in, consent, dokumen rujukan, dan penutupan berada dalam transaksi kunjungan |
+| `NFR-PO-002` | Konkurensi: kunci pasien lalu kunci kuota di semua jalur; `RowVersion` untuk aksi petugas |
+| `NFR-PO-003` | Waktu: seluruh aturan tanggal memakai kalender WIB |
+| `NFR-PO-004` | Ketersediaan: Turnstile 5 detik fail-closed; SMTP 10 detik tanpa membatalkan pendaftaran |
+| `NFR-PO-005` | Audit: riwayat tidak dapat diubah; log tanpa data sensitif |
+| `NFR-PO-006` | Keamanan: endpoint publik `no-store`, pesan seragam, path tersamar di log |
+
+## PO-18 Skenario UAT
+
+| UAT | Epic | Skenario | Hasil yang diharapkan |
+| --- | --- | --- | --- |
+| `UAT-PO-01` | 01, 02, 05 | Pasien lama mendaftar online untuk besok sebagai Pribadi | Kode tampil; email terkirim; kuota berkurang 1 |
+| `UAT-PO-02` | 02, 05 | Pasien memilih tanggal hari ini | Ditolak dengan arahan ke kiosk rumah sakit |
+| `UAT-PO-03` | 02, 05 | Pasien lama salah tanggal lahir | Pesan umum, tanpa nama apa pun |
+| `UAT-PO-04` | 02, 05 | Pasien baru Rujukan mengunggah surat 2 MB dan 8 MB | 2 MB diterima, 8 MB ditolak |
+| `UAT-PO-05` | 03, 06 | Pasien lama check-in dengan kode pada hari H | Tiket tercetak; status Menjadi Kunjungan |
+| `UAT-PO-06` | 03, 06 | Pasien check-in sehari lebih awal | Ditolak dengan tanggal kunjungan |
+| `UAT-PO-07` | 03, 06 | Pasien baru check-in dengan KTP miliknya | No. RM terbit dari data KTP; consent tercatat |
+| `UAT-PO-08` | 03, 06 | Pasien baru memindai KTP orang lain | Ditolak, diarahkan ke loket; status tetap |
+| `UAT-PO-09` | 03, 06 | Pasien lupa kode, memakai NIK + tanggal lahir | Pendaftaran ditemukan, check-in berhasil |
+| `UAT-PO-10` | 03, 06 | Jadwal dokter dibatalkan sebelum check-in | Ditolak, diarahkan ke loket |
+| `UAT-PO-11` | 01 | Pendaftaran tidak dipakai sampai malam | Pukul 00.05 menjadi Tidak Datang; kuota kembali |
+| `UAT-PO-12` | 01 | Pasien punya pendaftaran online lalu memakai kiosk Pasien Lama | Pendaftaran online menjadi Didaftarkan lewat Jalur Lain |
+| `UAT-PO-13` | 04, 07 | Petugas memindahkan pendaftaran ke hari lain di poli yang sama | Kuota bertukar; kode lama tetap berlaku pada tanggal baru |
+| `UAT-PO-14` | 04, 07 | Petugas memindahkan ke jadwal yang penuh, atau ke poli lain | Ditolak; pendaftaran tidak berubah |
+| `UAT-PO-15` | 04, 07 | Petugas membatalkan pendaftaran mencurigakan | Dibatalkan; kode ditolak di kiosk |
+| `UAT-PO-16` | 04, 07 | Petugas tanpa hak membuka menu | Menu tidak tampil; akses langsung ditolak |
+| `UAT-PO-17` | 01 | Dua orang berebut satu sisa kuota bersamaan | Hanya satu berhasil |
+
+## PO-19 Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| Pasien dapat berjalan dari halaman online sampai tiket tercetak | `UAT-PO-01`, `05`, `07` |
+| Setiap jalur gagal pada §13.7 ditolak sesuai validation matrix | `UAT-PO-02`, `03`, `04`, `06`, `08`, `10`, `14` |
+| Kuota tidak pernah terpakai ganda | `UAT-PO-17`; `R-PO` kuota pada `testing/acceptance-test-matrix.md` |
+| Pendaftaran tidak pernah tertahan tanpa ujung | `UAT-PO-11`, `12`, `15` |
+| Data pasien baru dari internet tidak masuk master sebelum check-in | AC 4 pada matriks uji |
+| Halaman publik tidak membuka data pasien lain | AC 2 pada matriks uji |
+| Butir menu dan kartu kiosk terjangkau dengan hak akses yang benar | `UAT-PO-16`; PO-FE.2 |
+| Migration dibuat dan dijalankan dengan persetujuan terpisah | Laporan task backend |
+| Kunci Turnstile, akun SMTP, domain publik, dan IP asli tersedia di produksi | `KSK-PO-OQ-010`, `015`, `016` ditutup IT (syarat go-live, bukan syarat selesai build) |
+
+## PO-20 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Syarat mulai |
+| --- | --- | --- |
+| `MVP-0` | `EPIC KSK-PO-01`: tabel, enum, migration, kuota + kunci, penutupan | Blueprint revisi 2 disetujui; persetujuan migration |
+| `MVP-1` | `EPIC KSK-PO-02` dan `05`: halaman publik ujung ke ujung (dev memakai kunci uji Turnstile) | `MVP-0` |
+| `MVP-2` | `EPIC KSK-PO-03` dan `06`: check-in kiosk | `MVP-1` |
+| `MVP-3` | `EPIC KSK-PO-04` dan `07`: layar petugas | `MVP-0` (dapat paralel dengan `MVP-1`/`MVP-2`) |
+| `POST-MVP` | WA gateway otomatis, kebijakan retensi, laporan rekap | Keputusan terpisah |
+
+Pertanyaan terbuka sebelum development lock:
+
+| Pertanyaan | Memblokir |
+| --- | --- |
+| ~~Approval `KSK-DSN-PO-001` s.d. `017` dan letak menu `KSK-PO-FE-005`~~ | Ditutup — disetujui `KSK-DEC-054` (19 Nov 2026) |
+| `KSK-PO-OQ-010`, `015`, `016` (IT) | Tidak untuk build; **ya** untuk go-live |
+| Peran yang mendapat `OnlineRegistration : *` di Akses Role | Tidak; diatur admin saat go-live |

@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Servic
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Controllers;
 
@@ -120,6 +121,7 @@ public sealed class PurchaseRequestVerificationsController : ControllerBase
     {
         try { return Ok(ApiResponse<T>.Ok(await command(), message)); }
         catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
+        catch (ProcurementPeriodFilterException exception) { return UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message, new { code = exception.Code })); }
         catch (ProcurementRequestForbiddenException exception) { return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(403, exception.Message)); }
         catch (ProcurementRequestConflictException exception) { return Conflict(ApiResponse<object>.Fail(409, exception.Message, new { code = exception.Code })); }
         catch (ProcurementRequestValidationException exception)

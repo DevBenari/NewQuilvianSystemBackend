@@ -7,8 +7,9 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Seeders
 {
     /// <summary>
-    /// Kerangka lima definisi approval Pengadaan pada mesin workflow bersama (BE-PBJ-005;
-    /// <c>02-backend-architecture.md</c> bagian 8 dan 10).
+    /// Kerangka tujuh definisi approval Pengadaan pada mesin workflow bersama (BE-PBJ-005;
+    /// <c>02-backend-architecture.md</c> bagian 8 dan 10). BE-PBJ-VD-001 menambah dua definisi usulan
+    /// blokir/buka blokir vendor (<c>PBJ-VND-BLOKIR</c>, <c>PBJ-VND-BUKA</c>; PBJ-DEC-021, PBJ-ASM-003).
     /// </summary>
     /// <remarks>
     /// <para>
@@ -76,6 +77,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.See
                 "Pagu dan revisinya",
                 [
                     new("PBJ-PAGU-01", "Direktur Keuangan", 1, Position, null)
+                ]),
+            new(Guid.Parse("7c2e4a10-0006-4b6d-8e21-3f9a0c5d7e06"), ProcurementWorkflowCodes.VendorBlockDefinition,
+                "Persetujuan Blokir Vendor", ProcurementDocumentTypes.VendorStatusRequest,
+                "Usulan blokir vendor; hanya usulan yang disetujui yang memblokir vendor (PBJ-DEC-060)",
+                [
+                    new("PBJ-VND-BLOKIR-01", "Penyetuju status vendor", 1, Position, null)
+                ]),
+            new(Guid.Parse("7c2e4a10-0007-4b6d-8e21-3f9a0c5d7e07"), ProcurementWorkflowCodes.VendorUnblockDefinition,
+                "Persetujuan Buka Blokir Vendor", ProcurementDocumentTypes.VendorStatusRequest,
+                "Usulan buka blokir vendor (PBJ-ASM-003)",
+                [
+                    new("PBJ-VND-BUKA-01", "Penyetuju status vendor", 1, Position, null)
                 ])
         };
 

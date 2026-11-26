@@ -465,9 +465,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 IsMedicalDeviceSupplier = request.IsMedicalDeviceSupplier,
                 IsLaboratorySupplier = request.IsLaboratorySupplier,
                 IsConsumableSupplier = request.IsConsumableSupplier,
-                IsPreferredSupplier = request.IsBlacklisted ? false : request.IsPreferredSupplier,
-                IsBlacklisted = request.IsBlacklisted,
-                BlacklistReason = request.IsBlacklisted ? NormalizeNullableString(request.BlacklistReason) : null,
+                IsPreferredSupplier = request.IsPreferredSupplier,
+                // PBJ-DEC-060 (BE-PBJ-VD-007): status blokir hanya diubah lewat usulan Pengadaan yang disetujui
+                // (SupplierProcurementStatusService). isBlacklisted/blacklistReason pada request diabaikan;
+                // supplier baru selalu tidak diblokir.
+                IsBlacklisted = false,
+                BlacklistReason = null,
                 SortOrder = request.SortOrder,
                 Description = NormalizeNullableString(request.Description),
                 IsActive = true,
@@ -571,9 +574,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             entity.IsMedicalDeviceSupplier = request.IsMedicalDeviceSupplier;
             entity.IsLaboratorySupplier = request.IsLaboratorySupplier;
             entity.IsConsumableSupplier = request.IsConsumableSupplier;
-            entity.IsPreferredSupplier = request.IsBlacklisted ? false : request.IsPreferredSupplier;
-            entity.IsBlacklisted = request.IsBlacklisted;
-            entity.BlacklistReason = request.IsBlacklisted ? NormalizeNullableString(request.BlacklistReason) : null;
+            // PBJ-DEC-060 (BE-PBJ-VD-007): IsBlacklisted/BlacklistReason tidak diubah dari Master Data; nilai
+            // tersimpan dipertahankan. Supplier yang sedang diblokir tetap tidak boleh menjadi supplier pilihan.
+            entity.IsPreferredSupplier = entity.IsBlacklisted ? false : request.IsPreferredSupplier;
             entity.SortOrder = request.SortOrder;
             entity.Description = NormalizeNullableString(request.Description);
             entity.IsActive = request.IsActive;
@@ -1042,15 +1045,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Tax percent hanya boleh diisi jika supplier taxable.");
             }
 
-            if (request.IsBlacklisted && string.IsNullOrWhiteSpace(request.BlacklistReason))
-            {
-                return (false, "Alasan blacklist wajib diisi jika supplier masuk blacklist.");
-            }
-
-            if (request.IsBlacklisted && request.IsPreferredSupplier)
-            {
-                return (false, "Supplier blacklist tidak boleh menjadi preferred supplier.");
-            }
+            // PBJ-DEC-060 (BE-PBJ-VD-007): validasi isBlacklisted/blacklistReason dihapus karena kedua field kini
+            // diabaikan; status blokir ditulis hanya oleh usulan Pengadaan yang disetujui.
 
             if (!string.IsNullOrWhiteSpace(request.Email) &&
                 !new EmailAddressAttribute().IsValid(request.Email.Trim()))

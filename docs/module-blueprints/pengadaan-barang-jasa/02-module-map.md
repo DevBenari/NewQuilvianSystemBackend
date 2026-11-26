@@ -21,10 +21,10 @@ Arsitektur, kontrak, dan PRD tinggal di folder masing-masing sub-modul.
 | --- | --- | --- | --- | --- | --- |
 | `perencanaan-permintaan` | `PBJ-PP` | K-01..K-04, ditambah fondasi modul (katalog, lampiran, riwayat dokumen, perluasan approval) | Pengguna sesi (Product Owner Pengadaan) | `approved` (2026-11-12, `PBJ-DEC-034`) | Dirancang pertama (`PBJ-DEC-018`) |
 | `pemilihan-penyedia` | `PBJ-PS` | K-05, K-07 | Pengguna sesi | `NOT_STARTED` | Butuh `PBJ-OQ-005` (metode pengadaan) sebelum gerbang kelengkapan |
-| `manajemen-vendor` | `PBJ-VD` | K-06, K-11 | Pengguna sesi | `NOT_STARTED` | Keputusan inti sudah ada (`PBJ-DEC-010`, `015`, `021`) |
+| `manajemen-vendor` | `PBJ-VD` | K-06, K-11 (manual; evaluasi per kontrak `LATER SLICE`) | Pengguna sesi | `approved` (2026-11-17, `PBJ-DEC-062`) | Registry submodule `Vendor` `ACTIVE` (`PBJ-DEC-063`) |
 | `kontrak-pelaksanaan` | `PBJ-KP` | K-08..K-10 | Pengguna sesi | `NOT_STARTED` | Bergantung pada `pemilihan-penyedia` dan PO BLM (`PBJ-DEC-011`) |
 
-**Status modul (diturunkan):** `partial` — satu sub-modul `approved`, tiga belum dimulai.
+**Status modul (diturunkan):** `partial` — dua sub-modul `approved`, dua belum dimulai.
 
 **Prefix entity:** `Prc` (*Procurement*) dan Area `Areas/Corporate/ProcurementManagement/` **terdaftar
 `ACTIVE`** di registry pada 12 November 2026 (`PBJ-DEC-035`): baris `ProcurementManagement / Procurement`
@@ -39,7 +39,7 @@ beserta submodule `Planning`, `Request`, `Common`. Folder `MasterData` memakai b
 | Mesin approval: definisi, langkah, matriks, instance, kotak masuk (`MstWorkflowDefinition`, `MstWorkflowStep`, `MstApprovalMatrix`, `TrxWorkflowInstance`) | WorkflowManagement (`Wfl`) | Semua | Tidak; **diperluas** (`PBJ-DEC-019`) |
 | Deret nomor dokumen (`NumNumberSeries`) | Platform / NumberSeries | Semua | Tidak |
 | Satuan (`MstMeasurement`) dan obat (`MstDrug`) | Health Services Master Data | `perencanaan-permintaan` | Tidak |
-| Identitas vendor dan status blokir (`MstSupplier`, termasuk `IsBlacklisted`) | Administrator Master Data | `manajemen-vendor`, `pemilihan-penyedia` | Tidak (`PBJ-DEC-010`, `021`) |
+| Identitas vendor dan status blokir (`MstSupplier`, termasuk `IsBlacklisted`) | Administrator Master Data | `manajemen-vendor`, `pemilihan-penyedia` | Tidak (`PBJ-DEC-010`, `021`). `IsBlacklisted` hanya ditulis lewat usulan Pengadaan yang disetujui (`PBJ-DEC-060`) |
 | Rekening vendor | Administrator Master Data / Finance | `manajemen-vendor` (tampil tersamarkan) | Tidak (`PBJ-DEC-015`) |
 | PO, GR, faktur, pembayaran | BLM / Finance Management | `kontrak-pelaksanaan`, laporan | Tidak (`PBJ-DEC-001`) |
 | Katalog barang/jasa, kategori, jenis pengadaan, sumber dana | `perencanaan-permintaan` | Semua | Ya, baru (`PBJ-DEC-022`, `024`) |
@@ -50,7 +50,7 @@ beserta submodule `Planning`, `Request`, `Common`. Folder `MasterData` memakai b
 | Pagu anggaran dan komitmen | `perencanaan-permintaan` | `pemilihan-penyedia` dan `kontrak-pelaksanaan` menulis komitmen **lewat service milik `perencanaan-permintaan`** | Ya, baru (`PBJ-DEC-009`) |
 | Permintaan pengadaan (PR) dan hasil cek stok | `perencanaan-permintaan` | `pemilihan-penyedia` (baca, mengubah status ke `CONVERTED_TO_PACKAGE` lewat service pemilik) | Ya, baru |
 | Paket pengadaan, spesifikasi, KAK, HPS, RFQ, penawaran, evaluasi, penetapan | `pemilihan-penyedia` | `kontrak-pelaksanaan` | Ya, baru (belum dirancang) |
-| Data pendamping vendor (kategori, legalitas, status dibatasi, evaluasi) | `manajemen-vendor` | `pemilihan-penyedia` | Ya, baru (belum dirancang) |
+| Data pendamping vendor: profil, kategori, dokumen legalitas, status Dibatasi, usulan blokir, penilaian (`PrcVendor*`) dan konfigurasinya (jenis dokumen, dokumen wajib, kriteria) | `manajemen-vendor` | `pemilihan-penyedia` (baca kelayakan lewat service pemilik) | Ya, baru (`approved` 17 November 2026, `PBJ-DEC-062`) |
 | SPK, kontrak, termin, addendum, monitoring, pemeriksaan, BAST, NCR | `kontrak-pelaksanaan` | Laporan | Ya, baru (belum dirancang) |
 
 Aturan lintas sub-modul: sub-modul lain **tidak boleh** menulis langsung ke tabel milik
@@ -95,13 +95,16 @@ Pengadaan Barang & Jasa                         /corporate/procurement
 | 3 | 3.4 Permintaan Mendesak | `perencanaan-permintaan` | `/corporate/procurement/requests/urgent` | `MVP-1` |
 | 3 | 3.5 Riwayat Pengajuan | `perencanaan-permintaan` | `/corporate/procurement/requests/history` | `MVP-1` |
 | 4, 6 | 11 submenu | `pemilihan-penyedia` | belum dirancang | — |
-| 5, 10 | 11 submenu | `manajemen-vendor` | belum dirancang | — |
+| 5 | 5.1 Daftar vendor, 5.2 Kategori, 5.3 Dokumen Legalitas, 5.4 Rekening, 5.5 Status, 5.6 Riwayat | `manajemen-vendor` | `/corporate/procurement/vendors`, `/categories`, `/documents`, `/bank-accounts`, `/status`, `/history` | `MVP-V0`..`MVP-V2` |
+| 10 | Satu submenu penilaian berkala (nama menunggu `PBJ-OQ-033`) | `manajemen-vendor` | `/corporate/procurement/vendors/evaluations` | `MVP-V3` |
+| 10 | Empat submenu lain (evaluasi kontrak, keterlambatan, NCR, rekomendasi — nama `PBJ-OQ-033`) | `manajemen-vendor` (`LATER SLICE` `S-V7`) | belum dirancang | `POST-MVP` |
 | 7, 8, 9 | 18 submenu | `kontrak-pelaksanaan` | belum dirancang | — |
 | 11 | 11.1 Antrean persetujuan | `perencanaan-permintaan` (memakai kotak masuk `Wfl`) | `/corporate/procurement/approvals/inbox` | `MVP-1` |
 | 11 | 11.2 Validasi Pengajuan | `perencanaan-permintaan` (= daftar verifikasi 3.2, disaring untuk validator) | `/corporate/procurement/approvals/validation` | `MVP-1` |
 | 11 | 11.3 Persetujuan Paket & Kontrak | `pemilihan-penyedia` / `kontrak-pelaksanaan` | belum dirancang | — |
 | 11 | 11.4 Laporan Pembelian, 11.5 Laporan Realisasi, 11.6 Laporan Audit | `perencanaan-permintaan` (`DEFERRED`) | `/corporate/procurement/reports/*` | `POST-MVP` |
 | — | Pengaturan Pengadaan (katalog, kategori, jenis, sumber dana) | `perencanaan-permintaan` | `/corporate/procurement/settings/*` | `MVP-0` |
+| — | Pengaturan Pengadaan: Jenis Dokumen Legalitas, Dokumen Wajib per Kategori, Kriteria Penilaian | `manajemen-vendor` | `/corporate/procurement/settings/vendor-document-types`, `/category-document-requirements`, `/evaluation-criteria` | `MVP-V0` |
 
 **`PBJ-DEC-032`:** grup tambahan "Pengaturan Pengadaan" di luar 11 menu disetujui untuk katalog dan
 referensi; 61 submenu SOURCE tetap utuh.
@@ -116,7 +119,8 @@ referensi; 61 submenu SOURCE tetap utuh.
 | 4 | `AddProcurementNeedPlan` | `perencanaan-permintaan` | Rencana kebutuhan dan barisnya | Urutan 2 |
 | 5 | `AddProcurementBudget` | `perencanaan-permintaan` | Pagu dan komitmen | Urutan 2 |
 | 6 | `AddProcurementPackagePlan` | `perencanaan-permintaan` | Rencana paket dan barisnya | Urutan 4 |
-| 7+ | belum dirancang | `manajemen-vendor`, `pemilihan-penyedia`, `kontrak-pelaksanaan` | — | Desain sub-modul masing-masing |
+| 7 | `AddProcurementVendorManagement` | `manajemen-vendor` | 3 master vendor + 6 tabel `PrcVendor*`; tanpa perubahan `MstSupplier` | Urutan 2 (kategori); registry `Vendor` `ACTIVE` (`PBJ-DEC-063`) |
+| 8+ | belum dirancang | `pemilihan-penyedia`, `kontrak-pelaksanaan` | — | Desain sub-modul masing-masing |
 
 FK dari PR ke baris rencana dibuat lewat kunci baris rencana (`NeedPlanLineKey`) tanpa FK fisik (lihat
 arsitektur sub-modul), sehingga urutan 3 tidak bergantung pada urutan 4.
@@ -130,12 +134,12 @@ arsitektur sub-modul), sehingga urutan 3 tidak bergantung pada urutan 4.
 | PR, verifikasi, mendesak, riwayat | K-03 | `perencanaan-permintaan` | Dirancang |
 | Cek stok manual | K-04 | `perencanaan-permintaan` | Dirancang; integrasi stok `DEFERRED` (`PBJ-OQ-008`) |
 | Persiapan pengadaan | K-05 | `pemilihan-penyedia` | Belum dirancang |
-| Data vendor | K-06 | `manajemen-vendor` | Belum dirancang |
+| Data vendor | K-06 | `manajemen-vendor` | Dirancang (`approved`) |
 | RFQ sampai penetapan penyedia | K-07 | `pemilihan-penyedia` | Belum dirancang |
 | SPK, kontrak, termin, addendum, arsip | K-08 | `kontrak-pelaksanaan` | Belum dirancang |
 | Monitoring pelaksanaan | K-09 | `kontrak-pelaksanaan` | Belum dirancang |
 | Pemeriksaan, BAST, NCR, penyelesaian | K-10 | `kontrak-pelaksanaan` | Belum dirancang |
-| Evaluasi vendor | K-11 | `manajemen-vendor` | Belum dirancang |
+| Evaluasi vendor | K-11 | `manajemen-vendor` | Dirancang untuk penilaian berkala manual (`approved`); evaluasi per kontrak `DEFERRED` ke `S-V7` (`PBJ-DEC-044`) |
 | Persetujuan bertingkat | K-12 | Mesin `Wfl` + penangan per sub-modul; layar 1.2, 11.1, 11.2 milik `perencanaan-permintaan`; 11.3 milik sub-modul pemilik dokumennya | Dirancang untuk PR, rencana, rencana paket, pagu |
 | Dashboard dan laporan | K-13 | `perencanaan-permintaan` | `DEFERRED` ke `POST-MVP`: butuh data seluruh sub-modul. Pengganti selama MVP: daftar PR dan pagu dengan saringan |
 

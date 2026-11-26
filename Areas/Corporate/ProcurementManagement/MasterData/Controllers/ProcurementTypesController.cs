@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Ser
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Controllers;
 
@@ -32,9 +33,19 @@ public sealed class ProcurementTypesController : ControllerBase
     [AccessAction(ProcurementPermissions.ReadAction, "Read Procurement Type", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission(Resource, ProcurementPermissions.ReadAction)]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<ProcurementTypeResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Get([FromQuery] ProcurementReferenceQuery request, CancellationToken cancellationToken) =>
-        Ok(ApiResponse<PagedResult<ProcurementTypeResponse>>.Ok(
-            await _service.GetPagedAsync(request, cancellationToken), "Daftar jenis pengadaan berhasil diambil."));
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Get([FromQuery] ProcurementReferenceQuery request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(ApiResponse<PagedResult<ProcurementTypeResponse>>.Ok(
+                await _service.GetPagedAsync(request, cancellationToken), "Daftar jenis pengadaan berhasil diambil."));
+        }
+        catch (ProcurementPeriodFilterException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message, new { code = exception.Code }));
+        }
+    }
 
     [HttpGet("options")]
     [AccessAction(ProcurementPermissions.ReadAction, "Read Procurement Type", AccessType = AccessTypes.Read, SortOrder = 1)]
