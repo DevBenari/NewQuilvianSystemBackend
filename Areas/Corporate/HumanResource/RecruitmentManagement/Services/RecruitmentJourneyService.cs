@@ -90,14 +90,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 .OrderBy(e => e.CreateDateTime)
                 .ToListAsync(cancellationToken);
 
-            var offer = await _dbContext.HrdJobOffers
+            var appOffers = await _dbContext.HrdJobOffers
                 .AsNoTracking()
                 .Include(o => o.SalaryGrade)
                 .Include(o => o.ContractType)
                 .Include(o => o.Approvals.Where(ap => !ap.IsDelete))
                 .Where(o => o.ApplicationId == app.Id && !o.IsDelete)
                 .OrderByDescending(o => o.CreateDateTime)
-                .FirstOrDefaultAsync(cancellationToken);
+                .ToListAsync(cancellationToken);
+
+            var offer = appOffers.FirstOrDefault();
 
             var mcu = offer == null
                 ? null
@@ -119,22 +121,49 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     .AsNoTracking()
                     .FirstOrDefaultAsync(c => c.HiringHandoffId == handoff.Id && !c.IsDelete, cancellationToken);
 
-            HrdTalentPool? talentPool = null;
-            if (perms.CanReadTalentPool)
-            {
-                talentPool = await _dbContext.HrdTalentPools
+            var offerIdsForApp = appOffers.Select(o => o.Id).ToList();
+            var hasActiveHandoffOnApp = (handoff != null && !handoff.IsDelete && handoff.Status != HandoffStatus.Cancelled)
+                || (offerIdsForApp.Count > 0 && await _dbContext.HrdCandidateHiringHandoffs
                     .AsNoTracking()
-                    .Where(t => t.CandidateId == candidate.Id && !t.IsDelete &&
-                                ((offer != null && t.PromotedToOfferId == offer.Id) ||
-                                 (vacancy != null && t.OriginalVacancyId == vacancy.Id)))
-                    .OrderByDescending(t => t.EnrolledDate)
-                    .FirstOrDefaultAsync(cancellationToken);
-            }
+                    .AnyAsync(h => !h.IsDelete && h.Status != HandoffStatus.Cancelled && offerIdsForApp.Contains(h.OfferId), cancellationToken));
+
+            // Cek keberadaan record Talent Pool aktif terlepas dari izin baca (memisahkan validasi bisnis vs izin baca UI)
+            var hasActiveTalentPool = await _dbContext.HrdTalentPools
+                .AsNoTracking()
+                .AnyAsync(t => t.CandidateId == candidate.Id
+                               && t.Status == TalentPoolStatus.Active
+                               && !t.IsDelete, cancellationToken);
+
+            var talentPool = await _dbContext.HrdTalentPools
+                .AsNoTracking()
+                .Where(t => t.CandidateId == candidate.Id && !t.IsDelete &&
+                            ((offer != null && t.PromotedToOfferId == offer.Id) ||
+                             (vacancy != null && t.OriginalVacancyId == vacancy.Id)))
+                .OrderByDescending(t => t.EnrolledDate)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var occupiedByVacancy = vacancy != null
+                ? await RecruitmentJourneyPolicy.CountOccupiedSeatsByVacancyAsync(_dbContext, new[] { vacancy.Id }, cancellationToken)
+                : new Dictionary<Guid, int>();
+            var occupiedSeatsOnVacancy = vacancy != null && occupiedByVacancy.TryGetValue(vacancy.Id, out var occCount) ? occCount : 0;
+            var vacancyQuotaFull = vacancy != null && vacancy.QuotaSeats > 0 && occupiedSeatsOnVacancy >= vacancy.QuotaSeats;
 
             var offerPrereq = RecruitmentJourneyPolicy.EvaluateOfferPrerequisites(app, vacancy, screening, evaluations, candidate);
             var handoffPrereq = offer == null
                 ? new HandoffPrerequisiteEvaluation(false, "OFFER_MISSING", "Surat penawaran kerja belum dibuat.")
                 : RecruitmentJourneyPolicy.EvaluateHandoffPrerequisites(app, offer, mcu, candidate);
+            var talentPoolEligibility = RecruitmentJourneyPolicy.EvaluateTalentPoolEligibility(
+                candidate,
+                vacancy,
+                app,
+                screening,
+                evaluations,
+                appOffers,
+                mcu,
+                hasActiveHandoffOnApp,
+                hasActiveTalentPool,
+                occupiedSeatsOnVacancy,
+                perms.CanCreateTalentPool);
 
             var blockers = new List<JourneyBlockerDto>();
             var allowedActions = new List<JourneyActionDto>();
@@ -148,7 +177,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var registrationStage = BuildRegistrationStage(app, candidate, vacancy, documents, isClinical, isFastTrack, perms, blockers, allowedActions, warnings);
             var screeningStage = BuildScreeningStage(app, screening, isClinical, isFastTrack, isTerminalOrFailed, upstreamBlockedReason, perms, missingOrRestricted, blockers, allowedActions);
             var evaluationStage = BuildEvaluationStage(app, screening, evaluations, offerPrereq, isClinical, isFastTrack, isTerminalOrFailed, upstreamBlockedReason, actorUserId, perms, missingOrRestricted, blockers, allowedActions, warnings);
-            var offerStage = BuildOfferStage(app, vacancy, offer, offerPrereq, isTerminalOrFailed, upstreamBlockedReason, actorUserId, perms, missingOrRestricted, blockers, allowedActions);
+            var offerStage = BuildOfferStage(app, vacancy, offer, offerPrereq, vacancyQuotaFull, occupiedSeatsOnVacancy, isTerminalOrFailed, upstreamBlockedReason, actorUserId, perms, missingOrRestricted, blockers, allowedActions);
             var mcuStage = BuildMcuStage(app, offer, mcu, isTerminalOrFailed, upstreamBlockedReason, perms, missingOrRestricted, blockers, allowedActions, warnings);
             var handoffStage = BuildHandoffStage(app, candidate, offer, mcu, handoff, onboardingCase, handoffPrereq, isTerminalOrFailed, upstreamBlockedReason, perms, missingOrRestricted, blockers, allowedActions, warnings);
 
@@ -163,7 +192,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             };
 
             // Tentukan tahap aktif & outcome agregat
-            var (currentStageKey, currentStageLabel) = ResolveCurrentVisualStage(app, screening, offer, mcu, handoff, onboardingCase, isFastTrack);
+            var (currentStageKey, currentStageLabel) = ResolveCurrentVisualStage(
+                app,
+                screening,
+                offerPrereq,
+                offer,
+                mcu,
+                handoff,
+                onboardingCase,
+                handoffPrereq,
+                vacancyQuotaFull,
+                isTerminalOrFailed,
+                isFastTrack);
             foreach (var stage in stages)
             {
                 stage.IsCurrentStage = stage.StageKey == currentStageKey;
@@ -171,9 +211,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
 
             var (journeyOutcome, journeyOutcomeLabel) = ResolveJourneyOutcome(app, candidate, screening, offerPrereq, offer, mcu, handoff, onboardingCase);
 
-            // Tambahkan aksi Talent Pool bila memenuhi hak akses & belum terminal gagal klinis
-            if (perms.CanCreateTalentPool && talentPool == null && !offerPrereq.HasClinicalVeto
-                && candidate.Status != CandidateStatus.Blacklisted && candidate.Status != CandidateStatus.Hired)
+            // Hanya tawarkan aksi Talent Pool bila memenuhi seluruh 9 syarat kebijakan Talent Pool (BE-HRD-FIN-REC-021)
+            if (talentPoolEligibility.IsEligible)
             {
                 allowedActions.Add(new JourneyActionDto
                 {
@@ -181,9 +220,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     Label = "Masukkan ke Talent Pool",
                     StageKey = currentStageKey,
                     ActionType = "NAVIGATE",
+                    Method = "POST",
+                    Endpoint = "/api/v1/corporate/human-resource/recruitment/talent-pool/enroll",
                     RoutePath = $"/hr/recruitment/talent-pool/create?candidateId={candidate.Id}&vacancyId={app.VacancyId}&applicationId={app.Id}",
                     RequiredPermission = "TalentPool.Create",
-                    Description = "Simpan kandidat cadangan yang layak ke Talent Pool (retensi maks 6 bulan)."
+                    Description = $"Kuota lowongan asal terisi penuh ({occupiedSeatsOnVacancy}/{vacancy?.QuotaSeats ?? 0}). Simpan kandidat cadangan berkualifikasi ke Talent Pool."
                 });
             }
 
@@ -201,7 +242,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 });
             }
 
-            var nextAction = ResolveNextAction(stages, currentStageKey, journeyOutcome, handoff, onboardingCase, candidate.Id, app.Id, offer?.Id, perms);
+            var nextAction = ResolveNextAction(
+                stages,
+                allowedActions,
+                currentStageKey,
+                journeyOutcome,
+                screening,
+                offerPrereq,
+                offer,
+                mcu,
+                handoff,
+                onboardingCase,
+                handoffPrereq,
+                talentPool,
+                talentPoolEligibility,
+                vacancyQuotaFull,
+                isFastTrack,
+                isClinical,
+                candidate.Id,
+                app.Id,
+                actorUserId,
+                perms);
             var history = BuildHistory(app, screening, evaluations, offer, mcu, handoff, onboardingCase, talentPool, actorUserId, perms);
 
             if (vacancy == null)
@@ -295,9 +356,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                             PlannedStartDate = onboardingCase.PlannedStartDate,
                             IsRestricted = true
                         },
-                TalentPoolReference = talentPool == null
-                    ? null
-                    : new JourneyTalentPoolRefDto
+                TalentPoolReference = perms.CanReadTalentPool && talentPool != null
+                    ? new JourneyTalentPoolRefDto
                     {
                         TalentPoolId = talentPool.Id,
                         Status = talentPool.Status.ToString(),
@@ -306,7 +366,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                         EnrolledDate = talentPool.EnrolledDate,
                         RetentionExpiryDate = talentPool.RetentionExpiryDate,
                         PromotedToOfferId = talentPool.PromotedToOfferId
-                    },
+                    }
+                    : null,
                 DataCompleteness = new JourneyDataCompletenessDto
                 {
                     CompletenessStatus = completenessStatus,
@@ -753,12 +814,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
 
             if (!isTerminalOrFailed && screening != null && screening.Status == ScreeningStatus.Passed && !offerPrereq.CanCreateOffer)
             {
-                if (perms.CanEvaluateHr)
+                if (perms.CanEvaluateHr && !offerPrereq.HrCompleted)
                 {
                     var scheduleAct = new JourneyActionDto
                     {
                         ActionCode = "SCHEDULE_OR_SUBMIT_HR_EVALUATION",
-                        Label = offerPrereq.HrCompleted ? "Lihat Sesi Evaluasi" : "Jadwalkan / Nilai Wawancara HR",
+                        Label = "Jadwalkan / Nilai Wawancara HR",
                         StageKey = RecruitmentJourneyStageKeys.Evaluation,
                         ActionType = "NAVIGATE",
                         RoutePath = $"/hr/recruitment/evaluations/hr/{app.CandidateId}?applicationId={app.Id}",
@@ -783,6 +844,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     };
                     stageActions.Add(clinAct);
                     allowedActions.Add(clinAct);
+                }
+
+                if (offerPrereq.HrCompleted && isClinical && !offerPrereq.ClinicalCompleted && perms.CanReadEvaluation)
+                {
+                    stageActions.Add(new JourneyActionDto
+                    {
+                        ActionCode = "VIEW_EVALUATION_SESSIONS",
+                        Label = "Lihat Sesi Evaluasi",
+                        StageKey = RecruitmentJourneyStageKeys.Evaluation,
+                        ActionType = "NAVIGATE",
+                        RoutePath = $"/hr/recruitment/evaluations/hr/{app.CandidateId}?applicationId={app.Id}",
+                        RequiredPermission = "CandidateEvaluation.Read",
+                        Description = "Lihat ringkasan sesi Wawancara HR yang sudah dikirim sambil menunggu Asesmen Klinis."
+                    });
                 }
             }
 
@@ -835,6 +910,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             HrdJobVacancy? vacancy,
             HrdJobOffer? offer,
             OfferPrerequisiteEvaluation offerPrereq,
+            bool vacancyQuotaFull,
+            int occupiedSeatsOnVacancy,
             bool isTerminalOrFailed,
             string? upstreamBlockedReason,
             Guid actorUserId,
@@ -856,7 +933,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
 
             if (offer == null)
             {
-                var status = (isTerminalOrFailed || !offerPrereq.CanCreateOffer)
+                var status = (isTerminalOrFailed || !offerPrereq.CanCreateOffer || vacancyQuotaFull)
                     ? RecruitmentJourneyStageStatuses.Blocked
                     : RecruitmentJourneyStageStatuses.Waiting;
 
@@ -883,6 +960,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                         Message = summary
                     });
                 }
+                else if (vacancyQuotaFull)
+                {
+                    summary = $"Kuota kursi lowongan '{vacancy?.Title ?? "-"}' telah teralokasi penuh ({occupiedSeatsOnVacancy}/{vacancy?.QuotaSeats ?? 0}); kandidat cadangan dapat didaftarkan ke Talent Pool.";
+                    stageBlockers.Add(new JourneyBlockerDto
+                    {
+                        BlockerCode = "VACANCY_QUOTA_FULL",
+                        StageKey = RecruitmentJourneyStageKeys.JobOffer,
+                        Title = "Kuota Lowongan Terisi Penuh",
+                        Message = summary,
+                        ResolutionHint = "Daftarkan kandidat ke Talent Pool bila tidak ada penawaran aktif."
+                    });
+                }
                 else
                 {
                     summary = "Kandidat memenuhi syarat evaluasi dan siap dibuatkan draf Surat Penawaran Kerja.";
@@ -890,13 +979,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     {
                         var act = new JourneyActionDto
                         {
-                        ActionCode = "CREATE_JOB_OFFER",
-                        Label = "Buat Surat Penawaran",
-                        StageKey = RecruitmentJourneyStageKeys.JobOffer,
-                        ActionType = "NAVIGATE",
-                        Method = "POST",
-                        Endpoint = "/api/v1/corporate/human-resource/recruitment/offers",
-                        RoutePath = $"/hr/recruitment/offers/create?applicationId={app.Id}",
+                            ActionCode = "CREATE_JOB_OFFER",
+                            Label = "Buat Surat Penawaran",
+                            StageKey = RecruitmentJourneyStageKeys.JobOffer,
+                            ActionType = "NAVIGATE",
+                            Method = "POST",
+                            Endpoint = "/api/v1/corporate/human-resource/recruitment/offers",
+                            RoutePath = $"/hr/recruitment/offers/create?applicationId={app.Id}",
                             RequiredPermission = "JobOffer.Create",
                             Description = "Susun surat penawaran kerja dengan skala upah dan jenis kontrak kerja."
                         };
@@ -1132,12 +1221,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     ? RecruitmentJourneyStageStatuses.Waiting
                     : RecruitmentJourneyStageStatuses.Blocked;
 
-                var summary = readyForReferral
-                    ? "Kandidat telah menyetujui penawaran bersyarat; siap diterbitkan rujukan MCU Pra-Kerja (HRD-DEC-078)."
-                    : (upstreamBlockedReason ?? "Rujukan MCU Pra-Kerja baru dapat dibuat setelah kandidat menyetujui penawaran bersyarat (ConditionalAccepted).");
-
+                string summary;
                 if (!readyForReferral)
                 {
+                    summary = upstreamBlockedReason ?? "Rujukan MCU Pra-Kerja baru dapat dibuat setelah kandidat menyetujui penawaran bersyarat (ConditionalAccepted).";
                     stageBlockers.Add(new JourneyBlockerDto
                     {
                         BlockerCode = "CONDITIONAL_ACCEPTANCE_REQUIRED",
@@ -1148,6 +1235,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 }
                 else if (perms.CanCreateMcu)
                 {
+                    summary = "Kandidat telah menyetujui penawaran bersyarat; siap diterbitkan rujukan MCU Pra-Kerja (HRD-DEC-078).";
                     var act = new JourneyActionDto
                     {
                         ActionCode = "REGISTER_MCU_REFERRAL",
@@ -1162,6 +1250,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     };
                     stageActions.Add(act);
                     allowedActions.Add(act);
+                }
+                else
+                {
+                    summary = "Kandidat telah menyetujui penawaran bersyarat. Menunggu petugas berwenang (Tim K3RS / Dokter Pemeriksa dengan izin OccupationalHealthClearance.Create) menerbitkan rujukan MCU Pra-Kerja.";
                 }
 
                 return new JourneyStageDto
@@ -1184,22 +1276,42 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             {
                 stageStatus = RecruitmentJourneyStageStatuses.Completed;
                 mcuSummary = $"Hasil MCU {mcu.ReferralNumber}: Laik Kerja (FIT).";
+                stageActions.Add(new JourneyActionDto
+                {
+                    ActionCode = "VIEW_MCU_DETAIL",
+                    Label = "Lihat Detail MCU",
+                    StageKey = RecruitmentJourneyStageKeys.PreEmploymentMcu,
+                    ActionType = "NAVIGATE",
+                    RoutePath = $"/hr/recruitment/mcu-clearance/{mcu.Id}?applicationId={app.Id}",
+                    RequiredPermission = "OccupationalHealthClearance.Read",
+                    Description = "Buka rincian pemeriksaan kesehatan pra-kerja yang telah selesai."
+                });
             }
             else if (mcu.ClearanceResult == McuClearanceResult.FitWithRestrictions)
             {
                 stageStatus = RecruitmentJourneyStageStatuses.Blocked;
-                mcuSummary = $"Hasil MCU {mcu.ReferralNumber}: Fit With Restrictions — menunggu mekanisme konfirmasi penyesuaian penugasan sebelum serah terima.";
+                mcuSummary = $"Hasil MCU {mcu.ReferralNumber}: Fit With Restrictions — menunggu konfirmasi penyesuaian penugasan/kontrak sebelum serah terima.";
                 var blk = new JourneyBlockerDto
                 {
                     BlockerCode = "MCU_FIT_WITH_RESTRICTIONS_CONFIRMATION_REQUIRED",
                     StageKey = RecruitmentJourneyStageKeys.PreEmploymentMcu,
                     Title = "Fit With Restrictions Memerlukan Konfirmasi Penyesuaian",
                     Message = mcuSummary,
-                    ResolutionHint = "Perlu persetujuan/mekanisme konfirmasi penyesuaian kerja secara terpisah sebelum serah terima ke onboarding dapat dijalankan."
+                    ResolutionHint = "Konfirmasikan penyesuaian kontrak/penugasan kerja bersama Tim K3RS dan unit terkait sebelum serah terima ke onboarding dijalankan."
                 };
                 stageBlockers.Add(blk);
                 blockers.Add(blk);
                 warnings.Add("Catatan klinis rinci hanya dibuka untuk petugas medis yang berwenang (OccupationalHealthClearance:Evaluate).");
+                stageActions.Add(new JourneyActionDto
+                {
+                    ActionCode = "VIEW_MCU_DETAIL",
+                    Label = "Lihat Detail MCU",
+                    StageKey = RecruitmentJourneyStageKeys.PreEmploymentMcu,
+                    ActionType = "NAVIGATE",
+                    RoutePath = $"/hr/recruitment/mcu-clearance/{mcu.Id}?applicationId={app.Id}",
+                    RequiredPermission = "OccupationalHealthClearance.Read",
+                    Description = "Buka rincian catatan penyesuaian MCU Pra-Kerja."
+                });
             }
             else if (mcu.ClearanceResult == McuClearanceResult.Unfit)
             {
@@ -1214,13 +1326,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 };
                 stageBlockers.Add(blk);
                 blockers.Add(blk);
+                stageActions.Add(new JourneyActionDto
+                {
+                    ActionCode = "VIEW_MCU_DETAIL",
+                    Label = "Lihat Detail MCU",
+                    StageKey = RecruitmentJourneyStageKeys.PreEmploymentMcu,
+                    ActionType = "NAVIGATE",
+                    RoutePath = $"/hr/recruitment/mcu-clearance/{mcu.Id}?applicationId={app.Id}",
+                    RequiredPermission = "OccupationalHealthClearance.Read",
+                    Description = "Buka rincian rujukan MCU."
+                });
             }
             else
             {
                 stageStatus = RecruitmentJourneyStageStatuses.InProgress;
-                mcuSummary = $"Rujukan MCU {mcu.ReferralNumber} telah diterbitkan ke {mcu.ClinicOrFacility}; menunggu hasil pemeriksaan dokter K3RS.";
                 if (perms.CanEvaluateMcu && !isTerminalOrFailed)
                 {
+                    mcuSummary = $"Rujukan MCU {mcu.ReferralNumber} telah diterbitkan ke {mcu.ClinicOrFacility}; silakan catat hasil pemeriksaan kelaikan kerja.";
                     var act = new JourneyActionDto
                     {
                         ActionCode = "RECORD_MCU_RESULT",
@@ -1235,6 +1357,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     };
                     stageActions.Add(act);
                     allowedActions.Add(act);
+                }
+                else
+                {
+                    mcuSummary = $"Rujukan MCU {mcu.ReferralNumber} telah diterbitkan ke {mcu.ClinicOrFacility}; menunggu pencatatan hasil oleh Dokter Pemeriksa / Tim K3RS.";
+                    stageActions.Add(new JourneyActionDto
+                    {
+                        ActionCode = "VIEW_MCU_DETAIL",
+                        Label = "Lihat Detail Rujukan MCU",
+                        StageKey = RecruitmentJourneyStageKeys.PreEmploymentMcu,
+                        ActionType = "NAVIGATE",
+                        RoutePath = $"/hr/recruitment/mcu-clearance/{mcu.Id}?applicationId={app.Id}",
+                        RequiredPermission = "OccupationalHealthClearance.Read",
+                        Description = "Pantau rincian jadwal rujukan MCU Pra-Kerja yang telah diterbitkan."
+                    });
                 }
             }
 
@@ -1507,13 +1643,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         private static (string StageKey, string StageLabel) ResolveCurrentVisualStage(
             HrdCandidateApplication app,
             HrdCandidateScreening? screening,
+            OfferPrerequisiteEvaluation offerPrereq,
             HrdJobOffer? offer,
             HrdPreEmploymentMedicalCheck? mcu,
             HrdCandidateHiringHandoff? handoff,
             HrdOnboardingCase? onboardingCase,
+            HandoffPrerequisiteEvaluation handoffPrereq,
+            bool vacancyQuotaFull,
+            bool isTerminalOrFailed,
             bool isFastTrack)
         {
-            if (handoff != null || onboardingCase != null || app.CurrentStage == ApplicationStage.Handoff)
+            if (handoff != null
+                || onboardingCase != null
+                || app.CurrentStage == ApplicationStage.Handoff
+                || (!isTerminalOrFailed && handoffPrereq.IsEligible))
             {
                 return (RecruitmentJourneyStageKeys.HandoffOnboarding, "Serah Terima");
             }
@@ -1525,7 +1668,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return (RecruitmentJourneyStageKeys.PreEmploymentMcu, "MCU Pra-Kerja");
             }
 
-            if (offer != null || app.CurrentStage == ApplicationStage.Offering || isFastTrack)
+            if (offer != null
+                || app.CurrentStage == ApplicationStage.Offering
+                || isFastTrack
+                || (!isTerminalOrFailed && offerPrereq.CanCreateOffer && !vacancyQuotaFull))
             {
                 return (RecruitmentJourneyStageKeys.JobOffer, "Surat Penawaran");
             }
@@ -1577,13 +1723,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
 
         private static JourneyNextActionDto? ResolveNextAction(
             List<JourneyStageDto> stages,
+            List<JourneyActionDto> globalAllowedActions,
             string currentStageKey,
             string journeyOutcome,
+            HrdCandidateScreening? screening,
+            OfferPrerequisiteEvaluation offerPrereq,
+            HrdJobOffer? offer,
+            HrdPreEmploymentMedicalCheck? mcu,
             HrdCandidateHiringHandoff? handoff,
             HrdOnboardingCase? onboardingCase,
+            HandoffPrerequisiteEvaluation handoffPrereq,
+            HrdTalentPool? talentPool,
+            TalentPoolEligibilityEvaluation talentPoolEligibility,
+            bool vacancyQuotaFull,
+            bool isFastTrack,
+            bool isClinical,
             Guid candidateId,
             Guid applicationId,
-            Guid? offerId,
+            Guid actorUserId,
             JourneyViewerPermissionsDto perms)
         {
             if (journeyOutcome is RecruitmentJourneyOutcomeStatuses.Rejected
@@ -1603,32 +1760,357 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 };
             }
 
-            var current = stages.FirstOrDefault(s => s.StageKey == currentStageKey);
-            var primaryAction = current?.AllowedActions.FirstOrDefault();
-            if (primaryAction != null)
+            static JourneyNextActionDto ToNextAction(JourneyActionDto action, string responsibleRole) => new()
             {
+                ActionCode = action.ActionCode,
+                Title = action.Label,
+                Description = action.Description,
+                StageKey = action.StageKey,
+                ResponsibleRole = responsibleRole,
+                TargetRoute = action.RoutePath
+            };
+
+            var current = stages.FirstOrDefault(s => s.StageKey == currentStageKey);
+
+            if (handoff != null && onboardingCase != null)
+            {
+                var confirmAct = current?.AllowedActions.FirstOrDefault(a => a.ActionCode == "CONFIRM_HIRING_HANDOFF");
+                if (handoff.Status != HandoffStatus.Completed && confirmAct != null)
+                {
+                    return ToNextAction(confirmAct, current!.ResponsibleRole);
+                }
+
+                if (perms.CanReadOnboarding)
+                {
+                    return new JourneyNextActionDto
+                    {
+                        ActionCode = "CONTINUE_ONBOARDING",
+                        Title = "Lanjutkan di Kasus Onboarding",
+                        Description = $"Pantau kesiapan kerja pegawai melalui kasus onboarding {onboardingCase.CaseNumber}.",
+                        StageKey = RecruitmentJourneyStageKeys.HandoffOnboarding,
+                        ResponsibleRole = "Koordinator Onboarding Unit/HR",
+                        TargetRoute = $"/hr/lifecycle/onboarding-cases/{onboardingCase.Id}"
+                    };
+                }
+
                 return new JourneyNextActionDto
                 {
-                    ActionCode = primaryAction.ActionCode,
-                    Title = primaryAction.Label,
-                    Description = primaryAction.Description,
-                    StageKey = currentStageKey,
-                    ResponsibleRole = current!.ResponsibleRole,
-                    TargetRoute = primaryAction.RoutePath
+                    ActionCode = "AWAITING_ONBOARDING_ACCESS",
+                    Title = "Menunggu Tim Onboarding Unit/HR",
+                    Description = "Kasus onboarding sudah dibuat, namun akun Anda tidak memiliki izin WorkforceOnboardingCase.Read untuk membukanya.",
+                    StageKey = RecruitmentJourneyStageKeys.HandoffOnboarding,
+                    ResponsibleRole = "Koordinator Onboarding Unit/HR"
                 };
             }
 
-            if (handoff != null && onboardingCase != null && perms.CanReadOnboarding)
+            if (handoff != null && onboardingCase == null)
             {
+                var recoverAct = current?.AllowedActions.FirstOrDefault(a => a.ActionCode == "RECOVER_HANDOFF_ONBOARDING");
+                if (recoverAct != null)
+                {
+                    return ToNextAction(recoverAct, current!.ResponsibleRole);
+                }
+
                 return new JourneyNextActionDto
                 {
-                    ActionCode = "CONTINUE_ONBOARDING",
-                    Title = "Lanjutkan di Kasus Onboarding",
-                    Description = $"Pantau kesiapan kerja pegawai melalui kasus onboarding {onboardingCase.CaseNumber}.",
+                    ActionCode = "AWAITING_HANDOFF_PERMISSION",
+                    Title = "Menunggu Pemulihan Kasus Onboarding",
+                    Description = "Dokumen serah terima tercatat tetapi kasus onboarding belum terbentuk. Menunggu petugas berwenang (izin HiringHandoff.Execute).",
                     StageKey = RecruitmentJourneyStageKeys.HandoffOnboarding,
-                    ResponsibleRole = "Koordinator Onboarding Unit/HR",
-                    TargetRoute = $"/hr/lifecycle/onboarding-cases/{onboardingCase.Id}"
+                    ResponsibleRole = "HR Recruitment & Onboarding"
                 };
+            }
+
+            if (currentStageKey == RecruitmentJourneyStageKeys.AdministrationScreening
+                && !isFastTrack
+                && (screening == null || screening.Status == ScreeningStatus.Pending))
+            {
+                var screenAct = current?.AllowedActions.FirstOrDefault(a =>
+                    a.ActionCode is "EVALUATE_SCREENING" or "INITIATE_SCREENING");
+                if (screenAct != null)
+                {
+                    return ToNextAction(screenAct, current!.ResponsibleRole);
+                }
+
+                return new JourneyNextActionDto
+                {
+                    ActionCode = "AWAITING_SCREENING_PERMISSION",
+                    Title = "Periksa Seleksi Administrasi",
+                    Description = perms.CanReadScreening
+                        ? "Lamaran baru menunggu pemeriksaan Seleksi Administrasi oleh Tim Seleksi Administrasi HR (izin CandidateScreening.Evaluate)."
+                        : "Tahap aktif berada pada Seleksi Administrasi. Pemeriksaan dibatasi untuk Tim Seleksi Administrasi HR (izin CandidateScreening.Read & CandidateScreening.Evaluate).",
+                    StageKey = RecruitmentJourneyStageKeys.AdministrationScreening,
+                    ResponsibleRole = "Tim Seleksi Administrasi HR"
+                };
+            }
+
+            var enrollPoolAct = globalAllowedActions.FirstOrDefault(a => a.ActionCode == "ENROLL_TALENT_POOL");
+
+            if (currentStageKey == RecruitmentJourneyStageKeys.Evaluation)
+            {
+                if (offerPrereq.CanCreateOffer && vacancyQuotaFull)
+                {
+                    if (enrollPoolAct != null)
+                    {
+                        return ToNextAction(enrollPoolAct, "HR Rekrutmen");
+                    }
+
+                    if (talentPool != null && talentPool.Status == TalentPoolStatus.Active && !talentPool.IsDelete)
+                    {
+                        var fastTrackAct = globalAllowedActions.FirstOrDefault(a => a.ActionCode == "FAST_TRACK_PROMOTE_TALENT_POOL");
+                        if (fastTrackAct != null)
+                        {
+                            return ToNextAction(fastTrackAct, "HR Rekrutmen");
+                        }
+
+                        return new JourneyNextActionDto
+                        {
+                            ActionCode = "TALENT_POOL_ENROLLED",
+                            Title = "Terdaftar di Talent Pool",
+                            Description = "Kandidat cadangan sudah aktif di Talent Pool.",
+                            StageKey = currentStageKey,
+                            ResponsibleRole = "HR Rekrutmen"
+                        };
+                    }
+
+                    return new JourneyNextActionDto
+                    {
+                        ActionCode = "AWAITING_TALENT_POOL_PERMISSION",
+                        Title = "Menunggu Pendaftaran ke Talent Pool",
+                        Description = "Kandidat berkualifikasi dan kuota lowongan asal penuh. Menunggu petugas berwenang (izin TalentPool.Create) mendaftarkan ke Talent Pool.",
+                        StageKey = currentStageKey,
+                        ResponsibleRole = "HR Rekrutmen"
+                    };
+                }
+
+                if (!offerPrereq.HrCompleted)
+                {
+                    var hrAct = current?.AllowedActions.FirstOrDefault(a => a.ActionCode == "SCHEDULE_OR_SUBMIT_HR_EVALUATION");
+                    if (hrAct != null)
+                    {
+                        return ToNextAction(hrAct, "Pewawancara HR");
+                    }
+
+                    return new JourneyNextActionDto
+                    {
+                        ActionCode = "AWAITING_EVALUATION_PERMISSION",
+                        Title = "Menunggu Wawancara HR",
+                        Description = "Seleksi administrasi lulus; menunggu Pewawancara HR (izin CandidateEvaluation.Evaluate) menjadwalkan atau mengirimkan nilai.",
+                        StageKey = RecruitmentJourneyStageKeys.Evaluation,
+                        ResponsibleRole = "Pewawancara HR"
+                    };
+                }
+
+                if (isClinical && !offerPrereq.ClinicalCompleted)
+                {
+                    var clinAct = current?.AllowedActions.FirstOrDefault(a => a.ActionCode == "SUBMIT_CLINICAL_EVALUATION");
+                    if (clinAct != null)
+                    {
+                        return ToNextAction(clinAct, "Asesor Klinis");
+                    }
+
+                    return new JourneyNextActionDto
+                    {
+                        ActionCode = "AWAITING_CLINICAL_ASSESSMENT_PERMISSION",
+                        Title = "Menunggu Asesmen Klinis",
+                        Description = "Wawancara HR selesai; menunggu Asesor Klinis (izin CandidateEvaluation.EvaluateClinical) mengirimkan hasil asesmen klinis.",
+                        StageKey = RecruitmentJourneyStageKeys.Evaluation,
+                        ResponsibleRole = "Asesor Klinis"
+                    };
+                }
+            }
+
+            if (currentStageKey == RecruitmentJourneyStageKeys.JobOffer)
+            {
+                if (offer == null)
+                {
+                    if (vacancyQuotaFull)
+                    {
+                        if (enrollPoolAct != null)
+                        {
+                            return ToNextAction(enrollPoolAct, "HR Rekrutmen");
+                        }
+
+                        return new JourneyNextActionDto
+                        {
+                            ActionCode = "AWAITING_TALENT_POOL_PERMISSION",
+                            Title = "Menunggu Pendaftaran ke Talent Pool",
+                            Description = "Kuota lowongan asal penuh dan kandidat memenuhi syarat. Menunggu petugas berwenang (izin TalentPool.Create).",
+                            StageKey = currentStageKey,
+                            ResponsibleRole = "HR Rekrutmen"
+                        };
+                    }
+
+                    var createOfferAct = current?.AllowedActions.FirstOrDefault(a => a.ActionCode == "CREATE_JOB_OFFER");
+                    if (createOfferAct != null)
+                    {
+                        return ToNextAction(createOfferAct, "HR Rekrutmen");
+                    }
+
+                    return new JourneyNextActionDto
+                    {
+                        ActionCode = "AWAITING_OFFER_CREATE_PERMISSION",
+                        Title = "Buat Penawaran Kerja",
+                        Description = "Evaluasi kandidat memenuhi syarat dan kuota tersedia; menunggu petugas HR berwenang (izin JobOffer.Create) menyusun Surat Penawaran Kerja.",
+                        StageKey = RecruitmentJourneyStageKeys.JobOffer,
+                        ResponsibleRole = "HR Rekrutmen"
+                    };
+                }
+
+                if (offer.Status is JobOfferStatus.Draft or JobOfferStatus.PendingApproval)
+                {
+                    var approveAct = current?.AllowedActions.FirstOrDefault(a => a.ActionCode == "DECIDE_OFFER_APPROVAL");
+                    if (approveAct != null)
+                    {
+                        return ToNextAction(approveAct, "Pejabat Penyetuju Penawaran");
+                    }
+
+                    return new JourneyNextActionDto
+                    {
+                        ActionCode = "AWAITING_OFFER_APPROVAL_PERMISSION",
+                        Title = "Proses Approval Penawaran",
+                        Description = offer.CreateBy == actorUserId && actorUserId != Guid.Empty
+                            ? "Anda adalah pembuat penawaran; sesuai prinsip pemisahan tugas, persetujuan menunggu pejabat penyetuju lain (izin JobOfferApproval.Approve)."
+                            : "Surat penawaran sedang menunggu persetujuan berjenjang oleh pejabat penyetuju yang memiliki izin JobOfferApproval.Approve.",
+                        StageKey = RecruitmentJourneyStageKeys.JobOffer,
+                        ResponsibleRole = "Pejabat Penyetuju Penawaran",
+                        TargetRoute = perms.CanReadOffer || perms.CanReadOfferApproval
+                            ? $"/hr/recruitment/offers/{offer.Id}?applicationId={applicationId}"
+                            : null
+                    };
+                }
+
+                if (offer.Status == JobOfferStatus.Approved)
+                {
+                    var sendAct = current?.AllowedActions.FirstOrDefault(a => a.ActionCode == "SEND_CONDITIONAL_OFFER");
+                    if (sendAct != null)
+                    {
+                        return ToNextAction(sendAct, "HR Rekrutmen");
+                    }
+
+                    return new JourneyNextActionDto
+                    {
+                        ActionCode = "AWAITING_OFFER_SEND_PERMISSION",
+                        Title = "Kirim Penawaran Kerja",
+                        Description = "Surat penawaran telah disetujui penuh; menunggu petugas HR dengan izin JobOffer.Update mengirimkan surat ke kandidat.",
+                        StageKey = RecruitmentJourneyStageKeys.JobOffer,
+                        ResponsibleRole = "HR Rekrutmen",
+                        TargetRoute = perms.CanReadOffer
+                            ? $"/hr/recruitment/offers/{offer.Id}?applicationId={applicationId}"
+                            : null
+                    };
+                }
+
+                if (offer.Status is JobOfferStatus.SentConditional or JobOfferStatus.FinalOfferSent)
+                {
+                    var respondAct = current?.AllowedActions.FirstOrDefault(a => a.ActionCode == "RECORD_CANDIDATE_OFFER_RESPONSE");
+                    if (respondAct != null)
+                    {
+                        return ToNextAction(respondAct, "HR Rekrutmen & Kandidat");
+                    }
+
+                    return new JourneyNextActionDto
+                    {
+                        ActionCode = "AWAITING_CANDIDATE_RESPONSE_PERMISSION",
+                        Title = "Catat Respons Kandidat",
+                        Description = "Surat penawaran telah dikirim; menunggu pencatatan jawaban kandidat oleh petugas HR dengan izin JobOffer.Update.",
+                        StageKey = RecruitmentJourneyStageKeys.JobOffer,
+                        ResponsibleRole = "HR Rekrutmen & Kandidat",
+                        TargetRoute = perms.CanReadOffer
+                            ? $"/hr/recruitment/offers/{offer.Id}?applicationId={applicationId}"
+                            : null
+                    };
+                }
+
+                if (offer.Status == JobOfferStatus.RejectedByApprover && enrollPoolAct != null)
+                {
+                    return ToNextAction(enrollPoolAct, "HR Rekrutmen");
+                }
+            }
+
+            if (currentStageKey == RecruitmentJourneyStageKeys.PreEmploymentMcu)
+            {
+                if (mcu == null)
+                {
+                    var regMcuAct = current?.AllowedActions.FirstOrDefault(a => a.ActionCode == "REGISTER_MCU_REFERRAL");
+                    if (regMcuAct != null)
+                    {
+                        return ToNextAction(regMcuAct, current!.ResponsibleRole);
+                    }
+
+                    if (offer != null && offer.Status == JobOfferStatus.ConditionalAccepted)
+                    {
+                        return new JourneyNextActionDto
+                        {
+                            ActionCode = "AWAITING_MCU_REFERRAL_PERMISSION",
+                            Title = "Menunggu Penerbitan Rujukan MCU",
+                            Description = perms.CanReadMcu
+                                ? "Kandidat telah menyetujui penawaran bersyarat dan siap masuk tahap MCU Pra-Kerja. Akun Anda tidak memiliki izin OccupationalHealthClearance.Create; proses menunggu Tim K3RS / petugas yang berwenang."
+                                : "Tahap aktif berada pada MCU Pra-Kerja. Rincian dan penerbitan rujukan MCU menunggu petugas yang memiliki izin OccupationalHealthClearance.Read dan OccupationalHealthClearance.Create.",
+                            StageKey = RecruitmentJourneyStageKeys.PreEmploymentMcu,
+                            ResponsibleRole = "Tim K3RS / Petugas Berwenang MCU"
+                        };
+                    }
+                }
+                else if (mcu.ClearanceResult == McuClearanceResult.Pending)
+                {
+                    var recMcuAct = current?.AllowedActions.FirstOrDefault(a => a.ActionCode == "RECORD_MCU_RESULT");
+                    if (recMcuAct != null)
+                    {
+                        return ToNextAction(recMcuAct, current!.ResponsibleRole);
+                    }
+
+                    return new JourneyNextActionDto
+                    {
+                        ActionCode = "AWAITING_MCU_RESULT_PERMISSION",
+                        Title = "Menunggu Pencatatan Hasil MCU",
+                        Description = perms.CanReadMcu
+                            ? $"Rujukan MCU {mcu.ReferralNumber} sudah diterbitkan. Menunggu Dokter Pemeriksa / Tim K3RS (izin OccupationalHealthClearance.Evaluate) mencatat hasil kelaikan kerja."
+                            : "Rujukan MCU Pra-Kerja sudah diterbitkan; menunggu pencatatan hasil oleh Dokter Pemeriksa / Tim K3RS.",
+                        StageKey = RecruitmentJourneyStageKeys.PreEmploymentMcu,
+                        ResponsibleRole = "Tim K3RS / Dokter Pemeriksa",
+                        TargetRoute = perms.CanReadMcu ? $"/hr/recruitment/mcu-clearance/{mcu.Id}?applicationId={applicationId}" : null
+                    };
+                }
+                else if (mcu.ClearanceResult == McuClearanceResult.FitWithRestrictions)
+                {
+                    return new JourneyNextActionDto
+                    {
+                        ActionCode = "MCU_FIT_WITH_RESTRICTIONS_CONFIRMATION_REQUIRED",
+                        Title = "Konfirmasi Penyesuaian Hasil MCU",
+                        Description = "Hasil MCU menyatakan Fit With Restrictions (Laik dengan Catatan Pembatasan). Diperlukan konfirmasi penyesuaian penugasan/kontrak kerja sebelum serah terima dapat dilanjutkan.",
+                        StageKey = RecruitmentJourneyStageKeys.PreEmploymentMcu,
+                        ResponsibleRole = "Tim HR & Tim K3RS",
+                        TargetRoute = perms.CanReadMcu ? $"/hr/recruitment/mcu-clearance/{mcu.Id}?applicationId={applicationId}" : null
+                    };
+                }
+            }
+
+            if (currentStageKey == RecruitmentJourneyStageKeys.HandoffOnboarding)
+            {
+                var handoffAct = current?.AllowedActions.FirstOrDefault(a =>
+                    a.ActionCode is "GENERATE_HIRING_HANDOFF" or "RECOVER_HANDOFF_ONBOARDING" or "CONFIRM_HIRING_HANDOFF");
+                if (handoffAct != null)
+                {
+                    return ToNextAction(handoffAct, current!.ResponsibleRole);
+                }
+
+                if (handoff == null && handoffPrereq.IsEligible)
+                {
+                    return new JourneyNextActionDto
+                    {
+                        ActionCode = "AWAITING_HANDOFF_PERMISSION",
+                        Title = "Menunggu Serah Terima Kandidat",
+                        Description = "Kandidat telah dinyatakan FIT pada MCU Pra-Kerja dan penawaran final terpenuhi. Menunggu petugas berwenang (izin HiringHandoff.Execute) menjalankan serah terima ke Onboarding.",
+                        StageKey = RecruitmentJourneyStageKeys.HandoffOnboarding,
+                        ResponsibleRole = "HR Recruitment & Onboarding"
+                    };
+                }
+            }
+
+            if (enrollPoolAct != null)
+            {
+                return ToNextAction(enrollPoolAct, "HR Rekrutmen");
             }
 
             if (current?.Blockers.Count > 0)
@@ -1641,7 +2123,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     Description = firstBlocker.Message,
                     StageKey = currentStageKey,
                     ResponsibleRole = current.ResponsibleRole,
-                    TargetRoute = offerId.HasValue ? $"/hr/recruitment/offers/{offerId.Value}?applicationId={applicationId}" : $"/hr/recruitment/candidates/{candidateId}?applicationId={applicationId}"
+                    TargetRoute = offer != null && (perms.CanReadOffer || perms.CanReadOfferApproval)
+                        ? $"/hr/recruitment/offers/{offer.Id}?applicationId={applicationId}"
+                        : $"/hr/recruitment/candidates/{candidateId}?applicationId={applicationId}"
                 };
             }
 

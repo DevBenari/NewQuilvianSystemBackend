@@ -101,6 +101,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public int FilledOrOfferedCount { get; set; }
         public decimal? HrScore { get; set; }
         public decimal? ClinicalScore { get; set; }
-        public decimal SuggestedRankingScore { get; set; }
+        public decimal? SuggestedRankingScore { get; set; }
     }
 }

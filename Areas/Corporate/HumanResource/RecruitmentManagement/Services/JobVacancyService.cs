@@ -86,6 +86,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 })
                 .ToListAsync(cancellationToken);
 
+            var vacancyIds = items.Select(i => i.Id).ToList();
+            var occupiedMap = await RecruitmentJourneyPolicy.CountOccupiedSeatsByVacancyAsync(_dbContext, vacancyIds, cancellationToken);
+            foreach (var item in items)
+            {
+                var occupied = occupiedMap.TryGetValue(item.Id, out var c) ? c : 0;
+                item.OccupiedSeats = occupied;
+                item.RemainingSeats = item.QuotaSeats > 0 ? Math.Max(0, item.QuotaSeats - occupied) : 0;
+            }
+
             var result = new PagedResult<JobVacancyListItemResponse>
             {
                 Items = items,
@@ -117,7 +126,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<JobVacancyResponse>.NotFound("Lowongan kerja tidak ditemukan.");
             }
 
-            return RecruitmentResult<JobVacancyResponse>.Ok(MapToResponse(v), "Detail lowongan kerja berhasil diambil.");
+            var occupiedMap = await RecruitmentJourneyPolicy.CountOccupiedSeatsByVacancyAsync(_dbContext, new[] { v.Id }, cancellationToken);
+            var occupied = occupiedMap.TryGetValue(v.Id, out var c) ? c : 0;
+            return RecruitmentResult<JobVacancyResponse>.Ok(MapToResponse(v, occupied), "Detail lowongan kerja berhasil diambil.");
         }
 
         public async Task<RecruitmentResult<JobVacancyResponse>> CreateAsync(
@@ -333,7 +344,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             return await GetByIdAsync(entity.Id, cancellationToken);
         }
 
-        private static JobVacancyResponse MapToResponse(HrdJobVacancy v)
+        private static JobVacancyResponse MapToResponse(HrdJobVacancy v, int occupiedSeats = 0)
         {
             return new JobVacancyResponse
             {
@@ -347,6 +358,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 Title = v.Title,
                 Description = v.Description,
                 QuotaSeats = v.QuotaSeats,
+                OccupiedSeats = occupiedSeats,
+                RemainingSeats = v.QuotaSeats > 0 ? Math.Max(0, v.QuotaSeats - occupiedSeats) : 0,
                 IsClinical = v.IsClinical,
                 PublishDate = v.PublishDate,
                 ClosingDate = v.ClosingDate,

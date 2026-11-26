@@ -4,10 +4,12 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Constants;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
+using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services
 {
@@ -26,6 +28,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         bool IsEligible,
         string? BlockingCode,
         string? BlockingMessage);
+
+    internal sealed record TalentPoolEligibilityEvaluation(
+        bool IsEligible,
+        int HttpStatusCode,
+        string? BlockingCode,
+        string? BlockingMessage,
+        int QuotaSeats,
+        int OccupiedSeats);
 
     internal static class RecruitmentJourneyPolicy
     {
@@ -334,6 +344,232 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             }
 
             return new HandoffPrerequisiteEvaluation(true, null, null);
+        }
+
+        public static bool IsOfferOccupyingVacancySeat(JobOfferStatus status)
+            => status != JobOfferStatus.RejectedByApprover
+               && status != JobOfferStatus.ConditionalRejected
+               && status != JobOfferStatus.FinalRejected
+               && status != JobOfferStatus.Revoked
+               && status != JobOfferStatus.Expired;
+
+        public static async Task<Dictionary<Guid, int>> CountOccupiedSeatsByVacancyAsync(
+            ApplicationDbContext dbContext,
+            IEnumerable<Guid> vacancyIds,
+            CancellationToken cancellationToken = default)
+        {
+            var idList = vacancyIds.Where(v => v != Guid.Empty).Distinct().ToList();
+            if (idList.Count == 0)
+            {
+                return new Dictionary<Guid, int>();
+            }
+
+            var activeOfferAppIds = await dbContext.HrdJobOffers
+                .AsNoTracking()
+                .Include(o => o.Application)
+                .Where(o => !o.IsDelete
+                            && o.Application != null
+                            && !o.Application.IsDelete
+                            && idList.Contains(o.Application.VacancyId)
+                            && o.Status != JobOfferStatus.RejectedByApprover
+                            && o.Status != JobOfferStatus.ConditionalRejected
+                            && o.Status != JobOfferStatus.FinalRejected
+                            && o.Status != JobOfferStatus.Revoked
+                            && o.Status != JobOfferStatus.Expired)
+                .Select(o => new { o.Application!.VacancyId, o.ApplicationId })
+                .ToListAsync(cancellationToken);
+
+            var handoffAppIds = await dbContext.HrdCandidateHiringHandoffs
+                .AsNoTracking()
+                .Include(h => h.Offer)
+                    .ThenInclude(o => o!.Application)
+                .Where(h => !h.IsDelete
+                            && h.Status != HandoffStatus.Cancelled
+                            && h.Offer != null
+                            && h.Offer.Application != null
+                            && !h.Offer.Application.IsDelete
+                            && idList.Contains(h.Offer.Application.VacancyId))
+                .Select(h => new { h.Offer!.Application!.VacancyId, h.Offer.ApplicationId })
+                .ToListAsync(cancellationToken);
+
+            return activeOfferAppIds
+                .Concat(handoffAppIds)
+                .GroupBy(x => x.VacancyId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.ApplicationId).Distinct().Count());
+        }
+
+        public static TalentPoolEligibilityEvaluation EvaluateTalentPoolEligibility(
+            HrdCandidate? candidate,
+            HrdJobVacancy? vacancy,
+            HrdCandidateApplication? app,
+            HrdCandidateScreening? screening,
+            IEnumerable<HrdCandidateEvaluation> evaluations,
+            IEnumerable<HrdJobOffer> offersForApplication,
+            HrdPreEmploymentMedicalCheck? mcuForLatestOffer,
+            bool hasActiveHandoffOnApplication,
+            bool hasActiveTalentPoolRecord,
+            int occupiedSeatsOnVacancy,
+            bool hasCreatePermission = true)
+        {
+            var quotaSeats = vacancy?.QuotaSeats ?? 0;
+
+            // 1. Wajib memiliki kandidat, lowongan asal, dan lamaran yang sah pada lowongan asal
+            if (candidate == null || candidate.IsDelete)
+            {
+                return new TalentPoolEligibilityEvaluation(
+                    false, 422, "CANDIDATE_NOT_FOUND", "Kandidat tidak ditemukan atau tidak aktif.", quotaSeats, occupiedSeatsOnVacancy);
+            }
+
+            if (vacancy == null || vacancy.IsDelete)
+            {
+                return new TalentPoolEligibilityEvaluation(
+                    false, 422, "VACANCY_NOT_FOUND", "Lowongan asal tidak ditemukan atau tidak aktif.", quotaSeats, occupiedSeatsOnVacancy);
+            }
+
+            if (app == null || app.IsDelete || app.CandidateId != candidate.Id || app.VacancyId != vacancy.Id)
+            {
+                return new TalentPoolEligibilityEvaluation(
+                    false,
+                    422,
+                    "ORIGIN_APPLICATION_MISSING",
+                    "Kandidat tidak memiliki lamaran yang sah pada lowongan asal untuk dimasukkan ke Talent Pool.",
+                    quotaSeats,
+                    occupiedSeatsOnVacancy);
+            }
+
+            // 6. Kandidat / lamaran tidak berstatus terminal atau sudah masuk proses serah terima onboarding
+            if (candidate.Status == CandidateStatus.Blacklisted || candidate.Status == CandidateStatus.Hired)
+            {
+                return new TalentPoolEligibilityEvaluation(
+                    false,
+                    422,
+                    "CANDIDATE_TERMINAL_STATUS",
+                    $"Kandidat berstatus '{candidate.Status}' tidak memenuhi syarat masuk Talent Pool.",
+                    quotaSeats,
+                    occupiedSeatsOnVacancy);
+            }
+
+            if (IsInactiveApplicationForCandidateStatus(app))
+            {
+                return new TalentPoolEligibilityEvaluation(
+                    false,
+                    422,
+                    "APPLICATION_TERMINAL_STATUS",
+                    "Lamaran berada pada status terminal/gugur dan tidak memenuhi syarat masuk Talent Pool.",
+                    quotaSeats,
+                    occupiedSeatsOnVacancy);
+            }
+
+            if (mcuForLatestOffer != null && !mcuForLatestOffer.IsDelete && mcuForLatestOffer.ClearanceResult == McuClearanceResult.Unfit)
+            {
+                return new TalentPoolEligibilityEvaluation(
+                    false,
+                    422,
+                    "MCU_UNFIT",
+                    "Hasil MCU Pra-Kerja menyatakan Tidak Laik Kerja (UNFIT) sehingga kandidat tidak memenuhi syarat Talent Pool.",
+                    quotaSeats,
+                    occupiedSeatsOnVacancy);
+            }
+
+            if (hasActiveHandoffOnApplication || app.CurrentStage == ApplicationStage.Handoff)
+            {
+                return new TalentPoolEligibilityEvaluation(
+                    false,
+                    422,
+                    "HANDOFF_ACTIVE",
+                    "Lamaran sedang atau sudah diproses pada tahap Serah Terima / Onboarding dan tidak dapat didaftarkan ke Talent Pool.",
+                    quotaSeats,
+                    occupiedSeatsOnVacancy);
+            }
+
+            // 2, 3, 4. Lulus Seleksi Administrasi, memenuhi evaluasi wajib, dan bebas veto klinis (HRD-DEC-080)
+            var activeOffers = offersForApplication.Where(o => !o.IsDelete).ToList();
+            var offerPrereq = EvaluateOfferPrerequisites(app, vacancy, screening, evaluations, candidate);
+            if (!offerPrereq.CanCreateOffer || offerPrereq.HasClinicalVeto)
+            {
+                return new TalentPoolEligibilityEvaluation(
+                    false,
+                    422,
+                    offerPrereq.BlockingCode ?? "PREREQUISITE_NOT_MET",
+                    offerPrereq.BlockingMessage ?? "Kandidat belum memenuhi seluruh tahapan seleksi tanpa veto untuk masuk Talent Pool (HRD-DEC-080).",
+                    quotaSeats,
+                    occupiedSeatsOnVacancy);
+            }
+
+            // 7. Tidak sedang memiliki penawaran aktif yang bertentangan (termasuk ConditionalAccepted) atau penawaran terminal
+            var conflictingActiveOffer = activeOffers
+                .Where(o => IsOfferOccupyingVacancySeat(o.Status))
+                .OrderByDescending(o => o.CreateDateTime)
+                .FirstOrDefault();
+            if (conflictingActiveOffer != null)
+            {
+                var blockingCode = conflictingActiveOffer.Status == JobOfferStatus.ConditionalAccepted
+                    ? "OFFER_CONDITIONAL_ACCEPTED_CONFLICT"
+                    : "ACTIVE_OFFER_CONFLICT";
+                return new TalentPoolEligibilityEvaluation(
+                    false,
+                    422,
+                    blockingCode,
+                    $"Kandidat sedang memiliki surat penawaran aktif ({conflictingActiveOffer.OfferNumber} — {conflictingActiveOffer.Status}) pada lamaran ini sehingga tidak boleh diarahkan ke Talent Pool.",
+                    quotaSeats,
+                    occupiedSeatsOnVacancy);
+            }
+
+            var terminatedOffer = activeOffers
+                .Where(o => o.Status == JobOfferStatus.ConditionalRejected
+                            || o.Status == JobOfferStatus.FinalRejected
+                            || o.Status == JobOfferStatus.Expired
+                            || o.Status == JobOfferStatus.Revoked)
+                .OrderByDescending(o => o.CreateDateTime)
+                .FirstOrDefault();
+            if (terminatedOffer != null)
+            {
+                return new TalentPoolEligibilityEvaluation(
+                    false,
+                    422,
+                    "OFFER_TERMINAL_STATUS",
+                    $"Penawaran pada lamaran ini berada pada status terminal ({terminatedOffer.Status}) sehingga kandidat tidak memenuhi syarat Talent Pool.",
+                    quotaSeats,
+                    occupiedSeatsOnVacancy);
+            }
+
+            // 5. Kuota lowongan asal harus sudah teralokasi penuh
+            if (quotaSeats > 0 && occupiedSeatsOnVacancy < quotaSeats)
+            {
+                return new TalentPoolEligibilityEvaluation(
+                    false,
+                    422,
+                    "VACANCY_QUOTA_NOT_FULL",
+                    $"Kuota kursi lowongan '{vacancy.Title}' belum terisi penuh ({occupiedSeatsOnVacancy}/{quotaSeats}); proses kandidat melalui Penawaran Kerja terlebih dahulu (HRD-DEC-080).",
+                    quotaSeats,
+                    occupiedSeatsOnVacancy);
+            }
+
+            // 8. Belum memiliki record Talent Pool aktif yang menyebabkan duplikasi
+            if (hasActiveTalentPoolRecord)
+            {
+                return new TalentPoolEligibilityEvaluation(
+                    false,
+                    409,
+                    "TALENT_POOL_ALREADY_ACTIVE",
+                    "Kandidat sudah aktif terdaftar di Talent Pool.",
+                    quotaSeats,
+                    occupiedSeatsOnVacancy);
+            }
+
+            // 9. Pengguna memiliki permission yang sesuai
+            if (!hasCreatePermission)
+            {
+                return new TalentPoolEligibilityEvaluation(
+                    false,
+                    403,
+                    "TALENT_POOL_CREATE_FORBIDDEN",
+                    "Pengguna tidak memiliki izin TalentPool.Create untuk mendaftarkan kandidat ke Talent Pool.",
+                    quotaSeats,
+                    occupiedSeatsOnVacancy);
+            }
+
+            return new TalentPoolEligibilityEvaluation(true, 200, null, null, quotaSeats, occupiedSeatsOnVacancy);
         }
 
         public static string MaskNationalIdNumber(string? nik)

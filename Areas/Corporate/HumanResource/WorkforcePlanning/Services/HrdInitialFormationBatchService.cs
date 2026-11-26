@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
@@ -9,6 +10,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Enums;
@@ -248,23 +251,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                     .ToDictionaryAsync(u => u.Id, u => !string.IsNullOrWhiteSpace(u.DisplayName) ? u.DisplayName : u.UserName ?? string.Empty, cancellationToken)
                 : new Dictionary<Guid, string>();
 
-            var items = batches.Select(b => new InitialFormationBatchListItemResponse
+            var batchIds = batches.Select(b => b.Id).ToList();
+            var workflowLookup = batchIds.Count > 0
+                ? (await _dbContext.Set<TrxWorkflowInstance>().AsNoTracking()
+                    .Where(w => !w.IsDelete &&
+                                w.ReferenceType == WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceInitialFormationBatch &&
+                                batchIds.Contains(w.ReferenceId))
+                    .OrderByDescending(w => w.CreateDateTime)
+                    .ToListAsync(cancellationToken))
+                    .GroupBy(w => w.ReferenceId)
+                    .ToDictionary(g => g.Key, g => g.First())
+                : new Dictionary<Guid, TrxWorkflowInstance>();
+
+            var items = batches.Select(b =>
             {
-                Id = b.Id,
-                BatchNumber = b.BatchNumber,
-                HospitalSiteId = b.HospitalSiteId,
-                HospitalSiteName = sites.TryGetValue(b.HospitalSiteId, out var sName) ? sName : null,
-                SourceDocumentReference = b.SourceDocumentReference,
-                SourceDocumentFileName = b.SourceDocumentFileName,
-                BatchStatus = b.BatchStatus,
-                TotalRows = b.TotalRows,
-                ValidRows = b.ValidRows,
-                InvalidRows = b.InvalidRows,
-                SubmittedAt = b.SubmittedAt,
-                SubmittedByUserName = b.SubmittedByUserId.HasValue && users.TryGetValue(b.SubmittedByUserId.Value, out var uName) ? uName : null,
-                AppliedAt = b.AppliedAt,
-                CreatedAt = b.CreateDateTime,
-                RowVersion = b.RowVersion
+                workflowLookup.TryGetValue(b.Id, out var wf);
+                var integrityIssue = b.BatchStatus == InitialFormationBatchStatus.Submitted &&
+                    (!b.WorkflowInstanceId.HasValue || wf == null || wf.Id != b.WorkflowInstanceId.Value);
+
+                return new InitialFormationBatchListItemResponse
+                {
+                    Id = b.Id,
+                    BatchNumber = b.BatchNumber,
+                    HospitalSiteId = b.HospitalSiteId,
+                    HospitalSiteName = sites.TryGetValue(b.HospitalSiteId, out var sName) ? sName : null,
+                    SourceDocumentReference = b.SourceDocumentReference,
+                    SourceDocumentFileName = b.SourceDocumentFileName,
+                    BatchStatus = b.BatchStatus,
+                    TotalRows = b.TotalRows,
+                    ValidRows = b.ValidRows,
+                    InvalidRows = b.InvalidRows,
+                    SubmittedAt = b.SubmittedAt,
+                    SubmittedByUserName = b.SubmittedByUserId.HasValue && users.TryGetValue(b.SubmittedByUserId.Value, out var uName) ? uName : null,
+                    AppliedAt = b.AppliedAt,
+                    WorkflowInstanceId = b.WorkflowInstanceId ?? wf?.Id,
+                    WorkflowNumber = wf?.RequestNumber,
+                    WorkflowStatus = wf?.WorkflowStatus,
+                    HasWorkflowIntegrityIssue = integrityIssue,
+                    CreatedAt = b.CreateDateTime,
+                    RowVersion = b.RowVersion
+                };
             }).ToList();
 
             return new PagedResult<InitialFormationBatchListItemResponse>
@@ -304,6 +330,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                     .ToDictionaryAsync(u => u.Id, u => !string.IsNullOrWhiteSpace(u.DisplayName) ? u.DisplayName : u.UserName ?? string.Empty, cancellationToken)
                 : new Dictionary<Guid, string>();
 
+            TrxWorkflowInstance? workflow = null;
+            if (batch.WorkflowInstanceId.HasValue)
+            {
+                workflow = await LoadTrackedWorkflowDetailAsync(
+                    w => w.Id == batch.WorkflowInstanceId.Value && !w.IsDelete,
+                    cancellationToken);
+            }
+
+            if (workflow == null)
+            {
+                workflow = await LoadTrackedWorkflowDetailAsync(
+                    w => !w.IsDelete &&
+                         w.ReferenceType == WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceInitialFormationBatch &&
+                         w.ReferenceId == batch.Id,
+                    cancellationToken);
+            }
+
+            var activeSteps = workflow?.StepInstances
+                .Where(s => !s.IsDelete)
+                .OrderBy(s => s.StepOrder)
+                .ToList() ?? new List<TrxWorkflowStepInstance>();
+
+            var currentStep = activeSteps.FirstOrDefault(s => s.IsCurrentStep)
+                ?? activeSteps.FirstOrDefault(s => string.Equals(s.StepStatus, WorkflowValueConstants.StepStatus.InProgress, StringComparison.OrdinalIgnoreCase));
+
+            var approverList = await MapApproversAsync(activeSteps, cancellationToken);
+            var historyList = MapWorkflowHistories(workflow, activeSteps);
+
+            var (hasIntegrityIssue, integrityMessage) = EvaluateWorkflowIntegrity(batch, workflow, currentStep);
+
             return new InitialFormationBatchResponse
             {
                 Id = batch.Id,
@@ -319,6 +375,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                 InvalidRows = batch.InvalidRows,
                 Notes = batch.Notes,
                 WorkflowInstanceId = batch.WorkflowInstanceId,
+                WorkflowDefinitionId = batch.WorkflowDefinitionId ?? workflow?.WorkflowDefinitionId,
+                WorkflowNumber = workflow?.RequestNumber,
+                WorkflowStatus = workflow?.WorkflowStatus,
+                CurrentStepOrder = currentStep?.StepOrder ?? (workflow != null && workflow.CurrentStepOrder > 0 ? workflow.CurrentStepOrder : null),
+                CurrentStepCode = currentStep?.StepCodeSnapshot ?? workflow?.CurrentStepCode,
+                CurrentStepName = currentStep?.StepNameSnapshot,
+                CurrentStepStatus = currentStep?.StepStatus,
+                HasWorkflowIntegrityIssue = hasIntegrityIssue,
+                WorkflowIntegrityMessage = integrityMessage,
                 SubmittedAt = batch.SubmittedAt,
                 SubmittedByUserName = batch.SubmittedByUserId.HasValue && users.TryGetValue(batch.SubmittedByUserId.Value, out var sUser) ? sUser : null,
                 ApprovedAt = batch.ApprovedAt,
@@ -340,8 +405,173 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                     IsValid = r.IsValid,
                     ValidationMessage = r.ValidationMessage,
                     CreatedFormationId = r.CreatedFormationId
-                }).ToList()
+                }).ToList(),
+                AssignedApprovers = approverList,
+                WorkflowHistories = historyList
             };
+        }
+
+        private Task<TrxWorkflowInstance?> LoadTrackedWorkflowDetailAsync(
+            System.Linq.Expressions.Expression<Func<TrxWorkflowInstance, bool>> predicate,
+            CancellationToken cancellationToken)
+        {
+            return _dbContext.Set<TrxWorkflowInstance>()
+                .AsNoTracking()
+                .Include(w => w.StepInstances)
+                    .ThenInclude(s => s.ApproverAssignments)
+                        .ThenInclude(a => a.AssignedApproverUser)
+                .Include(w => w.StepInstances)
+                    .ThenInclude(s => s.ApproverAssignments)
+                        .ThenInclude(a => a.AssignedApproverWorkforceProfile)
+                .Include(w => w.StepInstances)
+                    .ThenInclude(s => s.ApproverAssignments)
+                        .ThenInclude(a => a.OriginalApproverUser)
+                .Include(w => w.StepInstances)
+                    .ThenInclude(s => s.ApproverAssignments)
+                        .ThenInclude(a => a.OriginalApproverWorkforceProfile)
+                .Include(w => w.StatusHistories)
+                    .ThenInclude(h => h.ChangedByUser)
+                .Include(w => w.StatusHistories)
+                    .ThenInclude(h => h.ChangedByWorkforceProfile)
+                .OrderByDescending(w => w.CreateDateTime)
+                .FirstOrDefaultAsync(predicate, cancellationToken);
+        }
+
+        private async Task<List<InitialFormationBatchWorkflowApproverDto>> MapApproversAsync(
+            List<TrxWorkflowStepInstance> steps,
+            CancellationToken cancellationToken)
+        {
+            var profileIds = steps
+                .SelectMany(s => s.ApproverAssignments)
+                .Where(a => !a.IsDelete && a.AssignedApproverWorkforceProfileId.HasValue)
+                .Select(a => a.AssignedApproverWorkforceProfileId!.Value)
+                .Distinct()
+                .ToList();
+
+            var positionNamesByProfileId = profileIds.Count > 0
+                ? await _dbContext.MstWorkforceProfiles
+                    .AsNoTracking()
+                    .Where(wp => profileIds.Contains(wp.Id) && wp.PrimaryPositionId.HasValue)
+                    .Join(
+                        _dbContext.MstPositions.AsNoTracking(),
+                        wp => wp.PrimaryPositionId!.Value,
+                        p => p.Id,
+                        (wp, p) => new { wp.Id, p.PositionName })
+                    .ToDictionaryAsync(x => x.Id, x => x.PositionName, cancellationToken)
+                : new Dictionary<Guid, string>();
+
+            var result = new List<InitialFormationBatchWorkflowApproverDto>();
+            foreach (var step in steps)
+            {
+                foreach (var assign in step.ApproverAssignments.Where(a => !a.IsDelete && a.IsActive).OrderBy(a => a.AssignmentOrder))
+                {
+                    var name = !string.IsNullOrWhiteSpace(assign.AssignedApproverWorkforceProfile?.DisplayName)
+                        ? assign.AssignedApproverWorkforceProfile.DisplayName
+                        : !string.IsNullOrWhiteSpace(assign.AssignedApproverUser?.DisplayName)
+                            ? assign.AssignedApproverUser.DisplayName
+                            : assign.AssignedApproverUser?.UserName ?? assign.AssignedApproverRoleCode ?? "Approver";
+
+                    var posName = assign.AssignedApproverWorkforceProfileId.HasValue &&
+                        positionNamesByProfileId.TryGetValue(assign.AssignedApproverWorkforceProfileId.Value, out var pName)
+                        ? pName
+                        : null;
+
+                    var fullName = !string.IsNullOrWhiteSpace(posName) && !name.Contains(posName, StringComparison.OrdinalIgnoreCase)
+                        ? $"{name} ({posName})"
+                        : name;
+
+                    var originalName = assign.IsDelegated
+                        ? (!string.IsNullOrWhiteSpace(assign.OriginalApproverWorkforceProfile?.DisplayName)
+                            ? assign.OriginalApproverWorkforceProfile.DisplayName
+                            : assign.OriginalApproverUser?.DisplayName ?? assign.OriginalApproverUser?.UserName)
+                        : null;
+
+                    result.Add(new InitialFormationBatchWorkflowApproverDto
+                    {
+                        AssignmentId = assign.Id,
+                        StepOrder = step.StepOrder,
+                        StepCode = step.StepCodeSnapshot,
+                        StepName = step.StepNameSnapshot,
+                        StepStatus = step.StepStatus,
+                        IsCurrentStep = step.IsCurrentStep,
+                        ApproverUserId = assign.AssignedApproverUserId,
+                        ApproverName = fullName,
+                        ApproverRoleCode = assign.AssignedApproverRoleCode ?? posName,
+                        AssignmentStatus = assign.AssignmentStatus,
+                        IsCurrentAssignment = assign.IsCurrentAssignment,
+                        IsDelegated = assign.IsDelegated,
+                        OriginalApproverName = originalName,
+                        DueAt = assign.DueAt,
+                        CompletedAt = assign.CompletedAt
+                    });
+                }
+            }
+
+            return result;
+        }
+
+        private static List<InitialFormationBatchWorkflowHistoryDto> MapWorkflowHistories(
+            TrxWorkflowInstance? workflow,
+            List<TrxWorkflowStepInstance> steps)
+        {
+            if (workflow == null)
+            {
+                return new List<InitialFormationBatchWorkflowHistoryDto>();
+            }
+
+            var stepNamesById = steps.ToDictionary(s => s.Id, s => s.StepNameSnapshot);
+            return workflow.StatusHistories
+                .Where(h => !h.IsDelete)
+                .OrderBy(h => h.SequenceNumber)
+                .ThenBy(h => h.ChangedAt)
+                .Select(h => new InitialFormationBatchWorkflowHistoryDto
+                {
+                    SequenceNumber = h.SequenceNumber,
+                    StepName = h.WorkflowStepInstanceId.HasValue && stepNamesById.TryGetValue(h.WorkflowStepInstanceId.Value, out var sName) ? sName : null,
+                    ActionType = h.ActionType,
+                    ActorName = !string.IsNullOrWhiteSpace(h.ChangedByWorkforceProfile?.DisplayName)
+                        ? h.ChangedByWorkforceProfile.DisplayName
+                        : !string.IsNullOrWhiteSpace(h.ChangedByUser?.DisplayName)
+                            ? h.ChangedByUser.DisplayName
+                            : h.ChangedByUser?.UserName,
+                    FromStatus = h.FromWorkflowStatus,
+                    ToStatus = h.ToWorkflowStatus,
+                    Comment = h.Comment,
+                    ActionAt = h.ChangedAt,
+                    IsSystemGenerated = h.IsSystemGenerated
+                })
+                .ToList();
+        }
+
+        private static (bool HasIssue, string? Message) EvaluateWorkflowIntegrity(
+            HrdInitialFormationBatch batch,
+            TrxWorkflowInstance? workflow,
+            TrxWorkflowStepInstance? currentStep)
+        {
+            if (batch.BatchStatus != InitialFormationBatchStatus.Submitted)
+            {
+                return (false, null);
+            }
+
+            if (workflow == null)
+            {
+                return (true, "Batch berstatus Menunggu Persetujuan (Submitted), tetapi WorkflowInstanceId kosong dan belum terdapat instans workflow T10 di engine persetujuan. Jalankan pemulihan agar batch dapat dikembalikan ke Draft dan diajukan ulang.");
+            }
+
+            if (!batch.WorkflowInstanceId.HasValue || batch.WorkflowInstanceId.Value != workflow.Id)
+            {
+                return (true, $"Batch belum tertaut pada instans workflow {workflow.RequestNumber} (status engine: {workflow.WorkflowStatus}). Jalankan pemulihan untuk rekonsiliasi atau pengembalian ke Draft.");
+            }
+
+            var isEngineActive = string.Equals(workflow.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Submitted, StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(workflow.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.InProgress, StringComparison.OrdinalIgnoreCase);
+
+            if (isEngineActive && (currentStep == null || !currentStep.ApproverAssignments.Any(a => !a.IsDelete && a.IsActive)))
+            {
+                return (true, $"Workflow {workflow.RequestNumber} berstatus {workflow.WorkflowStatus}, tetapi tahap aktif belum memiliki penugasan approver.");
+            }
+
+            return (false, null);
         }
 
         public async Task<WorkforcePlanningResult<InitialFormationBatchResponse>> CreateDraftAsync(
@@ -699,47 +929,234 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                     "Terdapat baris formasi yang bertentangan dengan formasi aktif atau batch lain (VR-WFP-11).");
             }
 
-            batch.BatchStatus = InitialFormationBatchStatus.Submitted;
-            batch.SubmittedAt = DateTime.UtcNow;
-            batch.SubmittedByUserId = currentUserId;
-            batch.RowVersion = Guid.NewGuid();
-            batch.UpdateDateTime = DateTime.UtcNow;
-            batch.UpdateBy = currentUserId;
+            // BE-HRD-FIN-WFP-009: Cegah workflow ganda akibat pengajuan berulang atau duplikasi eksekusi.
+            var workflowQuery = _dbContext.Set<TrxWorkflowInstance>()
+                .Include(w => w.StepInstances)
+                    .ThenInclude(s => s.ApproverAssignments)
+                .Where(w => !w.IsDelete &&
+                            w.ReferenceType == WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceInitialFormationBatch &&
+                            w.ReferenceId == batch.Id);
 
-            if (!string.IsNullOrWhiteSpace(request.Notes))
+            var existingActiveWorkflow = await workflowQuery
+                .OrderByDescending(w => w.CreateDateTime)
+                .FirstOrDefaultAsync(w =>
+                    w.WorkflowStatus == WorkflowValueConstants.WorkflowStatus.Submitted ||
+                    w.WorkflowStatus == WorkflowValueConstants.WorkflowStatus.InProgress,
+                    cancellationToken);
+
+            if (existingActiveWorkflow != null)
             {
-                batch.Notes = request.Notes.Trim();
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    $"Sudah terdapat pengajuan workflow aktif ({existingActiveWorkflow.RequestNumber}) untuk batch {batch.BatchNumber}. Jalankan pemulihan sinkronisasi jika status batch belum selaras.");
             }
 
-            // Kriteria 5: Panggil workflow T10
-            var workflowResult = await _workflowIntegrationService.StartWorkflowAsync(new StartWorkforcePlanningWorkflowRequest
-            {
-                WorkflowDefinitionCode = "HRD_T10_INITIAL_FORMATION",
-                ReferenceType = WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceInitialFormationBatch,
-                ReferenceId = batch.Id,
-                DocumentNumber = batch.BatchNumber,
-                SubmitComment = request.Notes ?? "Pengajuan Batch Formasi Awal",
-                AutoSubmit = true
-            }, cancellationToken);
+            // Pastikan belum ada formasi yang terlanjur terbentuk untuk batch ini.
+            var hasCreatedFormation = batch.Rows.Any(r => !r.IsDelete && r.CreatedFormationId.HasValue) ||
+                await _dbContext.HrdPositionFormations.AsNoTracking()
+                    .AnyAsync(f => !f.IsDelete &&
+                                   f.SourceType == PositionFormationSourceType.InitialBatch &&
+                                   f.SourceDocumentId == batch.Id,
+                              cancellationToken);
 
-            if (workflowResult.Success && workflowResult.Data != null)
+            if (hasCreatedFormation)
             {
-                batch.WorkflowInstanceId = workflowResult.Data.Id;
-                batch.WorkflowDefinitionId = workflowResult.Data.WorkflowDefinitionId;
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Batch ini sudah memiliki formasi yang terbentuk di Buku Formasi dan tidak dapat diajukan ulang.");
+            }
+
+            var activeRows = batch.Rows.Where(r => !r.IsDelete).ToList();
+            var totalFte = activeRows.Sum(r => r.FormationQuantity);
+            var siteName = await _dbContext.MstHospitalSites.AsNoTracking()
+                .Where(s => s.Id == batch.HospitalSiteId)
+                .Select(s => s.SiteName)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var firstRow = activeRows.FirstOrDefault();
+            string? firstUnitName = null;
+            string? firstPosName = null;
+            if (firstRow != null)
+            {
+                firstUnitName = await _dbContext.MstOrganizationUnits.AsNoTracking()
+                    .Where(u => u.Id == firstRow.OrganizationUnitId)
+                    .Select(u => u.UnitName)
+                    .FirstOrDefaultAsync(cancellationToken);
+                firstPosName = await _dbContext.MstPositions.AsNoTracking()
+                    .Where(p => p.Id == firstRow.PositionId)
+                    .Select(p => p.PositionName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            var requestContextJson = JsonSerializer.SerializeToElement(new
+            {
+                summary = $"Pengajuan Batch Formasi Awal {batch.BatchNumber} ({siteName ?? "-"}) — {activeRows.Count} posisi, total {totalFte:0.##} FTE (SK: {batch.SourceDocumentReference})",
+                source = new
+                {
+                    batchId = batch.Id,
+                    batchNumber = batch.BatchNumber
+                },
+                batchId = batch.Id,
+                batchNumber = batch.BatchNumber,
+                hospitalSiteId = batch.HospitalSiteId,
+                hospitalSiteName = siteName,
+                sourceDocumentReference = batch.SourceDocumentReference,
+                organizationUnitName = firstUnitName,
+                positionName = firstPosName,
+                effectiveStartDate = firstRow?.EffectiveStartDate.ToString("yyyy-MM-dd"),
+                totalRows = activeRows.Count,
+                totalFte
+            });
+
+            var submitComment = string.IsNullOrWhiteSpace(request.Notes)
+                ? $"Pengajuan Batch Formasi Awal {batch.BatchNumber}"
+                : request.Notes.Trim();
+
+            WorkflowServiceResult<WorkflowManagement.DTOs.WorkflowInstanceDetailResponse> workflowResult;
+
+            // Jika pengajuan ulang dari status Returned yang masih terhubung ke instans workflow Returned/RevisionRequested, ajukan ulang instans yang sama.
+            var resumableWorkflow = batch.WorkflowInstanceId.HasValue
+                ? await _dbContext.Set<TrxWorkflowInstance>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(w =>
+                        w.Id == batch.WorkflowInstanceId.Value &&
+                        !w.IsDelete &&
+                        w.ReferenceType == WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceInitialFormationBatch &&
+                        w.ReferenceId == batch.Id &&
+                        (w.WorkflowStatus == WorkflowValueConstants.WorkflowStatus.RevisionRequested ||
+                         w.WorkflowStatus == WorkflowValueConstants.WorkflowStatus.Returned ||
+                         w.WorkflowStatus == WorkflowValueConstants.WorkflowStatus.Draft),
+                        cancellationToken)
+                : null;
+
+            if (resumableWorkflow != null)
+            {
+                workflowResult = await _workflowIntegrationService.ResubmitWorkflowAsync(
+                    resumableWorkflow.Id,
+                    submitComment,
+                    cancellationToken);
             }
             else
             {
-                _logger.LogWarning(
-                    "Workflow T10 tidak dapat dimulai untuk batch {BatchNumber}: {Message}. Dokumen tetap berstatus Submitted.",
-                    batch.BatchNumber,
-                    workflowResult.Message);
+                // BE-HRD-FIN-WFP-008: Gunakan kode definisi workflow T10 existing dan pertahankan ReferenceType WorkforceInitialFormationBatch.
+                workflowResult = await _workflowIntegrationService.StartWorkflowAsync(new StartWorkforcePlanningWorkflowRequest
+                {
+                    WorkflowDefinitionCode = WorkforcePlanningValueConstants.WorkflowDefinitionCodes.ManpowerPlanAndInitialFormation,
+                    ReferenceType = WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceInitialFormationBatch,
+                    ReferenceId = batch.Id,
+                    DocumentNumber = batch.BatchNumber,
+                    RequestCorrelationId = batch.Id.ToString("N"),
+                    IdempotencyKey = $"ifb-submit:{batch.Id:N}:{batch.RowVersion:N}",
+                    RequestContext = requestContextJson,
+                    SubmitComment = submitComment,
+                    AutoSubmit = true
+                }, cancellationToken);
             }
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            // BE-HRD-FIN-WFP-009: Hilangkan false success submission. Jangan ubah status menjadi Submitted bila workflow gagal.
+            if (!workflowResult.Success || workflowResult.Data == null)
+            {
+                _dbContext.ChangeTracker.Clear();
+                var errorMessage = string.IsNullOrWhiteSpace(workflowResult.Message)
+                    ? "Workflow persetujuan T10 gagal dibuat atau diajukan. Status batch tetap dipertahankan."
+                    : workflowResult.Message;
 
-            _logger.LogInformation("Batch formasi awal {BatchNumber} berhasil diajukan (Submitted) ke workflow T10.", batch.BatchNumber);
+                _logger.LogWarning(
+                    "Pengajuan batch formasi awal {BatchNumber} ditolak karena workflow T10 gagal dimulai/diajukan ({StatusCode}): {Message}",
+                    batch.BatchNumber,
+                    workflowResult.StatusCode,
+                    errorMessage);
 
-            var response = await GetByIdAsync(batch.Id, cancellationToken);
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    workflowResult.StatusCode >= 400 ? workflowResult.StatusCode : StatusCodes.Status400BadRequest,
+                    errorMessage);
+            }
+
+            var hasActiveAssignment = workflowResult.Data.Steps.Any(s =>
+                s.IsCurrentStep &&
+                s.Assignments.Any(a => a.IsCurrentAssignment ||
+                    string.Equals(a.AssignmentStatus, WorkflowValueConstants.AssignmentStatus.Pending, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(a.AssignmentStatus, WorkflowValueConstants.AssignmentStatus.Available, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(a.AssignmentStatus, WorkflowValueConstants.AssignmentStatus.InProgress, StringComparison.OrdinalIgnoreCase)));
+
+            if (!hasActiveAssignment)
+            {
+                _logger.LogWarning(
+                    "Workflow instance {WorkflowInstanceId} untuk batch {BatchNumber} tidak memiliki penugasan approver tahap aktif. Menarik kembali instans workflow.",
+                    workflowResult.Data.Id,
+                    batch.BatchNumber);
+
+                await _workflowIntegrationService.WithdrawWorkflowAsync(
+                    workflowResult.Data.Id,
+                    currentUserId,
+                    "Penarikan otomatis karena tidak ada penugasan approver tahap aktif pada workflow T10.",
+                    cancellationToken);
+
+                _dbContext.ChangeTracker.Clear();
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tahap aktif workflow T10 belum memiliki penugasan approver yang valid. Periksa konfigurasi approver dan matrix persetujuan T10.");
+            }
+
+            // Reload entity batch setelah transaksi WorkflowService selesai agar tidak terjadi nested transaction / tracking stale.
+            _dbContext.ChangeTracker.Clear();
+            var trackedBatch = await _dbContext.HrdInitialFormationBatches
+                .FirstOrDefaultAsync(b => b.Id == batch.Id && !b.IsDelete, cancellationToken);
+
+            if (trackedBatch == null)
+            {
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    StatusCodes.Status404NotFound, "Batch formasi awal tidak ditemukan setelah pembuatan workflow.");
+            }
+
+            if (trackedBatch.RowVersion != request.RowVersion)
+            {
+                await _workflowIntegrationService.WithdrawWorkflowAsync(
+                    workflowResult.Data.Id,
+                    currentUserId,
+                    "Penarikan otomatis akibat konflik konkurensi (RowVersion) saat menyimpan pengajuan batch.",
+                    cancellationToken);
+
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Data batch telah berubah saat pengajuan berlangsung. Pengajuan dibatalkan agar tidak meninggalkan workflow ganda.");
+            }
+
+            trackedBatch.WorkflowInstanceId = workflowResult.Data.Id;
+            trackedBatch.WorkflowDefinitionId = workflowResult.Data.WorkflowDefinitionId;
+            trackedBatch.BatchStatus = InitialFormationBatchStatus.Submitted;
+            trackedBatch.SubmittedAt = workflowResult.Data.SubmittedAt ?? DateTime.UtcNow;
+            trackedBatch.SubmittedByUserId = currentUserId;
+            trackedBatch.RowVersion = Guid.NewGuid();
+            trackedBatch.UpdateDateTime = DateTime.UtcNow;
+            trackedBatch.UpdateBy = currentUserId;
+
+            if (!string.IsNullOrWhiteSpace(request.Notes))
+            {
+                trackedBatch.Notes = request.Notes.Trim();
+            }
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Gagal menyimpan status Submitted untuk batch {BatchNumber} setelah workflow T10 dibuat. Menarik kembali workflow {WorkflowId}.", batch.BatchNumber, workflowResult.Data.Id);
+                await _workflowIntegrationService.WithdrawWorkflowAsync(
+                    workflowResult.Data.Id,
+                    currentUserId,
+                    "Penarikan otomatis karena penyimpanan pembaruan status batch formasi awal gagal.",
+                    cancellationToken);
+
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Gagal menyimpan pengajuan batch ke database. Perubahan workflow telah ditarik kembali.");
+            }
+
+            _logger.LogInformation("Batch formasi awal {BatchNumber} berhasil diajukan (Submitted) ke workflow T10 ({RequestNumber}).", trackedBatch.BatchNumber, workflowResult.Data.RequestNumber);
+
+            var response = await GetByIdAsync(trackedBatch.Id, cancellationToken);
             return WorkforcePlanningResult<InitialFormationBatchResponse>.Ok(
                 response!, "Batch formasi awal berhasil diajukan ke workflow persetujuan T10.");
         }
@@ -808,6 +1225,181 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
             var response = await GetByIdAsync(batch.Id, cancellationToken);
             return WorkforcePlanningResult<InitialFormationBatchResponse>.Ok(
                 response!, "Batch formasi awal berhasil dibatalkan.");
+        }
+
+        public async Task<WorkforcePlanningResult<InitialFormationBatchResponse>> RecoverAsync(
+            Guid id,
+            RecoverInitialFormationBatchRequest request,
+            Guid currentUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (currentUserId == Guid.Empty)
+            {
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    StatusCodes.Status401Unauthorized, "Identitas pengguna tidak valid.");
+            }
+
+            if (request == null || string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length < 10)
+            {
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    StatusCodes.Status400BadRequest, "Alasan pemulihan batch wajib diisi minimal 10 karakter.");
+            }
+
+            var batch = await _dbContext.HrdInitialFormationBatches
+                .Include(b => b.Rows)
+                .FirstOrDefaultAsync(b => b.Id == id && !b.IsDelete, cancellationToken);
+
+            if (batch == null)
+            {
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    StatusCodes.Status404NotFound, "Batch formasi awal tidak ditemukan.");
+            }
+
+            if (batch.RowVersion != request.RowVersion)
+            {
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    StatusCodes.Status409Conflict, "Data batch telah diperbarui oleh proses atau pengguna lain.");
+            }
+
+            if (batch.BatchStatus == InitialFormationBatchStatus.Applied)
+            {
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    StatusCodes.Status409Conflict, "Batch formasi awal sudah diterapkan (Applied) dan tidak perlu dipulihkan.");
+            }
+
+            if (batch.BatchStatus != InitialFormationBatchStatus.Submitted)
+            {
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    $"Pemulihan hanya berlaku untuk batch berstatus Submitted (saat ini: {batch.BatchStatus}).");
+            }
+
+            // Guard 1: Pastikan batch belum menghasilkan formasi di tabel HrdPositionFormations ataupun pada barisnya
+            var hasRowFormation = batch.Rows.Any(r => !r.IsDelete && r.CreatedFormationId.HasValue);
+            var hasBookFormation = await _dbContext.HrdPositionFormations.AsNoTracking()
+                .AnyAsync(f => !f.IsDelete &&
+                               f.SourceType == PositionFormationSourceType.InitialBatch &&
+                               f.SourceDocumentId == batch.Id,
+                          cancellationToken);
+
+            if (hasRowFormation || hasBookFormation)
+            {
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Batch ini sudah menghasilkan data formasi pada Buku Formasi sehingga tidak boleh dipulihkan atau dikembalikan ke Draft.");
+            }
+
+            // Guard 2: Periksa semua workflow berdasarkan ReferenceType dan ReferenceId (termasuk yang belum selesai dibuat)
+            var existingWorkflows = await _dbContext.Set<TrxWorkflowInstance>()
+                .Include(w => w.StepInstances)
+                    .ThenInclude(s => s.ApproverAssignments)
+                .Where(w => !w.IsDelete &&
+                            w.ReferenceType == WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceInitialFormationBatch &&
+                            w.ReferenceId == batch.Id)
+                .OrderByDescending(w => w.CreateDateTime)
+                .ToListAsync(cancellationToken);
+
+            var actorName = await _dbContext.Users.AsNoTracking()
+                .Where(u => u.Id == currentUserId)
+                .Select(u => !string.IsNullOrWhiteSpace(u.DisplayName) ? u.DisplayName : u.UserName ?? currentUserId.ToString())
+                .FirstOrDefaultAsync(cancellationToken) ?? currentUserId.ToString();
+
+            var now = DateTime.UtcNow;
+
+            // Pastikan batch belum memperoleh keputusan akhir pada engine workflow
+            var finalWorkflow = existingWorkflows.FirstOrDefault(w =>
+                string.Equals(w.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Completed, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(w.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Approved, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(w.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Rejected, StringComparison.OrdinalIgnoreCase));
+
+            if (finalWorkflow != null)
+            {
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    $"Workflow {finalWorkflow.RequestNumber} untuk batch {batch.BatchNumber} sudah memiliki keputusan akhir ({finalWorkflow.WorkflowStatus}) dan tidak dapat dikembalikan ke Draft.");
+            }
+
+            // Cek apakah sudah tersedia workflow aktif yang sah dan mempunyai penugasan approver tahap aktif
+            var validActiveWorkflow = existingWorkflows.FirstOrDefault(w =>
+                (string.Equals(w.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Submitted, StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(w.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.InProgress, StringComparison.OrdinalIgnoreCase)) &&
+                w.StepInstances.Any(s =>
+                    !s.IsDelete &&
+                    s.IsCurrentStep &&
+                    s.ApproverAssignments.Any(a => !a.IsDelete && a.IsActive)));
+
+            if (validActiveWorkflow != null)
+            {
+                if (batch.WorkflowInstanceId == validActiveWorkflow.Id &&
+                    batch.WorkflowDefinitionId == validActiveWorkflow.WorkflowDefinitionId)
+                {
+                    return WorkforcePlanningResult<InitialFormationBatchResponse>.Fail(
+                        StatusCodes.Status409Conflict,
+                        $"Batch {batch.BatchNumber} sudah terhubung secara sah ke workflow {validActiveWorkflow.RequestNumber}.");
+                }
+
+                batch.WorkflowInstanceId = validActiveWorkflow.Id;
+                batch.WorkflowDefinitionId = validActiveWorkflow.WorkflowDefinitionId;
+                batch.RowVersion = Guid.NewGuid();
+                batch.UpdateDateTime = now;
+                batch.UpdateBy = currentUserId;
+
+                var reconcileNote = $"[{now:yyyy-MM-dd HH:mm:ss} UTC][Pemulihan Rekonsiliasi oleh {actorName}]: Menghubungkan ulang ke workflow {validActiveWorkflow.RequestNumber} ({validActiveWorkflow.WorkflowStatus}). Alasan: {request.Reason.Trim()}";
+                batch.Notes = string.IsNullOrWhiteSpace(batch.Notes) ? reconcileNote : $"{batch.Notes}\n{reconcileNote}";
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation(
+                    "Batch {BatchNumber} direkonsiliasi ke workflow sah {RequestNumber} oleh {ActorUserId}.",
+                    batch.BatchNumber,
+                    validActiveWorkflow.RequestNumber,
+                    currentUserId);
+
+                var reconciledResponse = await GetByIdAsync(batch.Id, cancellationToken);
+                return WorkforcePlanningResult<InitialFormationBatchResponse>.Ok(
+                    reconciledResponse!,
+                    $"Referensi batch {batch.BatchNumber} berhasil direkonsiliasi ke workflow {validActiveWorkflow.RequestNumber}.");
+            }
+
+            // Tutup / bersihkan workflow yang belum selesai atau tanpa assignment sebelum mengembalikan batch ke Draft
+            foreach (var brokenWorkflow in existingWorkflows.Where(w =>
+                !string.Equals(w.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Cancelled, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(w.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Withdrawn, StringComparison.OrdinalIgnoreCase)))
+            {
+                brokenWorkflow.WorkflowStatus = WorkflowValueConstants.WorkflowStatus.Cancelled;
+                brokenWorkflow.CancelledAt = now;
+                brokenWorkflow.CancellationReason = $"Dibatalkan saat pemulihan batch {batch.BatchNumber} ke Draft oleh {actorName}: {request.Reason.Trim()}";
+                brokenWorkflow.IsActive = false;
+                brokenWorkflow.UpdateDateTime = now;
+                brokenWorkflow.UpdateBy = currentUserId;
+            }
+
+            batch.BatchStatus = InitialFormationBatchStatus.Draft;
+            batch.WorkflowInstanceId = null;
+            batch.WorkflowDefinitionId = null;
+            batch.SubmittedAt = null;
+            batch.SubmittedByUserId = null;
+            batch.ApprovedAt = null;
+            batch.ApprovedByUserId = null;
+            batch.AppliedAt = null;
+            batch.RowVersion = Guid.NewGuid();
+            batch.UpdateDateTime = now;
+            batch.UpdateBy = currentUserId;
+
+            var recoveryNote = $"[{now:yyyy-MM-dd HH:mm:ss} UTC][Pemulihan ke Draft oleh {actorName}]: Status batch dikembalikan dari Submitted ke Draft karena tidak ada workflow T10 yang sah. Alasan: {request.Reason.Trim()}";
+            batch.Notes = string.IsNullOrWhiteSpace(batch.Notes) ? recoveryNote : $"{batch.Notes}\n{recoveryNote}";
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Batch {BatchNumber} berhasil dipulihkan ke Draft oleh {ActorUserId} tanpa mengubah nomor batch, baris formasi, atau dokumen SK.",
+                batch.BatchNumber,
+                currentUserId);
+
+            var recoveredResponse = await GetByIdAsync(batch.Id, cancellationToken);
+            return WorkforcePlanningResult<InitialFormationBatchResponse>.Ok(
+                recoveredResponse!,
+                $"Batch {batch.BatchNumber} berhasil dipulihkan ke status Draft dan siap diajukan ulang.");
         }
     }
 }

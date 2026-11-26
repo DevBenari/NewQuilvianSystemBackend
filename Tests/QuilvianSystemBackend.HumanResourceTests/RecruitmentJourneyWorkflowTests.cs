@@ -942,6 +942,204 @@ public sealed class RecruitmentJourneyWorkflowTests : IDisposable
         Assert.Equal("Evaluate", (string)permAttr.Arguments[1]);
     }
 
+    [Fact]
+    public async Task Finishing_Journey_ConditionalAccepted_Mcu_Handoff_Dan_TalentPool_Eligibility_Konsisten()
+    {
+        using var ctx = _db.CreateContext();
+        var super = MakePrincipal(_superUserId, "Super");
+        var approver = MakePrincipal(_approverUserId, "Approver");
+        var offerSvc = new JobOfferService(ctx);
+        var approvalSvc = new JobOfferApprovalService(ctx);
+        var mcuSvc = new McuClearanceService(ctx, Pelaku.Izin(ctx));
+        var poolSvc = new TalentPoolService(ctx);
+        var journeySvc = new RecruitmentJourneyService(ctx, Pelaku.Izin(ctx));
+
+        // Akun HR berhak baca MCU + buat Talent Pool, tetapi TIDAK berhak terbitkan rujukan MCU & TIDAK berhak baca Talent Pool
+        var hrPoolOnlyId = Guid.NewGuid();
+        ctx.Users.Add(new ApplicationUser
+        {
+            Id = hrPoolOnlyId,
+            UserName = "hrpool",
+            UserCode = "HRPOOL01",
+            DisplayName = "HR Tanpa Izin MCU Create",
+            UserType = UserType.Employee,
+            IsActive = true
+        });
+        var deptId = Guid.NewGuid();
+        var posId = Guid.NewGuid();
+        ctx.ApplicationUserOrganizations.Add(new ApplicationUserOrganization
+        {
+            UserId = hrPoolOnlyId,
+            DepartmentId = deptId,
+            PositionId = posId,
+            IsActive = true
+        });
+        foreach (var (res, act) in new[]
+                 {
+                     ("Candidate", "Read"),
+                     ("CandidateScreening", "Read"),
+                     ("CandidateEvaluation", "Read"),
+                     ("JobOffer", "Read"),
+                     ("OccupationalHealthClearance", "Read"),
+                     ("TalentPool", "Create"),
+                     ("HiringHandoff", "Read")
+                 })
+        {
+            var ctrl = ctx.SysControllerAccesses.FirstOrDefault(x => x.ControllerName == res)
+                       ?? new SysControllerAccess { ModuleId = Guid.NewGuid(), ControllerName = res, DisplayName = res };
+            if (ctx.Entry(ctrl).State == EntityState.Detached) ctx.SysControllerAccesses.Add(ctrl);
+            var action = ctx.SysActionAccesses.FirstOrDefault(x => x.ControllerAccessId == ctrl.Id && x.ActionName == act)
+                         ?? new SysActionAccess { ControllerAccessId = ctrl.Id, ActionName = act, DisplayName = act, AccessType = "Read" };
+            if (ctx.Entry(action).State == EntityState.Detached) ctx.SysActionAccesses.Add(action);
+            ctx.SysAccessPolicies.Add(new SysAccessPolicy
+            {
+                DepartmentId = deptId,
+                PositionId = posId,
+                ControllerAccessId = ctrl.Id,
+                ActionAccessId = action.Id,
+                IsAllowed = true,
+                IsActive = true
+            });
+        }
+
+        // Kandidat Aulia-like pada lowongan klinis (QuotaSeats = 2), terisi 1/2
+        var (cand1Id, app1Id) = SeedApplication(ctx, clinical: true, nik: "3174010101909101");
+        ctx.HrdCandidateScreenings.Add(new HrdCandidateScreening { Id = Guid.NewGuid(), ApplicationId = app1Id, Status = ScreeningStatus.Passed, ClinicalScreeningResult = ClinicalScreeningResult.StrValid });
+        ctx.HrdCandidateEvaluations.AddRange(
+            new HrdCandidateEvaluation { Id = Guid.NewGuid(), ApplicationId = app1Id, EvaluationType = EvaluationType.HrInterview, EvaluatorUserId = _superUserId, Score = 94m, Recommendation = EvaluationRecommendation.Recommended, UpdateDateTime = DateTime.UtcNow },
+            new HrdCandidateEvaluation { Id = Guid.NewGuid(), ApplicationId = app1Id, EvaluationType = EvaluationType.ClinicalAssessment, EvaluatorUserId = _clinicalAssessorUserId, Score = 80m, Recommendation = EvaluationRecommendation.Recommended, UpdateDateTime = DateTime.UtcNow });
+        ctx.SaveChanges();
+
+        var o1 = await offerSvc.CreateAsync(new CreateJobOfferRequest
+        {
+            ApplicationId = app1Id,
+            SalaryGradeId = _salaryGradeId,
+            ContractTypeId = _contractTypePkwtId,
+            ContractDurationMonths = 12,
+            OfferedBasicSalary = 9500000m,
+            OfferedPositionTitle = "Perawat IGD",
+            ProposedJoinDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)),
+            ExpiryDate = DateTime.UtcNow.AddDays(7)
+        }, super);
+        Assert.True(o1.Success, o1.Message);
+        Assert.True((await approvalSvc.ApproveOfferStepAsync(o1.Data!.Id, new ApproveJobOfferRequest(), approver)).Success);
+        Assert.True((await approvalSvc.ApproveOfferStepAsync(o1.Data.Id, new ApproveJobOfferRequest(), approver)).Success);
+        Assert.True((await offerSvc.SendConditionalOfferAsync(o1.Data.Id, new SendConditionalOfferRequest(), super)).Success);
+        Assert.True((await offerSvc.CandidateRespondAsync(o1.Data.Id, new CandidateOfferResponseRequest { ResponseStatus = JobOfferStatus.ConditionalAccepted }, super)).Success);
+
+        // 1. SuperAdmin melihat tahap aktif = MCU Pra-Kerja (WAITING), NextAction = REGISTER_MCU_REFERRAL, TANPA ENROLL_TALENT_POOL
+        var j1Super = await journeySvc.GetApplicationJourneyAsync(app1Id, super);
+        Assert.True(j1Super.Success);
+        Assert.Equal(RecruitmentJourneyStageKeys.PreEmploymentMcu, j1Super.Data!.CurrentStageKey);
+        Assert.Equal("REGISTER_MCU_REFERRAL", j1Super.Data.NextAction!.ActionCode);
+        Assert.DoesNotContain(j1Super.Data.AllowedActions, a => a.ActionCode == "ENROLL_TALENT_POOL");
+        var mcuStageSuper = j1Super.Data.Stages.Single(s => s.StageKey == RecruitmentJourneyStageKeys.PreEmploymentMcu);
+        Assert.Equal(RecruitmentJourneyStageStatuses.Waiting, mcuStageSuper.Status);
+
+        // 2. User dengan TalentPool.Create tanpa MCU.Create -> TIDAK boleh dialihkan ke Talent Pool!
+        var hrPoolPrincipal = MakePrincipal(hrPoolOnlyId, "HRPoolOnly");
+        var j1NoMcuCreate = await journeySvc.GetApplicationJourneyAsync(app1Id, hrPoolPrincipal);
+        Assert.True(j1NoMcuCreate.Success);
+        Assert.Equal(RecruitmentJourneyStageKeys.PreEmploymentMcu, j1NoMcuCreate.Data!.CurrentStageKey);
+        Assert.Equal("AWAITING_MCU_REFERRAL_PERMISSION", j1NoMcuCreate.Data.NextAction!.ActionCode);
+        Assert.DoesNotContain(j1NoMcuCreate.Data.AllowedActions, a => a.ActionCode == "ENROLL_TALENT_POOL");
+
+        // 3. Direct API /talent-pool/enroll & eligible-applications wajib menolak kandidat ConditionalAccepted
+        var tpEligibleBefore = await poolSvc.GetEligibleApplicationsAsync(null, null);
+        Assert.DoesNotContain(tpEligibleBefore.Data!, x => x.ApplicationId == app1Id);
+        var directEnroll1 = await poolSvc.EnrollAsync(new EnrollTalentPoolRequest
+        {
+            CandidateId = cand1Id,
+            OriginalVacancyId = _vacClinicalId,
+            QualificationSummary = "Coba bypass offer ConditionalAccepted",
+            RankingScore = 87m,
+            RankingPosition = 1
+        }, super);
+        Assert.False(directEnroll1.Success);
+        Assert.Equal(422, directEnroll1.StatusCode);
+
+        // 4. Register MCU (Pending) -> tidak boleh tawarkan rujukan kedua; Fit -> lanjut Handoff
+        var mcuReg = await mcuSvc.RegisterMcuAsync(new RegisterMcuRequest { OfferId = o1.Data.Id, ClinicOrFacility = "RS Uji K3RS" }, super);
+        Assert.True(mcuReg.Success);
+        var j1PendingMcu = await journeySvc.GetApplicationJourneyAsync(app1Id, super);
+        Assert.Equal("RECORD_MCU_RESULT", j1PendingMcu.Data!.NextAction!.ActionCode);
+        Assert.DoesNotContain(j1PendingMcu.Data.AllowedActions, a => a.ActionCode == "REGISTER_MCU_REFERRAL");
+
+        Assert.True((await mcuSvc.RecordResultAsync(mcuReg.Data!.Id, new RecordMcuResultRequest
+        {
+            ClearanceResult = McuClearanceResult.Fit,
+            ExaminingDoctorName = "dr. K3RS",
+            CheckDate = DateTime.UtcNow
+        }, MakePrincipal(_medicalDoctorUserId, "K3RS"))).Success);
+
+        var j1AfterFit = await journeySvc.GetApplicationJourneyAsync(app1Id, super);
+        Assert.Equal(RecruitmentJourneyStageKeys.HandoffOnboarding, j1AfterFit.Data!.CurrentStageKey);
+        Assert.Equal("GENERATE_HIRING_HANDOFF", j1AfterFit.Data.NextAction!.ActionCode);
+
+        // 5. Isi kursi ke-2 lowongan klinis (2/2) agar kandidat ke-3 (cadangan tanpa konflik offer) menjadi eligible Talent Pool
+        var (_, app2Id) = SeedApplication(ctx, clinical: true, nik: "3174010101909102");
+        ctx.HrdCandidateScreenings.Add(new HrdCandidateScreening { Id = Guid.NewGuid(), ApplicationId = app2Id, Status = ScreeningStatus.Passed, ClinicalScreeningResult = ClinicalScreeningResult.StrValid });
+        ctx.HrdCandidateEvaluations.AddRange(
+            new HrdCandidateEvaluation { Id = Guid.NewGuid(), ApplicationId = app2Id, EvaluationType = EvaluationType.HrInterview, EvaluatorUserId = _superUserId, Score = 91m, Recommendation = EvaluationRecommendation.Recommended, UpdateDateTime = DateTime.UtcNow },
+            new HrdCandidateEvaluation { Id = Guid.NewGuid(), ApplicationId = app2Id, EvaluationType = EvaluationType.ClinicalAssessment, EvaluatorUserId = _clinicalAssessorUserId, Score = 89m, Recommendation = EvaluationRecommendation.Recommended, UpdateDateTime = DateTime.UtcNow });
+        ctx.SaveChanges();
+        var o2 = await offerSvc.CreateAsync(new CreateJobOfferRequest
+        {
+            ApplicationId = app2Id,
+            SalaryGradeId = _salaryGradeId,
+            ContractTypeId = _contractTypePkwtId,
+            ContractDurationMonths = 12,
+            OfferedBasicSalary = 9500000m,
+            OfferedPositionTitle = "Perawat IGD",
+            ProposedJoinDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)),
+            ExpiryDate = DateTime.UtcNow.AddDays(7)
+        }, super);
+        Assert.True(o2.Success, o2.Message);
+
+        var (cand3Id, app3Id) = SeedApplication(ctx, clinical: true, nik: "3174010101909103");
+        ctx.HrdCandidateScreenings.Add(new HrdCandidateScreening { Id = Guid.NewGuid(), ApplicationId = app3Id, Status = ScreeningStatus.Passed, ClinicalScreeningResult = ClinicalScreeningResult.StrValid });
+        ctx.HrdCandidateEvaluations.AddRange(
+            new HrdCandidateEvaluation { Id = Guid.NewGuid(), ApplicationId = app3Id, EvaluationType = EvaluationType.HrInterview, EvaluatorUserId = _superUserId, Score = 84m, Recommendation = EvaluationRecommendation.Recommended, UpdateDateTime = DateTime.UtcNow },
+            new HrdCandidateEvaluation { Id = Guid.NewGuid(), ApplicationId = app3Id, EvaluationType = EvaluationType.ClinicalAssessment, EvaluatorUserId = _clinicalAssessorUserId, Score = 86m, Recommendation = EvaluationRecommendation.Recommended, UpdateDateTime = DateTime.UtcNow });
+        ctx.SaveChanges();
+
+        var tpEligibleFull = await poolSvc.GetEligibleApplicationsAsync(null, null);
+        var row3 = Assert.Single(tpEligibleFull.Data!, x => x.ApplicationId == app3Id);
+        Assert.Equal(2, row3.QuotaSeats);
+        Assert.Equal(2, row3.FilledOrOfferedCount);
+        Assert.Equal(85m, row3.SuggestedRankingScore);
+
+        var j3BeforeEnroll = await journeySvc.GetApplicationJourneyAsync(app3Id, hrPoolPrincipal);
+        Assert.Contains(j3BeforeEnroll.Data!.AllowedActions, a => a.ActionCode == "ENROLL_TALENT_POOL");
+        Assert.Equal("ENROLL_TALENT_POOL", j3BeforeEnroll.Data.NextAction!.ActionCode);
+
+        var okEnroll3 = await poolSvc.EnrollAsync(new EnrollTalentPoolRequest
+        {
+            CandidateId = cand3Id,
+            OriginalVacancyId = _vacClinicalId,
+            QualificationSummary = "Kandidat cadangan memenuhi seluruh asesmen saat kuota 2/2 penuh.",
+            RankingScore = 85m,
+            RankingPosition = 1,
+            RetentionMonths = 6
+        }, super);
+        Assert.True(okEnroll3.Success, okEnroll3.Message);
+
+        // Setelah terdaftar, meskipun user TIDAK memiliki TalentPool.Read, validasi duplikasi bisnis TIDAK boleh lagi menawarkan ENROLL_TALENT_POOL
+        var j3AfterEnrollNoRead = await journeySvc.GetApplicationJourneyAsync(app3Id, hrPoolPrincipal);
+        Assert.DoesNotContain(j3AfterEnrollNoRead.Data!.AllowedActions, a => a.ActionCode == "ENROLL_TALENT_POOL");
+        Assert.Null(j3AfterEnrollNoRead.Data.TalentPoolReference);
+
+        var dupEnroll3 = await poolSvc.EnrollAsync(new EnrollTalentPoolRequest
+        {
+            CandidateId = cand3Id,
+            OriginalVacancyId = _vacClinicalId,
+            QualificationSummary = "Duplikasi",
+            RankingScore = 85m,
+            RankingPosition = 1
+        }, super);
+        Assert.Equal(409, dupEnroll3.StatusCode);
+    }
+
     private sealed class JourneyDbFactory(JourneyTestDb db) : IDbContextFactory<ApplicationDbContext>
     {
         public ApplicationDbContext CreateDbContext() => db.CreateContext();

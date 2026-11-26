@@ -73,6 +73,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int QuotaSeats { get; set; }
+        public int OccupiedSeats { get; set; }
+        public int RemainingSeats { get; set; }
         public bool IsClinical { get; set; }
         public DateTime? PublishDate { get; set; }
         public DateTime? ClosingDate { get; set; }
@@ -95,6 +97,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int QuotaSeats { get; set; }
+        public int OccupiedSeats { get; set; }
+        public int RemainingSeats { get; set; }
         public bool IsClinical { get; set; }
         public DateTime? PublishDate { get; set; }
         public DateTime? ClosingDate { get; set; }

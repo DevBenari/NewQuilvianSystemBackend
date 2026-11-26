@@ -114,13 +114,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 .Include(a => a.Vacancy)
                 .Include(a => a.Screening)
                 .Include(a => a.Evaluations)
+                .Include(a => a.Offers)
                 .Where(a => !a.IsDelete
                             && a.Candidate != null && !a.Candidate.IsDelete
-                            && a.Candidate.Status != CandidateStatus.Blacklisted
-                            && a.Candidate.Status != CandidateStatus.Hired
-                            && a.Vacancy != null && !a.Vacancy.IsDelete
-                            && a.Screening != null && !a.Screening.IsDelete && a.Screening.Status == ScreeningStatus.Passed
-                            && !_dbContext.HrdTalentPools.Any(t => t.CandidateId == a.CandidateId && t.Status == TalentPoolStatus.Active && !t.IsDelete));
+                            && a.Vacancy != null && !a.Vacancy.IsDelete);
 
             if (vacancyId.HasValue && vacancyId.Value != Guid.Empty)
             {
@@ -137,22 +134,80 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             }
 
             var apps = await dbQuery.OrderByDescending(a => a.ApplicationDate).ToListAsync(cancellationToken);
+            if (apps.Count == 0)
+            {
+                return RecruitmentResult<List<EligibleTalentPoolApplicationResponse>>.Ok(
+                    new List<EligibleTalentPoolApplicationResponse>(),
+                    "Daftar lamaran layak Talent Pool berhasil diambil.");
+            }
+
             var vacancyIds = apps.Select(a => a.VacancyId).Distinct().ToList();
-            var occupiedByVacancy = await CountOccupiedSeatsByVacancyAsync(vacancyIds, cancellationToken);
+            var candidateIds = apps.Select(a => a.CandidateId).Distinct().ToList();
+            var offerIds = apps
+                .SelectMany(a => a.Offers.Where(o => !o.IsDelete).Select(o => o.Id))
+                .Distinct()
+                .ToList();
+
+            var occupiedByVacancy = await RecruitmentJourneyPolicy.CountOccupiedSeatsByVacancyAsync(_dbContext, vacancyIds, cancellationToken);
+
+            var activeTalentPoolCandidateIds = (await _dbContext.HrdTalentPools
+                .AsNoTracking()
+                .Where(t => candidateIds.Contains(t.CandidateId)
+                            && t.Status == TalentPoolStatus.Active
+                            && !t.IsDelete)
+                .Select(t => t.CandidateId)
+                .Distinct()
+                .ToListAsync(cancellationToken))
+                .ToHashSet();
+
+            var activeHandoffOfferIds = offerIds.Count == 0
+                ? new HashSet<Guid>()
+                : (await _dbContext.HrdCandidateHiringHandoffs
+                    .AsNoTracking()
+                    .Where(h => !h.IsDelete && h.Status != HandoffStatus.Cancelled && offerIds.Contains(h.OfferId))
+                    .Select(h => h.OfferId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken))
+                    .ToHashSet();
+
+            var mcuByOfferId = offerIds.Count == 0
+                ? new Dictionary<Guid, HrdPreEmploymentMedicalCheck>()
+                : await _dbContext.HrdPreEmploymentMedicalChecks
+                    .AsNoTracking()
+                    .Where(m => !m.IsDelete && offerIds.Contains(m.OfferId))
+                    .OrderByDescending(m => m.ReferralDate)
+                    .GroupBy(m => m.OfferId)
+                    .ToDictionaryAsync(g => g.Key, g => g.First(), cancellationToken);
 
             var eligible = new List<EligibleTalentPoolApplicationResponse>();
             foreach (var app in apps)
             {
                 var evals = app.Evaluations.Where(e => !e.IsDelete).ToList();
-                var prereq = RecruitmentJourneyPolicy.EvaluateOfferPrerequisites(app, app.Vacancy, app.Screening, evals, app.Candidate);
-                if (!prereq.CanCreateOffer || prereq.HasClinicalVeto)
+                var appOffers = app.Offers.Where(o => !o.IsDelete).OrderByDescending(o => o.CreateDateTime).ToList();
+                var latestOffer = appOffers.FirstOrDefault();
+                HrdPreEmploymentMedicalCheck? latestMcu = null;
+                if (latestOffer != null)
                 {
-                    continue;
+                    mcuByOfferId.TryGetValue(latestOffer.Id, out latestMcu);
                 }
 
-                var quota = app.Vacancy?.QuotaSeats ?? 0;
+                var hasActiveHandoff = appOffers.Any(o => activeHandoffOfferIds.Contains(o.Id));
+                var hasActiveTp = activeTalentPoolCandidateIds.Contains(app.CandidateId);
                 var occupied = occupiedByVacancy.TryGetValue(app.VacancyId, out var c) ? c : 0;
-                if (quota > 0 && occupied < quota)
+
+                var eligibility = RecruitmentJourneyPolicy.EvaluateTalentPoolEligibility(
+                    app.Candidate,
+                    app.Vacancy,
+                    app,
+                    app.Screening,
+                    evals,
+                    appOffers,
+                    latestMcu,
+                    hasActiveHandoff,
+                    hasActiveTp,
+                    occupied);
+
+                if (!eligibility.IsEligible)
                 {
                     continue;
                 }
@@ -170,7 +225,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     .FirstOrDefault();
 
                 var scores = new[] { hrScore, clinScore }.Where(s => s.HasValue).Select(s => s!.Value).ToList();
-                var suggestedScore = scores.Count > 0 ? Math.Round(scores.Average(), 2) : 0m;
+                decimal? suggestedScore = scores.Count > 0 ? Math.Round(scores.Average(), 2) : null;
 
                 eligible.Add(new EligibleTalentPoolApplicationResponse
                 {
@@ -181,8 +236,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     CandidateName = app.Candidate?.FullName ?? string.Empty,
                     OriginalVacancyId = app.VacancyId,
                     OriginalVacancyTitle = app.Vacancy?.Title ?? string.Empty,
-                    QuotaSeats = quota,
-                    FilledOrOfferedCount = occupied,
+                    QuotaSeats = eligibility.QuotaSeats,
+                    FilledOrOfferedCount = eligibility.OccupiedSeats,
                     HrScore = hrScore,
                     ClinicalScore = clinScore,
                     SuggestedRankingScore = suggestedScore
@@ -228,12 +283,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<TalentPoolResponse>.NotFound("Kandidat tidak ditemukan.");
             }
 
-            if (candidate.Status == CandidateStatus.Blacklisted || candidate.Status == CandidateStatus.Hired)
-            {
-                return RecruitmentResult<TalentPoolResponse>.Unprocessable(
-                    $"Kandidat berstatus '{candidate.Status}' tidak memenuhi syarat masuk Talent Pool.");
-            }
-
             var vacancy = await _dbContext.HrdJobVacancies
                 .FirstOrDefaultAsync(v => v.Id == request.OriginalVacancyId && !v.IsDelete, cancellationToken);
 
@@ -242,52 +291,64 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<TalentPoolResponse>.NotFound("Lowongan asal tidak ditemukan.");
             }
 
-            // Wajib memiliki lamaran aktif pada lowongan asal dan lulus screening + evaluasi tanpa veto klinis (HRD-DEC-080)
+            // Wajib memiliki lamaran aktif pada lowongan asal dan memenuhi seluruh syarat kebijakan Talent Pool (HRD-DEC-080)
             var originApplication = await _dbContext.HrdCandidateApplications
                 .AsNoTracking()
                 .Include(a => a.Screening)
                 .Include(a => a.Evaluations)
-                .FirstOrDefaultAsync(a => a.CandidateId == request.CandidateId
-                                          && a.VacancyId == request.OriginalVacancyId
-                                          && !a.IsDelete, cancellationToken);
+                .Include(a => a.Offers)
+                .Where(a => a.CandidateId == request.CandidateId
+                            && a.VacancyId == request.OriginalVacancyId
+                            && !a.IsDelete)
+                .OrderByDescending(a => a.ApplicationDate)
+                .FirstOrDefaultAsync(cancellationToken);
 
-            if (originApplication == null)
-            {
-                return RecruitmentResult<TalentPoolResponse>.Unprocessable(
-                    "Kandidat tidak memiliki lamaran yang sah pada lowongan asal untuk dimasukkan ke Talent Pool.");
-            }
+            var activeOffers = originApplication?.Offers.Where(o => !o.IsDelete).OrderByDescending(o => o.CreateDateTime).ToList()
+                ?? new List<HrdJobOffer>();
+            var latestOffer = activeOffers.FirstOrDefault();
+            var offerIds = activeOffers.Select(o => o.Id).ToList();
 
-            var prereq = RecruitmentJourneyPolicy.EvaluateOfferPrerequisites(
-                originApplication,
+            var latestMcu = latestOffer == null
+                ? null
+                : await _dbContext.HrdPreEmploymentMedicalChecks
+                    .AsNoTracking()
+                    .Where(m => m.OfferId == latestOffer.Id && !m.IsDelete)
+                    .OrderByDescending(m => m.ReferralDate)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+            var hasActiveHandoff = offerIds.Count > 0 && await _dbContext.HrdCandidateHiringHandoffs
+                .AsNoTracking()
+                .AnyAsync(h => !h.IsDelete && h.Status != HandoffStatus.Cancelled && offerIds.Contains(h.OfferId), cancellationToken);
+
+            var hasActiveTalentPool = await _dbContext.HrdTalentPools
+                .AsNoTracking()
+                .AnyAsync(t => t.CandidateId == request.CandidateId &&
+                               t.Status == TalentPoolStatus.Active &&
+                               !t.IsDelete, cancellationToken);
+
+            var occupiedByVacancy = await RecruitmentJourneyPolicy.CountOccupiedSeatsByVacancyAsync(
+                _dbContext,
+                new[] { vacancy.Id },
+                cancellationToken);
+            var occupied = occupiedByVacancy.TryGetValue(vacancy.Id, out var occCount) ? occCount : 0;
+
+            var eligibility = RecruitmentJourneyPolicy.EvaluateTalentPoolEligibility(
+                candidate,
                 vacancy,
-                originApplication.Screening,
-                originApplication.Evaluations,
-                candidate);
-            if (!prereq.CanCreateOffer || prereq.HasClinicalVeto)
-            {
-                return RecruitmentResult<TalentPoolResponse>.Unprocessable(
-                    prereq.BlockingMessage ?? "Kandidat belum memenuhi seluruh tahapan seleksi tanpa veto untuk masuk Talent Pool (HRD-DEC-080).");
-            }
+                originApplication,
+                originApplication?.Screening,
+                originApplication?.Evaluations ?? Array.Empty<HrdCandidateEvaluation>(),
+                activeOffers,
+                latestMcu,
+                hasActiveHandoff,
+                hasActiveTalentPool,
+                occupied);
 
-            if (vacancy.QuotaSeats > 0)
+            if (!eligibility.IsEligible)
             {
-                var occupiedByVacancy = await CountOccupiedSeatsByVacancyAsync(new[] { vacancy.Id }, cancellationToken);
-                var occupied = occupiedByVacancy.TryGetValue(vacancy.Id, out var c) ? c : 0;
-                if (occupied < vacancy.QuotaSeats)
-                {
-                    return RecruitmentResult<TalentPoolResponse>.Unprocessable(
-                        $"Kuota kursi lowongan '{vacancy.Title}' belum terisi penuh ({occupied}/{vacancy.QuotaSeats}); proses kandidat melalui Penawaran Kerja terlebih dahulu (HRD-DEC-080).");
-                }
-            }
-
-            var existingActive = await _dbContext.HrdTalentPools
-                .FirstOrDefaultAsync(t => t.CandidateId == request.CandidateId &&
-                                          t.Status == TalentPoolStatus.Active &&
-                                          !t.IsDelete, cancellationToken);
-
-            if (existingActive != null)
-            {
-                return RecruitmentResult<TalentPoolResponse>.Conflict("Kandidat sudah aktif terdaftar di Talent Pool.");
+                return eligibility.HttpStatusCode == 409
+                    ? RecruitmentResult<TalentPoolResponse>.Conflict(eligibility.BlockingMessage!)
+                    : RecruitmentResult<TalentPoolResponse>.Unprocessable(eligibility.BlockingMessage!);
             }
 
             var enrolledDate = DateTime.UtcNow;
@@ -406,7 +467,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
 
             if (targetVacancy.QuotaSeats > 0)
             {
-                var occupiedMap = await CountOccupiedSeatsByVacancyAsync(new[] { targetVacancy.Id }, cancellationToken);
+                var occupiedMap = await RecruitmentJourneyPolicy.CountOccupiedSeatsByVacancyAsync(_dbContext, new[] { targetVacancy.Id }, cancellationToken);
                 var occupied = occupiedMap.TryGetValue(targetVacancy.Id, out var c) ? c : 0;
                 if (occupied >= targetVacancy.QuotaSeats)
                 {
@@ -546,49 +607,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             }
 
             return await GetByIdAsync(pool.Id, cancellationToken);
-        }
-
-        private async Task<Dictionary<Guid, int>> CountOccupiedSeatsByVacancyAsync(
-            IEnumerable<Guid> vacancyIds,
-            CancellationToken cancellationToken)
-        {
-            var idList = vacancyIds.Where(v => v != Guid.Empty).Distinct().ToList();
-            if (idList.Count == 0)
-            {
-                return new Dictionary<Guid, int>();
-            }
-
-            var activeOfferAppIds = await _dbContext.HrdJobOffers
-                .AsNoTracking()
-                .Include(o => o.Application)
-                .Where(o => !o.IsDelete
-                            && o.Application != null
-                            && !o.Application.IsDelete
-                            && idList.Contains(o.Application.VacancyId)
-                            && o.Status != JobOfferStatus.RejectedByApprover
-                            && o.Status != JobOfferStatus.ConditionalRejected
-                            && o.Status != JobOfferStatus.FinalRejected
-                            && o.Status != JobOfferStatus.Revoked
-                            && o.Status != JobOfferStatus.Expired)
-                .Select(o => new { o.Application!.VacancyId, o.ApplicationId })
-                .ToListAsync(cancellationToken);
-
-            var handoffAppIds = await _dbContext.HrdCandidateHiringHandoffs
-                .AsNoTracking()
-                .Include(h => h.Offer)
-                    .ThenInclude(o => o!.Application)
-                .Where(h => !h.IsDelete
-                            && h.Status != HandoffStatus.Cancelled
-                            && h.Offer != null
-                            && h.Offer.Application != null
-                            && idList.Contains(h.Offer.Application.VacancyId))
-                .Select(h => new { h.Offer!.Application!.VacancyId, h.Offer.ApplicationId })
-                .ToListAsync(cancellationToken);
-
-            return activeOfferAppIds
-                .Concat(handoffAppIds)
-                .GroupBy(x => x.VacancyId)
-                .ToDictionary(g => g.Key, g => g.Select(x => x.ApplicationId).Distinct().Count());
         }
 
         private static TalentPoolResponse MapToResponse(HrdTalentPool model)

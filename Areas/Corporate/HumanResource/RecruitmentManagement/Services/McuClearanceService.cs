@@ -389,6 +389,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
 
                 if (app != null)
                 {
+                    app.CurrentStage = ApplicationStage.Handoff;
                     app.StageStatus = "McuFitReadyForFinalOfferOrHandoff";
                     app.Notes = "Pemeriksaan kesehatan pra-kerja lulus (FIT).";
                     app.UpdateDateTime = DateTime.UtcNow;
