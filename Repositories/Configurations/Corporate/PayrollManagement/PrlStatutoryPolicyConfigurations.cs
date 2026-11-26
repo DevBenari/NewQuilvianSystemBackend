@@ -47,44 +47,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.PayrollMan
         }
     }
 
-    /// <summary>Konfigurasi kebijakan tarif dan batas iuran BPJS berversi (PrlBpjsPolicy).</summary>
-    public class PrlBpjsPolicyConfiguration : IEntityTypeConfiguration<PrlBpjsPolicy>
-    {
-        public void Configure(EntityTypeBuilder<PrlBpjsPolicy> entity)
-        {
-            entity.ToTable("PrlBpjsPolicy", "public");
-            entity.HasKey(x => x.Id);
-
-            entity.Property(x => x.PolicyVersion).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.Title).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.LegalBasis).HasMaxLength(1000).IsRequired();
-            entity.Property(x => x.EffectiveStartDate).HasColumnType("timestamp with time zone");
-            entity.Property(x => x.EffectiveEndDate).HasColumnType("timestamp with time zone").IsRequired(false);
-            entity.Property(x => x.PolicyStatus).HasMaxLength(30).HasDefaultValue(StatutoryPolicyStatuses.Draft).IsRequired();
-            entity.Property(x => x.JkkRiskBasis).HasMaxLength(1000);
-            entity.Property(x => x.HealthCapAmount).HasPrecision(18, 2);
-            entity.Property(x => x.HealthEmployeeRate).HasPrecision(9, 4);
-            entity.Property(x => x.HealthEmployerRate).HasPrecision(9, 4);
-            entity.Property(x => x.JhtEmployeeRate).HasPrecision(9, 4);
-            entity.Property(x => x.JhtEmployerRate).HasPrecision(9, 4);
-            entity.Property(x => x.JpCapAmount).HasPrecision(18, 2);
-            entity.Property(x => x.JpEmployeeRate).HasPrecision(9, 4);
-            entity.Property(x => x.JpEmployerRate).HasPrecision(9, 4);
-            entity.Property(x => x.JkkRate).HasPrecision(9, 4);
-            entity.Property(x => x.JkmRate).HasPrecision(9, 4);
-            entity.Property(x => x.StatusReason).HasMaxLength(500);
-            entity.Property(x => x.SubmittedAt).HasColumnType("timestamp with time zone").IsRequired(false);
-            entity.Property(x => x.DecidedAt).HasColumnType("timestamp with time zone").IsRequired(false);
-            entity.Property(x => x.RetiredAt).HasColumnType("timestamp with time zone").IsRequired(false);
-            entity.Property(x => x.Notes).HasMaxLength(1000);
-            entity.Property(x => x.IsActive).HasDefaultValue(true);
-            PrlStatutoryPolicyConfigurationSupport.ConfigureIdentity(entity);
-
-            entity.HasIndex(x => x.PolicyVersion).IsUnique().HasFilter("\"IsDelete\" = false");
-            entity.HasIndex(x => new { x.PolicyStatus, x.EffectiveStartDate, x.EffectiveEndDate, x.IsDelete });
-        }
-    }
-
     internal static class PrlStatutoryPolicyConfigurationSupport
     {
         public static void ConfigureIdentity<T>(EntityTypeBuilder<T> entity)
