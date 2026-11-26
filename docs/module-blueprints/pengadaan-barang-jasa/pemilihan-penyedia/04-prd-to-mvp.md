@@ -5,7 +5,7 @@
 | Field | Nilai |
 | --- | --- |
 | Produk / modul | Quilvian · Pengadaan Barang & Jasa (`PBJ-BP-001`) · sub-modul `pemilihan-penyedia` (`PBJ-PS`) |
-| Kontrak | `PBJ-PS-MVP` · `last_changed_in: 1.0` · status `draft` |
+| Kontrak | `PBJ-PS-MVP` · `last_changed_in: 1.0` · status `approved` (`PBJ-DEC-095`, Pengguna sesi, 2026-11-26) |
 | Repository target | `NewQuilvianSystemBackend` @`d5fdc8fa`, `V2QuilvianSystemFrontendDev` @`3e5386679` |
 | Cakupan | K-05 Persiapan Pengadaan dan K-07 Penawaran & Pemilihan Penyedia: dari baris PR yang disetujui sampai nomor PO BLM tercatat pada paket |
 
@@ -73,10 +73,10 @@ komitmen pagu per unit → nomor PO BLM → diteruskan ke `kontrak-pelaksanaan`.
 
 | Kemampuan | Alasan | Pengganti selama MVP |
 | --- | --- | --- |
-| Wajib evaluasi teknis per kategori (`G-P10`) | Usulan; aturan per metode sudah cukup untuk rilis pertama | Pilih metode yang mewajibkan evaluasi teknis untuk alkes |
+| Wajib evaluasi teknis per kategori (`PBJ-DEC-089`) | Aturan disetujui, tetapi aturan per metode sudah cukup untuk rilis pertama | Pilih metode yang mewajibkan evaluasi teknis untuk alkes |
 | Laporan "direncanakan vs dipaketkan" | Laporan modul `POST-MVP` (`02-module-map.md`) | Daftar paket bersaring + kolom rencana paket rujukan |
 | Pencocokan nomor PO ke PO Finance | Finance belum punya filter nomor PO; BLM belum terintegrasi (`PBJ-CAP-014`, `FIN-OQ-141`) | Nomor PO sebagai teks unik |
-| Notifikasi aktif (email) | `PBJ-OQ-015` | Notifikasi tugas `Wfl` + tanda di daftar (`G-P07`) |
+| Notifikasi aktif (email) | `PBJ-OQ-015` | Notifikasi tugas `Wfl` + tanda di daftar (`PBJ-DEC-088`) |
 | Portal vendor | `PBJ-DEC-067` (tidak dibuat) | RFQ diunduh dan dikirim lewat email |
 
 ## 9. Alur bisnis target
@@ -116,8 +116,8 @@ komitmen pagu per unit → nomor PO BLM → diteruskan ke `kontrak-pelaksanaan`.
 - `FR-PS-040` Perbandingan harga akhir dan peringkat; terendah ditandai (`PBJ-DEC-085`).
 - `FR-PS-041` Negosiasi per putaran; harga tidak naik.
 - `FR-PS-042` Penetapan satu vendor: ≤ HPS atau alasan; terendah atau alasan; vendor layak (`PBJ-AC-025`, `031`, `036`).
-- `FR-PS-043` Penetapan disetujui → komitmen per garis pagu berjumlah nilai penetapan (`PBJ-AC-032`); vendor tidak layak saat diterapkan → tidak diterapkan (`G-P08`).
-- `FR-PS-044` Cabut penetapan sebelum nomor PO melepas komitmen (`G-P09`).
+- `FR-PS-043` Penetapan disetujui → komitmen per garis pagu berjumlah nilai penetapan (`PBJ-AC-032`); vendor tidak layak saat diterapkan → tidak diterapkan (`PBJ-DEC-092`).
+- `FR-PS-044` Cabut penetapan sebelum nomor PO melepas komitmen (`PBJ-DEC-093`).
 
 ### `EPIC PS-06` — Nomor PO dan serah ke kontrak · disposisi `MISSING / NEW`
 - `FR-PS-050` Nomor PO dicatat setelah penetapan disetujui; unik antar paket (`PBJ-AC-006`).
@@ -222,5 +222,5 @@ pemilihan vendor (siapa mencatat, mengevaluasi, menyetujui, kapan, alasan) dan k
 | `PBJ-OQ-038` nama 11 submenu menu 4 dan 6 | Pengguna sesi | Desain frontend saja (label menu); **tidak** memblokir `MVP-PS0`..`PS3` backend |
 | `PBJ-OQ-005` metode dan batas nilai SOP | Pengguna sesi | Pemakaian nyata, bukan development |
 | `PBJ-OQ-019` penyetuju persiapan dan penetapan | Pengguna sesi + admin `Wfl` | Pemakaian nyata |
-| Usulan `G-P08`, `G-P09`, `G-P15` (tidak diterapkan, cabut, garis pagu wajib ada) | Pengguna sesi | Dikonfirmasi saat approval desain ini |
-| Usulan `G-P02`, `G-P05`..`G-P07`, `G-P11`, `G-P12` | Pengguna sesi | Tidak memblokir; tampil sebagai usulan |
+| ~~Usulan `G-P08`, `G-P09`, `G-P15`~~ | Pengguna sesi | Ditutup `PBJ-DEC-092`..`094` |
+| ~~Usulan `G-P02`, `G-P05`..`G-P07`, `G-P10`..`G-P12`~~ | Pengguna sesi | Ditutup `PBJ-DEC-086`..`091`, `095` |

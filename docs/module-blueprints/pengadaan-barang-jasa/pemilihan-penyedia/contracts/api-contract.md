@@ -2,9 +2,9 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PS-API` · `last_changed_in: 1.0` · status `draft` |
-| Pemilik | Pengguna sesi · `approved_by: —` · `approved_at: —` |
-| Masukan | `02-backend-architecture.md` (draft); `PBJ-PS-STATE` 1.0; `PBJ-PS-VAL` 1.0; konvensi `PBJ-PP-API` 1.4 dan `PBJ-VD-API` 1.1 |
+| Kontrak | `PBJ-PS-API` · `last_changed_in: 1.0` · status `approved` (`PBJ-DEC-095`) |
+| Pemilik | Pengguna sesi · `approved_by: Pengguna sesi` · `approved_at: 2026-11-26` |
+| Masukan | `02-backend-architecture.md` (approved); `PBJ-PS-STATE` 1.0; `PBJ-PS-VAL` 1.0; konvensi `PBJ-PP-API` 1.4 dan `PBJ-VD-API` 1.1 |
 | Kompatibilitas | Seluruh endpoint Sourcing baru. Perubahan pada sub-modul lain dicatat di bagian akhir (PR, lampiran) |
 
 **Status endpoint:** seluruh endpoint di dokumen ini **Rencana (belum tersedia)**.
@@ -76,7 +76,7 @@ Base URL: `/procurement-rfqs` — **Rencana (belum tersedia)**.
 | `POST` | `/{id}/extend-deadline` | Perpanjang batas waktu (`PBJ-DEC-081`) | `ProcurementRfq : Update` | `ExtendRfqDeadlineRequest` | `ApiResponse<RfqResponse>` |
 | `POST` | `/{id}/close` | Tutup penerimaan; paket ke `EVALUATION` | `ProcurementRfq : Close` | `expectedRowVersion` | `ApiResponse<RfqResponse>` |
 | `POST` | `/{id}/fail` | Nyatakan gagal (`PBJ-DEC-075`) | `ProcurementRfq : Close` | `ReasonRequest` | `ApiResponse<RfqResponse>` |
-| `GET` | `/{id}/document` | Unduh dokumen RFQ untuk dikirim ke vendor **[USULAN `G-P06`]** | `ProcurementRfq : Read` | — | Berkas PDF |
+| `GET` | `/{id}/document` | Unduh dokumen RFQ untuk dikirim ke vendor (`PBJ-DEC-087`) | `ProcurementRfq : Read` | — | Berkas PDF |
 
 ### Corporate / Procurement Management / Sourcing / Procurement Quotation
 
@@ -120,7 +120,7 @@ Base URL: `/procurement-package-awards` — **Rencana (belum tersedia)**.
 | `POST` | `/` | Ajukan penetapan ke `Wfl` | `ProcurementPackageAward : Submit` | `SubmitAwardRequest` | `ApiResponse<AwardResponse>` 201 |
 | `POST` | `/{id}/resubmit` | Ajukan ulang penetapan `RETURNED` | `ProcurementPackageAward : Submit` | `SubmitAwardRequest` | `ApiResponse<AwardResponse>` |
 | `POST` | `/{id}/withdraw` | Tarik pengajuan | `ProcurementPackageAward : Submit` | `expectedRowVersion` | `ApiResponse<AwardResponse>` |
-| `POST` | `/{id}/revoke` | Cabut penetapan disetujui sebelum PO **[USULAN `G-P09`]** | `ProcurementPackageAward : Revoke` | `ReasonRequest` | `ApiResponse<AwardResponse>` |
+| `POST` | `/{id}/revoke` | Cabut penetapan disetujui sebelum PO (`PBJ-DEC-093`) | `ProcurementPackageAward : Revoke` | `ReasonRequest` | `ApiResponse<AwardResponse>` |
 | `POST` | `/{id}/workflow/synchronize` | Sinkron ulang hasil `Wfl` | `ProcurementPackageAward : Submit` | — | `ApiResponse<AwardResponse>` |
 
 ### Corporate / Procurement Management / Master Data / Procurement Method

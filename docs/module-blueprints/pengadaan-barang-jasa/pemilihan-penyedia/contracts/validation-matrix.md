@@ -2,8 +2,8 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PS-VAL` · `last_changed_in: 1.0` · status `draft` |
-| Pemilik | Pengguna sesi · `approved_by: —` · `approved_at: —` |
+| Kontrak | `PBJ-PS-VAL` · `last_changed_in: 1.0` · status `approved` (`PBJ-DEC-095`) |
+| Pemilik | Pengguna sesi · `approved_by: Pengguna sesi` · `approved_at: 2026-11-26` |
 | Masukan | `PBJ-DEC-066`..`085`; `PBJ-ASM-005`..`009`; `PBJ-AC-022`..`036`; `PBJ-PS-STATE` 1.0 |
 | Kompatibilitas | Kode baru `PBJ-VAL-120`..`149`. Kode bersama yang dipakai ulang: `PBJ-VAL-071` (hapus master terpakai, `PBJ-DEC-041`), `PBJ-VAL-090` (data basi), `PBJ-VAL-091` (alur persetujuan belum dikonfigurasi) |
 
@@ -16,8 +16,8 @@ mengikuti konvensi `PBJ-VD-API` 1.1. Aturan bisnis dijawab dengan `errors.code` 
 | --- | --- | --- | --- | --- |
 | Baris PR belum siap | Buat paket, tambah baris | PR bukan `APPROVED`, atau baris tidak punya jumlah beli | "Baris permintaan ini belum disetujui atau tidak perlu dibeli." | 409 `PBJ-VAL-120` |
 | Baris PR sudah di paket lain | Buat paket, tambah baris | Baris sudah punya paket hidup | "Baris permintaan ini sudah masuk paket {nomor}." | 409 `PBJ-VAL-121` |
-| Jenis pengadaan berbeda **[USULAN `G-P11`]** | Buat paket, tambah baris | Jenis barang berbeda dengan paket | "Satu paket hanya untuk satu jenis pengadaan." | 422 `PBJ-VAL-122` |
-| Tahun anggaran berbeda **[USULAN `G-P12`]** | Buat paket, tambah baris | Tahun PR berbeda dengan paket | "Satu paket hanya untuk satu tahun anggaran." | 422 `PBJ-VAL-123` |
+| Jenis pengadaan berbeda (`PBJ-DEC-090`) | Buat paket, tambah baris | Jenis barang berbeda dengan paket | "Satu paket hanya untuk satu jenis pengadaan." | 422 `PBJ-VAL-122` |
+| Tahun anggaran berbeda (`PBJ-DEC-091`) | Buat paket, tambah baris | Tahun PR berbeda dengan paket | "Satu paket hanya untuk satu tahun anggaran." | 422 `PBJ-VAL-123` |
 | HPS belum lengkap | Ajukan persiapan | Ada barang dengan HPS satuan kosong atau 0 | "Lengkapi HPS setiap barang sebelum mengajukan." | 422 `PBJ-VAL-124` |
 | Metode belum dipilih | Ajukan persiapan | Metode kosong atau tidak aktif | "Pilih metode pengadaan yang aktif." | 422 `PBJ-VAL-125` |
 | Metode di luar rentang | Ajukan persiapan, ubah metode | HPS di luar rentang metode tanpa alasan | "Nilai HPS di luar rentang metode ini. Tuliskan alasannya." | 422 `PBJ-VAL-126` |

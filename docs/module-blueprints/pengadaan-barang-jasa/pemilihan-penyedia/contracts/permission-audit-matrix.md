@@ -2,8 +2,8 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PS-PERM` · `last_changed_in: 1.0` · status `draft` |
-| Pemilik | Pengguna sesi · keamanan: **belum ditetapkan** (sama dengan sub-modul lain, K-3/K-5) · `approved_by: —` |
+| Kontrak | `PBJ-PS-PERM` · `last_changed_in: 1.0` · status `approved` (`PBJ-DEC-095`) |
+| Pemilik | Pengguna sesi · keamanan: **belum ditetapkan** (sama dengan sub-modul lain, K-3/K-5) · `approved_by: Pengguna sesi` · `approved_at: 2026-11-26` |
 | Masukan | `PBJ-DEC-074`, `079`, `080`, `085`; `PBJ-DEC-007`, `036`, `037`, `040`; `PBJ-PS-API` 1.0 |
 
 Pemetaan endpoint ke hak akses hanya ada di kolom `Hak akses` pada `api-contract.md`. String atribut diturunkan
@@ -33,7 +33,7 @@ Pemetaan endpoint ke hak akses hanya ada di kolom `Hak akses` pada `api-contract
 | Peran | Izin |
 | --- | --- |
 | Tim Pengadaan | `ProcurementPackage : Read, Create, Update, Submit, Revise, Cancel, RecordOrder, ReadAllUnits, ReadPrice`; `ProcurementRfq : Read, Create, Update, Send, Close`; `ProcurementQuotation : Read, Create, Update, Cancel, Negotiate`; `ProcurementPackageAward : Read, Submit`; tiga master `Read, Create, Update, Delete`; `ProcurementAttachment : Read, Upload`; `ProcurementItem : Read`; `ProcurementVendor : Read` |
-| Manajer Pengadaan | Semua izin Tim Pengadaan + `ProcurementPackageAward : Revoke` **[USULAN `G-P09`]** |
+| Manajer Pengadaan | Semua izin Tim Pengadaan + `ProcurementPackageAward : Revoke` (`PBJ-DEC-093`) |
 | Evaluator teknis | `ProcurementTechnicalEvaluation : Read, Evaluate`; `ProcurementAttachment : Read`. **Tanpa** `ProcurementPackage : Read` dan **tanpa** `ReadPrice` |
 | Penyetuju (Manajer Pengadaan, Direktur, sesuai matriks) | `ProcurementPackage : Read, ReadAllUnits, ReadPrice`; `ProcurementQuotation : Read`; `ProcurementPackageAward : Read`; `ProcurementAttachment : Read`; `ApprovalInbox : Read, Approve, Reject, Return, RequestRevision` (pola `PBJ-DEC-065`) |
 | Keuangan | `ProcurementPackageAward : Read`; `ProcurementPackage : Read, ReadAllUnits`. **Tanpa** `ReadPrice` dan tanpa `ProcurementQuotation : Read`, sehingga melihat nilai penetapan di daftar penetapan tetapi bukan rincian penawaran |
@@ -49,7 +49,7 @@ Pemetaan endpoint ke hak akses hanya ada di kolom `Hak akses` pada `api-contract
 | Pencatat ≠ evaluator penawaran (`PBJ-DEC-074`) | `ProcurementTechnicalEvaluationService` (403 `PBJ-VAL-135`) | Dua orang yang bersekongkol | Ditangani audit riwayat |
 | Pengaju ≠ penyetuju (`PBJ-DEC-007`) | `Wfl` `AllowSelfApproval = false` + pemeriksaan ulang di penerap status | — | — |
 | Evaluator hanya paket ditugaskan | `PrcPackageEvaluator` di service evaluasi dan `ProcurementSourcingAccessProvider` (404) | Evaluator yang juga diberi `ProcurementPackage : Read` oleh admin | Admin wajib mengikuti bundel; dicek saat UAT |
-| Harga tertutup | Penyaring DTO + `ProcurementAttachmentService` (`PBJ-CAP-004`) | Berkas yang diunggah dengan kategori salah | Pengunggah memilih kategori dari daftar jenis dokumen; kategori bebas tidak diizinkan untuk `PBJ_PACKAGE`/`PBJ_RFQ` **[USULAN]** |
+| Harga tertutup | Penyaring DTO + `ProcurementAttachmentService` (`PBJ-CAP-004`) | Berkas yang diunggah dengan kategori salah | Pengunggah memilih kategori dari daftar jenis dokumen; kategori bebas tidak diizinkan untuk `PBJ_PACKAGE`/`PBJ_RFQ` (`PBJ-DEC-095`) |
 | Alasan bukan terendah tampil ke penyetuju (`PBJ-DEC-085`) | `RankingSnapshotJson` + linimasa persetujuan | — | — |
 
 ## 5. Audit

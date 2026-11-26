@@ -137,5 +137,83 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
                 Returned
             };
         }
+
+        /// <summary>
+        /// Status paket pengadaan — <c>pemilihan-penyedia/contracts/state-transition-matrix.md</c> bagian 1 (PBJ-PS-STATE 1.0;
+        /// BE-PBJ-PS-001). Jalur normal: <c>DRAFT</c> → <c>PREPARATION_PENDING_APPROVAL</c> → <c>READY_FOR_RFQ</c> →
+        /// <c>RFQ_OPEN</c> → <c>EVALUATION</c> → <c>AWARD_PENDING_APPROVAL</c> → <c>AWARDED</c> → <c>ORDERED</c>.
+        /// </summary>
+        public static class Package
+        {
+            public const string Draft = "DRAFT";
+            public const string PreparationPendingApproval = "PREPARATION_PENDING_APPROVAL";
+            public const string PreparationReturned = "PREPARATION_RETURNED";
+            public const string ReadyForRfq = "READY_FOR_RFQ";
+            public const string RfqOpen = "RFQ_OPEN";
+            public const string Evaluation = "EVALUATION";
+            public const string AwardPendingApproval = "AWARD_PENDING_APPROVAL";
+            public const string Awarded = "AWARDED";
+            public const string Ordered = "ORDERED";
+            public const string Rejected = "REJECTED";
+            public const string Cancelled = "CANCELLED";
+        }
+
+        /// <summary>Status RFQ — matriks status pemilihan-penyedia bagian 2 (PBJ-PS-STATE 1.0).</summary>
+        public static class Rfq
+        {
+            public const string Draft = "DRAFT";
+            public const string Sent = "SENT";
+            public const string Closed = "CLOSED";
+            public const string Failed = "FAILED";
+            public const string Cancelled = "CANCELLED";
+        }
+
+        /// <summary>Status catatan penawaran (PBJ-PS-STATE 1.0). Catatan yang salah dibatalkan menjadi <c>VOID</c>.</summary>
+        public static class Quotation
+        {
+            public const string Recorded = "RECORDED";
+            public const string Void = "VOID";
+        }
+
+        /// <summary>
+        /// Status penetapan penyedia — matriks status pemilihan-penyedia bagian 3 (PBJ-PS-STATE 1.0). <c>NOT_APPLIED</c> =
+        /// disetujui tetapi vendor sudah tidak layak saat diterapkan (PBJ-DEC-092); <c>REVOKED</c> = dicabut sebelum
+        /// nomor PO (PBJ-DEC-093).
+        /// </summary>
+        public static class Award
+        {
+            public const string PendingApproval = "PENDING_APPROVAL";
+            public const string Returned = "RETURNED";
+            public const string Approved = "APPROVED";
+            public const string Rejected = "REJECTED";
+            public const string Withdrawn = "WITHDRAWN";
+            public const string Revoked = "REVOKED";
+            public const string NotApplied = "NOT_APPLIED";
+        }
+
+        /// <summary>Hasil evaluasi teknis per baris penawaran × kriteria × evaluator (PBJ-DEC-074).</summary>
+        public static class TechnicalEvaluationResult
+        {
+            public const string Pass = "PASS";
+            public const string Fail = "FAIL";
+        }
+
+        /// <summary>
+        /// Tahap paket tempat jenis dokumen paket diunggah (<c>MstProcurementPackageDocumentType.Stage</c>). Contoh: KAK/TOR
+        /// pada <c>PREPARATION</c>, Surat Penawaran Harga pada <c>QUOTATION</c>.
+        /// </summary>
+        public static class PackageDocumentStage
+        {
+            public const string Preparation = "PREPARATION";
+            public const string Quotation = "QUOTATION";
+            public const string Negotiation = "NEGOTIATION";
+
+            public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
+            {
+                Preparation,
+                Quotation,
+                Negotiation
+            };
+        }
     }
 }

@@ -446,6 +446,11 @@ per kategori (`G-P10`). Pertanyaan yang hanya memengaruhi layar: `PBJ-OQ-038`.
 yang ada; bila garisnya belum ada saat penetapan disetujui, penetapan tidak diterapkan sampai pagu disusun
 (`pemilihan-penyedia/contracts/integration-contract.md` bagian 1). Dikonfirmasi saat approval desain.
 
+**Penutupan saat approval desain (26 November 2026):** seluruh gap `PROPOSED` slice ini dikonfirmasi pemilik dan berubah
+menjadi `CONFIRMED`: `G-P05` → `PBJ-DEC-086`, `G-P06` → `087`, `G-P07` → `088`, `G-P10` → `089` (dibangun `POST-MVP`),
+`G-P11` → `090`, `G-P12` → `091`, `G-P08` → `092`, `G-P09` → `093`, `G-P15` → `094`; `G-P02`, `G-P13`, `G-P14` tertutup oleh
+approval desain `PBJ-DEC-095`. Tabel di atas tetap dibiarkan sebagai catatan penilaian revisi 6.
+
 **Dampak lintas sub-modul yang wajib masuk desain:** amendment `perencanaan-permintaan` untuk rujukan paket per baris PR dan
 tiga metode integrasi (`PBJ-DEC-071`, `PBJ-CAP-019`..`021`), label "termasuk PPN" pada harga perkiraan PR dan pagu
 (`PBJ-DEC-084`), serta visibilitas lampiran per kategori (`PBJ-CAP-004`).

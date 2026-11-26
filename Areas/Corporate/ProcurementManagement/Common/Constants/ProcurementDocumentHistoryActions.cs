@@ -53,5 +53,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string StatusRequestReject = "STATUS_REQUEST_REJECT";
         public const string VendorBlock = "VENDOR_BLOCK";
         public const string VendorUnblock = "VENDOR_UNBLOCK";
+
+        // Pemilihan penyedia (BE-PBJ-PS-001; PBJ-PS-PERM 1.0 bagian 5). Paket (PBJ_PACKAGE): baris PR masuk/keluar,
+        // buka ulang persiapan, pecah, catat nomor PO. RFQ (PBJ_RFQ): kirim, perpanjang batas waktu, tutup, gagal, catatan
+        // penawaran, negosiasi. Penetapan (PBJ_PACKAGE_AWARD): tidak dapat diterapkan dan cabut.
+        public const string LineAdd = "LINE_ADD";
+        public const string LineRemove = "LINE_REMOVE";
+        public const string Reopen = "REOPEN";
+        public const string Split = "SPLIT";
+        public const string RecordOrder = "RECORD_ORDER";
+        public const string Send = "SEND";
+        public const string DeadlineExtend = "DEADLINE_EXTEND";
+        public const string Close = "CLOSE";
+        public const string Fail = "FAIL";
+        public const string QuotationRecord = "QUOTATION_RECORD";
+        public const string QuotationUpdate = "QUOTATION_UPDATE";
+        public const string QuotationVoid = "QUOTATION_VOID";
+        public const string Negotiate = "NEGOTIATE";
+        public const string NotApplied = "NOT_APPLIED";
+        public const string Revoke = "REVOKE";
     }
 }

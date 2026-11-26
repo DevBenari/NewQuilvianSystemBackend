@@ -240,7 +240,8 @@ public sealed class ProcurementPurchaseRequestService
                 StockSourceNote = x.StockSourceNote,
                 StockCheckedAt = x.StockCheckedAt,
                 PurchaseQuantity = x.PurchaseQuantity,
-                PurchaseAmount = x.PurchaseAmount
+                PurchaseAmount = x.PurchaseAmount,
+                PackageId = x.PackageId
             })
             .ToListAsync(cancellationToken);
 

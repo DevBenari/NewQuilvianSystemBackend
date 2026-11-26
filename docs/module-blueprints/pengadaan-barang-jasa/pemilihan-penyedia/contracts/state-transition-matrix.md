@@ -2,8 +2,8 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PS-STATE` · `last_changed_in: 1.0` · status `draft` |
-| Pemilik | Pengguna sesi (Product Owner Pengadaan) · `approved_by: —` · `approved_at: —` |
+| Kontrak | `PBJ-PS-STATE` · `last_changed_in: 1.0` · status `approved` (`PBJ-DEC-095`) |
+| Pemilik | Pengguna sesi (Product Owner Pengadaan) · `approved_by: Pengguna sesi` · `approved_at: 2026-11-26` |
 | Masukan | `PBJ-DEC-070`..`085`; `PBJ-ASM-005`, `008`, `009`; `02-backend-architecture.md` bagian 8 · `input_revision`: decision log 26 November 2026 |
 | Kompatibilitas | Seluruh status baru. Satu perubahan pada `perencanaan-permintaan`: PR `APPROVED` → `CONVERTED_TO_PACKAGE` kini dipicu "semua baris beli sudah punya paket", dan dapat kembali ke `APPROVED` saat paket batal (`PBJ-DEC-077`) |
 
@@ -28,9 +28,9 @@ dijawab 409 `PBJ-VAL-128` kecuali disebut kode lain.
 | `EVALUATION` | Ajukan penetapan (bagian 4) | `AWARD_PENDING_APPROVAL` | `ProcurementPackageAward : Submit` | Bagian 4 | Bagian 4 |
 | `AWARD_PENDING_APPROVAL` | Penetapan ditarik / dikembalikan / ditolak / tidak dapat diterapkan | `EVALUATION` | Pengaju / penyetuju / sistem | — | — |
 | `AWARD_PENDING_APPROVAL` | Penetapan disetujui dan diterapkan | `AWARDED` | Penyetuju; sistem menerapkan | Vendor masih layak | `NOT_APPLIED` (bagian 4) |
-| `AWARDED` | Cabut penetapan **[USULAN `G-P09`]** | `EVALUATION` | `ProcurementPackageAward : Revoke` | Nomor PO belum dicatat; alasan wajib; komitmen dilepas | 409 `PBJ-VAL-146` |
+| `AWARDED` | Cabut penetapan (`PBJ-DEC-093`) | `EVALUATION` | `ProcurementPackageAward : Revoke` | Nomor PO belum dicatat; alasan wajib; komitmen dilepas | 409 `PBJ-VAL-146` |
 | `AWARDED` | Catat nomor PO BLM | `ORDERED` | `ProcurementPackage : RecordOrder` | Nomor belum dipakai paket lain | 409 `PBJ-VAL-145` |
-| `DRAFT`..`AWARDED` kecuali `*_PENDING_APPROVAL` | Batalkan paket | `CANCELLED` | `ProcurementPackage : Cancel` | Alasan wajib; tidak ada persetujuan yang sedang berjalan **[USULAN]**; baris PR dan komitmen dilepas | 409 `PBJ-VAL-128`, 422 `PBJ-VAL-148` |
+| `DRAFT`..`AWARDED` kecuali `*_PENDING_APPROVAL` | Batalkan paket | `CANCELLED` | `ProcurementPackage : Cancel` | Alasan wajib; tidak ada persetujuan yang sedang berjalan (`PBJ-DEC-095`); baris PR dan komitmen dilepas | 409 `PBJ-VAL-128`, 422 `PBJ-VAL-148` |
 | `DRAFT`, `PREPARATION_RETURNED`, `READY_FOR_RFQ`, `RFQ_OPEN`, `EVALUATION` | Pecah paket | sama (paket baru ikut status sumber) | `ProcurementPackage : Update` | Bukan semua item; tidak ada persetujuan berjalan; penetapan belum diajukan | 409 `PBJ-VAL-144` |
 | `ORDERED`, `CANCELLED`, `REJECTED` | Apa pun | — | — | Status akhir | 409 `PBJ-VAL-128`; batal setelah PO 409 `PBJ-VAL-147` |
 
@@ -76,8 +76,8 @@ evaluator aktif; bila metode tidak mewajibkan evaluasi teknis, penawaran sah dia
 | `RETURNED` | Ajukan ulang (alasan/pilihan diubah) | `PENDING_APPROVAL` | Pengaju | Aturan pengajuan diperiksa ulang | Sama dengan Ajukan |
 | `PENDING_APPROVAL` | Ditolak `Wfl` | `REJECTED` | Penyetuju | — | — |
 | `PENDING_APPROVAL` | Disetujui, vendor masih layak | `APPROVED` | Penyetuju; sistem menerapkan | Komitmen dicatat per garis pagu | — |
-| `PENDING_APPROVAL` | Disetujui, vendor sudah tidak layak **[USULAN `G-P08`]** | `NOT_APPLIED` | Sistem | Alasan tercatat; tanpa komitmen | — |
-| `APPROVED` | Cabut **[USULAN `G-P09`]** | `REVOKED` | `ProcurementPackageAward : Revoke` | Paket belum `ORDERED`; alasan; komitmen dilepas | 409 `PBJ-VAL-146` |
+| `PENDING_APPROVAL` | Disetujui, vendor sudah tidak layak (`PBJ-DEC-092`) | `NOT_APPLIED` | Sistem | Alasan tercatat; tanpa komitmen | — |
+| `APPROVED` | Cabut (`PBJ-DEC-093`) | `REVOKED` | `ProcurementPackageAward : Revoke` | Paket belum `ORDERED`; alasan; komitmen dilepas | 409 `PBJ-VAL-146` |
 | `WITHDRAWN`, `REJECTED`, `NOT_APPLIED`, `REVOKED` | Apa pun | — | — | Status akhir; penetapan baru dibuat sebagai baris baru | 409 `PBJ-VAL-128` |
 
 **Contoh:** penetapan PT Farma Jaya disetujui Direktur pada 02-04-2027, tetapi izin PBF-nya kedaluwarsa 31-03-2027. Sistem

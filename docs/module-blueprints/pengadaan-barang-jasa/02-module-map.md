@@ -4,7 +4,7 @@
 | --- | --- |
 | Blueprint | `PBJ-BP-001` revisi 2 |
 | Bentuk | `COMPOSITE` (`PBJ-DEC-004`, `USER_CONFIRMED`) |
-| Status dokumen | `approved` untuk bagian `perencanaan-permintaan` (`PBJ-DEC-034`) dan `manajemen-vendor` (`PBJ-DEC-062`); bagian `pemilihan-penyedia` `draft` (26 November 2026) |
+| Status dokumen | `approved` untuk bagian `perencanaan-permintaan` (`PBJ-DEC-034`) dan `manajemen-vendor` (`PBJ-DEC-062`); bagian `pemilihan-penyedia` `approved` (`PBJ-DEC-095`, 26 November 2026) |
 | Masukan | `00-interview-decisions.md` (`PBJ-DEC-001`..`030`), `01-existing-capability-map.md` revisi 1, `02-requirement-completeness-assessment.md` revisi 2 |
 | SHA | BE `100c011d`, FE `763d665b` |
 | Tanggal | 12 November 2026 |
@@ -20,11 +20,11 @@ Arsitektur, kontrak, dan PRD tinggal di folder masing-masing sub-modul.
 | Slug | Prefix ID dokumen | Rumpun kemampuan | Pemilik | Status desain | Keterangan |
 | --- | --- | --- | --- | --- | --- |
 | `perencanaan-permintaan` | `PBJ-PP` | K-01..K-04, ditambah fondasi modul (katalog, lampiran, riwayat dokumen, perluasan approval) | Pengguna sesi (Product Owner Pengadaan) | `approved` (2026-11-12, `PBJ-DEC-034`) | Dirancang pertama (`PBJ-DEC-018`) |
-| `pemilihan-penyedia` | `PBJ-PS` | K-05, K-07 | Pengguna sesi | `draft` (2026-11-26) | Gerbang kelengkapan revisi 6 `READY_FOR_DOMAIN_DESIGN`; `PBJ-OQ-005` menjadi nilai konfigurasi (`PBJ-DEC-069`). Registry submodule `Sourcing` **belum ada** (prasyarat implementasi) |
+| `pemilihan-penyedia` | `PBJ-PS` | K-05, K-07 | Pengguna sesi | `approved` (`PBJ-DEC-095`, 2026-11-26) | Gerbang kelengkapan revisi 6 `READY_FOR_DOMAIN_DESIGN`; `PBJ-OQ-005` menjadi nilai konfigurasi (`PBJ-DEC-069`). Registry submodule `Sourcing` (`Prc`) `ACTIVE` 2026-11-26 (`PBJ-DEC-096`) |
 | `manajemen-vendor` | `PBJ-VD` | K-06, K-11 (manual; evaluasi per kontrak `LATER SLICE`) | Pengguna sesi | `approved` (2026-11-17, `PBJ-DEC-062`) | Registry submodule `Vendor` `ACTIVE` (`PBJ-DEC-063`) |
 | `kontrak-pelaksanaan` | `PBJ-KP` | K-08..K-10 | Pengguna sesi | `NOT_STARTED` | Bergantung pada `pemilihan-penyedia` dan PO BLM (`PBJ-DEC-011`) |
 
-**Status modul (diturunkan):** `partial` — dua sub-modul `approved`, satu `draft` (`pemilihan-penyedia`), satu belum dimulai.
+**Status modul (diturunkan):** `partial` — tiga sub-modul `approved`, satu belum dimulai (`kontrak-pelaksanaan`).
 
 **Prefix entity:** `Prc` (*Procurement*) dan Area `Areas/Corporate/ProcurementManagement/` **terdaftar
 `ACTIVE`** di registry pada 12 November 2026 (`PBJ-DEC-035`): baris `ProcurementManagement / Procurement`
@@ -50,7 +50,7 @@ beserta submodule `Planning`, `Request`, `Common`. Folder `MasterData` memakai b
 | Pagu anggaran dan komitmen | `perencanaan-permintaan` | `pemilihan-penyedia` dan `kontrak-pelaksanaan` menulis komitmen **lewat service milik `perencanaan-permintaan`** | Ya, baru (`PBJ-DEC-009`) |
 | Permintaan pengadaan (PR) dan hasil cek stok | `perencanaan-permintaan` | `pemilihan-penyedia` (baca baris siap paket; menandai dan melepas baris per paket lewat `MarkLinesPackagedAsync`/`ReleaseLinesAsync` milik pemilik, `PBJ-DEC-071`) | Ya, baru; `PrcPurchaseRequestLine` diperbarui (`PackageId`) |
 | Paket pengadaan, spesifikasi, HPS, checklist, evaluator, RFQ, penawaran, evaluasi teknis, negosiasi, penetapan (`PrcPackage*`, `PrcRfq*`, `PrcQuotation*`, `PrcTechnical*`, `PrcNegotiation*`, `PrcPackageAward`) | `pemilihan-penyedia` | `kontrak-pelaksanaan` (baca paket `ORDERED`) | Ya, baru (`draft` 26 November 2026) |
-| Konfigurasi pemilihan: metode pengadaan, jenis dokumen paket, dokumen wajib paket (`MstProcurementMethod`, `MstProcurementPackageDocument*`) | `pemilihan-penyedia` | — | Ya, baru (`draft`); **bukan** kewajiban dokumen legalitas vendor milik `manajemen-vendor` |
+| Konfigurasi pemilihan: metode pengadaan, jenis dokumen paket, dokumen wajib paket (`MstProcurementMethod`, `MstProcurementPackageDocument*`) | `pemilihan-penyedia` | — | Ya, baru (`PBJ-DEC-095`); **bukan** kewajiban dokumen legalitas vendor milik `manajemen-vendor` |
 | Data pendamping vendor: profil, kategori, dokumen legalitas, status Dibatasi, usulan blokir, penilaian (`PrcVendor*`) dan konfigurasinya (jenis dokumen, dokumen wajib, kriteria) | `manajemen-vendor` | `pemilihan-penyedia` (baca kelayakan lewat service pemilik) | Ya, baru (`approved` 17 November 2026, `PBJ-DEC-062`) |
 | SPK, kontrak, termin, addendum, monitoring, pemeriksaan, BAST, NCR | `kontrak-pelaksanaan` | Laporan | Ya, baru (belum dirancang) |
 

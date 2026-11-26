@@ -3,16 +3,16 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint | `PBJ-BP-001` revisi 2, sub-modul `pemilihan-penyedia` (`PBJ-PS`) |
-| Status | `draft` — menunggu approval pengguna sesi |
+| Status | `approved` — `PBJ-DEC-095`, Pengguna sesi, 2026-11-26 |
 | Masukan | `PBJ-DEC-066`..`085`; `PBJ-ASM-005`..`009`; `PBJ-AC-022`..`036`; keputusan modul yang berlaku (`PBJ-DEC-006`, `007`, `009`, `011`, `022`..`025`, `028`, `031`, `038`, `045`..`047`, `052`, `054`); `PBJ-FE-004`; penilaian kelengkapan revisi 6 (`READY_FOR_DOMAIN_DESIGN` untuk `S-P1`..`S-P10`); capability map revisi 2 bagian 7 |
 | Arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN`: kemampuan administratif tanpa data klinis maupun tagihan pasien; lintas konteks (`perencanaan-permintaan`, `manajemen-vendor`, `Wfl`, Finance/BLM) sudah diputuskan eksplisit (`PBJ-DEC-071`, `076`, `078`, `082`, `011`) |
 | SHA | BE `d5fdc8fa`, FE `3e5386679` (branch `sukmagp` / `sukmagpV2`) |
-| Prasyarat implementasi | **Registry submodule `ProcurementManagement / Sourcing` (`Prc`) belum ada** (`PBJ-CAP-030`). Seluruh model `Prc*` di folder `Areas/Corporate/ProcurementManagement/Sourcing/` berstatus `BLOCKED` sampai baris registry disetujui (`QBE-MOD-002`, pola `PBJ-DEC-063`). Master baru di `MasterData/` memakai baris `Mst` yang sudah `ACTIVE` |
+| Prasyarat implementasi | Registry submodule `ProcurementManagement / Sourcing` (`Prc`, `ACTIVE`) didaftarkan 2026-11-26 (`PBJ-DEC-096`, menutup `PBJ-CAP-030`), sehingga model `Prc*` di folder `Areas/Corporate/ProcurementManagement/Sourcing/` lolos `QBE-MOD-002`. Master baru di `MasterData/` memakai baris `Mst` yang sudah `ACTIVE` |
 
 > Nama folder `Sourcing`, entity `PrcPackage*`, `PrcRfq*`, `PrcQuotation*`, `PrcTechnical*`, `PrcNegotiation*`, dan
 > `MstProcurementMethod`/`MstProcurementPackageDocument*` adalah **usulan** sampai registry memuat submodule `Sourcing`.
-> Butir **[NILAI AWAL]** adalah nilai bawaan yang dapat dikonfigurasi. Butir **[USULAN `G-P..`]** adalah gap `PROPOSED`
-> dari penilaian kelengkapan yang belum dikonfirmasi pemilik dan wajib tetap terlihat sebagai usulan.
+> Butir **[NILAI AWAL]** adalah nilai bawaan yang dapat dikonfigurasi. Usulan `G-P..` dari penilaian kelengkapan sudah
+> dikonfirmasi pemilik saat approval (`PBJ-DEC-086`..`095`) dan kini dirujuk dengan nomor keputusannya.
 
 ---
 
@@ -20,8 +20,8 @@
 
 | Konteks | Aggregate root | Isi | Invariant utama |
 | --- | --- | --- | --- |
-| Konfigurasi pemilihan | `MstProcurementMethod`, `MstProcurementPackageDocumentType`, `MstProcurementPackageDocumentRequirement` | Metode pengadaan beserta aturannya; jenis dokumen paket; dokumen wajib per metode atau per jenis pengadaan | Rentang HPS metode tidak tumpang tindih di antara metode aktif **[USULAN]**; nilai contoh ditandai `IsSample` (`PBJ-DEC-069`) |
-| Paket | `PrcPackage` + `PrcPackageItem` + `PrcPackageItemSource` + `PrcPackageChecklistItem` + `PrcPackageEvaluator` | Isi paket per barang katalog, asal baris PR, HPS, metode tersalin, checklist, evaluator | Isi selalu baris PR `APPROVED` (`PBJ-DEC-071`, `082`). Satu baris PR hanya di satu paket hidup. Satu jenis pengadaan dan satu tahun anggaran per paket **[USULAN `G-P11`, `G-P12`]**. Metode dan aturannya disalin saat dipilih dan tidak berubah oleh pengaturan (`PBJ-DEC-068`) maupun oleh pemecahan (`PBJ-DEC-083`). HPS yang disetujui terkunci (`PBJ-DEC-073`) |
+| Konfigurasi pemilihan | `MstProcurementMethod`, `MstProcurementPackageDocumentType`, `MstProcurementPackageDocumentRequirement` | Metode pengadaan beserta aturannya; jenis dokumen paket; dokumen wajib per metode atau per jenis pengadaan | Rentang HPS metode tidak tumpang tindih di antara metode aktif (`PBJ-DEC-095`); nilai contoh ditandai `IsSample` (`PBJ-DEC-069`) |
+| Paket | `PrcPackage` + `PrcPackageItem` + `PrcPackageItemSource` + `PrcPackageChecklistItem` + `PrcPackageEvaluator` | Isi paket per barang katalog, asal baris PR, HPS, metode tersalin, checklist, evaluator | Isi selalu baris PR `APPROVED` (`PBJ-DEC-071`, `082`). Satu baris PR hanya di satu paket hidup. Satu jenis pengadaan dan satu tahun anggaran per paket (`PBJ-DEC-090`, `091`). Metode dan aturannya disalin saat dipilih dan tidak berubah oleh pengaturan (`PBJ-DEC-068`) maupun oleh pemecahan (`PBJ-DEC-083`). HPS yang disetujui terkunci (`PBJ-DEC-073`) |
 | RFQ dan penawaran | `PrcRfq` + `PrcRfqInvitation`; `PrcQuotation` + `PrcQuotationLine` | Undangan ke vendor layak, batas waktu, penawaran yang dicatat Tim Pengadaan | Undangan hanya ke vendor layak untuk semua kategori paket (`PBJ-ASM-006`). Penawaran setelah batas waktu tidak sah (`PBJ-DEC-081`). Harga akhir = harga sebelum pajak + PPN (`PBJ-DEC-084`) |
 | Evaluasi teknis | `PrcTechnicalCriterion`, `PrcTechnicalEvaluationResult` | Kriteria teknis per barang paket; hasil Lulus/Tidak lulus per evaluator | Pencatat penawaran tidak mengevaluasi penawaran itu; hanya penawaran *Lulus* dari semua evaluator yang boleh ditetapkan (`PBJ-DEC-074`) |
 | Negosiasi | `PrcNegotiation` + `PrcNegotiationLine` | Putaran negosiasi per penawaran | Harga hasil negosiasi tidak boleh naik; hanya dengan penawaran sah dan *Lulus* (`PBJ-ASM-005`) |
@@ -34,8 +34,8 @@
 | Buat paket / tambah baris | `PrcPackage`, `PrcPackageItem`, `PrcPackageItemSource`, panggilan `ProcurementPurchaseRequestService.MarkLinesPackagedAsync` (milik `perencanaan-permintaan`, ikut transaksi pemanggil), riwayat |
 | Ajukan persiapan | Alokasi nomor `PKT` (bila belum), salinan metode dan checklist, lalu `ProcurementApprovalGateway.SubmitAsync` dengan urutan "`Wfl` dulu, baru status dokumen" (`PBJ-DEC-038`) |
 | Pecah paket | Paket baru + item yang dipindah + sumber + kriteria + evaluator + salinan RFQ/penawaran/hasil evaluasi baris yang dipindah, riwayat kedua paket (`PBJ-DEC-083`) |
-| Terapkan penetapan disetujui | Cek ulang kelayakan, status `PrcPackageAward` dan `PrcPackage`, `ProcurementBudgetCommitmentService.CommitAsync` per garis pagu, riwayat. Bila cek ulang gagal: tidak ada komitmen, status `NOT_APPLIED` (**[USULAN `G-P08`]**) |
-| Batal paket / tarik penetapan | Status, `ReleaseAsync` komitmen (bila ada), `ReleaseLinesAsync` baris PR (batal saja), riwayat (`PBJ-DEC-077`, **[USULAN `G-P09`]**) |
+| Terapkan penetapan disetujui | Cek ulang kelayakan, status `PrcPackageAward` dan `PrcPackage`, `ProcurementBudgetCommitmentService.CommitAsync` per garis pagu, riwayat. Bila cek ulang gagal: tidak ada komitmen, status `NOT_APPLIED` (`PBJ-DEC-092`) |
+| Batal paket / tarik penetapan | Status, `ReleaseAsync` komitmen (bila ada), `ReleaseLinesAsync` baris PR (batal saja), riwayat (`PBJ-DEC-077`, `093`) |
 
 **Kesamaan waktu.** `PrcPackage`, `PrcRfq`, `PrcQuotation`, dan `PrcPackageAward` memakai `RowVersion` (`Guid`) seperti
 dokumen Pengadaan lain; nilai lama ditolak 409 `PBJ-VAL-090`. Dua petugas yang menambahkan baris PR yang sama ke dua paket
@@ -519,7 +519,7 @@ Kedua definisi di-seed tidak aktif dan tanpa matriks (fail-closed, `PBJ-DEC-038`
 | Persiapan | Dikembalikan | `PREPARATION_RETURNED` |
 | Persiapan | Ditolak | `REJECTED`; baris PR dilepas lewat `ReleaseLinesAsync` |
 | Persiapan | Ditarik | `DRAFT` |
-| Penetapan | Disetujui | Cek ulang kelayakan vendor. Layak → award `APPROVED`, paket `AWARDED`, `CommitAsync` per garis pagu. Tidak layak → award `NOT_APPLIED` dengan alasan, paket `EVALUATION`, tanpa komitmen **[USULAN `G-P08`]** |
+| Penetapan | Disetujui | Cek ulang kelayakan vendor. Layak → award `APPROVED`, paket `AWARDED`, `CommitAsync` per garis pagu. Tidak layak → award `NOT_APPLIED` dengan alasan, paket `EVALUATION`, tanpa komitmen (`PBJ-DEC-092`) |
 | Penetapan | Dikembalikan / Ditolak / Ditarik | Award `RETURNED` / `REJECTED` / `WITHDRAWN`; paket `EVALUATION` |
 
 **Contoh komitmen:** award Rp 41.250.000 untuk 15 kursi roda @Rp 2.750.000 — sumber IGD 10 unit (2027, Operasional, Alat
@@ -541,8 +541,8 @@ sudah bernomor langsung mendapat nomor baru saat dipecah, karena persiapannya su
 | Master | Isi minimum | Sumber nilai |
 | --- | --- | --- |
 | `MstProcurementMethod` | **[NILAI AWAL, `IsSample = true`]** "Penunjukan Langsung (contoh)" ≤ Rp 50.000.000, min. 1 penawaran, tanpa evaluasi teknis; "Pembandingan Penawaran (contoh)" > Rp 50.000.000, min. 3 penawaran, wajib evaluasi teknis | SOP (`PBJ-OQ-005`); diganti admin sebelum produksi (`PBJ-DEC-069`) |
-| `MstProcurementPackageDocumentType` | KAK/TOR (`PREPARATION`), Spesifikasi Teknis (`PREPARATION`), Dasar HPS (`PREPARATION`, `IsPriceSensitive`), Surat Penawaran Harga (`QUOTATION`, `IsPriceSensitive`), Lampiran Teknis Penawaran (`QUOTATION`), Berita Acara Negosiasi (`NEGOTIATION`, `IsPriceSensitive`) | Turunan `PBJ-ASM-005`, `007`, **[USULAN `G-P05`]** |
-| `MstProcurementPackageDocumentRequirement` | KAK/TOR wajib untuk jenis Jasa; Spesifikasi Teknis wajib untuk jenis Aset; Dasar HPS wajib untuk semua metode contoh | `PBJ-ASM-007`, **[USULAN `G-P05`]** |
+| `MstProcurementPackageDocumentType` | KAK/TOR (`PREPARATION`), Spesifikasi Teknis (`PREPARATION`), Dasar HPS (`PREPARATION`, `IsPriceSensitive`), Surat Penawaran Harga (`QUOTATION`, `IsPriceSensitive`), Lampiran Teknis Penawaran (`QUOTATION`), Berita Acara Negosiasi (`NEGOTIATION`, `IsPriceSensitive`) | Turunan `PBJ-ASM-005`, `007`, `PBJ-DEC-086` |
+| `MstProcurementPackageDocumentRequirement` | KAK/TOR wajib untuk jenis Jasa; Spesifikasi Teknis wajib untuk jenis Aset; Dasar HPS wajib untuk semua metode contoh | `PBJ-ASM-007`, `PBJ-DEC-086` |
 | Definisi `Wfl` | `PBJ-PKT-PERSIAPAN` 1 langkah, `PBJ-PKT-PENETAPAN` 1 langkah + 1 langkah bersyarat `PBJ_OVER_HPS`; tidak aktif | `PBJ-OQ-019` |
 | Deret nomor | `PBJ_PACKAGE`, `PBJ_RFQ` | `PBJ-ASM-008` |
 
@@ -566,6 +566,6 @@ sudah bernomor langsung mendapat nomor baru saat dipecah, karena persiapannya su
 | Memakai `MstProcurementCategoryDocumentRequirement` untuk checklist paket | Konsep berbeda (legalitas vendor), `PBJ-CAP-028` |
 | Mengisi `PrcPurchaseRequest.ConvertedPackageId` | Satu paket per PR bertentangan dengan `PBJ-DEC-071`; kolom dibiarkan untuk kompatibilitas |
 | Tabel pajak sendiri | Pajak hanya informasi per penawaran (`PBJ-DEC-084`); perpajakan mendalam di luar scope (BRD A5) |
-| Wajib evaluasi teknis per kategori | **[USULAN `G-P10`]** ditunda `POST-MVP`; selama MVP aturan cukup per metode |
+| Wajib evaluasi teknis per kategori | `PBJ-DEC-089`, dibangun `POST-MVP`; selama MVP aturan cukup per metode |
 | Nomor sendiri untuk penetapan | `PBJ-ASM-008` |
 | Pembatalan pesanan setelah nomor PO | Milik BLM dan `kontrak-pelaksanaan` (`PBJ-DEC-077`) |

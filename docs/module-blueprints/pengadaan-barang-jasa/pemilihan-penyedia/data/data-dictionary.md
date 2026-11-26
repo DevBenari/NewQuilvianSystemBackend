@@ -2,8 +2,8 @@
 
 | Field | Nilai |
 | --- | --- |
-| Sub-modul | `pemilihan-penyedia` (`PBJ-PS`), status `draft` |
-| Masukan | `02-backend-architecture.md` (draft); `PBJ-DEC-066`..`085`; `PBJ-ASM-005`..`009` |
+| Sub-modul | `pemilihan-penyedia` (`PBJ-PS`), status `approved` (`PBJ-DEC-095`, 2026-11-26) |
+| Masukan | `02-backend-architecture.md` (approved); `PBJ-DEC-066`..`085`; `PBJ-ASM-005`..`009` |
 | Schema | `public`; nama tabel tunggal PascalCase sama dengan nama class |
 
 Seluruh tabel mewarisi `IdentityModel` (`CreateDateTime`, `CreateBy`, `UpdateDateTime`, `UpdateBy`, `DeleteDateTime`,
@@ -43,7 +43,7 @@ Penanda **Sensitif**: `S` = harga/HPS (tertutup bagi evaluator, `PBJ-DEC-079`, t
 | `IsSample` | `bool` | Ya | `false` | — | `true` hanya dari seeder contoh (`PBJ-DEC-069`) | — |
 | `Description` | `varchar(500)` | Tidak | — | — | — | — |
 | `SortOrder` | `int` | Ya | `0` | — | — | — |
-| `IsActive` | `bool` | Ya | `true` | — | Rentang metode aktif tidak tumpang tindih **[USULAN]** | — |
+| `IsActive` | `bool` | Ya | `true` | — | Rentang metode aktif tidak tumpang tindih (`PBJ-DEC-095`) | — |
 
 ### `MstProcurementPackageDocumentType`
 
@@ -75,8 +75,8 @@ Penanda **Sensitif**: `S` = harga/HPS (tertutup bagi evaluator, `PBJ-DEC-079`, t
 | `Id` | `uuid` | Ya | baru | PK | — | — |
 | `PackageNumber` | `varchar(20)` | Tidak | — | Unik bila terisi | dialokasikan saat persiapan pertama diajukan | — |
 | `Title` | `varchar(200)` | Ya | — | — | — | — |
-| `ProcurementTypeId` | `uuid` | Ya | — | FK `MstProcurementType`, index | sama untuk semua item **[USULAN `G-P11`]** | — |
-| `FiscalYear` | `int` | Ya | — | index | sama untuk semua sumber **[USULAN `G-P12`]** | — |
+| `ProcurementTypeId` | `uuid` | Ya | — | FK `MstProcurementType`, index | sama untuk semua item (`PBJ-DEC-090`) | — |
+| `FiscalYear` | `int` | Ya | — | index | sama untuk semua sumber (`PBJ-DEC-091`) | — |
 | `PackagePlanId` | `uuid` | Tidak | — | FK `PrcPackagePlan` | rujukan saja (`PBJ-DEC-082`) | — |
 | `SplitFromPackageId` | `uuid` | Tidak | — | FK `PrcPackage` | terisi pada paket hasil pecah | — |
 | `Status` | `varchar(40)` | Ya | `DRAFT` | index | `state-transition-matrix.md` bagian 1 | — |
@@ -186,7 +186,7 @@ Penanda **Sensitif**: `S` = harga/HPS (tertutup bagi evaluator, `PBJ-DEC-079`, t
 | `ReceivedAt` | `timestamptz` | Ya | — | — | ≤ sekarang | — |
 | `RecordedByUserId` | `uuid` | Ya | pencatat | index | `PBJ-DEC-074` | — |
 | `IsLate` | `bool` | Ya | — | — | `ReceivedAt > Deadline` saat dicatat | — |
-| `IsComplete` | `bool` | Ya | — | — | menawar semua item paket (`G-P02`) | — |
+| `IsComplete` | `bool` | Ya | — | — | menawar semua item paket (`G-P02`, `PBJ-DEC-095`) | — |
 | `TaxPercent` | `numeric(5,2)` | Ya | dari `MstSupplier` bila kena pajak, selain itu `0` | — | 0–100 | — |
 | `TotalBeforeTax`, `TaxAmount`, `TotalAmount` | `numeric(18,2)` | Ya | — | — | dihitung server | S |
 | `Status` | `varchar(20)` | Ya | `RECORDED` | — | `RECORDED`/`VOID` | — |

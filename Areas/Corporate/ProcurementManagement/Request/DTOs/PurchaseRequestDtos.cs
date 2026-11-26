@@ -86,6 +86,9 @@ public sealed class PurchaseRequestLineResponse
     public DateTimeOffset? StockCheckedAt { get; set; }
     public decimal PurchaseQuantity { get; set; }
     public decimal PurchaseAmount { get; set; }
+
+    /// <summary>Paket yang memuat baris ini; <c>null</c> = belum dipaketkan (BE-PBJ-PS-003, aditif). Nomor dan status paket dibaca dari <c>/procurement-packages/request-summary</c>.</summary>
+    public Guid? PackageId { get; set; }
 }
 
 public sealed class PurchaseRequestResponse

@@ -5,10 +5,10 @@
 | Blueprint ID | `PBJ-BP-001` |
 | Nama modul | Pengadaan Barang & Jasa |
 | Revisi | `2` |
-| Status modul | `PARTIAL` (diturunkan: 2 sub-modul approved, 1 draft, 1 belum dimulai) |
-| Fase saat ini | `PBJ-PH-007` audit kesiapan: `perencanaan-permintaan` `READY_WITH_CONDITIONS` (sign-off menunggu K-1..K-4) dan `manajemen-vendor` `READY_WITH_CONDITIONS` (sign-off menunggu VD K-1, K-2, K-5..K-7; K-3 dan K-4 selesai); dua sub-modul lain belum dimulai |
+| Status modul | `PARTIAL` (diturunkan: 3 sub-modul approved, 1 belum dimulai) |
+| Fase saat ini | `PBJ-PH-007` audit kesiapan: `perencanaan-permintaan` `READY_WITH_CONDITIONS` (sign-off menunggu K-1..K-4) dan `manajemen-vendor` `READY_WITH_CONDITIONS` (sign-off menunggu VD K-1, K-2, K-5..K-7; K-3 dan K-4 selesai); `pemilihan-penyedia` desain `approved` 26 November 2026 dan masuk `PBJ-PH-005`; `kontrak-pelaksanaan` belum dimulai |
 | Terakhir diverifikasi | 26 November 2026 — pemeriksaan ulang read-only kedua sub-modul (git, hash dokumen, `SELECT` di dev; build/runtime tidak diulang): keduanya tetap `READY_WITH_CONDITIONS` ([laporan PP](perencanaan-permintaan/testing/readiness-report.md), [laporan VD](manajemen-vendor/testing/readiness-report.md), bagian 9); modul tetap `NOT_READY`. Audit penuh: PP 17 November 2026, VD 19 November 2026 |
-| SHA backend | `c97642bb` (branch `sukmagp` HEAD, bersih); kode Pengadaan terakhir di `5e777833` |
+| SHA backend | `45b22777` (branch `sukmagp` HEAD, sudah di-push; desain `pemilihan-penyedia`); kode Pengadaan terakhir di `5e777833` |
 | SHA frontend | `3e5386679` (branch `sukmagpV2` HEAD, bersih); kode Pengadaan terakhir di `af8a430ac` |
 
 ## Rencana fase
@@ -18,9 +18,9 @@
 | `PBJ-PH-001` | Wawancara kebutuhan | `grill-me` | `DONE` — scope + closure pass (`PBJ-DEC-001..026`), 12 November 2026 |
 | `PBJ-PH-002` | Audit kemampuan yang sudah ada | `trace-existing-capabilities` | `DONE` — `01-existing-capability-map.md` revisi 1 @`100c011d`/`763d665b`, 12 November 2026 |
 | `PBJ-PH-003` | Penilaian kelengkapan kebutuhan per slice | `requirement-completeness-gate` | `DONE` untuk `perencanaan-permintaan` — `READY_FOR_DOMAIN_DESIGN` (`02-requirement-completeness-assessment.md` revisi 2); `DONE` untuk `manajemen-vendor` — `S-V1`..`S-V6` `READY_FOR_DOMAIN_DESIGN` (revisi 4); `DONE` untuk `pemilihan-penyedia` — `S-P1`..`S-P10` `READY_FOR_DOMAIN_DESIGN` (revisi 6, 26 November 2026) |
-| `PBJ-PH-004` | Desain blueprint (arsitektur, kontrak, kamus data, alur) | `design-business-module` | `DONE` untuk `perencanaan-permintaan` — `approved` 12 November 2026 (`PBJ-DEC-034`); `DONE` untuk `manajemen-vendor` — `approved` 17 November 2026 (`PBJ-DEC-062`); `IN_PROGRESS` untuk `pemilihan-penyedia` — desain `draft` 26 November 2026 (14 berkas, kontrak set 1.0), menunggu approval; `kontrak-pelaksanaan` `NOT_STARTED` |
-| `PBJ-PH-005` | Rencana task BE/FE | `plan-module-delivery` | `DONE` untuk `perencanaan-permintaan` — roadmap revisi 2 (12 task BE, 9 task FE); `DONE` untuk `manajemen-vendor` — roadmap revisi 1 (8 task BE `BE-PBJ-VD-001`..`008`, 5 task FE `FE-PBJ-VD-001`..`005`), 17 November 2026 |
-| `PBJ-PH-006` | Implementasi per task | `build-module-backend` / `build-module-frontend` | `DONE` untuk `perencanaan-permintaan` — 16 November 2026: `BE-PBJ-001`..`011` ✅, `FE-PBJ-001`..`008` ✅; tambahan `PBJ-DEC-039`/`040`. `DONE` untuk `manajemen-vendor` — 19 November 2026: `BE-PBJ-VD-001`..`008` ✅ (`003` diperbarui D-9/D-10), `FE-PBJ-VD-001`..`005` ✅ |
+| `PBJ-PH-004` | Desain blueprint (arsitektur, kontrak, kamus data, alur) | `design-business-module` | `DONE` untuk `perencanaan-permintaan` — `approved` 12 November 2026 (`PBJ-DEC-034`); `DONE` untuk `manajemen-vendor` — `approved` 17 November 2026 (`PBJ-DEC-062`); `DONE` untuk `pemilihan-penyedia` — `approved` 26 November 2026 (`PBJ-DEC-095`; kontrak set 1.0, `PBJ-PP-INT` naik ke 1.2; registry `Sourcing` `PBJ-DEC-096`); `kontrak-pelaksanaan` `NOT_STARTED` |
+| `PBJ-PH-005` | Rencana task BE/FE | `plan-module-delivery` | `DONE` untuk `perencanaan-permintaan` — roadmap revisi 2 (12 task BE, 9 task FE); `DONE` untuk `manajemen-vendor` — roadmap revisi 1 (8 task BE `BE-PBJ-VD-001`..`008`, 5 task FE `FE-PBJ-VD-001`..`005`), 17 November 2026; `DONE` untuk `pemilihan-penyedia` — roadmap revisi 1 (15 task BE `BE-PBJ-PS-001`..`015`, 8 task FE `FE-PBJ-PS-001`..`008`; `FE-PBJ-PS-008` ⛔ `PBJ-OQ-038`), 26 November 2026 |
+| `PBJ-PH-006` | Implementasi per task | `build-module-backend` / `build-module-frontend` | `DONE` untuk `perencanaan-permintaan` — 16 November 2026: `BE-PBJ-001`..`011` ✅, `FE-PBJ-001`..`008` ✅; tambahan `PBJ-DEC-039`/`040`. `DONE` untuk `manajemen-vendor` — 19 November 2026: `BE-PBJ-VD-001`..`008` ✅ (`003` diperbarui D-9/D-10), `FE-PBJ-VD-001`..`005` ✅. `IN_PROGRESS` untuk `pemilihan-penyedia` — `BE-PBJ-PS-001`..`004` ✅ 26 November 2026 (4/23) |
 | `PBJ-PH-007` | Audit kesiapan | `verify-module-readiness` | `IN_PROGRESS` untuk `perencanaan-permintaan` — audit pertama 17 November 2026: `READY_WITH_CONDITIONS` (syarat K-1..K-6, [laporan](perencanaan-permintaan/testing/readiness-report.md)); K-5 dan K-6 selesai hari yang sama; audit ulang untuk sign-off. `IN_PROGRESS` untuk `manajemen-vendor` — audit pertama 19 November 2026: `READY_WITH_CONDITIONS` (syarat K-1..K-7, [laporan](manajemen-vendor/testing/readiness-report.md)); K-3 dan K-4 selesai. Pemeriksaan ulang 26 November 2026 untuk kedua sub-modul: verdict tidak berubah |
 
 ## Status pengiriman
@@ -52,6 +52,10 @@ Keputusan `PBJ-OQ-001`, `003`, `004`, `006`, `007`, `009`..`014`, `016`..`018`, 
 
 Tidak ada, per pemeriksaan ulang 26 November 2026.
 
+- `perencanaan-permintaan`: `PBJ-PP-INT` naik dari 1.1 ke 1.2 (`PBJ-DEC-095`, 26 November 2026). Perubahannya mengganti dua
+  metode 1.1 yang belum pernah dibangun dan menambah dua kolom nullable; dibangun lewat roadmap `pemilihan-penyedia`.
+  Kesiapan `READY_WITH_CONDITIONS` atas perilaku yang sudah ada tidak berubah.
+
 - `perencanaan-permintaan`: manifest sub-modul kini pada `5e777833`/`af8a430ac`. Perubahan sejak `9f396063`/`608e46ba4` adalah `BE-PBJ-012`/`FE-PBJ-009` miliknya sendiri, ditambah penambahan konstanta, seeder, dan komponen bersama oleh `manajemen-vendor`. Perubahan itu hanya menambah, tanpa mengubah perilaku sub-modul ini. Hash 19 masukan dan artefak cocok.
 - `manajemen-vendor`: kode yang diuji 17–19 November 2026 sudah di-commit sebagai `5e777833`/`af8a430ac` dan di-push (VD K-3 selesai). Sesudahnya kode Pengadaan tidak berubah; merge modul lain hanya memformat ulang `menu-items.jsx` dan menambah migration modul lain ke snapshot. Hash 18 masukan dan artefak cocok.
 
@@ -60,11 +64,11 @@ Tidak ada, per pemeriksaan ulang 26 November 2026.
 | Sub-modul | Status |
 | --- | --- |
 | `perencanaan-permintaan` | `approved` (`PBJ-DEC-034`); implementasi 21/21 task ✅; kesiapan `READY_WITH_CONDITIONS` (17 November 2026, dicek ulang 26 November 2026) |
-| `pemilihan-penyedia` | `draft` (26 November 2026): wawancara `PBJ-DEC-066`..`085`, capability map revisi 2, gerbang revisi 6 `READY_FOR_DOMAIN_DESIGN`, desain 14 berkas kontrak 1.0. Menunggu approval desain dan registry submodule `Sourcing` (`Prc`) |
+| `pemilihan-penyedia` | `approved` (`PBJ-DEC-095`, 26 November 2026): wawancara `PBJ-DEC-066`..`096`, capability map revisi 2, gerbang revisi 6 `READY_FOR_DOMAIN_DESIGN`, desain 14 berkas kontrak 1.0; registry `Sourcing` `ACTIVE` (`PBJ-DEC-096`). Belum dibangun |
 | `manajemen-vendor` | `approved` (`PBJ-DEC-062`, 17 November 2026); registry `Vendor` `ACTIVE` (`PBJ-DEC-063`); kesiapan `READY_WITH_CONDITIONS` (19 November 2026, [laporan](manajemen-vendor/testing/readiness-report.md)); roadmap revisi 1: 13 / 13 task ✅ (backend 8/8 ✅: `BE-PBJ-VD-001`..`006` 17 November 2026, `007`, `008` 18 November 2026, `003` diperbarui 18 dan 19 November 2026; frontend `FE-PBJ-VD-001`, `002` ✅ 18 November 2026, `003`..`005` ✅ 19 November 2026); audit kesiapan selesai 19 November 2026, dicek ulang 26 November 2026; sign-off menunggu VD K-1, K-2, K-5..K-7 (K-3 commit `5e777833`/`af8a430ac` dan K-4 kontrak 1.1 selesai); `FE-PBJ-VD-004` dirilis bersama `BE-PBJ-VD-007` |
 | `kontrak-pelaksanaan` | `NOT_STARTED` |
 
-Status modul diturunkan: `partial`. Kesiapan modul diturunkan: `NOT_READY` (`pemilihan-penyedia` dan `kontrak-pelaksanaan` belum dimulai).
+Status modul diturunkan: `partial`. Kesiapan modul diturunkan: `NOT_READY` (`pemilihan-penyedia` belum dibangun, `kontrak-pelaksanaan` belum dimulai).
 
 ## Tindakan berikutnya
 
@@ -75,10 +79,12 @@ Status modul diturunkan: `partial`. Kesiapan modul diturunkan: `NOT_READY` (`pem
 5. **Pemilik HR:** tindak lanjuti empat bug HR lama di laporan `BE-PBJ-001`.
 6. `verify-module-readiness` ulang untuk sign-off `perencanaan-permintaan` sesudah K-1..K-4.
 7. **`manajemen-vendor`:** isi matriks `PBJ-VND-*` sebelum kunci Master Data dirilis (VD K-1); terapkan bundel `PBJ-DEC-051` + lampiran untuk Direktur (VD K-2); lalu UAT dan audit ulang. VD K-3 selesai (commit `5e777833`/`af8a430ac`, dicatat 26 November 2026). VD K-4 selesai 19 November 2026: kontrak 1.1 (`PBJ-DEC-064`, `PBJ-DEC-065`) sudah ditulis.
-8. **`pemilihan-penyedia`:** tinjau dan setujui desain `draft` (termasuk usulan `G-P08`, `G-P09`, `G-P15` dan amendment `PBJ-PP-INT` 1.2), daftarkan registry submodule `Sourcing`, lalu `plan-module-delivery`. `PBJ-OQ-038` (nama 11 submenu) menahan desain frontend saja.
+8. **`pemilihan-penyedia`:** desain `approved` dan registry `Sourcing` terdaftar 26 November 2026 (`PBJ-DEC-086`..`096`); roadmap revisi 1 tersusun hari yang sama; `BE-PBJ-PS-001` ✅ (migration `AddProcurementSourcingMasterData` di `QuilvianNewDevSukma`), `BE-PBJ-PS-002` ✅ (27 endpoint master), `BE-PBJ-PS-003` ✅ (migration `AddProcurementPurchaseRequestLinePackage`), `BE-PBJ-PS-004` ✅ (14 tabel, migration `AddProcurementSourcing`). Berikutnya `BE-PBJ-PS-005` (gelombang 4, termasuk penanda izin eksplisit yang dipindah dari `004`) dan `FE-PBJ-PS-001`. Temuan terbuka: status `PBJ-VAL-091` berbeda antara `PBJ-PP-VAL` (409) dan `PBJ-PS-VAL` (422). `PBJ-OQ-038` (nama 11 submenu) hanya menahan `FE-PBJ-PS-008`.
 9. Sub-modul berikutnya: `kontrak-pelaksanaan` lewat `grill-me`.
 
 ## Progres pengiriman
+
+`pemilihan-penyedia`: 4 / 23 task ✅ (`BE-PBJ-PS-001`..`004` ✅ 26 November 2026; backend `005`..`015` dan frontend `FE-PBJ-PS-001`..`008` belum; roadmap revisi 1). `FE-PBJ-PS-008` ⛔ menunggu `PBJ-OQ-038`.
 
 `perencanaan-permintaan`: 21 / 21 task ✅ (`BE-PBJ-001`..`012`, `FE-PBJ-001`..`009`; roadmap revisi 2 menambah `BE-PBJ-012` dan `FE-PBJ-009` untuk standar layar daftar `PBJ-FE-004`). Tidak ada task yang dikecualikan. Diperbarui 17 November 2026.
 

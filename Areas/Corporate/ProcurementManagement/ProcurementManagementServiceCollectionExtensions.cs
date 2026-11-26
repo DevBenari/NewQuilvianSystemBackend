@@ -33,6 +33,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement
             services.AddScoped<ProcurementCategoryDocumentRequirementService>();
             services.AddScoped<ProcurementEvaluationCriterionService>();
 
+            // BE-PBJ-PS-002 — master pemilihan penyedia: metode pengadaan, jenis dokumen paket, dokumen wajib paket.
+            services.AddScoped<ProcurementMethodService>();
+            services.AddScoped<ProcurementPackageDocumentTypeService>();
+            services.AddScoped<ProcurementPackageDocumentRequirementService>();
+
             // BE-PBJ-004 — lampiran. Penyedia akses per jenis dokumen (IProcurementDocumentAccessProvider)
             // didaftarkan task pemilik dokumennya; tanpa penyedia, lampiran jenis itu ditolak (fail-closed).
             services.AddScoped<ProcurementAttachmentService>();

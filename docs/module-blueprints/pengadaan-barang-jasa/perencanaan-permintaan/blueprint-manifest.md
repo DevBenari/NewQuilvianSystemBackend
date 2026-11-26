@@ -26,7 +26,7 @@ contract_versions:
   api-contract: PBJ-PP-API 1.4 (approved, PBJ-DEC-037, PBJ-DEC-040..042, PBJ-DEC-055)
   state-transition-matrix: PBJ-PP-STATE 1.0 (approved)
   validation-matrix: PBJ-PP-VAL 1.2 (approved, PBJ-DEC-041, PBJ-DEC-055)
-  integration-contract: PBJ-PP-INT 1.1 (approved, PBJ-DEC-038)
+  integration-contract: PBJ-PP-INT 1.2 (approved; 1.1 PBJ-DEC-038; 1.2 PBJ-DEC-095 2026-11-26 — metode per baris PR untuk pemilihan-penyedia, dibangun bersama sub-modul itu)
   permission-audit-matrix: PBJ-PP-PERM 1.3 (approved, PBJ-DEC-036/037/039/040)
   acceptance-test-matrix: PBJ-PP-TEST 1.2 (approved, PBJ-DEC-041, PBJ-DEC-042, PBJ-DEC-055, PBJ-FE-004)
   prd-to-mvp: PBJ-PP-MVP 1.1 (approved; 1.1 = teks PBJ-OQ-019 diselaraskan PBJ-DEC-038)
@@ -48,7 +48,7 @@ artifact_hashes:         # dihitung ulang 2026-11-17 (pemeliharaan sesudah audit
   contracts/api-contract.md: eeb444f23f05d0c3
   contracts/state-transition-matrix.md: eb2c48c11772c078
   contracts/validation-matrix.md: bed447ccdd62d2f8
-  contracts/integration-contract.md: 5c289c98fbb87bc2
+  contracts/integration-contract.md: 7c5bb9f4c76c4485   # PBJ-PP-INT 1.2, dihitung ulang 2026-11-26 (PBJ-DEC-095)
   contracts/permission-audit-matrix.md: 2770cc6bc402a1ba
   testing/acceptance-test-matrix.md: fdc61d22dcd99cbb
   flowcharts/00-alur-utama.md: c5e713fdce1e0c6c

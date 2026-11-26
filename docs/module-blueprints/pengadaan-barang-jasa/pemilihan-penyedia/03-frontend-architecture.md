@@ -2,8 +2,8 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `PBJ-BP-001` revisi 2, sub-modul `pemilihan-penyedia` (`PBJ-PS`) · status `draft` |
-| Masukan | `02-backend-architecture.md`, `contracts/*` 1.0 (draft); `PBJ-FE-001`..`004`; `PBJ-DEC-074`, `079`, `080`, `085` |
+| Blueprint | `PBJ-BP-001` revisi 2, sub-modul `pemilihan-penyedia` (`PBJ-PS`) · status `approved` (`PBJ-DEC-095`, 2026-11-26) |
+| Masukan | `02-backend-architecture.md`, `contracts/*` 1.0 (approved); `PBJ-FE-001`..`004`; `PBJ-DEC-074`, `079`, `080`, `085` |
 | Repository | `V2QuilvianSystemFrontendDev` @`3e5386679` |
 | Kewenangan UI | `PBJ-FE-001` nama menu SOURCE (**nama 11 submenu menunggu `PBJ-OQ-038`**); `PBJ-FE-004` standar layar daftar; rupa lain `PBJ-FE-002` `DEV_DISCRETION`; `PBJ-FE-003` invariant keamanan tampilan |
 
