@@ -6860,3 +6860,237 @@ Sebaiknya migrasi dibuat terpisah dan lebih dulu, supaya migrasi orang lain di c
 | Ubah | `tests/unit/stock-opname.test.mjs` | 8 uji baru; daftar berkas Stock Opname diperluas |
 
 **Jangan ikut di-commit:** `SeedData/ICD10/*`, `Storage/uploads/*`, `tests/e2e/zz-*.mjs`, `test-results/.last-run.json`.
+
+
+# VERIFIKASI AKHIR SETELAH MERGE INTEGRATION (FIN-LGS-095)
+
+**Tanggal:** 26 November 2026
+**Yang diperiksa:**
+
+| Repo | Branch | HEAD (merge) | Induk 1 (Logistik) | Induk 2 (integration) |
+| --- | --- | --- | --- | --- |
+| Backend | `Ikbal` | `b7687c56` | `0e1f348b` | `069dc26f` (`QuilvianIntegrationBackend`) |
+| Frontend | `Ikbalv2` | `869515cc4` | `b56c08243` | `QuilvianIntegrationFrontend` |
+
+**Cara memeriksa:** hanya pemeriksaan statis atas hasil merge (git diff, pembacaan kode, pencocokan kontrak), ditambah uji unit frontend `node --test` dan ESLint.
+
+**Yang tidak dijalankan:** `dotnet build`, `dotnet test`, `npm run build`, `npm run dev`, migrasi, akses basis data, perubahan kode modul lain, dan tindakan Git apa pun.
+
+**Rekomendasi:**
+
+- **Frontend: READY FOR PR REVIEW.**
+- **Backend: NOT READY FOR PR REVIEW** sampai quality gate build dan test pascamerge dijalankan dengan izin tersendiri. Pemeriksaan statis tidak menemukan masalah; yang belum ada hanya bukti kompilasi dan uji.
+
+## 1. Hasil pemeriksaan merge backend
+
+### 1.1 Isi merge
+
+- Integration membawa **1.269 berkas**. Sebagian besar milik modul lain: HumanResource 313, AssetManagement 103, Payroll 82, Procurement 69, Registration 36, Laboratory 5, Accounting 10, ditambah 26 berkas migrasi dan dokumen modul lain.
+- Integration **tidak mengubah satu pun berkas** di `Areas/HealthServices/PharmacyManagement`, `Repositories/Configurations/HealthServices/PharmacyManagement`, maupun `Tests/QuilvianSystemBackend.PharmacyTests`.
+- Hasil merge berbeda dari integration **hanya pada 45 berkas milik Logistik**:
+  - kode dan uji PharmacyManagement;
+  - dokumen `docs/module-blueprints/logistik`;
+  - dua baris tambahan di dua berkas bersama:
+
+| Berkas bersama | Selisih terhadap integration |
+| --- | --- |
+| `Program.cs` | `+ builder.Services.AddScoped<StockOpnameService>();` (1 baris + komentar) |
+| `Repositories/ApplicationDbContext.cs` | `+ DbSet<PhmStockOpname>`, `+ DbSet<PhmStockOpnameLine>` (2 baris + komentar) |
+
+Artinya PR backend nanti hanya membawa perubahan Logistik. Perubahan modul lain sudah ada di integration dan tidak ikut diubah.
+
+### 1.2 Konsistensi Stock Opname
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Registrasi DI dependensi `StockOpnameService` | Tetap: `AddHttpContextAccessor`, `LoggerService`, `DrugStockService`, `StockOpnameService`, `NumberSeriesAllocator`. `StockRequestApprovalAuthority` dibuat langsung di service, tidak lewat DI |
+| Berkas dependensi service (NumberSeriesManagement, Logging, Responses, DrugStockService, StockRequestApprovalAuthority) | Tidak diubah integration |
+| `DbSet` Stock Opname | Ada, sekali, tanpa nama kembar |
+| Endpoint `StockOpnameController` | 13 endpoint, route `api/v1/health-services/pharmacy-management/stock-opnames`; tidak ada route lain yang sama |
+| Izin | 4 × `StockOpname:Read`, 7 × `StockOpname:Create`, 2 × `StockOpname:Approve`. Resource `StockOpname` tidak dipakai modul lain |
+| `PermissionMatrixTests` (25 controller / 168 endpoint / 92 pasangan) | Masih cocok secara statis. Uji ini hanya menghitung namespace `PharmacyManagement.Controllers`; jumlah controller 24 di integration + 1 (`StockOpnameController`) = 25 |
+| Tabrakan nama kelas/enum `StockOpname*` di modul lain | Tidak ada. Yang muncul hanya properti `IsStockOpnameRequired`/`StockOpnameIntervalDays` di `MstDrugStockPolicy` (master data, tidak bertabrakan) |
+| Kode galat `PHM039`, `PHM051`–`PHM067` di luar Pharmacy | Tidak ada |
+| Startup tanpa migrasi | `PendingModelChangesWarning` tetap diabaikan (baris 279 dan 298); tidak ada `Migrate()` otomatis |
+
+### 1.3 Perubahan bersama dari integration yang menyentuh jalur Logistik
+
+**`Middlewares/GlobalExceptionMiddleware.cs`** sekarang memetakan galat basis data yang **tidak tertangkap**:
+
+- konkurensi → 409;
+- `23505`/`23503`/`23xxx` → 409 dengan pesan ramah;
+- `DbUpdateException` → 500 dengan pesan ramah.
+
+Dampak ke Stock Opname: **tidak mengubah perilaku yang diuji**.
+
+- `StockOpnameController.Run` menangkap sendiri seluruh galat domain (503/404/403/409/422) beserta `errors.code`.
+- Tabel yang belum ada (`42P01`) sudah diubah service menjadi `PHM039` sebelum sampai ke middleware.
+
+Satu-satunya efek: pelanggaran indeks unik yang lolos dari pemeriksaan service kini menjadi 409 ramah (sebelumnya 500), tetapi tanpa `errors.code`. Frontend tetap menampilkan pesannya.
+
+Berkas bersama lain yang diubah integration (`AppDateTimeHelper`, `PatientNameMasker`, `BpjsFeatureGate`, Smtp/Turnstile, `HrSafeError`, dll.) **tidak dipakai** kode Logistik.
+
+## 2. Kondisi Stock Opname
+
+- **BLOCKED_SCHEMA, tidak berubah.**
+- `Migrations/ApplicationDbContextModelSnapshot.cs` di hasil merge **tidak memuat** `PhmStockOpname` maupun `PhmStockOpnameLine` (0 kemunculan), dan tidak ada berkas migrasi yang menyebut keduanya.
+- Kedua tabel **tidak ada secara fisik** di database mana pun yang dimigrasi dari kode ini.
+- Sebelum migrasi, endpoint sesi menjawab `503 PHM039` dan halaman memakai mode terbatas. Laporan ini **tidak** mengklaim tabelnya tersedia.
+- Migrasi baru dari integration (Procurement, Payroll, Asset, Registration, Lab, HR) milik modul lain dan tidak menyentuh Logistik.
+
+## 3. Kontrak FE–BE dan kesiapan frontend
+
+### 3.1 Isi merge frontend
+
+- Hasil merge berbeda dari integration hanya pada **114 berkas Logistik**: route, view, hook, service, util, gaya `pharmacy-management`, 5 berkas uji unit Logistik, dan `menu-items.jsx`.
+- Seluruh selisih `menu-items.jsx` berada di dalam blok "Logistik & Manajemen Persediaan" (baris 4090–4557). Menu modul lain dari integration tidak berubah.
+- Komponen bersama yang diubah integration (`base-file-upload.jsx`, `base-form-control.jsx`) tidak dipakai halaman Logistik. `InstanceAxios`, `usePermission`, `login-slice`, `BaseButton`, `DataTable`, `InformationAlert`, dan `SummaryGrid` tidak diubah.
+
+### 3.2 Pencocokan kontrak
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| URL service ↔ route controller | 13/13 cocok, termasuk `DELETE findings/{lineId}?expectedVersion` ↔ `[FromQuery] int? expectedVersion` |
+| Field yang dibaca layar ↔ DTO | `session.*` (27 field), `line.*` (19), ringkasan, berita acara: semuanya ada di `StockOpnameDetailResponse`/`LineResponse`/`VarianceSummaryResponse`/`ReportResponse` |
+| Payload yang dikirim ↔ DTO permintaan | buat sesi, simpan hitung (`lineId`, `physicalQuantity`, `note`), temuan, keputusan (`reason`, `expectedVersion`), saringan daftar: cocok |
+| Kode galat | Backend `Fail(status, message, new { Code, Status })` → frontend membaca `errors.code`; cocok |
+
+### 3.3 Navigasi dan mode transaksi
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| 6 menu / 20 submenu | Uji `FIN-LGS-075: tepat 6 menu dan 20 submenu` lulus; setiap tautan menuju halaman yang ada |
+| Uji unit Logistik frontend (5 berkas) di `869515cc4` | **94/94 lulus** (dijalankan ulang pada tahap ini) |
+| ESLint menu + berkas Stock Opname | 0 galat, 0 peringatan |
+| Mode transaksi | Hanya aktif bila `availability` = `READY`; selain itu mode terbatas dengan sebab (BLOCKED_SCHEMA / 403 / 404 / galat) |
+
+## 4. Potensi regresi
+
+| No. | Risiko | Tingkat | Keterangan |
+| --- | --- | --- | --- |
+| 1 | Backend gagal kompilasi pascamerge | Rendah | Integration tidak menyentuh area Pharmacy maupun dependensinya, dan dua berkas bersama hanya bertambah baris. Belum terbukti karena build belum dijalankan |
+| 2 | Migrasi berikutnya ikut membawa tabel Stock Opname | **Sedang** | Snapshot belum memuat dua entity ini. Setelah PR masuk integration, siapa pun yang menjalankan `dotnet ef migrations add` untuk modulnya akan ikut membawa `PhmStockOpname`/`PhmStockOpnameLine` ke migrasinya. Sebaiknya migrasi Stock Opname dibuat pihak berwenang bersamaan atau segera setelah PR, atau tim diberi tahu |
+| 3 | 409 dari middleware tanpa `errors.code` | Rendah | Hanya bila indeks unik menolak sesuatu yang lolos pemeriksaan service. Frontend tetap menampilkan pesan, tetapi tanpa petunjuk kode |
+| 4 | Proyek uji PharmacyTests utuh tidak terkompilasi | Sudah ada sebelumnya | 13 berkas Billing/Finance/Inpatient milik modul lain. Uji Logistik memakai proyek terisolasi. Bukan regresi dari merge |
+| 5 | Panel mode transaksi belum dilihat di peramban | Sedang | Belum ada pemeriksaan browser untuk panel FIN-LGS-092–094 |
+
+## 5. Verifikasi yang belum terpenuhi
+
+| Verifikasi | Status | Syarat |
+| --- | --- | --- |
+| `dotnet build` backend pascamerge | **Belum dijalankan** | Izin eksplisit (quality gate terpisah) |
+| `dotnet test` uji Logistik terisolasi + `PermissionMatrixTests` pascamerge | **Belum dijalankan** | Izin eksplisit |
+| `npm run build` frontend pascamerge | Belum dijalankan | Izin eksplisit |
+| Pemeriksaan browser mode transaksi (API tiruan) | Belum dijalankan | Izin `npm run dev` |
+| Migrasi dua tabel + izin `StockOpname:*` + UAT DEV | Belum | Pihak berwenang / admin akses / pemilik |
+
+Hasil uji backend terakhir yang benar-benar dijalankan berasal dari **sebelum merge** (`3b9c6f84`): Logistik terisolasi 172/172, Farmasi terkompilasi 932/953 (21 gagal di Finance/Workforce). Hasil ini **tidak** berlaku otomatis untuk `b7687c56`.
+
+## 6. Ringkasan untuk keputusan PR
+
+| | Frontend `Ikbalv2` → `QuilvianIntegrationFrontend` | Backend `Ikbal` → `QuilvianIntegrationBackend` |
+| --- | --- | --- |
+| Lingkup PR | 114 berkas, seluruhnya Logistik | 45 berkas, seluruhnya Logistik + 3 baris di 2 berkas bersama |
+| Konflik dengan integration | Sudah diselesaikan (blok menu Logistik) | Tidak ada |
+| Bukti | Uji unit 94/94 + ESLint pada HEAD merge | Pemeriksaan statis saja |
+| Rekomendasi | **READY FOR PR REVIEW** | **NOT READY FOR PR REVIEW**: jalankan dulu `dotnet build` dan uji Logistik terisolasi + `PermissionMatrixTests` pada `b7687c56` |
+| Catatan untuk reviewer | Mode transaksi otomatis nonaktif sampai migrasi | Stock Opname tetap BLOCKED_SCHEMA; koordinasikan migrasi dua tabel (risiko no. 2) |
+
+
+# QUALITY GATE BACKEND PASCAMERGE (FIN-LGS-096)
+
+**Tanggal:** 26 November 2026
+**Basis:** backend `Ikbal` HEAD `b7687c56` (merge `QuilvianIntegrationBackend`) + satu perbaikan harness uji yang belum di-commit (bagian 3).
+**Izin:** `dotnet build` dan `dotnet test` pada proyek uji terisolasi dengan `SkipMigrationMetadata=true` (izin khusus pemilik).
+**Yang tidak dilakukan:** migrasi, akses basis data, menjalankan server backend, deployment, perubahan kode modul lain, dan tindakan Git apa pun.
+
+**Status: BACKEND READY FOR PR REVIEW.** Stock Opname tetap **BLOCKED_SCHEMA** sampai dua tabelnya dimigrasi.
+
+## 1. Build backend
+
+| Perintah | Hasil |
+| --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj -c Debug -m:1 -p:SkipMigrationMetadata=true` (foreground) | **0 error**, 619 warning, 1 menit 27 detik |
+
+- Sebelum merge build menghasilkan 603 warning; tambahan warning berasal dari kode modul lain yang dibawa integration.
+- Tidak ada warning dari berkas Logistik (`StockOpname*`, `DrugStock*`, `LogisticsReport*`, `StockRequest*`).
+- Lima warning di area PharmacyManagement berada di `PrescriptionValidationService`, `PrescriptionWorkspaceService`, dan `PharmacyModuleCodeConsolidationSeeder`, dan sudah ada sebelumnya.
+
+## 2. Uji
+
+**Proyek:** `pharmacy-all-isolated` (di luar repo). Proyek ini memuat **seluruh** berkas uji `Tests/QuilvianSystemBackend.PharmacyTests` kecuali 13 berkas Billing/Finance/Inpatient milik modul lain yang memang tidak terkompilasi. Uji berjalan di SQLite dalam memori, tanpa basis data sungguhan.
+
+### 2.1 Percobaan pertama: 432 lulus / 521 gagal dari 953
+
+Seluruh 521 kegagalan bersebab tunggal: `SQLite Error 1: 'no such function: btrim'` di `TestDatabase.Create()`.
+
+Penyebabnya, merge membawa tiga check constraint baru milik modul lain berbentuk `length(btrim("Kolom")) > 0`:
+
+- `PrlOpeningTaxBalanceConfiguration` (Payroll);
+- `PrcVendorProfileConfiguration` (Pengadaan);
+- `PrcVendorStatusRequestConfiguration` (Pengadaan).
+
+`btrim` hanya ada di PostgreSQL, sehingga SQLite menolak `CREATE TABLE`, skema uji tidak terbentuk, dan setiap uji yang membuat basis data ikut gagal.
+
+### 2.2 Setelah perbaikan harness: 932 lulus / 21 gagal dari 953
+
+| Kelompok | Lulus / Total |
+| --- | --- |
+| `StockOpnameTests.StockOpnameTransactionTests` | 15 / 15 |
+| `LogisticsReportTests.StockOpnameTests` | 11 / 11 |
+| `LogisticsReportTests.LogisticsReportTests` | 16 / 16 |
+| `StockRequestApprovalTests.*` (13 kelas) | 130 / 130 |
+| **Logistik** | **172 / 172** |
+| `PermissionMatrixTests` (25 controller, 168 endpoint, 92 pasangan izin) | **283 / 283** |
+| **Logistik + PermissionMatrixTests** | **455 / 455** |
+| Uji lain di proyek PharmacyTests yang terkompilasi (resep, dispensing, retur obat, stok resep, depo, label, serta kelas Finance/Billing yang lulus) | 466 / 466 |
+| Empat kelas Finance/Workforce | 11 / 32 lulus, **21 gagal** (bagian 2.3) |
+
+Angka-angka di atas dihitung dari berkas hasil `pharmacy-all-096b.trx`, bukan disalin dari laporan lama.
+
+### 2.3 Kegagalan modul lain (dicatat, tidak diubah)
+
+| Kelas uji | Gagal | Sebab yang terlihat |
+| --- | --- | --- |
+| `WorkforceBenefitOwnerAcceptanceTests` | 11 / 15 | assert dan `DbUpdateException` |
+| `FinanceEmployeeBenefitArAutoIntakeServiceTests` | 7 / 7 | `DbUpdateException` |
+| `FinanceReceivableInstallmentPlanListTests` | 2 / 5 | keterbatasan SQLite (`DateTimeOffset` di `ORDER BY`) dan assert |
+| `EmployeeBenefitReceivableReportTests` | 1 / 5 | assert |
+
+Kelas dan jumlahnya **sama persis** dengan 21 kegagalan sebelum merge (`3b9c6f84`). Semuanya milik Finance/Workforce, bukan regresi Logistik.
+
+## 3. Perbaikan yang dilakukan
+
+**Satu berkas, khusus harness uji Farmasi, bukan kode aplikasi:**
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Tests/QuilvianSystemBackend.PharmacyTests/Infrastructure/TestDatabase.cs` | `FungsiKhususPostgres = ["num_nonnulls", "btrim"]` (sebelumnya hanya `num_nonnulls`), beserta komentar asal-usulnya |
+
+Cara kerjanya mengikuti pola yang sudah ada, termasuk preseden `e05d9b30` untuk operator regex PostgreSQL:
+
+- `ModelUjiSqlite` melepas check constraint yang memuat fungsi khas PostgreSQL **hanya di skema uji SQLite**.
+- Model aplikasi, konfigurasi Payroll/Pengadaan, dan migrasi tidak diubah; constraint itu tetap berlaku di PostgreSQL.
+- Pelepasan bersifat sempit. Hanya tiga constraint yang memuat `btrim` yang terdampak, dan ketiganya milik tabel modul lain yang tidak disentuh uji Farmasi.
+- Check constraint Stock Opname (`CK_PhmStockOpname_RejectedHasReason`, `CK_PhmStockOpnameLine_PhysicalNotNegative`, `CK_PhmStockOpnameLine_TypeMatchesBalance`) tidak memakai `btrim`, sehingga tetap berlaku dan tetap teruji.
+
+Berkas ini perlu ikut dalam commit sebelum PR. Tanpa perbaikan ini, siapa pun yang menjalankan uji Farmasi dari `Ikbal` atau integration akan menghadapi 521 kegagalan yang sama.
+
+## 4. Blocker yang tersisa
+
+| No. | Blocker | Pemilik |
+| --- | --- | --- |
+| 1 | Commit perbaikan `TestDatabase.cs` dan laporan ini, lalu PR `Ikbal` → `QuilvianIntegrationBackend` | Pemilik (tindakan Git manual) |
+| 2 | Migrasi `PhmStockOpname` dan `PhmStockOpnameLine`. Koordinasikan supaya migrasi tim lain tidak ikut membawa dua tabel ini (FIN-LGS-095 risiko no. 2) | Pihak berwenang |
+| 3 | Izin `StockOpname:Read` / `Create` / `Approve` lewat Akses Role | Admin akses |
+| 4 | Pemeriksaan browser mode transaksi dan UAT DEV | Pemilik + petugas gudang |
+| 5 | Proyek `QuilvianSystemBackend.PharmacyTests` di repo tetap tidak terkompilasi utuh (13 berkas Billing/Finance/Inpatient) dan 21 uji Finance/Workforce gagal | Modul Finance/Billing/Workforce |
+
+## 5. Berkas yang berubah pada tahap ini (belum di-commit)
+
+| Status | Berkas |
+| --- | --- |
+| Ubah | `Tests/QuilvianSystemBackend.PharmacyTests/Infrastructure/TestDatabase.cs` |
+| Ubah | `docs/module-blueprints/logistik/task/report/FIN-LGS-LAPORAN-FINISHING.md` (bagian FIN-LGS-095 dan FIN-LGS-096) |
+
+Berkas sementara di luar repo: `pharmacy-all-isolated/`, log build/uji, `pharmacy-all-096.trx`, dan `pharmacy-all-096b.trx`.
