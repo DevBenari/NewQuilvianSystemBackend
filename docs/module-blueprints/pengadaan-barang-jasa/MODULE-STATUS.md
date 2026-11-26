@@ -5,7 +5,7 @@
 | Blueprint ID | `PBJ-BP-001` |
 | Nama modul | Pengadaan Barang & Jasa |
 | Revisi | `2` |
-| Status modul | `PARTIAL` (diturunkan: 2 sub-modul approved, 2 belum dimulai) |
+| Status modul | `PARTIAL` (diturunkan: 2 sub-modul approved, 1 draft, 1 belum dimulai) |
 | Fase saat ini | `PBJ-PH-007` audit kesiapan: `perencanaan-permintaan` `READY_WITH_CONDITIONS` (sign-off menunggu K-1..K-4) dan `manajemen-vendor` `READY_WITH_CONDITIONS` (sign-off menunggu VD K-1, K-2, K-5..K-7; K-3 dan K-4 selesai); dua sub-modul lain belum dimulai |
 | Terakhir diverifikasi | 26 November 2026 — pemeriksaan ulang read-only kedua sub-modul (git, hash dokumen, `SELECT` di dev; build/runtime tidak diulang): keduanya tetap `READY_WITH_CONDITIONS` ([laporan PP](perencanaan-permintaan/testing/readiness-report.md), [laporan VD](manajemen-vendor/testing/readiness-report.md), bagian 9); modul tetap `NOT_READY`. Audit penuh: PP 17 November 2026, VD 19 November 2026 |
 | SHA backend | `c97642bb` (branch `sukmagp` HEAD, bersih); kode Pengadaan terakhir di `5e777833` |
@@ -17,8 +17,8 @@
 | --- | --- | --- | --- |
 | `PBJ-PH-001` | Wawancara kebutuhan | `grill-me` | `DONE` — scope + closure pass (`PBJ-DEC-001..026`), 12 November 2026 |
 | `PBJ-PH-002` | Audit kemampuan yang sudah ada | `trace-existing-capabilities` | `DONE` — `01-existing-capability-map.md` revisi 1 @`100c011d`/`763d665b`, 12 November 2026 |
-| `PBJ-PH-003` | Penilaian kelengkapan kebutuhan per slice | `requirement-completeness-gate` | `DONE` untuk `perencanaan-permintaan` — `READY_FOR_DOMAIN_DESIGN` (`02-requirement-completeness-assessment.md` revisi 2); `DONE` untuk `manajemen-vendor` — `S-V1`..`S-V6` `READY_FOR_DOMAIN_DESIGN` (revisi 4) |
-| `PBJ-PH-004` | Desain blueprint (arsitektur, kontrak, kamus data, alur) | `design-business-module` | `DONE` untuk `perencanaan-permintaan` — `approved` 12 November 2026 (`PBJ-DEC-034`); `DONE` untuk `manajemen-vendor` — `approved` 17 November 2026 (`PBJ-DEC-062`); dua sub-modul lain `NOT_STARTED` |
+| `PBJ-PH-003` | Penilaian kelengkapan kebutuhan per slice | `requirement-completeness-gate` | `DONE` untuk `perencanaan-permintaan` — `READY_FOR_DOMAIN_DESIGN` (`02-requirement-completeness-assessment.md` revisi 2); `DONE` untuk `manajemen-vendor` — `S-V1`..`S-V6` `READY_FOR_DOMAIN_DESIGN` (revisi 4); `DONE` untuk `pemilihan-penyedia` — `S-P1`..`S-P10` `READY_FOR_DOMAIN_DESIGN` (revisi 6, 26 November 2026) |
+| `PBJ-PH-004` | Desain blueprint (arsitektur, kontrak, kamus data, alur) | `design-business-module` | `DONE` untuk `perencanaan-permintaan` — `approved` 12 November 2026 (`PBJ-DEC-034`); `DONE` untuk `manajemen-vendor` — `approved` 17 November 2026 (`PBJ-DEC-062`); `IN_PROGRESS` untuk `pemilihan-penyedia` — desain `draft` 26 November 2026 (14 berkas, kontrak set 1.0), menunggu approval; `kontrak-pelaksanaan` `NOT_STARTED` |
 | `PBJ-PH-005` | Rencana task BE/FE | `plan-module-delivery` | `DONE` untuk `perencanaan-permintaan` — roadmap revisi 2 (12 task BE, 9 task FE); `DONE` untuk `manajemen-vendor` — roadmap revisi 1 (8 task BE `BE-PBJ-VD-001`..`008`, 5 task FE `FE-PBJ-VD-001`..`005`), 17 November 2026 |
 | `PBJ-PH-006` | Implementasi per task | `build-module-backend` / `build-module-frontend` | `DONE` untuk `perencanaan-permintaan` — 16 November 2026: `BE-PBJ-001`..`011` ✅, `FE-PBJ-001`..`008` ✅; tambahan `PBJ-DEC-039`/`040`. `DONE` untuk `manajemen-vendor` — 19 November 2026: `BE-PBJ-VD-001`..`008` ✅ (`003` diperbarui D-9/D-10), `FE-PBJ-VD-001`..`005` ✅ |
 | `PBJ-PH-007` | Audit kesiapan | `verify-module-readiness` | `IN_PROGRESS` untuk `perencanaan-permintaan` — audit pertama 17 November 2026: `READY_WITH_CONDITIONS` (syarat K-1..K-6, [laporan](perencanaan-permintaan/testing/readiness-report.md)); K-5 dan K-6 selesai hari yang sama; audit ulang untuk sign-off. `IN_PROGRESS` untuk `manajemen-vendor` — audit pertama 19 November 2026: `READY_WITH_CONDITIONS` (syarat K-1..K-7, [laporan](manajemen-vendor/testing/readiness-report.md)); K-3 dan K-4 selesai. Pemeriksaan ulang 26 November 2026 untuk kedua sub-modul: verdict tidak berubah |
@@ -60,7 +60,7 @@ Tidak ada, per pemeriksaan ulang 26 November 2026.
 | Sub-modul | Status |
 | --- | --- |
 | `perencanaan-permintaan` | `approved` (`PBJ-DEC-034`); implementasi 21/21 task ✅; kesiapan `READY_WITH_CONDITIONS` (17 November 2026, dicek ulang 26 November 2026) |
-| `pemilihan-penyedia` | `NOT_STARTED` |
+| `pemilihan-penyedia` | `draft` (26 November 2026): wawancara `PBJ-DEC-066`..`085`, capability map revisi 2, gerbang revisi 6 `READY_FOR_DOMAIN_DESIGN`, desain 14 berkas kontrak 1.0. Menunggu approval desain dan registry submodule `Sourcing` (`Prc`) |
 | `manajemen-vendor` | `approved` (`PBJ-DEC-062`, 17 November 2026); registry `Vendor` `ACTIVE` (`PBJ-DEC-063`); kesiapan `READY_WITH_CONDITIONS` (19 November 2026, [laporan](manajemen-vendor/testing/readiness-report.md)); roadmap revisi 1: 13 / 13 task ✅ (backend 8/8 ✅: `BE-PBJ-VD-001`..`006` 17 November 2026, `007`, `008` 18 November 2026, `003` diperbarui 18 dan 19 November 2026; frontend `FE-PBJ-VD-001`, `002` ✅ 18 November 2026, `003`..`005` ✅ 19 November 2026); audit kesiapan selesai 19 November 2026, dicek ulang 26 November 2026; sign-off menunggu VD K-1, K-2, K-5..K-7 (K-3 commit `5e777833`/`af8a430ac` dan K-4 kontrak 1.1 selesai); `FE-PBJ-VD-004` dirilis bersama `BE-PBJ-VD-007` |
 | `kontrak-pelaksanaan` | `NOT_STARTED` |
 
@@ -75,7 +75,8 @@ Status modul diturunkan: `partial`. Kesiapan modul diturunkan: `NOT_READY` (`pem
 5. **Pemilik HR:** tindak lanjuti empat bug HR lama di laporan `BE-PBJ-001`.
 6. `verify-module-readiness` ulang untuk sign-off `perencanaan-permintaan` sesudah K-1..K-4.
 7. **`manajemen-vendor`:** isi matriks `PBJ-VND-*` sebelum kunci Master Data dirilis (VD K-1); terapkan bundel `PBJ-DEC-051` + lampiran untuk Direktur (VD K-2); lalu UAT dan audit ulang. VD K-3 selesai (commit `5e777833`/`af8a430ac`, dicatat 26 November 2026). VD K-4 selesai 19 November 2026: kontrak 1.1 (`PBJ-DEC-064`, `PBJ-DEC-065`) sudah ditulis.
-8. Sub-modul berikutnya: `pemilihan-penyedia` lewat `grill-me` (butuh `PBJ-OQ-005`), lalu `kontrak-pelaksanaan`.
+8. **`pemilihan-penyedia`:** tinjau dan setujui desain `draft` (termasuk usulan `G-P08`, `G-P09`, `G-P15` dan amendment `PBJ-PP-INT` 1.2), daftarkan registry submodule `Sourcing`, lalu `plan-module-delivery`. `PBJ-OQ-038` (nama 11 submenu) menahan desain frontend saja.
+9. Sub-modul berikutnya: `kontrak-pelaksanaan` lewat `grill-me`.
 
 ## Progres pengiriman
 

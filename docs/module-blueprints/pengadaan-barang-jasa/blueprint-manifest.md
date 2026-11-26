@@ -8,7 +8,7 @@ module_prefix: PBJ            # ID dokumen blueprint saja (PBJ-DEC-001, PBJ-OQ-0
 entity_prefix: Prc             # PBJ-DEC-035 — terdaftar ACTIVE di registry 2026-11-12
 module_area: Areas/Corporate/ProcurementManagement   # PBJ-DEC-035
 revision: 2                   # rev 2 = desain sub-modul perencanaan-permintaan (12 Nov 2026); PBJ-DEC-035..058 dibawa versi kontrak sub-modul
-status: partial               # DITURUNKAN: perencanaan-permintaan dan manajemen-vendor approved, dua NOT_STARTED
+status: partial               # DITURUNKAN: perencanaan-permintaan dan manajemen-vendor approved, pemilihan-penyedia draft, kontrak-pelaksanaan NOT_STARTED
 current_phase: PBJ-PH-007     # audit kesiapan: perencanaan-permintaan dan manajemen-vendor READY_WITH_CONDITIONS; sign-off menunggu syarat masing-masing (vendor K-3 dan K-4 selesai)
 blueprint_shape: COMPOSITE      # PBJ-DEC-004; sub-modul: perencanaan-permintaan, pemilihan-penyedia, manajemen-vendor, kontrak-pelaksanaan (folder dibuat oleh design-business-module)
 shape_decided_by: USER_CONFIRMED
@@ -19,7 +19,7 @@ backend_source_sha: c97642bbc67a5ea813df00902a523fbd01e299e9   # branch sukmagp 
 frontend_source_sha: 3e538667994feba533d2c93a142a6f333092066d  # branch sukmagpV2 HEAD 2026-11-26, bersih; kode Pengadaan terakhir di af8a430ac
 skill_suite_version: quilvian-engineering-skills 1.19.1
 input_revision_hash: BRD-PRD-PBJ-1.0-DRAFT-2026-11-12   # dokumen BRD & PRD v1.0 dari pengguna (lihat 00-business-overview.md)
-decision_revision: 17         # PBJ-DEC-001..065, PBJ-FE-004
+decision_revision: 18         # PBJ-DEC-001..085, PBJ-ASM-001..009, PBJ-FE-004 (pass pemilihan-penyedia 2026-11-26)
 contract_versions: per sub-modul (lihat manifest sub-modul)
 active_dependency_ids: [PBJ-DEP-001, PBJ-DEP-002, PBJ-DEP-003, PBJ-DEP-004, PBJ-DEP-005]
 active_roadmap_revision: perencanaan-permintaan/roadmap rev 2 (2026-11-17); manajemen-vendor/roadmap rev 1 (2026-11-17; 13/13 ✅ 2026-11-19)
@@ -36,8 +36,11 @@ submodules:
     readiness_report: perencanaan-permintaan/testing/readiness-report.md
   - slug: pemilihan-penyedia
     prefix: PBJ-PS
-    status: NOT_STARTED
-    blocked_by: PBJ-OQ-005 (metode pengadaan) sebelum gerbang kelengkapan
+    status: draft                # desain ditulis 2026-11-26, menunggu approval
+    contract_versions: "1.0 (draft; lihat manifest sub-modul)"
+    manifest: pemilihan-penyedia/blueprint-manifest.md
+    requirement_readiness: READY_FOR_DOMAIN_DESIGN   # penilaian rev 6
+    prerequisite: registry submodule Sourcing (Prc) belum ada
   - slug: manajemen-vendor
     prefix: PBJ-VD
     status: approved
@@ -53,7 +56,7 @@ submodules:
     blocked_by: bergantung pemilihan-penyedia
 requirement_readiness: READY_FOR_DOMAIN_DESIGN   # perencanaan-permintaan saja; 02-requirement-completeness-assessment.md rev 2
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN   # alasan di 02-requirement-completeness-assessment.md bagian 6
-module_readiness: NOT_READY   # diturunkan dari sub-modul terlemah: pemilihan-penyedia dan kontrak-pelaksanaan NOT_STARTED (2026-11-19)
+module_readiness: NOT_READY   # diturunkan dari sub-modul terlemah: pemilihan-penyedia draft (belum dibangun), kontrak-pelaksanaan NOT_STARTED (2026-11-26)
 ```
 
 ## Catatan identitas
