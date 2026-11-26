@@ -37,6 +37,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             AttendanceValueConstants.AttendanceStatus.NoScan
         };
 
+        // HRD-DEC-249 (desain 39.9.2): tipe pengecualian yang ikut selesai bila harinya dikonversi menjadi Absent.
+        private static readonly string[] ConversionExceptionTypes =
+        {
+            AttendanceValueConstants.AttendanceExceptionType.MissingCheckIn,
+            AttendanceValueConstants.AttendanceExceptionType.MissingCheckOut,
+            AttendanceValueConstants.AttendanceExceptionType.Absent
+        };
+
         // Batas teknis panjang daftar pratinjau agar respons dan snapshot validasi tetap ringan;
         // jumlah lengkap selalu dikirim lewat ConversionCandidateCount.
         private const int ConversionCandidatePreviewLimit = 500;
@@ -367,10 +375,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 period.UpdateBy = actorUserId;
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
-                var dailies = await ApplyScope(
-                        _dbContext.Set<HrdAttendanceDaily>().Where(x => !x.IsDelete && x.AttendanceDate >= period.StartDate && x.AttendanceDate <= period.EndDate),
-                        period)
-                    .ToListAsync(cancellationToken);
+                var scopedDailies = ApplyScope(
+                    _dbContext.Set<HrdAttendanceDaily>().Where(x => !x.IsDelete && x.AttendanceDate >= period.StartDate && x.AttendanceDate <= period.EndDate),
+                    period);
+                var dailies = await scopedDailies.ToListAsync(cancellationToken);
+
+                // Dibaca sebelum konversi: calon konversi ditentukan dari status harian yang tersimpan.
+                var conversionExceptions = await ConversionExceptions(scopedDailies).ToListAsync(cancellationToken);
 
                 var convertedIncompleteCount = 0;
                 foreach (var daily in dailies)
@@ -396,6 +407,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     daily.UpdateBy = actorUserId;
                 }
 
+                // HRD-DEC-249: pengecualian konversi selesai bersama konversi, dalam transaksi yang sama.
+                var resolutionNote = $"Diselesaikan oleh penutupan periode {period.PeriodCode} (HRD-DEC-249): hari dikonversi menjadi Absent";
+                foreach (var exception in conversionExceptions)
+                {
+                    exception.ExceptionStatus = AttendanceValueConstants.AttendanceExceptionStatus.Closed;
+                    exception.ResolvedByUserId = actorUserId;
+                    exception.ResolvedAt = now;
+                    exception.ResolutionNote = resolutionNote;
+                    exception.UpdateDateTime = now;
+                    exception.UpdateBy = actorUserId;
+                }
+
                 period.PeriodStatus = AttendanceValueConstants.AttendancePeriodStatus.Closed;
                 period.ClosedAt = now;
                 period.ClosedByUserId = actorUserId;
@@ -418,9 +441,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                         CurrentStatus = period.PeriodStatus,
                         AffectedAttendanceDailyCount = dailies.Count,
                         ConvertedIncompleteToAbsentCount = convertedIncompleteCount,
+                        ClosedConversionExceptionCount = conversionExceptions.Count,
                         ActionAt = now
                     },
-                    $"Attendance period berhasil ditutup. Dikunci {dailies.Count} rekaman absensi dan dikonversi {convertedIncompleteCount} hari Belum Lengkap/Tidak Ada Scan menjadi Absent.");
+                    $"Attendance period berhasil ditutup. Dikunci {dailies.Count} rekaman absensi, dikonversi {convertedIncompleteCount} hari Belum Lengkap/Tidak Ada Scan menjadi Absent, dan ditutup {conversionExceptions.Count} pengecualian presensi pada hari tersebut.");
             }
             catch (Exception ex)
             {
@@ -672,6 +696,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 : 0;
 
             var dailyIdsQuery = dailyQuery.Select(x => x.Id);
+            var conversionDailyIdsQuery = dailyQuery.Where(x => CloseConversionStatuses.Contains(x.AttendanceStatus)).Select(x => x.Id);
+
+            // VR-PK-31 / HRD-DEC-249: pengecualian konversi tidak memblokir tutup; pengecualian lain yang memblokir payroll tetap memblokir.
             var blockingException = await _dbContext.Set<HrdAttendanceException>()
                 .AsNoTracking()
                 .CountAsync(x =>
@@ -679,8 +706,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     x.IsPayrollBlocking &&
                     (x.ExceptionStatus == AttendanceValueConstants.AttendanceExceptionStatus.Open ||
                      x.ExceptionStatus == AttendanceValueConstants.AttendanceExceptionStatus.UnderReview) &&
-                    dailyIdsQuery.Contains(x.AttendanceDailyId),
+                    dailyIdsQuery.Contains(x.AttendanceDailyId) &&
+                    !(ConversionExceptionTypes.Contains(x.ExceptionType) && conversionDailyIdsQuery.Contains(x.AttendanceDailyId)),
                     cancellationToken);
+            var conversionExceptionCount = await ConversionExceptions(dailyQuery).AsNoTracking().CountAsync(cancellationToken);
 
             var activeCorrection = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .AsNoTracking()
@@ -834,10 +863,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 ConversionCandidateCount = conversionCandidateCount,
                 IsConversionCandidateListTruncated = conversionCandidateCount > conversionCandidates.Count,
                 ConversionCandidates = conversionCandidates,
+                ConversionExceptionCount = conversionExceptionCount,
                 HeldDeviceScanCount = heldDeviceScanCount,
                 ValidatedAt = DateTime.UtcNow,
                 Issues = issues
             };
+        }
+
+        // HRD-DEC-249 (desain 39.9.2): pengecualian Open/UnderReview bertipe MissingCheckIn, MissingCheckOut, atau Absent
+        // yang menempel pada hari calon konversi (CloseConversionStatuses) dalam cakupan periode.
+        private IQueryable<HrdAttendanceException> ConversionExceptions(IQueryable<HrdAttendanceDaily> scopedDailies)
+        {
+            var conversionDailyIds = scopedDailies
+                .Where(x => CloseConversionStatuses.Contains(x.AttendanceStatus))
+                .Select(x => x.Id);
+
+            return _dbContext.Set<HrdAttendanceException>().Where(x =>
+                !x.IsDelete &&
+                (x.ExceptionStatus == AttendanceValueConstants.AttendanceExceptionStatus.Open ||
+                 x.ExceptionStatus == AttendanceValueConstants.AttendanceExceptionStatus.UnderReview) &&
+                ConversionExceptionTypes.Contains(x.ExceptionType) &&
+                conversionDailyIds.Contains(x.AttendanceDailyId));
         }
 
         private async Task<string?> ValidateRequestAsync(

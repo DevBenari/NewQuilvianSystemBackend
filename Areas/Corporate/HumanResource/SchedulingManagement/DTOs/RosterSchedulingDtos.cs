@@ -195,6 +195,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public bool IsValidationPassed { get; set; }
         public string? ValidationResultJson { get; set; }
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// true = baris tampilan untuk petugas yang memegang shift di roster ini hanya sebagai pengganti (tanpa penugasan roster);
+        /// Id bernilai Guid.Empty dan baris tidak dapat dihapus atau divalidasi sebagai penugasan (HRD-DEC-248).
+        /// </summary>
+        public bool IsReplacementOnly { get; set; }
+
         public List<ShiftAssignmentItemResponse> ShiftAssignments { get; set; } = new();
 
         /// <summary>
@@ -228,6 +235,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public bool HasDoubleShiftConflict { get; set; }
         public bool HasMinimumRestConflict { get; set; }
         public bool HasBlockingConflict { get; set; }
+
+        /// <summary>
+        /// Petugas yang memegang shift sekarang (sesudah Ganti Petugas bila ada).
+        /// </summary>
+        public Guid WorkforceProfileId { get; set; }
+        public string WorkforceProfileCode { get; set; } = string.Empty;
+        public string WorkforceDisplayName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// true bila shift dipegang pengganti: petugas awal tercatat dan berbeda dari petugas sekarang (HRD-DEC-248).
+        /// </summary>
+        public bool IsReplacement { get; set; }
+
+        /// <summary>
+        /// Petugas awal shift; terisi hanya bila IsReplacement = true.
+        /// </summary>
+        public Guid? OriginalWorkforceProfileId { get; set; }
+        public string? OriginalWorkforceDisplayName { get; set; }
     }
 
     public class RosterValidationResultResponse

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -10,11 +11,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
 {
     public class ShiftSwapService
     {
-        private readonly ApplicationDbContext _dbContext;
+        private const string NotFoundMessage = "Pengajuan tukar shift tidak ditemukan.";
+        private const string ManageScopeDeniedMessage = "Anda tidak berwenang mengubah roster unit ini.";
 
-        public ShiftSwapService(ApplicationDbContext dbContext)
+        private readonly ApplicationDbContext _dbContext;
+        private readonly HrdUnitScopeService _unitScopeService;
+
+        public ShiftSwapService(ApplicationDbContext dbContext, HrdUnitScopeService unitScopeService)
         {
             _dbContext = dbContext;
+            _unitScopeService = unitScopeService;
         }
 
         public ShiftSwapFilterMetadataResponse GetFilterMetadata()
@@ -40,13 +46,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             };
         }
 
-        public async Task<ShiftSwapSummaryResponse> GetSummaryAsync(
+        public Task<ShiftSwapSummaryResponse> GetSummaryAsync(
             Guid? workforceProfileId,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default) =>
+            BuildSummaryAsync(workforceProfileId, null, cancellationToken);
+
+        /// <summary>Ringkasan sisi HR: hanya tukar dinas yang shift pemohon atau tujuannya dalam cakupan baca (HRD-DEC-253).</summary>
+        public async Task<ShiftSwapSummaryResponse> GetSummaryInScopeAsync(
+            Guid? workforceProfileId,
+            CancellationToken cancellationToken = default) =>
+            await BuildSummaryAsync(workforceProfileId, await _unitScopeService.GetReadScopeAsync(cancellationToken), cancellationToken);
+
+        private async Task<ShiftSwapSummaryResponse> BuildSummaryAsync(
+            Guid? workforceProfileId,
+            HrdUnitScope? readScope,
+            CancellationToken cancellationToken)
         {
-            var query = _dbContext.WfpShiftSwapRequests
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = ApplyReadScope(
+                _dbContext.WfpShiftSwapRequests
+                    .AsNoTracking()
+                    .Where(x => !x.IsDelete),
+                readScope);
 
             if (workforceProfileId.HasValue)
             {
@@ -75,7 +95,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             };
         }
 
-        public async Task<PagedResult<ShiftSwapListResponse>> GetPagedAsync(
+        public Task<PagedResult<ShiftSwapListResponse>> GetPagedAsync(
             Guid? workforceProfileId,
             string? viewMode,
             string? requestStatus,
@@ -85,12 +105,42 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             string? sortDirection,
             int pageNumber,
             int pageSize,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default) =>
+            BuildPagedAsync(null, workforceProfileId, viewMode, requestStatus, startDate, endDate, search, sortDirection, pageNumber, pageSize, cancellationToken);
+
+        /// <summary>Daftar sisi HR: hanya tukar dinas yang shift pemohon atau tujuannya dalam cakupan baca (HRD-DEC-253).</summary>
+        public async Task<PagedResult<ShiftSwapListResponse>> GetPagedInScopeAsync(
+            Guid? workforceProfileId,
+            string? viewMode,
+            string? requestStatus,
+            DateOnly? startDate,
+            DateOnly? endDate,
+            string? search,
+            string? sortDirection,
+            int pageNumber,
+            int pageSize,
+            CancellationToken cancellationToken = default) =>
+            await BuildPagedAsync(
+                await _unitScopeService.GetReadScopeAsync(cancellationToken),
+                workforceProfileId, viewMode, requestStatus, startDate, endDate, search, sortDirection, pageNumber, pageSize, cancellationToken);
+
+        private async Task<PagedResult<ShiftSwapListResponse>> BuildPagedAsync(
+            HrdUnitScope? readScope,
+            Guid? workforceProfileId,
+            string? viewMode,
+            string? requestStatus,
+            DateOnly? startDate,
+            DateOnly? endDate,
+            string? search,
+            string? sortDirection,
+            int pageNumber,
+            int pageSize,
+            CancellationToken cancellationToken)
         {
             pageNumber = pageNumber < 1 ? 1 : pageNumber;
             pageSize = SchedulingRequestValueConstants.PageSizes.Contains(pageSize) ? pageSize : 25;
 
-            var query = BaseQuery().Where(x => !x.IsDelete);
+            var query = ApplyReadScope(BaseQuery().Where(x => !x.IsDelete), readScope);
 
             if (workforceProfileId.HasValue)
             {
@@ -170,6 +220,67 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 : SchedulingRequestServiceResult<ShiftSwapDetailResponse>.Ok(
                     MapDetail(entity, viewerWorkforceProfileId),
                     "Detail pengajuan tukar shift berhasil diambil.");
+        }
+
+        /// <summary>Detail sisi HR: tukar dinas di luar cakupan baca diperlakukan tidak ditemukan (404).</summary>
+        public async Task<SchedulingRequestServiceResult<ShiftSwapDetailResponse>> GetByIdInScopeAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var check = await CheckReadScopeAsync(id, cancellationToken);
+            return check.Success
+                ? await GetByIdAsync(id, null, cancellationToken)
+                : SchedulingRequestServiceResult<ShiftSwapDetailResponse>.Fail(check.StatusCode, check.Message);
+        }
+
+        /// <summary>
+        /// Penjaga sisi HR untuk baca (detail, workflow): 404 bila tukar dinas tidak ada atau kedua shift-nya di luar cakupan baca.
+        /// </summary>
+        public async Task<SchedulingRequestServiceResult<bool>> CheckReadScopeAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var visible = await ApplyReadScope(
+                    _dbContext.WfpShiftSwapRequests.AsNoTracking().Where(x => x.Id == id && !x.IsDelete),
+                    await _unitScopeService.GetReadScopeAsync(cancellationToken))
+                .AnyAsync(cancellationToken);
+
+            return visible
+                ? SchedulingRequestServiceResult<bool>.Ok(true, "Tukar dinas dalam cakupan baca.")
+                : SchedulingRequestServiceResult<bool>.Fail(StatusCodes.Status404NotFound, NotFoundMessage);
+        }
+
+        /// <summary>
+        /// Penjaga sisi HR untuk Terapkan dan sinkronisasi workflow (VR-PK-35): 404 bila tukar dinas tidak ada;
+        /// 403 bila unit shift pemohon atau unit shift tujuan di luar cakupan kelola.
+        /// </summary>
+        public async Task<SchedulingRequestServiceResult<bool>> CheckManageScopeAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var request = await _dbContext.WfpShiftSwapRequests
+                .AsNoTracking()
+                .Where(x => x.Id == id && !x.IsDelete)
+                .Select(x => new
+                {
+                    RequesterUnitId = x.RequesterShiftAssignment != null
+                        ? x.RequesterShiftAssignment.RosterAssignment!.RosterPeriod!.OrganizationUnitId ?? x.RequesterShiftAssignment.OrganizationUnitId
+                        : null,
+                    TargetUnitId = x.TargetShiftAssignment != null
+                        ? x.TargetShiftAssignment.RosterAssignment!.RosterPeriod!.OrganizationUnitId ?? x.TargetShiftAssignment.OrganizationUnitId
+                        : null
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (request == null)
+            {
+                return SchedulingRequestServiceResult<bool>.Fail(StatusCodes.Status404NotFound, NotFoundMessage);
+            }
+
+            var manageScope = await _unitScopeService.GetManageScopeAsync(cancellationToken);
+            return manageScope.Contains(request.RequesterUnitId) && manageScope.Contains(request.TargetUnitId)
+                ? SchedulingRequestServiceResult<bool>.Ok(true, "Tukar dinas dalam cakupan kelola.")
+                : SchedulingRequestServiceResult<bool>.Fail(StatusCodes.Status403Forbidden, ManageScopeDeniedMessage);
         }
 
         public async Task<SchedulingRequestServiceResult<ShiftSwapValidationResponse>> ValidatePreviewAsync(
@@ -658,6 +769,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 "Pengajuan tukar shift berhasil dihapus.");
         }
 
+        /// <summary>
+        /// Terapkan dari sisi HR: mensyaratkan kedua unit shift dalam cakupan kelola (VR-PK-35) sebelum aturan Terapkan yang ada.
+        /// Penerapan otomatis sesudah persetujuan workflow tetap memakai <see cref="ApplyAsync"/>.
+        /// </summary>
+        public async Task<SchedulingRequestServiceResult<ShiftSwapDetailResponse>> ApplyInScopeAsync(
+            Guid id,
+            Guid actorUserId,
+            string? notes,
+            CancellationToken cancellationToken = default)
+        {
+            var check = await CheckManageScopeAsync(id, cancellationToken);
+            return check.Success
+                ? await ApplyAsync(id, actorUserId, notes, cancellationToken)
+                : SchedulingRequestServiceResult<ShiftSwapDetailResponse>.Fail(check.StatusCode, check.Message);
+        }
+
         public async Task<SchedulingRequestServiceResult<ShiftSwapDetailResponse>> ApplyAsync(
             Guid id,
             Guid actorUserId,
@@ -866,6 +993,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     .ThenInclude(x => x!.Shift)
                 .Include(x => x.TargetShiftAssignment)
                     .ThenInclude(x => x!.Shift);
+        }
+
+        // HRD-DEC-253 / desain 39.9.5: tukar dinas terbaca bila unit shift pemohon ATAU unit shift tujuan dalam cakupan baca.
+        // Unit shift = unit periode rosternya, atau unit shift itu sendiri bila periode tidak bertautan unit (aturan Ganti Petugas).
+        // readScope null = tanpa saringan (ESS, workflow).
+        private static IQueryable<WfpShiftSwapRequest> ApplyReadScope(
+            IQueryable<WfpShiftSwapRequest> query,
+            HrdUnitScope? readScope)
+        {
+            if (readScope == null || readScope.IsAllUnits)
+            {
+                return query;
+            }
+
+            var unitIds = readScope.UnitIds.Select(x => (Guid?)x).ToList();
+            return query.Where(x =>
+                (x.RequesterShiftAssignment != null &&
+                 unitIds.Contains(
+                     x.RequesterShiftAssignment.RosterAssignment!.RosterPeriod!.OrganizationUnitId ??
+                     x.RequesterShiftAssignment.OrganizationUnitId)) ||
+                (x.TargetShiftAssignment != null &&
+                 unitIds.Contains(
+                     x.TargetShiftAssignment.RosterAssignment!.RosterPeriod!.OrganizationUnitId ??
+                     x.TargetShiftAssignment.OrganizationUnitId)));
         }
 
         private static ShiftSwapListResponse MapList(

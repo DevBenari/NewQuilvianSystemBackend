@@ -6,10 +6,10 @@
 |---|---|
 | Blueprint ID | `laboratorium` |
 | Architecture ID | `LAB-DA-001` |
-| Revision | `11` — bagian **A8**, 2026-10-20: `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan; hubungan baca pertama laporan ke `BC-REG`; `INV-58`..`INV-60`. Sebelumnya `10` — bagian **A7**, 2026-09-25: `S16a` tiga laporan operasional; `INV-54` dibukukan. Sebelumnya `9` — bagian **A6**, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `8` — bagian **A5**, 2026-09-24: `S4` validasi dan rilis Patologi Klinik |
+| Revision | `12` — bagian **A9**, 2026-11-25: `S20-1` penjadwalan ulang pemeriksaan; `AGG-LAB-01` diperluas (`LAB-DC-066`..`069`), rujukan baca pertama ke `BC-MCU` (`LAB-DC-070`); `INV-61`..`INV-69`; nol status baru. Sebelumnya `11` — bagian **A8**, 2026-10-20: `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan; hubungan baca pertama laporan ke `BC-REG`; `INV-58`..`INV-60`. Sebelumnya `10` — bagian **A7**, 2026-09-25: `S16a` tiga laporan operasional; `INV-54` dibukukan. Sebelumnya `9` — bagian **A6**, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `8` — bagian **A5**, 2026-09-24: `S4` validasi dan rilis Patologi Klinik |
 | Status | `draft` |
-| **Kesiapan arsitektur** | **Revision 11: `S16b-1` dan `S16b-2` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol konsep tersimpan, tiga invariant `INV-58`..`INV-60`, nol gap memblokir. Lihat A8.14.** **Revision 10: `S16a` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol konsep tersimpan, tiga invariant arti `INV-55`..`INV-57`, nol gap memblokir. Lihat A7.14.** **Revision 9: `S4d-1` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja; `S4d-2` dan `S4e` tidak dirancang (`DEC-LAB-020`, `DEC-LAB-021`). Lihat A6.14.** **Revision 8: `S4` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja — pemakaian nyatanya tertahan `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016`. Lihat A5.14.** Sebelumnya: **`DOMAIN_ARCHITECTURE_READY`** — **12 slice siap.** `S4c` **dirancang ulang revision 7** sesudah bukti `LAB-EVD-003`; bentuk lamanya pada A3 dicabut, bentuk barunya pada **A4**. Jumlah slice tidak berubah; yang berubah isinya. **12 slice siap.** Sepuluh slice revision 2-4 tetap `READY`; revision 5 menambahkan `S4b` dan `S4c` ke dalam scope, dan revision 6 menaikkan `S4b` menjadi `READY` sesudah `LAB-DEC-084` menutup `DEC-LAB-015`. **Satu bagian dikecualikan, bukan satu slice:** gambar hasil Patologi Anatomi menunggu `DEC-LAB-016`. Lihat A3.16 |
-| Scope yang dinilai | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11` (rev 2); `S13a`, `S13b`, `S14`, `S15` (rev 3); **`S4b` dan `S4c` (rev 5-6)**; **`S4` (rev 8)**; **`S4d-1` (rev 9)**; **`S16a` (rev 10)**; **`S16b-1`, `S16b-2` (rev 11)** |
+| **Kesiapan arsitektur** | **Revision 12: `S20-1` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol status baru, sembilan invariant `INV-61`..`INV-69`, nol gap memblokir. Lihat A9.15.** **Revision 11: `S16b-1` dan `S16b-2` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol konsep tersimpan, tiga invariant `INV-58`..`INV-60`, nol gap memblokir. Lihat A8.14.** **Revision 10: `S16a` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol konsep tersimpan, tiga invariant arti `INV-55`..`INV-57`, nol gap memblokir. Lihat A7.14.** **Revision 9: `S4d-1` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja; `S4d-2` dan `S4e` tidak dirancang (`DEC-LAB-020`, `DEC-LAB-021`). Lihat A6.14.** **Revision 8: `S4` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja — pemakaian nyatanya tertahan `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016`. Lihat A5.14.** Sebelumnya: **`DOMAIN_ARCHITECTURE_READY`** — **12 slice siap.** `S4c` **dirancang ulang revision 7** sesudah bukti `LAB-EVD-003`; bentuk lamanya pada A3 dicabut, bentuk barunya pada **A4**. Jumlah slice tidak berubah; yang berubah isinya. **12 slice siap.** Sepuluh slice revision 2-4 tetap `READY`; revision 5 menambahkan `S4b` dan `S4c` ke dalam scope, dan revision 6 menaikkan `S4b` menjadi `READY` sesudah `LAB-DEC-084` menutup `DEC-LAB-015`. **Satu bagian dikecualikan, bukan satu slice:** gambar hasil Patologi Anatomi menunggu `DEC-LAB-016`. Lihat A3.16 |
+| Scope yang dinilai | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11` (rev 2); `S13a`, `S13b`, `S14`, `S15` (rev 3); **`S4b` dan `S4c` (rev 5-6)**; **`S4` (rev 8)**; **`S4d-1` (rev 9)**; **`S16a` (rev 10)**; **`S16b-1`, `S16b-2` (rev 11)**; **`S20-1` (rev 12)** |
 | Kesiapan requirement | `PARTIALLY_READY` dari `LAB-RCG-001` revision 4; seluruh slice dikirim sebagai slice siap yang berdiri sendiri |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | Backend SHA | `c87d9c0` |
@@ -1630,6 +1630,217 @@ batas privasi; tiga gap tidak memblokir. **Independen** dari `S16b-3` dan dari s
 
 ---
 
+## A9. Revision 12 — `S20-1` penjadwalan ulang pemeriksaan, sisi Laboratorium (2026-11-25)
+
+**Bagian ini memperluas `AGG-LAB-01` Pesanan Laboratorium, tidak merancang ulang.** Pesanan memperoleh satu atribut baru
+(tanggal rencana pemeriksaan) dan satu tindakan bisnis baru (menjadwalkan ulang) yang meninggalkan jejak. **Nol status
+baru, nol context baru milik Laboratorium.** Yang baru di luar Laboratorium hanya satu hubungan **baca** ke MCU.
+
+*Penjadwalan ulang* memindahkan tanggal rencana pemeriksaan ke hari lain tanpa membatalkan pesanan. Contoh: Gula Darah
+Puasa direncanakan Senin 2 Desember; Senin pagi pasien belum puasa; Gilang (Analis) memindahkannya ke Selasa 3 Desember
+dengan alasan *pasien belum puasa*. Nomor order, kunjungan, pemeriksaan, dan tagihannya tetap.
+
+### A9.1 Identitas dan gerbang masuk
+
+| Butir | Isi |
+|---|---|
+| Scope | **`S20-1`** — tanggal rencana pada pesanan, tindakan jadwal ulang dan riwayatnya, kelayakan jadwal ulang, penanda *Terlewat*, tampilan pada Daftar Pasien Lab dan kiosk, kewenangan. **`S20-2`** (pilihan tanggal pada layar pemesan dokter) **tidak** dirancang |
+| Kesiapan requirement | `LAB-RCG-001` **revision 14** bagian 0I: **`READY_FOR_DOMAIN_DESIGN`**, independen dari `S20-2` dan dari `S1b` |
+| Decision ID yang mengikat | `LAB-DEC-251`..`LAB-DEC-277` (BR-157) tanpa `LAB-DEC-255` (superseded oleh `LAB-DEC-270`); diwarisi `LAB-DEC-213` (kiosk nol tulis), `LAB-DEC-226`/`227` (CITO pemeriksaan), `LAB-DEC-237`/`VAL-74` (alasan), `VAL-67` (kunjungan selesai); `AC-338`..`AC-356` |
+| Bukti | Decisions **rev 143**; capability map **rev 10** (`CAP-P32-01`..`15`); kode dibaca pada **BE `4d2c0162`**, **FE `004524f4c`** = `HEAD`; 2 kueri baca-saja devYoga |
+| Impact scan | Tidak perlu lagi — capability map rev 10 dipindai pada `HEAD` yang sama |
+| Baseline rujukan | **Tidak dipakai** — seluruh aturan diputuskan pemilik modul |
+
+### A9.2 Ubiquitous language — istilah yang ditambahkan
+
+| Istilah | Arti |
+|---|---|
+| **Tanggal rencana pemeriksaan** | Hari kalender (WIB) pemeriksaan sebuah pesanan **direncanakan** dikerjakan. Tanpa jam dan sesi. **Penanda kerja, bukan janji temu dan bukan penghalang**: pengerjaan pada hari lain tetap sah (`LAB-DEC-259`, `263`) |
+| **Jadwal ulang** | Satu keputusan petugas yang mengganti tanggal rencana sebuah pesanan dengan tanggal lain, beralasan. **Bukan** pembatalan, **bukan** penyuntingan isi pesanan (`S1b`), **bukan** perpindahan status (`LAB-DEC-252`, `257`, `268`) |
+| **Kelayakan jadwal ulang** | Jawaban *boleh / tidak boleh beserta alasannya* atas pertanyaan "bolehkah pesanan ini dijadwalkan ulang sekarang?", dihitung dari keadaan pesanan, wadah, permintaan, pemeriksaan, kunjungan, dan tautan MCU pada saat ditanya (`LAB-DEC-273`) |
+| **Terlewat** | Pesanan yang tanggal rencananya sudah lewat (WIB) tetapi masih layak dijadwalkan ulang dan belum ada sampel diambil. **Penanda yang dihitung saat dibaca, bukan status** (`LAB-DEC-260`) |
+| **Lebih awal** | Pada kiosk: tanggal rencana pesanan > hari ini. Hanya informasi; tidak menolak (`LAB-DEC-266`) |
+| **CITO aktif** | Permintaan pemeriksaan berstatus `Ordered` yang kesegeraannya CITO, **atau** pemeriksaan ber-CITO yang tidak gugur dan tidak batal (`LAB-DEC-271`) |
+| **Pesanan bertaut MCU** | Pesanan Laboratorium yang dirujuk komponen order MCU, berpaket maupun tambahan di luar paket (`LAB-DEC-272`) |
+
+### A9.3 Peta bounded context — perubahan
+
+**Satu hubungan baca baru, nol context baru milik Laboratorium.**
+
+| Dari | Ke | Sifat | Dipakai oleh | Arah kebenaran |
+|---|---|---|---|---|
+| `BC-LAB` | **`BC-MCU`** Medical Check-Up (modul `mcu`) — **baru dicatat di dokumen ini** | **Baca, conformist** — ada atau tidaknya komponen order MCU yang merujuk pesanan | Kelayakan jadwal ulang (`INV-65`) | `BC-MCU` pemilik tautan komponen → pesanan Lab. Laboratorium **tidak** menulis ke MCU, tidak menyalin tautan, dan tidak menggeser jadwal komponen (`LAB-DEC-272`) |
+| `BC-LAB` | `BC-REG` | Baca — **status** kunjungan (sudah dipakai `VAL-67`) | Kelayakan jadwal ulang (`INV-64`) | `BC-REG` pemilik. Hubungan baca yang sudah ada (A8.3) diperluas dari jenis/unit ke status |
+| `BC-LAB` | `BC-PLAT` | Hilir — satu aksi kewenangan baru dan pemberian bawaannya | Tindakan jadwal ulang | `BC-PLAT` pemilik registri kewenangan |
+| `BC-MCU` | `BC-LAB` | **Tidak berubah** — MCU tetap memesan Lab lewat jalur yang ada; pesanannya memperoleh tanggal rencana *hari ini* | — | MCU sendiri **menolak** menjadwal ulang komponen yang sudah dipesan ke Lab (`CAP-P32-09`), sehingga tidak ada dua sumber tanggal |
+
+**Yang tidak dibuat:** hubungan tulis ke `BC-REG` atau `BC-MCU`; sinkronisasi tanggal; context *janji temu*. Laboratorium
+**tidak** memiliki konsep janji temu pasien — tanggal rencana adalah atribut kerja pesanan.
+
+### A9.4 Katalog konsep domain
+
+| ID | Nama | Klasifikasi | Context | Ownership | Identitas | Peran | Bukti |
+|---|---|---|---|---|---|---|---|
+| `LAB-DC-001` | Pesanan Laboratorium | `AGGREGATE_ROOT` | `BC-LAB` | **`Extend`** — memperoleh tanggal rencana dan tindakan jadwal ulang | Tetap | Pemilik tanggal rencana dan riwayatnya | `LAB-DEC-252` |
+| `LAB-DC-066` | **Tanggal Rencana Pemeriksaan** | `VALUE_OBJECT` | `BC-LAB` | **`New`** di dalam `LAB-DC-001` | Tanpa identitas; satu per pesanan, selalu terisi | Penanda hari kerja; diganti hanya lewat jadwal ulang (sesudah pesanan lahir) | `LAB-DEC-253`, `263` |
+| `LAB-DC-067` | **Peristiwa Jadwal Ulang** | `ENTITY` (riwayat) | `BC-LAB` | **`New`** di dalam `LAB-DC-001` — penempatan fisiknya `ARCH-GAP-LAB-17` | Identitas sendiri; tidak pernah diubah atau dihapus | Jejak: tanggal lama, tanggal baru, alasan, pelaku, waktu | `LAB-DEC-252`, `256`, `268` |
+| `LAB-DC-068` | **Kelayakan Jadwal Ulang** | `ADAPTER/VIEW` (aturan turunan) | `BC-LAB` | **`New`** — dihitung, tidak disimpan | Tanpa identitas | Satu jawaban dipakai penjaga tindakan **dan** penanda per pesanan | `LAB-DEC-273` |
+| `LAB-DC-069` | **Penanda Terlewat** | `ADAPTER/VIEW` | `BC-LAB` | **`New`** — dihitung saat dibaca | Tanpa identitas | Menampilkan pesanan tidak datang pada daftar kerja | `LAB-DEC-260` |
+| `LAB-DC-020` | Kunjungan Pasien | `EXTERNAL_CONTRACT` | `BC-REG` | `Existing` — **status** dibaca | Milik Registrasi | Penjaga `INV-64` | `VAL-67`, `LAB-DEC-261` |
+| `LAB-DC-070` | **Komponen Order MCU** (rujukan) | `EXTERNAL_CONTRACT` | `BC-MCU` | `Existing` milik MCU — **dibaca** ada/tidaknya tautan ke pesanan | Milik MCU | Penjaga `INV-65` | `McuOrderComponent.LabOrderId` (`CAP-P32-09`), `LAB-DEC-272` |
+| `LAB-DC-065` | Permintaan Pemeriksaan | `ENTITY` | `BC-LAB` | `Existing` | Tetap | Sumber CITO permintaan bagi `INV-63` | A8.4, `CAP-P32-08` |
+| `LAB-DC-002` | Pemeriksaan | `ENTITY` | `BC-LAB` | `Existing` | Tetap | Sumber CITO pemeriksaan bagi `INV-63` | `LAB-DEC-262` |
+| `LAB-DC-003` | Wadah Fisik | `ENTITY` | `BC-LAB` | `Existing` | Tetap | Syarat *sebelum sampel diambil* bagi `INV-62` | `LAB-DEC-270`, `275`, `276` |
+
+**Fakta yang dibaca — seluruhnya sudah ada:** status pesanan dan status sebelum ditahan (`CAP-P32-04`); status wadah dan
+status wadah sebelum ditahan; kesegeraan permintaan dan pemeriksaan (`CAP-P32-08`); status kunjungan (`CAP-P32-07`);
+tautan komponen MCU (`CAP-P32-09`); waktu diminta (isi awal tanggal rencana, `CAP-P32-01`).
+
+### A9.5 Invariant
+
+| Invariant | Isi | Contoh |
+|---|---|---|
+| `INV-61` | Jadwal ulang **hanya** mengganti tanggal rencana dan menambah satu peristiwa. Status pesanan, status sebelum ditahan, status wadah dan pemeriksaan, kunjungan, kesegeraan, dan fakta kelayakan tagih **tidak berubah** (`LAB-DEC-252`, `257`) | Pesanan `OnHold` (ditahan dari `Confirmed`) dipindah ke Selasa → tetap `OnHold`, status sebelum ditahan tetap `Confirmed` |
+| `INV-62` | Jadwal ulang hanya sah **sebelum sampel diambil**: pesanan `Requested` atau `Confirmed`, atau `OnHold` yang status sebelum ditahannya salah satu dari keduanya; **dan** setiap wadah yang dinilai masih `Planned`. Wadah `Cancelled` dan `RecollectionRequired` tidak dinilai; wadah `OnHold` dinilai menurut status sebelum ditahan; wadah `Rejected` menolak (`LAB-DEC-270`, `275`, `276`) | Wadah A `RecollectionRequired` + pengganti B `Planned` → sah. Wadah `OnHold` dari `Collected` → ditolak |
+| `INV-63` | Jadwal ulang ditolak selama ada **CITO aktif**. CITO pemeriksaan dicabut dokter pemesan lewat jalur yang ada; CITO permintaan **tidak** dapat dicabut — jalan keluarnya batal lalu pesan ulang (`LAB-DEC-262`, `271`) | Troponin CITO belum berwadah → ditolak, selamanya, selama permintaan itu ada |
+| `INV-64` | Jadwal ulang ditolak bila kunjungan pesanan `Completed`, `Cancelled`, atau `NoShow` (`LAB-DEC-261`) | Pasien rawat inap pulang Selasa → pesanannya tidak dapat dipindah Rabu |
+| `INV-65` | Jadwal ulang ditolak bila pesanan **bertaut MCU**, berpaket maupun tambahan (`LAB-DEC-272`) | HbA1c tambahan MCU PT PLN → ditolak, arahkan ke petugas MCU |
+| `INV-66` | Tanggal baru ≥ hari ini (WIB) dan ≠ tanggal rencana saat ini; alasan tidak kosong. Tanpa batas jumlah maupun jarak (`LAB-DEC-253`, `256`, `264`) | Rabu → Rabu ditolak; ke 2 Maret 2027 diterima; ke-5 kalinya diterima |
+| `INV-67` | **Satu rumus kelayakan** (`LAB-DC-068`) dipakai penjaga tindakan **dan** penanda per pesanan pada daftar/detail — pola `INV-57`/`INV-59`. Penanda bukan izin: tindakan tetap diperiksa ulang saat dijalankan (`LAB-DEC-273`) | Penanda *boleh* saat daftar dimuat, wadah diambil sebelum Simpan → tindakan ditolak dengan alasan yang sama dengan penanda |
+| `INV-68` | Tanggal rencana adalah **tanggal kalender WIB tanpa jam**, selalu terisi: bawaan hari pesanan dibuat; pesanan lama = tanggal waktu diminta WIB. Tanggal rencana **tidak** pernah menghalangi perencanaan, pengambilan, penerimaan, atau pengerjaan (`LAB-DEC-253`, `259`, `263`) | Pesanan dibuat 2 Desember 00.30 WIB → tanggal rencana 2 Desember, bukan 1 Desember. Sampel diambil Jumat untuk rencana Senin → sah |
+| `INV-69` | Jadwal ulang **utuh atau tidak sama sekali**: tanggal berganti **dan** tepat satu peristiwa tertulis, atau keduanya tidak terjadi | Penolakan apa pun → tanggal lama tetap, nol peristiwa |
+
+**Yang tidak boleh muncul:** status *Dijadwalkan Ulang*; job atau pembatalan otomatis pesanan terlewat (A7.5);
+penghalang pengerjaan menurut tanggal; jam atau sesi; tulis ke MCU atau Registrasi; pencabutan CITO permintaan.
+
+### A9.6 Model aggregate
+
+`AGG-LAB-01` **tetap** batas konsistensinya — tanggal rencana dan peristiwa jadwal ulang berada **di dalam** pesanan,
+sebab penjaga `INV-62`/`INV-63` membaca wadah, permintaan, dan pemeriksaan milik pesanan yang sama.
+
+| Tindakan bisnis baru | Wewenang | Invariant yang diperiksa | Menerbitkan fakta? |
+|---|---|---|---|
+| **Menjadwalkan ulang pesanan** | Pemegang kewenangan jadwal ulang (A9.9) | `INV-61`..`INV-67`, `INV-69` | **Tidak** — nol fakta ke Billing, Registrasi, atau MCU |
+| Menetapkan tanggal rencana saat pesanan lahir | Pemesan (dokter, petugas Lab, MCU) — opsional; kosong = hari ini | `INV-66` (≥ hari ini), `INV-68` | Tidak |
+
+Penjaga lintas context (`INV-64`, `INV-65`) **membaca** keadaan `BC-REG` dan `BC-MCU` pada saat tindakan dijalankan;
+keduanya tidak menjadi bagian aggregate dan tidak dikunci bersama pesanan.
+
+### A9.7 Model relasi
+
+| Dari | Ke | Arti | Kardinalitas | Wajib / opsional | Hapus / arsip |
+|---|---|---|---|---|---|
+| Pesanan (`LAB-DC-001`) | Tanggal rencana (`LAB-DC-066`) | Hari rencana pesanan | 1 : 1 | **Wajib** sejak isi awal | Mengikuti pesanan |
+| Pesanan | Peristiwa jadwal ulang (`LAB-DC-067`) | Jejak setiap perpindahan | 1 : 0..n, berurutan waktu | Opsional | **Tidak pernah dihapus**; ikut terbaca selama pesanan ada |
+| Komponen order MCU (`LAB-DC-070`, `BC-MCU`) | Pesanan | MCU memesan Lab | 0..n : 0..1 dibaca dari sisi MCU | — | Milik MCU |
+| Pesanan | Kunjungan (`LAB-DC-020`) | Tetap tepat satu (`INV-01`) — jadwal ulang **tidak** memindah kunjungan | 1 : 1 | Wajib | Milik Registrasi |
+
+### A9.8 Model lifecycle
+
+**Tidak ada status atau transisi baru** pada `LAB-STATE-v1` (`LAB-DEC-257`). Jadwal ulang adalah **tindakan di dalam**
+status `Requested`, `Confirmed`, dan `OnHold`-yang-memenuhi-syarat; status sesudahnya sama dengan sebelumnya.
+
+| Keadaan pesanan | Jadwal ulang | Akibat |
+|---|---|---|
+| `Requested`, `Confirmed` | Sah bila `INV-62`..`INV-66` terpenuhi | Status tetap; tanggal berganti; satu peristiwa |
+| `OnHold` dengan status sebelum ditahan `Requested`/`Confirmed` | Sah dengan syarat yang sama | Tetap `OnHold`; *Lanjutkan* tetap kewenangan penahan |
+| `OnHold` dari status lain, `Accepted`, `InProcess`, `Completed`, `CancelRequested`, `Cancelled`, `Draft` | **Ditolak** | Nol perubahan |
+
+**Koreksi:** jadwal ulang yang keliru dikoreksi dengan jadwal ulang berikutnya (tanpa batas, `INV-66`); peristiwa lama
+tetap. **Pembatalan:** jadwal ulang bukan pembatalan dan tidak membatalkan apa pun. **Terlewat** bukan status: penanda
+hilang begitu tanggal rencana ≥ hari ini **atau** pesanan keluar dari jendela `INV-62` (misalnya sampel diambil).
+
+### A9.9 Tanggung jawab authorization
+
+| Tindakan | Siapa | Dasar |
+|---|---|---|
+| Menjadwalkan ulang | Pemegang **kewenangan jadwal ulang pesanan Laboratorium** — kewenangan tersendiri, bukan bagian dari mengubah, menahan, atau membatalkan pesanan | `LAB-DEC-254` |
+| Pemberian bawaan | Sekali jalan: setiap departemen–jabatan pemegang kewenangan **menahan** pesanan memperoleh kewenangan jadwal ulang; **Kepala Instalasi Laboratorium** diberikan sebagai langkah rilis. Pencabutan admin tidak dipulihkan otomatis | `LAB-DEC-274` |
+| Membaca tanggal rencana dan riwayat jadwal ulang | Setiap pemegang hak baca pesanan Laboratorium | `LAB-DEC-268` |
+| Mencabut CITO pemeriksaan | **Dokter pemesan** — kewenangan yang sudah ada; tidak diperluas | `LAB-DEC-262`, `VAL-03` |
+| Menjadwalkan ulang pesanan bertaut MCU | **Tidak seorang pun dari Laboratorium**; perpindahan hari ditempuh petugas MCU di modulnya | `LAB-DEC-272` |
+
+Kewenangan **ditegakkan di server**. Penanda kelayakan dan penyembunyian tombol hanyalah kenyamanan (`INV-67`).
+
+### A9.10 Model audit dan histori
+
+| Kejadian | Dicatat | Status |
+|---|---|---|
+| Jadwal ulang berhasil | **Ya** — tanggal lama, tanggal baru, alasan, pelaku, waktu; tidak pernah diubah | `CONFIRMED` (`LAB-DEC-252`) |
+| Jadwal ulang ditolak | Tidak ada peristiwa (`INV-69`) | `CONFIRMED` |
+| Isi awal tanggal rencana pesanan lama | **Bukan** peristiwa jadwal ulang — nilai awal diturunkan dari waktu diminta, tanpa baris riwayat | `PROPOSED`, `NON_BLOCKING_STANDARD` — riwayat hanya untuk keputusan manusia |
+| Tanggal rencana yang dipilih saat pesanan lahir | Bagian dari pembuatan pesanan, bukan peristiwa jadwal ulang | `PROPOSED`, `NON_BLOCKING_STANDARD` |
+| Pencatatan teknis (log) | Pelaku, pesanan, tanggal lama/baru; **tanpa** identitas pasien | `PROPOSED`, `NON_BLOCKING_STANDARD` — pola pencatat Lab yang ada |
+
+Peristiwa jadwal ulang **tidak** menjadi baris Laporan Pembatalan (`INV-58` tetap: hanya `Order.Cancel` dan
+`Examination.Cancel`).
+
+### A9.11 Model integrasi
+
+**Nol integrasi baru, nol sinkronisasi.** Penjaga `BC-REG` dan `BC-MCU` adalah **baca di tempat** saat tindakan dan
+saat penanda dihitung. Kiosk membaca tanggal rencana lewat jalur kiosk Laboratorium yang ada, nol tulis (`LAB-DEC-266`).
+
+| Pemanggil pembuatan pesanan | Perubahan | Kompatibilitas |
+|---|---|---|
+| Layar antrean dokter poli, IGD, Rawat Inap; MCU; layar Lab sendiri | Boleh mengirim tanggal rencana; **tidak mengirim = hari ini** | Pemanggil lama tidak berubah perilaku. Pemakaian di layar dokter = `S20-2` (`LAB-COORD-023`) |
+
+**Idempotensi:** mengirim jadwal ulang yang sama dua kali tidak menghasilkan dua peristiwa — kiriman kedua berisi tanggal
+yang sudah sama dengan tanggal rencana, sehingga ditolak `INV-66`. **Konkurensi:** dua petugas bersamaan → satu berhasil
+lewat penjaga konkurensi pesanan yang ada (`CAP-P32-06`); deteksi layar basi = `ARCH-GAP-LAB-18`.
+
+### A9.12 Dampak billing
+
+**Tidak ada dampak charge yang diketahui.** Jadwal ulang tidak membuat, mengubah, membalik, atau memindah tagihan;
+kelayakan tagih tetap lahir dari wadah (`INV-61`). Penolakan pada kunjungan selesai (`INV-64`) justru mencegah pekerjaan
+menyusul ke kunjungan yang sudah ditutup Billing. Jalan keluar *batal lalu pesan ulang* (`INV-63`, `INV-65`) memakai alur
+batal yang sudah ada dan penyerahannya ke Billing yang tidak disentuh.
+
+### A9.13 Dampak keselamatan klinis
+
+**Relevan terhadap keselamatan.** Batas yang dibuat eksplisit:
+
+| Risiko | Batas | Wewenang |
+|---|---|---|
+| Pemeriksaan mendesak tertunda tanpa keputusan dokter | `INV-63` — CITO aktif menolak; hanya dokter pemesan yang mencabut CITO pemeriksaan | Dokter pemesan |
+| Sampel yang sudah diambil menunggu ke hari lain (stabilitas spesimen) | `INV-62` — sesudah sampel diambil, hanya batal wadah/ambil ulang yang ada | Petugas berwenang |
+| Pasien diperiksa padahal belum siap (mis. belum puasa) | Tanggal rencana **tidak** menghalangi (`INV-68`); penilaian kesiapan tetap pada petugas, **tidak berubah** dari sekarang | Petugas Lab |
+| Pesanan tidak datang terlupakan | Penanda *Terlewat* pada daftar bawaan (`LAB-DC-069`); tanpa pembatalan otomatis | Petugas Lab |
+
+Sumber kebenaran tanggal rencana: **pesanan Laboratorium**. Koreksi: jadwal ulang berikutnya. Audit: `LAB-DC-067`.
+
+### A9.14 Gap arsitektur
+
+| ID | Isi | Status | Dampak |
+|---|---|---|---|
+| `ARCH-GAP-LAB-17` | **Penempatan fisik peristiwa jadwal ulang.** Riwayat perpindahan yang ada (`LAB-DC-007`) mencatat perpindahan status dan tidak punya ruas tanggal lama/baru (`CAP-P32-02`). Pilihan: memperluas riwayat perpindahan dengan ruas tanggal, atau tempat riwayat tersendiri di dalam pesanan. Makna bisnisnya sama; arsitektur **tidak** memilih bentuk fisik | `PROPOSED`, `NON_BLOCKING_STANDARD` — **diputuskan di `design-business-module`** | Bentuk penyimpanan saja. Syarat apa pun pilihannya: `INV-58` (laporan pembatalan) tidak boleh menghitung jadwal ulang, dan `INV-69` |
+| `ARCH-GAP-LAB-18` | **Layar basi.** Tindakan pesanan tidak membawa versi dari layar; penjaga konkurensi hanya menangkap balapan di server (`CAP-P32-06`). Karena `INV-67` memeriksa ulang kelayakan saat tindakan, layar basi tidak dapat melanggar invariant — paling buruk petugas menimpa tanggal yang baru saja dipindah rekannya, dan keduanya tercatat | `PROPOSED`, `NON_BLOCKING_STANDARD` (`LAB-RCG-001-r14` 0I.4) | Tidak mengubah konsep. `design-business-module` boleh menimbang membawa versi |
+| `ARCH-GAP-LAB-19` | **`POST /lab-orders` tanpa `VAL-67`** (`LAB-OPEN-056`). Di luar `S20-1`; dicatat karena `INV-64` berbagi aturan kunjungan yang sama | `MISSING` (keputusan perbaikan) — **di luar scope** | Nol bagi `S20-1` |
+
+**Nol gap `BLOCKING`.** `S20-2` tertahan di luar Laboratorium (`LAB-COORD-023`) dan tidak dirancang.
+
+### A9.15 Kesiapan arsitektur
+
+**`S20-1`: `DOMAIN_ARCHITECTURE_READY`.** `AGG-LAB-01` diperluas dengan satu value object (`LAB-DC-066`) dan satu entity
+riwayat (`LAB-DC-067`); dua pandangan turunan (`LAB-DC-068`, `LAB-DC-069`); satu rujukan baru ke `BC-MCU` (`LAB-DC-070`);
+sembilan invariant (`INV-61`..`INV-69`); nol status baru; satu kewenangan baru; nol dampak billing; batas keselamatan
+eksplisit; tiga gap tidak memblokir. **Independen** dari `S20-2` dan `S1b`.
+
+### A9.16 Handoff ke `design-business-module`
+
+| Field | Nilai |
+|---|---|
+| Slice | `S20-1` |
+| Kesiapan requirement | `READY_FOR_DOMAIN_DESIGN` (`LAB-RCG-001` revision 14, 0I) |
+| Kesiapan arsitektur | `DOMAIN_ARCHITECTURE_READY` (`LAB-DA-001` revision 12) |
+| Snapshot | BE `4d2c0162`, FE `004524f4c`; decisions rev 143; capability map rev 10 |
+| Konsep | `LAB-DC-001` (`Extend`), `LAB-DC-066`, `LAB-DC-067` (`New`, di dalam pesanan), `LAB-DC-068`, `LAB-DC-069` (turunan), `LAB-DC-070` (rujukan `BC-MCU`) |
+| Invariant | `INV-61`..`INV-69`; diwarisi `INV-01`, `INV-58`, `INV-57` (pola satu rumus) |
+| Usulan yang wajib tetap ditandai usulan | `ARCH-GAP-LAB-17`, `ARCH-GAP-LAB-18`; tiga baris `PROPOSED` A9.10 |
+| Yang wajib dipakai ulang | Penjaga konkurensi pesanan; pola alasan `VAL-74`; penjaga kunjungan `VAL-67`; status sebelum ditahan pesanan dan wadah; tanggal operasional WIB (`AppDateTimeHelper`) dan pola tanggal murni MCU; pola atribut kewenangan + `PermissionRegistryValidator`; preseden seeder salin-kewenangan sekali jalan; nilai kategori periode daftar pantau dan prop `mode`; jalur kiosk Laboratorium; dialog beralasan pola Batal pesanan |
+| Yang **tidak boleh** muncul | Status baru; job/pembatalan otomatis; batas jumlah/jarak; penghalang pengerjaan; jam/sesi; tulis ke MCU/Registrasi; endpoint pencabutan CITO permintaan; laporan jadwal ulang; peristiwa jadwal ulang di Laporan Pembatalan; perubahan bawaan kategori periode di API |
+
+---
+
 ## B. Ubiquitous Language
 
 Satu istilah, satu makna. Bila satu kata dipakai dua arti oleh bagian berbeda, perbedaannya
@@ -1674,6 +1885,7 @@ dipertahankan dan tidak disatukan.
 | `BC-MD` | Data Induk Layanan | Katalog jenis tindakan dan pemeriksaan, tarif | `LAB-DC-021` Jenis Pemeriksaan, `LAB-DC-022` Tarif |
 | `BC-BIL` | Billing dan Kasir | Seluruh akibat finansial | Menerima `LAB-DC-008` |
 | `BC-PLAT` | Platform dan Keamanan | Identitas pengguna, kewenangan per aksi | Menyediakan pelaku dan pemeriksaan kewenangan |
+| `BC-MCU` | Medical Check-Up (modul `mcu`) — **dicatat revision 12** | Order MCU beserta komponennya, jadwal komponen | Komponen Order MCU (`LAB-DC-070`, rujukan). Laboratorium hanya **membaca** ada/tidaknya tautan komponen ke pesanan (A9.3) |
 
 ### Hubungan antarcontext
 
@@ -2150,6 +2362,7 @@ dijawab, yang berjalan di produksi tidak boleh disentuh.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 12 | 2026-11-25 | **`S20-1` penjadwalan ulang pemeriksaan, sisi Laboratorium** (bagian A9), dari `LAB-RCG-001` revision 14 bagian 0I. `AGG-LAB-01` diperluas: value object Tanggal Rencana Pemeriksaan (`LAB-DC-066`), entity riwayat Peristiwa Jadwal Ulang (`LAB-DC-067`), pandangan turunan Kelayakan Jadwal Ulang (`LAB-DC-068`, satu rumus untuk penjaga dan penanda) dan Penanda Terlewat (`LAB-DC-069`). Context `BC-MCU` dicatat pertama kali sebagai hubungan **baca** (`LAB-DC-070`); hubungan baca `BC-REG` diperluas ke status kunjungan. Invariant `INV-61`..`INV-69`. Nol status baru, nol integrasi, nol dampak billing; keselamatan klinis relevan dengan batas eksplisit (A9.13). Gap tidak memblokir: `ARCH-GAP-LAB-17` (penempatan fisik riwayat), `ARCH-GAP-LAB-18` (layar basi), `ARCH-GAP-LAB-19` (`LAB-OPEN-056`, di luar scope). **`DOMAIN_ARCHITECTURE_READY`**; handoff A9.16 | `draft` |
 | 11 | 2026-10-20 | **`S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan dirancang** (bagian A8), menurunkan `LAB-RCG-001` revision 13 bagian 0H dan `LAB-DEC-230`..`249`. **Nol konsep tersimpan:** dua `ADAPTER/VIEW` (`LAB-DC-063`, `LAB-DC-064`); `LAB-DC-065` Permintaan Pemeriksaan **dibukukan** (sudah ada). **Hubungan baca baru** `BC-LAB` → `BC-REG`/`BC-MD`/data pasien, hanya baca — mengamandemen kalimat A7.3. `INV-58` satu baris per peristiwa, `INV-59` satu definisi hitung bersama Beranda, `INV-60` alasan wajib setiap pembatalan. Batas privasi Laporan Pembatalan (A8.12). Gap `ARCH-GAP-LAB-14` (jejak membuka laporan berisi pasien, usulan), `15` (`Draft` teoretis), `16` (permintaan order batal tetap `Ordered`). Bukti BE `4d3e4f98`, FE `7fb1e1d3e`, decisions rev 115, capability map rev 9 | `draft` |
 | 10 | 2026-09-25 | **`S16a` tiga laporan operasional dirancang** (bagian A7), menurunkan `LAB-RCG-001-r11` bagian 0F dan `LAB-DEC-159`/`160`. **Nol konsep tersimpan:** ketiga laporan `ADAPTER/VIEW` (`LAB-DC-060`..`062`) plus satu `VALUE_OBJECT` Periode Laporan (`LAB-DC-059`) yang memakai ulang `LabQueryDateRange` dan tanggal operasional **WIB**. Tiga invariant arti: `INV-55` hitung pada tanggal rilis, `INV-56` penolakan per keputusan kelayakan, **`INV-57` TAT memakai titik mulai `ChargeEligibleAt` yang sama dengan daftar pantau cito** — diverifikasi pada kode, nilainya sama dengan `DecidedAt` wadah. Pengambilan ulang membuat pemeriksaan baru, sehingga TAT mulai dari wadah pengganti — sesuai bunyi `LAB-DEC-159`. Tiga usulan tidak memblokir `ARCH-GAP-LAB-11`..`13`. **`INV-54`** (penyelesaian pesanan, `LAB-DEC-154`) dibukukan sesuai usulan `02-backend-architecture.md` 22.0. Impact scan: BE `84383f64` (73 commit) dan FE `2083ff36a` (38 commit), nol berkas source Laboratorium. **`DOMAIN_ARCHITECTURE_READY`**; siap ke `design-business-module` | `draft` |
 | 9 | 2026-09-25 | **`S4d-1` validasi dan rilis Mikrobiologi dirancang** (bagian A6), menurunkan `LAB-RCG-001-r9` bagian 0D. **A6 memperluas A5, tidak menyalinnya.** **Nol konsep, nol aggregate, nol relasi baru** — `LAB-DC-051`..`058` berlaku apa adanya, dengan kode kewenangan Mikrobiologi dan daftar alasan yang **sama** lintas disiplin. **Dua invariant baru:** `INV-52` menolak validasi dan rilis hasil `Sementara` sampai `DEC-LAB-020` dijawab; `INV-53` menegaskan hasil berstruktur — status temuan, isolat, antibiogram — disahkan sebagai **satu** kesatuan, bukan per isolat. **Satu usulan:** `ARCH-GAP-LAB-10` — hasil **tanpa** kualifikasi diperlakukan bukan `Sementara`, sebab ruas itu sengaja opsional (`r10` 12.2); disarankan ikut ditanyakan bersama `DEC-LAB-020`. **Satu perbedaan makna dijaga:** *Definitif* adalah kualifikasi isi hasil, *Tervalidasi*/*Dirilis* adalah pengesahan — dan rilis **tidak** mengirim apa pun kepada pasien (`LAB-OPEN-029` tetap terpisah). `DOMAIN_ARCHITECTURE_READY` untuk desain saja; `S4d-2` dan `S4e` tidak dirancang | `draft` |

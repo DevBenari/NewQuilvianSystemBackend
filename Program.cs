@@ -1184,6 +1184,8 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WorkforceCoreCrossEmployeeQueryService>();
     // Workforce Core - kelengkapan dan impor data penggajian (penetapan gaji utama dan rekening payroll) yang dikelola HRD.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WorkforcePayrollDataService>();
+    // Workforce Core - daftar baca penempatan sementara lintas pegawai dalam cakupan unit (BE-HRD-359, HRD-DEC-251).
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.TemporaryAssignmentQueryService>();
     // Workforce Core - Unified SK Kepegawaian, Employee 360, & Initial Batch Placement (BE-HRD-024..027)
     builder.Services.AddScoped<IHrdPersonnelActionOrderService, HrdPersonnelActionOrderService>();
     builder.Services.AddScoped<IHrdEmployee360Service, HrdEmployee360Service>();

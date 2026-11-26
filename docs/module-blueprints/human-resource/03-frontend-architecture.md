@@ -4164,3 +4164,145 @@ Bentuk panel daftar nama (drawer, modal, atau halaman): `DEV_DISCRETION`. Data d
 | `tests/unit/hr-master-data-sidebar-grouping.test.mjs` | Diperbarui (`AT-HRD-PKB-25`) |
 
 Semua route baru yang berada di `/hr/...` mengikuti pola App Router dan base component yang dipakai layar HR existing; component library dan rupa: `DEV_DISCRETION`.
+
+## 36. Arsitektur Frontend Amandemen `A52-B` — Pembuka Task Tertahan Penjadwalan & Kehadiran (kontrak `v31`, 24 November 2026; approved 24 November 2026)
+
+> **Status:** `approved` — pengguna, 24 November 2026 ("setujui kontrak v30, lanjut plan"). Dasar: decision log bagian 58 (`HRD-DEC-248` s.d. `HRD-DEC-256`). Frontend rujukan `004524f4c` + working tree (branch `YogaV2`). Bagian 31 (`A52`, kontrak `v26`) tetap berlaku; bagian ini menggantikan "Temuan pemetaan yang menunggu owner (`DSG-Q-01`)" di 31.1 dan menambah layar baru.
+> **Wewenang UI:** pemetaan submenu ke layar ditetapkan `HRD-DEC-250`. Nama parameter alamat (`?tab=`, `?status=`, dan sejenisnya) dan susunan visual layar baru adalah `DEV_DISCRETION` di dalam konvensi `/hr/...` dan komponen dasar yang ada (`DataFilter`, `DataTable`, `FilterSelect`, `SummaryCards`, `HrPanel`, `ConfirmModal`). Route yang sudah ada tidak diubah.
+
+### 36.1 Ringkasan perubahan
+
+| Kode | Keputusan | Perubahan frontend | Ketergantungan backend |
+| --- | --- | --- | --- |
+| `F-T1` | `HRD-DEC-248` | Matriks roster menempatkan shift di baris petugas yang bertugas sekarang, menandai sel pengganti, dan menampilkan baris pengganti-saja | `B-T1` |
+| `F-T2` | `HRD-DEC-249` | Pratinjau dan hasil tutup periode menampilkan jumlah pengecualian scan yang ikut diselesaikan | `B-T2` |
+| `F-MENU` | `HRD-DEC-250` | Grup menu "Penjadwalan & Kehadiran" 12 menu, 58 submenu; layar tujuan membaca parameter alamat | Tidak ada (kecuali entri yang menuju layar baru) |
+| `F-TA` | `HRD-DEC-251` | Layar daftar Penugasan Tambahan (penempatan sementara) | `B-TA` |
+| `F-ESS` | `HRD-DEC-252`, `HRD-DEC-256` | Portal ESS: izin pulang cepat dan surat tugas dinas luar milik sendiri (membuka `FE-HRD-100`) | `B-ESS` |
+| `F-SC` | `HRD-DEC-253` | Dua layar daftar HR: Perubahan Shift dan Tukar Dinas | Endpoint sudah ada; cakupan `B-SC` |
+
+### 36.2 Pemetaan 12 menu dan 58 submenu (menggantikan temuan `DSG-Q-01` di 31.1)
+
+Setiap submenu adalah entri sidebar sendiri. Entri yang berbagi layar membuka **keadaan berbeda** lewat parameter alamat. Parameter yang tidak dikenali diabaikan tanpa galat (layar tampil dalam keadaan bawaan). Kolom **Status**: `Ada` = layar dan keadaan sudah ada; `Param` = layar ada, perlu membaca parameter; `Task` = layar dari task yang sudah direncanakan; `Baru` = layar baru amandemen ini.
+
+| Menu | Submenu | Alamat tujuan | Keadaan yang dibuka | Status |
+| --- | --- | --- | --- | --- |
+| M01 Dashboard Kehadiran | Kehadiran Hari Ini | `/hr/attendance/dashboard/attendance-today` | Kartu terpilih + rincian | Ada (`FE-HRD-321`) |
+| | Pegawai Bertugas | `/hr/attendance/dashboard/on-duty` | sama | Ada |
+| | Keterlambatan | `/hr/attendance/dashboard/lateness` | sama | Ada |
+| | Ketidakhadiran | `/hr/attendance/dashboard/absence` | sama | Ada |
+| | Jadwal Belum Lengkap | `/hr/attendance/dashboard/incomplete-schedule` | sama | Ada |
+| M02 Master Pola & Jam Kerja | Jenis Shift | `/hr/master-data/shift` | Daftar | Ada |
+| | Pola Kerja | `/hr/master-data/shift-pattern` | Daftar | Ada |
+| | Kalender Kerja | `/hr/master-data/work-calendar` | Daftar | Ada |
+| | Hari Libur | `/hr/master-data/holiday` | Daftar | Ada (`FE-HRD-313`) |
+| | Toleransi Keterlambatan | `/hr/attendance/settings?section=tolerance` | Gulir dan sorot bagian toleransi | Param |
+| | Aturan Presensi | `/hr/attendance/settings?section=scan-window` | Gulir dan sorot bagian jendela scan | Param |
+| M03 Rencana Jadwal Dinas | Jadwal Bulanan | `/hr/scheduling/roster` | Daftar roster semua status | Ada |
+| | Jadwal Per-Unit | `/hr/scheduling/roster?view=unit` | Filter unit ditampilkan terbuka dan wajib dipilih; daftar roster unit itu | Param |
+| | Penugasan Per-Shift | `/hr/scheduling/roster?status=Published` | Roster terbit; petunjuk "Buka roster untuk melihat penugasan per shift" | Param |
+| | Publikasi Jadwal | `/hr/scheduling/roster?status=Draft` | Tab "Siap terbit" (roster `Draft`); petunjuk "Buka roster lalu tekan Terbitkan" | Param |
+| M04 Realisasi & Perubahan Jadwal | Perubahan Shift | `/hr/scheduling/schedule-changes` | Daftar pengajuan ubah jadwal | Baru (`F-SC`) |
+| | Tukar Dinas | `/hr/scheduling/shift-swaps` | Daftar tukar dinas | Baru (`F-SC`) |
+| | Penggantian Pegawai | `/hr/scheduling/revisions?type=Replace` | Riwayat Revisi tersaring jenis Ganti Petugas; petunjuk "Ganti petugas dilakukan dari matriks roster" | Param |
+| | Realisasi Jadwal | `/hr/scheduling/realization` | Rencana saat terbit vs kondisi akhir | Task (`FE-HRD-322`) |
+| | Riwayat Revisi | `/hr/scheduling/revisions` | Semua jenis | Ada (`FE-HRD-308`) |
+| M05 Jadwal Piket & On Call | Piket Unit | `/hr/scheduling/on-call` | Jadwal siaga per unit (keadaan bawaan) | Ada |
+| | Dokter Jaga | `/hr/scheduling/on-call?filter=on-call-type` | Filter "Jenis Siaga" terbuka dengan petunjuk "Pilih jenis siaga dokter jaga"; pilihan dari master jenis siaga | Param |
+| | Petugas Siaga | `/hr/scheduling/on-call?tab=backups` | Bagian cadangan siaga | Param + Task (`FE-HRD-317`) |
+| | Pemanggilan On Call | `/hr/scheduling/on-call/calls` | Catatan panggilan | Task (`FE-HRD-317`) |
+| M06 Presensi Pegawai | Check-In | `/self-services/human-resource/attendance?action=check-in` | Tombol Masuk difokuskan | Param |
+| | Check-Out | `/self-services/human-resource/attendance?action=check-out` | Tombol Pulang difokuskan | Param |
+| | Integrasi Mesin Absensi | `/hr/attendance/devices` | Daftar mesin | Ada (`FE-HRD-312`) |
+| | Rekap Kehadiran Harian | `/hr/attendance` | Monitoring harian | Ada |
+| M07 Koreksi Presensi | Lupa Absen | `/self-services/human-resource/attendance-correction?type=missing-scan` | Formulir baru dengan jenis "Lupa absen" terpilih | Param |
+| | Kegagalan Perangkat | `/hr/attendance/device-incidents` | Daftar kejadian gangguan mesin | Task (`FE-HRD-320`) |
+| | Koreksi Jam | `/self-services/human-resource/attendance-correction?type=time` | Formulir baru dengan jenis "Koreksi jam" terpilih | Param |
+| | Bukti Pendukung | `/self-services/human-resource/attendance-correction?section=evidence` | Daftar koreksi sendiri dengan kolom bukti; formulir dibuka pada bagian lampiran | Param |
+| | Approval | `/hrd/approvals/inbox` | Kotak masuk terpadu | Ada |
+| M08 Cuti, Izin & Ketidakhadiran | Cuti Tahunan | `/hr/leave/request?type=annual` | Jenis cuti tahunan tersaring | Param |
+| | Izin | `/hr/attendance/early-leave` | Daftar izin pulang cepat (termasuk pengajuan ESS) | Ada |
+| | Sakit | `/hr/leave/request?type=sick` | Jenis sakit tersaring | Param |
+| | Dispensasi | `/hr/attendance/dispensations` | Daftar dispensasi | Task (`FE-HRD-318`) |
+| | Dinas luar | `/hr/attendance/official-duty` | Daftar surat tugas (termasuk pengajuan ESS) | Ada |
+| | Tugas Belajar | `/hr/attendance/study-assignments` | Daftar tugas belajar | Task (`FE-HRD-319`) |
+| M09 Lembur & Penugasan Tambahan | Perintah Lembur | `/self-services/human-resource/overtime` | — | Ada |
+| | Persetujuan Lembur | `/hr/overtime/approvals` | — | Ada |
+| | Realisasi Jam Lembur | `/hr/overtime/verifications` | — | Ada |
+| | Penugasan Tambahan | `/hr/workforce-core/temporary-assignments` | Daftar penempatan sementara | Baru (`F-TA`) |
+| M10 Monitoring Kebutuhan Shift | Kebutuhan Tenaga Per-shift | `/hr/workforce-planning/staffing-standards` | — | Ada (`S-D1`) |
+| | Tenaga Terjadwal | `/hr/workforce-planning/staffing-workloads` | — | Ada (`S-D1`) |
+| | Kekurangan Personel | `/hr/workforce-planning/staffing-gaps` | — | Ada (`S-D1`) |
+| | Pemeriksaan kompetensi | `/hr/scheduling/roster?status=Draft&focus=validation` | Tab "Siap terbit" dengan petunjuk "Buka roster lalu tekan Periksa untuk hasil pemeriksaan kompetensi" | Param |
+| M11 Verifikasi & Tutup Periode | Verifikasi Jadwal Aktual | `/hr/scheduling/realization?changed=true` | Hanya tanggal yang berubah sejak terbit | Task (`FE-HRD-322`) + Param |
+| | Verifikasi Presensi | `/hr/attendance?exception=open` | Monitoring harian tersaring rekap berpengecualian terbuka | Param |
+| | Rekap Akhir Bulan | `/hr/attendance/periods` | Daftar periode | Ada |
+| | Penguncian Periode | `/hr/attendance/periods?status=Open` | Periode terbuka yang dapat ditutup | Param |
+| M12 Laporan Kehadiran | Laporan Shift | `/hr/attendance/reports/shift` | — | Ada (`FE-HRD-315`) |
+| | Kehadiran | `/hr/attendance/reports/attendance` | — | Ada |
+| | Cuti | `/hr/attendance/reports/leave` | — | Ada |
+| | Keterlambatan | `/hr/attendance/reports/lateness` | — | Ada |
+| | Lembur | `/hr/attendance/reports/overtime` | — | Ada |
+| | Ketidakhadiran | `/hr/attendance/reports/absence` | — | Ada |
+| | Rekap Per-Unit | `/hr/attendance/reports/unit-summary` | — | Ada |
+
+Jumlah: 5 + 6 + 4 + 5 + 4 + 4 + 5 + 6 + 4 + 4 + 4 + 7 = **58**.
+
+Aturan menu:
+
+1. Grup baru "Penjadwalan & Kehadiran" pada `src/utils/menu-sidebar/menu-items.jsx`, berisi 12 menu berurutan M01–M12. Setiap entri membawa `requiredPermission` endpoint utama layar tujuannya; entri tanpa hak tidak ditampilkan.
+2. Entri lama di grup lain yang menuju layar yang sama **dipindahkan** ke grup baru (tidak ada dua entri sidebar dengan alamat identik). Entri layanan mandiri (Check-In, Lupa Absen, Perintah Lembur, Jadwal Saya) tetap ada di grup Layanan Mandiri; entri di grup baru memakai alamat berparameter sehingga tidak identik.
+3. Penanda menu aktif membandingkan path dan parameter; dua entri berparameter berbeda tidak aktif bersamaan.
+4. Jadwal Saya (`HRD-DEC-209`) tetap di Layanan Mandiri.
+
+### 36.3 Kontrak fungsional layar baru atau diubah
+
+| Layar | Peran | Aksi | Data/status yang dikonsumsi | State wajib |
+| --- | --- | --- | --- | --- |
+| Matriks roster (`F-T1`, ubah `/hr/scheduling/roster/[id]`) | Kepala Unit, Kepala Bidang, Admin HRD | Ganti Petugas dari sel pengganti; hapus shift | `shiftAssignments[].workforceProfileId`, `isReplacement`, `originalWorkforceDisplayName`, `isReplacementOnly` | Sel pengganti bertanda "Pengganti" dengan keterangan "menggantikan {nama}"; baris pengganti-saja bertanda dan tanpa aksi hapus penugasan; `expectedWorkforceProfileId` = petugas sekarang |
+| Tutup periode (`F-T2`, ubah `/hr/attendance/periods`) | Admin HRD | Tutup | `conversionExceptionCount`, `closedConversionExceptionCount` | Konfirmasi menyebut "{n} pengecualian scan akan diselesaikan oleh penutupan"; pesan berhasil menyebut jumlah yang diselesaikan |
+| Penugasan Tambahan (`F-TA`, baru `/hr/workforce-core/temporary-assignments`) | Kepala Unit, Kepala Bidang, Admin HRD | Filter unit (hanya cakupan), rentang tanggal, status waktu, cari; buka profil pegawai | `TemporaryAssignmentResponse` | Loading, kosong ("Belum ada penempatan sementara"), galat + coba lagi, 403 → "tidak berwenang"; tanpa tombol tambah/ubah (pencatatan di Profil Pegawai 360) |
+| Perubahan Shift (`F-SC`, baru `/hr/scheduling/schedule-changes`) | Kepala Unit, Admin HRD | Filter status (termasuk "Disetujui — belum diterapkan"), unit, tanggal; detail + riwayat workflow; **Terapkan** | `schedule-change-requests` (daftar, ringkasan, detail, workflow, apply) | Terapkan hanya untuk status disetujui belum diterapkan; konfirmasi; tombol nonaktif saat mengirim; 403 cakupan → pesan server; 409 → "sudah berubah, muat ulang" |
+| Tukar Dinas (`F-SC`, baru `/hr/scheduling/shift-swaps`) | Kepala Unit, Admin HRD | Sama | `shift-swap-requests` | Sama; menampilkan kedua pegawai dan kedua shift |
+| ESS Izin Pulang Cepat (`F-ESS`) | Pegawai | Ajukan (tanggal, jam pulang, alasan), lihat, batal | Kontrak 37.4 | Batal hanya untuk "Diajukan"; alasan batal wajib; 404 tanpa profil → "Akun ini belum terhubung ke profil pegawai" |
+| ESS Dinas Luar (`F-ESS`) | Pegawai | Ajukan (kategori, nomor surat tugas, rentang jam, tujuan, maksud, lampiran), lihat, unduh lampiran, batal | Kontrak 37.5 | Sama; unggah lampiran sebelum kirim; tombol kirim nonaktif saat unggah berjalan |
+
+Penempatan layar ESS: dua tab baru pada halaman presensi layanan mandiri yang sudah ada (`/self-services/human-resource/attendance`) atau dua halaman di bawah `/self-services/human-resource/...` — `DEV_DISCRETION`, mengikuti pola halaman ESS yang ada. Entri sidebar layanan mandiri ditambahkan bila berupa halaman.
+
+### 36.4 Service, state, dan cache
+
+| Berkas | Status | Perubahan |
+| --- | --- | --- |
+| `src/lib/services/hr/attendance-management-service.js` | Diperbarui | Tidak ada fungsi baru untuk `F-T2` (respons diperluas) |
+| Service ESS presensi yang ada (`src/lib/services/hr/employee-self-service.js` atau berkas ESS presensi) | Diperbarui | Fungsi daftar/detail/ajukan/batal/unggah/unduh untuk 37.4–37.5 |
+| Service workforce core yang ada | Diperbarui | `getTemporaryAssignments`, `getTemporaryAssignmentFilterMetadata` |
+| Service scheduling yang ada | Diperbarui bila belum ada | Daftar, ringkasan, detail, workflow, Terapkan untuk Perubahan Shift dan Tukar Dinas |
+| Redux | Tidak ada slice baru wajib | Daftar memakai hook `useHrRemoteData` yang ada; sesudah Terapkan/batal, daftar dimuat ulang |
+
+Tidak ada cache lintas layar. Respons yang datang terlambat untuk filter lama diabaikan (pola `currentRequestId`/`AbortController` yang ada).
+
+### 36.5 Privasi dan aksesibilitas
+
+- Layar ESS hanya menampilkan data milik sendiri; tidak ada pilihan pegawai.
+- Alasan izin dan batal: petunjuk "Jangan menuliskan nama atau No. RM pasien".
+- Tanda "Pengganti" pada sel matriks tidak hanya berupa warna; ada teks atau ikon berlabel dan `title`.
+- Tab/filter yang dibuka dari parameter alamat tetap dapat diubah pengguna dan mengikuti tombol kembali peramban.
+
+### 36.6 Strategi uji frontend
+
+| Uji | Bukti |
+| --- | --- |
+| Unit | Fungsi murni: pemetaan parameter alamat → keadaan layar; pengelompokan sel pengganti; status waktu penempatan; aturan batal ESS |
+| E2E (API tiruan) | Matriks dengan sel pengganti dan baris pengganti-saja; tutup periode dengan jumlah pengecualian; daftar penempatan sementara; Perubahan Shift/Tukar Dinas + Terapkan; ESS ajukan/batal |
+| Keterjangkauan menu | Spec yang membuka 58 entri sidebar satu per satu dan memeriksa layar serta keadaan yang dibuka (`AT-HRD-PK-56`, `UAT-PK-23`) |
+| Data asli | Ulang `UAT-PK-03` (kisi pengganti) dan `UAT-PK-09` (tutup periode) di devYoga |
+
+### 36.7 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan |
+| --- | --- |
+| Layar baru untuk submenu yang berbagi layar | `HRD-DEC-250` |
+| Tombol persetujuan izin/dinas luar di kotak masuk terpadu | `HRD-DEC-256` |
+| Formulir tambah penempatan sementara di daftar baru | `HRD-DEC-251` (baca saja) |
+| Kategori tetap "dokter"/"penunjang" pada master jenis siaga agar Dokter Jaga tersaring otomatis | Jenis siaga adalah master yang diisi Admin HR tanpa kategori; menambah kategori butuh kolom dan keputusan baru. Selama ini pengguna memilih jenis siaga sendiri |
+| Penanda "diajukan dari ESS" di daftar HR | Tidak ada kolom sumber di backend (`B-ESS`); pembuat terlihat dari data pengajuan |
