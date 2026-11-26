@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Roadmap revision | `24` — **revisi `24` (12 November 2026) menambah amandemen `A52` atas `S-B4` dan `S-B1` untuk 12 menu `PRD-HRD-PK-001`: `BE-HRD-334` s.d. `BE-HRD-359`, `FE-HRD-306` s.d. `FE-HRD-324`, gelombang `MVP-66` s.d. `MVP-68`, kontrak `v26` approved; tidak ada slice baru.** Revisi `23` — **revisi `23` (9 November 2026) menyerap keputusan `HRD-DEC-188` s.d. `HRD-DEC-193` dan asumsi `HRD-ASM-71` s.d. `HRD-ASM-74` untuk target state Slice `S-D5` (Perjalanan Dinas & Manajemen Biaya Operasional / Business Travel & Expense Management: Pemisahan SPPD vs Non-Trip Expense, Uang Muka Maksimal 80% & Otorisasi 2-Pintu, Tarif Baku Lumpsum Per Diem Multi-Dimensi Zonasi/Grade, Disiplin Settlement 7 Hari & Sanksi Potong Payroll > 30 Hari, Deklarasi Darurat Tanpa Nota Maks 10%, serta Presensi Hadir Dinas Luar Sub-07 & Gembok Hard-Stop Roster Sub-06), merencanakan 16 task backend (`BE-HRD-318` s.d. `BE-HRD-333`) dan 15 task frontend (`FE-HRD-291` s.d. `FE-HRD-305`) lintas gelombang MVP-63 s.d. MVP-65 & Verifikasi — MENUNTASKAN STATUS DEFERRED MENJADI 0 DEFERRED**; revisi `22` menyerap target state Slice `S-A7-V2` |
+| Roadmap revision | `25` — **revisi `25` (24 November 2026) menambah amandemen `A52-B` (pembuka task tertahan Penjadwalan & Kehadiran): `BE-HRD-463` s.d. `BE-HRD-468` + `BE-HRD-359` dibuka kembali, `FE-HRD-410` s.d. `FE-HRD-417` + `FE-HRD-100` dan `FE-HRD-324` dibuka kembali, gelombang `MVP-77` s.d. `MVP-79`, kontrak `v31` approved; tidak ada slice baru.** Revisi `24` — **revisi `24` (12 November 2026) menambah amandemen `A52` atas `S-B4` dan `S-B1` untuk 12 menu `PRD-HRD-PK-001`: `BE-HRD-334` s.d. `BE-HRD-359`, `FE-HRD-306` s.d. `FE-HRD-324`, gelombang `MVP-66` s.d. `MVP-68`, kontrak `v26` approved; tidak ada slice baru.** Revisi `23` — **revisi `23` (9 November 2026) menyerap keputusan `HRD-DEC-188` s.d. `HRD-DEC-193` dan asumsi `HRD-ASM-71` s.d. `HRD-ASM-74` untuk target state Slice `S-D5` (Perjalanan Dinas & Manajemen Biaya Operasional / Business Travel & Expense Management: Pemisahan SPPD vs Non-Trip Expense, Uang Muka Maksimal 80% & Otorisasi 2-Pintu, Tarif Baku Lumpsum Per Diem Multi-Dimensi Zonasi/Grade, Disiplin Settlement 7 Hari & Sanksi Potong Payroll > 30 Hari, Deklarasi Darurat Tanpa Nota Maks 10%, serta Presensi Hadir Dinas Luar Sub-07 & Gembok Hard-Stop Roster Sub-06), merencanakan 16 task backend (`BE-HRD-318` s.d. `BE-HRD-333`) dan 15 task frontend (`FE-HRD-291` s.d. `FE-HRD-305`) lintas gelombang MVP-63 s.d. MVP-65 & Verifikasi — MENUNTASKAN STATUS DEFERRED MENJADI 0 DEFERRED**; revisi `22` menyerap target state Slice `S-A7-V2` |
 | Status | `DRAFT` |
 | Backend SHA | `16f6b2a` |
 | Frontend SHA | `2cd1c06` |
@@ -357,6 +357,22 @@ Early Leave Permission adalah bagian attendance/permission flow (`S-B1`), bukan 
 | **Migration Risk** | Rendah — seluruhnya penambahan; nilai bawaan sama dengan perilaku sekarang |
 | **Acceptance Criteria** | `AT-HRD-PK-01` s.d. `AT-HRD-PK-46`; `UAT-PK-01` s.d. `UAT-PK-15` |
 | **Release Status** | **`PLANNED`** — desain dan kontrak `v26` disetujui pengguna 12 November 2026; gelombang `MVP-66` s.d. `MVP-68`, `Verifikasi`, `POST-MVP` |
+
+### Amandemen `A52-B` — pembuka task tertahan Penjadwalan & Kehadiran (revisi `25`, 24 November 2026)
+
+| Aspek | Isi |
+| --- | --- |
+| **Current State** | Uji browser `FE-HRD-316` menemukan kisi roster tanpa petugas pengganti dan tutup periode yang tertolak pengecualian calon Alpa (`HRD-TF-092`, `093`); `BE-HRD-359`, `FE-HRD-100`, `FE-HRD-324` tertahan keputusan; layar HR Perubahan Shift/Tukar Dinas belum ada dan daftarnya tanpa cakupan unit (`HRD-TF-094`, `099`) |
+| **Target State** | `HRD-DEC-248` s.d. `HRD-DEC-256`; desain `02-backend-architecture.md` bagian 39, `03-frontend-architecture.md` bagian 36, PRD bagian 44; kontrak `v31` |
+| **Backend Impact** | `EXTEND` + `NEW`: 7 task — `BE-HRD-463` s.d. `BE-HRD-468` dan `BE-HRD-359` dibuka kembali (`backend-roadmap.md` bagian 32) |
+| **Frontend Impact** | 10 task — `FE-HRD-410` s.d. `FE-HRD-417`, `FE-HRD-100` dan `FE-HRD-324` dibuka kembali (`frontend-roadmap.md` bagian 32) |
+| **Database Impact** | Tidak ada — tanpa tabel, kolom, atau migration baru |
+| **Dependency** | Amandemen `A52` (`BE-HRD-334` s.d. `BE-HRD-358` ✅; `HrdUnitScopeService`, pratinjau tutup, `ShiftRevisionRecorder`) |
+| **Blocking Decision** | Tidak ada. Gerbang non-keputusan: izin data uji devYoga (bukti data asli); pemberian hak akses oleh Admin Sistem (DoD) |
+| **QBE Impact** | `NEW CODE` untuk tiga controller dan satu query service; `TOUCHED LEGACY` untuk lima service yang diperluas |
+| **Migration Risk** | Tidak ada |
+| **Acceptance Criteria** | `AT-HRD-PK-47` s.d. `AT-HRD-PK-57`; `UAT-PK-16` s.d. `UAT-PK-23` (+ ulang `UAT-PK-03`, `UAT-PK-09`) |
+| **Release Status** | **`PLANNED`** — kontrak `v31` disetujui pengguna 24 November 2026; gelombang `MVP-77` s.d. `MVP-79`, `Verifikasi` |
 
 ### `S-B5` — Payroll sisi HR
 

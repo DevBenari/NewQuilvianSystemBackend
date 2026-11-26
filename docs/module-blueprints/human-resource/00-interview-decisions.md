@@ -10059,3 +10059,177 @@ Revisi decision log: `43`. Agen desain sebelumnya meminta pengguna menyetujui ko
 * **Keputusan baru:** `HRD-DEC-247` (`approved`). **Pertanyaan tertutup:** `HRD-Q-234`.
 * **Akibat pada PRD:** `FR-PKB-20` tidak lagi tertahan dan dijadwalkan pada `MVP-76` bersama butir menu Paket B.
 * **Langkah berikutnya:** `plan-module-delivery` — roadmap backend bagian 31 (`BE-HRD-453` s.d. `BE-HRD-462`) dan roadmap frontend bagian 31 (`FE-HRD-401` s.d. `FE-HRD-409`).
+
+## 58. Amendment Pass — Pembuka Task Tertahan Penjadwalan & Kehadiran (Amandemen `A52`, PRD-HRD-PK-001)
+
+Tanggal Wawancara: 24 November 2026
+Mode pass: **Amendment pass** atas bagian 52 (`HRD-DEC-194` s.d. `HRD-DEC-217`) dan pertanyaan desain `DSG-Q-01` s.d. `DSG-Q-04` (`04-prd-to-mvp.md` 40.20). Revisi decision log: `44`. Bagian 52 tidak diubah; keputusan di bawah menambah aturan dan membuka task yang tertahan.
+Status Scope: **APPROVED** untuk kedelapan keputusan (`HRD-DEC-248` s.d. `HRD-DEC-255`).
+Pemicu: permintaan pengguna 24 November 2026 agar seluruh task backend dan frontend PRD Penjadwalan & Kehadiran yang belum selesai dituntaskan, serta temuan verifikasi browser `FE-HRD-316` (laporan `task/report/frontend/FE-HRD-316.md`).
+Capability map: wawancara memakai fakta source yang diperiksa langsung pada backend `4d2c0162` (branch `yoga`) dan frontend `004524f4c` + working tree (branch `YogaV2`). `01-existing-capability-map.md` (27 Agustus 2026) sudah basi untuk area ini.
+
+### 58.1 Batas Ruang Lingkup (dikonfirmasi pengguna 24 November 2026)
+
+* **Di dalam scope:**
+  1. Tampilan petugas pengganti pada kisi roster terbit (temuan `T1`).
+  2. Pemblokir tutup periode kehadiran untuk hari yang dikonversi menjadi Alpa (temuan `T2`).
+  3. Struktur grup menu "Penjadwalan & Kehadiran" untuk 58 submenu Notion (`DSG-Q-01`).
+  4. Daftar penempatan sementara lintas pegawai untuk submenu "Penugasan Tambahan" (`DSG-Q-02`).
+  5. Pengajuan izin pulang cepat dan surat tugas dinas luar dari Layanan Mandiri (task `FE-HRD-100`).
+  6. Layar daftar HR untuk Perubahan Shift dan Tukar Dinas (PRD M04).
+  7. Pemberian izin permanen PRD 40.14 ke jabatan.
+  8. Status kontrak hak akses `v10` dan batas rentang laporan (`DSG-Q-03`, `DSG-Q-04`).
+* **Di luar scope:**
+  1. Aturan internal Lembur (slice `S-B3`) dan Ketenagaan (slice `S-D1`); PRD M09/M10 hanya disentuh lewat menu.
+  2. Slice HR lain (helpdesk, kredensial, OPPE, pelatihan, kinerja, hubungan industrial, K3RS).
+
+### 58.2 Fakta source yang dipakai (tanpa ditanyakan)
+
+| ID | Fakta | Bukti |
+| --- | --- | --- |
+| `HRD-TF-092` | Detail roster `GET roster-periods/{id}` mengelompokkan `shiftAssignments` per `TrxRosterAssignment` (baris petugas awal). Butir shift tidak membawa `workforceProfileId` maupun nama petugas saat ini. Ganti Petugas menulis petugas baru langsung ke `TrxShiftAssignment.WorkforceProfileId` | Respons API devYoga `ROST-202611-0002`; `ShiftReplacementService.cs`; temuan `T1` laporan `FE-HRD-316` |
+| `HRD-TF-093` | `AttendancePeriodService` menolak tutup bila ada `HrdAttendanceException` `IsPayrollBlocking` berstatus `Open`/`UnderReview`; setiap hari `IncompletePunch` membawa `MissingCheckOut` (Severity `High`, memblokir payroll) | `AttendancePeriodService.cs` baris 675–683, 801; data devYoga `ATP-202611-0001`; temuan `T2` |
+| `HRD-TF-094` | Sisi HR sudah punya `GET`/detail/workflow/`apply` untuk `scheduling-management/schedule-change-requests` dan `shift-swap-requests`; frontend belum punya layar daftarnya | `ScheduleChangeController.cs`, `ShiftSwapController.cs` |
+| `HRD-TF-095` | Layanan Mandiri presensi hanya punya `attendance` (check-in/out), `attendance-corrections`, dan `attendance-dispensations`; belum ada endpoint self-service izin pulang cepat dan surat tugas dinas luar | `Areas/SelfServices/HumanResource/Controllers/` |
+| `HRD-TF-096` | Endpoint koreksi atas nama kini punya unggah bukti `POST attendance/correction-requests/on-behalf/attachments`; penghalang `FE-HRD-096` di laporan `FE-HRD-R28` tidak berlaku lagi | `AttendanceCorrectionController.cs` baris 198–224 |
+| `HRD-TF-097` | Resource A52 (`RosterPeriod`, `ShiftReplacement`, `AttendanceReport`, `AttendanceDashboard`, `Holiday`, `MySchedule`, `AttendanceDevice`, dll.) terdaftar saat startup tetapi belum diberikan ke jabatan mana pun di devYoga | Verifikasi `FE-HRD-316` bagian 4 |
+
+### 58.3 Pertanyaan dan Pilihan Pengguna
+
+| Pertanyaan | Pilihan disajikan | Pilihan pengguna | Menjadi |
+| --- | --- | --- | --- |
+| `HRD-Q-235` Kisi roster sesudah Ganti Petugas (`T1`) | A. Pindah ke baris pengganti **(Direkomendasikan)**; B. Tetap di baris lama dengan nama pengganti | **A** | `HRD-DEC-248` |
+| `HRD-Q-236` Pemblokir tutup periode (`T2`) | A. Tidak memblokir; selesai saat tutup **(Direkomendasikan)**; B. Tetap memblokir | **A** | `HRD-DEC-249` |
+| `HRD-Q-237` Submenu berbagi layar (`DSG-Q-01`) | A. Entri berbeda ke layar sama **(Direkomendasikan)**; B. Sembunyikan submenu turunan; C. Layar terpisah tiap submenu | **A** | `HRD-DEC-250` |
+| `HRD-Q-238` Penugasan Tambahan (`DSG-Q-02`) | A. Endpoint daftar baca baru **(Direkomendasikan)**; B. Arahkan ke Surat Perintah Personel | **A** | `HRD-DEC-251` |
+| `HRD-Q-239` Izin pulang cepat & dinas luar dari ESS | A. Buat endpoint ESS + layar **(Direkomendasikan)**; B. Hanya lewat HR, tutup `FE-HRD-100` | **A** | `HRD-DEC-252` |
+| `HRD-Q-240` Layar HR Perubahan Shift & Tukar Dinas | A. Buat dua layar daftar HR **(Direkomendasikan)**; B. Cukup kotak masuk persetujuan | **A** | `HRD-DEC-253` |
+| `HRD-Q-241` Izin permanen 40.14 | A. Tunda ke admin sistem **(Direkomendasikan)**; B. Berikan sekarang di devYoga | **A** | `HRD-DEC-254` |
+| `HRD-Q-242` Kontrak `v10` dan batas 92 hari (`DSG-Q-03`, `DSG-Q-04`) | A. Superseded + 92 hari diterima **(Direkomendasikan)**; B. Superseded + ubah batas hari | **A** | `HRD-DEC-255` |
+
+### 58.4 Keputusan yang Dikunci (`HRD-DEC-248` s.d. `HRD-DEC-255`)
+
+Semua keputusan: Type `Decision`, Owner pengguna (`HRD-DEC-015`), Status `approved`, Approved by/at pengguna — 24 November 2026.
+
+#### `HRD-DEC-248` — Kisi Roster Menampilkan Shift di Baris Petugas yang Bertugas Sekarang
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-235` (temuan `T1` `FE-HRD-316`) |
+| Evidence | `HRD-TF-092`; `HRD-DEC-195` |
+| Ringkasan | Sesudah Ganti Petugas, shift tampil di baris petugas pengganti dengan tanda "Pengganti", dan sel di baris petugas awal kosong. Bila pengganti belum punya baris pada roster itu, barisnya ditambahkan pada tampilan. Jejak siapa yang digantikan tetap dari Riwayat Revisi |
+| Contoh | Pagi 16 Feb Indra diganti Raka. Kisi: baris Raka menampilkan "PA" bertanda Pengganti pada 16 Feb; baris Indra kosong pada tanggal itu. Kepala Unit mengeklik sel Raka untuk mengganti lagi; server menerima karena petugas yang diharapkan = Raka |
+| Implikasi Arsitektur | 1. Butir shift pada detail roster membawa petugas saat ini (`workforceProfileId`, nama, kode) dan penanda pengganti; detail roster menampilkan petugas yang hanya ada sebagai pengganti.<br>2. Kisi frontend menempatkan shift berdasarkan petugas saat ini dan mengirim `expectedWorkforceProfileId` = petugas saat ini.<br>3. Uji ulang `UAT-PK-03` dengan data asli |
+
+#### `HRD-DEC-249` — Pengecualian Hari Calon Alpa Tidak Memblokir Tutup Periode
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-236` (temuan `T2` `FE-HRD-316`) |
+| Evidence | `HRD-TF-093`; `HRD-DEC-216`; `HRD-DEC-197` |
+| Ringkasan | Pengecualian scan hilang atau kurang (`MissingCheckIn`, `MissingCheckOut`, dan sejenisnya) milik hari yang akan dikonversi menjadi Alpa saat tutup tidak dihitung sebagai pemblokir. Saat periode ditutup, pengecualian itu ditandai selesai oleh penutupan dan tercatat di audit. Pengecualian lain yang memblokir payroll tetap memblokir |
+| Contoh | Periode ICU Februari: Rina "Belum Lengkap" 10 Feb (scan masuk saja). Pratinjau menyebut Rina akan menjadi Alpa; HRD menekan Tutup; periode tertutup, Rina Alpa, pengecualian "belum scan pulang" Rina berstatus selesai oleh penutupan |
+| Implikasi Arsitektur | 1. Penghitung pemblokir tutup mengecualikan pengecualian milik calon konversi.<br>2. Transaksi tutup menandai pengecualian itu selesai (pelaku = penutup, alasan tetap) bersama konversi.<br>3. Uji ulang `UAT-PK-09` dengan data asli |
+
+#### `HRD-DEC-250` — Submenu yang Berbagi Layar Tetap Tampil sebagai Entri Berbeda
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-237` (`DSG-Q-01`) |
+| Evidence | `03-frontend-architecture.md` 31.1 (14 submenu bertanda "layar sama"/"aksi") |
+| Ringkasan | Grup menu "Penjadwalan & Kehadiran" menampilkan 12 menu dan 58 submenu sesuai Notion. Submenu yang berbagi layar membuka layar itu dengan tab, filter, atau bagian yang sesuai. Tidak dibuat layar baru hanya untuk menyamakan jumlah submenu |
+| Contoh | "Penguncian Periode" membuka Periode Presensi dengan filter periode siap ditutup; "Publikasi Jadwal" membuka daftar roster bertab "Siap terbit"; "Check-Out" membuka halaman presensi mandiri yang sama dengan "Check-In" |
+| Implikasi Arsitektur | 1. `FE-HRD-324` dibuka.<br>2. Layar tujuan menerima parameter tab/filter dari alamat menu agar entri berbeda memang membuka keadaan berbeda.<br>3. Uji keterjangkauan 58 submenu |
+
+#### `HRD-DEC-251` — Daftar Penempatan Sementara Lintas Pegawai (Baca Saja)
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-238` (`DSG-Q-02`) |
+| Evidence | `HRD-DEC-213`; `BE-HRD-359` ⛔ |
+| Ringkasan | Dibuat API daftar penempatan sementara lintas pegawai yang hanya membaca, bercakupan unit sama dengan laporan (`VR-PK-27`), beserta layar daftar untuk submenu "Penugasan Tambahan". Pencatatan dan perubahan penempatan tetap di Profil Pegawai 360 |
+| Contoh | Kepala Bidang membuka Penugasan Tambahan dan melihat Raka (IGD 1–14 Mar 2027, asal ICU) beserta tanggal dan unit asal/tujuan; Kepala Unit ICU hanya melihat penempatan yang menyentuh ICU |
+| Implikasi Arsitektur | 1. `BE-HRD-359` dibuka; kontrak endpoint daftar ditambahkan (penyegaran kontrak).<br>2. Task frontend layar daftar |
+
+#### `HRD-DEC-252` — Pegawai Mengajukan Izin Pulang Cepat dan Dinas Luar dari Layanan Mandiri
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-239` |
+| Evidence | `HRD-TF-095`; PRD FR-08.02, FR-08.05 (aktor Pegawai); `FE-HRD-100` ⛔ |
+| Ringkasan | Dibuat endpoint self-service bagi pegawai untuk mengajukan, melihat, dan membatalkan izin pulang cepat dan surat tugas dinas luar miliknya. Identitas dari sesi; persetujuan lewat kotak masuk terpadu (engine `WorkflowService`, `HRD-DEC-229`). Pencatatan atas nama oleh HR tetap ada |
+| Contoh | Perawat Sari mengajukan izin pulang pukul 12.00 karena anak sakit dari menu Layanan Mandiri; Kepala Ruang menyetujui di kotak masuk; rekap harian Sari memakai izin itu |
+| Implikasi Arsitektur | 1. Task backend endpoint self-service (pola `AttendanceCorrectionSelfServiceController`).<br>2. `FE-HRD-100` dibuka sesudah endpoint tersedia.<br>3. Penyegaran kontrak API |
+
+#### `HRD-DEC-253` — Layar Daftar HR untuk Perubahan Shift dan Tukar Dinas
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-240` |
+| Evidence | `HRD-TF-094`; PRD FR-04.01, FR-04.02 |
+| Ringkasan | Dibuat dua layar daftar HR: pengajuan ubah jadwal dan tukar dinas per cakupan unit, dengan filter status, detail dan riwayat workflow, serta aksi Terapkan untuk pengajuan yang sudah disetujui tetapi belum diterapkan. Persetujuan tetap di kotak masuk terpadu |
+| Contoh | Kepala Unit ICU membuka Tukar Dinas, menyaring "Disetujui — belum diterapkan", lalu menekan Terapkan pada tukar dinas Ani–Bayu 20 Feb |
+| Implikasi Arsitektur | 1. Dua task frontend; tanpa task backend (endpoint sudah ada).<br>2. Menjadi tujuan submenu "Perubahan Shift" dan "Tukar Dinas" pada grup menu `HRD-DEC-250` |
+
+#### `HRD-DEC-254` — Izin Permanen 40.14 Diberikan Admin Sistem
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-241` |
+| Evidence | `HRD-TF-097`; `04-prd-to-mvp.md` 40.14, 40.19 |
+| Ringkasan | Pemberian izin per peran (Kepala Unit, Kepala Bidang, Admin HRD, Petugas IT, Pegawai) dilakukan admin sistem lewat layar Akses Role saat jabatan tiap rumah sakit sudah pasti. Tim delivery menyediakan daftar periksa izin per peran. Butir DoD 40.19 "hak akses sudah diberikan" tetap terbuka sampai admin melakukannya; uji memakai izin sementara yang dipulihkan |
+| Contoh | Admin sistem RSMMC memberi jabatan "Kepala Ruang ICU" izin `RosterPeriod : Read/Create/Update/RemoveShift`, `ShiftReplacement : Update`, `AttendanceReport : Read/Export`, `AttendanceDashboard : Read`, `MySchedule : Read` sesuai daftar periksa |
+| Implikasi Arsitektur | Daftar periksa izin per peran dilampirkan pada laporan verifikasi; tanpa perubahan kode |
+
+#### `HRD-DEC-255` — Kontrak Hak Akses `v10` Superseded; Batas Laporan 92 Hari Diterima
+
+| Field | Isi |
+| --- | --- |
+| Menutup | `HRD-Q-242` (`DSG-Q-03`, `DSG-Q-04`) |
+| Evidence | `04-prd-to-mvp.md` 40.20; `VR-PK-28` |
+| Ringkasan | String hak akses kontrak `v10` (`HrdScheduling`, `HrdOnCall`) ditandai `superseded` oleh `v26` (dokumen saja). Batas rentang laporan dan ekspor 92 hari tetap seperti yang sudah diterapkan |
+| Contoh | Pembaca kontrak melihat catatan "superseded oleh v26" pada bagian hak akses `v10`; laporan rentang 1 Jan–3 Apr ditolak "Rentang laporan paling lama 92 hari" |
+| Implikasi Arsitektur | Penyegaran dokumen kontrak pada pass blueprint; tanpa perubahan kode |
+
+### 58.5 Ringkasan Pass
+
+* **Keputusan baru:** `HRD-DEC-248` s.d. `HRD-DEC-255` (approved). `DSG-Q-01` s.d. `DSG-Q-04` terjawab; `EPIC HRD-120` tidak lagi terblokir.
+* **Open question:** tidak ada yang memblokir.
+* **Acceptance criteria yang sudah dapat diuji:**
+  1. Sesudah Ganti Petugas, sel shift ada di baris pengganti bertanda "Pengganti" dan Ganti Petugas berikutnya diterima server (`UAT-PK-03` ulang).
+  2. Periode dengan hari "Belum Lengkap" dapat ditutup; hari itu menjadi Alpa dan pengecualiannya selesai oleh penutupan; pengecualian lain yang memblokir payroll tetap memblokir (`UAT-PK-09` ulang).
+  3. Ke-58 submenu dapat dijangkau dan submenu berbagi layar membuka tab/filter yang sesuai.
+  4. Daftar penempatan sementara hanya memuat penempatan dalam cakupan unit pengguna.
+  5. Pegawai dapat mengajukan dan membatalkan izin pulang cepat serta dinas luar miliknya; parameter pegawai lain diabaikan.
+  6. Layar Perubahan Shift dan Tukar Dinas menampilkan pengajuan per cakupan dan Terapkan hanya untuk yang sudah disetujui.
+* **Di luar scope:** aturan internal `S-B3` dan `S-D1`.
+* **Untuk pass blueprint:** header revisi decision log dan hash `00-interview-decisions.md` di `blueprint-manifest.md` perlu disegarkan (revisi `44`). Kontrak API bagian 32 (butir shift detail roster, endpoint daftar penempatan sementara, endpoint self-service izin dan dinas luar, `attendance-devices/filters/metadata`, `v10` superseded), state transition tutup periode, dan desain frontend (grup menu, kisi roster, layar baru) perlu diamandemen sebelum task delivery dibuat.
+* **Langkah berikutnya:** `/design-business-module` — amandemen desain dan kontrak `A52` atas dasar keputusan ini, lalu `/plan-module-delivery` untuk task backend dan frontend baru (`T1`, `T2`, daftar penempatan sementara, ESS izin/dinas luar, dua layar M04) serta membuka `FE-HRD-096`, `FE-HRD-100`, `FE-HRD-324`, dan `BE-HRD-359`.
+
+### 58.6 Klarifikasi saat desain (24 November 2026)
+
+Saat amandemen desain `A52-B` disusun, ditemukan fakta yang membuat rincian persetujuan pada `HRD-DEC-252` tidak dapat dijalankan apa adanya. Pertanyaan diajukan ulang dan dijawab pengguna pada hari yang sama.
+
+| ID | Fakta | Bukti |
+| --- | --- | --- |
+| `HRD-TF-098` | Izin pulang cepat (`HrdEarlyLeavePermission`) dan surat tugas dinas luar (`HrdOfficialDutyRequest`) tidak memakai engine `WorkflowService`. Keduanya disetujui atau ditolak langsung oleh pengguna berhak lewat `POST …/{id}/approve` dan `…/{id}/reject` (status `Submitted` → `Approved`/`Rejected`). Belum ada aksi batal | `EarlyLeavePermissionService.cs` baris 267, 303–409; `OfficialDutyRequestService.cs` baris 269–452; hanya `AttendanceCorrectionService` yang memakai `WorkflowService` |
+| `HRD-TF-099` | Daftar HR Perubahan Shift dan Tukar Dinas (`ScheduleChangeService.GetPagedAsync`, `ShiftSwapService.GetPagedAsync`) tidak dibatasi cakupan unit | Tidak ada pemakaian `HrdUnitScopeService` pada kedua service |
+
+| Pertanyaan | Pilihan disajikan | Pilihan pengguna | Menjadi |
+| --- | --- | --- | --- |
+| `HRD-Q-243` Cara menyetujui izin pulang cepat dan dinas luar yang diajukan dari ESS | A. Lewat layar HR yang ada (endpoint approve/reject) **(Direkomendasikan)**; B. Integrasikan ke engine workflow dan kotak masuk terpadu | **A** | `HRD-DEC-256` |
+
+#### `HRD-DEC-256` — Persetujuan Pengajuan ESS Izin Pulang Cepat dan Dinas Luar Lewat Layar HR yang Ada
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-243` |
+| Menggantikan | Bagian "persetujuan lewat kotak masuk terpadu" pada `HRD-DEC-252` (status bagian itu `superseded`); sisa `HRD-DEC-252` tetap berlaku |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna, 24 November 2026 |
+| Evidence | `HRD-TF-098` |
+| Ringkasan | Pegawai mengajukan, melihat, dan membatalkan sendiri izin pulang cepat dan surat tugas dinas luar dari Layanan Mandiri. Pengajuan itu masuk daftar yang sama dengan pencatatan HR dan disetujui atau ditolak Kepala Unit/HR di layar Izin Pulang Cepat dan Dinas Luar memakai endpoint approve/reject yang sudah ada. Pemindahan kedua jenis pengajuan ke engine workflow dan kotak masuk terpadu dapat dibuat sebagai amandemen tersendiri |
+| Contoh | Perawat Sari mengajukan izin pulang pukul 12.00 dari ESS. Kepala Ruang membuka Presensi & Kehadiran → Izin Pulang Cepat, melihat pengajuan Sari berstatus "Diajukan", lalu menyetujuinya. Rekap harian Sari memakai izin itu |
+| Implikasi Arsitektur | 1. Endpoint ESS memakai service yang sama dengan layar HR (`CreateAsync` dengan identitas dari sesi); aksi batal baru hanya untuk pengajuan berstatus `Submitted` milik sendiri.<br>2. Tanpa definisi workflow baru dan tanpa perubahan layar persetujuan |

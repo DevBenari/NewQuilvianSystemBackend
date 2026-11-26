@@ -102,6 +102,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
 
         public DateTime? RequestedAt { get; set; }
 
+        /// <summary>
+        /// Tanggal rencana pemeriksaan (<c>LAB-DC-066</c>, <c>LAB-DEC-253</c>): hari kalender WIB
+        /// pemeriksaan direncanakan dikerjakan, tanpa jam. Selalu terisi — bawaan hari pesanan
+        /// dibuat; pesanan lama diisi dari tanggal waktu diminta (WIB) oleh migration.
+        /// </summary>
+        /// <remarks>
+        /// Penanda kerja, <b>bukan</b> penghalang: perencanaan, pengambilan, dan pengerjaan sampel
+        /// tetap sah pada hari lain (<c>LAB-DEC-259</c>). Sesudah pesanan lahir, nilainya hanya
+        /// berganti lewat penjadwalan ulang, yang meninggalkan <see cref="LabOrderReschedule"/>.
+        /// </remarks>
+        public DateOnly PlannedDate { get; set; }
+
         public Guid? RequestedByUserId { get; set; }
 
         public DateTime? CompletedAt { get; set; }
@@ -179,5 +191,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         /// terpisah dari wadah fisik yang menopangnya.
         /// </summary>
         public ICollection<LabExamination> Examinations { get; set; } = new List<LabExamination>();
+
+        /// <summary>Riwayat penjadwalan ulang pesanan ini (<c>LAB-DEC-252</c>).</summary>
+        public ICollection<LabOrderReschedule> Reschedules { get; set; } = new List<LabOrderReschedule>();
     }
 }

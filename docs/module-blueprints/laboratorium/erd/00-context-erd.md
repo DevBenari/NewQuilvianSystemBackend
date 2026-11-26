@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `3` — 2026-10-20: hubungan baca laporan `S16b-1`/`S16b-2` ke Registrasi, Master Data, dan data pasien (A8.3); nol entity baru |
+| Revision | `4` — 2026-11-25: `BC-MCU` dicatat sebagai hulu baca (tautan komponen order MCU, `LAB-DA-001` A9.3); `LabOrder` diperluas `PlannedDate`, `LabOrderReschedule` baru (`S20-1`, `draft`). Sebelumnya `3` — 2026-10-20: hubungan baca laporan `S16b-1`/`S16b-2` ke Registrasi, Master Data, dan data pasien (A8.3); nol entity baru |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
 | Backend SHA | `c87d9c0` |
@@ -102,6 +102,7 @@ erDiagram
 | `BC-MD` Data Induk | Hulu | — | Jenis pemeriksaan, tarif, kelompok umur |
 | `BC-BIL` Billing | Hilir | Fakta milestone klinis | Seluruh akibat finansial |
 | `BC-PLAT` Platform | Hulu | — | Identitas pengguna dan kewenangan |
+| `BC-MCU` Medical Check-Up | Hulu — **baca saja**, dicatat 2026-11-25 (`LAB-DA-001` A9.3) | — | Ada/tidaknya komponen order MCU yang menautkan pesanan Lab (`McuOrderComponent.LabOrderId`) — penjaga jadwal ulang `INV-65`. Laboratorium tidak menulis ke MCU |
 
 **Aturan yang tidak boleh dilanggar.** Tidak ada satu pun tabel Laboratorium yang menyalin
 pasien, dokter, kunjungan, jenis pemeriksaan, tarif, atau sumber rujukan sebagai sumber
@@ -135,6 +136,9 @@ Laboratorium **tidak mengerjakannya** dan **tidak menulis** ke sana.
 | `LabSpecimen` | Diperbarui | Laboratorium | Berubah makna menjadi wadah fisik; enam kolom pindah keluar |
 | `LabExamination` | **Baru** | Laboratorium | Satuan yang ditagihkan dan kelak punya hasil. Membawa penanda cito dan duplo |
 | `LabTransitionHistory` | Diperbarui | Laboratorium | Tambah `LabExaminationId` |
+| `LabOrder` (2026-11-25, `S20-1`) | **Diperbarui** — usulan | Laboratorium | Tambah `PlannedDate` (`date`, wajib) — data dictionary bagian 24 |
+| `LabOrderReschedule` | **Baru** — usulan | Laboratorium | Riwayat jadwal ulang per pesanan — data dictionary bagian 24 |
+| `McuOrderComponent` | Sudah ada — **baca** | MCU | Hanya `LabOrderId` dibaca |
 | `LabValueBound` | **Baru** | Laboratorium | Batas nilai per pemeriksaan, jenis kelamin, dan kelompok umur |
 | `LabValueOption` | **Baru** | Laboratorium | Pilihan sah untuk hasil berbentuk pilihan |
 | `LabValueBoundChangeRequest` | **Baru** | Laboratorium | Pengajuan perubahan batas kritis |

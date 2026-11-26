@@ -10548,3 +10548,307 @@ Pemberian hak dilakukan admin di Manajemen Role → Akses Role. Tidak ada pengec
 | Hak `CandidateEvaluation : ViewAll` belum diberikan saat rilis | Recruiter tiba-tiba tidak melihat evaluasi yang dijadwalkan untuk orang lain | Langkah rilis wajib 38.7; uji `AT-HRD-PKB-18` dengan dua akun |
 | Pengguna Employee 360 tanpa `ViewSanctions` (mis. atasan langsung) kehilangan bagian disiplin yang selama ini terlihat | Perubahan perilaku yang disengaja (`HRD-DEC-246` butir 4, `HRD-ASM-94`) | Disebut di catatan rilis; frontend menampilkan "Data disiplin hanya untuk HR" |
 | Refactor `ContractRenewalBuckets` mengubah angka layar Kontrak | Angka kontrak berbeda dari sebelum rilis | Uji regresi `AT-HRD-PKB-05` membandingkan hasil sebelum dan sesudah pada data uji yang sama |
+
+## 39. Amandemen `A52-B` — Pembuka Task Tertahan Penjadwalan & Kehadiran (revision `70`, kontrak `v31`, 24 November 2026; approved 24 November 2026)
+
+> **Status:** `approved` — pengguna, 24 November 2026 ("setujui kontrak v30, lanjut plan"). Dasar: decision log bagian 58 (`HRD-DEC-248` s.d. `HRD-DEC-256`, approved 24 November 2026). Backend rujukan `4d2c0162` (branch `yoga`), frontend `004524f4c` + working tree (branch `YogaV2`). Bagian 35 (`A52`, kontrak `v26`) tidak diubah; bagian ini menambah dan menyesuaikan perilaku di atasnya.
+> **Gerbang:** kemampuan HR operasional tanpa konsep klinis atau billing baru (`DOMAIN_ARCHITECTURE_NOT_RUN`, sama dengan bagian 35). Tidak ada keputusan bisnis yang terbuka.
+
+### 39.1 Ringkasan perubahan
+
+| Kode | Keputusan | Perubahan backend | Tabel/migration |
+| --- | --- | --- | --- |
+| `B-T1` | `HRD-DEC-248` | Detail roster menempatkan shift pada baris petugas yang bertugas sekarang; butir shift membawa petugas saat ini dan penanda pengganti | Tidak ada |
+| `B-T2` | `HRD-DEC-249` | Pengecualian scan hilang milik hari calon Alpa tidak memblokir tutup; ditutup bersama konversi | Tidak ada |
+| `B-TA` | `HRD-DEC-251` | Endpoint baca daftar penempatan sementara lintas pegawai (membuka `BE-HRD-359`) | Tidak ada |
+| `B-ESS` | `HRD-DEC-252`, `HRD-DEC-256` | Endpoint self-service izin pulang cepat dan surat tugas dinas luar: daftar, detail, ajukan, batal | Tidak ada |
+| `B-SC` | `HRD-DEC-253` (`HRD-TF-099`) | Daftar, detail, dan Terapkan Perubahan Shift / Tukar Dinas sisi HR dibatasi cakupan unit | Tidak ada |
+| `B-DOC` | `HRD-DEC-254`, `HRD-DEC-255` | Daftar periksa izin per peran; kontrak `v10` hak akses superseded; batas 92 hari tetap | Tidak ada |
+
+Seluruh perubahan **tanpa migration**: kolom yang dibutuhkan sudah ada (`TrxShiftAssignment.OriginalEmployeeId`, `HrdAttendanceException.ResolvedByUserId/ResolvedAt/ResolutionNote`, kolom batal warisan `IdentityModel`).
+
+### 39.2 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai amandemen ini | Dibuat ulang? |
+| --- | --- | --- | --- |
+| Roster, penugasan roster, shift (`TrxRosterPeriod`, `TrxRosterAssignment`, `TrxShiftAssignment`) | Scheduling Management | Dibaca (`B-T1`, `B-SC`) | Tidak |
+| Rekap harian, pengecualian, periode (`HrdAttendanceDaily`, `HrdAttendanceException`, `HrdAttendancePeriod`) | Attendance Management | Ditulis oleh transaksi tutup (`B-T2`) | Tidak |
+| Izin pulang cepat, surat tugas dinas luar (`HrdEarlyLeavePermission`, `HrdOfficialDutyRequest`) | Attendance Management | Ditulis lewat service yang ada (`B-ESS`) | Tidak |
+| Penempatan (`WfpOrganizationAssignment`) | Workforce Core | Dibaca (`B-TA`) | Tidak |
+| Pengajuan ubah jadwal dan tukar dinas (`WfpScheduleChangeRequest`, `WfpShiftSwapRequest`) | Scheduling Management | Dibaca dan diterapkan (`B-SC`) | Tidak |
+| Profil pegawai, unit (`MstWorkforceProfile`, `MstOrganizationUnit`) | Workforce Core / Master | Dibaca | Tidak |
+| Cakupan unit (`HrdUnitScopeService`) | Workforce Core (`A52` bagian 35) | Dipakai ulang (`B-TA`, `B-SC`) | Tidak |
+| Identitas pegawai dari sesi (`HumanResourceContextService`) | Self Services | Dipakai ulang (`B-ESS`) | Tidak |
+
+### 39.3 Class diagram
+
+#### 39.3.1 Kisi roster (`B-T1`)
+
+```mermaid
+classDiagram
+  class RosterPeriodService {
+    +GetByIdAsync(id) RosterPeriodDetailResponse
+    -BuildAssignmentRows(period) List~RosterAssignmentResponse~
+  }
+  class RosterAssignmentResponse {
+    +Guid Id
+    +Guid WorkforceProfileId
+    +bool IsReplacementOnly
+    +List~ShiftAssignmentItemResponse~ ShiftAssignments
+  }
+  class ShiftAssignmentItemResponse {
+    +Guid WorkforceProfileId
+    +string WorkforceDisplayName
+    +bool IsReplacement
+    +Guid? OriginalWorkforceProfileId
+    +string? OriginalWorkforceDisplayName
+  }
+  RosterPeriodService ..> RosterAssignmentResponse
+  RosterAssignmentResponse "1" o-- "*" ShiftAssignmentItemResponse
+```
+
+#### 39.3.2 Tutup periode (`B-T2`)
+
+```mermaid
+classDiagram
+  class AttendancePeriodService {
+    +PreviewCloseAsync(id)
+    +CloseAsync(id, request, actor)
+    -CountBlockingExceptionsAsync(period, dailyIds, candidateIds)
+    -CloseConvertedExceptions(candidateIds, period, actor, now)
+  }
+  class HrdAttendanceException {
+    +string ExceptionType
+    +string ExceptionStatus
+    +bool IsPayrollBlocking
+    +Guid? ResolvedByUserId
+    +DateTime? ResolvedAt
+    +string? ResolutionNote
+  }
+  AttendancePeriodService ..> HrdAttendanceException : tutup bersama konversi
+```
+
+#### 39.3.3 Layanan mandiri izin dan dinas luar (`B-ESS`)
+
+```mermaid
+classDiagram
+  class EarlyLeavePermissionSelfServiceController
+  class OfficialDutySelfServiceController
+  class EarlyLeavePermissionService {
+    +GetPagedForSelfAsync(profileId, query)
+    +GetByIdForSelfAsync(profileId, id)
+    +CreateForSelfAsync(profileId, request, actor)
+    +CancelBySelfAsync(profileId, id, request, actor)
+  }
+  class OfficialDutyRequestService {
+    +GetPagedForSelfAsync(profileId, query)
+    +GetByIdForSelfAsync(profileId, id)
+    +CreateForSelfAsync(profileId, request, actor)
+    +CancelBySelfAsync(profileId, id, request, actor)
+  }
+  class HumanResourceContextService
+  EarlyLeavePermissionSelfServiceController ..> EarlyLeavePermissionService
+  EarlyLeavePermissionSelfServiceController ..> HumanResourceContextService
+  OfficialDutySelfServiceController ..> OfficialDutyRequestService
+  OfficialDutySelfServiceController ..> HumanResourceContextService
+```
+
+#### 39.3.4 Penempatan sementara dan cakupan Perubahan Shift / Tukar Dinas (`B-TA`, `B-SC`)
+
+```mermaid
+classDiagram
+  class TemporaryAssignmentController
+  class TemporaryAssignmentQueryService {
+    +GetFilterMetadataAsync()
+    +GetPagedAsync(query) TemporaryAssignmentPagedResponse
+  }
+  class HrdUnitScopeService {
+    +GetReadScopeAsync()
+    +GetManageScopeAsync()
+  }
+  class ScheduleChangeService {
+    +GetPagedAsync(query)
+    +ApplyAsync(id, actor)
+  }
+  class ShiftSwapService {
+    +GetPagedAsync(query)
+    +ApplyAsync(id, actor)
+  }
+  TemporaryAssignmentController ..> TemporaryAssignmentQueryService
+  TemporaryAssignmentQueryService ..> HrdUnitScopeService
+  ScheduleChangeService ..> HrdUnitScopeService
+  ShiftSwapService ..> HrdUnitScopeService
+```
+
+### 39.4 Penjelasan setiap class
+
+| Class | Status | Lokasi file | Tanggung jawab dan perubahan |
+| --- | --- | --- | --- |
+| `RosterPeriodService` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/RosterPeriodService.cs` | `GetByIdAsync` (detail roster) mengelompokkan shift berdasarkan `TrxShiftAssignment.WorkforceProfileId` (petugas sekarang), bukan berdasarkan `TrxRosterAssignment`. Petugas pengganti yang tidak punya baris penugasan pada roster itu mendapat baris tampilan (`IsReplacementOnly = true`, `Id = Guid.Empty`). Hanya baca; tanpa transaksi |
+| `RosterAssignmentResponse` (DTO Response) | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/DTOs/RosterSchedulingDtos.cs` | Field baru `IsReplacementOnly` (bool) |
+| `ShiftAssignmentItemResponse` (DTO Response) | `Diperbarui` | sama | Field baru `WorkforceProfileId`, `WorkforceProfileCode`, `WorkforceDisplayName` (petugas sekarang), `IsReplacement` (`OriginalEmployeeId` terisi dan berbeda dari petugas sekarang), `OriginalWorkforceProfileId`, `OriginalWorkforceDisplayName`. `ShiftName` diisi pada setiap jalur pemetaan |
+| `AttendancePeriodService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/AttendancePeriodService.cs` | (1) Hitungan `PAYROLL_BLOCKING_EXCEPTION` mengecualikan pengecualian bertipe `MissingCheckIn`, `MissingCheckOut`, atau `Absent` yang menempel pada hari calon konversi (`CloseConversionStatuses`). (2) `CloseAsync` menutup pengecualian itu dalam transaksi `Serializable` yang sama dengan konversi: `ExceptionStatus = Closed`, `ResolvedByUserId` = penutup, `ResolvedAt` = jam tutup, `ResolutionNote` = "Diselesaikan oleh penutupan periode {kode} (HRD-DEC-249): hari dikonversi menjadi Absent". (3) Respons tutup menambah `ClosedConversionExceptionCount`; pratinjau menambah `ConversionExceptionCount` |
+| `AttendancePeriodActionResponse`, `AttendancePeriodClosePreviewResponse` (DTO Response) | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/DTOs/AttendancePeriodDtos.cs` | Field baru `ClosedConversionExceptionCount` (int) dan `ConversionExceptionCount` (int) |
+| `EarlyLeavePermissionService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/EarlyLeavePermissionService.cs` | Metode baru: `GetPagedForSelfAsync`, `GetByIdForSelfAsync` (data milik profil sendiri; selain itu 404), `CreateForSelfAsync` (mencari rekap harian milik sendiri pada `AttendanceDate`, lalu memakai aturan `CreateAsync` yang ada), `CancelBySelfAsync` (`Submitted` → `Cancelled`; selain itu 409). Transaksi: satu `SaveChanges` per aksi |
+| `OfficialDutyRequestService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/OfficialDutyRequestService.cs` | Metode baru yang sama polanya dengan izin pulang cepat; `CreateForSelfAsync` memakai aturan `CreateAsync` yang ada dengan `WorkforceProfileId` dari sesi |
+| `EarlyLeavePermissionSelfServiceController` | `Baru` | `Areas/SelfServices/HumanResource/Controllers/EarlyLeavePermissionSelfServiceController.cs` | Lima endpoint ESS; `AccessController` modul `HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE`, resource `MyEarlyLeavePermission`; identitas lewat `HumanResourceContextService.GetByUserIdAsync`; log audit `AuditAsync` untuk ajukan dan batal |
+| `OfficialDutySelfServiceController` | `Baru` | `Areas/SelfServices/HumanResource/Controllers/OfficialDutySelfServiceController.cs` | Tujuh endpoint ESS (termasuk unggah dan unduh lampiran surat tugas lewat `HrAttachmentStorage` yang ada, kategori `attendance-official-duty`; unduh hanya untuk lampiran pengajuan milik sendiri); resource `MyOfficialDuty`; pola sama |
+| `EarlyLeavePermissionSelfServiceDtos`, `OfficialDutySelfServiceDtos` (Create/PagedQuery/Response/Cancel) | `Baru` | `Areas/SelfServices/HumanResource/DTOs/` | Query tanpa parameter pegawai; Create tanpa `WorkforceProfileId`/`AttendanceDailyId` (lihat kontrak `v31` bagian 37.4–37.5) |
+| `TemporaryAssignmentController` | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/TemporaryAssignmentController.cs` | `GET filters/metadata`, `GET /`; `AccessController` modul `HUMAN_RESOURCE_WORKFORCE_CORE`, resource `TemporaryAssignment`, `AccessPermission("TemporaryAssignment", "Read")` |
+| `TemporaryAssignmentQueryService` | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/Services/TemporaryAssignmentQueryService.cs` | Membaca `WfpOrganizationAssignment` berjenis `Temporary`, aktif, tidak dihapus; menyaring cakupan baca (`HrdUnitScopeService.GetReadScopeAsync`): unit tujuan **atau** unit penempatan utama pegawai berada dalam cakupan; filter unit, rentang tanggal (bersinggungan), status waktu, pencarian; paginasi di basis data. Hanya baca |
+| `TemporaryAssignmentDtos` (PagedQuery/Response/FilterMetadata) | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/DTOs/TemporaryAssignmentDtos.cs` | Lihat kontrak 37.6 |
+| `ScheduleChangeService`, `ShiftSwapService` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/` | Daftar dan detail sisi HR hanya memuat pengajuan yang unit shift-nya (`TrxShiftAssignment.OrganizationUnitId` dari shift yang dirujuk; tukar dinas: shift pemohon atau shift tujuan) berada dalam cakupan baca. `ApplyAsync` mensyaratkan unit itu dalam cakupan kelola; selain itu 403 "Anda tidak berwenang mengubah roster unit ini" |
+| `Program.cs` | `Diperbarui` | `Program.cs` | Satu registrasi `AddScoped<TemporaryAssignmentQueryService>()` |
+
+### 39.5 Arsitektur folder
+
+```text
+Areas/
+├── Corporate/HumanResource/
+│   ├── SchedulingManagement/
+│   │   ├── DTOs/RosterSchedulingDtos.cs                       (Diperbarui)
+│   │   └── Services/
+│   │       ├── RosterPeriodService.cs                         (Diperbarui)
+│   │       ├── ScheduleChangeService.cs                       (Diperbarui)
+│   │       └── ShiftSwapService.cs                            (Diperbarui)
+│   ├── AttendanceManagement/
+│   │   ├── DTOs/AttendancePeriodDtos.cs                       (Diperbarui)
+│   │   └── Services/
+│   │       ├── AttendancePeriodService.cs                     (Diperbarui)
+│   │       ├── EarlyLeavePermissionService.cs                 (Diperbarui)
+│   │       └── OfficialDutyRequestService.cs                  (Diperbarui)
+│   └── WorkforceCore/
+│       ├── Controllers/TemporaryAssignmentController.cs       (Baru)
+│       ├── DTOs/TemporaryAssignmentDtos.cs                    (Baru)
+│       └── Services/TemporaryAssignmentQueryService.cs        (Baru)
+└── SelfServices/HumanResource/
+    ├── Controllers/
+    │   ├── EarlyLeavePermissionSelfServiceController.cs       (Baru)
+    │   └── OfficialDutySelfServiceController.cs               (Baru)
+    └── DTOs/
+        ├── EarlyLeavePermissionSelfServiceDtos.cs             (Baru)
+        └── OfficialDutySelfServiceDtos.cs                     (Baru)
+Program.cs                                                     (Diperbarui: 1 registrasi DI)
+```
+
+Utang teknis yang **tidak** dirapikan di sini: `EarlyLeavePermissionController` dan `OfficialDutyRequestController` masih memakai `[Tags]` gaya lama ("HR Attendance - …") dan route ganda tanpa/ dengan `v1`; dibiarkan agar klien yang ada tidak putus.
+
+### 39.6 Status model dan dampak migration
+
+| Model | Status | Kolom yang dipakai | Dampak migration |
+| --- | --- | --- | --- |
+| `TrxShiftAssignment` | `Sudah ada` | `WorkforceProfileId`, `OriginalEmployeeId`, `RosterAssignmentId`, `OrganizationUnitId` | Tidak ada |
+| `HrdAttendanceException` | `Sudah ada` | `ExceptionType`, `ExceptionStatus`, `IsPayrollBlocking`, `ResolvedByUserId`, `ResolvedAt`, `ResolutionNote` | Tidak ada |
+| `HrdEarlyLeavePermission`, `HrdOfficialDutyRequest` | `Sudah ada` | `WorkforceProfileId`, `Status` (nilai `Cancelled` sudah dikenal filter daftar), `IsCancel`, `CancelBy`, `CancelDateTime` (warisan `IdentityModel`) | Tidak ada |
+| `WfpOrganizationAssignment` | `Sudah ada` | `AssignmentType = Temporary`, `OrganizationUnitId`, `EffectiveStartDate`, `EffectiveEndDate`, `IsActive`, `IsDelete` | Tidak ada; indeks yang ada (`WorkforceProfileId`) cukup untuk volume penempatan sementara |
+| `WfpScheduleChangeRequest`, `WfpShiftSwapRequest` | `Sudah ada` | `CurrentShiftAssignmentId`, `RequesterShiftAssignmentId`, `TargetShiftAssignmentId`, `RequestStatus` | Tidak ada |
+
+### 39.7 Rencana migration
+
+Tidak ada migration. Penerapan cukup dengan build dan deploy aplikasi; tidak ada pengisian data lama.
+
+### 39.8 Rencana data master awal
+
+Tidak ada master baru. Resource hak akses baru (`MyEarlyLeavePermission`, `MyOfficialDuty`, `TemporaryAssignment`) terdaftar otomatis saat startup lewat registri `AccessController`; pemberiannya ke jabatan mengikuti daftar periksa 40.14 yang diperbarui (`HRD-DEC-254`, PRD bagian 44.9).
+
+### 39.9 Aturan bisnis yang dirancang
+
+#### 39.9.1 Kisi roster (`HRD-DEC-248`)
+
+1. Baris kisi = petugas yang **sekarang** memegang shift. Shift yang `OriginalEmployeeId`-nya terisi dan berbeda dari `WorkforceProfileId` diberi `IsReplacement = true` beserta nama petugas awal.
+2. Petugas yang hanya muncul sebagai pengganti (tidak punya `TrxRosterAssignment` di roster itu) mendapat baris tampilan `IsReplacementOnly = true` dengan `Id = Guid.Empty`; baris ini tidak dapat dihapus atau divalidasi sebagai penugasan roster.
+3. Baris petugas awal tetap ada (dari `TrxRosterAssignment`) walaupun semua shift-nya sudah dialihkan.
+4. Shift `Cancelled` tidak tampil (perilaku yang ada).
+5. Contoh: Pagi 16 Feb Indra → Raka. Respons: baris Raka memuat shift 16 Feb (`IsReplacement = true`, `OriginalWorkforceDisplayName = "Indra Setiawan"`); baris Indra tanpa shift 16 Feb.
+
+#### 39.9.2 Tutup periode (`HRD-DEC-249`)
+
+1. **Calon konversi** = rekap pada periode dan cakupannya dengan status dalam `CloseConversionStatuses` (`IncompletePunch`, `Incomplete`, `NoScan`).
+2. **Pengecualian konversi** = pengecualian `Open`/`UnderReview` bertipe `MissingCheckIn`, `MissingCheckOut`, atau `Absent` yang menempel pada calon konversi. Pengecualian ini tidak dihitung pada isu `PAYROLL_BLOCKING_EXCEPTION`; jumlahnya ditampilkan sebagai `ConversionExceptionCount`.
+3. Pengecualian lain yang memblokir payroll (mis. `ScheduleConflict`, `ExcessiveWorkHours`, atau `MissingCheckOut` pada hari yang **bukan** calon konversi) tetap memblokir.
+4. Saat tutup, pengecualian konversi ditutup dalam transaksi yang sama (lihat 39.4). Bila transaksi gagal, tidak ada yang berubah.
+5. Buka kembali periode (`Reopen`) tidak membuka kembali pengecualian maupun membatalkan konversi (perilaku yang ada: hanya membuka kunci); koreksi dilakukan lewat koreksi presensi.
+
+#### 39.9.3 Layanan mandiri izin pulang cepat dan dinas luar (`HRD-DEC-252`, `HRD-DEC-256`)
+
+1. Identitas pegawai hanya dari sesi; parameter pegawai pada query/body diabaikan. Akun tanpa profil pegawai → 404 "Akun ini belum terhubung ke profil pegawai".
+2. Izin pulang cepat: `AttendanceDate` wajib; rekap harian milik sendiri pada tanggal itu wajib ada dan belum terkunci; selanjutnya aturan `CreateAsync` yang ada (jam izin di dalam shift, tidak ganda dengan izin aktif, alasan wajib).
+3. Dinas luar: aturan `CreateAsync` yang ada (kategori, nomor surat tugas, rentang jam, tujuan, maksud); lampiran surat tugas lewat endpoint unggah ESS.
+4. Batal: hanya pengajuan milik sendiri berstatus `Submitted`; alasan batal wajib (maks. 500); status `Cancelled`, `IsCancel = true`, `CancelBy` = pengguna, `CancelDateTime` = sekarang. Status lain → 409 "Pengajuan sudah diputuskan dan tidak dapat dibatalkan".
+5. Persetujuan dan penolakan tetap lewat endpoint HR yang ada (`HRD-DEC-256`); pengajuan ESS tampil di daftar HR yang sama (tanpa kolom sumber baru; pembuat tercatat di `CreateBy`).
+6. Pemohon tidak boleh menyetujui atau menolak pengajuannya sendiri (`VR-PK-36`, prinsip `VR-WF-02`): `ApproveAsync`/`RejectAsync` kedua service menolak dengan 403 bila profil pegawai pengguna = `WorkforceProfileId` pengajuan. Pemeriksaan ini belum ada di source (hanya status yang diperiksa) dan ditambahkan bersama endpoint ESS.
+
+#### 39.9.4 Daftar penempatan sementara (`HRD-DEC-251`)
+
+1. Sumber: `WfpOrganizationAssignment` dengan `AssignmentType = Temporary`, `IsActive`, tidak dihapus.
+2. Cakupan: baris tampil bila unit tujuan **atau** unit penempatan utama pegawai pada tanggal mulai berada dalam cakupan baca pengguna. Filter unit di luar cakupan → 403 "Anda tidak berwenang melihat data unit ini" (`VR-PK-27`).
+3. Status waktu (dihitung, WIB): `Upcoming` (mulai > hari ini), `Ongoing`, `Ended` (selesai < hari ini).
+4. Hanya baca; pencatatan dan perubahan tetap di Profil Pegawai 360 (`WfpOrganizationAssignmentController`).
+
+#### 39.9.5 Cakupan Perubahan Shift dan Tukar Dinas (`HRD-DEC-253`)
+
+1. Unit pengajuan ubah jadwal = unit shift `CurrentShiftAssignmentId`. Tukar dinas: unit shift pemohon atau shift tujuan; tampil bila salah satu dalam cakupan baca.
+2. Terapkan hanya bila unit (atau kedua unit pada tukar dinas lintas unit) dalam cakupan kelola.
+3. Pemegang `RosterPeriod : ManageAllUnits` tetap melihat dan menerapkan semua unit (perilaku cakupan bagian 35).
+
+### 39.10 Transaksi, konkurensi, idempotensi, dan kegagalan
+
+| Aksi | Transaksi | Konkurensi / idempotensi | Kegagalan |
+| --- | --- | --- | --- |
+| Tutup periode | Satu transaksi `Serializable` (konversi + penutupan pengecualian + status periode) | Tutup kedua kali → 409 (status bukan Open/Reopened) | Seluruhnya batal |
+| ESS ajukan | Satu `SaveChanges` | Izin ganda pada hari yang sama ditolak aturan yang ada | Tidak ada yang tersimpan |
+| ESS batal | Satu `SaveChanges` dengan pemeriksaan status | Batal kedua kali → 409 | Status tidak berubah |
+| Terapkan perubahan / tukar dinas | Perilaku yang ada | Perilaku yang ada | 403 cakupan sebelum perubahan apa pun |
+
+### 39.11 Hak akses, privasi, dan pencatatan
+
+| String hak akses | Endpoint |
+| --- | --- |
+| `[AccessPermission("MyEarlyLeavePermission", "Read")]` | ESS izin: metadata, daftar, detail |
+| `[AccessPermission("MyEarlyLeavePermission", "Create")]` | ESS izin: ajukan |
+| `[AccessPermission("MyEarlyLeavePermission", "Cancel")]` | ESS izin: batal |
+| `[AccessPermission("MyOfficialDuty", "Read")]` | ESS dinas luar: metadata, daftar, detail, unduh lampiran milik sendiri |
+| `[AccessPermission("MyOfficialDuty", "Create")]` | ESS dinas luar: ajukan, unggah lampiran |
+| `[AccessPermission("MyOfficialDuty", "Cancel")]` | ESS dinas luar: batal |
+| `[AccessPermission("TemporaryAssignment", "Read")]` | Daftar penempatan sementara |
+| Tidak berubah | Detail roster, tutup periode, Perubahan Shift / Tukar Dinas (cakupan ditambahkan di service) |
+
+Log audit (`LoggerService.AuditAsync`, isi di teks pesan): `EarlyLeavePermission.SelfCreate`, `EarlyLeavePermission.SelfCancel`, `OfficialDuty.SelfCreate`, `OfficialDuty.SelfCancel`, dan `AttendancePeriod.Close` diperluas dengan jumlah pengecualian konversi yang ditutup. Alasan izin/batal tidak memuat data pasien; daftar penempatan sementara tidak memuat data gaji.
+
+### 39.12 Strategi test
+
+| Uji | Bukti |
+| --- | --- |
+| `AT-HRD-PK-47` kisi roster pengganti | Harness: shift dialihkan muncul di baris pengganti, baris pengganti-saja, Ganti Petugas berikutnya diterima |
+| `AT-HRD-PK-48` tutup periode dengan Belum Lengkap | Harness + devYoga: tutup berhasil, Absent, pengecualian `Closed` dengan catatan; pengecualian lain tetap memblokir; kontrol negatif |
+| `AT-HRD-PK-49`, `-50` ESS izin dan dinas luar | Harness: ajukan, ID pegawai lain diabaikan, batal hanya `Submitted`, tampil di daftar HR |
+| `AT-HRD-PK-51` daftar penempatan sementara | Harness: cakupan tujuan/asal, 403 unit lain, status waktu |
+| `AT-HRD-PK-52` cakupan Perubahan Shift / Tukar Dinas | Harness: daftar per cakupan, Terapkan unit lain 403 |
+| Registri hak akses | `A52PermissionRegistryTests` diperluas tiga resource baru |
+
+### 39.13 Deployment dan langkah mundur
+
+Tanpa migration; deploy biasa. Langkah mundur: kembalikan build sebelumnya. Data yang ditulis (pengajuan ESS, pengecualian yang ditutup saat tutup periode) tetap sah dibaca versi lama.
+
+### 39.14 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+| --- | --- |
+| Integrasi izin pulang cepat dan dinas luar ke `WorkflowService` | `HRD-DEC-256`; dapat menjadi amandemen tersendiri |
+| Endpoint tulis penempatan sementara di daftar baru | Pencatatan sudah ada per pegawai; `HRD-DEC-251` hanya meminta daftar baca |
+| Memindahkan `TrxShiftAssignment` ke `TrxRosterAssignment` pengganti saat Ganti Petugas | Mengubah data historis dan jejak revisi; cukup pengelompokan saat dibaca (`HRD-DEC-248`) |
+| Status pengecualian baru "ResolvedByClose" | Nilai `Closed` + `ResolutionNote` sudah cukup dan dikenal laporan |
+| Layar baru untuk 14 submenu yang berbagi layar | `HRD-DEC-250` |
+
+### 39.15 Traceability
+
+| Keputusan | Bagian |
+| --- | --- |
+| `HRD-DEC-248` | 39.4 `RosterPeriodService`, 39.9.1 |
+| `HRD-DEC-249` | 39.4 `AttendancePeriodService`, 39.9.2, 39.10 |
+| `HRD-DEC-250` | Frontend bagian 36 (tanpa perubahan backend) |
+| `HRD-DEC-251` | 39.4 `TemporaryAssignment*`, 39.9.4 |
+| `HRD-DEC-252`, `HRD-DEC-256` | 39.4 ESS, 39.9.3 |
+| `HRD-DEC-253` | 39.4 `ScheduleChangeService`/`ShiftSwapService`, 39.9.5 |
+| `HRD-DEC-254` | 39.8; PRD 44.9 |
+| `HRD-DEC-255` | Kontrak bagian 37.1 |

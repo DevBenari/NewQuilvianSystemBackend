@@ -101871,6 +101871,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int>("OrderStatus")
                         .HasColumnType("integer");
 
+                    b.Property<DateOnly>("PlannedDate")
+                        .HasColumnType("date");
+
                     b.Property<Guid>("ProcedureId")
                         .HasColumnType("uuid");
 
@@ -101910,6 +101913,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("OrderStatus");
 
+                    b.HasIndex("PlannedDate");
+
                     b.HasIndex("ProcedureId");
 
                     b.HasIndex("Discipline", "LabReportNumber")
@@ -101922,6 +101927,69 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("InstructingDoctorId", "InstructionVerificationStatus");
 
                     b.ToTable("LabOrder", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrderReschedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("NewPlannedDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("PreviousPlannedDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LabOrderId", "OccurredAt");
+
+                    b.ToTable("LabOrderReschedule", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrderedProcedure", b =>
@@ -155816,6 +155884,17 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Procedure");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrderReschedule", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", "LabOrder")
+                        .WithMany("Reschedules")
+                        .HasForeignKey("LabOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LabOrder");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrderedProcedure", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabExamination", "FulfilledExamination")
@@ -163264,6 +163343,8 @@ namespace QuilvianSystemBackend.Migrations
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", b =>
                 {
                     b.Navigation("Examinations");
+
+                    b.Navigation("Reschedules");
 
                     b.Navigation("Specimens");
                 });
