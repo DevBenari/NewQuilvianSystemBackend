@@ -24,7 +24,7 @@ public sealed class SavePayrollOpeningTaxBalanceRequest
     public decimal PensionDeduction { get; set; }
     public decimal TaxWithheld { get; set; }
 
-    /// <summary>Dokumen asal angka. Boleh kosong pada draf, wajib sebelum diajukan.</summary>
+    /// <summary>Dokumen asal angka (data lama). Opsional; BUKAN syarat simpan, ajukan, maupun setujui. Tidak dikirim = nilai lama dipertahankan.</summary>
     [MaxLength(500)] public string? SourceReference { get; set; }
 }
 
@@ -142,4 +142,114 @@ public sealed class PayrollOpeningTaxBalanceOptionResponse
     public string Value { get; set; } = string.Empty;
     public string Label { get; set; } = string.Empty;
     public string? Note { get; set; }
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------
+// PAY-BE-FIX-036: impor massal saldo awal PPh. Klien menguraikan berkas CSV menjadi baris teks MENTAH; seluruh penguraian angka/bulan dan
+// validasi bisnis dilakukan Backend. Nilai kosong pada kolom wajib tidak pernah dianggap nol.
+// ----------------------------------------------------------------------------------------------------------------------------------
+
+/// <summary>Batas operasional impor (keputusan implementasi; dapat disesuaikan pemilik). Satu batch = satu transaksi semua-atau-tidak-sama-sekali.</summary>
+public static class OpeningTaxBalanceImportLimits
+{
+    public const int MaxRows = 1000;
+    public const int MaxFileBytes = 2 * 1024 * 1024;
+}
+
+public sealed class PayrollOpeningTaxBalanceImportRowRequest
+{
+    /// <summary>Nomor baris pada berkas asli (1 = baris header) agar galat menunjuk baris yang benar.</summary>
+    public int RowNumber { get; set; }
+
+    /// <summary>NIP/kode pegawai atau nomor/kode dokter (atau ProfileCode). Dicocokkan ke WorkforceProfileId; tidak pernah dengan nama.</summary>
+    [MaxLength(100)] public string? WorkforceCode { get; set; }
+
+    /// <summary>Pegawai | Dokter | kosong. Dipakai hanya untuk membedakan kode yang ambigu.</summary>
+    [MaxLength(30)] public string? WorkforceType { get; set; }
+
+    [MaxLength(10)] public string? TaxYear { get; set; }
+    [MaxLength(40)] public string? EmployerSource { get; set; }
+    [MaxLength(100)] public string? CoveredMonths { get; set; }
+    [MaxLength(40)] public string? TaxableGross { get; set; }
+    [MaxLength(40)] public string? EmployerPremium { get; set; }
+    [MaxLength(40)] public string? PensionDeduction { get; set; }
+    [MaxLength(40)] public string? TaxWithheld { get; set; }
+}
+
+public sealed class PayrollOpeningTaxBalanceImportRequest
+{
+    public List<PayrollOpeningTaxBalanceImportRowRequest>? Rows { get; set; }
+
+    /// <summary>Nama berkas untuk jejak audit (opsional).</summary>
+    [MaxLength(200)] public string? FileName { get; set; }
+}
+
+public sealed class PayrollOpeningTaxBalanceImportIssue
+{
+    /// <summary>Kode stabil (mis. WORKFORCE_NOT_FOUND, AMBIGUOUS_WORKFORCE, DUPLICATE_IN_FILE, EXISTING_BALANCE, RUN_FINAL_OVERLAP).</summary>
+    public string Code { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+}
+
+public sealed class PayrollOpeningTaxBalanceImportRowResult
+{
+    public int RowNumber { get; set; }
+    public string WorkforceCode { get; set; } = string.Empty;
+    public Guid? WorkforceProfileId { get; set; }
+    public string WorkforceName { get; set; } = string.Empty;
+    public string WorkforceType { get; set; } = string.Empty;
+    public string WorkforceTypeLabel { get; set; } = string.Empty;
+    public int? TaxYear { get; set; }
+    public string EmployerSource { get; set; } = string.Empty;
+    public List<int> CoveredMonths { get; set; } = new();
+
+    /// <summary>Nominal hasil penguraian (null = kosong atau tidak valid, bukan nol). Hanya untuk pemanggil ber-ViewAmount.</summary>
+    public decimal? TaxableGross { get; set; }
+    public decimal? EmployerPremium { get; set; }
+    public decimal? PensionDeduction { get; set; }
+    public decimal? TaxWithheld { get; set; }
+    public bool Valid { get; set; }
+    public List<PayrollOpeningTaxBalanceImportIssue> Errors { get; set; } = new();
+
+    /// <summary>Id draf yang dibuat; hanya terisi pada commit yang berhasil.</summary>
+    public Guid? CreatedId { get; set; }
+}
+
+public sealed class PayrollOpeningTaxBalanceImportResult
+{
+    /// <summary>True hanya bila commit berhasil menyimpan seluruh baris sebagai DRAFT.</summary>
+    public bool Committed { get; set; }
+    public int TotalRows { get; set; }
+    public int ValidRows { get; set; }
+    public int InvalidRows { get; set; }
+    public int DuplicateRows { get; set; }
+    public int ConflictRows { get; set; }
+
+    /// <summary>Jumlah baris siap diimpor: sama dengan ValidRows bila tidak ada baris bermasalah, selain itu 0 (semua atau tidak sama sekali).</summary>
+    public int ReadyRows { get; set; }
+    public int CreatedCount { get; set; }
+
+    /// <summary>Identitas batch (hanya pada commit berhasil; tercatat pada audit).</summary>
+    public Guid? BatchId { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public List<PayrollOpeningTaxBalanceImportRowResult> Rows { get; set; } = new();
+}
+
+public sealed class PayrollOpeningTaxBalanceImportTemplateResponse
+{
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+
+    /// <summary>Isi CSV (UTF-8). Baris berawalan # adalah petunjuk.</summary>
+    public string Content { get; set; } = string.Empty;
+    public List<string> Columns { get; set; } = new();
+    public List<string> SourceCodes { get; set; } = new();
+    public int MaxRows { get; set; }
+    public int MaxFileBytes { get; set; }
+}
+
+/// <summary>Commit ditolak seluruhnya. Dibawa ke controller agar hasil per baris ikut di <c>Errors</c> respons 422.</summary>
+public sealed class PayrollOpeningTaxBalanceImportException(string message, PayrollOpeningTaxBalanceImportResult result) : Exception(message)
+{
+    public PayrollOpeningTaxBalanceImportResult Result { get; } = result;
 }

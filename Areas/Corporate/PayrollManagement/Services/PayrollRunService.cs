@@ -348,7 +348,10 @@ public sealed class PayrollRunService
 
         detail.CanApproveFinal = string.Equals(run.RunStatus, PayrollRunStatuses.Submitted, StringComparison.OrdinalIgnoreCase)
             && detail.DecisionBlockReasons.Count == 0 && !detail.IsTaxProvisional;
-        ApplyApprovalNextStep(run, detail, validation, taxReview);
+        var taxHistoryResolved = detail.IsTaxProvisional
+            && string.Equals(run.RunStatus, PayrollRunStatuses.Submitted, StringComparison.OrdinalIgnoreCase)
+            && await IsTaxHistoryResolvedAsync(employees, cancellationToken);
+        ApplyApprovalNextStep(run, detail, validation, taxReview, taxHistoryResolved);
         detail.AvailableActions = BuildAvailableActions(run, detail);
         return detail;
     }
@@ -669,14 +672,55 @@ public sealed class PayrollRunService
         "Ajukan kembali secara normal, lalu sahkan. Pengaju dan pengesah boleh pengguna yang sama selama keduanya memegang izin Ajukan dan Sahkan.",
     };
 
+    private static readonly string[] RecalculateAfterHistorySteps =
+    {
+        "Saldo Awal PPh untuk bulan histori yang kurang sudah disetujui; data PPh tidak perlu dilengkapi lagi.",
+        "Kembalikan Payroll Run ke tahap hitung (riwayat pengajuan dan persetujuan administratif tetap tersimpan). Hasil run ini dibekukan saat dihitung, jadi tidak berubah sendiri.",
+        "Hitung ulang Payroll Run agar PPh dihitung dari histori yang sah; estimasi tidak pernah menjadi PPh resmi.",
+        "Ajukan kembali secara normal, lalu sahkan. Pengaju dan pengesah boleh pengguna yang sama selama keduanya memegang izin Ajukan dan Sahkan.",
+    };
+
+    /// <summary>
+    /// PAY-BE-FIX-038: apakah histori PPh yang kurang pada snapshot penerima terdampak sudah tercakup Saldo Awal PPh APPROVED sumber
+    /// SAME_EMPLOYER_PRE_CUTOVER (sumber yang sama yang dipakai mesin hitung). Konservatif: tanpa data bulan yang kurang, tanpa tabel saldo
+    /// awal, atau ada satu penerima yang belum tercakup = false. Murni baca.
+    /// </summary>
+    private async Task<bool> IsTaxHistoryResolvedAsync(IReadOnlyCollection<PrlPayrollRunEmployee> employees, CancellationToken cancellationToken)
+    {
+        var blocked = employees
+            .Select(e => (e.WorkforceProfileId, Snapshot: ReadSnapshot<PayrollTaxSnapshot>(e.TaxSnapshotJson)))
+            .Where(x => IsTaxHistoryBlocked(x.Snapshot))
+            .ToList();
+        if (blocked.Count == 0) return false;
+        if (!await PayrollOpeningTaxBalanceStorage.ExistsAsync(_dbContext, cancellationToken)) return false;
+
+        var ids = blocked.Select(x => x.WorkforceProfileId).Distinct().ToList();
+        var balances = await _dbContext.PrlOpeningTaxBalances.AsNoTracking()
+            .Where(x => !x.IsDelete && x.Status == OpeningTaxBalanceStatuses.Approved
+                && x.EmployerSource == OpeningTaxBalanceEmployerSources.SameEmployerPreCutover && ids.Contains(x.WorkforceProfileId))
+            .ToListAsync(cancellationToken);
+
+        foreach (var (profileId, snapshot) in blocked)
+        {
+            var missing = MissingMonthsOf(snapshot!);
+            if (missing.Count == 0 || snapshot!.TaxYear is not { } year) return false;
+            var covered = balances.Where(x => x.WorkforceProfileId == profileId && x.TaxYear == year)
+                .SelectMany(x => x.CoveredMonths).ToHashSet();
+            if (!missing.All(covered.Contains)) return false;
+        }
+
+        return true;
+    }
+
     /// <summary>
     /// PAY-BE-FIX-033: langkah berikutnya menuju pengesahan FINAL untuk run Submitted. Murni informasi (tanpa mengubah data): endpoint
     /// approve tetap memeriksa EnsureTaxFinalAsync, EnsureReadyToDecide, dan sumber kompensasi. Run yang sudah disahkan bersyarat tidak
     /// pernah ditawarkan pengesahan bersyarat kedua; ia mendapat aksi "ContinueApproval" (panduan penyelesaian), bukan Approve.
     /// </summary>
     private static void ApplyApprovalNextStep(
-        PrlPayrollRun run, PayrollRunDetailResponse detail, ValidationSummary validation, TaxReviewEvaluation taxReview)
+        PrlPayrollRun run, PayrollRunDetailResponse detail, ValidationSummary validation, TaxReviewEvaluation taxReview, bool taxHistoryResolved)
     {
+        detail.TaxHistoryResolved = false;
         detail.CanContinueApproval = false;
         detail.ApprovalNextStep = PayrollRunApprovalNextSteps.None;
         detail.TaxResolutionRequired = false;
@@ -715,6 +759,15 @@ public sealed class PayrollRunService
                 detail.ApprovalNextStep = detail.CanApproveConditionally
                     ? PayrollRunApprovalNextSteps.ApproveConditionally
                     : realBlockers.Count > 0 ? PayrollRunApprovalNextSteps.ResolveOtherBlockers : PayrollRunApprovalNextSteps.ResolveTaxData;
+            }
+
+            if (taxHistoryResolved)
+            {
+                // PAY-BE-FIX-038: histori sudah dilengkapi; jangan menyuruh melengkapi lagi. Hanya hitung ulang yang tersisa.
+                detail.TaxHistoryResolved = true;
+                if (realBlockers.Count == 0) detail.ApprovalNextStep = PayrollRunApprovalNextSteps.RecalculateAfterTaxHistory;
+                detail.ContinueApprovalSteps = RecalculateAfterHistorySteps.ToList();
+                return;
             }
 
             detail.ContinueApprovalSteps = TaxResolutionSteps.ToList();

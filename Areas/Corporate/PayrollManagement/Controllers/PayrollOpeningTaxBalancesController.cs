@@ -14,7 +14,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers;
 /// Quilvian, untuk rekonsiliasi masa pajak terakhir. Arketipe: master dengan lifecycle persetujuan, sehingga perpindahan status adalah
 /// aksi bernama (<c>submit</c>, <c>approve</c>, <c>reject</c>, <c>revise</c>), bukan <c>PATCH status</c> generik, dan tidak ada
 /// <c>GET /options</c> karena saldo awal bukan isi dropdown; satu-satunya opsi adalah <c>GET workforce/options</c> (pegawai dan dokter pemilik saldo). Izin dipisah per kemampuan di Akses Role: Read, Create, Update, Submit,
-/// Approve, Reject, Delete, dan ViewAmount (nominal sensitif). Penyetuju selalu berbeda dari pengaju dan wajib punya ViewAmount.
+/// Approve, Reject, Delete, dan ViewAmount (nominal sensitif). Pengaju boleh sekaligus penyetuju bila memegang izin Approve; penyetuju wajib punya ViewAmount.
 /// Tidak pernah mengubah payroll run yang sudah final.
 /// </summary>
 [ApiController]
@@ -78,6 +78,54 @@ public sealed class PayrollOpeningTaxBalancesController : ControllerBase
     [AccessPermission("PayrollOpeningTaxBalance", "Create")]
     public Task<IActionResult> GetWorkforceOptions([FromQuery] PayrollOpeningTaxBalanceWorkforceQuery query, CancellationToken cancellationToken) =>
         PayrollControllerSupport.RunAsync(() => _service.GetWorkforceOptionsAsync(query, cancellationToken), "Pilihan pegawai dan dokter berhasil dimuat.");
+
+    /// <summary>PAY-BE-FIX-036: template impor CSV (kolom, petunjuk, kode sumber, batas baris/ukuran). Tanpa data pegawai atau nominal.</summary>
+    [HttpGet("import/template")]
+    [AccessAction("Create", "Create Payroll Opening Tax Balance", Description = "Menyusun draf saldo awal PPh historis", AccessType = AccessTypes.Create, SortOrder = 3)]
+    [AccessPermission("PayrollOpeningTaxBalance", "Create")]
+    public Task<IActionResult> GetImportTemplate() =>
+        PayrollControllerSupport.RunAsync(() => Task.FromResult(_service.GetImportTemplate()), "Template impor saldo awal PPh berhasil dimuat.");
+
+    /// <summary>
+    /// PAY-BE-FIX-036: validasi seluruh baris (baca-saja, tidak menulis). Selalu 200 dengan hasil per baris; baris bermasalah ditandai.
+    /// Membutuhkan Create dan ViewAmount (nominal tampil pada hasil).
+    /// </summary>
+    [HttpPost("import/validate")]
+    [AccessAction("Create", "Create Payroll Opening Tax Balance", Description = "Menyusun draf saldo awal PPh historis", AccessType = AccessTypes.Create, SortOrder = 3)]
+    [AccessPermission("PayrollOpeningTaxBalance", "Create")]
+    public async Task<IActionResult> ValidateImport([FromBody] PayrollOpeningTaxBalanceImportRequest request, CancellationToken cancellationToken)
+    {
+        var caller = await ResolveCallerAsync();
+        return await PayrollControllerSupport.RunAsync(() => _service.ValidateImportAsync(request, caller, cancellationToken), "Validasi impor saldo awal PPh selesai.");
+    }
+
+    /// <summary>
+    /// PAY-BE-FIX-036: simpan semua baris sebagai DRAFT atau tidak sama sekali. Validasi diulang di dalam transaksi; bila ada baris bermasalah
+    /// respons 422 membawa hasil per baris di <c>errors</c> dan tidak ada yang tersimpan. Tidak mengajukan, menyetujui, atau menimpa apa pun.
+    /// </summary>
+    [HttpPost("import/commit")]
+    [AccessAction("Create", "Create Payroll Opening Tax Balance", Description = "Menyusun draf saldo awal PPh historis", AccessType = AccessTypes.Create, SortOrder = 3)]
+    [AccessPermission("PayrollOpeningTaxBalance", "Create")]
+    public async Task<IActionResult> CommitImport([FromBody] PayrollOpeningTaxBalanceImportRequest request, CancellationToken cancellationToken)
+    {
+        var caller = await ResolveCallerAsync();
+        try
+        {
+            var result = await _service.CommitImportAsync(request, PayrollControllerSupport.CurrentUserId(User), caller, cancellationToken);
+            return Ok(ApiResponse<PayrollOpeningTaxBalanceImportResult>.Ok(result, result.Message));
+        }
+        catch (PayrollOpeningTaxBalanceImportException ex)
+        {
+            return new ObjectResult(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, ex.Message, ex.Result))
+            {
+                StatusCode = StatusCodes.Status422UnprocessableEntity
+            };
+        }
+        catch (Exception ex) when (PayrollControllerSupport.IsHandled(ex))
+        {
+            return PayrollControllerSupport.Failure(ex);
+        }
+    }
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Payroll Opening Tax Balance", Description = "Melihat saldo awal PPh historis", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -143,7 +191,7 @@ public sealed class PayrollOpeningTaxBalancesController : ControllerBase
     }
 
     [HttpPost("{id:guid}/approve")]
-    [AccessAction("Approve", "Approve Payroll Opening Tax Balance", Description = "Menyetujui saldo awal PPh; penyetuju harus berbeda dari pengaju dan punya izin melihat nominal", AccessType = AccessTypes.Update, SortOrder = 6)]
+    [AccessAction("Approve", "Approve Payroll Opening Tax Balance", Description = "Menyetujui saldo awal PPh; penyetuju harus punya izin melihat nominal (pengaju boleh menyetujui sendiri bila memegang izin ini)", AccessType = AccessTypes.Update, SortOrder = 6)]
     [AccessPermission("PayrollOpeningTaxBalance", "Approve")]
     public async Task<IActionResult> Approve(Guid id, [FromBody] PayrollOpeningTaxBalanceDecisionRequest? request, CancellationToken cancellationToken)
     {

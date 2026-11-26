@@ -74,6 +74,12 @@ public static class PayrollRunApprovalNextSteps
 
     /// <summary>Ada penahan selain PPh sementara (penerima bermasalah, sumber berubah, dst.).</summary>
     public const string ResolveOtherBlockers = "RESOLVE_OTHER_BLOCKERS";
+
+    /// <summary>
+    /// PAY-BE-FIX-038: PPh masih sementara pada run ini, tetapi histori yang kurang SUDAH dilengkapi Saldo Awal PPh yang disetujui. Yang tersisa
+    /// hanya hitung ulang: kembalikan run, hitung ulang, ajukan kembali, lalu sahkan (hasil lama beku, tidak berubah sendiri).
+    /// </summary>
+    public const string RecalculateAfterTaxHistory = "RECALCULATE_AFTER_TAX_HISTORY";
 }
 
 /// <summary>Kode alasan pengajuan review-only belum dapat dilakukan (PAY-BE-FIX-031). Keputusan klien memakai kode, bukan teks pesan.</summary>
@@ -854,6 +860,12 @@ public sealed class PayrollRunDetailResponse : PayrollRunListItemResponse
     /// dianggap PPh resmi. Aditif.
     /// </summary>
     public bool TaxResolutionRequired { get; set; }
+
+    /// <summary>
+    /// PAY-BE-FIX-038: true bila SEMUA bulan histori yang kurang pada snapshot run (penerima terdampak) kini tercakup Saldo Awal PPh berstatus
+    /// APPROVED sumber SAME_EMPLOYER_PRE_CUTOVER. Murni baca; tidak mengubah PPh. PPh run tetap sementara sampai dihitung ulang. Aditif.
+    /// </summary>
+    public bool TaxHistoryResolved { get; set; }
 
     /// <summary>
     /// PAY-BE-FIX-033/034: penahan NYATA yang masih ada (teks siap tampil). Untuk run dengan PPh sementara, histori PPh yang belum lengkap TIDAK
