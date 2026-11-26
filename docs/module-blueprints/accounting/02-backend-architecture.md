@@ -1895,7 +1895,7 @@ langkah operasional yang tercatat:
 | Hal | Alasan |
 |---|---|
 | Tabel saldo atau snapshot laporan | Sumber kebenaran kedua yang dapat menyimpang (bagian 25.1) |
-| Kolom klasifikasi laporan di `AccChartOfAccount` | Diturunkan dari `AccountType` (PRD ACC-FIN-001) |
+| Kolom klasifikasi laporan di `AccChartOfAccount` | Diturunkan dari `AccountType` (PRD ACC-FIN-001). **Dilampaui 25 November 2026:** `ACC-DEC-167` menambah klasifikasi Lancar/Tidak Lancar dan sub-klasifikasi aset lancar sebagai kolom — lihat bagian 26. Pengelompokan laporan menurut jenis akun tetap berlaku |
 | Service laporan tersendiri | Menuntut registrasi `Program.cs` dan menyalin `BarisDisahkan` (bagian 25.3) |
 | Controller laporan tersendiri (`FinancialStatementController`) | Menjadi modul akses kedua di Akses Role (bagian 25.3); sempat ditulis di draft awal bagian ini lalu dikoreksi |
 | Hak `FinancialReport : Read` | `ACC-DEC-150` |
@@ -1910,3 +1910,439 @@ Skenario `F1`..`F18` pada `00-interview-decisions.md` bagian *Finishing — buku
 neraca*, lewat Swagger dan layar terhadap database dev, tanpa SQL tulis. Automated test bukan
 acceptance (`ACC-DEC-081`) dan tidak ditulis (kesepakatan kerja Rizki). Bukti kesetaraan angka: laba
 rugi YTD periode terakhir tahun buku dicocokkan dengan neraca saldo periode yang sama (`F6`).
+
+## 26. Amendment 25 November 2026 — Master COA: kode otomatis, jenis warisan, klasifikasi laporan (ACC-FIN-001) — **approved** Rizki (`GATE-DESAIN-1125`)
+
+Dasar: `ACC-DEC-162`..`170` (approved Rizki 25 November 2026), turunan desain `ACC-DEC-172` dan
+`173` (disahkan bersama `GATE-DESAIN-1125`), dan urutan `ACC-DEC-171` butir 2. Source acuan:
+`rizkiG` `0f67c5c2`, `RizkiV2` `a2ddb52d2` — sama dengan SHA pada decision log pass 25 November,
+sehingga fakta source di sana masih berlaku. Arsitektur domain rumah sakit: `NOT_RUN` — kemampuan ini
+master data internal Accounting, tidak melintasi bounded context, tidak menyentuh billing maupun
+keselamatan klinis.
+
+**Ringkasnya:** satu tabel **Diperbarui** (`AccChartOfAccount`, dua kolom baru yang boleh kosong),
+**satu migration** yang diizinkan Rizki 25 November 2026 (`OQ-167-1` tertutup), satu endpoint baru (pratinjau kode), enam
+endpoint lama yang bentuknya diperluas tanpa dipatahkan (daftar, rincian, pohon, tambah, ubah, neraca), nol hak akses baru, nol controller baru, nol baris
+`Program.cs`. Tidak ada pengisian data otomatis (`ACC-DEC-168`).
+
+**Contoh ujung ke ujung.** Petugas membuka Tambah Akun, memilih induk 1-1000 Kas dan Setara Kas. Layar
+langsung menampilkan *Kode otomatis: 1-1005*, jenis Aset terkunci (warisan induk), saldo normal Debit
+(usulan dari induk, boleh diganti), dan *Klasifikasi: ikut 1-1000 — Lancar · Kas dan Setara Kas*.
+Petugas mengisi nama "Bank Mandiri" lalu menyimpan. Bila pada detik yang sama petugas lain juga
+menyimpan akun di bawah 1-1000, salah satunya mendapat 1-1005 dan yang lain 1-1006 — tidak ada yang
+ditolak karena kode kembar.
+
+### 26.1 Kepemilikan data
+
+| Kelompok data | Pemilik | Dipakai amendment ini | Dibuat ulang? |
+|---|---|---|---|
+| Bagan akun — kode, induk, tingkat, jenis | Accounting — `MasterData/ChartOfAccount` | Ditulis (kode otomatis, jenis warisan) | Tidak |
+| Klasifikasi laporan akun | Accounting — `MasterData/ChartOfAccount` | **Baru**, dua kolom di tabel yang sama (`ACC-DEC-167` butir 5) | Tidak — tidak ada master COA kedua maupun tabel klasifikasi |
+| Grup COA | Accounting — akun induk di `AccChartOfAccount` (`ACC-DEC-165`) | Hanya didefinisikan; penguncian grup milik ACC-FIN-002 | Tidak — tidak ada tabel grup |
+| Baris jurnal `Posted` | Accounting — `JournalManagement` | Dibaca: menentukan akun "bertransaksi" (aturan lama) dan nilai neraca untuk peringatan klasifikasi | Tidak |
+| Badan hukum (`MstLegalEntity`) | HR Master Data — Organization | Dibaca lewat penjaga badan hukum yang ada | Tidak |
+| Hasil klasifikasi efektif | — | **Tidak disimpan.** Dihitung dari pohon akun setiap permintaan | — |
+
+**Contoh mengapa klasifikasi efektif tidak disimpan:** bila 1-1000 diubah dari Lancar menjadi
+Tidak Lancar dan nilai efektif setiap turunannya disimpan, seluruh turunannya harus ikut ditulis
+ulang; satu yang terlewat membuat Current Ratio salah tanpa ada yang tahu. Menghitung dari pohon
+menjamin satu perubahan di induk langsung berlaku bagi semua turunan (`ACC-DEC-169`).
+
+### 26.2 Class diagram
+
+```mermaid
+classDiagram
+    class ChartOfAccountController {
+        <<Diperbarui>>
+        +GetPaged(query)
+        +GetById(id)
+        +GetTree(legalEntityId)
+        +GetNextCode(query)
+        +Create(request)
+        +Update(id, request)
+    }
+    class AccChartOfAccountService {
+        <<Diperbarui, partial>>
+        +GetPagedAsync()
+        +GetNextCodeAsync()
+        +CreateAsync()
+        +UpdateAsync()
+    }
+    class AccChartOfAccountClassification {
+        <<Baru, static>>
+        +MuatAsync(db, legalEntityId) List
+        +Hitung(akun) Dictionary
+        +Celah(akun, efektif) ClassificationGapKind?
+    }
+    class AccChartOfAccount {
+        <<Diperbarui>>
+        +ReportClassification? AccountReportClassification
+        +CurrentAssetCategory? CurrentAssetCategory
+    }
+    class AccountReportClassification {
+        <<Baru, enum>>
+        Current = 1
+        NonCurrent = 2
+    }
+    class CurrentAssetCategory {
+        <<Baru, enum>>
+        CashAndCashEquivalents = 1
+        ShortTermInvestment = 2
+        Receivable = 3
+        Inventory = 4
+        OtherCurrentAsset = 5
+    }
+    class ClassificationGapKind {
+        <<Baru, enum>>
+        MissingReportClassification = 1
+        MissingCurrentAssetCategory = 2
+    }
+
+    ChartOfAccountController --> AccChartOfAccountService
+    AccChartOfAccountService --> AccChartOfAccountClassification
+    AccChartOfAccountService ..> AccChartOfAccount : tulis
+    AccChartOfAccount --> AccountReportClassification
+    AccChartOfAccount --> CurrentAssetCategory
+    AccChartOfAccountClassification ..> ClassificationGapKind
+```
+
+```mermaid
+classDiagram
+    class GeneralLedgerController {
+        <<Sudah ada>>
+        +GetBalanceSheet(query)
+    }
+    class AccGeneralLedgerService {
+        <<Diperbarui, partial>>
+        +GetBalanceSheetAsync()
+    }
+    class AccChartOfAccountClassification {
+        <<Baru, static>>
+    }
+    class BalanceSheetResponse {
+        <<Diperbarui>>
+        +UnclassifiedAccountCount int
+        +ClassificationGaps List
+    }
+    GeneralLedgerController --> AccGeneralLedgerService
+    AccGeneralLedgerService --> AccChartOfAccountClassification : peringatan neraca
+    AccGeneralLedgerService ..> BalanceSheetResponse
+```
+
+Diagram kedua sengaja dipisah: ia satu-satunya titik amendment ini yang menyentuh FIN-1 (neraca),
+dan dapat dikirim sebagai kartu tersendiri (`ACC-DEC-171`: perubahan FIN-1 hanya lewat dependency
+yang disetujui — di sini `ACC-DEC-168`).
+
+### 26.3 Penjelasan class
+
+| Class | Status | Lokasi file | Fungsi | Dipanggil oleh | Transaksi DB |
+|---|---|---|---|---|---|
+| `AccChartOfAccount` | Diperbarui | `MasterData/ChartOfAccount/Models/AccChartOfAccount.cs` | + `ReportClassification` (`AccountReportClassification?`), + `CurrentAssetCategory` (`CurrentAssetCategory?`) | — | — |
+| `AccountReportClassification` | Baru, enum | `MasterData/ChartOfAccount/Enums/AccountReportClassification.cs` | `Current = 1` (Lancar), `NonCurrent = 2` (Tidak Lancar). Tanpa nilai bawaan; kosong = ikut leluhur | — | — |
+| `CurrentAssetCategory` | Baru, enum | `MasterData/ChartOfAccount/Enums/CurrentAssetCategory.cs` | `CashAndCashEquivalents = 1` (Kas dan Setara Kas), `ShortTermInvestment = 2` (Investasi Jangka Pendek), `Receivable = 3` (Piutang), `Inventory = 4` (Persediaan), `OtherCurrentAsset = 5` (Aset Lancar Lainnya). Tanpa nilai bawaan | — | — |
+| `ClassificationGapKind` | Baru, enum | `MasterData/ChartOfAccount/Enums/ClassificationGapKind.cs` | `MissingReportClassification = 1`, `MissingCurrentAssetCategory = 2` | — | — |
+| `AccChartOfAccountConfiguration` | Diperbarui | `Repositories/Configurations/Corporate/AccountingManagement/MasterData/AccChartOfAccountConfiguration.cs` | Dua properti baru `HasConversion<int>()`, `IsRequired(false)`, **tanpa** `HasDefaultValue`, tanpa index. Relasi dan `DeleteBehavior` lama tidak berubah | — | — |
+| `AccChartOfAccountService` | Diperbarui — dijadikan `partial` | `MasterData/ChartOfAccount/Services/AccChartOfAccountService.cs` (yang ada) + `AccChartOfAccountService.Code.cs` + `AccChartOfAccountService.Classification.cs` (baru) | Berkas lama: `CreateAsync` memakai kode otomatis dan jenis warisan; `UpdateAsync` menolak induk berjenis lain dan menjaga konsistensi klasifikasi turunan; respons daftar, rincian, dan pohon membawa klasifikasi. `.Code.cs`: `GetNextCodeAsync`, penyusun kode, kunci. `.Classification.cs`: validasi dan penerapan kelompok klasifikasi, dipakai `CreateAsync` dan `UpdateAsync`. Tetap **satu** registrasi `AddScoped<AccChartOfAccountService>()` yang ada | `ChartOfAccountController` | `CreateAsync` selalu, dan `UpdateAsync` bila kelompok klasifikasi dikirim atau induk berganti, membuka transaksi bila Npgsql (kunci penomoran / konsistensi klasifikasi) |
+| `AccChartOfAccountClassification` | Baru, `static` | `MasterData/ChartOfAccount/Services/AccChartOfAccountClassification.cs` | Satu-satunya penghitung klasifikasi efektif: memuat ringkasan akun sebadan hukum, menelusuri leluhur, mengembalikan klasifikasi, sub-klasifikasi, akun sumbernya, dan jenis celahnya. Murni kecuali `MuatAsync` | `AccChartOfAccountService`, `AccGeneralLedgerService` (neraca sekarang; rasio 008-04 kelak) | Tidak — `AsNoTracking` |
+| `ChartOfAccountController` | Diperbarui | `MasterData/ChartOfAccount/Controllers/ChartOfAccountController.cs` | + `GET next-code` (`[AccessPermission("ChartOfAccount", "Create")]`). `Update` menulis satu log tambahan `ChartOfAccount.Classification` bila nilai klasifikasi berubah. Atribut `[AccessController]` kelas tidak berubah, sehingga Akses Role tidak mendapat modul baru | — | — |
+| `AccGeneralLedgerService` | Diperbarui | `GeneralLedger/Services/AccGeneralLedgerService.FinancialStatement.cs` | `GetBalanceSheetAsync` mengisi `UnclassifiedAccountCount` dan `ClassificationGaps` dari akun yang sudah dimuatnya (bagian 26.9). Angka neraca tidak berubah | `GeneralLedgerController` | Tidak |
+| `ChartOfAccountPagedQuery` | Diperbarui | `MasterData/ChartOfAccount/DTOs/ChartOfAccountDtos.cs` | + `UnclassifiedOnly` (`bool?`) | — | — |
+| `ChartOfAccountListResponse`, `ChartOfAccountDetailResponse`, `ChartOfAccountTreeResponse` | Diperbarui | sama | + field klasifikasi milik sendiri dan efektif (kontrak `ACC-API-0.18`) | — | — |
+| `CreateChartOfAccountRequest` | Diperbarui | sama | `AccountCode` jadi opsional (kosong = otomatis); `AccountType` jadi `AccountType?` (wajib hanya tanpa induk); + `Classification` (`ChartOfAccountClassificationRequest?`; kosong = seluruhnya ikut leluhur) | — | — |
+| `UpdateChartOfAccountRequest` | Diperbarui | sama | + `Classification` (`ChartOfAccountClassificationRequest?`): **tidak dikirim = klasifikasi tidak berubah**; dikirim = ganti penuh, nilai `null` di dalamnya = ikut leluhur | — | — |
+| `ChartOfAccountClassificationRequest` | Baru | sama | `ReportClassification` (`AccountReportClassification?`), `CurrentAssetCategory` (`CurrentAssetCategory?`) | — | — |
+| `ChartOfAccountNextCodeQuery`, `ChartOfAccountNextCodeResponse` | Baru | sama | Pratinjau kode, tingkat, jenis warisan, usulan saldo normal, klasifikasi warisan | — | — |
+| `BalanceSheetResponse` | Diperbarui | `GeneralLedger/DTOs/FinancialStatementDtos.cs` | + `UnclassifiedAccountCount` (`int`), + `ClassificationGaps` (`List<FinancialStatementClassificationGapResponse>`) | — | — |
+| `FinancialStatementClassificationGapResponse` | Baru | sama | `AccountId`, `AccountCode`, `AccountName`, `AccountType`, `GapKind` | — | — |
+
+**Mengapa `partial` dan `static`, bukan service baru.** Service baru menuntut registrasi di
+`Program.cs`, sedangkan kesepakatan kerja Accounting adalah tidak menambah kode ke berkas itu dan
+memakai service yang sudah terdaftar. Penghitung klasifikasi dibuat `static` menerima
+`ApplicationDbContext` — pola `AccChartOfAccountService.HitungSaldoAsync` yang sudah dipakai buku
+besar — supaya neraca dan rasio memakai **satu** aturan pewarisan yang sama dengan layar Bagan Akun.
+
+### 26.4 Arsitektur folder
+
+```text
+Areas/Corporate/AccountingManagement/MasterData/ChartOfAccount/
+├── Controllers/
+│   └── ChartOfAccountController.cs                       Diperbarui
+├── DTOs/
+│   └── ChartOfAccountDtos.cs                             Diperbarui
+├── Enums/
+│   ├── AccountType.cs                                    Sudah ada
+│   ├── NormalBalance.cs                                  Sudah ada
+│   ├── AccountReportClassification.cs                    Baru
+│   ├── CurrentAssetCategory.cs                           Baru
+│   └── ClassificationGapKind.cs                          Baru
+├── Models/
+│   └── AccChartOfAccount.cs                              Diperbarui (+2 properti)
+└── Services/
+    ├── AccChartOfAccountService.cs                       Diperbarui (kata kunci partial)
+    ├── AccChartOfAccountService.Code.cs                  Baru
+    ├── AccChartOfAccountService.Classification.cs        Baru
+    └── AccChartOfAccountClassification.cs                Baru (static)
+
+Areas/Corporate/AccountingManagement/GeneralLedger/
+├── DTOs/FinancialStatementDtos.cs                        Diperbarui
+└── Services/AccGeneralLedgerService.FinancialStatement.cs Diperbarui
+
+Repositories/Configurations/Corporate/AccountingManagement/MasterData/
+└── AccChartOfAccountConfiguration.cs                     Diperbarui
+
+Migrations/
+└── {timestamp}_AddChartOfAccountReportClassification.cs  Baru — dibuat Rizki sendiri
+```
+
+Berkas lama memuat komentar `///` dan `//`; komentar itu **tidak** disunting, dan baris baru ditulis
+tanpa komentar (kesepakatan kerja Rizki). Tidak ada penyimpangan pola folder.
+
+### 26.5 Jenis akun anak diwarisi (`ACC-DEC-166`)
+
+| Situasi | `AccountType` di request | Hasil |
+|---|---|---|
+| Tambah, tanpa induk | Wajib, 1–5 | Dipakai. Kosong → `400` "Jenis akun wajib dipilih untuk akun tingkat 1."; di luar 1–5 → `400` "Jenis akun tidak dikenal." |
+| Tambah, dengan induk | Kosong | Diisi jenis induk |
+| Tambah, dengan induk | Sama dengan induk | Dipakai (permintaan lama tetap diterima) |
+| Tambah, dengan induk | Berbeda | `409` "Jenis akun harus sama dengan akun induk 1-1000 (Aset)." |
+| Ubah, induk berganti | — (jenis memang tidak dapat diubah) | Induk baru berjenis lain → `409` dengan pesan yang sama |
+
+`NormalBalance` **tidak** diwarisi, karena akun kontra seperti 1-4002 Akumulasi Penyusutan berjenis
+Aset tetapi bersaldo normal Kredit. Pratinjau kode mengirim saldo normal induk sebagai usulan; field
+request tetap wajib.
+
+Aturan cadangan laporan `ACC-DEC-146` butir 5 tidak dihapus dari `SusunBagian`: ia pengaman untuk data
+impor lama yang kelak mungkin melanggar aturan ini sebelum dibetulkan.
+
+### 26.6 Kode otomatis (`ACC-DEC-163`, `164`, `170`, `172`)
+
+**Penentuan bentuk.** `t` = nilai jenis akun (1–5). Aturan dipilih dari **kode induk**, berurutan; yang
+pertama cocok dipakai:
+
+| Urutan | Syarat | Bentuk kode baru | Wilayah pencarian nomor terbesar | Batas | Lingkup kunci |
+|---:|---|---|---|---|---|
+| 1 | Tanpa induk | `{t}-0000` | Kode `{t}-0000` di badan hukum | Satu; sudah ada → `409` | Jenis |
+| 2 | Kode induk `^[1-5]-0000$` | `{t}-N000` | Kode `^{t}-([1-9])000$` di badan hukum | N = 9 | Jenis |
+| 3 | Kode induk `^[1-5]-[1-9]000$` | `{t}-{N}NNN` | Kode `^{t}-{N}(\d{3})$` di badan hukum, nilai 001–999 | 999 | Induk |
+| 4 | Selain itu — induk tingkat 3 berpola, tingkat 4, atau kode di luar pola | `{kode induk}.NN` | Kode `^{kode induk}\.(\d{2})$` di badan hukum | 99; dan panjang hasil ≤ 20 | Induk |
+
+Nomor baru = nomor terbesar yang cocok + 1 (celah tidak diisi ulang, `ACC-DEC-172` butir 1). Pencarian
+mencakup akun aktif maupun nonaktif yang belum dihapus — kode akun nonaktif tetap miliknya.
+
+**Contoh dari DB dev (25 November 2026):**
+
+| Induk | Kode yang sudah ada | Kode baru |
+|---|---|---|
+| 1-1000 Kas dan Setara Kas | 1-1002, 1-1003, 1-1004 (1002 di luar pola, diabaikan) | `1-1005` |
+| 1-0000 ASET | 1-1000, 1-2000, 1-3000, 1-4000 | `1-5000` |
+| 3-0000 EKUITAS | 3-1000, 3-3000 | `3-4000` |
+| 1-3001 Persediaan Obat | — | `1-3001.01` |
+| Tanpa induk, jenis Aset | 1-0000 | `409` "Akun tingkat 1 untuk jenis Aset sudah ada (1-0000). Tambahkan akun di bawahnya." |
+
+Induk berkode di luar pola, misalnya 1002 Kas Besar, memberi bentuk `1002.01`. Di DB dev 1002 sudah
+dipakai jurnal `Posted`, sehingga menambah anak di bawahnya tetap ditolak aturan lama ("… sudah
+memiliki transaksi …"); bentuk ini diuji dengan akun uji berkode manual (`F27`).
+
+**Penuh.** Bila batas tercapai: `409` "Nomor akun di bawah 1-1000 sudah penuh (1-1999). Gunakan induk
+lain." Untuk aturan 4 yang melewati 20 karakter: `409` "Kode induk UJI-PANJANG-12345678 terlalu
+panjang untuk diberi turunan otomatis."
+
+**Urutan `CreateAsync` sesudah amendment.** Langkah bertanda **baru** adalah tambahan; urutan pemeriksaan
+lama dipertahankan.
+
+1. Penjaga badan hukum (lama).
+2. Isian dasar: nama wajib; **kode boleh kosong** — bila diisi, ≤ 20 karakter (lama, dilonggarkan).
+3. Badan hukum ada (lama).
+4. Induk: ada, badan hukum sama, bukan lingkaran (lama); induk sudah bertransaksi → `409` (lama).
+5. **Baru:** jenis — diwarisi atau diperiksa (bagian 26.5).
+6. Tingkat = tingkat induk + 1 (lama).
+7. **Baru:** klasifikasi isian divalidasi (bagian 26.8) terhadap jenis dan klasifikasi leluhur.
+8. **Baru:** bila Npgsql, buka transaksi dan ambil
+   `pg_advisory_xact_lock(hashtext('ACC_COA_KODE_{LegalEntityId:N}_{lingkup}'))`, lingkup =
+   `JENIS_{t}` atau `INDUK_{ParentAccountId:N}` menurut tabel di atas — pola kunci yang sama dengan
+   `AccJournalService` dan `AccYearEndClosingService`.
+9. **Baru:** kode kosong → susun kode (tabel di atas) **di dalam** kunci. Kode diisi (jalur impor,
+   `ACC-DEC-170` butir 2, `172` butir 4) → dipakai apa adanya, hanya diperiksa unik.
+10. Kode kembar → `409` (lama).
+11. Simpan; induk yang masih `IsPostable` dijadikan induk (lama); commit.
+12. `DbUpdateException` pelanggaran indeks unik `(LegalEntityId, AccountCode)` → `409` "Kode 1-1005
+    baru saja dipakai penyimpanan lain. Simpan ulang untuk mendapat kode berikutnya." — pengaman
+    terakhir `ACC-DEC-164` butir 3, misalnya bila kode impor manual kebetulan sama dengan kode yang
+    sedang disusun di bawah kunci lain.
+
+Pesan sukses berubah menjadi "Akun berhasil ditambahkan dengan kode 1-1005." supaya layar dapat
+memberi tahu kode final, yang bisa berbeda dari pratinjau.
+
+**Pratinjau `GET next-code`.** Menjalankan langkah 1, 3, 4, 5, 6, dan penyusunan kode **tanpa** kunci
+dan tanpa menulis. Hasilnya usulan, bukan janji: dua petugas yang membuka form bersamaan dapat
+melihat kode yang sama; kode final tetap ditentukan saat simpan (`ACC-DEC-164` butir 1). Kegagalan
+yang sama dengan `CreateAsync` — induk bertransaksi, tingkat 5, nomor penuh — dikembalikan dengan
+kode status dan pesan yang sama, sehingga petugas tahu sebelum mengetik nama akun.
+
+**`UpdateAsync`.** Kode tidak disusun ulang, termasuk saat induk berganti (`ACC-DEC-172` butir 5).
+Aturan lama "kode terkunci sesudah dipakai jurnal `Posted`" tetap.
+
+### 26.7 Grup COA (`ACC-DEC-165`)
+
+Tidak ada kode baru untuk grup pada amendment ini. Definisinya mengikat ACC-FIN-002 kelak: grup =
+akun yang punya anak; mengunci grup berarti mengunci seluruh turunannya menurut `ParentAccountId`.
+Penelusuran turunan memakai `AmbilTurunanAsync` yang sudah ada.
+
+### 26.8 Klasifikasi laporan (`ACC-DEC-167`..`169`, `173`)
+
+**Nilai efektif.** Untuk akun Aset atau Liabilitas:
+
+| Besaran | Aturan |
+|---|---|
+| Klasifikasi efektif | Nilai milik akun itu; kosong → leluhur terdekat yang mengisinya; tidak ada → kosong. Penelusuran berhenti di batas jenis (data lama yang melanggar `ACC-DEC-166`) |
+| Sub-klasifikasi efektif | Hanya bila klasifikasi efektif Lancar **dan** jenis Aset: nilai milik sendiri; kosong → leluhur terdekat yang mengisinya. Selain itu kosong |
+| Akun sumber | Akun yang nilainya dipakai — dirinya sendiri atau leluhur itu — dikirim di respons supaya layar dapat menulis "ikut 1-1000" |
+| Ekuitas, Pendapatan, Beban | Klasifikasi tidak berlaku; seluruh field efektif `null` |
+
+**Contoh.** 1-0000 ASET kosong; 1-1000 Lancar + Kas dan Setara Kas; 1-4000 Tidak Lancar.
+1-1004 Bank Operasional (kosong) → Lancar · Kas dan Setara Kas, sumber 1-1000. 1-4002 Akumulasi
+Penyusutan (kosong) → Tidak Lancar, sub-klasifikasi tidak berlaku. 1-2001 Piutang Pasien Umum (kosong,
+1-2000 juga kosong) → **belum lengkap**.
+
+**Validasi isian** — berlaku pada `POST` dan `PUT` yang membawa kelompok `Classification`:
+
+| # | Aturan | Kode |
+|---:|---|---|
+| 1 | Nilai enum di luar daftar | `400` |
+| 2 | Klasifikasi diisi pada akun Ekuitas, Pendapatan, atau Beban | `400` |
+| 3 | Sub-klasifikasi diisi pada akun selain Aset | `400` |
+| 4 | Sub-klasifikasi diisi, tetapi klasifikasi efektif akun itu sesudah perubahan bukan Lancar | `400` |
+| 5 | Sesudah perubahan, ada turunan yang **menyimpan** sub-klasifikasi sendiri tetapi klasifikasi efektifnya bukan lagi Lancar | `409`, menyebut paling banyak lima kode turunan |
+
+Aturan 5 juga diperiksa `UpdateAsync` bila induk berganti, karena pindah induk mengubah warisan
+klasifikasi akun itu dan turunannya. Bunyi pesan: `contracts/validation-matrix.md` bagian 7.
+
+**Mengubah klasifikasi lewat `PUT`.** Kelompok `Classification` yang dikirim mengganti penuh kedua
+nilai milik akun; `null` di dalamnya berarti kosongkan (ikut leluhur). Kelompok yang tidak dikirim —
+misalnya permintaan lama — membiarkan klasifikasi apa adanya, mengikuti alasan yang sama dengan
+`IsControlAccount` yang ber-`bool?`. Langkah tambahan di `UpdateAsync`, sesudah pemeriksaan lama: bila
+Npgsql, transaksi + kunci `ACC_COA_KLASIFIKASI_{LegalEntityId:N}` supaya dua perubahan bersamaan pada
+induk dan anak tidak saling melewati aturan 5 → muat ringkasan pohon sebadan hukum
+(`AccChartOfAccountClassification.MuatAsync`) → terapkan induk dan klasifikasi baru pada salinan di
+memori → aturan 1–5 → simpan bersama perubahan akun lainnya dalam **satu** `SaveChanges`. Kunci yang
+sama diambil `CreateAsync` bila request membawa klasifikasi, dan `UpdateAsync` bila induk berganti
+walau kelompok klasifikasi tidak dikirim. Hasil service membawa nilai sebelum dan sesudah, supaya
+controller dapat menulis log `ChartOfAccount.Classification` hanya bila nilainya benar-benar berubah.
+
+Hak: `ChartOfAccount : Update` (`ACC-DEC-169`). Akun nonaktif boleh diklasifikasi, karena nilainya
+masih tampil di neraca (`ACC-DEC-146` butir 4). Akun yang sudah dipakai jurnal `Posted` boleh
+diklasifikasi; perubahan berlaku untuk semua periode (`ACC-DEC-169`).
+
+**Akun belum lengkap** (`ACC-DEC-168`, `173` butir 5) — dihitung `AccChartOfAccountClassification.Celah`:
+akun `IsPostable`, berjenis Aset atau Liabilitas, dengan klasifikasi efektif kosong
+(`MissingReportClassification`), atau Aset Lancar dengan sub-klasifikasi efektif kosong
+(`MissingCurrentAssetCategory`). Akun induk tidak dihitung, karena nilainya jumlah turunannya.
+Jurnal tetap boleh memakai akun belum lengkap; tidak ada penolakan di `AccJournalService`.
+
+**Saringan Bagan Akun `UnclassifiedOnly = true`.** Mengembalikan akun yang `Celah`-nya tidak kosong,
+tanpa melihat saldo. Wajib bersama `LegalEntityId` (`400` bila tidak), karena pewarisan dihitung
+per badan hukum. Saringan lain tetap berlaku; penyaringan dan penomoran halaman untuk kasus ini
+dilakukan di memori sesudah pohon dihitung — wajar untuk ratusan akun per badan hukum (500 akun pada
+ekspor `gl_coa`). Tanpa saringan ini, daftar tetap berhalaman di database seperti sekarang; field
+efektif pada halaman itu dihitung dari satu pemuatan ringkasan pohon badan hukum yang tampil.
+
+### 26.9 Peringatan klasifikasi di neraca
+
+`GetBalanceSheetAsync` sudah memuat seluruh akun badan hukum (`MuatAkunLaporanAsync`). Pemuatan itu
+diperluas dengan tiga kolom (`IsPostable`, `ReportClassification`, `CurrentAssetCategory`), lalu
+`AccChartOfAccountClassification.Hitung` dipanggil sekali.
+
+| Field | Isi |
+|---|---|
+| `ClassificationGaps` | Akun yang `Celah`-nya tidak kosong **dan** nilainya tidak nol pada kolom berjalan atau pembanding, urut kode |
+| `UnclassifiedAccountCount` | Jumlah butir `ClassificationGaps` |
+
+Angka, susunan baris, `IsBalanced`, dan CSV neraca **tidak berubah** (`ACC-DEC-173` butir 6). Log
+`FinancialStatement.BalanceSheet` mendapat satu muatan tambahan `UnclassifiedAccountCount` — jumlah,
+bukan nominal.
+
+**Contoh.** Neraca 2026-09 DB dev sebelum satu pun klasifikasi diisi: 1002, 1-1003, 1-1004, dan akun
+Aset/Liabilitas lain yang bersaldo muncul di `ClassificationGaps` dengan `MissingReportClassification`.
+Sesudah 1-1000 diisi Lancar + Kas dan Setara Kas, ketiganya hilang dari daftar.
+
+### 26.10 Pencatatan audit (`ACC-DEC-169`)
+
+| Aksi logger | Kapan | Muatan | Dilarang masuk |
+|---|---|---|---|
+| `ChartOfAccount.Create` (lama) | Tambah akun | Request apa adanya (kode kosong bila otomatis); pesan hasil memuat kode final | Saldo (pola `TanpaNominal` lama) |
+| `ChartOfAccount.Update` (lama) | Ubah akun | `{ id, request }` (lama) | sama |
+| `ChartOfAccount.Classification` (**baru**) | `PUT` yang mengubah nilai klasifikasi milik akun; juga `POST` yang membawa klasifikasi | `AccountId`, `AccountCode`, `Before { ReportClassification, CurrentAssetCategory }`, `After { … }`, `StatusCode` | — (tidak ada nominal di alur ini) |
+
+Pelaku dan waktu dibaca `LoggerService` dari klaim permintaan; kolom `UpdateBy`/`UpdateDateTime`
+tabel ikut terisi. Pindah induk yang mengubah klasifikasi **efektif** turunan tidak dicatat sebagai
+perubahan klasifikasi, karena nilai milik akun tidak berubah; jejaknya ada di log `ChartOfAccount.Update`.
+
+### 26.11 Status model dan migration
+
+| Tabel | Status | Kolom berubah | Index / unique | Perilaku hapus | Migration |
+|---|---|---|---|---|---|
+| `AccChartOfAccount` | **Diperbarui** | + `ReportClassification` `integer NULL`; + `CurrentAssetCategory` `integer NULL`. Kolom lama tidak berubah | Tidak ada index baru; unique `(LegalEntityId, AccountCode)` tetap | Tidak berubah (`Restrict`) | `AddChartOfAccountReportClassification` |
+
+Rincian kolom: `erd/data-dictionary.md` bagian 21.
+
+### 26.12 Rencana migration
+
+| Butir | Rencana |
+|---|---|
+| Nama | `AddChartOfAccountReportClassification` |
+| Isi `Up` | Dua `AddColumn<int>` nullable pada `public."AccChartOfAccount"`; tanpa `defaultValue`, tanpa index |
+| Isi `Down` | Dua `DropColumn` |
+| Urutan | Sesudah migration terakhir yang sudah diterapkan; tidak bergantung pada modul lain |
+| Tanpa downtime? | **Ya.** Menambah kolom nullable tanpa default di PostgreSQL hanya mengubah katalog, tanpa menulis ulang baris; aplikasi lama yang tidak mengenal kolom tetap berjalan |
+| Pengisian data lama | **Tidak ada** — sengaja (`ACC-DEC-168`). Seluruh akun lama mulai dengan klasifikasi kosong |
+| Langkah mundur | `Down` membuang kedua kolom; nilai klasifikasi yang sempat diisi hilang, angka laporan tidak terpengaruh. Kode aplikasi dikembalikan bersama |
+| Siapa | **Rizki sendiri** menjalankan `dotnet ef migrations add` dan menerapkannya, sesudah izin `OQ-167-1`. Agent berhenti sebelum langkah itu |
+| Pemeriksaan sebelum `migrations add` | Bandingkan model dengan snapshot: model modul lain tanpa migration dapat ikut tersapu (19 November 2026, tabel HR ikut `AddAssetMovement`). Migration yang terbentuk harus hanya berisi dua kolom ini |
+
+Kode otomatis dan jenis warisan **tidak** membutuhkan migration, sehingga dapat dibangun dan diuji
+lebih dulu; kartu klasifikasi menunggu migration.
+
+### 26.13 Data master awal
+
+Tidak ada seed baru, dan klasifikasi **tidak** diisi otomatis saat rilis (`ACC-DEC-168`). Langkah
+operasional sesudah rilis, dikerjakan pemilik proses akuntansi lewat form Perbarui Akun. Usulan untuk
+DB dev, yang tetap ditetapkan pemilik proses akuntansi:
+
+| Akun (DB dev) | Klasifikasi | Sub-klasifikasi |
+|---|---|---|
+| 1-1000 Kas dan Setara Kas | Lancar | Kas dan Setara Kas |
+| 1-2000 Piutang Usaha | Lancar | Piutang |
+| 1-3000 Persediaan | Lancar | Persediaan |
+| 1-4000 Aset Tetap | Tidak Lancar | — |
+| 2-1000 Utang Usaha | Lancar | — |
+
+Isian di tingkat 2 cukup untuk seluruh turunannya. Bagan akun resmi rumah sakit (impor `gl_coa`)
+diklasifikasi dengan cara yang sama sesudah impor.
+
+### 26.14 Yang sengaja tidak dibuat
+
+| Hal | Alasan |
+|---|---|
+| Kolom induk kedua ("ParentCoa menyimpan COA ID") | `ParentAccountId` sudah ada (`ACC-DEC-162` butir 1) |
+| Tabel grup COA | Grup = akun induk (`ACC-DEC-165`) |
+| Tabel klasifikasi atau master COA kedua | `ACC-DEC-167` butir 5 |
+| Menyimpan klasifikasi efektif | Bagian 26.1 |
+| Mengisi klasifikasi dari nama akun atau awalan kode | `ACC-DEC-168` |
+| Menolak jurnal ke akun belum diklasifikasi | `ACC-DEC-168` |
+| Menyusun ulang kode akun lama ke pola | `ACC-DEC-170` butir 1 |
+| Menyusun ulang kode saat induk berganti | `ACC-DEC-172` butir 5 |
+| Tabel nomor urut (seperti `AccNumberSeries`) untuk kode akun | Nomor terbesar dibaca dari kode yang ada di bawah kunci; tabel kedua dapat menyimpang dari kode yang diubah manual |
+| Endpoint terpisah `PATCH {id}/classification` dan tombol Ubah Klasifikasi di Rincian Akun | `ACC-DEC-173` butir 4: `AGENTS.md` frontend membatasi aksi rincian master data ke Kembali, Perbarui, Hapus; kelompok `Classification` di `PUT` sudah dapat mengosongkan nilai dan tersimpan atomik bersama perubahan lain. Sempat ditulis di draft awal bagian ini lalu dikoreksi |
+| Mewariskan `NormalBalance` | Akun kontra (bagian 26.5) |
+| Validasi `NormalBalance = 0` | Tetap catatan impor (keputusan 30 September 2026); di luar `ACC-DEC-162`..`170`. Nilai `AccountType` di luar 1–5 kini ditolak karena kode otomatis membutuhkannya |
+| Neraca terkelompok Lancar/Tidak Lancar | `OQ-173-1` |
+| Endpoint impor bagan akun | Belum diputuskan; impor `gl_coa` memakai `POST` berkode (`ACC-DEC-172` butir 4) |
+| Penguncian grup per periode | ACC-FIN-002, belum dirancang |
+
+### 26.15 Pengujian developer
+
+Skenario `F25`..`F41` di `testing/acceptance-test-matrix.md` bagian 5, lewat Swagger dan layar terhadap
+database dev, tanpa SQL tulis (data uji = akun uji yang dibuat lewat layar atau API). Automated test
+bukan acceptance (`ACC-DEC-081`) dan tidak ditulis. Uji bersamaan kode otomatis (`F28`) memakai dua
+permintaan `POST` serentak dari skrip. Batas kapasitas (999 dan 99) dibuktikan dari source, bukan
+dengan membuat ratusan akun di DB dev.

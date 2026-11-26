@@ -278,3 +278,10 @@ syarat ke-9 `ACC-STATE-0.1` bagian 1.3 memeriksa aturan yang sama saat pengajuan
 **Akibat yang perlu diketahui:** menutup Desember secara **permanen** sebelum tutup tahun
 dijalankan akan mengunci tutup tahun selamanya. Urutan yang benar adalah tutup sementara seluruh
 bulan, jalankan tutup tahun, baru tutup permanen.
+
+## 5. Bagan akun — tidak punya status sendiri *(catatan Amendment ACC-FIN-001, 25 November 2026)*
+
+Amendment Master COA (`ACC-API-0.18`, `02-backend-architecture.md` bagian 26) **tidak** menambah
+status maupun perpindahan status. Akun tetap hanya punya `IsActive` dan `IsPostable` dengan aturan lama;
+kode otomatis dan klasifikasi laporan adalah isian master, bukan status. Karena itu `ACC-STATE` tidak
+naik versi pada amendment ini.

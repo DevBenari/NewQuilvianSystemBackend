@@ -377,3 +377,41 @@ baca dan unduhan yang sama. Tidak ada aturan yang menulis data.
 **Yang sengaja tidak divalidasi:** status periode. Periode `Open`, `Closing`, `Closed` maupun yang
 dibuka kembali boleh dilaporkan (`ACC-DEC-144` butir 5), karena yang dihitung tetap hanya jurnal
 `Posted`.
+
+
+---
+
+## 7. Master COA — kode otomatis, jenis warisan, klasifikasi *(`ACC-VALIDATION-0.13`, **`approved`** Rizki 25 November 2026, `GATE-DESAIN-1125`)*
+
+Dasar: `ACC-DEC-163`..`170`, `172`, `173`; kontrak `ACC-API-0.18`; `02-backend-architecture.md`
+bagian 26. Aturan bagian 1 yang lama (tingkat, lingkaran, induk bertransaksi, kode terkunci sesudah
+`Posted`, saldo nol saat nonaktif) **tetap berlaku** dan tidak diulang di sini; pratinjau
+`GET next-code` memakai aturan induk lama dengan kode status dan pesan yang sama.
+
+| ID | Aturan | Titik | Kode | Pesan untuk pengguna | Contoh |
+|---|---|---|---|---|---|
+| `VAL-COA-01` | Kode yang diisi manual paling panjang 20 karakter. Kode kosong **bukan** galat pada tambah — berarti otomatis | `POST` | `400` | "Kode akun maksimal 20 karakter." | 21 karakter → ditolak |
+| `VAL-COA-02` | Kode unik per badan hukum — aturan lama, kini juga untuk kode impor | `POST`, `PUT` | `409` | "Kode akun 1-1005 sudah dipakai pada badan hukum ini." (lama) | — |
+| `VAL-COA-03` | Akun tanpa induk wajib menyebut jenis 1–5 | `POST`, `next-code` | `400` | "Jenis akun wajib dipilih untuk akun tingkat 1." / "Jenis akun tidak dikenal." | Jenis `0` → ditolak |
+| `VAL-COA-04` | Jenis yang dikirim untuk akun berinduk harus sama dengan jenis induk; kosong = diwarisi | `POST`, `next-code` | `409` | "Jenis akun harus sama dengan akun induk 1-1000 (Aset)." | Induk 1-1000 + jenis Liabilitas → ditolak |
+| `VAL-COA-05` | Induk baru saat Ubah Akun harus berjenis sama dengan akun itu | `PUT` | `409` | sama dengan `VAL-COA-04` | 2-1001 Utang Pemasok dipindah ke 1-1000 → ditolak |
+| `VAL-COA-06` | Satu akar `{jenis}-0000` per jenis per badan hukum, bila kode disusun otomatis | `POST`, `next-code` | `409` | "Akun tingkat 1 untuk jenis Aset sudah ada (1-0000). Tambahkan akun di bawahnya." | Akar Aset kedua → ditolak |
+| `VAL-COA-07` | Nilai klasifikasi dan sub-klasifikasi harus ada di daftar enum | `POST`, `PUT` | `400` | "Klasifikasi laporan tidak dikenal." | `reportClassification: 3` → ditolak |
+| `VAL-COA-08` | Klasifikasi hanya untuk akun Aset dan Liabilitas | `POST`, `PUT` | `400` | "Klasifikasi Lancar/Tidak Lancar hanya untuk akun Aset dan Liabilitas." | 4-1002 Pendapatan Rawat Inap diisi Lancar → ditolak |
+| `VAL-COA-09` | Sub-klasifikasi hanya untuk akun Aset | `POST`, `PUT` | `400` | "Sub-klasifikasi aset lancar hanya untuk akun Aset." | 2-1001 diisi Piutang → ditolak |
+| `VAL-COA-10` | Sub-klasifikasi hanya bila klasifikasi efektif akun itu sesudah perubahan adalah Lancar | `POST`, `PUT` | `400` | "Sub-klasifikasi aset lancar hanya untuk akun berklasifikasi Lancar. Klasifikasi akun ini: {Tidak Lancar \| belum diisi}." | 1-4001 (warisan Tidak Lancar) diisi Persediaan → ditolak |
+| `VAL-COA-11` | Perubahan klasifikasi atau pindah induk tidak boleh membuat turunan yang menyimpan sub-klasifikasi sendiri kehilangan klasifikasi Lancar | `PUT`, `POST` | `409` | "Klasifikasi tidak dapat diubah karena turunan 1-1004 memakai sub-klasifikasi aset lancar. Ubah atau kosongkan sub-klasifikasi turunan lebih dahulu." (paling banyak lima kode, lalu "dan {n} akun lain") | 1-1004 menyimpan Kas; 1-1000 diubah Tidak Lancar → ditolak |
+| `VAL-COA-12` | Saringan `UnclassifiedOnly` wajib bersama badan hukum | `GET /` | `400` | "Pilih badan hukum untuk menyaring akun yang klasifikasinya belum lengkap." | — |
+| `VAL-COA-13` | Nomor otomatis tidak boleh melewati batas pola (9 grup tingkat 2 per jenis; 999 akun tingkat 3 per grup; 99 per induk di tingkat 4–5) | `POST`, `next-code` | `409` | "Nomor akun di bawah 1-1000 sudah penuh (1-1999). Gunakan induk lain." | Dibuktikan dari source, bukan runtime |
+| `VAL-COA-14` | Kode otomatis bentuk `{kode induk}.NN` tidak boleh melewati 20 karakter | `POST`, `next-code` | `409` | "Kode induk {kode} terlalu panjang untuk diberi turunan otomatis." | Induk berkode manual 20 karakter → ditolak |
+| `VAL-COA-15` | Kode otomatis yang bentrok indeks unik pada detik simpan (pengaman terakhir `ACC-DEC-164` butir 3) | `POST` | `409` | "Kode 1-1005 baru saja dipakai penyimpanan lain. Simpan ulang untuk mendapat kode berikutnya." | Kode impor manual sama dengan kode otomatis yang sedang disusun |
+
+**Yang sengaja tidak divalidasi:**
+
+| Hal | Alasan |
+|---|---|
+| Pola kode yang diisi manual | Jalur impor mempertahankan kode berkas (`ACC-DEC-170` butir 2) |
+| Jurnal ke akun yang klasifikasinya belum lengkap | `ACC-DEC-168` — tetap boleh |
+| Kecocokan klasifikasi dengan nama akun atau awalan kode | `ACC-DEC-168` |
+| `NormalBalance` bernilai `0` | Catatan impor 30 September 2026; di luar keputusan pass ini |
+| Klasifikasi pada akun nonaktif atau yang sudah bertransaksi | Diizinkan (`ACC-DEC-169`) |

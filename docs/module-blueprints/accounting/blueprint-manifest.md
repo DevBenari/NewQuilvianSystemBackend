@@ -5,7 +5,7 @@ blueprint_id: ACC-BP-001
 module_name: Accounting
 module_slug: accounting
 module_prefix: ACC
-revision: 18   # 24 Nov 2026 - finishing ACC-FIN-005 + 008 (ACC-DEC-141..155, draft desain, nol migration); 17 = 5 Okt 2026 - jawaban atas surat Finance 22 + permintaan kode sewa (ACC-DEC-132..140, ACC-XMOD-0.7, dokumen saja); 16 = 1 Okt 2026 - jawaban atas surat Finance 15/16/21 (ACC-DEC-125..131, ACC-XMOD-0.6, dokumen saja); 15 = 30 Sep 2026 - amendment ACC-DEC-122..124 (dokumen saja, nol kode), GATE-DESAIN-0930; 14 = 29 Sep 2026 - amendment draft jurnal hasil kejadian (ACC-DEC-116..121), GATE-DESAIN-0929; 13 = 28 Sep 2026 rekonsiliasi saldo subledger (ACC-DEC-107..115), GATE-DESAIN-0928; 12 = 24 Sep 2026 pasca-ratifikasi Finance
+revision: 19   # 25 Nov 2026 - Amendment ACC-FIN-001 Master COA (ACC-DEC-162..173, draft desain, 1 migration menunggu izin OQ-167-1); 18 = 24 Nov 2026 - finishing ACC-FIN-005 + 008 (ACC-DEC-141..155, draft desain, nol migration); 17 = 5 Okt 2026 - jawaban atas surat Finance 22 + permintaan kode sewa (ACC-DEC-132..140, ACC-XMOD-0.7, dokumen saja); 16 = 1 Okt 2026 - jawaban atas surat Finance 15/16/21 (ACC-DEC-125..131, ACC-XMOD-0.6, dokumen saja); 15 = 30 Sep 2026 - amendment ACC-DEC-122..124 (dokumen saja, nol kode), GATE-DESAIN-0930; 14 = 29 Sep 2026 - amendment draft jurnal hasil kejadian (ACC-DEC-116..121), GATE-DESAIN-0929; 13 = 28 Sep 2026 rekonsiliasi saldo subledger (ACC-DEC-107..115), GATE-DESAIN-0928; 12 = 24 Sep 2026 pasca-ratifikasi Finance
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
@@ -1133,3 +1133,57 @@ Namespace task `BE-/FE-ACC-FIN-<nomor kebutuhan PRD>-<urut>` tidak bertabrakan d
 `BE-ACC-P2-001`..`035`, `FE-ACC-001`..`011`, `FE-ACC-P2-001`..`019`. ACC-FIN-008 berstatus **sebagian**
 sesudah slice ini: rasio (`U-05`), target pendapatan (`C-02`), dan laporan pajak (`U-07`) tetap tercatat
 sebagai task ⛔.
+
+## Amendment ACC-FIN-001 Master COA — revision 19, 25 November 2026 (`approved`, `GATE-DESAIN-1125`)
+
+| Field | Nilai |
+|---|---|
+| `revision` | **18 → 19**, 25 November 2026. `00-interview-decisions.md` revision 20 (`ACC-DEC-158`..`171` approved; `172`, `173` `draft` turunan desain; `OQ-173-1` baru) |
+| Masukan | Keputusan tertulis Rizki 25 November 2026 + `grill-me` Master COA (`ACC-DEC-163`..`170`) |
+| Dikerjakan lewat | `grill-me` Amendment → `design-business-module` Amendment. `requirement-completeness-gate` **tidak dijalankan ulang** dan `hospital-domain-architect` **tidak dijalankan** (`DOMAIN_ARCHITECTURE_NOT_RUN`); alasannya di `04-prd-to-mvp.md` bagian 31 |
+| `backend_commit_sha` | `0f67c5c2` (branch `rizkiG`) + working tree dokumen |
+| `frontend_commit_sha` | `a2ddb52d2` (branch `RizkiV2`) |
+| Impact scan | Tidak dibutuhkan: kedua SHA sama dengan yang dipakai pass keputusan 25 November, dan fakta COA diambil ulang langsung dari source dan DB dev hari itu |
+| `blueprint_shape` | Tetap `SINGLE` |
+| Status desain | **`approved`** Rizki, 25 November 2026 — `GATE-DESAIN-1125` ("saya setujui"), termasuk `ACC-DEC-172` dan `173`. Izin migration `OQ-167-1` diberikan terpisah hari yang sama |
+| Kode dan migration | Belum ada kode. Desain menetapkan **satu** migration (`AddChartOfAccountReportClassification`, dua kolom nullable) yang dibuat Rizki sendiri (izin `OQ-167-1` diberikan 25 November 2026); nol tabel baru, nol hak baru, nol controller baru, nol baris `Program.cs` |
+
+| Artefak | Versi | Perubahan |
+|---|---|---|
+| `00-interview-decisions.md` | revision 20 | + `ACC-DEC-172` (turunan kode otomatis), `173` (turunan klasifikasi), `OQ-173-1` |
+| `02-backend-architecture.md` | bagian 26 | Kepemilikan data, dua class diagram, `AccChartOfAccountService` dijadikan `partial` + `AccChartOfAccountClassification` static, aturan kode, jenis warisan, klasifikasi, peringatan neraca, log, migration, data awal; bagian 25.10 diberi catatan dilampaui |
+| `03-frontend-architecture.md` | bagian 16 | Peta menu (nol butir baru), lima layar diperbarui beserta skemanya, state, berkas tersentuh |
+| `04-prd-to-mvp.md` | bagian 31 | Batas amendment, `MH-COA-1`..`4`, `FR-FIN-050`..`058`, DoD, gelombang `FIN-2`/`FIN-3`/`FIN-4`; `C-05` di 30.8 ditandai tertutup |
+| `contracts/api-contract.md` | `ACC-API-0.18` | Satu endpoint baru (`GET next-code`), enam diperluas; tiga enum baru |
+| `contracts/validation-matrix.md` | `ACC-VALIDATION-0.13` | `VAL-COA-01`..`15` |
+| `contracts/permission-audit-matrix.md` | `ACC-PERMISSION-0.9` | Hak per endpoint (nol baru), log `ChartOfAccount.Classification` |
+| `contracts/state-transition-matrix.md` | `ACC-STATE` tetap | Bagian 5: catatan bahwa bagan akun tidak punya status baru |
+| `erd/data-dictionary.md` | bagian 21 | `AccChartOfAccount` `Diperbarui`: dua kolom, aturan kolom lama yang berubah, nilai yang dihitung |
+| `flowcharts/07-master-coa.md` | baru | Tambah akun dan melengkapi klasifikasi, termasuk jalur gagal; diindeks di `00-alur-utama.md` |
+| `testing/acceptance-test-matrix.md` | bagian 5 | `F25`..`F41` + regresi |
+| `contracts/integration-contract.md`, `cross-module-contract.md` | — | **Tidak disunting** — amendment ini tidak menyentuh integrasi maupun modul lain |
+
+### Koreksi yang terjadi saat desain
+
+| Hal | Koreksi |
+|---|---|
+| Draft awal memakai `PATCH /{id}/classification` dan tombol Ubah Klasifikasi di Rincian Akun | `AGENTS.md` frontend membatasi aksi rincian master data ke Kembali, Perbarui, Hapus. Diganti kelompok opsional `Classification` di `PUT` (tidak dikirim = tidak berubah; dikirim = ganti penuh), atomik bersama perubahan akun lain — `ACC-DEC-173` butir 4 |
+
+### Yang masih `OPEN`
+
+| Butir | Pemilik | Memblokir |
+|---|---|---|
+| `OQ-173-1` neraca terkelompok | Rizki + pemilik proses akuntansi | Tidak |
+
+### Roadmap finishing revisi 2 — `plan-module-delivery`, 25 November 2026
+
+| Artefak | Isi |
+|---|---|
+| `roadmap/backend-roadmap-finishing.md` | Revisi 2 `APPROVED`. + `BE-ACC-FIN-001-01` (kode otomatis, jenis warisan; `FIN-2`), `001-02` (klasifikasi + migration; `FIN-3`), `001-03` (peringatan neraca; `FIN-4`). Blocker `008-04`..`06` diperbarui: desain 008-04, ACC-FIN-013, `OQ-160-1`. Grafik 12 panah |
+| `roadmap/frontend-roadmap-finishing.md` | Revisi 2 `APPROVED`. + `FE-ACC-FIN-001-01`..`03`. Grafik 18 panah |
+| `roadmap/requirement-traceability-finishing.md` | Revisi 2. + `FR-FIN-050`..`058`, dependency task dan pihak lain (migration Rizki, klasifikasi oleh pemilik proses akuntansi), keputusan tertutup 25 November |
+| `finishing/01-capability-map-finishing.md` | `C-02`, `C-03`, `C-05`, `U-05` ditandai tertutup; catatan `U-07`. Tidak diaudit ulang |
+
+Urutan pengerjaan: `BE-ACC-FIN-001-01` → `FE-ACC-FIN-001-01` → `BE-ACC-FIN-001-02` (agent berhenti sebelum
+`dotnet ef migrations add`; Rizki membuat dan menerapkan migration) → `FE-ACC-FIN-001-02` →
+`BE-ACC-FIN-001-03` → `FE-ACC-FIN-001-03`. Sesudahnya `design-business-module` untuk 008-04 rasio.

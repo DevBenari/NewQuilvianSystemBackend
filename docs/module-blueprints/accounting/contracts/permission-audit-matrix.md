@@ -320,3 +320,52 @@ yang gagal dicatat `WarningAsync` dengan muatan yang sama.
    pengenal pasien (`ACC-DEC-056`).
 3. Tautan Asal ke Kotak Masuk Kejadian tunduk pada hak `AccountingEvent : Read` di layar itu sendiri;
    pengguna tanpa hak itu tetap melihat label Asal, tetapi membuka tautannya ditolak layar tujuan.
+
+---
+
+## `ACC-PERMISSION-0.9` — Master COA: kode otomatis dan klasifikasi *(**`approved`** Rizki 25 November 2026, `GATE-DESAIN-1125`)*
+
+Dasar: `ACC-DEC-169`, `173` butir 4; kontrak `ACC-API-0.18`. **Nol Resource baru, nol Action baru**,
+nol pemberian hak baru di Akses Role. Action baru berada di `ChartOfAccountController` yang
+sudah ada, di bawah `[AccessController(moduleCode: "ACCOUNTING_MASTER_DATA", ...)]`, dan diberi
+`[AccessAction(...)]` dengan Action yang sudah dipakai controller itu.
+
+### Hak akses per endpoint
+
+| Endpoint | Resource | Action | Atribut | Tindakan dicatat? |
+|---|---|---|---|---|
+| `GET /chart-of-accounts` *(diperluas)* | `ChartOfAccount` | `Read` | `[AccessPermission("ChartOfAccount", "Read")]` | Tidak (lama) |
+| `GET /chart-of-accounts/{id}` *(diperluas)* | `ChartOfAccount` | `Read` | `[AccessPermission("ChartOfAccount", "Read")]` | Tidak (lama) |
+| `GET /chart-of-accounts/tree` *(diperluas)* | `ChartOfAccount` | `Read` | `[AccessPermission("ChartOfAccount", "Read")]` | Tidak (lama) |
+| `GET /chart-of-accounts/next-code` *(baru)* | `ChartOfAccount` | `Create` | `[AccessPermission("ChartOfAccount", "Create")]` + `[AccessAction("Create", "Create Chart of Account", Description = "Melihat usulan kode akun baru", AccessType = AccessTypes.Create, SortOrder = 2)]` | Tidak — pratinjau, tidak menulis |
+| `POST /chart-of-accounts` *(diperluas)* | `ChartOfAccount` | `Create` | `[AccessPermission("ChartOfAccount", "Create")]` | Ya — `ChartOfAccount.Create` (lama) |
+| `PUT /chart-of-accounts/{id}` *(diperluas)* | `ChartOfAccount` | `Update` | `[AccessPermission("ChartOfAccount", "Update")]` (lama) | Ya — `ChartOfAccount.Update` (lama), + `ChartOfAccount.Classification` (**baru**) bila nilai klasifikasi berubah |
+| `GET /general-ledger/balance-sheet` *(diperluas)* | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | Ya — `FinancialStatement.BalanceSheet` (lama), + `UnclassifiedAccountCount` |
+
+**Mengapa pratinjau kode memakai `Create`, bukan `Read`.** Pratinjau hanya berguna bagi yang boleh
+menambah akun; memberinya ke `Read` membuat setiap peran pembaca dapat memetakan nomor yang akan
+terbit tanpa alasan. Peran yang memegangnya tidak berubah: Accounting Administrator (matriks
+bagian 2).
+
+**Peran yang mengubah klasifikasi** = pemegang `ChartOfAccount : Update`, yaitu Accounting
+Administrator (matriks bagian 2). Bila pemilik proses akuntansi bukan Administrator, pemberian haknya
+adalah langkah operasional di Akses Role, bukan perubahan kontrak.
+
+### Isi catatan
+
+| Aksi logger | Kapan | Muatan | Dilarang masuk |
+|---|---|---|---|
+| `ChartOfAccount.Classification` | `PUT` atau `POST` yang mengubah nilai klasifikasi milik akun, berhasil atau ditolak | `AccountId`, `AccountCode`, `Before { ReportClassification, CurrentAssetCategory }`, `After { ReportClassification, CurrentAssetCategory }`, `StatusCode` | — |
+| `FinancialStatement.BalanceSheet` (lama) | Neraca dibuka | Muatan lama + `UnclassifiedAccountCount` | Seluruh nominal; daftar akun belum lengkap tidak dicatat, cukup jumlahnya |
+
+Pelaku dan waktu dibaca `LoggerService` dari klaim permintaan. Permintaan yang ditolak dicatat
+`WarningAsync` dengan muatan yang sama; `Before` diisi dari nilai tersimpan, `After` dari request.
+
+### Aturan yang tidak dapat diwakili matriks
+
+1. Isian klasifikasi berada di form Tambah Akun dan Perbarui Akun, yang memang hanya terbuka bagi
+   pemegang `ChartOfAccount : Create` / `Update` (lama); penolakan sesungguhnya di backend.
+2. Layar Tambah Akun memanggil pratinjau kode; pengguna tanpa `ChartOfAccount : Create` memang tidak
+   dapat membuka layar itu (lama), sehingga pratinjau tidak perlu jalan cadangan.
+3. Tautan "Lengkapi di Bagan Akun" pada peringatan neraca tunduk pada `ChartOfAccount : Read` di layar
+   tujuan; pemegang `GeneralLedger : Read` tanpa hak itu tetap melihat peringatannya.

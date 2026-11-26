@@ -67,3 +67,4 @@ flowchart TD
 | [`04-tutup-tahun.md`](04-tutup-tahun.md) | Penutupan tahun dan koreksinya |
 | [`05-jurnal-berulang.md`](05-jurnal-berulang.md) | Penerbitan jurnal berulang bulanan |
 | [`06-laporan-keuangan.md`](06-laporan-keuangan.md) | Membaca laba rugi dan neraca lalu menelusurinya ke buku besar, jurnal, dan asal *(finishing, 24 November 2026, `draft`)* |
+| [`07-master-coa.md`](07-master-coa.md) | Menambah akun dengan kode otomatis dan melengkapi klasifikasi laporan dari peringatan neraca *(Amendment ACC-FIN-001, 25 November 2026, `approved`)* |

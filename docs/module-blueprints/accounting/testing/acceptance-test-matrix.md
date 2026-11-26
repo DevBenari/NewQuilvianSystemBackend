@@ -350,3 +350,59 @@ decision log.
 | `F19` | — | **Ditunda** — runtime `WAIVED` (`ACC-DEC-156`); source tujuh butir terbukti. Untuk neraca saldo (`ACC-DEC-157`) hanya penanganan pesan di layar yang diuji, dengan simulasi (V10) | Laporan `BE-ACC-FIN-005-01` bagian 8 |
 | `F20` | — | `NOT RUN` — butuh Excel komputer rumah sakit; milik tim UAT | — |
 
+
+
+## 5. Amendment ACC-FIN-001 Master COA *(25 November 2026, **`approved`**, `GATE-DESAIN-1125`)*
+
+Diuji lewat Swagger dan layar terhadap database dev, **tanpa SQL tulis** dan tanpa automated test
+(`ACC-DEC-081`; kesepakatan kerja Rizki). Data uji = akun berawalan nama "UJI COA" yang dibuat lewat
+layar atau API, lalu dinonaktifkan sesudah uji (akun tidak dapat dihapus). Skenario klasifikasi
+(`F34`..`F39`) baru dapat dijalankan sesudah migration `AddChartOfAccountReportClassification`
+diterapkan Rizki. Kode akun di bawah mengikuti isi DB dev 25 November 2026 dan bergeser bila data
+berubah; yang diuji adalah aturannya.
+
+| Skenario | Requirement | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| `F25` | `FR-FIN-050` | Tambah Akun, induk 1-1000, nama "UJI COA Bank", tanpa kode | Pratinjau `1-1005`; tersimpan `1-1005`; toast menyebut kode dari respons |
+| `F26` | `FR-FIN-050` | Pratinjau untuk induk 1-0000 dan 3-0000 | `1-5000` dan `3-4000` — celah tidak diisi (`ACC-DEC-172` butir 1) |
+| `F27` | `FR-FIN-053` | `POST` lewat Swagger dengan `accountCode` "9901" di bawah 1-1000, tidak menerima transaksi; lalu Tambah Akun di bawah 9901 lewat layar | Kode 9901 dipertahankan; anaknya `9901.01` |
+| `F28` | `FR-FIN-050` | Dua `POST` serentak tanpa kode di bawah induk yang sama (skrip) | Dua akun tersimpan dengan dua kode berurutan; nol `409` |
+| `F29` | `VAL-COA-06` | Tambah Akun tanpa induk, jenis Aset | `409` "Akun tingkat 1 untuk jenis Aset sudah ada (1-0000). …" — terlihat sejak pratinjau |
+| `F30` | `VAL-COA-14` | `POST` berkode manual 20 karakter "UJI-PANJANG-12345678" sebagai induk; pratinjau anaknya | `409` "Kode induk … terlalu panjang …". Batas 999 dan 99 (`VAL-COA-13`) dibuktikan dari source |
+| `F31` | `FR-FIN-051` | `POST` di bawah 1-1000 dengan `accountType` Liabilitas; lalu tanpa `accountType` | Pertama `409` "Jenis akun harus sama dengan akun induk 1-1000 (Aset)."; kedua tersimpan berjenis Aset. Di layar, Jenis Akun terkunci "Aset" |
+| `F32` | `VAL-COA-05` | Perbarui akun uji berjenis Aset, pindahkan induk ke 2-1000 | `409` dengan pesan yang sama |
+| `F33` | `FR-FIN-052` | Perbarui kode akun uji sebelum dipakai jurnal; regresi: akun yang sudah `Posted` | Sebelum `Posted` boleh; sesudah → `409` (lama) |
+| `F34` | `FR-FIN-054` | Perbarui 1-1000: Lancar + Kas dan Setara Kas; buka Rincian 1-1004 | 1-1004 "Lancar (ikut 1-1000)" · "Kas dan Setara Kas (ikut 1-1000)" |
+| `F35` | `VAL-COA-08`..`10` | Lewat Swagger: klasifikasi pada 4-1002; sub-klasifikasi pada 2-1001; sub-klasifikasi Persediaan pada 1-4001 sesudah 1-4000 diisi Tidak Lancar | Ketiganya `400` dengan pesan masing-masing |
+| `F36` | `VAL-COA-11` | Akun uji di bawah 1-1000 diberi sub-klasifikasi Kas sendiri; lalu ubah 1-1000 menjadi Tidak Lancar | `409` menyebut kode akun uji; 1-1000 tidak berubah |
+| `F37` | `FR-FIN-054` | Perbarui 1-1003 menjadi Tidak Lancar | 1-1003 efektif Tidak Lancar, sub-klasifikasi "Tidak berlaku"; 1-1004 tetap Lancar · Kas |
+| `F38` | `FR-FIN-057` | Buka neraca 2026-09 sebelum dan sesudah `F34` | Sebelum: peringatan menyebut 1002, 1-1003, 1-1004 (dan akun bersaldo lain yang belum lengkap); sesudah: ketiganya hilang. Total aset, liabilitas, ekuitas, dan status seimbang **sama** di kedua pembukaan. Tautan membuka Daftar COA tersaring "Belum lengkap" |
+| `F39` | `FR-FIN-055` | Sesudah `F34`, periksa log; buka neraca periode lain | Log `ChartOfAccount.Classification` memuat kode, nilai sebelum dan sesudah, pelaku; klasifikasi berlaku pada semua periode termasuk kolom pembanding |
+| `F40` | `FR-FIN-058` | Akun tanpa `ChartOfAccount : Create` memanggil `GET next-code`; tanpa `ChartOfAccount : Update` memanggil `PUT` berkelompok `classification` | `403` keduanya |
+| `F41` | `FR-FIN-056` | Buat jurnal manual ke akun uji yang klasifikasinya belum lengkap | Jurnal diterima seperti biasa (`ACC-DEC-168`) |
+
+Regresi yang wajib diulang sesudah amendment: `F8`, `F9`, `F14` (neraca dan laba rugi memakai hierarki
+yang sama), dan Tambah/Perbarui akun lama tanpa klasifikasi (permintaan lama yang tidak mengirim
+`classification` tidak mengubah apa pun).
+
+### Register hasil developer verification
+
+| Skenario | Tanggal | Hasil | Bukti |
+|---|---|---|---|
+| `F25` | 25 Nov 2026 | `PASS` (API dan layar) — pratinjau `1-1005`; simpan otomatis berkode; layar menampilkan usulan dan toast kode final | `fin-001-01-20261125` A1, A4, A5; L2, L5 |
+| `F26` | 25 Nov 2026 | `PASS` — `1-5000`, `3-4000`, `1-3001.01` | A2 |
+| `F27` | 25 Nov 2026 | `PASS` — `9901` dipertahankan, anak `9901.01` | A7 |
+| `F28` | 25 Nov 2026 | `PASS` — dua `POST` serentak → `9901.02`, `9901.03`, nol `409` | A8 |
+| `F29` | 25 Nov 2026 | `PASS` (API dan layar) — pesan `409` di bawah Kode Akun, Simpan mati | A3; L4 |
+| `F30` | 25 Nov 2026 | `PASS` — kode hasil > 20 → `409`; batas 999/99 `SOURCE VERIFIED` | A9 |
+| `F31` | 25 Nov 2026 | `PASS` (API dan layar) — jenis diwarisi dan terkunci di layar; berbeda `409`; jenis tak dikenal `400` | A4, A6, B1, B2; L2 |
+| `F32` | 25 Nov 2026 | `PASS` | A11 |
+| `F33` | 25 Nov 2026 | `PASS` (API dan layar) — Perbarui Akun tetap berisian kode | A12; L6 |
+| `F40` | 25–26 Nov 2026 | `PASS` (API) — `next-code` `403`; `PUT` klasifikasi `403` | A13; `fin-001-02-20261125` K9 |
+| `F34` | 26 Nov 2026 | `PASS` (API dan layar) — pewarisan dua tingkat, sumber 1-5000; rincian "(ikut 1-5000)" | `fin-001-02-20261125` K2; L3, L4 |
+| `F35` | 26 Nov 2026 | `PASS` (API) — empat penolakan `400` | K4 |
+| `F36` | 26 Nov 2026 | `PASS` (API dan layar) — `409` pada ubah klasifikasi dan pindah induk; pesan tampil di form | K5; L6 |
+| `F37` | 26 Nov 2026 | `PASS` (API dan layar) | K6; L7, L7b |
+| `F39` | 26 Nov 2026 | `PASS` (API) sesudah perbaikan — log memuat kode akun dan nilai lama → baru; putaran pertama `FAIL` (`LoggerService` tidak menyimpan muatan) | K11, K11b |
+| `F41` | 26 Nov 2026 | `PASS` — draft jurnal diterima lalu dihapus | K10 |
+| `F38` | — | `NOT RUN` — menunggu `BE-ACC-FIN-001-03` | — |

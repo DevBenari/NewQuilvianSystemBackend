@@ -1348,3 +1348,205 @@ dikembalikan sebagai `ApiResponse` JSON biasa, bukan berkas.
 | `409` | Penjaga badan hukum `IsDefault` tidak lolos (perilaku lama) | — |
 | `422` | Unduhan buku besar melebihi 50.000 baris | "Mutasi terlalu banyak untuk diunduh sekaligus (64.120 baris). Persempit rentang tanggal." |
 | `422` *(delta `ACC-DEC-157`, 25 November 2026)* | Unduhan neraca saldo melebihi 50.000 baris akun (`VAL-GL-10`) | "Neraca saldo terlalu banyak untuk diunduh sekaligus (50.120 baris akun)." |
+
+---
+
+## `ACC-API-0.18` — Master COA: kode otomatis, jenis warisan, klasifikasi laporan (ACC-FIN-001)
+
+| Field | Nilai |
+|---|---|
+| Versi | `ACC-API-0.18` — status **`approved`** (`GATE-DESAIN-1125`) |
+| Owner | Rizki |
+| `approved_by` / `approved_at` | Rizki, 25 November 2026 |
+| `input_revision` | `00-interview-decisions.md@20` (pass 25 November 2026), `02-backend-architecture.md` bagian 26 |
+| `input_hash` | Tidak dihitung — mengikuti kebiasaan amendment sebelumnya; acuan source `rizkiG` `0f67c5c2` |
+| Traceability | `ACC-DEC-162`..`170`, `172`, `173`; PRD `ACC-FIN-PRD-001` ACC-FIN-001; `04-prd-to-mvp.md` bagian 31 |
+| Dampak kompatibilitas | **Tidak mematahkan.** Field respons hanya bertambah; `PUT` mendapat satu kelompok opsional yang, bila tidak dikirim, membiarkan klasifikasi apa adanya. `POST` melonggarkan dua field yang semula wajib (`AccountCode`, `AccountType`), sehingga permintaan lama yang mengirim keduanya tetap diterima — kecuali `AccountType` berbeda dari jenis induk, yang kini ditolak `409` (`ACC-DEC-166`). Di DB dev, 0 dari 39 akun terkena |
+
+### `[Tags("Corporate / Accounting / Master Data / Chart of Account")]`
+
+Base URL: `api/v1/corporate/accounting/master-data/chart-of-accounts`
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | **Diperluas** — Rencana (belum tersedia) | Daftar akun; + saringan `UnclassifiedOnly`, + field klasifikasi | `ChartOfAccount : Read` | `ChartOfAccountPagedQuery` | `ApiResponse<PagedResult<ChartOfAccountListResponse>>` |
+| `GET` | `/{id}` | **Diperluas** — Rencana (belum tersedia) | Rincian akun; + field klasifikasi beserta akun sumbernya | `ChartOfAccount : Read` | — | `ApiResponse<ChartOfAccountDetailResponse>` |
+| `GET` | `/tree` | **Diperluas** — Rencana (belum tersedia) | Susunan akun; + field klasifikasi | `ChartOfAccount : Read` | `legalEntityId` | `ApiResponse<List<ChartOfAccountTreeResponse>>` |
+| `GET` | `/next-code` | **Baru** — Rencana (belum tersedia) | Pratinjau kode, tingkat, jenis, dan klasifikasi warisan untuk akun yang akan dibuat | `ChartOfAccount : Create` | `ChartOfAccountNextCodeQuery` | `ApiResponse<ChartOfAccountNextCodeResponse>` |
+| `POST` | `/` | **Diperluas** — Rencana (belum tersedia) | Menambah akun; kode disusun backend bila kosong, jenis diwarisi induk, klasifikasi boleh langsung diisi | `ChartOfAccount : Create` | `CreateChartOfAccountRequest` | `ApiResponse<ChartOfAccountDetailResponse>` — `201` |
+| `PUT` | `/{id}` | **Diperluas** — Rencana (belum tersedia) | Mengubah akun; + kelompok klasifikasi opsional (ganti penuh); induk berjenis lain ditolak; pindah induk tidak boleh mematahkan sub-klasifikasi turunan | `ChartOfAccount : Update` | `UpdateChartOfAccountRequest` | `ApiResponse<ChartOfAccountDetailResponse>` |
+
+`/options`, `/{id}/deactivate`, dan `/{id}/activate` tidak berubah.
+
+### `[Tags("Corporate / Accounting / General Ledger")]` — neraca
+
+Base URL: `api/v1/corporate/accounting/general-ledger`
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|---|
+| `GET` | `/balance-sheet` | **Diperluas** — Rencana (belum tersedia) | Neraca; + daftar akun bersaldo yang klasifikasinya belum lengkap | `GeneralLedger : Read` | `BalanceSheetQuery` (tidak berubah) | `ApiResponse<BalanceSheetResponse>` |
+
+`/balance-sheet/export` **tidak** berubah: CSV tetap memuat angka saja (`ACC-DEC-173` butir 6).
+
+### Enum baru
+
+| Enum | Nilai | Bawaan |
+|---|---|---|
+| `AccountReportClassification` | `1` `Current` (Lancar), `2` `NonCurrent` (Tidak Lancar) | Tidak ada — `null` = ikut leluhur |
+| `CurrentAssetCategory` | `1` `CashAndCashEquivalents` (Kas dan Setara Kas), `2` `ShortTermInvestment` (Investasi Jangka Pendek), `3` `Receivable` (Piutang), `4` `Inventory` (Persediaan), `5` `OtherCurrentAsset` (Aset Lancar Lainnya) | Tidak ada |
+| `ClassificationGapKind` | `1` `MissingReportClassification`, `2` `MissingCurrentAssetCategory` | — (hanya di respons) |
+
+Dikirim sebagai angka, seperti `AccountType` dan `NormalBalance` yang ada.
+
+### Request
+
+**`ChartOfAccountPagedQuery`** — diperluas
+
+| Field | Tipe | Wajib | Bawaan | Validasi |
+|---|---|:---:|---|---|
+| *(field lama)* | — | — | — | Tidak berubah |
+| **`UnclassifiedOnly`** | `bool?` | Tidak | kosong = tidak menyaring | `true` tanpa `LegalEntityId` → `400` (`VAL-COA-12`) |
+
+**`ChartOfAccountNextCodeQuery`** — baru
+
+| Field | Tipe | Wajib | Bawaan | Validasi |
+|---|---|:---:|---|---|
+| `LegalEntityId` | `Guid` | Ya | — | Penjaga badan hukum; badan hukum ada → `400` |
+| `ParentAccountId` | `Guid?` | Tidak | kosong = akun tingkat 1 | Induk ada → `400`; badan hukum sama → `409`; belum bertransaksi → `409`; di bawah tingkat 5 → `400` |
+| `AccountType` | `AccountType?` | Hanya tanpa induk | — | 1–5 (`VAL-COA-03`); bila induk ada dan berbeda → `409` (`VAL-COA-04`) |
+
+**`CreateChartOfAccountRequest`** — diperluas
+
+| Field | Tipe | Wajib | Bawaan | Panjang | Validasi | Sensitif |
+|---|---|:---:|---|---|---|:---:|
+| `LegalEntityId` | `Guid` | Ya | — | — | Lama | Tidak |
+| `AccountCode` | `string?` | **Tidak** (semula Ya) | kosong = disusun backend | ≤ 20 | Diisi → unik per badan hukum, tanpa pemeriksaan pola (jalur impor `ACC-DEC-170`) | Tidak |
+| `AccountName` | `string` | Ya | — | ≤ 200 | Lama | Tidak |
+| `AccountType` | `AccountType?` | **Hanya tanpa induk** (semula Ya) | kosong = jenis induk | — | `VAL-COA-03`, `04` | Tidak |
+| `NormalBalance` | `NormalBalance` | Ya | — | — | Lama | Tidak |
+| `ParentAccountId` | `Guid?` | Tidak | — | — | Lama | Tidak |
+| `AccountLevel` | `int` | Ya | `1` | — | Lama: tingkat induk + 1 | Tidak |
+| `IsPostable`, `IsControlAccount`, `Description`, `EffectiveStartDate` | — | — | — | — | Lama | Tidak |
+| **`Classification`** | `ChartOfAccountClassificationRequest?` | Tidak | kosong = kedua nilai ikut leluhur | — | Lihat di bawah | Tidak |
+
+**`UpdateChartOfAccountRequest`** — + satu field. Aturan baru: `VAL-COA-05` (induk berjenis lain) dan
+`VAL-COA-11` (pindah induk mematahkan sub-klasifikasi turunan). Kode tidak disusun ulang.
+
+| Field | Tipe | Wajib | Bawaan | Validasi |
+|---|---|:---:|---|---|
+| *(field lama)* | — | — | — | Tidak berubah |
+| **`Classification`** | `ChartOfAccountClassificationRequest?` | Tidak | **tidak dikirim = klasifikasi tidak berubah** | Dikirim = ganti penuh kedua nilai |
+
+**`ChartOfAccountClassificationRequest`** — baru, dipakai `POST` dan `PUT`. Kedua field selalu dibaca
+bila kelompoknya dikirim.
+
+| Field | Tipe | Wajib | Bawaan | Validasi |
+|---|---|:---:|---|---|
+| `ReportClassification` | `AccountReportClassification?` | Tidak | `null` = kosongkan, ikut leluhur | `VAL-COA-07`, `08`, `11` |
+| `CurrentAssetCategory` | `CurrentAssetCategory?` | Tidak | `null` = kosongkan, ikut leluhur | `VAL-COA-07`, `09`, `10`, `11` |
+
+Contoh `PUT` 1-1000 — mengisi Lancar + Kas dan Setara Kas tanpa mengubah field lain (field lama tetap dikirim seperti biasa):
+
+```json
+{
+  "accountCode": "1-1000",
+  "accountName": "Kas dan Setara Kas",
+  "parentAccountId": "…",
+  "accountLevel": 2,
+  "isPostable": false,
+  "classification": { "reportClassification": 1, "currentAssetCategory": 1 }
+}
+```
+
+Mengosongkan kembali (ikut leluhur): `"classification": { "reportClassification": null, "currentAssetCategory": null }`.
+Tidak menyentuh klasifikasi: field `classification` tidak dikirim.
+
+### Response
+
+**Field klasifikasi** — ditambahkan pada `ChartOfAccountListResponse` (sehingga juga pada
+`ChartOfAccountDetailResponse` yang mewarisinya) dan pada `ChartOfAccountTreeResponse`:
+
+| Field | Tipe | Isi |
+|---|---|---|
+| `ReportClassification` | `AccountReportClassification?` | Nilai milik akun ini |
+| `CurrentAssetCategory` | `CurrentAssetCategory?` | Nilai milik akun ini |
+| `EffectiveReportClassification` | `AccountReportClassification?` | Nilai yang berlaku sesudah pewarisan; `null` untuk Ekuitas, Pendapatan, Beban, dan untuk yang belum lengkap |
+| `EffectiveCurrentAssetCategory` | `CurrentAssetCategory?` | Sesudah pewarisan; hanya terisi untuk Aset Lancar |
+| `ClassificationGap` | `ClassificationGapKind?` | Terisi bila akun penerima transaksi Aset/Liabilitas belum lengkap |
+
+Tambahan khusus **`ChartOfAccountDetailResponse`**:
+
+| Field | Tipe | Isi |
+|---|---|---|
+| `ReportClassificationSourceAccountId`, `ReportClassificationSourceAccountCode` | `Guid?`, `string?` | Akun asal klasifikasi efektif; sama dengan akun ini bila miliknya sendiri |
+| `CurrentAssetCategorySourceAccountId`, `CurrentAssetCategorySourceAccountCode` | `Guid?`, `string?` | Akun asal sub-klasifikasi efektif |
+
+Contoh rincian 1-1004 Bank Operasional sesudah 1-1000 diklasifikasi:
+
+```json
+{
+  "accountCode": "1-1004",
+  "accountName": "Bank Operasional",
+  "accountType": 1,
+  "reportClassification": null,
+  "currentAssetCategory": null,
+  "effectiveReportClassification": 1,
+  "effectiveCurrentAssetCategory": 1,
+  "classificationGap": null,
+  "reportClassificationSourceAccountCode": "1-1000",
+  "currentAssetCategorySourceAccountCode": "1-1000"
+}
+```
+
+**`ChartOfAccountNextCodeResponse`** — baru
+
+| Field | Tipe | Isi |
+|---|---|---|
+| `AccountCode` | `string` | Usulan kode; final ditetapkan saat simpan |
+| `AccountLevel` | `int` | Tingkat akun baru |
+| `AccountType` | `AccountType` | Jenis akun baru (warisan induk, atau dari query) |
+| `ParentAccountId`, `ParentAccountCode`, `ParentAccountName` | `Guid?`, `string?`, `string?` | Induk |
+| `SuggestedNormalBalance` | `NormalBalance?` | Saldo normal induk sebagai usulan; `null` tanpa induk |
+| `InheritedReportClassification`, `InheritedCurrentAssetCategory` | enum `?` | Klasifikasi efektif induk, yang akan berlaku bila isian klasifikasi dikosongkan |
+| `InheritedFromAccountCode` | `string?` | Kode akun asal klasifikasi warisan |
+
+Contoh — induk 1-1000 di DB dev:
+
+```json
+{
+  "accountCode": "1-1005",
+  "accountLevel": 3,
+  "accountType": 1,
+  "parentAccountCode": "1-1000",
+  "parentAccountName": "Kas dan Setara Kas",
+  "suggestedNormalBalance": 1,
+  "inheritedReportClassification": null,
+  "inheritedCurrentAssetCategory": null,
+  "inheritedFromAccountCode": null
+}
+```
+
+**`BalanceSheetResponse`** — dua field tambahan, field lama tetap
+
+| Field | Tipe | Isi |
+|---|---|---|
+| `UnclassifiedAccountCount` | `int` | Jumlah butir `ClassificationGaps` |
+| `ClassificationGaps` | `List<FinancialStatementClassificationGapResponse>` | Akun penerima transaksi Aset/Liabilitas yang belum lengkap **dan** bernilai tidak nol pada kolom berjalan atau pembanding, urut kode |
+
+`FinancialStatementClassificationGapResponse`: `AccountId` (`Guid`), `AccountCode` (`string`),
+`AccountName` (`string`), `AccountType` (`AccountType`), `GapKind` (`ClassificationGapKind`). Tanpa
+nominal.
+
+### Arti kode status
+
+| Kode | Kapan | Contoh pesan |
+|---|---|---|
+| `200` | Berhasil | "Akun berhasil diperbarui." (lama) |
+| `201` | Akun ditambahkan | "Akun berhasil ditambahkan dengan kode 1-1005." |
+| `400` | Jenis kosong untuk akun tingkat 1 atau di luar 1–5; klasifikasi pada jenis yang tidak berlaku; sub-klasifikasi pada akun yang tidak Lancar; `UnclassifiedOnly` tanpa badan hukum; ditambah aturan lama | "Sub-klasifikasi aset lancar hanya untuk akun berklasifikasi Lancar." |
+| `401` | Belum masuk | — |
+| `403` | Tanpa `ChartOfAccount : Create` (pratinjau, tambah) atau `ChartOfAccount : Update` (ubah, klasifikasi) | — |
+| `404` | Akun tidak ditemukan (lama) | "Akun tidak ditemukan." |
+| `409` | Jenis berbeda dari induk; akar jenis itu sudah ada; nomor penuh; kode hasil > 20 karakter; kode baru saja dipakai penyimpanan lain; perubahan mematahkan sub-klasifikasi turunan; ditambah aturan lama | "Jenis akun harus sama dengan akun induk 1-1000 (Aset)." |
+
+Daftar lengkap aturan dan bunyinya: `contracts/validation-matrix.md` bagian 7 (`ACC-VALIDATION-0.13`).

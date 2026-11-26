@@ -755,3 +755,47 @@ atau nilainya kelak wajib memeriksa ulang laporan (`02-backend-architecture.md` 
 | `MstCostCenter` (HR) | `Id`, `LegalEntityId`, `CostCenterCode`, `CostCenterName`, `IsDelete` | Saringan dan label unit |
 
 `NormalBalance` sengaja **tidak** dipakai (`ACC-DEC-145`).
+
+## 21. Amendment ACC-FIN-001 Master COA — `AccChartOfAccount` status `Diperbarui` *(25 November 2026, **`approved`**, `GATE-DESAIN-1125`)*
+
+Dasar: `ACC-DEC-163`..`170`, `172`, `173`; `02-backend-architecture.md` bagian 26. Pemilik: Accounting —
+`MasterData/ChartOfAccount`. Model: `Areas/Corporate/AccountingManagement/MasterData/ChartOfAccount/Models/AccChartOfAccount.cs`.
+Migration: `AddChartOfAccountReportClassification` (dibuat Rizki sendiri; izin `OQ-167-1` diberikan 25 November 2026).
+
+### 21.1 Kolom baru
+
+| Kolom | Tipe | Wajib | Bawaan | Batas | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|---|:---:|---|
+| `ReportClassification` | `int?` (`integer NULL`) | Tidak | `NULL` — **tanpa** `HasDefaultValue` | Enum `AccountReportClassification`: `1` Lancar, `2` Tidak Lancar | Tidak | — | — | Tidak | Klasifikasi milik akun ini. `NULL` = ikut leluhur terdekat. Hanya boleh terisi pada akun Aset dan Liabilitas (`VAL-COA-08`). Tidak diisi otomatis saat migration maupun saat rilis (`ACC-DEC-168`) |
+| `CurrentAssetCategory` | `int?` (`integer NULL`) | Tidak | `NULL` — tanpa `HasDefaultValue` | Enum `CurrentAssetCategory`: `1` Kas dan Setara Kas, `2` Investasi Jangka Pendek, `3` Piutang, `4` Persediaan, `5` Aset Lancar Lainnya | Tidak | — | — | Tidak | Sub-klasifikasi aset lancar milik akun ini. `NULL` = ikut leluhur. Hanya pada akun Aset yang klasifikasi efektifnya Lancar (`VAL-COA-09`, `10`) |
+
+Tidak ada index baru: kedua kolom hanya dibaca bersama seluruh akun satu badan hukum, tidak pernah
+dipakai sebagai saringan query database.
+
+**Audit dan concurrency.** Perubahan memakai kolom warisan `UpdateBy`/`UpdateDateTime` dan log
+`ChartOfAccount.Classification` (nilai lama → baru). Tidak ada kolom versi; perubahan bersamaan
+dijaga kunci `ACC_COA_KLASIFIKASI_{LegalEntityId}` (bagian 26.8 arsitektur backend).
+
+### 21.2 Kolom lama yang aturannya berubah
+
+| Kolom | Aturan lama | Aturan baru |
+|---|---|---|
+| `AccountCode` | Wajib diisi petugas; unik per badan hukum; ≤ 20 | Pada tambah lewat layar **disusun backend** (`ACC-DEC-163`, `164`); jalur impor boleh mengisi sendiri (`ACC-DEC-170`). Unik per badan hukum dan ≤ 20 tetap. Bentuk dan tipe kolom tidak berubah |
+| `AccountType` | Dipilih petugas, bebas terhadap induk | Akun berinduk **wajib** sama dengan induknya dan diwarisi (`ACC-DEC-166`). Bentuk kolom tidak berubah |
+| `ParentAccountId` | FK ke akun sebadan hukum, tanpa lingkaran | + induk baru saat Ubah Akun harus berjenis sama (`VAL-COA-05`); + tidak boleh mematahkan sub-klasifikasi turunan (`VAL-COA-11`) |
+
+### 21.3 Nilai yang dihitung, tidak disimpan
+
+| Nilai | Dihitung oleh | Dipakai |
+|---|---|---|
+| Klasifikasi efektif, sub-klasifikasi efektif, akun sumbernya | `AccChartOfAccountClassification.Hitung` | Respons Bagan Akun, peringatan neraca, rasio 008-04 kelak |
+| Jenis celah (`ClassificationGapKind`) | `AccChartOfAccountClassification.Celah` | Saringan `UnclassifiedOnly`, `BalanceSheetResponse.ClassificationGaps` |
+
+Contoh isi baris sesudah klasifikasi DB dev diisi (data samaran untuk nama, struktur nyata):
+
+| `AccountCode` | `AccountType` | `ReportClassification` | `CurrentAssetCategory` | Efektif |
+|---|---:|---|---|---|
+| 1-1000 | 1 | `1` | `1` | Lancar · Kas dan Setara Kas |
+| 1-1004 | 1 | `NULL` | `NULL` | Lancar · Kas dan Setara Kas (dari 1-1000) |
+| 1-4002 | 1 | `NULL` | `NULL` | Tidak Lancar (dari 1-4000) |
+| 3-3001 | 3 | `NULL` | `NULL` | Tidak berlaku — Ekuitas |

@@ -1089,3 +1089,193 @@ ada tombol yang dijaga hak lain kecuali tautan ke layar tujuan, yang dijaga laya
 | Tombol Cetak di Buku Besar dan Neraca Saldo | Buku besar berhalaman sehingga cetak hanya memuat satu halaman; neraca saldo hanya diberi CSV (`ACC-DEC-153`) |
 | Tautan ke layar modul sumber | `ACC-DEC-148` butir 3 |
 | Menyentuh `globals.css` atau tema | Konvensi frontend Quilvian |
+
+
+## 16. Amendment 25 November 2026 — Master COA: kode otomatis, jenis warisan, klasifikasi (ACC-FIN-001) — **approved** Rizki (`GATE-DESAIN-1125`)
+
+Dasar: `ACC-DEC-162`..`170`, `172`, `173`; kontrak `ACC-API-0.18`; backend `02-backend-architecture.md`
+bagian 26. Source acuan: `RizkiV2` `a2ddb52d2`.
+
+### 16.1 Hierarki wewenang yang dipakai
+
+| Lapisan | Isi untuk amendment ini |
+|---|---|
+| Keamanan, privasi, invariant | Kode final ditetapkan backend, layar hanya menampilkan pratinjau (`ACC-DEC-164`); jenis akun anak dikunci layar **dan** backend (`ACC-DEC-166`); klasifikasi tidak ditebak dari nama atau kode (`ACC-DEC-168`); pengenal di alamat memakai token rute privat yang ada |
+| Brief produk yang disetujui | `ACC-DEC-162` (induk dipilih dari daftar, tingkat mengikuti induk), `163`/`164` (kode otomatis), `166` (jenis warisan), `167`/`168` (klasifikasi, peringatan neraca, pengisian lewat layar Bagan Akun) |
+| Konvensi proyek | Pola form master data yang ada (`BaseEditorView` lewat `chart-of-account-form-view.jsx`), `DataFilter`/`FilterSelect`, `DataTable`, `StatusBadge`, `InformationAlert`, `BaseDetailView`; aksi rincian master data hanya **Kembali, Perbarui, Hapus** (`AGENTS.md` bagian Aturan Master Data); `globals.css` tidak disentuh |
+| `DEV_DISCRETION` | Letak dan urutan isian klasifikasi di dalam form, bunyi keterangan isian, bentuk penanda "ikut induk", warna lencana belum lengkap — sepanjang memakai komponen di atas |
+
+### 16.2 Peta butir menu
+
+**Tidak ada butir menu baru.** Seluruh layar amendment ini dijangkau dari butir yang sudah ada:
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+|---|:---:|---|---|---|---|---|
+| COA | 2 | Accounting → Master Data | `/corporate/accounting/chart-of-accounts` | `FE-C1` | `ChartOfAccount : Read` (dijaga layar) | Sudah ada |
+| Neraca | 1 | Accounting | `/corporate/accounting/balance-sheet` | `FE-L4` | `GeneralLedger : Read` | Sudah ada |
+
+Layar anak beserta jalan masuknya:
+
+| Layar anak | Rute | Induk (jalan masuk) |
+|---|---|---|
+| `FE-C2` Tambah Akun | `/corporate/accounting/chart-of-accounts/create` | Tombol Tambah di `FE-C1` (lama) |
+| `FE-C3` Perbarui Akun | `/corporate/accounting/chart-of-accounts/[slug]/update` | Tombol Perbarui di `FE-C4` (lama) |
+| `FE-C4` Rincian Akun | `/corporate/accounting/chart-of-accounts/[slug]` | Klik dua kali baris `FE-C1` (lama) |
+| `FE-C1` tersaring "Belum lengkap" | `/corporate/accounting/chart-of-accounts?klasifikasi=belum-lengkap` | Tautan **Lengkapi di Bagan Akun** pada peringatan `FE-L4` (baru) |
+
+### 16.3 Layar
+
+| ID | Layar | Status | Yang berubah |
+|---|---|---|---|
+| `FE-C1` | Daftar COA | Diperbarui | + kolom Klasifikasi; + saringan Klasifikasi (Semua / Belum lengkap) yang juga dibaca dari alamat; tampilan pohon memberi penanda akun belum lengkap |
+| `FE-C2` | Tambah Akun | Diperbarui | Kode menjadi pratinjau tanpa isian; jenis terkunci bila induk dipilih; saldo normal diisi usulan induk; + isian klasifikasi |
+| `FE-C3` | Perbarui Akun | Diperbarui | + isian klasifikasi; kode tetap dapat diubah selama belum dipakai jurnal `Posted` (lama) |
+| `FE-C4` | Rincian Akun | Diperbarui | + baris Klasifikasi dan Sub-klasifikasi beserta asal warisannya. Aksi **tetap** Kembali dan Perbarui |
+| `FE-L4` | Neraca | Diperbarui | + peringatan klasifikasi belum lengkap dengan tautan ke `FE-C1` tersaring. Angka dan tabel tidak berubah |
+
+### 16.4 Skema `FE-C2` Tambah Akun
+
+```text
++- Tambah Akun ------------------------------------------------ FE-C2 -+
+| [Hero: Akuntansi / Tambah Akun]                                      |
++----------------------------------------------------------------------+
+| Badan Hukum        [PT Metropolitan Medical Centre v]                |
+| Akun Induk         [1-1000 — Kas dan Setara Kas    v]                |
+| Kode Akun          1-1005   (kode otomatis — final saat disimpan)    |
+| Tingkat Akun       3        (terkunci: tingkat induk + 1)            |
+| Jenis Akun         Aset     (terkunci: mengikuti induk 1-1000)       |
+| Saldo Normal       [Debit v]  (usulan dari induk, boleh diganti)     |
+| Nama Akun          [______________________]                          |
+| Menerima Transaksi [x]   Control Account [ ]                         |
+| Klasifikasi        [Ikut induk: Lancar            v]                 |
+| Sub-klasifikasi    [Ikut induk: Kas dan Setara Kas v]                |
+| Berlaku Mulai [____]   Keterangan [__________]                       |
++----------------------------------------------------------------------+
+| pratinjau memuat -> "Menyusun kode..."                               |
+| pratinjau gagal  -> pesan backend apa adanya; tombol Simpan mati     |
+|                      contoh "Akun 1-1004 sudah memiliki transaksi…"  |
++--------------------------------------------------- [Batal] [Simpan] -+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Akun Induk | Akun induk aktif, belum menerima transaksi, tingkat < 5 (penyaring lama di `use-chart-of-account-editor`) | `GET /chart-of-accounts/tree` (lama) | `ChartOfAccount : Read` | Kosong → "Tanpa induk (akun tingkat pertama)" |
+| Kode Akun | Teks, bukan isian. Tanpa induk dan tanpa jenis → "Pilih jenis atau induk untuk melihat kode." | `GET /chart-of-accounts/next-code` | `ChartOfAccount : Create` | Gagal → pesan backend (`VAL-COA-06`, `13`, `14`, induk bertransaksi, tingkat 5); Simpan mati sampai induk atau jenis diganti |
+| Tingkat Akun | Terkunci (lama) | Dari pratinjau | — | — |
+| Jenis Akun | Pilihan aktif hanya bila tanpa induk; bila berinduk, terkunci dan terisi jenis induk | Dari pratinjau | — | — |
+| Saldo Normal | Diisi `SuggestedNormalBalance` saat induk dipilih, **kecuali** petugas sudah mengubahnya sendiri | Dari pratinjau | — | Tanpa induk → kosong, wajib dipilih (lama) |
+| Klasifikasi | Pilihan: "Ikut induk: {nilai}" (atau "Ikut induk: belum diisi"), Lancar, Tidak Lancar. Tampil hanya untuk jenis Aset dan Liabilitas | Pilihan tetap di konstanta; label warisan dari pratinjau | — | Jenis lain → isian tidak tampil |
+| Sub-klasifikasi | Pilihan: "Ikut induk: {nilai}", lima sub-klasifikasi. Tampil hanya untuk Aset; aktif hanya bila klasifikasi efektif (isian atau warisan) Lancar | Konstanta + pratinjau | — | Tidak Lancar → isian mati dengan keterangan "Hanya untuk aset lancar." |
+| Simpan | `POST` tanpa `accountCode`; kelompok `classification` dikirim hanya bila salah satu isian bukan "Ikut induk" | `POST /chart-of-accounts` | `ChartOfAccount : Create` | Toast memakai **kode dari respons**, bukan pratinjau; bila berbeda → "Akun tersimpan dengan kode 1-1006 karena 1-1005 baru saja dipakai." `409`/`400` → pesan backend apa adanya |
+
+**Pratinjau dan data basi.** Pratinjau dipanggil saat badan hukum, induk, atau jenis (tanpa induk)
+berganti. Respons yang datang untuk pilihan lama dibuang (pola `requestId` yang dipakai
+`accounting-general-ledger-slice` dan `accounting-period-slice`). Tombol Simpan mati selama pratinjau
+memuat dan selama simpan berjalan, supaya tidak terkirim dua kali.
+
+### 16.5 Skema `FE-C3` Perbarui Akun
+
+Skema lama tidak berubah, ditambah dua isian klasifikasi di bawah Control Account:
+
+```text
+| Kode Akun          [1-1004    ]  (lama: terkunci bila sudah Posted)  |
+| ...                                                                  |
+| Klasifikasi        [Ikut induk: Lancar            v]                 |
+| Sub-klasifikasi    [Ikut induk: Kas dan Setara Kas v]                |
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Klasifikasi, Sub-klasifikasi | Terisi nilai **milik akun** dari rincian (`ReportClassification`, `CurrentAssetCategory`); `null` tampil "Ikut induk: {nilai efektif induk}" | `GET /chart-of-accounts/{id}` (diperluas) | `ChartOfAccount : Update` (lama, layar) | Aturan tampil dan aktif sama dengan `FE-C2` |
+| Simpan | `PUT` lama; kelompok `classification` **selalu** dikirim utuh dari kedua isian (ganti penuh), supaya memilih "Ikut induk" benar-benar mengosongkan | `PUT /chart-of-accounts/{id}` | `ChartOfAccount : Update` | `409` `VAL-COA-11` → pesan backend apa adanya, menyebut kode turunan |
+| Pindah induk | Label "Ikut induk" mengikuti induk **tersimpan** sampai disimpan; sesudah simpan, rincian dimuat ulang | — | — | `409` `VAL-COA-05` → pesan backend |
+
+### 16.6 Skema `FE-C4` Rincian Akun
+
+Dua baris rincian ditambahkan pada `detailFields` yang ada, sesudah Control Account:
+
+| Baris | Bunyi | Sumber |
+|---|---|---|
+| Klasifikasi Laporan | "Lancar" · "Lancar (ikut 1-1000)" · "Belum diisi" (lencana peringatan) · "Tidak berlaku" untuk Ekuitas, Pendapatan, Beban | `EffectiveReportClassification`, `ReportClassificationSourceAccountCode`, `ClassificationGap` |
+| Sub-klasifikasi Aset Lancar | "Kas dan Setara Kas (ikut 1-1000)" · "Belum diisi" · "Tidak berlaku" | `EffectiveCurrentAssetCategory`, `CurrentAssetCategorySourceAccountCode` |
+
+Aksi tetap **Kembali** dan **Perbarui** (`AGENTS.md`); mengubah klasifikasi lewat Perbarui.
+
+### 16.7 Skema `FE-C1` Daftar COA
+
+```text
+| [Jenis v] [Status v] [Transaksi v] [Klasifikasi: Belum lengkap v] [25 baris v] |
+| Kode | Nama Akun | Jenis | Saldo Normal | Tingkat | Transaksi | Control | Klasifikasi | Status |
+| 1-2001 | Piutang Pasien Umum | Aset | Debit | 3 | Ya | — | [Belum lengkap] | Aktif |
+| kosong (saringan Belum lengkap) -> "Seluruh akun sudah terklasifikasi."          |
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Saringan Klasifikasi | `FilterSelect` dua pilihan: Semua, Belum lengkap → `UnclassifiedOnly=true`. Nilai awal dibaca dari `?klasifikasi=belum-lengkap` | `GET /chart-of-accounts` (diperluas) | `ChartOfAccount : Read` | Badan hukum belum terpilih → saringan mati (`VAL-COA-12`) |
+| Kolom Klasifikasi | Nilai efektif singkat: "Lancar · Kas", "Tidak Lancar", lencana "Belum lengkap" bila `ClassificationGap` terisi, "—" untuk jenis lain | Respons daftar | — | — |
+| Tampilan pohon | Penanda kecil "belum lengkap" pada simpul dengan `ClassificationGap` | `GET /tree` (diperluas) | — | — |
+
+### 16.8 Skema `FE-L4` Neraca — tambahan
+
+Satu `InformationAlert` di bawah peringatan yang ada (tahun belum ditutup, tidak seimbang):
+
+```text
+| ! Klasifikasi laporan belum lengkap: 3 akun bersaldo (1002 Kas Besar,  |
+|   1-1003 Kas Kecil, 1-1004 Bank Operasional). Rasio keuangan yang      |
+|   bergantung padanya belum dapat dihitung.   [Lengkapi di Bagan Akun]  |
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Peringatan klasifikasi | Jumlah dan paling banyak lima kode + nama; sisanya "dan {n} akun lain" | `UnclassifiedAccountCount`, `ClassificationGaps` di `GET /balance-sheet` | `GeneralLedger : Read` | Tidak tampil bila 0 |
+| Tautan | Membuka `FE-C1` dengan `?klasifikasi=belum-lengkap` | — | `ChartOfAccount : Read` di layar tujuan | — |
+
+Tampilan cetak neraca **tidak** memuat peringatan ini, mengikuti perlakuan peringatan lain di cetak
+yang sudah ada; CSV tidak berubah.
+
+### 16.9 Aksi per peran
+
+| Aksi | Hak | Peran (matriks `ACC-PERMISSION`) |
+|---|---|---|
+| Melihat klasifikasi, menyaring belum lengkap | `ChartOfAccount : Read` | Seluruh peran Accounting |
+| Tambah akun (pratinjau kode, klasifikasi awal) | `ChartOfAccount : Create` | Accounting Administrator |
+| Perbarui akun termasuk klasifikasi | `ChartOfAccount : Update` | Accounting Administrator |
+| Membaca peringatan di neraca | `GeneralLedger : Read` | Seluruh peran Accounting |
+
+### 16.10 State dan data
+
+| Hal | Rancangan |
+|---|---|
+| Redux | `accounting-chart-of-account-slice.jsx` + satu thunk `getChartOfAccountNextCode` dengan pola `requestId`; thunk `createChartOfAccount`/`updateChartOfAccount` lama tidak berubah bentuk |
+| Pembentuk payload | `buildPayload` di `chart-of-account-utils.jsx`: mode create tidak lagi mengirim `accountCode`, mengirim `accountType` hanya tanpa induk, menambah `classification`; mode update menambah `classification` utuh |
+| Validasi layar | `validateForm`: hapus wajib Kode Akun pada create; Jenis Akun wajib hanya tanpa induk. Aturan klasifikasi lain tidak diulang di layar selain menyembunyikan dan mematikan isian (bagian 16.4) — backend tetap penegak |
+| Konstanta | Pilihan klasifikasi dan sub-klasifikasi beserta label di `chart-of-account-constants.jsx`; kolom dan saringan baru di konfigurasi daftar yang sama |
+| Basi | Pratinjau: respons lama dibuang. Daftar: saringan dari alamat dibaca sekali saat layar dibuka |
+| Aksesibilitas | Kode otomatis dibaca sebagai teks bersama keterangannya; lencana "Belum lengkap" punya teks, bukan warna saja |
+
+### 16.11 Berkas yang tersentuh
+
+| Berkas | Status |
+|---|---|
+| `src/lib/hooks/corporate/accounting/chart-of-account/use-chart-of-account-editor.jsx` | Diperbarui (pratinjau, kunci jenis, usulan saldo normal, toast kode final) |
+| `src/lib/hooks/corporate/accounting/chart-of-account/use-chart-of-account.jsx` | Diperbarui (saringan Klasifikasi + baca alamat) |
+| `src/lib/hooks/corporate/accounting/chart-of-account/use-chart-of-account-detail.jsx` | Diperbarui (baris klasifikasi) |
+| `src/lib/constants/corporate/accounting/chart-of-account/chart-of-account-constants.jsx` | Diperbarui |
+| `src/utils/corporate/accounting/chart-of-account/chart-of-account-utils.jsx` | Diperbarui |
+| `src/lib/state/slice/corporate/accounting/accounting-chart-of-account-slice.jsx` | Diperbarui |
+| `src/components/view/corporate/accounting/chart-of-account/chart-of-account-view.jsx` | Diperbarui (kolom, penanda pohon) |
+| `src/components/view/corporate/accounting/general-ledger/balance-sheet-view.jsx`, `src/lib/hooks/corporate/accounting/general-ledger/use-balance-sheet.jsx` | Diperbarui (peringatan) |
+| `src/app/corporate/accounting/chart-of-accounts/page.jsx` | Diperbarui bila pembacaan alamat membutuhkan `Suspense` (pola `general-ledger/page.jsx`) |
+
+### 16.12 Yang tidak dikerjakan frontend pada amendment ini
+
+| Hal | Alasan |
+|---|---|
+| Menyusun kode akun di peramban | `ACC-DEC-164`: kode final dari backend |
+| Tombol Ubah Klasifikasi di Rincian Akun | `AGENTS.md` (aksi rincian master data) — `ACC-DEC-173` butir 4 |
+| Menebak klasifikasi dari nama atau kode | `ACC-DEC-168` |
+| Neraca terkelompok Lancar/Tidak Lancar | `OQ-173-1` |
+| Layar impor bagan akun | Belum diputuskan; impor `gl_coa` lewat skrip `POST` berkode |
+| Butir menu baru | Tidak dibutuhkan (bagian 16.2) |
+| Menyentuh `globals.css` atau tema | Konvensi frontend Quilvian |
