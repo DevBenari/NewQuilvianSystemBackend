@@ -18,7 +18,7 @@ using QuilvianSystemBackend.Services.Security;
 
 namespace QuilvianSystemBackend.Tests.HumanResource;
 
-// BE-HRD-359 — AT-HRD-PK-51 (HRD-DEC-240, kontrak v30 API 36.6, VR-PK-27, Permission 34.1, INT-HR-117): daftar baca
+// BE-HRD-359 — AT-HRD-PK-51 (HRD-DEC-251, kontrak v31 API 37.6, VR-PK-27, Permission 35.1, INT-HR-121): daftar baca
 // penempatan sementara lintas pegawai. Contoh desain: Raka (ICU) ditempatkan sementara di IGD. Tanggal relatif hari ini (WIB).
 public sealed class TemporaryAssignmentQueryTests : IDisposable
 {

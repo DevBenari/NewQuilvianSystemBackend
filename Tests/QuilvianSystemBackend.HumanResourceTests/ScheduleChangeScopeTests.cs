@@ -18,7 +18,7 @@ using Tukar = QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingMana
 
 namespace QuilvianSystemBackend.Tests.HumanResource;
 
-// BE-HRD-452 — AT-HRD-PK-52 (HRD-DEC-242, kontrak v30 API 36.7, VR-PK-35, Permission 34.2): Perubahan Shift dan
+// BE-HRD-465 — AT-HRD-PK-52 (HRD-DEC-253, kontrak v31 API 37.7, VR-PK-35, Permission 35.2): Perubahan Shift dan
 // Tukar Dinas sisi HR mengikuti cakupan unit. Lewat controller HR. Sari = Kepala Unit ICU; IGD di luar cakupannya.
 public sealed class ScheduleChangeScopeTests : IDisposable
 {
@@ -111,7 +111,7 @@ public sealed class ScheduleChangeScopeTests : IDisposable
             CurrentShiftId = shift.HasValue ? _pagi : null, RequestedShiftId = shift.HasValue ? _malam : null,
             RequestType = shift.HasValue ? SchedulingRequestValueConstants.ScheduleChangeType.ShiftChange : SchedulingRequestValueConstants.ScheduleChangeType.ScheduleChange,
             RequestedDate = new DateOnly(2026, 11, tanggal), EffectiveStartDate = new DateOnly(2026, 11, tanggal),
-            Reason = "Uji BE-HRD-452", RequestStatus = shift.HasValue ? Ubah.Approved : Ubah.Submitted, IsActive = true,
+            Reason = "Uji BE-HRD-465", RequestStatus = shift.HasValue ? Ubah.Approved : Ubah.Submitted, IsActive = true,
         };
         ctx.WfpScheduleChangeRequests.AddRange(
             UbahShift(_ubahIcu, "PSJ-ICU", _ana, _sAna, 20),
@@ -124,7 +124,7 @@ public sealed class ScheduleChangeScopeTests : IDisposable
         {
             Id = id, RequestNumber = nomor, RequesterWorkforceProfileId = pemohon, RequesterShiftAssignmentId = shiftPemohon,
             RequesterShiftDate = new DateOnly(2026, 11, tPemohon), TargetWorkforceProfileId = tujuan, TargetShiftAssignmentId = shiftTujuan,
-            TargetShiftDate = new DateOnly(2026, 11, tTujuan), Reason = "Uji BE-HRD-452", RequestStatus = Tukar.Approved, IsAcceptedByTarget = true, IsActive = true,
+            TargetShiftDate = new DateOnly(2026, 11, tTujuan), Reason = "Uji BE-HRD-465", RequestStatus = Tukar.Approved, IsAcceptedByTarget = true, IsActive = true,
         };
         ctx.WfpShiftSwapRequests.AddRange(
             TukarDinas(_tukarIcu, "TD-ICU", _bayu, _sBayu, 21, _dina, _sDina, 22),

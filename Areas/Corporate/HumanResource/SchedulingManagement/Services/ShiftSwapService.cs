@@ -51,7 +51,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             CancellationToken cancellationToken = default) =>
             BuildSummaryAsync(workforceProfileId, null, cancellationToken);
 
-        /// <summary>Ringkasan sisi HR: hanya tukar dinas yang shift pemohon atau tujuannya dalam cakupan baca (HRD-DEC-242).</summary>
+        /// <summary>Ringkasan sisi HR: hanya tukar dinas yang shift pemohon atau tujuannya dalam cakupan baca (HRD-DEC-253).</summary>
         public async Task<ShiftSwapSummaryResponse> GetSummaryInScopeAsync(
             Guid? workforceProfileId,
             CancellationToken cancellationToken = default) =>
@@ -108,7 +108,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             CancellationToken cancellationToken = default) =>
             BuildPagedAsync(null, workforceProfileId, viewMode, requestStatus, startDate, endDate, search, sortDirection, pageNumber, pageSize, cancellationToken);
 
-        /// <summary>Daftar sisi HR: hanya tukar dinas yang shift pemohon atau tujuannya dalam cakupan baca (HRD-DEC-242).</summary>
+        /// <summary>Daftar sisi HR: hanya tukar dinas yang shift pemohon atau tujuannya dalam cakupan baca (HRD-DEC-253).</summary>
         public async Task<PagedResult<ShiftSwapListResponse>> GetPagedInScopeAsync(
             Guid? workforceProfileId,
             string? viewMode,
@@ -995,7 +995,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     .ThenInclude(x => x!.Shift);
         }
 
-        // HRD-DEC-242 / desain 38.9.5: tukar dinas terbaca bila unit shift pemohon ATAU unit shift tujuan dalam cakupan baca.
+        // HRD-DEC-253 / desain 39.9.5: tukar dinas terbaca bila unit shift pemohon ATAU unit shift tujuan dalam cakupan baca.
         // Unit shift = unit periode rosternya, atau unit shift itu sendiri bila periode tidak bertautan unit (aturan Ganti Petugas).
         // readScope null = tanpa saringan (ESS, workflow).
         private static IQueryable<WfpShiftSwapRequest> ApplyReadScope(

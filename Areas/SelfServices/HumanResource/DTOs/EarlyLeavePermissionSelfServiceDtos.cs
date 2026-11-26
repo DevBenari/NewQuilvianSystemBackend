@@ -4,7 +4,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.D
 namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs
 {
     /// <summary>
-    /// Saringan daftar izin pulang cepat milik sendiri (kontrak v30 API 36.4). Tidak ada parameter pegawai: identitas dari sesi.
+    /// Saringan daftar izin pulang cepat milik sendiri (kontrak v31 API 37.4). Tidak ada parameter pegawai: identitas dari sesi.
     /// </summary>
     public class EarlyLeaveSelfQuery
     {

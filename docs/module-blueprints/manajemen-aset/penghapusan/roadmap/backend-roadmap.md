@@ -18,11 +18,11 @@ Kejadian `AST-PENGHAPUSAN`/`AST-PEMULIHAN` ditulis ke kotak keluar `nilai` dan b
 ## Grafik Urutan Dependency
 
 ```text
-BE-AST-025 [NLI] ─> BE-AST-033 ─┬─> BE-AST-034 ─┬─> BE-AST-035 ─┬─> BE-AST-036
-                                │               │               │
-BE-AST-010 [REG] ───────────────┘               │               └─> BE-AST-037
-                                                │
-                            BE-AST-027 [NLI] ───┘
+BE-AST-025 [NLI] ✅ ─> BE-AST-033 ─┬─> BE-AST-034 ─┬─> BE-AST-035 ─┬─> BE-AST-036
+                                   │               │               │
+BE-AST-010 [REG] ──────────────────┘               │               └─> BE-AST-037
+                                                   │
+                            BE-AST-027 [NLI] 🟡 ───┘
 ```
 
 `[NLI]` = task backend sub-modul `nilai` · `[REG]` = task backend sub-modul `register`. Cermin baca-saja.

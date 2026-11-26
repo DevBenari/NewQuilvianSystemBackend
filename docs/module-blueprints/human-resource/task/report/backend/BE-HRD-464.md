@@ -1,22 +1,22 @@
-# Laporan Perubahan Backend — `BE-HRD-451`
+# Laporan Perubahan Backend — `BE-HRD-464`
 
 ## Metadata
 
 | Field | Nilai |
 | --- | --- |
-| Task ID | `BE-HRD-451` |
+| Task ID | `BE-HRD-464` |
 | Judul | Pengecualian konversi tidak memblokir tutup dan diselesaikan saat tutup |
-| Slice | `A52-B` / `MVP-74` gelombang 1 · `EPIC HRD-126` (`MUST HAVE`) |
-| Roadmap | `roadmap/backend-roadmap.md` bagian 30, kartu `BE-HRD-451` |
-| Trace | `FR-PK-034`; `HRD-DEC-238`; fakta `HRD-TF-089` |
-| Contract version | `v30` — API 36.3; Validation `VR-PK-31`; State 34.2; Integration `INT-HR-116`; desain `02` 38.4, 38.9.2, 38.10, 38.11 — approved 24 November 2026 |
-| Dependency | Kontrak `v30` ✅ |
+| Slice | `A52-B` / `MVP-77` gelombang 1 · `EPIC HRD-132` (`MUST HAVE`) |
+| Roadmap | `roadmap/backend-roadmap.md` bagian 32, kartu `BE-HRD-464` |
+| Trace | `FR-PK-034`; `HRD-DEC-249`; fakta `HRD-TF-093` |
+| Contract version | `v31` — API 37.3; Validation `VR-PK-31`; State 35.2; Integration `INT-HR-120`; desain `02` 39.4, 38.9.2, 38.10, 38.11 — approved 24 November 2026 |
+| Dependency | Kontrak `v31` ✅ |
 | Klasifikasi | `STANDARD` — aturan service dalam transaksi yang ada, perluasan dua DTO respons, satu teks log; tanpa perubahan skema |
-| Task mode | `BACKEND` (instruksi pengguna 25 November 2026: "lanjutkan BE-HRD-451") |
+| Task mode | `BACKEND` (instruksi pengguna 25 November 2026: "lanjutkan BE-HRD-464") |
 | Model | Claude Opus 5.5 |
-| Source acuan | Backend `4d2c0162` (branch `yoga`). Working tree sebelum task memuat `BE-HRD-450` (belum di-commit) dan dokumen amandemen `A52-B`; keduanya tidak disentuh task ini |
+| Source acuan | Backend `4d2c0162` (branch `yoga`). Working tree sebelum task memuat `BE-HRD-463` (belum di-commit) dan dokumen amandemen `A52-B`; keduanya tidak disentuh task ini |
 | Tanggal | 25 November 2026 |
-| Status | ✅ Selesai — 4/4 acceptance criteria terpenuhi di harness; bukti API data asli devYoga ada di `BE-HRD-455` |
+| Status | ✅ Selesai — 4/4 acceptance criteria terpenuhi di harness; bukti API data asli devYoga ada di `BE-HRD-468` |
 
 ### Backend Governance Preflight
 
@@ -37,8 +37,8 @@ Contoh: periode presensi ICU Februari 2027 (`ATP-2027-02`). Rina lupa scan pulan
 | Langkah | Yang terjadi |
 | --- | --- |
 | Admin HRD membuka pratinjau tutup (`GET periods/{id}/close-preview`) | Pengecualian Rina tidak lagi dihitung di `openPayrollBlockingException`, dan isu `PAYROLL_BLOCKING_EXCEPTION` tidak muncul. `conversionExceptionCount = 1`. Hari Rina tetap tercantum di daftar calon konversi (peringatan `INCOMPLETE_PUNCH_ATTENDANCE`), dan `canClose = true` |
-| Admin HRD menutup periode (`POST periods/{id}/close`) | Dalam satu transaksi `Serializable`, rekap Rina menjadi `Absent`. Pengecualian `MissingCheckOut` menjadi `Closed` dengan `resolvedByUserId` = penutup, `resolvedAt` = jam tutup, dan catatan "Diselesaikan oleh penutupan periode ATP-2027-02 (HRD-DEC-238): hari dikonversi menjadi Absent". Periode menjadi `Closed`. Respons memuat `closedConversionExceptionCount = 1`, dan pesan menyebut jumlahnya |
-| Log aplikasi | `AttendancePeriod.Close`: "Menutup attendance period ATP-2027-02: 1 hari dikonversi menjadi Absent, 1 pengecualian konversi ditutup (HRD-DEC-238)." |
+| Admin HRD menutup periode (`POST periods/{id}/close`) | Dalam satu transaksi `Serializable`, rekap Rina menjadi `Absent`. Pengecualian `MissingCheckOut` menjadi `Closed` dengan `resolvedByUserId` = penutup, `resolvedAt` = jam tutup, dan catatan "Diselesaikan oleh penutupan periode ATP-2027-02 (HRD-DEC-249): hari dikonversi menjadi Absent". Periode menjadi `Closed`. Respons memuat `closedConversionExceptionCount = 1`, dan pesan menyebut jumlahnya |
+| Log aplikasi | `AttendancePeriod.Close`: "Menutup attendance period ATP-2027-02: 1 hari dikonversi menjadi Absent, 1 pengecualian konversi ditutup (HRD-DEC-249)." |
 | Budi punya `ScheduleConflict` terbuka pada hari `IncompletePunch` | Tetap memblokir: pratinjau `canClose = false`, tutup `409` "Masih terdapat attendance exception yang memblokir payroll." Tidak ada yang berubah |
 | Dodi punya `MissingCheckOut` terbuka pada hari `Present` (bukan calon konversi) | Tetap memblokir, `409` |
 | Database gagal di tengah tutup | Seluruhnya batal: periode tetap `Open`, rekap tetap `IncompletePunch`, pengecualian tetap `Open` |
@@ -64,7 +64,7 @@ Contoh: periode presensi ICU Februari 2027 (`ATP-2027-02`). Rina lupa scan pulan
 | `AttendancePeriodController.cs` | Tidak termasuk cakupan | Satu pemanggilan log diubah | Outcome meminta log `AttendancePeriod.Close` memuat jumlahnya. `LoggerService` tidak menulis objek payload, hanya teks pesan, jadi jumlahnya harus masuk ke teks |
 | Pengecualian konversi yang tidak memblokir payroll (`IsPayrollBlocking = false`) | Tidak disebut | Ikut dihitung di `ConversionExceptionCount` dan ikut ditutup | Desain 38.9.2 mendefinisikan pengecualian konversi dari tipe, status, dan hari, bukan dari penanda payroll. Hari itu menjadi `Absent`, jadi pengecualiannya tidak lagi bermakna |
 | Pesan sukses tutup | Tidak disebut | Menyebut jumlah pengecualian yang ditutup | Supaya hasil di layar sama dengan isi log; ruas `closedConversionExceptionCount` tetap sumber angka untuk frontend |
-| Status kontrak API 36.3 | Tabel masih "Sudah ada — perubahan **Rencana (belum tersedia)**" | Tidak disunting | Artefak kontrak terkunci hash. Penyegaran status dicatat untuk pass blueprint |
+| Status kontrak API 37.3 | Tabel masih "Sudah ada — perubahan **Rencana (belum tersedia)**" | Tidak disunting | Artefak kontrak terkunci hash. Penyegaran status dicatat untuk pass blueprint |
 
 ---
 
@@ -77,7 +77,7 @@ Contoh: periode presensi ICU Februari 2027 (`ATP-2027-02`). Rina lupa scan pulan
 | Regresi penuh proyek uji HR | 430/430 lulus (12 menit 49 detik) sesudah build ulang dari source asli, dengan env `QUILVIAN_BACKEND_ROOT`. Dijalankan dari salinan tanpa empat uji payroll yang tidak terkompilasi sejak merge `815ce085`; salinan selain itu identik dengan folder uji repo | `PASS` | `test451-full.log` |
 | Build proyek utama | 0 galat (`-p:RunAnalyzers=False`) | `PASS` | `build451-final.log` |
 | QBE `Strict` atas 4 berkas | 0 violation, 0 review. Probe `TrxZzzQbeProbe451` (ber-`[Table]`) terdeteksi 4 violation (`QBE-NAM-001`, `QBE-ENT-001`, `QBE-CFG-001`, `QBE-MOD-002`) lalu dihapus | `PASS` | Keluaran checker |
-| Bukti API data asli devYoga (`AT-HRD-PK-48`, ulang `UAT-PK-09`) | Tidak dijalankan di task ini | `NOT RUN` | Kartu menempatkannya di `BE-HRD-455` |
+| Bukti API data asli devYoga (`AT-HRD-PK-48`, ulang `UAT-PK-09`) | Tidak dijalankan di task ini | `NOT RUN` | Kartu menempatkannya di `BE-HRD-468` |
 
 ### Acceptance criteria
 
@@ -94,7 +94,7 @@ Contoh: periode presensi ICU Februari 2027 (`ATP-2027-02`). Rina lupa scan pulan
 
 | Temuan | Dampak | Tindakan |
 | --- | --- | --- |
-| As-is: setiap pengecualian terbuka yang memblokir payroll menghalangi tutup, termasuk `MissingCheckOut` pada hari yang pasti dikonversi menjadi `Absent` saat tutup (`HRD-TF-089`) | Periode dengan hari Belum Lengkap tidak bisa ditutup tanpa menyelesaikan pengecualiannya satu per satu, padahal tutup sendiri yang memutuskan hari itu | Diperbaiki (inti task) |
+| As-is: setiap pengecualian terbuka yang memblokir payroll menghalangi tutup, termasuk `MissingCheckOut` pada hari yang pasti dikonversi menjadi `Absent` saat tutup (`HRD-TF-093`) | Periode dengan hari Belum Lengkap tidak bisa ditutup tanpa menyelesaikan pengecualiannya satu per satu, padahal tutup sendiri yang memutuskan hari itu | Diperbaiki (inti task) |
 | As-is: log `AttendancePeriod.Close` hanya berisi "Menutup attendance period." karena payload diabaikan `LoggerService` | Jejak tutup tidak memuat kode periode maupun jumlah | Diperbaiki untuk aksi tutup; aksi lain di controller ini tidak disentuh |
 | Pengecualian tertutup otomatis bisa menyembunyikan masalah data | Risiko kartu | Dijaga catatan penyelesaian yang menyebut periode dan keputusan, pelaku penutup, jam tutup, serta log jumlah |
 | Buka kembali tidak membatalkan konversi maupun membuka ulang pengecualian | Perilaku yang disengaja (desain 38.9.2 butir 5) | Koreksi lewat koreksi presensi |
@@ -107,6 +107,6 @@ Contoh: periode presensi ICU Februari 2027 (`ATP-2027-02`). Rina lupa scan pulan
 | --- | --- |
 | Migration / database | Tidak ada migration. Tidak ada eksekusi database |
 | Git | Tidak ada stage, commit, push, pull, merge, rebase, atau deploy. Berkas baru: `AttendancePeriodCloseConversionExceptionTests.cs` (cukup `git add`) |
-| Dampak frontend | Dua ruas baru tanpa menghapus ruas lama. Pratinjau dapat menyebut `conversionExceptionCount` pada konfirmasi, dan hasil tutup menyebut `closedConversionExceptionCount` (`FE-HRD-403`) |
-| Bukti data asli | `AT-HRD-PK-48` / ulang `UAT-PK-09` di devYoga dikerjakan di `BE-HRD-455` |
-| Task berikutnya | `BE-HRD-452` (cakupan unit Perubahan Shift dan Tukar Dinas sisi HR); `FE-HRD-403` dapat mulai memakai ruas baru ini |
+| Dampak frontend | Dua ruas baru tanpa menghapus ruas lama. Pratinjau dapat menyebut `conversionExceptionCount` pada konfirmasi, dan hasil tutup menyebut `closedConversionExceptionCount` (`FE-HRD-412`) |
+| Bukti data asli | `AT-HRD-PK-48` / ulang `UAT-PK-09` di devYoga dikerjakan di `BE-HRD-468` |
+| Task berikutnya | `BE-HRD-465` (cakupan unit Perubahan Shift dan Tukar Dinas sisi HR); `FE-HRD-412` dapat mulai memakai ruas baru ini |

@@ -880,3 +880,212 @@ akunnya.
 | Pemberitahuan langsung lewat SignalR | Ditolak `ACC-DEC-057`. Memakai penanda jumlah pada menu |
 | Layar Laba Rugi dan Neraca | Tetap ditunda `ACC-DEC-030`; bukan bagian dari keempat slice Phase 2 |
 | Komponen tabel baris jurnal tandingan untuk template | Form Jurnal Berulang memakai ulang komponen Form Jurnal |
+
+## 15. Amendment 24 November 2026 — buku besar, laba rugi, dan neraca (ACC-FIN-005 + 008) — **approved** Rizki (`GATE-DESAIN-1124`)
+
+Dasar: `ACC-DEC-141`..`155`; kontrak `ACC-API-0.17`; backend `02-backend-architecture.md` bagian 25.
+Source acuan: `RizkiV2` `22894248`.
+
+### 15.1 Hierarki wewenang yang dipakai
+
+| Lapisan | Isi untuk slice ini |
+|---|---|
+| Keamanan, privasi, invariant | Hanya jurnal `Posted`; hak `GeneralLedger : Read` ditegakkan backend; kolom Asal tanpa pengenal pasien (`ACC-DEC-056`); pengenal di alamat memakai token rute privat yang sudah ada, bukan Guid mentah |
+| Brief produk yang disetujui | `ACC-DEC-152` (dua menu, rute, isi ringkasan) dan PRD bagian 7.1 serta 7.4 (skema laporan, tombol aksi tidak di header halaman) |
+| Konvensi proyek | Pola halaman Neraca Saldo: `Hero` + `AccountingHeroLegalEntity`, `DataFilter`, `FilterSelect`, `DataTable`, `StatusBadge`, `BaseButton`, `AccessDeniedGate`; module CSS per layar; **`globals.css` tidak disentuh** |
+| `DEV_DISCRETION` | Warna, jarak, ikon, bentuk baris yang dapat dibuka-tutup, letak peringatan, kerangka pemuatan |
+
+### 15.2 Peta butir menu
+
+Disunting di `src/utils/menu-sidebar/menu-items.jsx`, grup Accounting yang sudah ada.
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+|---|:---:|---|---|---|---|---|
+| Buku Besar | 1 | Accounting | `/corporate/accounting/general-ledger` | `FE-L1` | `GeneralLedger : Read` | Sudah ada |
+| Neraca Saldo | 1 | Accounting | `/corporate/accounting/trial-balance` | `FE-L2` | `GeneralLedger : Read` | Sudah ada |
+| **Laba Rugi** | 1 | Accounting | `/corporate/accounting/income-statement` | `FE-L3` | `GeneralLedger : Read` | **Baru**, sesudah Neraca Saldo |
+| **Neraca** | 1 | Accounting | `/corporate/accounting/balance-sheet` | `FE-L4` | `GeneralLedger : Read` | **Baru**, sesudah Laba Rugi |
+
+Butir Accounting yang ada tidak memakai `requiredPermission`; kedua butir baru mengikuti pola yang
+sama supaya grup tetap seragam. Penjagaan layar dilakukan `AccessDeniedGate` dan backend. Kartu
+beranda Accounting (`accounting-constants.jsx`) mendapat dua entri tambahan dengan pola entri
+`general-ledger` yang ada.
+
+### 15.3 Layar
+
+| ID | Layar | Rute | Status | Jalan masuk |
+|---|---|---|---|---|
+| `FE-L1` | Buku Besar | `/corporate/accounting/general-ledger` | Diperbarui | Menu; tautan dari baris akun `FE-L3`/`FE-L4` |
+| `FE-L2` | Neraca Saldo | `/corporate/accounting/trial-balance` | Diperbarui (tombol unduh saja) | Menu |
+| `FE-L3` | Laba Rugi | `/corporate/accounting/income-statement` | Baru | Menu |
+| `FE-L4` | Neraca | `/corporate/accounting/balance-sheet` | Baru | Menu |
+
+Rincian Jurnal (`/corporate/accounting/journals/[slug]`) dan Rincian Kejadian
+(`/corporate/accounting/accounting-events/[slug]`) sudah ada dan menjadi tujuan tautan; keduanya tidak
+berubah.
+
+### 15.4 Skema `FE-L1` Buku Besar
+
+```text
++- Buku Besar ------------------------------------------------- FE-L1 -+
+| [Hero: judul, deskripsi, badan hukum]                                |
++----------------------------------------------------------------------+
+| [Akun v] [Unit Biaya v (opsional)] [Tgl Awal] [Tgl Akhir] [25 baris] |
+|                                     [Atur ulang] [Unduh CSV]         |
++----------------------------------------------------------------------+
+| Saldo Awal | Total Debit | Total Kredit | Saldo Akhir                |
+| ! Saldo ini hanya bagian unit Radiologi.   (bila unit dipilih)       |
++----------------------------------------------------------------------+
+| Tanggal | No. Jurnal (tautan) | Asal (tautan bila kejadian) | Unit |   |
+|         | Keterangan          | Debit | Kredit | Saldo Berjalan     |
++----------------------------------------------------------------------+
+| memuat -> kerangka baris                                             |
+| belum pilih akun -> "Pilih akun untuk melihat mutasinya."            |
+| kosong -> "Tidak ada mutasi pada rentang ini."        [Atur ulang]   |
+| gagal  -> "Buku besar gagal dimuat."                  [Coba lagi]    |
++- Halaman 1 dari n ------------------------ [< Sebelumnya] [Berikutnya >]
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Saringan | Akun, unit biaya, rentang tanggal, ukuran halaman | Pilihan akun dan unit biaya dari endpoint pilihan yang sudah dipakai form jurnal | `GeneralLedger : Read` | Unit biaya kosong = seluruh baris |
+| Ringkasan | Saldo awal, total debit, total kredit, saldo akhir | `GET /general-ledger/movements/summary` | `GeneralLedger : Read` | Gagal → strip ringkasan diganti "Ringkasan gagal dimuat." tanpa menahan tabel |
+| Catatan unit | Kalimat bagian unit (`ACC-DEC-147` butir 1) | Dari saringan | — | Tidak tampil bila unit kosong |
+| Tabel | Baris mutasi, kolom Asal dan Unit baru | `GET /general-ledger/movements` | `GeneralLedger : Read` | Lihat skema |
+| Tautan No. Jurnal | Membuka Rincian Jurnal lewat token rute privat (`registerPrivateRouteToken`, cakupan dan jenis token milik konfigurasi jurnal yang ada) | `JournalId` di baris | `Journal : Read` di layar tujuan | — |
+| Tautan Asal | Hanya bila `SourceKind = 2`: membuka Rincian Kejadian lewat token rute privat kotak masuk | `AccountingEventId` di baris | `AccountingEvent : Read` di layar tujuan | Asal lain tampil sebagai teks |
+| Unduh CSV | Seluruh baris sesuai saringan | `GET /general-ledger/movements/export` | `GeneralLedger : Read` | `422` → pesan backend apa adanya; galat lain → "Berkas gagal diunduh." |
+
+**Masuk dari laporan (`ACC-DEC-148` butir 4).** Layar membaca saringan awal dari alamat:
+`?account={token}&from={yyyy-MM-dd}&to={yyyy-MM-dd}&costCenter={token}`. Akun dan unit biaya memakai
+token rute privat, bukan Guid. Bila token tidak dapat diurai — misalnya alamat dibuka di tab lain yang
+tidak menyimpan tokennya — layar tampil dengan saringan kosong dan pesan "Saringan dari tautan tidak
+dapat dibaca. Pilih akun kembali." **Contoh:** klik baris "Kas Kasir" kolom 30 Nov 2026 pada Neraca →
+Buku Besar terbuka untuk akun Kas Kasir, 1 Januari–30 November 2026.
+
+### 15.5 Skema `FE-L2` Neraca Saldo
+
+Skema yang ada tidak berubah. Satu tombol **Unduh CSV** ditambahkan di baris saringan, aktif bila
+periode sudah dipilih, memanggil `GET /general-ledger/trial-balance/export` dengan saringan yang
+sama. Gagal → "Berkas gagal diunduh."
+
+### 15.6 Skema `FE-L3` Laba Rugi
+
+```text
++- Laba Rugi -------------------------------------------------- FE-L3 -+
+| [Hero: judul, deskripsi, badan hukum]                                |
++----------------------------------------------------------------------+
+| [Periode v] [Unit Biaya v (opsional)] [ ] Tampilkan akun bersaldo nol|
+|                                          [Unduh CSV] [Cetak]         |
++----------------------------------------------------------------------+
+| Total Pendapatan | Total Beban | Laba (Rugi) Bersih   (kolom YTD)    |
+| ! Hanya baris jurnal yang mencatat unit biaya ini ... (bila unit)    |
+| i Periode November 2025 belum ada di sistem. (bila tanpa pembanding) |
++----------------------------------------------------------------------+
+|                  | Nov 2026 | Nov 2025 | Selisih | Jan-Nov 26 | ...  |
+| PENDAPATAN       |          |          |         |            |      |
+|   Pendapatan Layanan (subtotal)                                      |
+|     Pendapatan Rawat Jalan (tautan)                                  |
+|     Potongan Pendapatan          (5.000.000)                         |
+| Total Pendapatan                                                     |
+| BEBAN ...                                                            |
+| Total Beban                                                          |
+| LABA (RUGI) BERSIH                                                   |
++----------------------------------------------------------------------+
+| belum pilih periode -> "Pilih periode untuk menyusun laba rugi."     |
+| kosong -> "Belum ada pendapatan maupun beban yang disahkan pada      |
+|            periode ini."                                             |
+| gagal  -> "Laba rugi gagal dimuat."                   [Coba lagi]    |
++----------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Saringan | Periode, unit biaya, akun nol | Pilihan periode dari endpoint periode yang sudah dipakai Neraca Saldo | `GeneralLedger : Read` | — |
+| Ringkasan | Total pendapatan, total beban, laba bersih — kolom YTD | `GET /general-ledger/income-statement` (`Sections[].Total`, `NetIncome`) | `GeneralLedger : Read` | Ikut keadaan tabel |
+| Catatan unit | `CostCenterNotice` | Respons yang sama | — | Tidak tampil bila kosong |
+| Catatan pembanding | `ComparisonUnavailableReason`; kolom pembanding dan selisih tampil `—` | Respons yang sama | — | — |
+| Tabel bertingkat | Baris `Sections[].Rows` berurutan; indentasi dari `Depth`; `RowKind = 2` tebal sebagai subtotal; nilai negatif dalam kurung | Respons yang sama | `GeneralLedger : Read` | Lihat skema |
+| Tautan baris akun | `RowKind = 1`: buka `FE-L1` akun itu dengan rentang kolom yang diklik — kolom periode atau YTD — dan unit biaya terpilih | `AccountId` + rentang dari respons | `GeneralLedger : Read` | — |
+| Unduh CSV | Laporan apa adanya, termasuk pilihan akun nol | `GET /general-ledger/income-statement/export` | `GeneralLedger : Read` | "Berkas gagal diunduh." |
+| Cetak | `window.print()`; tampilan cetak menyembunyikan saringan dan tombol lewat `@media print` di module CSS layar, mengikuti pola laporan AR Finance dan rincian tagihan Billing | — | `GeneralLedger : Read` | — |
+
+Kolom YTD dan kolom periode dapat sama-sama tampil; pada layar sempit, penataan keenam kolom angka
+adalah `DEV_DISCRETION` (misalnya kolom pertama tetap, sisanya bergulir).
+
+### 15.7 Skema `FE-L4` Neraca
+
+```text
++- Neraca ----------------------------------------------------- FE-L4 -+
+| [Hero: judul, deskripsi, badan hukum]                                |
++----------------------------------------------------------------------+
+| [Periode v] [ ] Tampilkan akun bersaldo nol      [Unduh CSV] [Cetak] |
++----------------------------------------------------------------------+
+| Total Aset | Total Liabilitas | Total Ekuitas | [Seimbang] / [Tidak] |
+| ! Tahun buku 2026 belum ditutup.        (bila UnclosedFiscalYears)   |
+| ! Neraca tidak seimbang, selisih Rp 100. Periksa Neraca Saldo.       |
++----------------------------------------------------------------------+
+|                         | 30 Nov 2026 | 31 Des 2025 | Selisih        |
+| ASET ...                                                             |
+| Total Aset                                                           |
+| LIABILITAS ...                                                       |
+| EKUITAS                                                              |
+|   Modal, Laba Ditahan (tautan)                                       |
+|   Laba (Rugi) Tahun Lalu Belum Ditutup   (baris hitungan, tanpa      |
+|   Laba (Rugi) Tahun Berjalan              tautan)                    |
+| Total Ekuitas                                                        |
+| TOTAL LIABILITAS DAN EKUITAS                                         |
++----------------------------------------------------------------------+
+| belum pilih periode / kosong / gagal: pola sama dengan FE-L3         |
++----------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Ringkasan | Total aset, liabilitas, ekuitas, status seimbang (`StatusBadge`) | `GET /general-ledger/balance-sheet` | `GeneralLedger : Read` | Ikut keadaan tabel |
+| Peringatan tutup tahun | Menyebut setiap tahun di `UnclosedFiscalYears` | Respons yang sama | — | Tidak tampil bila daftar kosong |
+| Peringatan tidak seimbang | `Difference` dalam rupiah (`ACC-DEC-154`) | Respons yang sama | — | Tidak tampil bila `IsBalanced` |
+| Tabel bertingkat | Seperti `FE-L3`, satu pasang kolom; baris `RowKind = 3` tampil miring dan tidak bertautan | Respons yang sama | `GeneralLedger : Read` | — |
+| Tautan baris akun | Buka `FE-L1` akun itu, dari awal data sampai tanggal kolom yang diklik | `AccountId` + `AsOfDate`/`ComparisonAsOfDate` | `GeneralLedger : Read` | — |
+| Unduh CSV, Cetak | Seperti `FE-L3` | `GET /general-ledger/balance-sheet/export` | `GeneralLedger : Read` | "Berkas gagal diunduh." |
+
+### 15.8 Aksi per peran
+
+Satu-satunya hak yang dipakai adalah `GeneralLedger : Read`, dipegang seluruh peran Accounting. Tidak
+ada tombol yang dijaga hak lain kecuali tautan ke layar tujuan, yang dijaga layar tujuan sendiri.
+
+### 15.9 State dan data
+
+| Hal | Rancangan |
+|---|---|
+| Redux | `accounting-general-ledger-slice.jsx` yang ada diperluas dengan tiga thunk dan tiga potongan state: ringkasan mutasi, laba rugi, neraca. Tanpa cache lintas kunjungan, seperti neraca saldo |
+| Unduhan | Tidak lewat Redux. Hook layar memanggil `InstanceAxios` dengan `responseType: "blob"` lalu memicu unduhan dengan nama dari `Content-Disposition`, mengikuti pola hook Finance (`use-supplier-payable-movements.jsx`). Tombol mati selama unduhan berjalan supaya tidak terkirim dua kali |
+| Hook | `use-general-ledger.jsx` dan `use-trial-balance.jsx` diperluas; `use-income-statement.jsx` dan `use-balance-sheet.jsx` baru di folder `general-ledger` yang sama |
+| Konstanta | Bunyi keadaan kosong dan catatan di `lib/constants/corporate/accounting/general-ledger/` |
+| Penyusunan pohon | **Tidak** dilakukan frontend; urutan dan kedalaman dibaca apa adanya dari respons (`02-backend-architecture.md` bagian 25.6) |
+| Basi | Mengganti periode, unit biaya, atau badan hukum membatalkan hasil sebelumnya; respons yang datang terlambat untuk saringan lama dibuang |
+| Aksesibilitas | Nilai negatif dibaca sebagai "minus", bukan hanya tanda kurung; baris subtotal punya penanda selain tebal |
+
+### 15.10 Berkas yang tersentuh
+
+| Berkas | Status |
+|---|---|
+| `src/app/corporate/accounting/income-statement/page.jsx`, `income-statement-client.jsx` | Baru |
+| `src/app/corporate/accounting/balance-sheet/page.jsx`, `balance-sheet-client.jsx` | Baru |
+| `src/components/view/corporate/accounting/general-ledger/income-statement-view.jsx`, `balance-sheet-view.jsx` | Baru |
+| `src/components/view/corporate/accounting/general-ledger/general-ledger-view.jsx`, `trial-balance-view.jsx` | Diperbarui |
+| `src/lib/hooks/corporate/accounting/general-ledger/use-income-statement.jsx`, `use-balance-sheet.jsx` | Baru |
+| `src/lib/hooks/corporate/accounting/general-ledger/use-general-ledger.jsx`, `use-trial-balance.jsx` | Diperbarui |
+| `src/lib/state/slice/corporate/accounting/accounting-general-ledger-slice.jsx` | Diperbarui |
+| `src/style/corporate/accounting/income-statement-view.module.css`, `balance-sheet-view.module.css` | Baru |
+| `src/utils/menu-sidebar/menu-items.jsx`, `src/lib/constants/corporate/accounting/accounting-constants.jsx` | Diperbarui |
+
+### 15.11 Yang tidak dikerjakan frontend pada slice ini
+
+| Hal | Alasan |
+|---|---|
+| Menyusun CSV atau PDF di peramban | `ACC-DEC-149` — CSV dari backend, PDF lewat cetak peramban |
+| Menghitung ulang total atau saldo | Angka hanya dari backend, supaya layar, CSV, dan neraca saldo sepakat |
+| Tombol Cetak di Buku Besar dan Neraca Saldo | Buku besar berhalaman sehingga cetak hanya memuat satu halaman; neraca saldo hanya diberi CSV (`ACC-DEC-153`) |
+| Tautan ke layar modul sumber | `ACC-DEC-148` butir 3 |
+| Menyentuh `globals.css` atau tema | Konvensi frontend Quilvian |

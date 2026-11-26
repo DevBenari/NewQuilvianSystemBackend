@@ -169,7 +169,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     ReadScopeDeniedMessage);
             }
 
-            // HRD-DEC-237: shift ditampilkan di baris petugas yang memegangnya sekarang. Ganti Petugas hanya mengubah
+            // HRD-DEC-248: shift ditampilkan di baris petugas yang memegangnya sekarang. Ganti Petugas hanya mengubah
             // WorkforceProfileId shift (RosterAssignmentId tetap), jadi pengelompokan dilakukan saat dibaca.
             var shifts = await _context.TrxShiftAssignments
                 .AsNoTracking()

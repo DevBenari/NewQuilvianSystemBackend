@@ -8,7 +8,7 @@ using QuilvianSystemBackend.Responses;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Controllers
 {
-    // Daftar baca penempatan sementara lintas pegawai (HRD-DEC-240, kontrak v30 API 36.6). Hanya baca; pencatatan dan
+    // Daftar baca penempatan sementara lintas pegawai (HRD-DEC-251, kontrak v31 API 37.6). Hanya baca; pencatatan dan
     // perubahan tetap lewat WfpOrganizationAssignmentController (Profil Pegawai 360).
     [ApiController]
     [Authorize]

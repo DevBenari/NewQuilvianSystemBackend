@@ -198,7 +198,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
 
         /// <summary>
         /// true = baris tampilan untuk petugas yang memegang shift di roster ini hanya sebagai pengganti (tanpa penugasan roster);
-        /// Id bernilai Guid.Empty dan baris tidak dapat dihapus atau divalidasi sebagai penugasan (HRD-DEC-237).
+        /// Id bernilai Guid.Empty dan baris tidak dapat dihapus atau divalidasi sebagai penugasan (HRD-DEC-248).
         /// </summary>
         public bool IsReplacementOnly { get; set; }
 
@@ -244,7 +244,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public string WorkforceDisplayName { get; set; } = string.Empty;
 
         /// <summary>
-        /// true bila shift dipegang pengganti: petugas awal tercatat dan berbeda dari petugas sekarang (HRD-DEC-237).
+        /// true bila shift dipegang pengganti: petugas awal tercatat dan berbeda dari petugas sekarang (HRD-DEC-248).
         /// </summary>
         public bool IsReplacement { get; set; }
 

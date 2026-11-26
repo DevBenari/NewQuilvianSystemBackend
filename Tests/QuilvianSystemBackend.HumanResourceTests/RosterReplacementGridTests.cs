@@ -13,7 +13,7 @@ using QuilvianSystemBackend.Models;
 
 namespace QuilvianSystemBackend.Tests.HumanResource;
 
-// BE-HRD-450 — AT-HRD-PK-47 (HRD-DEC-237, kontrak v30 API 36.2): detail roster menempatkan shift di baris petugas yang
+// BE-HRD-463 — AT-HRD-PK-47 (HRD-DEC-248, kontrak v31 API 37.2): detail roster menempatkan shift di baris petugas yang
 // memegangnya sekarang. Contoh desain: Pagi 16 Feb Indra diganti Raka.
 public sealed class RosterReplacementGridTests : IDisposable
 {
@@ -97,7 +97,7 @@ public sealed class RosterReplacementGridTests : IDisposable
     private async Task GantiPetugas(Guid shiftId, Guid pengganti, Guid harap)
     {
         var r = await Ganti().ExecuteDirectReplacementAsync(shiftId,
-            new DirectShiftReplacementRequest { ReplacementEmployeeId = pengganti, ExpectedWorkforceProfileId = harap, ReasonCategory = "Sakit Mendadak", Notes = "Uji BE-HRD-450" },
+            new DirectShiftReplacementRequest { ReplacementEmployeeId = pengganti, ExpectedWorkforceProfileId = harap, ReasonCategory = "Sakit Mendadak", Notes = "Uji BE-HRD-463" },
             _sari);
         Assert.True(r.Success, r.Message);
     }
@@ -245,7 +245,7 @@ public sealed class RosterReplacementGridTests : IDisposable
         {
             WorkforceProfileId = _tono,
             ReasonCategory = "Kekurangan tenaga",
-            ReasonNote = "Uji BE-HRD-450",
+            ReasonNote = "Uji BE-HRD-463",
             Shifts = new List<RosterShiftItemRequest> { new() { ShiftDate = T19, ShiftId = _pagi } },
         };
 

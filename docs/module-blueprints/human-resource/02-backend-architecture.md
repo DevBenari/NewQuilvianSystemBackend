@@ -10322,25 +10322,252 @@ Harness `HumanResourceTests` (SQLite) untuk `AT-HRD-WF-23` s.d. `AT-HRD-WF-37`, 
 | Endpoint kirim ulang generik untuk permohonan modul | Ditolak (`HRD-DEC-235`); kirim ulang dari layar modul |
 | Menghapus `ApprovalInboxController` sekarang | Ditunda sampai kotak terpadu terbukti dan pemanggil nol (`HRD-DEC-231`) |
 
-## 38. Amandemen `A52-B` — Pembuka Task Tertahan Penjadwalan & Kehadiran (revision `68`, kontrak `v30`, 24 November 2026; approved 24 November 2026)
+---
 
-> **Status:** `approved` — pengguna, 24 November 2026 ("setujui kontrak v30, lanjut plan"). Dasar: decision log bagian 57 (`HRD-DEC-237` s.d. `HRD-DEC-245`, approved 24 November 2026). Backend rujukan `4d2c0162` (branch `yoga`), frontend `004524f4c` + working tree (branch `YogaV2`). Bagian 35 (`A52`, kontrak `v26`) tidak diubah; bagian ini menambah dan menyesuaikan perilaku di atasnya.
+## 38. Amandemen Paket B — Lima Entry Point Menu SDM (revision `68`, kontrak `v30`, 22 November 2026; approved 23 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | Decision log revision `42` bagian 57 (`HRD-DEC-237` s.d. `HRD-DEC-246`, `HRD-ASM-91` s.d. `HRD-ASM-98`); `HRD-DEC-240` `superseded` oleh `HRD-DEC-244`; `HRD-DEC-243` panel 4 diubah `HRD-DEC-245` |
+| Capability map | Revisi `1.5` bagian 17 (`HRD-CAP-92` s.d. `HRD-CAP-104`) |
+| Source acuan | Backend `b164edc12790d92e55e2a8f102cc5791ba39d440` (branch `MHamzah`); frontend `573b7429c967a3229fc651437a902c33eac3708f` (branch `HamzahV2`) |
+| Kontrak | api-contract 36; state-transition 34; validation 35; integration 27; permission-audit 34; acceptance 39; kamus data 31 |
+| Requirement completeness gate | Tidak dijalankan. Mengikuti preseden amandemen `A52`, `S-A8`, dan `S-D5`: Paket B tidak menambah konsep bisnis rumah sakit baru, hanya membuka jalan masuk ke kemampuan yang sudah diputuskan (`HRD-DEC-076`, `077`, `146`, `151`, `158`, `170` s.d. `173`) dan menambah agregasi baca-saja. Seluruh keputusan `approved`; tidak ada keputusan `BLOCKING` |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — tidak ada bounded context, aggregate, atau status baru. Data kredensial dan SPK/RKK hanya **dibaca** untuk hitungan dashboard; larangan manifest bagian 6 butir 1 (jangan mengarang bounded context klinis) tidak tersentuh |
+| Migration | **Tidak ada** |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`). Delivery: roadmap backend bagian 31 (`BE-HRD-453` s.d. `BE-HRD-462`) |
+
+Inti perubahan:
+
+1. **Dashboard SDM** — satu controller baca-saja baru di `WorkforceCore` yang menghitung lima panel dari data pemilik masing-masing (`MstEmployee`, kontrak kerja, lisensi, sertifikat pelatihan wajib, SPK/RKK) dan menyediakan daftar nama untuk setiap angka.
+2. **Riwayat Penyelesaian** — daftar sanksi menerima beberapa status sekaligus.
+3. **Employee 360** — bagian disiplin membaca sanksi alur resmi plus catatan lama sebagai riwayat, dan hanya diisi untuk pemegang `EmployeeDisciplinary : ViewSanctions`.
+4. **Tes/Wawancara** — daftar evaluasi dibatasi menurut penilai kecuali pemegang hak baru `CandidateEvaluation : ViewAll`; kirim nilai uji klinis hanya oleh penilai yang ditugaskan.
+5. Seleksi Administrasi dan Tindak Disiplin **tidak** mengubah backend: keduanya memakai endpoint yang sudah ada (`GET recruitment/screenings`, `GET hrd/disciplinary/sanctions`).
+
+### 38.1 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai di sini | Dibuat ulang? |
+| --- | --- | --- | --- |
+| Pegawai (`MstEmployee`: `IsActive`, `ProfessionId`, `JoinDate`, `ResignDate`) | `MasterData/Workforce` | Ya — dibaca panel 1–3 dan daftar nama | Tidak |
+| Profesi (`MstProfession`) | `MasterData/CompetencyAndCredential` | Ya — nama profesi panel 2 | Tidak |
+| Kontrak kerja (`WfpContractHistory`, dikelola `HrdEmploymentContractService`) | `WorkforceCore` (model) / `LifecycleManagement` (layanan, `S-C4`) | Ya — panel 4 memakai aturan tahapan perpanjangan yang sama dengan `renewal-summary` | Tidak |
+| Lisensi STR/SIP (`WfpCredentialLicense` dan radar `CredentialVerificationService`) | `CredentialingManagement` (`S-C1`) | Ya — panel 5, lewat radar yang sudah mengecualikan STR seumur hidup | Tidak |
+| Sertifikat pelatihan wajib (radar `TrainingExpiryRadarService`) | `LearningAndDevelopment` (`S-C2`) | Ya — panel 5 | Tidak |
+| SPK/RKK (`TrxSpkRkkIssuance`: `ValidUntil`, `IssuanceStatus`) | `CredentialingManagement` (`S-C1`) | Ya — panel 5, kueri baca-saja baru | Tidak |
+| Sanksi, insiden (`HrdDisciplinarySanction`, `HrdDisciplinaryIncidentReport`) | `EmployeeRelationManagement` (`S-C5`) | Ya — daftar sanksi multi-status; bagian disiplin Employee 360 | Tidak |
+| Catatan disiplin profil lama (`WfpDisciplinaryAction`) | `EmployeeRelationManagement` | Ya — hanya dibaca sebagai riwayat Employee 360 (`HRD-DEC-246`) | Tidak; endpoint tulisnya dibiarkan tetapi tidak dipakai layar baru |
+| Penapisan lamaran (`HrdCandidateScreening`) | `RecruitmentManagement` (`S-D2`) | Ya — tanpa perubahan backend | Tidak |
+| Evaluasi kandidat (`HrdCandidateEvaluation`: `EvaluationType`, `EvaluatorUserId`) | `RecruitmentManagement` (`S-D2`) | Ya — pembatasan menurut penilai | Tidak |
+
+### 38.2 Class diagram
+
+**38.2a Dashboard SDM**
+
+```mermaid
+classDiagram
+    direction LR
+    class HrdWorkforceDashboardController {
+        <<BARU>>
+        +GetSummary() lima panel
+        +GetDrilldown(panel, bucket, page) daftar nama
+    }
+    class IHrdWorkforceDashboardService {
+        <<BARU>>
+        +GetSummaryAsync(ct)
+        +GetDrilldownAsync(query, ct)
+    }
+    class ContractRenewalBuckets {
+        <<BARU static>>
+        +Classify(contract, today) bucket
+        +Predicate(bucket, today) expression
+    }
+    class HrdEmploymentContractService {
+        +GetRenewalSummaryAsync() memakai ContractRenewalBuckets
+    }
+    class ICredentialVerificationService {
+        +GetLicenseExpiringRadarListAsync(level)
+    }
+    class ITrainingExpiryRadarService {
+        +GetExpiringRadarSummaryAsync()
+    }
+    class MstEmployee
+    class TrxSpkRkkIssuance
+    HrdWorkforceDashboardController --> IHrdWorkforceDashboardService
+    IHrdWorkforceDashboardService --> MstEmployee : panel 1-3 baca
+    IHrdWorkforceDashboardService --> ContractRenewalBuckets : panel 4
+    HrdEmploymentContractService --> ContractRenewalBuckets : refactor tanpa ubah hasil
+    IHrdWorkforceDashboardService --> ICredentialVerificationService : panel 5 SIP/STR
+    IHrdWorkforceDashboardService --> ITrainingExpiryRadarService : panel 5 sertifikat
+    IHrdWorkforceDashboardService --> TrxSpkRkkIssuance : panel 5 SPK/RKK baca
+```
+
+**38.2b Disiplin, Employee 360, dan evaluasi kandidat**
+
+```mermaid
+classDiagram
+    direction LR
+    class EmployeeDisciplinaryController {
+        +GetSanctionList(query) statuses BARU
+    }
+    class DisciplinaryListQueryService {
+        +GetSanctionsAsync(query) filter multi-status
+    }
+    class HrdEmployee360Controller {
+        +Get() cek ViewSanctions
+    }
+    class HrdEmployee360Service {
+        +GetAsync(id, includeDiscipline)
+    }
+    class CandidateEvaluationController {
+        +GetPaged() scope penilai
+        +GetById() scope penilai
+        +SubmitClinical() cek penilai
+    }
+    class CandidateEvaluationService {
+        +GetPagedAsync(query, actorId, canViewAll)
+        +GetByIdAsync(id, actorId, canViewAll)
+        +SubmitClinicalEvaluationAsync(id, req, actorId)
+    }
+    class AccessPermissionService {
+        +HasAccessAsync(user, resource, action)
+    }
+    EmployeeDisciplinaryController --> DisciplinaryListQueryService
+    HrdEmployee360Controller --> AccessPermissionService : ViewSanctions
+    HrdEmployee360Controller --> HrdEmployee360Service
+    HrdEmployee360Service --> HrdDisciplinarySanction : resmi
+    HrdEmployee360Service --> WfpDisciplinaryAction : riwayat lama
+    CandidateEvaluationController --> AccessPermissionService : ViewAll
+    CandidateEvaluationController --> CandidateEvaluationService
+```
+
+### 38.3 Penjelasan class
+
+| Class | Status | Lokasi file | Fungsi | Dipanggil oleh | Transaksi |
+| --- | --- | --- | --- | --- | --- |
+| `HrdWorkforceDashboardController` | Baru | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/HrdWorkforceDashboardController.cs` | `[Route("api/v1/corporate/human-resource/workforce-dashboard")]`; `[AccessController(moduleCode: "HUMAN_RESOURCE_WORKFORCE_CORE", moduleName: "Human Resource Workforce Core", displayName: "Dashboard SDM", AreaName = "Corporate", ControllerName = "HrdWorkforceDashboard", SortOrder = 23)]`; `[Tags("Corporate / Human Resource / Workforce Core / Workforce Dashboard")]`. Action `GetSummary` (`GET /summary`) dan `GetDrilldown` (`GET /drilldown`), keduanya `[AccessAction("Read", "Melihat Dashboard SDM", AccessType = AccessTypes.Read, SortOrder = 1)]` dan `[AccessPermission("HrdWorkforceDashboard", "Read")]` | Frontend Dashboard SDM | Tidak |
+| `IHrdWorkforceDashboardService` / `HrdWorkforceDashboardService` | Baru | `…/WorkforceCore/Services/HrdWorkforceDashboardService.cs` | Menghitung lima panel saat dipanggil (tanpa snapshot, `HRD-ASM-92`) dengan `AsNoTracking`; memetakan tingkat radar ke kelompok dashboard (kamus data 31.2); daftar nama berhalaman per panel dan kelompok | Controller dashboard | Tidak — baca saja |
+| `ContractRenewalBuckets` | Baru | `…/LifecycleManagement/Services/ContractRenewalBuckets.cs` | Satu-satunya definisi kelompok tahapan perpanjangan (`H60`, `H14`, `H7`, `PENDING_DECISION`, `OVERDUE`) dan batas 60 hari, dipindahkan dari `GetRenewalSummaryAsync` **tanpa mengubah hasil** agar dashboard dan layar Kontrak selalu sama (`HRD-DEC-245`) | `HrdEmploymentContractService`, `HrdWorkforceDashboardService` | — |
+| `HrdEmploymentContractService` | Diperbarui | `…/LifecycleManagement/Services/HrdEmploymentContractService.cs` | `GetContractSummaryAsync` (`ExpiringSoonCount`) dan `GetRenewalSummaryAsync` memakai `ContractRenewalBuckets`; angka keluaran tidak berubah (dijaga uji regresi) | Controller kontrak | Tidak berubah |
+| `HrdWorkforceDashboardDtos` | Baru | `…/WorkforceCore/DTOs/HrdWorkforceDashboardDtos.cs` | `WorkforceDashboardSummaryResponse`, `WorkforceDashboardDrilldownQuery`, `WorkforceDashboardDrilldownItem` (kontrak API 36.1) | Service, controller | — |
+| `WorkforceDashboardPanels` | Baru | `…/WorkforceCore/Constants/WorkforceDashboardPanels.cs` | Konstanta kode panel dan kelompok (state-transition 34.1) | Service, validasi query | — |
+| `DisciplinaryListQuery` | Diperbarui | `…/EmployeeRelationManagement/DTOs/DisciplinaryListDtos.cs` | Tambah `List<string>? Statuses` (diikat dari `?statuses=Expired&statuses=RevokedOnAppeal`); `Status` lama tetap | Controller disiplin | — |
+| `DisciplinaryListQueryService` | Diperbarui | `…/EmployeeRelationManagement/Services/DisciplinaryListQueryService.cs` | `GetSanctionsAsync`: bila `Statuses` terisi → `Where(Statuses.Contains(s.Status))`; validasi nilai `VR-PKB-04`; bila `Status` dan `Statuses` sama-sama terisi → `400` (`VR-PKB-05`) | Controller disiplin | Tidak |
+| `HrdEmployee360Controller` | Diperbarui | `…/WorkforceCore/Controllers/HrdEmployee360Controller.cs` | Sebelum memanggil service, `includeDiscipline = await accessPermissionService.HasAccessAsync(User, "EmployeeDisciplinary", "ViewSanctions")`; hak endpoint tetap `HrdEmployee360 : Read` | Frontend Employee 360 | — |
+| `IHrdEmployee360Service` / `HrdEmployee360Service` | Diperbarui | `…/WorkforceCore/Services/HrdEmployee360Service.cs` | Parameter baru `bool includeDiscipline`. Bila `true`: baca `HrdDisciplinarySanction` dengan `EmployeeId` = `MstEmployee.Id` **atau** `workforceProfileId` (kolom ini menampung keduanya, capability map 17.1 dan komentar `DisciplinaryListQueryService` baris 13), ditambah `WfpDisciplinaryAction` sebagai riwayat lama; isi `DisciplinaryRecords`. Bila `false`: kedua daftar kosong dan `DisciplineHidden = true` | Controller 360 | Tidak |
+| `ConfidentialPersonalAndDisciplineDto` | Diperbarui | `…/WorkforceCore/DTOs/Employee360Dtos.cs` | Tambah `List<Employee360DisciplinaryItemDto> DisciplinaryRecords` dan `bool DisciplineHidden`; `DisciplinarySanctions` (daftar teks) tetap diisi dari sumber yang sama untuk kompatibilitas, ditandai `[Obsolete]` | Service 360 | — |
+| `Employee360DisciplinaryItemDto` | Baru | `…/WorkforceCore/DTOs/Employee360Dtos.cs` | `Source` (`OFFICIAL`/`LEGACY`), `ReferenceNumber`, `Level`, `Title`, `IssuedDate`, `ValidUntil`, `Status`, `IsActive` | Service 360 | — |
+| `CandidateEvaluationController` | Diperbarui | `…/RecruitmentManagement/Controllers/CandidateEvaluationController.cs` | `GetPaged` dan `GetById`: hitung `canViewAll = HasAccessAsync(User, "CandidateEvaluation", "ViewAll")` dan `actorId = User.GetUserId()`, teruskan ke service. `SubmitClinical`: teruskan `actorId`. Atribut akses endpoint tidak berubah | Frontend Tes/Wawancara | — |
+| `CandidateEvaluationQuery` | Diperbarui | `…/RecruitmentManagement/DTOs/CandidateEvaluationDtos.cs` | Tambah `string? Track` (`HR` = `HrInterview`; `CLINICAL` = `ClinicalAssessment` + `UserInterview`, `HRD-ASM-96`) dan `bool? PendingOnly` (belum ada rekomendasi) | Controller evaluasi | — |
+| `ICandidateEvaluationService` / `CandidateEvaluationService` | Diperbarui | `…/RecruitmentManagement/Services/CandidateEvaluationService.cs` | `GetPagedAsync`/`GetByIdAsync` menerima `actorId`, `canViewAll`; tanpa `canViewAll` hasil dibatasi `EvaluatorUserId == actorId` (detail milik penilai lain → `403`, `VR-PKB-07`). `SubmitClinicalEvaluationAsync` menolak `403` bila `EvaluatorUserId != actorId` (`VR-PKB-08`, `HRD-ASM-98`) | Controller evaluasi | Tidak berubah |
+| `RecruitmentEvaluationExplicitPermissions` | Baru | `…/RecruitmentManagement/RecruitmentEvaluationExplicitPermissions.cs` | `[assembly: AccessExplicitPermission(moduleCode: "HUMAN_RESOURCE_RECRUITMENT", resourceName: "CandidateEvaluation", actionName: "ViewAll", displayName: "View All Evaluations", accessType: AccessTypes.Read, Description = "Melihat seluruh evaluasi kandidat, bukan hanya yang ditugaskan kepada diri sendiri", SortOrder = 10)]`; mengikuti pola `MultiDeptExitClearanceExplicitPermissions.cs` | Katalog hak akses | — |
+| `Program.cs` | Diperbarui | `Program.cs` | `AddScoped<IHrdWorkforceDashboardService, HrdWorkforceDashboardService>()` | — | — |
+
+### 38.4 Arsitektur folder
+
+```text
+Areas/Corporate/HumanResource/
+├── WorkforceCore/
+│   ├── Constants/WorkforceDashboardPanels.cs              Baru
+│   ├── Controllers/
+│   │   ├── HrdWorkforceDashboardController.cs             Baru
+│   │   └── HrdEmployee360Controller.cs                    Diperbarui (cek ViewSanctions)
+│   ├── DTOs/
+│   │   ├── HrdWorkforceDashboardDtos.cs                   Baru
+│   │   └── Employee360Dtos.cs                             Diperbarui (DisciplinaryRecords)
+│   └── Services/
+│       ├── HrdWorkforceDashboardService.cs                Baru
+│       └── HrdEmployee360Service.cs                       Diperbarui
+├── LifecycleManagement/Services/
+│   ├── ContractRenewalBuckets.cs                          Baru
+│   └── HrdEmploymentContractService.cs                    Diperbarui (refactor, hasil sama)
+├── EmployeeRelationManagement/
+│   ├── DTOs/DisciplinaryListDtos.cs                       Diperbarui (Statuses)
+│   └── Services/DisciplinaryListQueryService.cs           Diperbarui
+└── RecruitmentManagement/
+    ├── RecruitmentEvaluationExplicitPermissions.cs        Baru
+    ├── Controllers/CandidateEvaluationController.cs       Diperbarui
+    ├── DTOs/CandidateEvaluationDtos.cs                    Diperbarui (Track, PendingOnly)
+    └── Services/CandidateEvaluationService.cs             Diperbarui (scope penilai)
+Program.cs                                                 Diperbarui (DI)
+Tests/QuilvianSystemBackend.HumanResourceTests/
+    ├── WorkforceDashboardTests.cs                         Baru (AT-HRD-PKB-01..08)
+    ├── ContractRenewalBucketsRegressionTests.cs           Baru (AT-HRD-PKB-05)
+    ├── DisciplinaryResolutionHistoryTests.cs              Baru (AT-HRD-PKB-10..12)
+    ├── Employee360DisciplineTests.cs                      Baru (AT-HRD-PKB-13..15)
+    └── CandidateEvaluationScopeTests.cs                   Baru (AT-HRD-PKB-18..22)
+```
+
+Penyimpangan yang dibiarkan (utang teknis, jangan ditiru): kolom `employee_id` modul disiplin menampung dua jenis ID (`MstEmployee.Id` atau `MstWorkforceProfile.Id`); status sanksi masih string bebas; `WfpDisciplinaryAction` tetap memiliki endpoint tulis walaupun tidak lagi dipakai layar.
+
+### 38.5 Status model dan dampak migration
+
+| Model | Status | Kolom berubah | Migration |
+| --- | --- | --- | --- |
+| `MstEmployee`, `MstProfession` | Sudah ada | — | Tidak |
+| `WfpContractHistory` | Sudah ada | — | Tidak |
+| `TrxSpkRkkIssuance` | Sudah ada | — (dibaca `ValidUntil`, `IssuanceStatus`) | Tidak |
+| `HrdDisciplinarySanction`, `HrdDisciplinaryIncidentReport`, `WfpDisciplinaryAction` | Sudah ada | — | Tidak |
+| `HrdCandidateScreening`, `HrdCandidateEvaluation` | Sudah ada | — | Tidak |
+
+### 38.6 Rencana migration
+
+Tidak ada migration. Rollback = kembalikan rilis. Satu-satunya perubahan yang dapat terasa sebagai regresi adalah pembatasan daftar evaluasi (38.9); rollback-nya adalah memberikan `CandidateEvaluation : ViewAll` ke peran yang membutuhkan, bukan mengembalikan kode.
+
+### 38.7 Rencana data master awal
+
+Tidak ada tabel master baru. Hak akses baru terdaftar otomatis dari atribut:
+
+| Hak akses | Sumber pendaftaran | Wajib diberikan sebelum rilis ke |
+| --- | --- | --- |
+| `HrdWorkforceDashboard : Read` | `[AccessPermission]` pada controller baru | Manajer SDM, Admin HRD |
+| `CandidateEvaluation : ViewAll` | `[assembly: AccessExplicitPermission]` | Recruiter HR dan Manajer SDM — **tanpa langkah ini HR hanya melihat evaluasi yang ditugaskan kepadanya sendiri** |
+| `EmployeeDisciplinary : ViewSanctions` | Sudah ada | Sudah dimiliki HR Relations dan Manajer SDM; kini juga menentukan apakah bagian disiplin Employee 360 terisi |
+
+Pemberian hak dilakukan admin di Manajemen Role → Akses Role. Tidak ada pengecualian berdasarkan nama peran di kode.
+
+### 38.8 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+| --- | --- |
+| Tabel snapshot harian dashboard | `HRD-ASM-92`: dihitung saat dibuka; jumlah pegawai ratusan, kueri agregat cukup |
+| Dashboard per unit untuk Kepala Unit | `HRD-ASM-91`: rilis pertama hanya HR tingkat rumah sakit |
+| Hitungan kontrak 30/60/90 hari khusus dashboard | `HRD-DEC-245`: satu definisi bersama layar Kontrak |
+| Endpoint daftar global untuk `WfpDisciplinaryAction` | `HRD-DEC-238`: satu sumber kebenaran sanksi |
+| Migrasi otomatis `WfpDisciplinaryAction` ke `HrdDisciplinarySanction` | `HRD-DEC-246` butir 2 |
+| Menghapus endpoint tulis `WfpDisciplinaryAction` | Bukan bagian keputusan; dibiarkan sebagai utang teknis sampai ada keputusan penghapusan |
+| Endpoint daftar penapisan baru | `GET recruitment/screenings` sudah memenuhi `HRD-DEC-244` |
+| Endpoint gabungan "riwayat penyelesaian" (sanksi + insiden) | Dua daftar existing sudah memenuhi; frontend menampilkannya berdampingan (`HRD-ASM-97`) |
+| Kolom penugasan asesor baru | `EvaluatorUserId` sudah ada pada evaluasi |
+| Penanda hak akses per jalur (HR vs klinis) | `CandidateEvaluation : Evaluate` dan `EvaluateClinical` sudah memisahkan pengisian; pembatasan baca cukup menurut penilai |
+
+### 38.9 Risiko rilis
+
+| Risiko | Dampak | Mitigasi |
+| --- | --- | --- |
+| Hak `CandidateEvaluation : ViewAll` belum diberikan saat rilis | Recruiter tiba-tiba tidak melihat evaluasi yang dijadwalkan untuk orang lain | Langkah rilis wajib 38.7; uji `AT-HRD-PKB-18` dengan dua akun |
+| Pengguna Employee 360 tanpa `ViewSanctions` (mis. atasan langsung) kehilangan bagian disiplin yang selama ini terlihat | Perubahan perilaku yang disengaja (`HRD-DEC-246` butir 4, `HRD-ASM-94`) | Disebut di catatan rilis; frontend menampilkan "Data disiplin hanya untuk HR" |
+| Refactor `ContractRenewalBuckets` mengubah angka layar Kontrak | Angka kontrak berbeda dari sebelum rilis | Uji regresi `AT-HRD-PKB-05` membandingkan hasil sebelum dan sesudah pada data uji yang sama |
+
+## 39. Amandemen `A52-B` — Pembuka Task Tertahan Penjadwalan & Kehadiran (revision `70`, kontrak `v31`, 24 November 2026; approved 24 November 2026)
+
+> **Status:** `approved` — pengguna, 24 November 2026 ("setujui kontrak v30, lanjut plan"). Dasar: decision log bagian 58 (`HRD-DEC-248` s.d. `HRD-DEC-256`, approved 24 November 2026). Backend rujukan `4d2c0162` (branch `yoga`), frontend `004524f4c` + working tree (branch `YogaV2`). Bagian 35 (`A52`, kontrak `v26`) tidak diubah; bagian ini menambah dan menyesuaikan perilaku di atasnya.
 > **Gerbang:** kemampuan HR operasional tanpa konsep klinis atau billing baru (`DOMAIN_ARCHITECTURE_NOT_RUN`, sama dengan bagian 35). Tidak ada keputusan bisnis yang terbuka.
 
-### 38.1 Ringkasan perubahan
+### 39.1 Ringkasan perubahan
 
 | Kode | Keputusan | Perubahan backend | Tabel/migration |
 | --- | --- | --- | --- |
-| `B-T1` | `HRD-DEC-237` | Detail roster menempatkan shift pada baris petugas yang bertugas sekarang; butir shift membawa petugas saat ini dan penanda pengganti | Tidak ada |
-| `B-T2` | `HRD-DEC-238` | Pengecualian scan hilang milik hari calon Alpa tidak memblokir tutup; ditutup bersama konversi | Tidak ada |
-| `B-TA` | `HRD-DEC-240` | Endpoint baca daftar penempatan sementara lintas pegawai (membuka `BE-HRD-359`) | Tidak ada |
-| `B-ESS` | `HRD-DEC-241`, `HRD-DEC-245` | Endpoint self-service izin pulang cepat dan surat tugas dinas luar: daftar, detail, ajukan, batal | Tidak ada |
-| `B-SC` | `HRD-DEC-242` (`HRD-TF-095`) | Daftar, detail, dan Terapkan Perubahan Shift / Tukar Dinas sisi HR dibatasi cakupan unit | Tidak ada |
-| `B-DOC` | `HRD-DEC-243`, `HRD-DEC-244` | Daftar periksa izin per peran; kontrak `v10` hak akses superseded; batas 92 hari tetap | Tidak ada |
+| `B-T1` | `HRD-DEC-248` | Detail roster menempatkan shift pada baris petugas yang bertugas sekarang; butir shift membawa petugas saat ini dan penanda pengganti | Tidak ada |
+| `B-T2` | `HRD-DEC-249` | Pengecualian scan hilang milik hari calon Alpa tidak memblokir tutup; ditutup bersama konversi | Tidak ada |
+| `B-TA` | `HRD-DEC-251` | Endpoint baca daftar penempatan sementara lintas pegawai (membuka `BE-HRD-359`) | Tidak ada |
+| `B-ESS` | `HRD-DEC-252`, `HRD-DEC-256` | Endpoint self-service izin pulang cepat dan surat tugas dinas luar: daftar, detail, ajukan, batal | Tidak ada |
+| `B-SC` | `HRD-DEC-253` (`HRD-TF-099`) | Daftar, detail, dan Terapkan Perubahan Shift / Tukar Dinas sisi HR dibatasi cakupan unit | Tidak ada |
+| `B-DOC` | `HRD-DEC-254`, `HRD-DEC-255` | Daftar periksa izin per peran; kontrak `v10` hak akses superseded; batas 92 hari tetap | Tidak ada |
 
 Seluruh perubahan **tanpa migration**: kolom yang dibutuhkan sudah ada (`TrxShiftAssignment.OriginalEmployeeId`, `HrdAttendanceException.ResolvedByUserId/ResolvedAt/ResolutionNote`, kolom batal warisan `IdentityModel`).
 
-### 38.2 Tabel kepemilikan data
+### 39.2 Tabel kepemilikan data
 
 | Kelompok data | Modul pemilik | Dipakai amandemen ini | Dibuat ulang? |
 | --- | --- | --- | --- |
@@ -10353,9 +10580,9 @@ Seluruh perubahan **tanpa migration**: kolom yang dibutuhkan sudah ada (`TrxShif
 | Cakupan unit (`HrdUnitScopeService`) | Workforce Core (`A52` bagian 35) | Dipakai ulang (`B-TA`, `B-SC`) | Tidak |
 | Identitas pegawai dari sesi (`HumanResourceContextService`) | Self Services | Dipakai ulang (`B-ESS`) | Tidak |
 
-### 38.3 Class diagram
+### 39.3 Class diagram
 
-#### 38.3.1 Kisi roster (`B-T1`)
+#### 39.3.1 Kisi roster (`B-T1`)
 
 ```mermaid
 classDiagram
@@ -10380,7 +10607,7 @@ classDiagram
   RosterAssignmentResponse "1" o-- "*" ShiftAssignmentItemResponse
 ```
 
-#### 38.3.2 Tutup periode (`B-T2`)
+#### 39.3.2 Tutup periode (`B-T2`)
 
 ```mermaid
 classDiagram
@@ -10401,7 +10628,7 @@ classDiagram
   AttendancePeriodService ..> HrdAttendanceException : tutup bersama konversi
 ```
 
-#### 38.3.3 Layanan mandiri izin dan dinas luar (`B-ESS`)
+#### 39.3.3 Layanan mandiri izin dan dinas luar (`B-ESS`)
 
 ```mermaid
 classDiagram
@@ -10426,7 +10653,7 @@ classDiagram
   OfficialDutySelfServiceController ..> HumanResourceContextService
 ```
 
-#### 38.3.4 Penempatan sementara dan cakupan Perubahan Shift / Tukar Dinas (`B-TA`, `B-SC`)
+#### 39.3.4 Penempatan sementara dan cakupan Perubahan Shift / Tukar Dinas (`B-TA`, `B-SC`)
 
 ```mermaid
 classDiagram
@@ -10453,27 +10680,27 @@ classDiagram
   ShiftSwapService ..> HrdUnitScopeService
 ```
 
-### 38.4 Penjelasan setiap class
+### 39.4 Penjelasan setiap class
 
 | Class | Status | Lokasi file | Tanggung jawab dan perubahan |
 | --- | --- | --- | --- |
 | `RosterPeriodService` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/RosterPeriodService.cs` | `GetByIdAsync` (detail roster) mengelompokkan shift berdasarkan `TrxShiftAssignment.WorkforceProfileId` (petugas sekarang), bukan berdasarkan `TrxRosterAssignment`. Petugas pengganti yang tidak punya baris penugasan pada roster itu mendapat baris tampilan (`IsReplacementOnly = true`, `Id = Guid.Empty`). Hanya baca; tanpa transaksi |
 | `RosterAssignmentResponse` (DTO Response) | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/DTOs/RosterSchedulingDtos.cs` | Field baru `IsReplacementOnly` (bool) |
 | `ShiftAssignmentItemResponse` (DTO Response) | `Diperbarui` | sama | Field baru `WorkforceProfileId`, `WorkforceProfileCode`, `WorkforceDisplayName` (petugas sekarang), `IsReplacement` (`OriginalEmployeeId` terisi dan berbeda dari petugas sekarang), `OriginalWorkforceProfileId`, `OriginalWorkforceDisplayName`. `ShiftName` diisi pada setiap jalur pemetaan |
-| `AttendancePeriodService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/AttendancePeriodService.cs` | (1) Hitungan `PAYROLL_BLOCKING_EXCEPTION` mengecualikan pengecualian bertipe `MissingCheckIn`, `MissingCheckOut`, atau `Absent` yang menempel pada hari calon konversi (`CloseConversionStatuses`). (2) `CloseAsync` menutup pengecualian itu dalam transaksi `Serializable` yang sama dengan konversi: `ExceptionStatus = Closed`, `ResolvedByUserId` = penutup, `ResolvedAt` = jam tutup, `ResolutionNote` = "Diselesaikan oleh penutupan periode {kode} (HRD-DEC-238): hari dikonversi menjadi Absent". (3) Respons tutup menambah `ClosedConversionExceptionCount`; pratinjau menambah `ConversionExceptionCount` |
+| `AttendancePeriodService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/AttendancePeriodService.cs` | (1) Hitungan `PAYROLL_BLOCKING_EXCEPTION` mengecualikan pengecualian bertipe `MissingCheckIn`, `MissingCheckOut`, atau `Absent` yang menempel pada hari calon konversi (`CloseConversionStatuses`). (2) `CloseAsync` menutup pengecualian itu dalam transaksi `Serializable` yang sama dengan konversi: `ExceptionStatus = Closed`, `ResolvedByUserId` = penutup, `ResolvedAt` = jam tutup, `ResolutionNote` = "Diselesaikan oleh penutupan periode {kode} (HRD-DEC-249): hari dikonversi menjadi Absent". (3) Respons tutup menambah `ClosedConversionExceptionCount`; pratinjau menambah `ConversionExceptionCount` |
 | `AttendancePeriodActionResponse`, `AttendancePeriodClosePreviewResponse` (DTO Response) | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/DTOs/AttendancePeriodDtos.cs` | Field baru `ClosedConversionExceptionCount` (int) dan `ConversionExceptionCount` (int) |
 | `EarlyLeavePermissionService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/EarlyLeavePermissionService.cs` | Metode baru: `GetPagedForSelfAsync`, `GetByIdForSelfAsync` (data milik profil sendiri; selain itu 404), `CreateForSelfAsync` (mencari rekap harian milik sendiri pada `AttendanceDate`, lalu memakai aturan `CreateAsync` yang ada), `CancelBySelfAsync` (`Submitted` → `Cancelled`; selain itu 409). Transaksi: satu `SaveChanges` per aksi |
 | `OfficialDutyRequestService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/OfficialDutyRequestService.cs` | Metode baru yang sama polanya dengan izin pulang cepat; `CreateForSelfAsync` memakai aturan `CreateAsync` yang ada dengan `WorkforceProfileId` dari sesi |
 | `EarlyLeavePermissionSelfServiceController` | `Baru` | `Areas/SelfServices/HumanResource/Controllers/EarlyLeavePermissionSelfServiceController.cs` | Lima endpoint ESS; `AccessController` modul `HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE`, resource `MyEarlyLeavePermission`; identitas lewat `HumanResourceContextService.GetByUserIdAsync`; log audit `AuditAsync` untuk ajukan dan batal |
 | `OfficialDutySelfServiceController` | `Baru` | `Areas/SelfServices/HumanResource/Controllers/OfficialDutySelfServiceController.cs` | Tujuh endpoint ESS (termasuk unggah dan unduh lampiran surat tugas lewat `HrAttachmentStorage` yang ada, kategori `attendance-official-duty`; unduh hanya untuk lampiran pengajuan milik sendiri); resource `MyOfficialDuty`; pola sama |
-| `EarlyLeavePermissionSelfServiceDtos`, `OfficialDutySelfServiceDtos` (Create/PagedQuery/Response/Cancel) | `Baru` | `Areas/SelfServices/HumanResource/DTOs/` | Query tanpa parameter pegawai; Create tanpa `WorkforceProfileId`/`AttendanceDailyId` (lihat kontrak `v30` bagian 36.4–36.5) |
+| `EarlyLeavePermissionSelfServiceDtos`, `OfficialDutySelfServiceDtos` (Create/PagedQuery/Response/Cancel) | `Baru` | `Areas/SelfServices/HumanResource/DTOs/` | Query tanpa parameter pegawai; Create tanpa `WorkforceProfileId`/`AttendanceDailyId` (lihat kontrak `v31` bagian 37.4–37.5) |
 | `TemporaryAssignmentController` | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/TemporaryAssignmentController.cs` | `GET filters/metadata`, `GET /`; `AccessController` modul `HUMAN_RESOURCE_WORKFORCE_CORE`, resource `TemporaryAssignment`, `AccessPermission("TemporaryAssignment", "Read")` |
 | `TemporaryAssignmentQueryService` | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/Services/TemporaryAssignmentQueryService.cs` | Membaca `WfpOrganizationAssignment` berjenis `Temporary`, aktif, tidak dihapus; menyaring cakupan baca (`HrdUnitScopeService.GetReadScopeAsync`): unit tujuan **atau** unit penempatan utama pegawai berada dalam cakupan; filter unit, rentang tanggal (bersinggungan), status waktu, pencarian; paginasi di basis data. Hanya baca |
-| `TemporaryAssignmentDtos` (PagedQuery/Response/FilterMetadata) | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/DTOs/TemporaryAssignmentDtos.cs` | Lihat kontrak 36.6 |
+| `TemporaryAssignmentDtos` (PagedQuery/Response/FilterMetadata) | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/DTOs/TemporaryAssignmentDtos.cs` | Lihat kontrak 37.6 |
 | `ScheduleChangeService`, `ShiftSwapService` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/` | Daftar dan detail sisi HR hanya memuat pengajuan yang unit shift-nya (`TrxShiftAssignment.OrganizationUnitId` dari shift yang dirujuk; tukar dinas: shift pemohon atau shift tujuan) berada dalam cakupan baca. `ApplyAsync` mensyaratkan unit itu dalam cakupan kelola; selain itu 403 "Anda tidak berwenang mengubah roster unit ini" |
 | `Program.cs` | `Diperbarui` | `Program.cs` | Satu registrasi `AddScoped<TemporaryAssignmentQueryService>()` |
 
-### 38.5 Arsitektur folder
+### 39.5 Arsitektur folder
 
 ```text
 Areas/
@@ -10506,7 +10733,7 @@ Program.cs                                                     (Diperbarui: 1 re
 
 Utang teknis yang **tidak** dirapikan di sini: `EarlyLeavePermissionController` dan `OfficialDutyRequestController` masih memakai `[Tags]` gaya lama ("HR Attendance - …") dan route ganda tanpa/ dengan `v1`; dibiarkan agar klien yang ada tidak putus.
 
-### 38.6 Status model dan dampak migration
+### 39.6 Status model dan dampak migration
 
 | Model | Status | Kolom yang dipakai | Dampak migration |
 | --- | --- | --- | --- |
@@ -10516,17 +10743,17 @@ Utang teknis yang **tidak** dirapikan di sini: `EarlyLeavePermissionController` 
 | `WfpOrganizationAssignment` | `Sudah ada` | `AssignmentType = Temporary`, `OrganizationUnitId`, `EffectiveStartDate`, `EffectiveEndDate`, `IsActive`, `IsDelete` | Tidak ada; indeks yang ada (`WorkforceProfileId`) cukup untuk volume penempatan sementara |
 | `WfpScheduleChangeRequest`, `WfpShiftSwapRequest` | `Sudah ada` | `CurrentShiftAssignmentId`, `RequesterShiftAssignmentId`, `TargetShiftAssignmentId`, `RequestStatus` | Tidak ada |
 
-### 38.7 Rencana migration
+### 39.7 Rencana migration
 
 Tidak ada migration. Penerapan cukup dengan build dan deploy aplikasi; tidak ada pengisian data lama.
 
-### 38.8 Rencana data master awal
+### 39.8 Rencana data master awal
 
-Tidak ada master baru. Resource hak akses baru (`MyEarlyLeavePermission`, `MyOfficialDuty`, `TemporaryAssignment`) terdaftar otomatis saat startup lewat registri `AccessController`; pemberiannya ke jabatan mengikuti daftar periksa 40.14 yang diperbarui (`HRD-DEC-243`, PRD bagian 43.9).
+Tidak ada master baru. Resource hak akses baru (`MyEarlyLeavePermission`, `MyOfficialDuty`, `TemporaryAssignment`) terdaftar otomatis saat startup lewat registri `AccessController`; pemberiannya ke jabatan mengikuti daftar periksa 40.14 yang diperbarui (`HRD-DEC-254`, PRD bagian 44.9).
 
-### 38.9 Aturan bisnis yang dirancang
+### 39.9 Aturan bisnis yang dirancang
 
-#### 38.9.1 Kisi roster (`HRD-DEC-237`)
+#### 39.9.1 Kisi roster (`HRD-DEC-248`)
 
 1. Baris kisi = petugas yang **sekarang** memegang shift. Shift yang `OriginalEmployeeId`-nya terisi dan berbeda dari `WorkforceProfileId` diberi `IsReplacement = true` beserta nama petugas awal.
 2. Petugas yang hanya muncul sebagai pengganti (tidak punya `TrxRosterAssignment` di roster itu) mendapat baris tampilan `IsReplacementOnly = true` dengan `Id = Guid.Empty`; baris ini tidak dapat dihapus atau divalidasi sebagai penugasan roster.
@@ -10534,37 +10761,37 @@ Tidak ada master baru. Resource hak akses baru (`MyEarlyLeavePermission`, `MyOff
 4. Shift `Cancelled` tidak tampil (perilaku yang ada).
 5. Contoh: Pagi 16 Feb Indra → Raka. Respons: baris Raka memuat shift 16 Feb (`IsReplacement = true`, `OriginalWorkforceDisplayName = "Indra Setiawan"`); baris Indra tanpa shift 16 Feb.
 
-#### 38.9.2 Tutup periode (`HRD-DEC-238`)
+#### 39.9.2 Tutup periode (`HRD-DEC-249`)
 
 1. **Calon konversi** = rekap pada periode dan cakupannya dengan status dalam `CloseConversionStatuses` (`IncompletePunch`, `Incomplete`, `NoScan`).
 2. **Pengecualian konversi** = pengecualian `Open`/`UnderReview` bertipe `MissingCheckIn`, `MissingCheckOut`, atau `Absent` yang menempel pada calon konversi. Pengecualian ini tidak dihitung pada isu `PAYROLL_BLOCKING_EXCEPTION`; jumlahnya ditampilkan sebagai `ConversionExceptionCount`.
 3. Pengecualian lain yang memblokir payroll (mis. `ScheduleConflict`, `ExcessiveWorkHours`, atau `MissingCheckOut` pada hari yang **bukan** calon konversi) tetap memblokir.
-4. Saat tutup, pengecualian konversi ditutup dalam transaksi yang sama (lihat 38.4). Bila transaksi gagal, tidak ada yang berubah.
+4. Saat tutup, pengecualian konversi ditutup dalam transaksi yang sama (lihat 39.4). Bila transaksi gagal, tidak ada yang berubah.
 5. Buka kembali periode (`Reopen`) tidak membuka kembali pengecualian maupun membatalkan konversi (perilaku yang ada: hanya membuka kunci); koreksi dilakukan lewat koreksi presensi.
 
-#### 38.9.3 Layanan mandiri izin pulang cepat dan dinas luar (`HRD-DEC-241`, `HRD-DEC-245`)
+#### 39.9.3 Layanan mandiri izin pulang cepat dan dinas luar (`HRD-DEC-252`, `HRD-DEC-256`)
 
 1. Identitas pegawai hanya dari sesi; parameter pegawai pada query/body diabaikan. Akun tanpa profil pegawai → 404 "Akun ini belum terhubung ke profil pegawai".
 2. Izin pulang cepat: `AttendanceDate` wajib; rekap harian milik sendiri pada tanggal itu wajib ada dan belum terkunci; selanjutnya aturan `CreateAsync` yang ada (jam izin di dalam shift, tidak ganda dengan izin aktif, alasan wajib).
 3. Dinas luar: aturan `CreateAsync` yang ada (kategori, nomor surat tugas, rentang jam, tujuan, maksud); lampiran surat tugas lewat endpoint unggah ESS.
 4. Batal: hanya pengajuan milik sendiri berstatus `Submitted`; alasan batal wajib (maks. 500); status `Cancelled`, `IsCancel = true`, `CancelBy` = pengguna, `CancelDateTime` = sekarang. Status lain → 409 "Pengajuan sudah diputuskan dan tidak dapat dibatalkan".
-5. Persetujuan dan penolakan tetap lewat endpoint HR yang ada (`HRD-DEC-245`); pengajuan ESS tampil di daftar HR yang sama (tanpa kolom sumber baru; pembuat tercatat di `CreateBy`).
+5. Persetujuan dan penolakan tetap lewat endpoint HR yang ada (`HRD-DEC-256`); pengajuan ESS tampil di daftar HR yang sama (tanpa kolom sumber baru; pembuat tercatat di `CreateBy`).
 6. Pemohon tidak boleh menyetujui atau menolak pengajuannya sendiri (`VR-PK-36`, prinsip `VR-WF-02`): `ApproveAsync`/`RejectAsync` kedua service menolak dengan 403 bila profil pegawai pengguna = `WorkforceProfileId` pengajuan. Pemeriksaan ini belum ada di source (hanya status yang diperiksa) dan ditambahkan bersama endpoint ESS.
 
-#### 38.9.4 Daftar penempatan sementara (`HRD-DEC-240`)
+#### 39.9.4 Daftar penempatan sementara (`HRD-DEC-251`)
 
 1. Sumber: `WfpOrganizationAssignment` dengan `AssignmentType = Temporary`, `IsActive`, tidak dihapus.
 2. Cakupan: baris tampil bila unit tujuan **atau** unit penempatan utama pegawai pada tanggal mulai berada dalam cakupan baca pengguna. Filter unit di luar cakupan → 403 "Anda tidak berwenang melihat data unit ini" (`VR-PK-27`).
 3. Status waktu (dihitung, WIB): `Upcoming` (mulai > hari ini), `Ongoing`, `Ended` (selesai < hari ini).
 4. Hanya baca; pencatatan dan perubahan tetap di Profil Pegawai 360 (`WfpOrganizationAssignmentController`).
 
-#### 38.9.5 Cakupan Perubahan Shift dan Tukar Dinas (`HRD-DEC-242`)
+#### 39.9.5 Cakupan Perubahan Shift dan Tukar Dinas (`HRD-DEC-253`)
 
 1. Unit pengajuan ubah jadwal = unit shift `CurrentShiftAssignmentId`. Tukar dinas: unit shift pemohon atau shift tujuan; tampil bila salah satu dalam cakupan baca.
 2. Terapkan hanya bila unit (atau kedua unit pada tukar dinas lintas unit) dalam cakupan kelola.
 3. Pemegang `RosterPeriod : ManageAllUnits` tetap melihat dan menerapkan semua unit (perilaku cakupan bagian 35).
 
-### 38.10 Transaksi, konkurensi, idempotensi, dan kegagalan
+### 39.10 Transaksi, konkurensi, idempotensi, dan kegagalan
 
 | Aksi | Transaksi | Konkurensi / idempotensi | Kegagalan |
 | --- | --- | --- | --- |
@@ -10573,7 +10800,7 @@ Tidak ada master baru. Resource hak akses baru (`MyEarlyLeavePermission`, `MyOff
 | ESS batal | Satu `SaveChanges` dengan pemeriksaan status | Batal kedua kali → 409 | Status tidak berubah |
 | Terapkan perubahan / tukar dinas | Perilaku yang ada | Perilaku yang ada | 403 cakupan sebelum perubahan apa pun |
 
-### 38.11 Hak akses, privasi, dan pencatatan
+### 39.11 Hak akses, privasi, dan pencatatan
 
 | String hak akses | Endpoint |
 | --- | --- |
@@ -10588,7 +10815,7 @@ Tidak ada master baru. Resource hak akses baru (`MyEarlyLeavePermission`, `MyOff
 
 Log audit (`LoggerService.AuditAsync`, isi di teks pesan): `EarlyLeavePermission.SelfCreate`, `EarlyLeavePermission.SelfCancel`, `OfficialDuty.SelfCreate`, `OfficialDuty.SelfCancel`, dan `AttendancePeriod.Close` diperluas dengan jumlah pengecualian konversi yang ditutup. Alasan izin/batal tidak memuat data pasien; daftar penempatan sementara tidak memuat data gaji.
 
-### 38.12 Strategi test
+### 39.12 Strategi test
 
 | Uji | Bukti |
 | --- | --- |
@@ -10599,29 +10826,29 @@ Log audit (`LoggerService.AuditAsync`, isi di teks pesan): `EarlyLeavePermission
 | `AT-HRD-PK-52` cakupan Perubahan Shift / Tukar Dinas | Harness: daftar per cakupan, Terapkan unit lain 403 |
 | Registri hak akses | `A52PermissionRegistryTests` diperluas tiga resource baru |
 
-### 38.13 Deployment dan langkah mundur
+### 39.13 Deployment dan langkah mundur
 
 Tanpa migration; deploy biasa. Langkah mundur: kembalikan build sebelumnya. Data yang ditulis (pengajuan ESS, pengecualian yang ditutup saat tutup periode) tetap sah dibaca versi lama.
 
-### 38.14 Yang sengaja tidak dibuat
+### 39.14 Yang sengaja tidak dibuat
 
 | Yang dipertimbangkan | Alasan ditolak |
 | --- | --- |
-| Integrasi izin pulang cepat dan dinas luar ke `WorkflowService` | `HRD-DEC-245`; dapat menjadi amandemen tersendiri |
-| Endpoint tulis penempatan sementara di daftar baru | Pencatatan sudah ada per pegawai; `HRD-DEC-240` hanya meminta daftar baca |
-| Memindahkan `TrxShiftAssignment` ke `TrxRosterAssignment` pengganti saat Ganti Petugas | Mengubah data historis dan jejak revisi; cukup pengelompokan saat dibaca (`HRD-DEC-237`) |
+| Integrasi izin pulang cepat dan dinas luar ke `WorkflowService` | `HRD-DEC-256`; dapat menjadi amandemen tersendiri |
+| Endpoint tulis penempatan sementara di daftar baru | Pencatatan sudah ada per pegawai; `HRD-DEC-251` hanya meminta daftar baca |
+| Memindahkan `TrxShiftAssignment` ke `TrxRosterAssignment` pengganti saat Ganti Petugas | Mengubah data historis dan jejak revisi; cukup pengelompokan saat dibaca (`HRD-DEC-248`) |
 | Status pengecualian baru "ResolvedByClose" | Nilai `Closed` + `ResolutionNote` sudah cukup dan dikenal laporan |
-| Layar baru untuk 14 submenu yang berbagi layar | `HRD-DEC-239` |
+| Layar baru untuk 14 submenu yang berbagi layar | `HRD-DEC-250` |
 
-### 38.15 Traceability
+### 39.15 Traceability
 
 | Keputusan | Bagian |
 | --- | --- |
-| `HRD-DEC-237` | 38.4 `RosterPeriodService`, 38.9.1 |
-| `HRD-DEC-238` | 38.4 `AttendancePeriodService`, 38.9.2, 38.10 |
-| `HRD-DEC-239` | Frontend bagian 34 (tanpa perubahan backend) |
-| `HRD-DEC-240` | 38.4 `TemporaryAssignment*`, 38.9.4 |
-| `HRD-DEC-241`, `HRD-DEC-245` | 38.4 ESS, 38.9.3 |
-| `HRD-DEC-242` | 38.4 `ScheduleChangeService`/`ShiftSwapService`, 38.9.5 |
-| `HRD-DEC-243` | 38.8; PRD 43.9 |
-| `HRD-DEC-244` | Kontrak bagian 36.1 |
+| `HRD-DEC-248` | 39.4 `RosterPeriodService`, 39.9.1 |
+| `HRD-DEC-249` | 39.4 `AttendancePeriodService`, 39.9.2, 39.10 |
+| `HRD-DEC-250` | Frontend bagian 36 (tanpa perubahan backend) |
+| `HRD-DEC-251` | 39.4 `TemporaryAssignment*`, 39.9.4 |
+| `HRD-DEC-252`, `HRD-DEC-256` | 39.4 ESS, 39.9.3 |
+| `HRD-DEC-253` | 39.4 `ScheduleChangeService`/`ShiftSwapService`, 39.9.5 |
+| `HRD-DEC-254` | 39.8; PRD 44.9 |
+| `HRD-DEC-255` | Kontrak bagian 37.1 |

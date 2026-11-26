@@ -12,7 +12,7 @@ using QuilvianSystemBackend.Shared.HumanResource.Services;
 
 namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
 {
-    // Layanan Mandiri izin pulang cepat (HRD-DEC-241, kontrak v30 API 36.4, INT-HR-115). Identitas pegawai hanya dari sesi
+    // Layanan Mandiri izin pulang cepat (HRD-DEC-252, kontrak v31 API 37.4, INT-HR-119). Identitas pegawai hanya dari sesi
     // (VR-PK-34); aturan pengajuan sama dengan layar HR lewat EarlyLeavePermissionService. Persetujuan tetap di layar HR.
     [ApiController]
     [Authorize]

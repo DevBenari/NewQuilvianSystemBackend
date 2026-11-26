@@ -6,17 +6,17 @@
 | --- | --- |
 | Task ID | `BE-HRD-359` |
 | Judul | Daftar penempatan sementara lintas pegawai (dibuka kembali) |
-| Slice | `A52-B` / `MVP-74` gelombang 2 · `EPIC HRD-128` (sebelumnya `A52`, `EPIC HRD-120`, tertahan `DSG-Q-02`) |
-| Roadmap | `roadmap/backend-roadmap.md` bagian 30, kartu `BE-HRD-359` (kartu lama bagian 24 menunjuk ke sini) |
-| Trace | `FR-PK-037` (juga dirujuk `FR-PK-032` grup menu); `HRD-DEC-240` |
-| Contract version | `v30` — API 36.6; Validation `VR-PK-27`; Permission 34.1; Integration `INT-HR-117`; desain `02` 38.4, 38.9.4, 38.11 — approved 24 November 2026 |
-| Dependency | Kontrak `v30` ✅; memakai `HrdUnitScopeService` (`BE-HRD-336`) |
+| Slice | `A52-B` / `MVP-77` gelombang 2 · `EPIC HRD-134` (sebelumnya `A52`, `EPIC HRD-120`, tertahan `DSG-Q-02`) |
+| Roadmap | `roadmap/backend-roadmap.md` bagian 32, kartu `BE-HRD-359` (kartu lama bagian 24 menunjuk ke sini) |
+| Trace | `FR-PK-037` (juga dirujuk `FR-PK-032` grup menu); `HRD-DEC-251` |
+| Contract version | `v31` — API 37.6; Validation `VR-PK-27`; Permission 35.1; Integration `INT-HR-121`; desain `02` 39.4, 38.9.4, 38.11 — approved 24 November 2026 |
+| Dependency | Kontrak `v31` ✅; memakai `HrdUnitScopeService` (`BE-HRD-336`) |
 | Klasifikasi | `STANDARD` — controller dan service baca baru, DTO baru, satu registrasi DI, satu resource hak akses baru; tanpa entity, tabel, maupun migration |
 | Task mode | `BACKEND` (instruksi pengguna 25 November 2026: "lanjutkan BE-HRD-359") |
 | Model | Claude Opus 5.5 |
-| Source acuan | Backend `4d2c0162` (branch `yoga`). Working tree sebelum task memuat `BE-HRD-450` s.d. `BE-HRD-452` (belum di-commit) dan dokumen amandemen `A52-B`; tidak disentuh task ini |
+| Source acuan | Backend `4d2c0162` (branch `yoga`). Working tree sebelum task memuat `BE-HRD-463` s.d. `BE-HRD-465` (belum di-commit) dan dokumen amandemen `A52-B`; tidak disentuh task ini |
 | Tanggal | 25 November 2026 |
-| Status | ✅ Selesai — 4/4 acceptance criteria terpenuhi di harness; bukti API data asli devYoga ada di `BE-HRD-455` |
+| Status | ✅ Selesai — 4/4 acceptance criteria terpenuhi di harness; bukti API data asli devYoga ada di `BE-HRD-468` |
 
 ### Backend Governance Preflight
 
@@ -66,8 +66,8 @@ Penempatan bukan `Temporary`, penempatan yang dihapus, dan penempatan nonaktif t
 | `400` untuk `timeStatus` tidak dikenal dan `fromDate` > `toDate` | Kode status kontrak: `200`, `401`, `403` | Ditambah `400` dengan pesan | Tanpa penolakan, nilai salah akan diam-diam menampilkan semua data. Ruas dan perilaku sah tidak berubah |
 | Penempatan utama | "unit penempatan utama pegawai pada tanggal mulai" | `IsPrimary = true`, bukan `Temporary`; bila lebih dari satu berlaku, yang mulainya paling akhir | `IsPrimary` dipakai sebagai penanda utama di `WfpOrganizationAssignmentController` dan `AttendanceDispensationService` |
 | Label status waktu | Kontrak hanya menyebut "+ label" | `Akan Datang`, `Berlangsung`, `Selesai` | Label tampilan tidak ditetapkan kontrak; frontend dapat memakai label dari metadata |
-| Registri hak akses A52 | Desain 38.12: `A52PermissionRegistryTests` diperluas tiga resource baru | Tidak diperluas di task ini; uji sendiri membuktikan registri, validator, dan penolakan untuk `TemporaryAssignment` | Perluasan uji registri gabungan menjadi bagian `BE-HRD-455` |
-| Status kontrak API 36.6 | Tabel masih "**Rencana (belum tersedia)**" | Tidak disunting | Artefak kontrak terkunci hash. Penyegaran status dicatat untuk pass blueprint |
+| Registri hak akses A52 | Desain 38.12: `A52PermissionRegistryTests` diperluas tiga resource baru | Tidak diperluas di task ini; uji sendiri membuktikan registri, validator, dan penolakan untuk `TemporaryAssignment` | Perluasan uji registri gabungan menjadi bagian `BE-HRD-468` |
+| Status kontrak API 37.6 | Tabel masih "**Rencana (belum tersedia)**" | Tidak disunting | Artefak kontrak terkunci hash. Penyegaran status dicatat untuk pass blueprint |
 
 ---
 
@@ -80,7 +80,7 @@ Penempatan bukan `Temporary`, penempatan yang dihapus, dan penempatan nonaktif t
 | Regresi penuh proyek uji HR | 445/445 lulus (12 menit 53 detik) sesudah build ulang dari source asli, dengan env `QUILVIAN_BACKEND_ROOT`. Dijalankan dari salinan tanpa empat uji payroll yang tidak terkompilasi sejak merge `815ce085`; salinan selain itu identik dengan folder uji repo | `PASS` | `test359-full.log` |
 | Build proyek utama | 0 galat (`-p:RunAnalyzers=False`) | `PASS` | `build359-final.log` |
 | QBE `Strict` atas 5 berkas (termasuk `Program.cs`) | 0 violation, 0 review. Probe `TrxZzzQbeProbe359` (ber-`[Table]`) terdeteksi 4 violation lalu dihapus | `PASS` | Keluaran checker |
-| Subkueri unit asal pada PostgreSQL | Hanya terbukti di harness SQLite | `NOT RUN` | Bukti API devYoga di `BE-HRD-455` |
+| Subkueri unit asal pada PostgreSQL | Hanya terbukti di harness SQLite | `NOT RUN` | Bukti API devYoga di `BE-HRD-468` |
 
 ### Acceptance criteria
 
@@ -98,9 +98,9 @@ Penempatan bukan `Temporary`, penempatan yang dihapus, dan penempatan nonaktif t
 | Temuan | Dampak | Tindakan |
 | --- | --- | --- |
 | As-is: penempatan sementara hanya bisa dilihat per pegawai di Profil Pegawai 360 | Kepala Unit tidak punya daftar siapa yang sedang dipinjam dari atau ke unitnya | Diperbaiki (inti task) |
-| Hak `TemporaryAssignment : Read` baru terdaftar di kode | Belum ada peran yang memegangnya sampai Admin Sistem memberikannya lewat Akses Role (Permission 34.3) | Butir DoD "hak akses sudah diberikan" tetap terbuka; daftar periksa: Kepala Unit, Kepala Bidang, Admin HRD |
+| Hak `TemporaryAssignment : Read` baru terdaftar di kode | Belum ada peran yang memegangnya sampai Admin Sistem memberikannya lewat Akses Role (Permission 35.3) | Butir DoD "hak akses sudah diberikan" tetap terbuka; daftar periksa: Kepala Unit, Kepala Bidang, Admin HRD |
 | Pegawai tanpa penempatan utama pada tanggal mulai | Unit asal kosong; Kepala Unit asal tidak melihatnya | Risiko kartu, diterima; tetap tampil bagi unit tujuan |
-| Subkueri unit asal dua kali per baris | Biaya kueri naik seiring jumlah penempatan sementara; paginasi tetap di basis data | Diterima untuk volume penempatan sementara; periksa rencana kueri PostgreSQL saat bukti `BE-HRD-455` |
+| Subkueri unit asal dua kali per baris | Biaya kueri naik seiring jumlah penempatan sementara; paginasi tetap di basis data | Diterima untuk volume penempatan sementara; periksa rencana kueri PostgreSQL saat bukti `BE-HRD-468` |
 
 ---
 
@@ -110,6 +110,6 @@ Penempatan bukan `Temporary`, penempatan yang dihapus, dan penempatan nonaktif t
 | --- | --- |
 | Migration / database | Tidak ada migration. Tidak ada eksekusi database |
 | Git | Tidak ada stage, commit, push, pull, merge, rebase, atau deploy. Berkas baru: `TemporaryAssignmentController.cs`, `TemporaryAssignmentQueryService.cs`, `TemporaryAssignmentDtos.cs`, `TemporaryAssignmentQueryTests.cs` |
-| Dampak frontend | Endpoint baru untuk layar Penugasan Tambahan (`FE-HRD-406`); label status waktu dari `filters/metadata` |
-| Bukti data asli | Penempatan sementara dan akun Kepala Unit di devYoga dikerjakan di `BE-HRD-455` |
-| Task berikutnya | `BE-HRD-453` (ESS izin pulang cepat), lalu `BE-HRD-454` |
+| Dampak frontend | Endpoint baru untuk layar Penugasan Tambahan (`FE-HRD-415`); label status waktu dari `filters/metadata` |
+| Bukti data asli | Penempatan sementara dan akun Kepala Unit di devYoga dikerjakan di `BE-HRD-468` |
+| Task berikutnya | `BE-HRD-466` (ESS izin pulang cepat), lalu `BE-HRD-467` |

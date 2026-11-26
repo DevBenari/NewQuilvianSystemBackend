@@ -6214,13 +6214,67 @@ Tidak ada perubahan skema. Kolom kunci: `DelegatorUserId`, `DelegateUserId` (waj
 
 Tidak ada perubahan skema. `ActionType` mendapat nilai baru `Escalate` (konstanta, tanpa CHECK constraint, tanpa migration). `DigitalSignatureHash` tidak lagi diisi untuk aksi baru (`HRD-DEC-230`).
 
-## 31. Kamus Data Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v30`, approved 24 November 2026)
+---
+
+## 31. Kamus Data Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v30`, approved 23 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `last_changed_in` | `v30` — 22 November 2026 |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`) |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `input_revision` | Decision log revision `42` bagian 57; capability map `1.5` bagian 17 |
+
+**Tidak ada tabel baru, tidak ada tabel diperbarui, tidak ada migration.** Bagian ini mencatat kolom kunci tabel `Sudah ada` yang dipakai aturan Paket B, serta field turunan yang hanya hidup di response.
+
+### 31.1 Kolom kunci tabel yang dibaca
+
+| Tabel (modul pemilik) | Kolom | Dipakai untuk | Sensitif | File model |
+| --- | --- | --- | --- | --- |
+| `MstEmployee` (`MasterData/Workforce`) | `Id` (PK), `WorkforceProfileId` (FK), `IsActive`, `ProfessionId` (FK opsional ke `MstProfession`), `JoinDate`, `ResignDate` | Panel 1–3, daftar nama, pemetaan 360 → sanksi | Tidak (nama dan nomor pegawai: Sensitif ringan, boleh tampil ke pemegang hak) | `MasterData/Workforce/Models/MstEmployee.cs` |
+| `MstProfession` (`MasterData/CompetencyAndCredential`) | `Id`, `ProfessionName` | Panel 2 | Tidak | `MasterData/CompetencyAndCredential/Models/MstProfession.cs` |
+| `WfpContractHistory` (`WorkforceCore`) | `IsCurrent`, `EndDate`, kolom keputusan perpanjangan yang dipakai `renewal-summary` | Panel 4 lewat `ContractRenewalBuckets` | Tidak | `WorkforceCore/Models/WfpContractHistory.cs` |
+| `WfpCredentialLicense` (`CredentialingManagement`) | `ExpiredDate`, `IsActive`, `IsRevoked`, `IsLifetimeStr`, nomor lisensi | Panel 5 (lewat radar existing) | Nomor lisensi: **Sensitif** (ditampilkan 4 karakter terakhir saja) | `CredentialingManagement/Models/WfpCredentialLicense.cs` |
+| `TrxSpkRkkIssuance` (`CredentialingManagement`) | `WorkforceProfileId`, `ValidUntil`, `IssuanceStatus` (`Active`, `Suspended`, `Expired`, `Revoked`) | Panel 5 — hanya `Active` | Tidak | `CredentialingManagement/Models/TrxSpkRkkIssuance.cs` |
+| `HrdDisciplinarySanction` (`EmployeeRelationManagement`) | `EmployeeId` (berisi `MstEmployee.Id` **atau** `MstWorkforceProfile.Id`), `Status` (`Active`, `Expired`, `RevokedOnAppeal`), `ValidUntil` | Riwayat Penyelesaian, Employee 360 | **Sensitif** | `EmployeeRelationManagement/Models/HrdDisciplinarySanction.cs` |
+| `HrdDisciplinaryIncidentReport` (`EmployeeRelationManagement`) | `EmployeeId`, `Status` (`ResolvedNoSanction`, …) | Riwayat Penyelesaian | **Sensitif** | `EmployeeRelationManagement/Models/HrdDisciplinaryIncidentReport.cs` |
+| `WfpDisciplinaryAction` (`EmployeeRelationManagement`) | `WorkforceProfileId`, `ActionType`, `Subject`, `ActionDate` | Employee 360 sebagai riwayat `LEGACY` | **Sensitif** | `EmployeeRelationManagement/Models/WfpDisciplinaryAction.cs` |
+| `HrdCandidateScreening` (`RecruitmentManagement`) | `Status` (`Pending`, `Passed`, `Rejected`), lowongan, hasil klinis | Seleksi Administrasi | Tidak | `RecruitmentManagement/Models/HrdCandidateScreening.cs` |
+| `HrdCandidateEvaluation` (`RecruitmentManagement`) | `EvaluationType`, `EvaluatorUserId`, rekomendasi, `IsClinicalVetoApplied` | Tes/Wawancara, pembatasan penilai | Isi penilaian: **Sensitif** | `RecruitmentManagement/Models/HrdCandidateEvaluation.cs` |
+
+### 31.2 Pemetaan tingkat radar ke kelompok dashboard
+
+| Sumber | Tingkat sumber | Kelompok dashboard |
+| --- | --- | --- |
+| Radar lisensi (`RadarLevel`) | `ExpiredH0` | `EXPIRED` |
+| | `H7`, `H30` | `WITHIN_30` |
+| | `H60` | `DAYS_31_60` |
+| | `H90` | `DAYS_61_90` |
+| Radar sertifikat | `OverdueH0Count` / item lewat | `EXPIRED` |
+| | `ZoneH30CriticalCount` | `WITHIN_30` |
+| | `ZoneH60Count` | `DAYS_31_60` |
+| | `ZoneH90Count` | `DAYS_61_90` |
+| SPK/RKK (kueri baru) | Sisa hari `ValidUntil` − tanggal operasional | ≤ 0 `EXPIRED`; 1–30; 31–60; 61–90 |
+
+Bila batas tingkat radar sumber ternyata tidak tepat 30/60/90 hari (mis. `H60` mencakup 31–60 hari), angka mengikuti radar sumber; implementasi wajib memverifikasi batas ini dan mencatatnya di laporan task.
+
+### 31.3 Field turunan response (tidak disimpan)
+
+| Field | Tipe | Asal |
+| --- | --- | --- |
+| `WorkforceDashboardSummaryResponse.*` | int, list | Dihitung saat dipanggil (api-contract 36.1) |
+| `WorkforceDashboardDrilldownItem.daysRemaining` | int? | `referenceDate` − tanggal operasional |
+| `Employee360DisciplinaryItemDto.source` | string | `OFFICIAL` bila dari `HrdDisciplinarySanction`; `LEGACY` bila dari `WfpDisciplinaryAction` |
+| `Employee360DisciplinaryItemDto.isActive` | bool | `OFFICIAL`: `Status = Active` dan `ValidUntil` > sekarang; `LEGACY`: selalu `false` |
+| `ConfidentialPersonalAndDisciplineDto.disciplineHidden` | bool | Hasil pemeriksaan `ViewSanctions` |
+
+## 32. Kamus Data Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v31`, approved 24 November 2026)
 
 **Tidak ada tabel baru, kolom baru, index baru, atau migration.** Sepuluh kolom warisan `IdentityModel` tidak diulang. Bagian ini mencatat kolom yang sudah ada dan kini dipakai aturan amandemen.
 
 | Tabel (status `Sudah ada`) | Model | Kolom | Dipakai untuk | Sensitif |
 | --- | --- | --- | --- | --- |
-| `TrxShiftAssignment` | `Areas/Corporate/HumanResource/SchedulingManagement/Models/TrxShiftAssignment.cs` | `WorkforceProfileId` | Petugas yang bertugas sekarang; dasar baris kisi (`HRD-DEC-237`) | Tidak |
+| `TrxShiftAssignment` | `Areas/Corporate/HumanResource/SchedulingManagement/Models/TrxShiftAssignment.cs` | `WorkforceProfileId` | Petugas yang bertugas sekarang; dasar baris kisi (`HRD-DEC-248`) | Tidak |
 | | | `OriginalEmployeeId` | Petugas awal sebelum Ganti Petugas; penanda `isReplacement` | Tidak |
 | | | `RosterAssignmentId`, `OrganizationUnitId` | Baris asal; cakupan unit Perubahan Shift / Tukar Dinas | Tidak |
 | `HrdAttendanceException` | `Areas/Corporate/HumanResource/AttendanceManagement/Models/HrdAttendanceException.cs` | `ExceptionType`, `ExceptionStatus`, `IsPayrollBlocking` | Penentuan pengecualian konversi (`VR-PK-31`) | Tidak |
@@ -6230,7 +6284,7 @@ Tidak ada perubahan skema. `ActionType` mendapat nilai baru `Escalate` (konstant
 | | | `IsCancel`, `CancelBy`, `CancelDateTime` (warisan) | Pembatalan oleh pemohon | Tidak |
 | `HrdOfficialDutyRequest` | `…/AttendanceManagement/Models/HrdOfficialDutyRequest.cs` | `WorkforceProfileId`, `Status`, `AttachmentUrl` | Pemilik, transisi batal, lampiran milik sendiri | Tidak |
 | | | `Purpose`, `Latitude`, `Longitude` | Maksud tugas dan lokasi | **Ya** (lokasi) — tidak masuk log |
-| `WfpOrganizationAssignment` | `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpOrganizationAssignment.cs` | `AssignmentType` (`Temporary`), `OrganizationUnitId`, `EffectiveStartDate`, `EffectiveEndDate`, `IsActive` | Daftar penempatan sementara (`HRD-DEC-240`) | Tidak |
+| `WfpOrganizationAssignment` | `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpOrganizationAssignment.cs` | `AssignmentType` (`Temporary`), `OrganizationUnitId`, `EffectiveStartDate`, `EffectiveEndDate`, `IsActive` | Daftar penempatan sementara (`HRD-DEC-251`) | Tidak |
 | `WfpScheduleChangeRequest`, `WfpShiftSwapRequest` | `…/SchedulingManagement/Models/` | `CurrentShiftAssignmentId`, `RequesterShiftAssignmentId`, `TargetShiftAssignmentId`, `RequestStatus` | Penentuan unit untuk cakupan (`VR-PK-35`) | Tidak |
 
 Nama kolom dan lokasi model di atas diperiksa terhadap source `4d2c0162` pada 24 November 2026. Nilai `Status` pengajuan yang dipakai: `Submitted` (saat dibuat), `Approved`, `Rejected`, dan `Cancelled` (baru dipakai transisi batal ESS); nilai bawaan model `Draft` tidak dipakai alur ini.

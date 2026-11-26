@@ -8,7 +8,7 @@ using QuilvianSystemBackend.Responses;
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services
 {
     /// <summary>
-    /// Daftar baca penempatan sementara lintas pegawai (HRD-DEC-240, desain 38.9.4, kontrak v30 API 36.6, INT-HR-117).
+    /// Daftar baca penempatan sementara lintas pegawai (HRD-DEC-251, desain 39.9.4, kontrak v31 API 37.6, INT-HR-121).
     ///
     /// Sumber: WfpOrganizationAssignment ber-AssignmentType Temporary, aktif, tidak dihapus. Baris tampil bila unit tujuan
     /// atau unit penempatan utama pegawai pada tanggal mulai berada dalam cakupan baca pengguna. Pencatatan dan perubahan

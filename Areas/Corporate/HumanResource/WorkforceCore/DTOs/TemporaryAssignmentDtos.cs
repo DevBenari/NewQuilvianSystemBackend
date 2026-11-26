@@ -1,7 +1,7 @@
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
 {
     /// <summary>
-    /// Saringan daftar penempatan sementara lintas pegawai (HRD-DEC-240, kontrak v30 API 36.6).
+    /// Saringan daftar penempatan sementara lintas pegawai (HRD-DEC-251, kontrak v31 API 37.6).
     /// </summary>
     public class TemporaryAssignmentPagedQuery
     {

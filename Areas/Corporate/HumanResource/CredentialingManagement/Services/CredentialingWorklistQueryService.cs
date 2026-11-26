@@ -48,6 +48,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         public const string StatusInReview = "InReview";
         public const string StatusPlenaryConcluded = "PlenarySessionConcluded";
         public const string PeerAssessmentType = "PeerReviewPortofolio";
+
+        /// <summary>BE-HRD-430/431: peran baris <c>TrxCredentialingCommitteeReview</c> untuk anggota panel Mitra Bestari.</summary>
+        public const string PeerReviewerRole = "PeerReviewer";
+        public const string ReviewPending = "Pending";
+        public const string ReviewCompleted = "Completed";
+        public const string ReviewWithdrawn = "Withdrawn";
         private const int MaxRecredentialingWindowDays = 1095;
 
         private readonly ApplicationDbContext _context;
@@ -76,12 +82,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 Code = p != null ? p.ProfileCode : null
             };
 
-        /// <summary>
-        /// Potongan JSON untuk operator <c>jsonb @&gt;</c>: permohonan yang panel reviewernya memuat profil ini.
-        /// Kolom <c>ComplianceResultJson</c> bertipe <c>jsonb</c>, jadi ILIKE tidak bisa dipakai (SQLSTATE 42883).
-        /// </summary>
-        private static string ReviewerContainmentJson(Guid workforceProfileId) =>
-            JsonSerializer.Serialize(new { ReviewerProfiles = new[] { new { Id = workforceProfileId } } });
+        /// <summary>Baris panel Mitra Bestari yang masih berlaku (belum dikeluarkan).</summary>
+        private IQueryable<TrxCredentialingCommitteeReview> ActivePanelRows() =>
+            _context.TrxCredentialingCommitteeReviews.AsNoTracking()
+                .Where(r => r.CommitteeMemberRole == PeerReviewerRole
+                            && r.Recommendation != ReviewWithdrawn
+                            && r.IsActive && !r.IsDelete);
 
         private const string RejectedDecisionJson = "{\"Decision\":\"Rejected\"}";
 
@@ -104,10 +110,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 return Task.FromResult(HrCrossEmployeeLookup.ToPaged(Array.Empty<CredentialingApplicationListItemDto>(), 0, 1, HrCrossEmployeeLookup.NormalizePage(q.PageNumber, q.PageSize).PageSize));
             }
 
-            var containment = ReviewerContainmentJson(reviewerWorkforceProfileId);
+            // BE-HRD-431: worklist reviewer dibaca dari baris panel persisten milik akun yang login.
+            var panel = ActivePanelRows();
             var query = BaseApplications().Where(x => x.App.ApplicationStatus == StatusInReview
-                && x.App.ComplianceResultJson != null
-                && EF.Functions.JsonContains(x.App.ComplianceResultJson, containment));
+                && panel.Any(r => r.CredentialingApplicationId == x.App.Id && r.ReviewerUserId == currentUserId));
             return PageApplicationsAsync(query, q, currentUserId, cancellationToken);
         }
 
@@ -159,19 +165,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 .ToListAsync(cancellationToken);
 
             var ids = rows.Select(r => r.Id).ToList();
-            var assessmentStats = ids.Count == 0
-                ? new Dictionary<Guid, (int Count, bool Mine)>()
-                : (await _context.TrxClinicalPrivilegeAssessments.AsNoTracking()
-                    .Where(a => ids.Contains(a.ClinicalPrivilegeRequestId) && a.AssessmentType == PeerAssessmentType && a.IsActive && !a.IsDelete)
-                    .GroupBy(a => a.ClinicalPrivilegeRequestId)
-                    .Select(g => new { g.Key, Count = g.Count(), Mine = g.Any(a => a.AssessorUserId == currentUserId) })
+            var panelStats = ids.Count == 0
+                ? new Dictionary<Guid, (int Assigned, int Completed, bool Mine)>()
+                : (await ActivePanelRows()
+                    .Where(r => ids.Contains(r.CredentialingApplicationId))
+                    .GroupBy(r => r.CredentialingApplicationId)
+                    .Select(g => new
+                    {
+                        g.Key,
+                        Assigned = g.Count(),
+                        Completed = g.Count(r => r.Recommendation == ReviewCompleted),
+                        Mine = g.Any(r => r.Recommendation == ReviewCompleted && r.ReviewerUserId == currentUserId)
+                    })
                     .ToListAsync(cancellationToken))
-                    .ToDictionary(x => x.Key, x => (x.Count, x.Mine));
+                    .ToDictionary(x => x.Key, x => (x.Assigned, x.Completed, x.Mine));
 
             var items = rows.Select(r =>
             {
                 var snapshot = ReadComplianceSnapshot(r.ComplianceResultJson);
-                assessmentStats.TryGetValue(r.Id, out var stats);
+                panelStats.TryGetValue(r.Id, out var stats);
                 return new CredentialingApplicationListItemDto
                 {
                     Id = r.Id,
@@ -183,8 +195,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                     ApplicationStatus = r.ApplicationStatus,
                     ApplicationDate = r.ApplicationDate,
                     RequestedPrivilegeCount = ReadRequestedCatalogIds(r.RequirementSnapshotJson).Count,
-                    AssignedReviewerCount = snapshot.Reviewers.Count,
-                    PeerAssessmentCount = stats.Count,
+                    AssignedReviewerCount = stats.Assigned,
+                    PeerAssessmentCount = stats.Completed,
                     AssessedByMe = stats.Mine,
                     PlenaryDecision = snapshot.Decision,
                     PlenaryBapNumber = snapshot.BapNumber
@@ -197,11 +209,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         public async Task<bool> IsAssignedReviewerAsync(Guid applicationId, Guid reviewerWorkforceProfileId, CancellationToken cancellationToken = default)
         {
             if (reviewerWorkforceProfileId == Guid.Empty) return false;
-            var json = await _context.TrxCredentialingApplications.AsNoTracking()
-                .Where(a => a.Id == applicationId && a.IsActive && !a.IsDelete && a.ApplicationStatus == StatusInReview)
-                .Select(a => a.ComplianceResultJson)
-                .FirstOrDefaultAsync(cancellationToken);
-            return ReadComplianceSnapshot(json).Reviewers.Any(r => r.Id == reviewerWorkforceProfileId);
+            var inReview = await _context.TrxCredentialingApplications.AsNoTracking()
+                .AnyAsync(a => a.Id == applicationId && a.IsActive && !a.IsDelete && a.ApplicationStatus == StatusInReview, cancellationToken);
+            if (!inReview) return false;
+
+            return await ActivePanelRows()
+                .AnyAsync(r => r.CredentialingApplicationId == applicationId
+                               && r.ReviewerUser != null
+                               && r.ReviewerUser.WorkforceProfileId == reviewerWorkforceProfileId, cancellationToken);
         }
 
         public async Task<CredentialingPeerReviewSheetDto> GetPeerReviewSheetAsync(Guid applicationId, Guid reviewerWorkforceProfileId, Guid currentUserId, CancellationToken cancellationToken = default)
@@ -210,16 +225,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 .Where(x => x.App.Id == applicationId && x.App.ApplicationStatus == StatusInReview)
                 .FirstOrDefaultAsync(cancellationToken);
 
+            var panelRow = row == null || reviewerWorkforceProfileId == Guid.Empty
+                ? null
+                : await ActivePanelRows()
+                    .Where(r => r.CredentialingApplicationId == applicationId && r.ReviewerUserId == currentUserId)
+                    .Select(r => new { r.Recommendation, r.ReviewEvidenceJson })
+                    .FirstOrDefaultAsync(cancellationToken);
+
             // Bukan anggota panel dijawab sama dengan tidak ada, agar daftar permohonan orang lain tidak bisa ditebak.
-            if (row == null || reviewerWorkforceProfileId == Guid.Empty
-                || !ReadComplianceSnapshot(row.App.ComplianceResultJson).Reviewers.Any(r => r.Id == reviewerWorkforceProfileId))
+            if (row == null || panelRow == null
+                || ReadPeerReviewEvidence(panelRow.ReviewEvidenceJson).ReviewerProfileId != reviewerWorkforceProfileId)
             {
                 throw new KeyNotFoundException("Permohonan tidak ada di worklist Mitra Bestari Anda.");
             }
 
-            var alreadyAssessed = await _context.TrxClinicalPrivilegeAssessments.AsNoTracking()
-                .AnyAsync(a => a.ClinicalPrivilegeRequestId == applicationId && a.AssessmentType == PeerAssessmentType
-                    && a.AssessorUserId == currentUserId && a.IsActive && !a.IsDelete, cancellationToken);
+            var alreadyAssessed = string.Equals(panelRow.Recommendation, ReviewCompleted, StringComparison.OrdinalIgnoreCase);
 
             return new CredentialingPeerReviewSheetDto
             {
@@ -241,15 +261,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             var row = await BaseApplications().Where(x => x.App.Id == applicationId).FirstOrDefaultAsync(cancellationToken)
                 ?? throw new KeyNotFoundException("Permohonan kredensial tidak ditemukan.");
 
-            var assessments = await _context.TrxClinicalPrivilegeAssessments.AsNoTracking()
-                .Where(a => a.ClinicalPrivilegeRequestId == applicationId && a.AssessmentType == PeerAssessmentType && a.IsActive && !a.IsDelete)
-                .OrderBy(a => a.AssessmentDate)
-                .Select(a => new { a.Id, a.AssessmentDate, a.Recommendation, a.RequiresSupervision, a.CompetencyResultJson })
+            // BE-HRD-431: hasil asesmen per reviewer dibaca dari baris panel persisten (tidak tertimpa pleno).
+            var panelRows = await ActivePanelRows()
+                .Where(r => r.CredentialingApplicationId == applicationId)
+                .OrderBy(r => r.MeetingDate)
+                .Select(r => new { r.Id, r.Recommendation, r.Comments, r.ReviewEvidenceJson, r.UpdateDateTime, r.CreateDateTime })
                 .ToListAsync(cancellationToken);
 
-            var parsed = assessments.Select(a => (a, Detail: ReadAssessmentDetail(a.CompetencyResultJson))).ToList();
+            var parsedPanel = panelRows.Select(r => (r, Evidence: ReadPeerReviewEvidence(r.ReviewEvidenceJson))).ToList();
+            var completed = parsedPanel
+                .Where(p => string.Equals(p.r.Recommendation, ReviewCompleted, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(p => p.Evidence.SubmittedAt ?? p.r.UpdateDateTime ?? p.r.CreateDateTime)
+                .ToList();
             var labels = await HrCrossEmployeeLookup.LoadProfileLabelsAsync(
-                _context, parsed.Where(p => p.Detail.ReviewerProfileId.HasValue).Select(p => p.Detail.ReviewerProfileId!.Value), cancellationToken);
+                _context, parsedPanel.Where(p => p.Evidence.ReviewerProfileId.HasValue).Select(p => p.Evidence.ReviewerProfileId!.Value), cancellationToken);
 
             return new CredentialingPlenaryMatrixDto
             {
@@ -258,19 +283,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 ApplicantName = row.Name ?? "Pegawai tidak ditemukan",
                 ProfileCode = row.Code,
                 ApplicationStatus = row.App.ApplicationStatus,
-                AssignedReviewerNames = ReadComplianceSnapshot(row.App.ComplianceResultJson).Reviewers.Select(r => r.Name).ToList(),
+                AssignedReviewerNames = parsedPanel
+                    .Select(p => p.Evidence.ReviewerProfileId.HasValue
+                        ? HrCrossEmployeeLookup.NameOf(labels, p.Evidence.ReviewerProfileId.Value)
+                        : p.Evidence.ReviewerName ?? "-")
+                    .ToList(),
                 RequestedPrivileges = await LoadCatalogItemsAsync(ReadRequestedCatalogIds(row.App.RequirementSnapshotJson), cancellationToken),
-                Assessments = parsed.Select(p => new PeerAssessmentSummaryDto
+                Assessments = completed.Select(p => new PeerAssessmentSummaryDto
                 {
-                    AssessmentId = p.a.Id,
-                    ReviewerWorkforceProfileId = p.Detail.ReviewerProfileId,
-                    ReviewerName = p.Detail.ReviewerProfileId.HasValue
-                        ? HrCrossEmployeeLookup.NameOf(labels, p.Detail.ReviewerProfileId.Value)
+                    AssessmentId = p.r.Id,
+                    ReviewerWorkforceProfileId = p.Evidence.ReviewerProfileId,
+                    ReviewerName = p.Evidence.ReviewerProfileId.HasValue
+                        ? HrCrossEmployeeLookup.NameOf(labels, p.Evidence.ReviewerProfileId.Value)
                         : "Reviewer tidak tercatat",
-                    AssessmentDate = p.a.AssessmentDate,
-                    OverallRecommendation = p.Detail.OverallNotes ?? p.a.Recommendation,
-                    RequiresSupervision = p.a.RequiresSupervision,
-                    Items = p.Detail.Items
+                    AssessmentDate = p.Evidence.SubmittedAt ?? p.r.UpdateDateTime ?? p.r.CreateDateTime,
+                    OverallRecommendation = p.Evidence.OverallNotes ?? p.r.Comments,
+                    RequiresSupervision = p.Evidence.RequiresSupervision,
+                    Items = p.Evidence.Items ?? new List<PrivilegeAssessmentItemDto>()
                 }).ToList()
             };
         }
@@ -354,6 +383,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                     x.Name,
                     x.Code,
                     x.i.ClinicalPrivilegeType,
+                    x.i.ValidFrom,
                     x.i.ValidUntil
                 })
                 .ToListAsync(cancellationToken);
@@ -373,8 +403,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                     });
 
             var finalStatuses = new[] { "FINALIZED", "ACKNOWLEDGED" };
-            var oppe = profileIds.Count == 0
-                ? new Dictionary<Guid, (decimal Score, string Grade, string Period)>()
+            var oppeRows = profileIds.Count == 0
+                ? new List<(Guid ProfileId, decimal Score, string Grade, string? PeriodName, DateTime? PeriodEnd)>()
                 : (await _context.HrdOppeStaffEvaluations.AsNoTracking()
                     .Where(e => profileIds.Contains(e.WorkforceProfileId) && !e.IsDelete && finalStatuses.Contains(e.Status))
                     .Select(e => new
@@ -386,17 +416,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                         PeriodEnd = e.Period != null ? e.Period.EndDate : (DateTime?)null
                     })
                     .ToListAsync(cancellationToken))
-                    .GroupBy(e => e.WorkforceProfileId)
-                    .ToDictionary(g => g.Key, g =>
-                    {
-                        var latest = g.OrderByDescending(e => e.PeriodEnd ?? DateTime.MinValue).First();
-                        return (Score: latest.FinalCompositeScore, Grade: latest.PerformanceGrade, Period: latest.PeriodName ?? "-");
-                    });
+                    .Select(e => (ProfileId: e.WorkforceProfileId, Score: e.FinalCompositeScore, Grade: e.PerformanceGrade, PeriodName: e.PeriodName, PeriodEnd: e.PeriodEnd))
+                    .ToList();
+            var oppe = oppeRows
+                .GroupBy(e => e.ProfileId)
+                .ToDictionary(g => g.Key, g =>
+                {
+                    var latest = g.OrderByDescending(e => e.PeriodEnd ?? DateTime.MinValue).First();
+                    return (Score: latest.Score, Grade: latest.Grade, Period: latest.PeriodName ?? "-");
+                });
 
             var items = rows.Select(r =>
             {
                 var hasRecred = recredentialing.TryGetValue(r.WorkforceProfileId, out var recred);
                 var hasOppe = oppe.TryGetValue(r.WorkforceProfileId, out var score);
+                // BE-HRD-437: kesiapan OPPE dihitung dari evaluasi final yang berakhir di dalam siklus SPK ini.
+                var oppeInCycle = oppeRows.Count(e => e.ProfileId == r.WorkforceProfileId
+                    && e.PeriodEnd.HasValue && e.PeriodEnd.Value >= r.ValidFrom && e.PeriodEnd.Value <= r.ValidUntil);
                 return new RecredentialingCycleListItemDto
                 {
                     SpkRkkIssuanceId = r.Id,
@@ -411,7 +447,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                     RecredentialingNumber = hasRecred ? recred.Number : null,
                     LatestOppeScore = hasOppe ? score.Score : null,
                     LatestOppeGrade = hasOppe ? score.Grade : null,
-                    LatestOppePeriodName = hasOppe ? score.Period : null
+                    LatestOppePeriodName = hasOppe ? score.Period : null,
+                    OppeEvaluationsInCycle = oppeInCycle,
+                    OppeReadiness = oppeInCycle > 0 ? OppeReadinessStatus.Ready : OppeReadinessStatus.NotEnoughData
                 };
             }).ToList();
 
@@ -606,25 +644,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             }
         }
 
-        private sealed record AssessmentDetail(Guid? ReviewerProfileId, string? OverallNotes, List<PrivilegeAssessmentItemDto> Items);
-
-        private static AssessmentDetail ReadAssessmentDetail(string? json)
+        /// <summary>
+        /// Isi <c>ReviewEvidenceJson</c> baris panel Mitra Bestari: identitas reviewer, data penugasan, dan (sesudah
+        /// dinilai) hasil asesmen per butir kewenangan.
+        /// </summary>
+        public sealed class PeerReviewEvidence
         {
-            if (string.IsNullOrWhiteSpace(json)) return new AssessmentDetail(null, null, new List<PrivilegeAssessmentItemDto>());
+            public Guid? ReviewerProfileId { get; set; }
+            public string? ReviewerName { get; set; }
+            public string? ReviewerCode { get; set; }
+            public Guid? AssignedByUserId { get; set; }
+            public DateTime? AssignedAt { get; set; }
+            public string? AssignmentNotes { get; set; }
+            public DateTime? SubmittedAt { get; set; }
+            public string? OverallNotes { get; set; }
+            public bool RequiresSupervision { get; set; }
+            public List<PrivilegeAssessmentItemDto>? Items { get; set; }
+        }
+
+        /// <summary>Membaca <c>ReviewEvidenceJson</c>; JSON kosong/rusak menghasilkan objek kosong.</summary>
+        public static PeerReviewEvidence ReadPeerReviewEvidence(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return new PeerReviewEvidence();
             try
             {
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-                Guid? reviewer = root.TryGetProperty("ReviewerProfileId", out var r) && r.TryGetGuid(out var rid) ? rid : null;
-                var notes = root.TryGetProperty("OverallNotes", out var n) && n.ValueKind == JsonValueKind.String ? n.GetString() : null;
-                var items = root.TryGetProperty("Items", out var i) && i.ValueKind == JsonValueKind.Array
-                    ? JsonSerializer.Deserialize<List<PrivilegeAssessmentItemDto>>(i.GetRawText()) ?? new List<PrivilegeAssessmentItemDto>()
-                    : new List<PrivilegeAssessmentItemDto>();
-                return new AssessmentDetail(reviewer, notes, items);
+                return JsonSerializer.Deserialize<PeerReviewEvidence>(json) ?? new PeerReviewEvidence();
             }
             catch (JsonException)
             {
-                return new AssessmentDetail(null, null, new List<PrivilegeAssessmentItemDto>());
+                return new PeerReviewEvidence();
             }
         }
     }

@@ -8,7 +8,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
     {
         public void Configure(EntityTypeBuilder<MstHazardAllowancePolicy> entity)
         {
-            entity.ToTable("MstHazardAllowancePolicy", "public");
+            // Nama constraint/indeks sama persis dengan DDL cakupan Grade Gaji (laporan PAY-BE-FIX-018).
+            entity.ToTable("MstHazardAllowancePolicy", "public", table =>
+                table.HasCheckConstraint(
+                    "CK_MstHazardAllowancePolicy_StructureRequiresGrade",
+                    "\"SalaryStructureId\" IS NULL OR \"SalaryGradeId\" IS NOT NULL"));
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.AllowanceTypeId).IsRequired();
@@ -67,6 +71,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .HasForeignKey(x => x.EmploymentTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.EmployeeGrade).WithMany().HasForeignKey(x => x.EmployeeGradeId)
+                .HasConstraintName("FK_MstHazardAllowancePolicy_EmployeeGrade").OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.SalaryGrade).WithMany().HasForeignKey(x => x.SalaryGradeId)
+                .HasConstraintName("FK_MstHazardAllowancePolicy_SalaryGrade").OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.SalaryStructure).WithMany().HasForeignKey(x => x.SalaryStructureId)
+                .HasConstraintName("FK_MstHazardAllowancePolicy_SalaryStructure").OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(x => x.HazardAllowancePolicyCode)
                 .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
@@ -75,6 +86,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasIndex(x => x.AllowanceTypeId);
             entity.HasIndex(x => new { x.LegalEntityId, x.HospitalSiteId, x.OrganizationUnitId, x.WorkLocationId });
             entity.HasIndex(x => new { x.EmployeeCategoryId, x.EmploymentTypeId });
+            entity.HasIndex(x => new { x.SalaryGradeId, x.SalaryStructureId, x.IsActive, x.IsDelete })
+                .HasDatabaseName("IX_MstHazardAllowancePolicy_SalaryGrade_SalaryStructure");
+            entity.HasIndex(x => x.SalaryStructureId).HasDatabaseName("IX_MstHazardAllowancePolicy_SalaryStructureId");
+            entity.HasIndex(x => x.EmployeeGradeId).HasDatabaseName("IX_MstHazardAllowancePolicy_EmployeeGradeId");
             entity.HasIndex(x => new { x.HazardLevel, x.Priority, x.IsDefault, x.IsActive, x.IsDelete });
             entity.HasIndex(x => new { x.EffectiveStartDate, x.EffectiveEndDate, x.IsActive, x.IsDelete });
         }

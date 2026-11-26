@@ -133,7 +133,7 @@ public sealed class ExitClearanceController : ControllerBase
     {
         try
         {
-            var result = await _service.UpdateChecklistAsync(id, request, CurrentUserId(), cancellationToken);
+            var result = await _service.UpdateChecklistAsync(id, request, CurrentUserId(), cancellationToken, User);
             return Ok(ApiResponse<ExitClearanceDetailResponse>.Ok(result, "Checklist exit clearance berhasil diperbarui."));
         }
         catch (Exception ex) when (IsHandled(ex))
@@ -210,13 +210,14 @@ public sealed class ExitClearanceController : ControllerBase
     private IActionResult Failure(Exception exception) => exception switch
     {
         KeyNotFoundException => NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message)),
+        UnauthorizedAccessException => StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, exception.Message)),
         InvalidOperationException => UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message)),
         ArgumentException => BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, exception.Message)),
         _ => throw exception
     };
 
     private static bool IsHandled(Exception exception) =>
-        exception is KeyNotFoundException or InvalidOperationException or ArgumentException;
+        exception is KeyNotFoundException or InvalidOperationException or ArgumentException or UnauthorizedAccessException;
 
     private Guid CurrentUserId()
     {

@@ -424,7 +424,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return await GetByIdAsync(entity.Id, cancellationToken);
         }
 
-        // ---------------------------------------------------------------- Layanan Mandiri (HRD-DEC-241, desain 38.9.3)
+        // ---------------------------------------------------------------- Layanan Mandiri (HRD-DEC-252, desain 39.9.3)
         // Identitas pegawai hanya dari sesi (VR-PK-34): controller ESS meneruskan WorkforceProfileId akun login.
 
         private const string SelfProfileMissingMessage = "Akun ini belum terhubung ke profil pegawai.";
@@ -537,7 +537,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         /// <summary>
-        /// Pemohon membatalkan pengajuannya yang masih Submitted (VR-PK-33). Alasan wajib (1–500 karakter); kontrak v30 tidak
+        /// Pemohon membatalkan pengajuannya yang masih Submitted (VR-PK-33). Alasan wajib (1–500 karakter); kontrak v31 tidak
         /// menyediakan kolom maupun ruas log untuk alasan ini, sehingga hanya divalidasi.
         /// </summary>
         public async Task<EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>> CancelBySelfAsync(

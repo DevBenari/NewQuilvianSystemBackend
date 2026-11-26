@@ -5,7 +5,7 @@ blueprint_id: ACC-BP-001
 module_name: Accounting
 module_slug: accounting
 module_prefix: ACC
-revision: 17   # 5 Okt 2026 - jawaban atas surat Finance 22 + permintaan kode sewa (ACC-DEC-132..140, ACC-XMOD-0.7, dokumen saja); 16 = 1 Okt 2026 - jawaban atas surat Finance 15/16/21 (ACC-DEC-125..131, ACC-XMOD-0.6, dokumen saja); 15 = 30 Sep 2026 - amendment ACC-DEC-122..124 (dokumen saja, nol kode), GATE-DESAIN-0930; 14 = 29 Sep 2026 - amendment draft jurnal hasil kejadian (ACC-DEC-116..121), GATE-DESAIN-0929; 13 = 28 Sep 2026 rekonsiliasi saldo subledger (ACC-DEC-107..115), GATE-DESAIN-0928; 12 = 24 Sep 2026 pasca-ratifikasi Finance
+revision: 18   # 24 Nov 2026 - finishing ACC-FIN-005 + 008 (ACC-DEC-141..155, draft desain, nol migration); 17 = 5 Okt 2026 - jawaban atas surat Finance 22 + permintaan kode sewa (ACC-DEC-132..140, ACC-XMOD-0.7, dokumen saja); 16 = 1 Okt 2026 - jawaban atas surat Finance 15/16/21 (ACC-DEC-125..131, ACC-XMOD-0.6, dokumen saja); 15 = 30 Sep 2026 - amendment ACC-DEC-122..124 (dokumen saja, nol kode), GATE-DESAIN-0930; 14 = 29 Sep 2026 - amendment draft jurnal hasil kejadian (ACC-DEC-116..121), GATE-DESAIN-0929; 13 = 28 Sep 2026 rekonsiliasi saldo subledger (ACC-DEC-107..115), GATE-DESAIN-0928; 12 = 24 Sep 2026 pasca-ratifikasi Finance
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
@@ -1076,3 +1076,60 @@ jenis akun dan saldo normal menjadi catatan impor bagan akun di `MODULE-STATUS.m
 | OQ-132-2 rekening non-tunai; OQ-136-1 akun piutang sewa | Rizki + pemilik proses akuntansi — G2 |
 | OQ-139-1 pajak sewa, termasuk sewa lahan parkir | PIC Pajak RS + Rizki |
 | Akun debit refund `REFERRED_OUTPATIENT_ADMIN`; penegakan shift kasir dengan tiga penanda | Rizki, owner Billing, pemilik proses akuntansi — syarat G6 |
+
+
+## Amendment 24 November 2026 — finishing buku besar, laba rugi, neraca (ACC-FIN-005 + 008) — **`approved`** (`GATE-DESAIN-1124`)
+
+| Field | Nilai |
+|---|---|
+| `revision` | **17 → 18**, 24 November 2026. `00-interview-decisions.md` revision 18 → **19** (`ACC-DEC-141`..`155`; `151` `superseded` oleh `155`; `154` `draft`) |
+| Masukan | MASTER PRD `ACC-FIN-PRD-001` (24 November 2026), ditempel Rizki di sesi chat |
+| Dikerjakan lewat | `trace-existing-capabilities` (peta kemampuan finishing) → `grill-me` Amendment → `requirement-completeness-gate` (`READY_FOR_DOMAIN_DESIGN`) → `design-business-module` Amendment. `hospital-domain-architect` **tidak dijalankan** (`DOMAIN_ARCHITECTURE_NOT_RUN`, alasannya di `evidence/19` bagian 4) |
+| `backend_commit_sha` | `1f353c45` (branch `rizkiG`) + working tree dokumen |
+| `frontend_commit_sha` | `22894248` (branch `RizkiV2`) |
+| `blueprint_shape` | Tetap `SINGLE` |
+| Status desain | **`approved`** Rizki, 24 November 2026 — `GATE-DESAIN-1124`, pertanyaan approval eksplisit saat `plan-module-delivery`. `ACC-DEC-154` disahkan bersamaan |
+| Kode dan migration | Tidak ada. Desain menetapkan **nol** tabel, kolom, migration, hak, controller, dan baris `Program.cs` baru |
+
+| Artefak | Versi | Perubahan |
+|---|---|---|
+| `finishing/01-capability-map-finishing.md` | baru | Peta kemampuan 29 kebutuhan finishing; conflict `C-01`..`C-06`, unknown `U-01`..`U-06` |
+| `00-interview-decisions.md` | revision 19 | `ACC-DEC-141`..`155`; skenario `F1`..`F18` |
+| `evidence/19-finishing-005-008-requirement-completeness-gate.md` | baru | Gerbang kelengkapan 18 dimensi |
+| `02-backend-architecture.md` | bagian 25 | Kepemilikan data, class diagram, `AccGeneralLedgerService` dijadikan `partial`, folder, aturan hitung, CSV, pencatatan |
+| `03-frontend-architecture.md` | bagian 15 | Peta menu, empat skema layar, state, berkas tersentuh |
+| `04-prd-to-mvp.md` | bagian 30 | Batas slice, `MUST HAVE`, `FR-FIN-001`..`041`, DoD, gelombang `FIN-0`/`FIN-1` |
+| `contracts/api-contract.md` | `ACC-API-0.17` | Delapan endpoint di grup General Ledger (satu diperluas, tujuh baru), bentuk respons, kode status |
+| `contracts/validation-matrix.md` | `ACC-VALIDATION-0.12` | `VAL-GL-01`..`09` |
+| `contracts/permission-audit-matrix.md` | `ACC-PERMISSION-0.8` | Hak per endpoint, isi catatan pembacaan dan unduhan |
+| `erd/data-dictionary.md` | bagian 20 | Kolom yang menjadi tumpuan laporan; nol perubahan |
+| `flowcharts/06-laporan-keuangan.md` | baru | Alur membaca dan menelusuri laporan |
+| `testing/acceptance-test-matrix.md` | bagian 4 | `F1`..`F20` |
+| `contracts/state-transition-matrix.md`, `integration-contract.md`, `cross-module-contract.md` | — | **Tidak disunting** — slice ini tidak punya status dan tidak menyentuh integrasi |
+
+### Koreksi yang terjadi saat desain
+
+| Hal | Koreksi |
+|---|---|
+| `ACC-DEC-151` butir 3 bertentangan dengan `ACC-DEC-032` (pembacaan laporan keuangan dicatat) | Ditanyakan ulang; Rizki memilih mengikuti `032` → `ACC-DEC-155` |
+| Draft awal memakai controller baru `FinancialStatementController` | Atribut `[AccessController(moduleCode)]` membuat controller baru menjadi modul akses kedua di Akses Role; endpoint dipindah ke `GeneralLedgerController` yang sudah ada |
+
+### Yang masih `OPEN`
+
+| Butir | Pemilik | Memblokir |
+|---|---|---|
+| Bentuk CSV untuk Excel komputer rumah sakit (`evidence/19` butir 14b) | Dibuktikan saat uji (`F20`) | Tidak |
+| `C-05`, `U-01` | Rizki + pemilik proses akuntansi | Tidak |
+
+### Roadmap finishing — `plan-module-delivery`, 24 November 2026
+
+| Artefak | Isi |
+|---|---|
+| `roadmap/backend-roadmap-finishing.md` | Revisi 1 `APPROVED` (`GATE-DESAIN-1124`). Empat task terancang `BE-ACC-FIN-005-01`, `008-01`, `008-02`, `008-03`; tiga task ⛔ `008-04`..`06` sebagai sisa cakupan ACC-FIN-008 |
+| `roadmap/frontend-roadmap-finishing.md` | Revisi 1 `APPROVED`. Empat task terancang `FE-ACC-FIN-005-01`, `008-01`, `008-02`, `008-03`; tiga task ⛔ `008-04`..`06` |
+| `roadmap/requirement-traceability-finishing.md` | Traceability `FR-FIN-001`..`041` ke task dan UAT; matriks dependency antar task dan ke pihak lain; keputusan terbuka; coverage gap |
+
+Namespace task `BE-/FE-ACC-FIN-<nomor kebutuhan PRD>-<urut>` tidak bertabrakan dengan `BE-ACC-001`..`015`,
+`BE-ACC-P2-001`..`035`, `FE-ACC-001`..`011`, `FE-ACC-P2-001`..`019`. ACC-FIN-008 berstatus **sebagian**
+sesudah slice ini: rasio (`U-05`), target pendapatan (`C-02`), dan laporan pajak (`U-07`) tetap tercatat
+sebagai task ⛔.

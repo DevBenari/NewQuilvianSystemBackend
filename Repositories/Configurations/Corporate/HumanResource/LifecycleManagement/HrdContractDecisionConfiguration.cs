@@ -28,6 +28,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             builder.Property(x => x.DecidedAt).HasColumnType("timestamp with time zone");
             builder.Property(x => x.DecisionNote).HasMaxLength(1000);
             builder.Property(x => x.EmployeeNotifiedOn).HasColumnType("date");
+            builder.Property(x => x.NoticeEvidencePath).HasMaxLength(500);
+            builder.Property(x => x.NoticeEvidenceFileName).HasMaxLength(255);
+            builder.Property(x => x.NoticeEvidenceUploadedAt).HasColumnType("timestamp with time zone").IsRequired(false);
             builder.Property(x => x.RowVersion).IsConcurrencyToken();
 
             builder.HasOne(x => x.ContractHistory).WithMany().HasForeignKey(x => x.ContractHistoryId).OnDelete(DeleteBehavior.Restrict);

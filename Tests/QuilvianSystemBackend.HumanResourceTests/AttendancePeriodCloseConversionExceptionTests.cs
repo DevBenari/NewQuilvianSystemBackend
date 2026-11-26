@@ -14,7 +14,7 @@ using X = QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
 namespace QuilvianSystemBackend.Tests.HumanResource;
 
-// BE-HRD-451 — AT-HRD-PK-48 bagian harness (HRD-DEC-238, kontrak v30 API 36.3, VR-PK-31, state 34.2, INT-HR-116):
+// BE-HRD-464 — AT-HRD-PK-48 bagian harness (HRD-DEC-249, kontrak v31 API 37.3, VR-PK-31, state 35.2, INT-HR-120):
 // pengecualian scan hilang pada hari calon konversi tidak memblokir tutup dan ditutup dalam transaksi tutup.
 public sealed class AttendancePeriodCloseConversionExceptionTests : IDisposable
 {
@@ -133,7 +133,7 @@ public sealed class AttendancePeriodCloseConversionExceptionTests : IDisposable
         Assert.Equal(X.Closed, e.ExceptionStatus);
         Assert.Equal(_aktor, e.ResolvedByUserId);
         Assert.Equal(t.Data.ActionAt, e.ResolvedAt);
-        Assert.Equal($"Diselesaikan oleh penutupan periode {Kode} (HRD-DEC-238): hari dikonversi menjadi Absent", e.ResolutionNote);
+        Assert.Equal($"Diselesaikan oleh penutupan periode {Kode} (HRD-DEC-249): hari dikonversi menjadi Absent", e.ResolutionNote);
         Assert.Equal(_aktor, e.UpdateBy);
         Assert.Equal(AttendanceValueConstants.AttendancePeriodStatus.Closed, StatusPeriode());
     }

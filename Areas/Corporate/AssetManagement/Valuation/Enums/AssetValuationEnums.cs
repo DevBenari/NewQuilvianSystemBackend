@@ -27,3 +27,27 @@ public enum AccountingOutboxStatus
     Acknowledged = 3,
     Failed = 4
 }
+
+public enum ValueChangeType
+{
+    PerbaikanBesar = 1,
+    KoreksiHargaPerolehan = 2,
+    PenurunanNilai = 3,
+    PerubahanEstimasi = 4
+}
+
+public enum ValueChangeStatus
+{
+    Diajukan = 1,
+    Disetujui = 2,
+    Ditolak = 3,
+    Dibatalkan = 4
+}
+
+public enum DepreciationAdjustmentReason
+{
+    Tidak = 0,
+    KoreksiHarga = 1,
+    TerlambatDicatat = 2,
+    Pemulihan = 3
+}

@@ -1424,18 +1424,43 @@ Dasar: `HRD-DEC-229` s.d. `HRD-DEC-236`. Aturan `VR-WF-01` s.d. `VR-WF-25` (bagi
 
 Aturan yang **tidak** ditambahkan: tidak ada pembatasan jenis permohonan pada antrean (semua jenis engine tampil). Tidak ada batas waktu tambahan untuk Plh di luar `VR-WF-03`.
 
-## 35. Matriks Aturan Validasi Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v30`, approved 24 November 2026)
+---
 
-Dasar: `HRD-DEC-237` s.d. `HRD-DEC-245`. Aturan `VR-PK-01` s.d. `VR-PK-30` tetap berlaku. `VR-PK-28` (rentang laporan dan ekspor paling lama 92 hari) **diterima tanpa perubahan** (`HRD-DEC-244`). `VR-PK-27` (filter unit di luar cakupan → `403`) kini juga berlaku untuk daftar penempatan sementara.
+## 35. Matriks Aturan Validasi Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v30`, approved 23 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `last_changed_in` | `v30` — 22 November 2026 |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`) |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `input_revision` | Decision log revision `42` bagian 57 |
+
+| ID | Aturan | Lapisan | Endpoint | Hasil bila dilanggar | Dasar |
+| --- | --- | --- | --- | --- | --- |
+| `VR-PKB-01` | `panel` wajib dan harus salah satu dari lima kode panel | Backend | `GET /workforce-dashboard/drilldown` | `400` "Panel atau kelompok dashboard tidak dikenal." | `HRD-DEC-243` |
+| `VR-PKB-02` | `bucket` harus sah untuk `panel`-nya (state-transition 34.1); `professionId` hanya untuk `PROFESSION`; `documentType` hanya untuk `DOCUMENT_EXPIRY` dan harus `SIP_STR`, `SPK_RKK`, atau `MANDATORY_CERTIFICATE` | Backend | Idem | `400` pesan sama | `HRD-DEC-243`, `HRD-DEC-245` |
+| `VR-PKB-03` | `pageSize` 1–100; `search` maks. 100 karakter | Backend + frontend | Idem | `400` "Parameter halaman atau pencarian melebihi batas." | Konvensi daftar |
+| `VR-PKB-04` | Setiap nilai `statuses` ∈ {`Active`, `Expired`, `RevokedOnAppeal`} | Backend | `GET /hrd/disciplinary/sanctions` | `400` "Status sanksi tidak dikenal." | `HRD-DEC-242` |
+| `VR-PKB-05` | `status` dan `statuses` tidak boleh dikirim bersamaan | Backend | Idem | `400` "Gunakan salah satu: status atau statuses." | Kejelasan kontrak |
+| `VR-PKB-06` | `track` kosong, `HR`, atau `CLINICAL` | Backend | `GET /recruitment/evaluations` | `400` "Jalur evaluasi tidak dikenal." | `HRD-DEC-241` |
+| `VR-PKB-07` | Tanpa `CandidateEvaluation : ViewAll`, daftar hanya berisi evaluasi dengan `EvaluatorUserId` = pengguna; detail milik penilai lain ditolak | Backend | `GET /recruitment/evaluations`, `GET /{id}` | Daftar tersaring; detail `403` "Evaluasi ini ditugaskan kepada penilai lain." | `HRD-DEC-241` |
+| `VR-PKB-08` | Kirim nilai uji klinis hanya oleh `EvaluatorUserId` evaluasi tersebut, termasuk bagi pemegang `ViewAll` | Backend | `POST /{id}/submit-clinical` | `403` "Hanya penilai yang ditugaskan yang dapat mengirim nilai uji ini." | `HRD-ASM-98`, `HRD-DEC-077` |
+| `VR-PKB-09` | Bagian disiplin Employee 360 hanya diisi bila pemanggil memegang `EmployeeDisciplinary : ViewSanctions`; selain itu `disciplineHidden = true` dan daftar kosong | Backend | `GET /employee-360` | Bukan error; data disiplin tidak dikirim | `HRD-DEC-246` butir 4 |
+| `VR-PKB-10` | Catatan disiplin `LEGACY` tidak memiliki aksi ubah atau terbitkan di layar mana pun Paket B | Frontend | Employee 360 | Tombol tidak dirender | `HRD-DEC-238` butir 3 |
+| `VR-PKB-11` | Butir menu Paket B hanya tampil bila pengguna memegang hak akses layar tujuannya (permission-audit 34.1) | Frontend | Sidebar | Butir tidak dirender | `HRD-DEC-239` |
+
+## 36. Matriks Aturan Validasi Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v31`, approved 24 November 2026)
+
+Dasar: `HRD-DEC-248` s.d. `HRD-DEC-256`. Aturan `VR-PK-01` s.d. `VR-PK-30` tetap berlaku. `VR-PK-28` (rentang laporan dan ekspor paling lama 92 hari) **diterima tanpa perubahan** (`HRD-DEC-255`). `VR-PK-27` (filter unit di luar cakupan → `403`) kini juga berlaku untuk daftar penempatan sementara.
 
 | ID | Aturan | Kapan diperiksa | Kondisi gagal | Respons dan pesan |
 | --- | --- | --- | --- | --- |
-| `VR-PK-31` | Pengecualian konversi tidak memblokir tutup; pengecualian lain yang memblokir payroll tetap memblokir | `GET /periods/{id}/close-preview`, `POST /periods/{id}/close` | Ada pengecualian `Open`/`UnderReview` ber-`IsPayrollBlocking` yang **bukan** pengecualian konversi (38.9.2 arsitektur backend) | `409` dengan isu `PAYROLL_BLOCKING_EXCEPTION` (pesan yang ada); jumlah pengecualian konversi tidak dihitung |
+| `VR-PK-31` | Pengecualian konversi tidak memblokir tutup; pengecualian lain yang memblokir payroll tetap memblokir | `GET /periods/{id}/close-preview`, `POST /periods/{id}/close` | Ada pengecualian `Open`/`UnderReview` ber-`IsPayrollBlocking` yang **bukan** pengecualian konversi (39.9.2 arsitektur backend) | `409` dengan isu `PAYROLL_BLOCKING_EXCEPTION` (pesan yang ada); jumlah pengecualian konversi tidak dihitung |
 | `VR-PK-32` | Izin pulang cepat ESS membutuhkan rekap harian milik sendiri yang belum terkunci | `POST /self-services/human-resource/early-leave-permissions` | Tidak ada rekap harian pegawai pada `attendanceDate`; atau periodenya tertutup | `400` "Belum ada jadwal atau rekap kehadiran Anda pada tanggal ini." / `409` "Periode kehadiran tanggal ini sudah ditutup." |
 | `VR-PK-33` | Batal ESS hanya untuk pengajuan milik sendiri berstatus `Submitted`, dengan alasan | `POST …/{id}/cancel` (izin dan dinas luar) | Bukan milik sendiri; status bukan `Submitted`; alasan kosong atau lebih dari 500 | `404`; `409` "Pengajuan sudah diputuskan dan tidak dapat dibatalkan."; `400` "Alasan pembatalan wajib diisi." |
-| `VR-PK-34` | Identitas pegawai ESS hanya dari sesi | Semua endpoint 36.4–36.5 | Akun tanpa profil pegawai aktif | `404` "Akun ini belum terhubung ke profil pegawai." Parameter pegawai pada query/body diabaikan |
+| `VR-PK-34` | Identitas pegawai ESS hanya dari sesi | Semua endpoint 37.4–37.5 | Akun tanpa profil pegawai aktif | `404` "Akun ini belum terhubung ke profil pegawai." Parameter pegawai pada query/body diabaikan |
 | `VR-PK-35` | Terapkan perubahan shift / tukar dinas butuh cakupan kelola | `POST …/schedule-change-requests/{id}/apply`, `POST …/shift-swap-requests/{id}/apply` | Unit shift (atau salah satu dari dua unit tukar dinas) di luar cakupan kelola, tanpa `RosterPeriod : ManageAllUnits` | `403` "Anda tidak berwenang mengubah roster unit ini." Tidak ada perubahan data |
 | `VR-PK-36` | Pemohon tidak memutuskan pengajuannya sendiri | `POST …/early-leave-permissions/{id}/approve|reject`, `POST …/official-duties/{id}/approve|reject` | Pengguna yang memutuskan adalah pemilik pengajuan | `403` "Anda tidak dapat memutuskan pengajuan Anda sendiri." **Baru** — belum ada di source; prinsip `VR-WF-02` |
-| `VR-PK-37` | Ganti Petugas pada sel pengganti memakai petugas sekarang | `POST shift-replacements/{id}/replace` | `expectedWorkforceProfileId` ≠ petugas sekarang | `409` (aturan yang ada, pesan yang ada); frontend mengirim petugas sekarang (`HRD-DEC-237`) |
+| `VR-PK-37` | Ganti Petugas pada sel pengganti memakai petugas sekarang | `POST shift-replacements/{id}/replace` | `expectedWorkforceProfileId` ≠ petugas sekarang | `409` (aturan yang ada, pesan yang ada); frontend mengirim petugas sekarang (`HRD-DEC-248`) |
 
 Aturan yang **tidak** ditambahkan: tidak ada batas jumlah pengajuan ESS per hari selain aturan izin ganda yang ada; tidak ada batas tanggal mundur baru untuk izin ESS di luar periode terkunci.

@@ -50,7 +50,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             CancellationToken cancellationToken = default) =>
             BuildSummaryAsync(workforceProfileId, null, cancellationToken);
 
-        /// <summary>Ringkasan sisi HR: hanya pengajuan yang unit shift-nya dalam cakupan baca (HRD-DEC-242).</summary>
+        /// <summary>Ringkasan sisi HR: hanya pengajuan yang unit shift-nya dalam cakupan baca (HRD-DEC-253).</summary>
         public async Task<ScheduleChangeSummaryResponse> GetSummaryInScopeAsync(
             Guid? workforceProfileId,
             CancellationToken cancellationToken = default) =>
@@ -101,7 +101,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             CancellationToken cancellationToken = default) =>
             BuildPagedAsync(null, workforceProfileId, requestStatus, requestType, startDate, endDate, search, sortDirection, pageNumber, pageSize, cancellationToken);
 
-        /// <summary>Daftar sisi HR: hanya pengajuan yang unit shift-nya dalam cakupan baca (HRD-DEC-242).</summary>
+        /// <summary>Daftar sisi HR: hanya pengajuan yang unit shift-nya dalam cakupan baca (HRD-DEC-253).</summary>
         public async Task<PagedResult<ScheduleChangeListResponse>> GetPagedInScopeAsync(
             Guid? workforceProfileId,
             string? requestStatus,
@@ -978,7 +978,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 .Include(x => x.RequestedShift);
         }
 
-        // HRD-DEC-242 / desain 38.9.5: unit pengajuan = unit shift CurrentShiftAssignmentId, yaitu unit periode rosternya
+        // HRD-DEC-253 / desain 39.9.5: unit pengajuan = unit shift CurrentShiftAssignmentId, yaitu unit periode rosternya
         // atau unit shift itu sendiri bila periode tidak bertautan unit (aturan yang sama dengan Ganti Petugas).
         // Pengajuan tanpa shift atau tanpa unit hanya terbaca cakupan semua unit. readScope null = tanpa saringan (ESS, workflow).
         private static IQueryable<WfpScheduleChangeRequest> ApplyReadScope(

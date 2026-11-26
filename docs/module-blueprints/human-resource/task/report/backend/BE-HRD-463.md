@@ -1,22 +1,22 @@
-# Laporan Perubahan Backend — `BE-HRD-450`
+# Laporan Perubahan Backend — `BE-HRD-463`
 
 ## Metadata
 
 | Field | Nilai |
 | --- | --- |
-| Task ID | `BE-HRD-450` |
+| Task ID | `BE-HRD-463` |
 | Judul | Detail roster mengelompokkan shift per petugas yang bertugas sekarang |
-| Slice | `A52-B` / `MVP-74` gelombang 1 · `EPIC HRD-125` (`MUST HAVE`) |
-| Roadmap | `roadmap/backend-roadmap.md` bagian 30, kartu `BE-HRD-450` |
-| Trace | `FR-PK-033`; `HRD-DEC-237`; fakta `HRD-TF-088` |
-| Contract version | `v30` — API 36.2; desain `02` 38.9.1; Validation `VR-PK-37` — approved 24 November 2026 |
-| Dependency | Kontrak `v30` ✅ |
+| Slice | `A52-B` / `MVP-77` gelombang 1 · `EPIC HRD-131` (`MUST HAVE`) |
+| Roadmap | `roadmap/backend-roadmap.md` bagian 32, kartu `BE-HRD-463` |
+| Trace | `FR-PK-033`; `HRD-DEC-248`; fakta `HRD-TF-092` |
+| Contract version | `v31` — API 37.2; desain `02` 39.9.1; Validation `VR-PK-37` — approved 24 November 2026 |
+| Dependency | Kontrak `v31` ✅ |
 | Klasifikasi | `STANDARD` — kueri baca service, perluasan DTO respons; tanpa perubahan skema |
 | Task mode | `BACKEND` |
 | Model | Claude Opus 5.5 |
 | Source acuan | Backend `4d2c0162` (branch `yoga`). Working tree sebelum task memuat perubahan dokumen amandemen `A52-B` dan laporan frontend yang belum di-commit; tidak disentuh task ini |
 | Tanggal | 24–25 November 2026 |
-| Status | ✅ Selesai — 4/4 acceptance criteria terpenuhi di harness; bukti API data asli devYoga ada di `BE-HRD-455` |
+| Status | ✅ Selesai — 4/4 acceptance criteria terpenuhi di harness; bukti API data asli devYoga ada di `BE-HRD-468` |
 
 ### Backend Governance Preflight
 
@@ -60,10 +60,10 @@ Contoh desain: roster ICU Februari 2027 sudah terbit. Indra memegang Pagi 16 dan
 
 | Hal | Kartu/kontrak | Pelaksanaan | Alasan |
 | --- | --- | --- | --- |
-| Arti `isReplacement` | API 36.2: "`true` bila shift hasil Ganti Petugas" | `true` hanya bila `OriginalEmployeeId` terisi **dan** berbeda dari petugas sekarang | Shift yang dikembalikan ke petugas awal kembali ke baris awal tanpa tanda. AC4 "tanpa penggantian `isReplacement = false`" tetap berlaku. `OriginalEmployeeId` tidak dihapus (jejak `ShiftRevisionRecorder` utuh) |
+| Arti `isReplacement` | API 37.2: "`true` bila shift hasil Ganti Petugas" | `true` hanya bila `OriginalEmployeeId` terisi **dan** berbeda dari petugas sekarang | Shift yang dikembalikan ke petugas awal kembali ke baris awal tanpa tanda. AC4 "tanpa penggantian `isReplacement = false`" tetap berlaku. `OriginalEmployeeId` tidak dihapus (jejak `ShiftRevisionRecorder` utuh) |
 | Pengganti yang punya penugasan di roster | Tidak disebut | Shift masuk ke baris penugasan pertama petugas itu; tanpa baris pengganti-saja | Mengikuti outcome "baris `WorkforceProfileId`"; satu petugas tidak tampil dua kali |
-| Isi baris pengganti-saja | `IsReplacementOnly`, `Id = Guid.Empty` | Ditambah `AssignmentStatus` dari penugasan asal shift, `PlannedShiftCount` = jumlah shift, `PositionId` kosong, dan urutan di akhir daftar (urut nama) | Supaya matriks `FE-HRD-402` dapat menampilkan baris tanpa data tambahan |
-| Status kontrak API 36.2 | Tabel masih "Sudah ada — perluasan **Rencana (belum tersedia)**" | Tidak disunting | Artefak kontrak terkunci hash. Penyegaran status menjadi tersedia dicatat untuk pass blueprint |
+| Isi baris pengganti-saja | `IsReplacementOnly`, `Id = Guid.Empty` | Ditambah `AssignmentStatus` dari penugasan asal shift, `PlannedShiftCount` = jumlah shift, `PositionId` kosong, dan urutan di akhir daftar (urut nama) | Supaya matriks `FE-HRD-411` dapat menampilkan baris tanpa data tambahan |
+| Status kontrak API 37.2 | Tabel masih "Sudah ada — perluasan **Rencana (belum tersedia)**" | Tidak disunting | Artefak kontrak terkunci hash. Penyegaran status menjadi tersedia dicatat untuk pass blueprint |
 
 ---
 
@@ -77,7 +77,7 @@ Contoh desain: roster ICU Februari 2027 sudah terbit. Indra memegang Pagi 16 dan
 | Regresi penuh proyek uji HR | 422/423 dari salinan scratchpad (13 menit 17 detik). Satu uji yang gagal, `WorkflowEscalationAndBulkFlagSchemaTests.Migration_hanya_menambah_dua_kolom…`, gagal karena "Root repository tidak ditemukan" (salinan di luar repo); diulang dengan env `QUILVIAN_BACKEND_ROOT` dan lulus. Total 423/423 | `PASS` | `test450-full.log`, `test450-final.log` |
 | Build proyek utama | 0 galat (`-p:RunAnalyzers=False`) | `PASS` | Keluaran `dotnet build` |
 | QBE `Strict` atas 3 berkas | 0 violation, 0 review. Probe `TrxZzzQbeProbe450` (ber-`[Table]`) terdeteksi 4 violation (`QBE-NAM-001`, `QBE-ENT-001`, `QBE-CFG-001`, `QBE-MOD-002`) lalu dihapus | `PASS` | Keluaran checker |
-| Bukti API data asli devYoga (ulang `UAT-PK-03`/`UAT-PK-16`) | Tidak dijalankan di task ini | `NOT RUN` | Kartu menempatkannya di `BE-HRD-455` |
+| Bukti API data asli devYoga (ulang `UAT-PK-03`/`UAT-PK-16`) | Tidak dijalankan di task ini | `NOT RUN` | Kartu menempatkannya di `BE-HRD-468` |
 
 ### Acceptance criteria
 
@@ -94,10 +94,10 @@ Contoh desain: roster ICU Februari 2027 sudah terbit. Indra memegang Pagi 16 dan
 
 | Temuan | Dampak | Tindakan |
 | --- | --- | --- |
-| As-is: detail roster mengelompokkan shift menurut `RosterAssignmentId`. Ganti Petugas hanya mengubah `WorkforceProfileId` shift (`HRD-TF-088`) | Shift pengganti tampil di baris petugas awal. Ganti berikutnya dari sel itu mengirim petugas yang salah dan ditolak `409` | Diperbaiki (inti task) |
+| As-is: detail roster mengelompokkan shift menurut `RosterAssignmentId`. Ganti Petugas hanya mengubah `WorkforceProfileId` shift (`HRD-TF-092`) | Shift pengganti tampil di baris petugas awal. Ganti berikutnya dari sel itu mengirim petugas yang salah dan ditolak `409` | Diperbaiki (inti task) |
 | As-is: respons tambah penugasan dan tambah shift tidak mengisi `ShiftName` | Sel baru di layar tidak bernama sampai halaman dimuat ulang | Diperbaiki |
-| Klien yang mengandalkan pengelompokan per penugasan | Baris pengganti-saja ber-`id` kosong tidak boleh dipakai untuk hapus/validasi penugasan | Risiko kartu; matriks roster diperbarui di `FE-HRD-402` |
-| Status kontrak API 36.2 masih "Rencana (belum tersedia)" | Dokumen kontrak tertinggal dari source | Catatan untuk pass blueprint (artefak terkunci hash) |
+| Klien yang mengandalkan pengelompokan per penugasan | Baris pengganti-saja ber-`id` kosong tidak boleh dipakai untuk hapus/validasi penugasan | Risiko kartu; matriks roster diperbarui di `FE-HRD-411` |
+| Status kontrak API 37.2 masih "Rencana (belum tersedia)" | Dokumen kontrak tertinggal dari source | Catatan untuk pass blueprint (artefak terkunci hash) |
 
 ---
 
@@ -107,6 +107,6 @@ Contoh desain: roster ICU Februari 2027 sudah terbit. Indra memegang Pagi 16 dan
 | --- | --- |
 | Migration / database | Tidak ada migration. Tidak ada eksekusi database |
 | Git | Tidak ada stage, commit, push, pull, merge, rebase, atau deploy. Berkas baru: `RosterReplacementGridTests.cs` (cukup `git add`) |
-| Dampak frontend | Respons detail roster diperluas tanpa menghapus ruas. Matriks dapat membaca petugas sekarang per sel, tanda pengganti, dan baris pengganti-saja (`FE-HRD-402`). Ganti Petugas dari sel memakai `workforceProfileId` sel sebagai `expectedWorkforceProfileId` |
-| Bukti data asli | `UAT-PK-03`/`UAT-PK-16` di devYoga dikerjakan di `BE-HRD-455` |
-| Task berikutnya | `BE-HRD-451` (pengecualian konversi tidak memblokir tutup periode), satu gelombang `MVP-74`; `FE-HRD-402` dapat mulai memakai respons ini |
+| Dampak frontend | Respons detail roster diperluas tanpa menghapus ruas. Matriks dapat membaca petugas sekarang per sel, tanda pengganti, dan baris pengganti-saja (`FE-HRD-411`). Ganti Petugas dari sel memakai `workforceProfileId` sel sebagai `expectedWorkforceProfileId` |
+| Bukti data asli | `UAT-PK-03`/`UAT-PK-16` di devYoga dikerjakan di `BE-HRD-468` |
+| Task berikutnya | `BE-HRD-464` (pengecualian konversi tidak memblokir tutup periode), satu gelombang `MVP-77`; `FE-HRD-411` dapat mulai memakai respons ini |

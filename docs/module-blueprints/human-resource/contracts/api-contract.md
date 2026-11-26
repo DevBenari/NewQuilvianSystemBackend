@@ -3330,34 +3330,163 @@ Sebuah butir hanya disetujui dalam batch bila **seluruh** syarat berikut terpenu
 | `409` | Penugasan sudah diputuskan pihak lain (penyetuju awal atau atasan hasil eskalasi), atau instance tidak lagi menunggu | Pesan engine diteruskan apa adanya |
 | `409` | Membuat instance generik; membatalkan atau mengirim ulang instance milik modul lewat endpoint generik (`VR-WF-29`) | Lihat 35.1 dan 35.2 |
 
-## 36. Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v30`)
+---
+
+## 36. Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v30`)
 
 | Field | Nilai |
 | --- | --- |
+| Lingkup | Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian, Tindak Disiplin (navigasi SDM Paket B) |
 | `contract_version` | `v30` |
+| `last_changed_in` | `v30` — bagian 36 ditambahkan 22 November 2026 |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`) |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna (`HRD-DEC-015`) / 23 November 2026 |
+| `input_revision` | `00-interview-decisions.md` revision `42` bagian 57 (`HRD-DEC-237` s.d. `HRD-DEC-246`); capability map revisi `1.5` bagian 17 |
+| Backend SHA | `b164edc1` (branch `MHamzah`) |
+| Frontend SHA | `573b7429c` (branch `HamzahV2`) |
+| Dampak kompatibilitas | **Menambah** dua endpoint baca-saja dan satu parameter query. **Mengubah perilaku**: (1) daftar dan detail evaluasi kandidat dibatasi menurut penilai bagi pengguna tanpa `CandidateEvaluation : ViewAll`; (2) kirim nilai uji klinis ditolak `403` bila pengirim bukan penilai yang ditugaskan; (3) bagian disiplin Employee 360 kosong bagi pengguna tanpa `EmployeeDisciplinary : ViewSanctions`. Field lama tidak dihapus |
+| Bukti as-is | Capability map 17.1–17.3 |
+
+Bagian ini menyediakan data untuk lima pintu masuk menu SDM. Dua pintu (Seleksi Administrasi, Tindak Disiplin) memakai endpoint yang sudah ada apa adanya; tiga lainnya butuh perubahan kecil.
+
+Contoh alur: Rina (Manajer SDM) membuka Dashboard SDM. Frontend memanggil `GET /workforce-dashboard/summary` dan menampilkan "8 dokumen kedaluwarsa, 2 SIP sudah habis". Rina mengklik angka 2; frontend memanggil `GET /workforce-dashboard/drilldown?panel=DOCUMENT_EXPIRY&bucket=EXPIRED&documentType=SIP` dan menampilkan nama dr. Dodi dan perawat Sari.
+
+### 36.1 Grup Tag Swagger `[Tags("Corporate / Human Resource / Workforce Core / Workforce Dashboard")]` — baru
+
+Base URL: `api/v1/corporate/human-resource/workforce-dashboard`. Controller `HrdWorkforceDashboardController`, `ControllerName = "HrdWorkforceDashboard"`.
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/summary` | **Rencana (belum tersedia)** | Lima panel Dashboard SDM, dihitung saat dipanggil | `HrdWorkforceDashboard : Read` | Tanpa parameter | `200 OK`, `ApiResponse<WorkforceDashboardSummaryResponse>` |
+| `GET` | `/drilldown` | **Rencana (belum tersedia)** | Daftar nama di balik satu angka panel | `HrdWorkforceDashboard : Read` | `WorkforceDashboardDrilldownQuery` | `200 OK`, `ApiResponse<PagedResult<WorkforceDashboardDrilldownItem>>`; `400` bila kombinasi panel/kelompok tidak sah (`VR-PKB-01`, `VR-PKB-02`) |
+
+**`WorkforceDashboardSummaryResponse`**
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `operationalDate` | date | Tanggal operasional rumah sakit yang dipakai menghitung (`AppDateTimeHelper.OperationalDate()`) |
+| `generatedAt` | datetime | Waktu perhitungan (UTC) |
+| `employeeOverview.activeCount` | int | `MstEmployee.IsActive = true`, tidak terhapus |
+| `employeeOverview.newThisMonthCount` | int | `JoinDate` pada bulan operasional berjalan |
+| `employeeOverview.leftThisMonthCount` | int | `ResignDate` pada bulan operasional berjalan |
+| `professionDistribution[]` | list | `{ professionId: GUID?, professionName: string, activeCount: int }`, hanya pegawai aktif; `professionId = null` → `professionName = "Belum diisi"`; urut jumlah terbanyak |
+| `activeStatus.activeCount` / `inactiveCount` | int | Menurut `MstEmployee.IsActive`; pegawai skorsing tetap aktif karena skorsing hanya menonaktifkan akun login (`HRD-ASM-93`) |
+| `contractExpiry.totalWithin60Days` | int | Sama dengan `ExpiringSoonCount` pada `GET employment-contracts/summary` |
+| `contractExpiry.h60Count`, `h14Count`, `h7Count`, `pendingDecisionCount`, `overdueCount` | int | Sama persis dengan `ReminderH60Count`, `EscalationH14Count`, `NoticeDueH7Count`, `PendingDecisionCount`, `OverdueCount` pada `GET employment-contracts/renewal-summary` (`HRD-DEC-245`) |
+| `documentExpiry.expiredCount`, `within30Count`, `days31To60Count`, `days61To90Count` | int | Total semua jenis dokumen per kelompok (pemetaan kamus data 31.2) |
+| `documentExpiry.byType[]` | list | `{ documentType, expiredCount, within30Count, days31To60Count, days61To90Count }`; `documentType` ∈ `SIP_STR`, `SPK_RKK`, `MANDATORY_CERTIFICATE` |
+
+**`WorkforceDashboardDrilldownQuery`**
+
+| Parameter | Tipe | Wajib | Keterangan |
+| --- | --- | --- | --- |
+| `panel` | string | Ya | `EMPLOYEE_OVERVIEW`, `PROFESSION`, `ACTIVE_STATUS`, `CONTRACT_EXPIRY`, `DOCUMENT_EXPIRY` |
+| `bucket` | string | Ya | Kelompok sah per panel (state-transition 34.1) |
+| `professionId` | GUID | Hanya `PROFESSION` | Kosong berarti "Belum diisi" |
+| `documentType` | string | Tidak | Hanya `DOCUMENT_EXPIRY`; kosong = semua jenis |
+| `search` | string | Tidak | Nama atau nomor pegawai, maks. 100 karakter |
+| `pageNumber`, `pageSize` | int | Tidak | Bawaan 1 dan 20; `pageSize` maks. 100 |
+
+**`WorkforceDashboardDrilldownItem`**
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `workforceProfileId` | GUID | Untuk membuka Employee 360 |
+| `employeeCode`, `employeeName` | string | Nomor dan nama pegawai |
+| `professionName` | string? | Nama profesi |
+| `detailLabel` | string | Keterangan baris, mis. "SIP …0123", "PKWT berakhir", "BTCLS"; nomor lisensi hanya 4 karakter terakhir (permission-audit 34.2) |
+| `referenceDate` | date? | Tanggal acuan: tanggal masuk, keluar, akhir kontrak, atau kedaluwarsa dokumen |
+| `daysRemaining` | int? | Sisa hari (negatif bila sudah lewat); kosong untuk panel 1–3 |
+
+Response tidak memuat gaji, nomor identitas, data disiplin, atau data kesehatan.
+
+### 36.2 Grup Tag Swagger `[Tags("Corporate - HRD Employee Disciplinary & Just Culture")]` — perubahan
+
+Base URL: `api/v1/hrd/disciplinary`.
+
+Controller `EmployeeDisciplinaryController`, `ControllerName = "EmployeeDisciplinary"`.
+
+| Method | Path | Status | Perubahan / kegunaan | Hak akses | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/sanctions` | **Diubah — parameter baru Rencana (belum tersedia)** | Tambah parameter `statuses` (boleh berulang: `?statuses=Expired&statuses=RevokedOnAppeal`) untuk Riwayat Penyelesaian; nilai sah `Active`, `Expired`, `RevokedOnAppeal`. `status` lama tetap; keduanya tidak boleh dikirim bersamaan | `EmployeeDisciplinary : ViewSanctions` | `200 OK`, `ApiResponse<PagedResult<SanctionListItemDto>>`; `400` (`VR-PKB-04`, `VR-PKB-05`) |
+| `GET` | `/incidents?status=ResolvedNoSanction` | Tetap | Bagian "Insiden ditutup tanpa sanksi" pada Riwayat Penyelesaian | `EmployeeDisciplinary : ViewIncidents` | `200 OK` |
+| `GET` | `/sanctions/employee/{employeeId}` | Tetap | Tidak dipakai layar Paket B | `EmployeeDisciplinary : ViewSanctions` | — |
+
+Menu **Tindak Disiplin** memakai `GET /sanctions` tanpa perubahan (`HRD-DEC-238`).
+
+### 36.3 Grup Tag Swagger `[Tags("Corporate / Human Resource / Workforce Core / Employee 360")]` — perubahan
+
+| Method | Path | Status | Perubahan | Hak akses |
+| --- | --- | --- | --- | --- |
+| `GET` | `/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/employee-360` | **Diubah — Rencana (belum tersedia)** | Bagian `confidentialPersonalAndDiscipline` diisi menurut hak pemanggil (`HRD-DEC-246` butir 4). Tambahan field di bawah | `HrdEmployee360 : Read` (tetap); isi disiplin bergantung `EmployeeDisciplinary : ViewSanctions` |
+
+| Field baru | Tipe | Keterangan |
+| --- | --- | --- |
+| `confidentialPersonalAndDiscipline.disciplineHidden` | bool | `true` bila pemanggil tidak memegang `ViewSanctions`; `disciplinaryRecords` dan `disciplinarySanctions` kosong |
+| `confidentialPersonalAndDiscipline.disciplinaryRecords[]` | list | `{ source: "OFFICIAL"\|"LEGACY", referenceNumber, level, title, issuedDate, validUntil, status, isActive }`; urut `issuedDate` terbaru. `OFFICIAL` dari sanksi alur resmi; `LEGACY` dari catatan profil lama, selalu `isActive = false` dan baca-saja |
+| `confidentialPersonalAndDiscipline.disciplinarySanctions` | list string | **Usang** — tetap diisi dari sumber yang sama untuk kompatibilitas; layar baru memakai `disciplinaryRecords` |
+
+### 36.4 Grup Tag Swagger `[Tags("Corporate / Human Resource / Recruitment Management / Candidate Evaluation")]` — perubahan
+
+Base URL: `api/v1/corporate/human-resource/recruitment/evaluations`.
+
+| Method | Path | Status | Perubahan / kegunaan | Hak akses | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | **Diubah — Rencana (belum tersedia)** | Daftar Tes/Wawancara. Parameter baru `track` (`HR` atau `CLINICAL`) dan `pendingOnly` (bool). Tanpa `CandidateEvaluation : ViewAll`, hasil hanya evaluasi dengan `EvaluatorUserId` = pengguna yang login | `CandidateEvaluation : Read`; cakupan penuh dengan `CandidateEvaluation : ViewAll` | `200 OK`, `ApiResponse<PagedResult<CandidateEvaluationListItemResponse>>`; `400` (`VR-PKB-06`) |
+| `GET` | `/{id}` | **Diubah — Rencana (belum tersedia)** | Tanpa `ViewAll`, detail milik penilai lain ditolak | `CandidateEvaluation : Read` | `200 OK`; `403` (`VR-PKB-07`) |
+| `POST` | `/{id}/submit-clinical` | **Diubah — Rencana (belum tersedia)** | Ditolak bila pengirim bukan `EvaluatorUserId` evaluasi tersebut; veto klinis `HRD-DEC-077` tetap berlaku | `CandidateEvaluation : EvaluateClinical` | `200 OK`; `403` (`VR-PKB-08`) |
+| `POST` | `/schedule`, `/{id}/submit-hr` | Tetap | — | Tetap | — |
+
+### 36.5 Grup Tag Swagger `[Tags("Corporate / Human Resource / Recruitment Management / Candidate Screening")]` — tetap, konsumen baru
+
+| Method | Path | Status | Kegunaan bagi Paket B | Hak akses |
+| --- | --- | --- | --- | --- |
+| `GET` | `/api/v1/corporate/human-resource/recruitment/screenings` | Tetap | Daftar Seleksi Administrasi per lamaran; filter `status` (`Pending`, `Passed`, `Rejected`; bawaan layar `Pending`), `vacancyId`, `clinicalResult`, `search`, halaman (`HRD-DEC-244`) | `CandidateScreening : Read` |
+| `GET` | `/screenings/{id}`, `/screenings/candidates/{candidateId}/documents` | Tetap | Detail dan berkas | `CandidateScreening : Read` |
+| `POST` | `/screenings`, `/screenings/evaluate` | Tetap | Menandai Lolos/Gugur | `CandidateScreening : Evaluate` |
+
+### 36.6 Kode status dan pesan
+
+| Kode | Kapan | Pesan (Bahasa Indonesia) |
+| --- | --- | --- |
+| `400` | Panel atau kelompok drill-down tidak dikenal (`VR-PKB-01`, `VR-PKB-02`) | "Panel atau kelompok dashboard tidak dikenal." |
+| `400` | `pageSize` > 100 atau `search` > 100 karakter (`VR-PKB-03`) | "Parameter halaman atau pencarian melebihi batas." |
+| `400` | Nilai `statuses` tidak sah (`VR-PKB-04`) | "Status sanksi tidak dikenal." |
+| `400` | `status` dan `statuses` dikirim bersamaan (`VR-PKB-05`) | "Gunakan salah satu: status atau statuses." |
+| `400` | `track` bukan `HR`/`CLINICAL` (`VR-PKB-06`) | "Jalur evaluasi tidak dikenal." |
+| `403` | Detail evaluasi milik penilai lain (`VR-PKB-07`) | "Evaluasi ini ditugaskan kepada penilai lain." |
+| `403` | Kirim nilai uji klinis oleh bukan penilai yang ditugaskan (`VR-PKB-08`) | "Hanya penilai yang ditugaskan yang dapat mengirim nilai uji ini." |
+| `403` | Tanpa hak endpoint | Pesan standar hak akses |
+
+## 37. Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v31`)
+
+| Field | Nilai |
+| --- | --- |
+| `contract_version` | `v31` |
 | Status | `approved` |
 | Owner | Pengguna (`HRD-DEC-015`) |
 | `approved_by` / `approved_at` | Pengguna / 24 November 2026 ("setujui kontrak v30, lanjut plan") |
-| `input_revision` | `00-interview-decisions.md` revision `41` (bagian 57, `HRD-DEC-237` s.d. `HRD-DEC-245`); `02-backend-architecture.md` bagian 38 |
+| `input_revision` | `00-interview-decisions.md` revision `44` (bagian 58, `HRD-DEC-248` s.d. `HRD-DEC-256`); `02-backend-architecture.md` bagian 39 |
 | `input_hash` — decision log | `49932d6b90674815f78600a006b2f5118cde3e2795b2d811e592f38f8033f1a9` |
 | Backend SHA | `4d2c0162` (branch `yoga`) |
 | Dampak kompatibilitas | **Tidak memutus klien.** Penambahan field respons (detail roster, tutup periode), endpoint baru (ESS, penempatan sementara), dan perubahan perilaku tutup periode (lebih sedikit pemblokir) serta cakupan daftar Perubahan Shift/Tukar Dinas (lebih sedikit baris untuk pengguna tanpa `ManageAllUnits`) |
 
-### 36.1 Catatan kontrak lama
+### 37.1 Catatan kontrak lama
 
 | Butir | Isi |
 | --- | --- |
-| Kontrak `v10` — string hak akses `HrdScheduling`, `HrdOnCall` | **`superseded` oleh `v26`** (`HRD-DEC-244`). String itu tidak dipakai kode; acuan hak akses penjadwalan dan siaga adalah bagian 32 dan matriks hak akses bagian 30.1 |
-| `VR-PK-28` batas rentang laporan/ekspor 92 hari | **Diterima** (`HRD-DEC-244`); tidak berubah |
+| Kontrak `v10` — string hak akses `HrdScheduling`, `HrdOnCall` | **`superseded` oleh `v26`** (`HRD-DEC-255`). String itu tidak dipakai kode; acuan hak akses penjadwalan dan siaga adalah bagian 32 dan matriks hak akses bagian 30.1 |
+| `VR-PK-28` batas rentang laporan/ekspor 92 hari | **Diterima** (`HRD-DEC-255`); tidak berubah |
 | `GET /api/v1/corporate/human-resource/master-data/attendance-devices/filters/metadata` | Sudah ada di kode dan dipakai layar Mesin Absen (`FE-HRD-312`); kini dicantumkan di kontrak: `AttendanceDevice : Read`, respons `deviceTypeOptions` (`value`, `label`) |
 
-### 36.2 HR Scheduling - Roster Period
+### 37.2 HR Scheduling - Roster Period
 
 Base URL: `api/v1/corporate/human-resource/scheduling-management/roster-periods`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `GET` | `/{id}` | Detail roster; **respons diperluas** (`HRD-DEC-237`) | `RosterPeriod : Read` | — | `RosterPeriodDetailResponse` | Sudah ada — perluasan **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail roster; **respons diperluas** (`HRD-DEC-248`) | `RosterPeriod : Read` | — | `RosterPeriodDetailResponse` | Sudah ada — perluasan **Rencana (belum tersedia)** |
 
 Perluasan respons:
 
@@ -3384,7 +3513,7 @@ Contoh potongan respons (Pagi 16 Feb Indra → Raka):
 }
 ```
 
-### 36.3 HR Attendance - Period Management
+### 37.3 HR Attendance - Period Management
 
 Base URL: `api/v1/corporate/human-resource/attendance/periods`
 
@@ -3395,7 +3524,7 @@ Base URL: `api/v1/corporate/human-resource/attendance/periods`
 
 Kode status tidak berubah (`200`, `400`, `401`, `403`, `404`, `409`). `409` kini hanya muncul untuk pemblokir lain (`VR-PK-31`).
 
-### 36.4 Self Services / Human Resource / Early Leave Permission
+### 37.4 Self Services / Human Resource / Early Leave Permission
 
 Base URL: `api/v1/self-services/human-resource/early-leave-permissions`
 
@@ -3417,7 +3546,7 @@ Base URL: `api/v1/self-services/human-resource/early-leave-permissions`
 
 Kode status: `200`, `400` (validasi), `401`, `403`, `404` (akun tanpa profil pegawai; data bukan milik sendiri), `409` (batal pada status selain `Submitted`; izin ganda).
 
-### 36.5 Self Services / Human Resource / Official Duty
+### 37.5 Self Services / Human Resource / Official Duty
 
 Base URL: `api/v1/self-services/human-resource/official-duties`
 
@@ -3445,7 +3574,7 @@ Base URL: `api/v1/self-services/human-resource/official-duties`
 
 Kode status sama dengan 36.4.
 
-### 36.6 Corporate / Human Resource / Workforce Core / Temporary Assignment
+### 37.6 Corporate / Human Resource / Workforce Core / Temporary Assignment
 
 Base URL: `api/v1/corporate/human-resource/workforce-core/temporary-assignments`
 
@@ -3466,7 +3595,7 @@ Base URL: `api/v1/corporate/human-resource/workforce-core/temporary-assignments`
 
 Kode status: `200`, `401`, `403` (izin; filter unit di luar cakupan `VR-PK-27`).
 
-### 36.7 Perubahan Shift dan Tukar Dinas sisi HR (cakupan unit)
+### 37.7 Perubahan Shift dan Tukar Dinas sisi HR (cakupan unit)
 
 | Tag | Base URL | Perubahan |
 | --- | --- | --- |

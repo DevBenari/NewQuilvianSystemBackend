@@ -43,6 +43,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 throw new InvalidOperationException("Surat Izin Praktik (SIP) tidak dapat berlaku seumur hidup. Masa berlaku SIP maksimal 5 tahun sesuai regulasi faskes.");
             }
 
+            // BE-HRD-427: SIP wajib menyebut faskes tempat praktik. Tidak ada lagi nama faskes isian otomatis, karena
+            // SIP faskes lain akan tampak seolah berlaku di rumah sakit ini.
+            if (isSip && string.IsNullOrWhiteSpace(request.SipFaskesName))
+            {
+                throw new InvalidOperationException("Nama faskes pada SIP wajib diisi sesuai dokumen SIP.");
+            }
+
             // Validasi duplikasi lisensi aktif
             var duplicate = await _context.WfpCredentialLicenses
                 .AnyAsync(l => l.WorkforceProfileId == request.WorkforceProfileId
@@ -82,7 +89,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 LicenseType = request.LicenseType.ToUpperInvariant(),
                 LicenseNumber = request.LicenseNumber.Trim(),
                 Issuer = request.Issuer.Trim(),
-                PracticeLocation = request.PracticeLocation ?? "Rumah Sakit Quilvian Utama",
+                PracticeLocation = string.IsNullOrWhiteSpace(request.PracticeLocation)
+                    ? (isSip ? request.SipFaskesName!.Trim() : null)
+                    : request.PracticeLocation.Trim(),
                 IssueDate = issueDate,
                 ExpiredDate = expiredDate,
                 IsLifetimeStr = isStr && request.IsLifetimeStr,
@@ -92,7 +101,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 PsvVerificationUrl = null,
                 PsvAuditLogJson = null,
                 SipFaskesPracticeNumber = isSip ? (request.SipFaskesPracticeNumber ?? "SIP-1") : null,
-                SipFaskesName = isSip ? (request.SipFaskesName ?? "Rumah Sakit Quilvian Utama") : null,
+                SipFaskesName = isSip ? request.SipFaskesName!.Trim() : null,
                 ExpiryRadarStatus = radarStatus,
                 VerificationStatus = CredentialVerificationStatus.PendingVerification,
                 IsPrimary = isSip && (request.SipFaskesPracticeNumber == "SIP-1" || string.IsNullOrEmpty(request.SipFaskesPracticeNumber)),
@@ -150,26 +159,55 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 throw new InvalidOperationException("Catatan auditor wajib diisi jika hasil verifikasi sumber primer ditolak.");
             }
 
+            // BE-HRD-427: PSV adalah keputusan berbukti. Rujukan sumber primer harus berupa alamat http(s) yang dapat
+            // dibuka ulang auditor lain; lisensi yang dicabut tidak dapat di-PSV; lisensi kedaluwarsa tidak dapat
+            // dinyatakan valid; SIP harus mencatat faskes yang dicocokkan dengan portal.
+            if (!Uri.TryCreate(request.PsvVerificationUrl?.Trim(), UriKind.Absolute, out var evidenceUri)
+                || (evidenceUri.Scheme != Uri.UriSchemeHttps && evidenceUri.Scheme != Uri.UriSchemeHttp))
+            {
+                throw new InvalidOperationException("Rujukan bukti PSV wajib berupa alamat http(s) halaman sumber primer (portal KKI / SatuSehat SDMK).");
+            }
+
+            if (license.IsRevoked || license.IsDelete)
+            {
+                throw new InvalidOperationException("Lisensi yang sudah dicabut atau dihapus tidak dapat diverifikasi sumber primer.");
+            }
+
+            if (request.IsValidOnSource && license.ExpiredDate < DateTime.UtcNow)
+            {
+                throw new InvalidOperationException("Lisensi yang sudah kedaluwarsa tidak dapat dinyatakan valid pada PSV. Ajukan perpanjangan terlebih dahulu.");
+            }
+
+            if (request.IsValidOnSource
+                && string.Equals(license.LicenseType, "SIP", StringComparison.OrdinalIgnoreCase)
+                && string.IsNullOrWhiteSpace(license.SipFaskesName))
+            {
+                throw new InvalidOperationException("SIP belum mencatat nama faskes praktik; lengkapi data SIP sebelum PSV dinyatakan valid.");
+            }
+
             var auditorUser = await _context.Users
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == auditorUserId, cancellationToken);
 
             var auditorName = auditorUser?.UserName ?? auditorUserId.ToString();
 
-            var auditLog = new
+            var auditLog = new Dictionary<string, object?>
             {
-                AuditorUserId = auditorUserId,
-                AuditorName = auditorName,
-                VerifiedAtUtc = DateTime.UtcNow,
-                Source = request.PsvVerificationSource,
-                Url = request.PsvVerificationUrl,
-                IsValidOnSource = request.IsValidOnSource,
-                Notes = request.AuditorNotes
+                ["AuditorUserId"] = auditorUserId,
+                ["AuditorName"] = auditorName,
+                ["VerifiedAtUtc"] = DateTime.UtcNow,
+                ["Source"] = request.PsvVerificationSource,
+                ["Url"] = evidenceUri.ToString(),
+                ["IsValidOnSource"] = request.IsValidOnSource,
+                ["Notes"] = request.AuditorNotes,
+                ["LicenseNumber"] = license.LicenseNumber,
+                ["SipFaskesName"] = license.SipFaskesName
             };
 
-            license.PsvAuditLogJson = JsonSerializer.Serialize(auditLog);
+            // BE-HRD-427: jejak PSV ditambahkan (append), bukan ditimpa, sehingga riwayat verifikasi/penolakan terbaca.
+            license.PsvAuditLogJson = AppendPsvAuditEntry(license.PsvAuditLogJson, auditLog);
             license.PsvVerificationSource = request.PsvVerificationSource;
-            license.PsvVerificationUrl = request.PsvVerificationUrl;
+            license.PsvVerificationUrl = evidenceUri.ToString();
             license.UpdateBy = auditorUserId;
             license.UpdateDateTime = DateTime.UtcNow;
 
@@ -190,8 +228,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             else
             {
                 license.IsPsvVerified = false;
+                license.PsvVerifiedAt = null;
                 license.VerificationStatus = CredentialVerificationStatus.Rejected;
                 license.IsVerified = false;
+                license.VerifiedAt = null;
+                license.VerifiedByUserId = null;
                 license.VerificationNotes = $"PSV TIDAK VALID pada {request.PsvVerificationSource}. Alasan: {request.AuditorNotes}";
 
                 _logger.LogWarning(
@@ -420,6 +461,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 expiredLicenses.Count);
 
             return expiredLicenses.Count;
+        }
+
+        /// <summary>
+        /// Menambahkan satu entri audit PSV ke <c>PsvAuditLogJson</c>. Isi lama berbentuk objek tunggal dibungkus
+        /// menjadi larik agar riwayat tidak hilang.
+        /// </summary>
+        private static string AppendPsvAuditEntry(string? existingJson, Dictionary<string, object?> entry)
+        {
+            var entries = new List<JsonElement>();
+            if (!string.IsNullOrWhiteSpace(existingJson))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(existingJson);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                    {
+                        entries.AddRange(doc.RootElement.EnumerateArray().Select(e => e.Clone()));
+                    }
+                    else if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                    {
+                        entries.Add(doc.RootElement.Clone());
+                    }
+                }
+                catch (JsonException)
+                {
+                    // Jejak lama tidak terbaca: entri baru tetap dicatat.
+                }
+            }
+
+            entries.Add(JsonSerializer.SerializeToElement(entry));
+            return JsonSerializer.Serialize(entries);
         }
 
         private static string CalculateRadarStatus(int daysRemaining, bool isLifetime)

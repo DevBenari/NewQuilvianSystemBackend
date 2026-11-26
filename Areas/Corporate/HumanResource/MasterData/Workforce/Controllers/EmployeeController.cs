@@ -55,6 +55,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
         private readonly IConfiguration _configuration;
         private readonly OrganizationAuthorizationProjectionService _authorizationProjection;
         private readonly IWorkforceIdentityResolverService _identityResolver;
+        private readonly IWorkforceLifecycleGuardService _lifecycleGuard;
 
         public EmployeeController(
             ApplicationDbContext dbContext,
@@ -62,7 +63,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration,
             OrganizationAuthorizationProjectionService authorizationProjection,
-            IWorkforceIdentityResolverService identityResolver)
+            IWorkforceIdentityResolverService identityResolver,
+            IWorkforceLifecycleGuardService lifecycleGuard)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
@@ -70,6 +72,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             _configuration = configuration;
             _authorizationProjection = authorizationProjection;
             _identityResolver = identityResolver;
+            _lifecycleGuard = lifecycleGuard;
         }
 
         private static List<EmployeeDetailTabMetadataResponse> BuildEmployeeDetailTabs()
@@ -1049,7 +1052,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 phoneNumber: request.PhoneNumber,
                 whatsAppNumber: request.WhatsAppNumber,
                 emergencyContactPhone: request.EmergencyContactPhone,
-                email: request.Email
+                email: request.Email,
+                identityType: request.IdentityType
             );
 
             if (!validation.IsValid)
@@ -1118,7 +1122,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     MaritalStatus = request.MaritalStatus,
                     BloodType = request.BloodType,
                     IdentityType = request.IdentityType.Trim(),
-                    IdentityNumber = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty,
+                    IdentityNumber = _identityResolver.NormalizeIdentityNumber(request.IdentityType, request.IdentityNumber),
                     PhoneNumber = NormalizeDigitsOnly(request.PhoneNumber),
                     WhatsAppNumber = NormalizeDigitsOnly(request.WhatsAppNumber),
                     Email = request.Email.Trim().ToLowerInvariant(),
@@ -1327,10 +1331,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 }
             }
 
-            // Guard FIN-HRD-04-BE-003 / HRD-DEC-052: Data identitas resmi dan status pernikahan sensitif dikunci dari edit langsung
-            var oldIdentity = NormalizeDigitsOnly(entity.IdentityNumber) ?? string.Empty;
-            var newIdentity = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty;
-            if (!string.Equals(oldIdentity, newIdentity, StringComparison.OrdinalIgnoreCase))
+            // Guard FIN-HRD-04-BE-003 / HRD-DEC-052 (BE-HRD-389): Data identitas resmi dan status pernikahan sensitif dikunci dari edit langsung.
+            // Pembanding nilai lama vs baru memakai normalisasi resolver identitas, sehingga perubahan huruf paspor
+            // maupun jenis identitas (KTP <-> Paspor) ikut tertangkap; PUT penuh dengan nilai yang sama tetap lolos.
+            var oldIdentity = _identityResolver.NormalizeIdentityNumber(entity.IdentityType, entity.IdentityNumber);
+            var newIdentity = _identityResolver.NormalizeIdentityNumber(request.IdentityType, request.IdentityNumber);
+            var identityTypeChanged = !string.Equals(
+                (entity.IdentityType ?? string.Empty).Trim(),
+                (request.IdentityType ?? string.Empty).Trim(),
+                StringComparison.OrdinalIgnoreCase);
+            if (!string.Equals(oldIdentity, newIdentity, StringComparison.OrdinalIgnoreCase) || identityTypeChanged)
             {
                 return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
                     StatusCodes.Status409Conflict,
@@ -1387,11 +1397,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 cityId: request.CityId,
                 districtId: request.DistrictId,
                 postalCodeId: request.PostalCodeId,
-                identityNumber: request.IdentityNumber,
+                identityNumber: entity.IdentityNumber,
                 phoneNumber: request.PhoneNumber,
                 whatsAppNumber: request.WhatsAppNumber,
                 emergencyContactPhone: request.EmergencyContactPhone,
-                email: request.Email
+                email: request.Email,
+                identityType: entity.IdentityType
             );
 
             if (!validation.IsValid)
@@ -1413,8 +1424,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             entity.Religion = request.Religion;
             entity.MaritalStatus = request.MaritalStatus;
             entity.BloodType = request.BloodType;
-            entity.IdentityType = request.IdentityType.Trim();
-            entity.IdentityNumber = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty;
+            // IdentityType dan IdentityNumber tidak ditulis ulang: guard di atas memastikan nilainya sama,
+            // dan perubahan resminya hanya lewat Menu 06 (HRD-DEC-052, BE-HRD-389).
             entity.PhoneNumber = NormalizeDigitsOnly(request.PhoneNumber);
             entity.WhatsAppNumber = NormalizeDigitsOnly(request.WhatsAppNumber);
             entity.Email = request.Email.Trim().ToLowerInvariant();
@@ -1446,6 +1457,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             entity.EmergencyContactRelation = NormalizeNullableText(request.EmergencyContactRelation);
             entity.EmergencyContactPhone = NormalizeDigitsOnly(request.EmergencyContactPhone);
             entity.EmergencyContactAddress = NormalizeNullableText(request.EmergencyContactAddress);
+            // BE-HRD-401: pegawai/akun purnatugas tidak diaktifkan kembali lewat Data Induk.
+            if (!entity.IsActive && request.IsActive &&
+                await _lifecycleGuard.IsSeparationFinalizedAsync(entity.WorkforceProfileId))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Pemberhentian orang ini sudah final. Data Induk tidak dapat mengaktifkan kembali pegawai atau akun purnatugas; penerimaan kembali dilakukan melalui Rekrutmen dan Onboarding.",
+                    "SEPARATED_WORKFORCE_REACTIVATION_BLOCKED"
+                ));
+            }
+
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
             entity.UpdateBy = userId;
@@ -1481,7 +1503,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 linkedUser.PrimaryDepartmentId = entity.PrimaryDepartmentId;
                 linkedUser.PrimaryPositionId = entity.PrimaryPositionId;
                 linkedUser.WorkforceProfileId = entity.WorkforceProfileId;
-                linkedUser.IsActive = entity.IsActive;
+                // BE-HRD-401: akun yang dikunci karena skorsing tetap terkunci sampai skorsing berakhir.
+                linkedUser.IsActive = entity.IsActive && !await _lifecycleGuard.HasActiveSuspensionLockAsync(linkedUser.Id);
                 linkedUser.UpdateDateTime = now;
             }
 
@@ -1491,6 +1514,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             {
                 await SyncUserOrganizationProjectionAsync(entity.WorkforceProfileId, userId);
             }
+
+            var changedFields = CaptureChangedFieldNames(entity);
 
             await _dbContext.SaveChangesAsync();
 
@@ -1505,7 +1530,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     entity.EmployeeCode,
                     entity.EmployeeNumber,
                     entity.FullName,
-                    entity.IsActive
+                    entity.IsActive,
+                    entity.UpdateBy,
+                    ChangedFields = changedFields
                 }
             );
 
@@ -1559,6 +1586,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             var now = DateTime.UtcNow;
             var userId = GetCurrentUserId();
 
+            // BE-HRD-401: pegawai/akun purnatugas tidak diaktifkan kembali lewat Data Induk.
+            if (!entity.IsActive && request.IsActive &&
+                await _lifecycleGuard.IsSeparationFinalizedAsync(entity.WorkforceProfileId))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Pemberhentian orang ini sudah final. Data Induk tidak dapat mengaktifkan kembali pegawai atau akun purnatugas; penerimaan kembali dilakukan melalui Rekrutmen dan Onboarding.",
+                    "SEPARATED_WORKFORCE_REACTIVATION_BLOCKED"
+                ));
+            }
+
             entity.IsActive = request.IsActive;
             entity.EmploymentStatusId = request.EmploymentStatusId;
             entity.ResignDate = request.ResignDate;
@@ -1585,7 +1623,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
 
             if (linkedUser != null)
             {
-                linkedUser.IsActive = request.IsActive;
+                // BE-HRD-401: akun yang dikunci karena skorsing tetap terkunci sampai skorsing berakhir.
+                linkedUser.IsActive = request.IsActive && !await _lifecycleGuard.HasActiveSuspensionLockAsync(linkedUser.Id);
                 linkedUser.UpdateDateTime = now;
             }
 
@@ -1849,32 +1888,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             }
         }
 
-        private async Task<string> GenerateWorkforceProfileCodeAsync()
-        {
-            const string prefix = $"WFP-{HospitalCode}-";
-
-            var totalData = await _dbContext.Set<MstWorkforceProfile>()
-                .IgnoreQueryFilters()
-                .CountAsync();
-
-            var nextNumber = totalData + 1;
-
-            while (true)
-            {
-                var code = $"{prefix}{nextNumber.ToString("D5")}";
-
-                var exists = await _dbContext.Set<MstWorkforceProfile>()
-                    .AnyAsync(x => x.ProfileCode == code);
-
-                if (!exists)
-                {
-                    return code;
-                }
-
-                nextNumber++;
-            }
-        }
-
         private async Task<EmployeeUserAccountCompactResponse?> BuildEmployeeUserAccountCompactResponseAsync(Guid employeeId)
         {
             var now = DateTime.UtcNow;
@@ -2116,7 +2129,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             string? phoneNumber,
             string? whatsAppNumber,
             string? emergencyContactPhone,
-            string? email)
+            string? email,
+            string? identityType = null)
         {
             if (primaryDepartmentId == Guid.Empty)
             {
@@ -2162,17 +2176,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 return regionValidation;
             }
 
-            var normalizedIdentityNumber = NormalizeDigitsOnly(identityNumber);
+            // BE-HRD-387: bentuk normal nomor identitas mengikuti resolver identitas (NIK = digit,
+            // paspor = huruf besar tanpa spasi), sehingga pencocokan lintas peran memakai nilai yang sama.
+            // Format NIK/paspor divalidasi resolver (IsValidIdentity) sebelum data ditulis.
+            var normalizedIdentityNumber = _identityResolver.NormalizeIdentityNumber(identityType, identityNumber);
             var normalizedPhoneNumber = NormalizeDigitsOnly(phoneNumber);
             var normalizedWhatsAppNumber = NormalizeDigitsOnly(whatsAppNumber);
             var normalizedEmergencyContactPhone = NormalizeDigitsOnly(emergencyContactPhone);
             var normalizedEmail = NormalizeNullableText(email);
-
-            if (!string.IsNullOrWhiteSpace(normalizedIdentityNumber) &&
-                normalizedIdentityNumber.Length != 16)
-            {
-                return (false, "Nomor identitas harus 16 digit.");
-            }
 
             if (!string.IsNullOrWhiteSpace(normalizedPhoneNumber) &&
                 normalizedPhoneNumber.Length > 13)
@@ -3650,6 +3661,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 return (false, "Employee ini sudah memiliki akun login.", null);
             }
 
+            // BE-HRD-388: satu profil hanya punya satu akun login (index unik WorkforceProfileId).
+            // Orang yang sudah punya akun lewat peran lain (mis. Dokter) memakai akun yang sama.
+            var profileAlreadyHasAccount = await _dbContext.Users
+                .AsNoTracking()
+                .AnyAsync(x => x.WorkforceProfileId == employee.WorkforceProfileId);
+
+            if (profileAlreadyHasAccount)
+            {
+                return (false, "Orang ini sudah memiliki akun login melalui peran lain pada profil yang sama. Gunakan akun yang ada; jangan centang pembuatan akun login.", null);
+            }
+
             var initialPassword = GenerateInitialPasswordFromBirthDate(employee.BirthDate);
 
             if (string.IsNullOrWhiteSpace(initialPassword))
@@ -3842,6 +3864,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             response.ProfilePhotoUrl = BuildPublicFileUrl(response.ProfilePhotoPath);
         }
 
+        /// <summary>
+        /// Nama kolom yang benar-benar berubah pada entity ini (BE-HRD-389, HRD-DEC-052). Hanya nama
+        /// kolom yang dicatat ke log aplikasi, bukan nilainya, supaya data pribadi tidak tersalin ke log.
+        /// </summary>
+        private List<string> CaptureChangedFieldNames(object entity)
+        {
+            _dbContext.ChangeTracker.DetectChanges();
+
+            return _dbContext.Entry(entity).Properties
+                .Where(p => p.IsModified
+                    && p.Metadata.Name != "UpdateBy"
+                    && p.Metadata.Name != "UpdateDateTime")
+                .Select(p => p.Metadata.Name)
+                .OrderBy(name => name)
+                .ToList();
+        }
+
         private static (bool IsValid, string? ErrorMessage) ValidateRequiredEmployeeRequest(CreateEmployeeRequest request)
         {
             return ValidateRequiredEmployeeFields(
@@ -3912,10 +3951,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 return (false, "Nomor identitas wajib diisi.");
             }
 
-            if (NormalizeDigitsOnly(identityNumber)?.Length != 16)
-            {
-                return (false, "Nomor identitas harus 16 digit.");
-            }
+            // Format NIK 16 digit / paspor WNA divalidasi IWorkforceIdentityResolverService.IsValidIdentity (BE-HRD-387).
 
             if (string.IsNullOrWhiteSpace(email))
             {

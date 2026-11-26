@@ -1819,11 +1819,53 @@ Jejak keputusan tetap dicatat engine di `TrxApprovalAction` (tabel yang sama den
 
 Data sensitif: komentar dan alasan tidak ditulis ke custom logger (`LoggerService`). Nilai `DigitalSignatureHash` lama dibiarkan sebagai data historis.
 
-## 34. Matriks Hak Akses & Jejak Audit Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v30`, approved 24 November 2026)
+---
 
-Dasar: `HRD-DEC-240` s.d. `HRD-DEC-245`. Bagian 30 (`A52`, `v26`) tetap berlaku untuk yang tidak disebut.
+## 34. Matriks Hak Akses & Jejak Audit Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v30`, approved 23 November 2026)
 
-### 34.1 String hak akses baru
+| Field | Nilai |
+| --- | --- |
+| `last_changed_in` | `v30` — 22 November 2026 |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`) |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `input_revision` | Decision log revision `42` bagian 57 |
+
+### 34.1 Hak akses per layar
+
+| Layar / aksi | String hak akses persis | Status hak | Peran yang lazim diberi (diatur admin, bukan kode) |
+| --- | --- | --- | --- |
+| Dashboard SDM — lihat ringkasan dan daftar nama | `[AccessPermission("HrdWorkforceDashboard", "Read")]` | **Baru** | Manajer SDM, Admin HRD (`HRD-ASM-91`) |
+| Seleksi Administrasi — lihat daftar | `[AccessPermission("CandidateScreening", "Read")]` | Sudah ada | Recruiter HR |
+| Seleksi Administrasi — tandai Lolos/Gugur | `[AccessPermission("CandidateScreening", "Evaluate")]` | Sudah ada | Recruiter HR |
+| Tes/Wawancara — lihat daftar (yang ditugaskan) | `[AccessPermission("CandidateEvaluation", "Read")]` | Sudah ada | Recruiter HR, Kepala Unit / Asesor |
+| Tes/Wawancara — lihat semua evaluasi | `CandidateEvaluation : ViewAll` (`AccessExplicitPermission`, tanpa endpoint sendiri) | **Baru** | Recruiter HR, Manajer SDM |
+| Tes/Wawancara — isi wawancara HR | `[AccessPermission("CandidateEvaluation", "Evaluate")]` | Sudah ada | Recruiter HR |
+| Tes/Wawancara — isi uji klinis/teknis | `[AccessPermission("CandidateEvaluation", "EvaluateClinical")]` + harus penilai yang ditugaskan (`VR-PKB-08`) | Sudah ada | Kepala Unit / Asesor |
+| Tindak Disiplin — daftar sanksi seluruh pegawai | `[AccessPermission("EmployeeDisciplinary", "ViewSanctions")]` | Sudah ada | HR Relations, Manajer SDM (`HRD-DEC-238` butir 4) |
+| Riwayat Penyelesaian — sanksi selesai | `[AccessPermission("EmployeeDisciplinary", "ViewSanctions")]` | Sudah ada | Idem |
+| Riwayat Penyelesaian — insiden ditutup tanpa sanksi | `[AccessPermission("EmployeeDisciplinary", "ViewIncidents")]` | Sudah ada | Idem; bila tidak dimiliki, bagian insiden disembunyikan |
+| Employee 360 — buka profil | `[AccessPermission("HrdEmployee360", "Read")]` | Sudah ada | HR, atasan langsung |
+| Employee 360 — bagian disiplin terisi | `EmployeeDisciplinary : ViewSanctions` (diperiksa di controller 360) | Sudah ada, **perilaku baru** | HR Relations, Manajer SDM; atasan langsung **tidak** (`HRD-ASM-94`) |
+
+Kasus whistleblower tetap memakai `Hrd.Disciplinary.WhistleblowerReview` (`HRD-DEC-172`) dan tidak tampil di layar Paket B mana pun.
+
+### 34.2 Privasi
+
+| Data | Aturan |
+| --- | --- |
+| Daftar nama Dashboard SDM | Hanya nomor, nama, profesi, keterangan dokumen/kontrak, tanggal. Pemegang `HrdWorkforceDashboard : Read` dapat melihat nama pemilik dokumen kedaluwarsa walaupun tidak memegang `ProfessionalLicense : Read`; ini disengaja karena tindak lanjutnya tugas Manajer SDM. Nomor lisensi tidak ditampilkan lengkap: `detailLabel` hanya menyebut jenis dokumen dan 4 karakter terakhir nomornya |
+| Gaji, NIK, data kesehatan, data disiplin | Tidak pernah ada di respons dashboard |
+| Data disiplin Employee 360 | Hanya untuk `ViewSanctions` (`VR-PKB-09`) |
+
+### 34.3 Jejak audit
+
+Paket B tidak menambah event audit. Seluruh endpoint baru atau yang diubah bersifat baca-saja, kecuali `submit-clinical` yang sudah tercatat oleh mekanisme rekrutmen existing; penolakan `403` dari `VR-PKB-07`/`08` dicatat oleh logging permintaan standar tanpa isi formulir. Kolom sensitif tidak boleh masuk custom logger.
+
+## 35. Matriks Hak Akses & Jejak Audit Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v31`, approved 24 November 2026)
+
+Dasar: `HRD-DEC-251` s.d. `HRD-DEC-256`. Bagian 30 (`A52`, `v26`) tetap berlaku untuk yang tidak disebut.
+
+### 35.1 String hak akses baru
 
 | Resource | Action | Modul (`AccessController`) | Endpoint | Diberikan kepada (usulan daftar periksa) |
 | --- | --- | --- | --- | --- |
@@ -1835,19 +1877,19 @@ Dasar: `HRD-DEC-240` s.d. `HRD-DEC-245`. Bagian 30 (`A52`, `v26`) tetap berlaku 
 | `MyOfficialDuty` | `Cancel` | sama | ESS dinas luar: batal | Pegawai |
 | `TemporaryAssignment` | `Read` | `HUMAN_RESOURCE_WORKFORCE_CORE` | Daftar penempatan sementara | Kepala Unit, Kepala Bidang, Admin HRD |
 
-### 34.2 Hak akses yang tidak berubah tetapi cakupannya berubah
+### 35.2 Hak akses yang tidak berubah tetapi cakupannya berubah
 
 | Hak | Perubahan |
 | --- | --- |
 | `ScheduleChangeRequest : Read/Update` | Daftar, ringkasan, detail, workflow hanya dalam cakupan baca; Terapkan butuh cakupan kelola (`VR-PK-35`) |
 | `ShiftSwapRequest : Read/Update` | Sama; tukar dinas tampil bila salah satu shift dalam cakupan baca; Terapkan butuh kedua unit dalam cakupan kelola |
-| `EarlyLeavePermission : Approve/Reject`, `OfficialDutyRequest : Approve/Reject` | Tetap; kini juga memutuskan pengajuan dari ESS (`HRD-DEC-245`) |
-| `RosterPeriod : Read` | Tetap; respons detail diperluas (`HRD-DEC-237`) |
-| `AttendancePeriod : Close` | Tetap; tutup menyelesaikan pengecualian konversi (`HRD-DEC-238`) |
+| `EarlyLeavePermission : Approve/Reject`, `OfficialDutyRequest : Approve/Reject` | Tetap; kini juga memutuskan pengajuan dari ESS (`HRD-DEC-256`) |
+| `RosterPeriod : Read` | Tetap; respons detail diperluas (`HRD-DEC-248`) |
+| `AttendancePeriod : Close` | Tetap; tutup menyelesaikan pengecualian konversi (`HRD-DEC-249`) |
 
 Pemisahan tugas: pegawai yang juga Kepala Unit tidak boleh menyetujui atau menolak izin atau dinas luarnya sendiri (`VR-PK-36`). Pemeriksaan ini **belum ada** di `ApproveAsync`/`RejectAsync` kedua service (bukti: `EarlyLeavePermissionService.cs` baris 303 dan 380, `OfficialDutyRequestService.cs` baris 301 dan 452 hanya memeriksa status) dan ditambahkan oleh task backend ESS. Dasarnya prinsip pemisahan tugas yang sudah disetujui untuk persetujuan HR (`VR-WF-02`); kini relevan karena pegawai dapat mengajukan sendiri.
 
-### 34.3 Daftar periksa izin per peran (pengganti 40.14, `HRD-DEC-243`)
+### 35.3 Daftar periksa izin per peran (pengganti 40.14, `HRD-DEC-254`)
 
 Diberikan Admin Sistem lewat layar Akses Role per (departemen, jabatan). Butir DoD "hak akses sudah diberikan" tetap terbuka sampai Admin Sistem melakukannya.
 
@@ -1862,7 +1904,7 @@ Diberikan Admin Sistem lewat layar Akses Role per (departemen, jabatan). Butir D
 
 Nama action `AttendanceDashboard` mengikuti string di source (`BE-HRD-357`); daftar ini diperiksa ulang terhadap registri saat verifikasi.
 
-### 34.4 Jejak audit
+### 35.4 Jejak audit
 
 | Kejadian | Tempat | Isi (teks pesan; `AuditAsync` tidak menyimpan payload) | Pelaku |
 | --- | --- | --- | --- |
@@ -1870,7 +1912,7 @@ Nama action `AttendanceDashboard` mengikuti string di source (`BE-HRD-357`); daf
 | ESS batal izin | `EarlyLeavePermission.SelfCancel` | Id izin, status sebelum | Pegawai |
 | ESS ajukan / batal dinas luar | `OfficialDuty.SelfCreate`, `OfficialDuty.SelfCancel` | Id surat tugas, rentang | Pegawai |
 | Tutup periode | `AttendancePeriod.Close` (diperluas) | Kode periode, jumlah konversi, jumlah pengecualian konversi yang diselesaikan | Admin HRD |
-| Pengecualian diselesaikan oleh tutup | `HrdAttendanceException.ResolvedByUserId/ResolvedAt/ResolutionNote` | "Diselesaikan oleh penutupan periode {kode} (HRD-DEC-238): hari dikonversi menjadi Absent" | Admin HRD (penutup) |
+| Pengecualian diselesaikan oleh tutup | `HrdAttendanceException.ResolvedByUserId/ResolvedAt/ResolutionNote` | "Diselesaikan oleh penutupan periode {kode} (HRD-DEC-249): hari dikonversi menjadi Absent" | Admin HRD (penutup) |
 | Terapkan perubahan shift / tukar dinas | Perilaku yang ada | — | Kepala Unit / Admin HRD |
 
 Daftar penempatan sementara dan detail roster bersifat baca; tidak dicatat.

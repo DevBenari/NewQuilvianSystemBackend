@@ -141,6 +141,73 @@ public sealed partial class AssetPlacementService
         return await GetHandoverAsync(created.Id, cancellationToken);
     }
 
+    public async Task<(Guid Id, string Number)> CreateStockTakeCorrectionAsync(AssetHandoverStockTakeRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (request.ActorUserId == Guid.Empty || request.AssetId == Guid.Empty || request.SourceDocumentId == Guid.Empty)
+        {
+            throw new ArgumentException("Aset, usulan sumber, dan pelaku penyerahan koreksi opname wajib diisi.", nameof(request));
+        }
+
+        var unitId = await _context.MstAssetLocations
+            .AsNoTracking()
+            .Where(x => x.Id == request.TargetLocationId && !x.IsDelete)
+            .Select(x => (Guid?)x.OrganizationUnitId)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw AssetManagementException.Invalid(AssetRegisterErrorCodes.HandoverTargetInvalid, AssetRegisterMessages.HandoverTargetInvalid);
+        var target = new AssetPlacementTarget(unitId, request.TargetLocationId, request.TargetCustodianEmployeeId);
+        await EnsureTargetValidAsync(target, cancellationToken);
+        var notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+        if (notes is { Length: > MaxNotesLength })
+        {
+            notes = notes[..MaxNotesLength];
+        }
+
+        var created = await InTransactionAsync(async () =>
+        {
+            var assets = await LockAssetsAsync([request.AssetId], null, cancellationToken);
+            var asset = assets[0];
+            EnsureHandoverEligible(asset, HandoverPurpose.PindahDalamUnit, target);
+            await _stockTakeGate.EnsureUnitsNotInStockTakeAsync([target.OrganizationUnitId], cancellationToken);
+
+            var now = DateTime.UtcNow;
+            var number = await _numberingService.AllocateDocumentNumberAsync(AssetDocumentNumberSeries.Handover, request.ActorUserId, cancellationToken);
+            var handover = new AstAssetHandover
+            {
+                HandoverNumber = number,
+                Purpose = HandoverPurpose.KoreksiOpname,
+                Status = HandoverStatus.Diserahkan,
+                TargetOrganizationUnitId = target.OrganizationUnitId,
+                TargetLocationId = target.LocationId,
+                TargetCustodianEmployeeId = target.CustodianEmployeeId,
+                SourceDocumentId = request.SourceDocumentId,
+                Notes = notes,
+                HandedOverBy = request.ActorUserId,
+                HandedOverAt = now,
+                CreateBy = request.ActorUserId,
+                CreateDateTime = now
+            };
+
+            _lockService.Acquire(asset, AssetActiveProcessKind.Penyerahan, handover.Id);
+            Touch(asset, request.ActorUserId, now);
+            handover.Items.Add(new AstAssetHandoverItem
+            {
+                HandoverId = handover.Id,
+                AssetId = asset.Id,
+                ConditionAtHandover = asset.Condition,
+                CreateBy = request.ActorUserId,
+                CreateDateTime = now
+            });
+
+            _context.AstAssetHandovers.Add(handover);
+            await _context.SaveChangesAsync(cancellationToken);
+            return (handover.Id, number);
+        }, cancellationToken);
+
+        await AuditAsync("AssetPlacement.HandoverStockTake", $"Penyerahan koreksi opname {created.number} dibuat untuk usulan {request.SourceDocumentId}.");
+        return created;
+    }
+
     public async Task<AssetHandoverResponse> ConfirmAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var actor = await RequireActorAsync(cancellationToken);

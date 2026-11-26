@@ -5,115 +5,121 @@
 | Field | Nilai |
 | --- | --- |
 | Task ID | `BE-HRD-453` |
-| Judul | ESS izin pulang cepat dan larangan memutuskan pengajuan sendiri |
-| Slice | `A52-B` / `MVP-74` gelombang 2 · `EPIC HRD-127` |
-| Roadmap | `roadmap/backend-roadmap.md` bagian 30, kartu `BE-HRD-453` |
-| Trace | `FR-PK-035`; `HRD-DEC-241`, `HRD-DEC-245`; fakta `HRD-TF-091`, `HRD-TF-094` |
-| Contract version | `v30` — API 36.4; Validation `VR-PK-32` s.d. `VR-PK-34`, `VR-PK-36`; State 34.1; Permission 34.1; Integration `INT-HR-115`; desain `02` 38.4, 38.9.3, 38.11; kamus data 31 — approved 24 November 2026 |
-| Dependency | Kontrak `v30` ✅ |
-| Klasifikasi | `STANDARD` — controller ESS baru, DTO ESS baru, metode service baru, satu aturan baru pada keputusan HR; tanpa entity, kolom, maupun migration |
-| Task mode | `BACKEND` (instruksi pengguna 25 November 2026: "lanjutkan BE-HRD-453") |
+| Nomor lama | `BE-HRD-443` — dinomori ulang saat merge `QuilvianIntegrationBackend` 23 November 2026; nomor lama kini milik amandemen `S-A7-V2` (lihat `blueprint-manifest.md` revisi `69`) |
+| Judul | Employee 360: bagian disiplin dari sanksi resmi dan catatan lama, hanya untuk pemegang `ViewSanctions` |
+| Slice | `S-PKB` — Paket B Navigasi SDM / `MVP-74` · `EPIC HRD-129` |
+| Roadmap | `roadmap/backend-roadmap.md` bagian 31, kartu `BE-HRD-453` |
+| Trace | `FR-PKB-14`, `FR-PKB-15`; `HRD-DEC-238`, `HRD-DEC-246` butir 2 dan 4, `HRD-ASM-94`; `VR-PKB-09`; `INT-HR-118` |
+| Contract version | `v30` — API 36.3, Validation 35, Integration 27, Permission 34, Data 31 — **approved** 23 November 2026 |
+| Dependency | — |
+| Klasifikasi | `MEDIUM` — satu service dan satu DTO berubah, menyentuh data sensitif (disiplin) dan perilaku hak akses |
+| Task mode | `BACKEND` — instruksi pengguna 23 November 2026: "kerjakan semua task yang ada di backend roadmap tersebut di mulai dari BE-HRD-443" (nomor lama; kini `BE-HRD-453`) |
+| Target tulis | `Areas/Corporate/HumanResource/WorkforceCore/**`; laporan, roadmap, traceability |
 | Model | Claude Opus 5.5 |
-| Source acuan | Backend `4d2c0162` (branch `yoga`). Working tree sebelum task memuat `BE-HRD-450` s.d. `BE-HRD-452` dan `BE-HRD-359` (belum di-commit) serta dokumen amandemen `A52-B`; tidak disentuh task ini |
-| Tanggal | 25 November 2026 |
-| Status | ✅ Selesai — 4/4 acceptance criteria terpenuhi di harness; bukti API data asli devYoga ada di `BE-HRD-455` |
+| Commit backend saat dikerjakan | `7e4c3774` (branch `MHamzah`); source task ini sudah di-commit pengguna di `9062bd61` |
+| Tanggal | 23 November 2026 |
+| Status | ✅ Selesai — 4/4 acceptance criteria terpetakan ke source; build 0 error, QBE Strict `PASS`, registri hak `IsValid=True`; uji API runtime 23 November 2026 `PASS` (bentuk respons; DB dev belum punya data sanksi) |
 
 ### Backend Governance Preflight
 
 | Field | Nilai |
 | --- | --- |
-| Area / Module / Submodule | `SelfServices` / `HumanResource` (controller dan DTO ESS) dan `Corporate` / `HumanResource` / `AttendanceManagement` (service). Entity `HrdEarlyLeavePermission` yang sudah ada; task tidak menambah entity sehingga tidak butuh keputusan prefix |
-| Keberlakuan | `NEW CODE` — `EarlyLeavePermissionSelfServiceController`, `EarlyLeavePermissionSelfServiceDtos`; `TOUCHED LEGACY` — `EarlyLeavePermissionService` (empat method ESS, penjaga `VR-PK-36` di `ApproveAsync`/`RejectAsync`, pemetaan `CancelDateTime`), `EarlyLeavePermissionDtos` (`CancelDateTime` pada respons) |
-| QBE yang berlaku | `QBE-SVC-001` (aturan ESS, pembatalan, dan larangan memutuskan sendiri di service; controller ESS hanya menentukan identitas sesi, memetakan respons, dan menulis log), `QBE-API-001` (`ApiResponse`, kode status kontrak 36.4), `QBE-PERM-001` (`[AccessController]` modul `HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE`, resource `MyEarlyLeavePermission`, `[AccessAction]` + `[AccessPermission]` Read/Create/Cancel). Tanpa entity/tabel baru, sehingga `QBE-NAM-001`, `QBE-ENT-001`, `QBE-CFG-001`, `QBE-MOD-002` tidak tersentuh. Tidak ada `<summary>` pada action controller; `filters/metadata` dideklarasikan tepat sesudah konstruktor |
-| Sumber governance | `AGENTS.md`; `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`; `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; `CLAUDE.md` backend |
-| Wewenang terpisah | Implementasi source ✅; migration ✖ (tidak diperlukan); eksekusi database ✖; deployment ✖ |
+| Area / Module / Submodule | `Corporate` / `HumanResource` / `WorkforceCore` |
+| Pemilik / prefix registry | Human Resource, `Hrd` (`ACTIVE / LEGACY`); entity yang dibaca `HrdDisciplinarySanction` dan `WfpDisciplinaryAction` milik `EmployeeRelationManagement` |
+| Keberlakuan | `TOUCHED LEGACY` — tanpa entity baru, tanpa migration |
+| QBE yang berlaku | `QBE-DTO-001`, `QBE-SVC-001`, `QBE-PERM-001`, `QBE-API-001`, `QBE-LOG-001` (tidak ada data sensitif di log) |
+| Sumber governance | `AGENTS.md`; `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`, `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; `rules/backend/*` suite Skill 1.22.0 |
 
 ---
 
-## 1. Cara kerja sesudah perubahan
+## 1. Masalah yang diperbaiki
 
-Contoh: Sari (perawat ICU) perlu pulang pukul 12.00 karena anaknya sakit. Dodi adalah Kepala Ruang ICU.
+Bagian "Data Pribadi & Disiplin" Employee 360 hanya membaca catatan profil lama (`WfpDisciplinaryAction`). Sanksi yang diterbitkan lewat alur disiplin resmi (`HrdDisciplinarySanction`, SP 1–SP 3 dan teguran lisan) tidak pernah tampil. Selain itu, siapa pun yang lolos mode HR (memegang `HrdPersonnelActionOrder : Read`) ikut melihat riwayat disiplin, walaupun tidak memegang hak lihat sanksi.
 
-| Langkah | Yang terjadi |
+Contoh: Budi menerima SP 1 lewat alur resmi pada 1 Oktober 2026. Staf administrasi SK yang membuka Employee 360 Budi tidak melihat SP 1 itu (karena hanya membaca catatan lama), tetapi bisa melihat catatan lama yang mungkin tidak boleh ia lihat.
+
+## 2. Proses bisnis
+
+1. Petugas membuka Employee 360 seorang pegawai (`HrdEmployee360 : Read`).
+2. Sistem menentukan mode: **HR** (memegang `HrdEmployee360 : ReadFull` atau `HrdPersonnelActionOrder : Read`) atau **Atasan Langsung** (atasan utama aktif). Aturan ini tidak berubah.
+3. Pada mode HR, sistem memeriksa hak **`EmployeeDisciplinary : ViewSanctions`**:
+   - **Punya hak:** `disciplinaryRecords` diisi sanksi alur resmi (`OFFICIAL`; kolom `employee_id` dicari dengan `MstEmployee.Id` **dan** `MstWorkforceProfile.Id`) ditambah catatan profil lama (`LEGACY`, selalu `isActive = false`), diurutkan tanggal terbit terbaru; `disciplineHidden = false`.
+   - **Tanpa hak:** `disciplineHidden = true`; `disciplinaryRecords` dan `disciplinarySanctions` dikirim kosong. Data pribadi lain (NIK, keluarga) tetap mengikuti aturan mode HR yang lama.
+4. Pada mode Atasan Langsung, seluruh bagian rahasia (`confidentialPersonalAndDiscipline`) tetap `null` seperti sebelumnya — tidak ada data disiplin yang dikirim.
+
+**Contoh berangka.** Profil Budi punya SP 1 resmi (`employee_id` = `MstEmployee.Id`, terbit 1 Oktober 2026, berlaku sampai 1 April 2027, `Active`), SP 2 resmi yang tercatat dengan `employee_id` = `WorkforceProfileId` (terbit 10 Januari 2026, `Expired`), dan satu catatan lama "Teguran tertulis keterlambatan" (5 Maret 2025). Sari (HR Relations, punya `ViewSanctions`) menerima tiga baris: SP 1 `OFFICIAL` `isActive = true`, SP 2 `OFFICIAL` `isActive = false`, dan catatan lama `LEGACY` `isActive = false`. Staf SK tanpa `ViewSanctions` menerima `disciplineHidden = true` dan daftar kosong.
+
+## 3. Perubahan yang dikerjakan
+
+### 3.1 Berkas yang diperiksa
+
+`WorkforceCore/Controllers/HrdEmployee360Controller.cs`, `WorkforceCore/Services/HrdEmployee360Service.cs`, `WorkforceCore/Services/IHrdEmployee360Service.cs`, `WorkforceCore/DTOs/Employee360Dtos.cs`, `EmployeeRelationManagement/Models/HrdDisciplinarySanction.cs`, `EmployeeRelationManagement/Models/WfpDisciplinaryAction.cs`, `EmployeeRelationManagement/Services/DisciplinaryListQueryService.cs`, `Services/Security/AccessPermissionService.cs`; consumer frontend `employee-360-view.jsx` (read-only).
+
+### 3.2 Berkas yang berubah
+
+| Berkas | Perubahan |
 | --- | --- |
-| Sari membuka Layanan Mandiri → Izin Pulang Cepat dan mengajukan untuk 10 Februari pukul 12.00 (`POST self-services/human-resource/early-leave-permissions`) | Profil diambil dari akun Sari. Rekap harian Sari pada 10 Februari dicari, lalu aturan pengajuan yang sama dengan layar HR berjalan (jam tidak sebelum jam masuk, tidak ganda, alasan wajib). Izin tercatat `Submitted` dan tampil di daftar HR. Log `EarlyLeavePermission.SelfCreate` memuat Id izin, tanggal, dan jam izin, tanpa alasan |
-| Klien mengirim `workforceProfileId` pegawai lain di body | Diabaikan; izin tetap atas profil Sari |
-| Sari mengajukan untuk tanggal tanpa jadwal/rekap | `400` "Belum ada jadwal atau rekap kehadiran Anda pada tanggal ini." |
-| Sari mengajukan untuk tanggal di periode yang sudah ditutup (atau rekapnya terkunci) | `409` "Periode kehadiran tanggal ini sudah ditutup." |
-| Akun tanpa profil pegawai aktif membuka ESS | `404` "Akun ini belum terhubung ke profil pegawai." |
-| Sari membatalkan izinnya yang masih `Submitted` dengan alasan | Status `Cancelled`, `IsCancel`, `CancelBy`, `CancelDateTime` terisi. Rekap harian tidak lagi menunjuk izin itu (sama dengan penolakan). Log `SelfCancel` memuat Id izin dan status sebelumnya |
-| Sari membatalkan lagi, atau membatalkan izin yang sudah disetujui | `409` "Pengajuan sudah diputuskan dan tidak dapat dibatalkan." |
-| Dodi mencoba membatalkan izin Sari lewat ESS | `404` (bukan miliknya) |
-| Dodi mengajukan izinnya sendiri, lalu menyetujui atau menolaknya di layar HR | `403` "Anda tidak dapat memutuskan pengajuan Anda sendiri." Identitas pemutus diambil dari akun login, bukan dari `approverWorkforceProfileId` di body |
-| Dodi menyetujui izin Sari | Berjalan seperti sebelumnya |
+| `Areas/Corporate/HumanResource/WorkforceCore/Services/HrdEmployee360Service.cs` | Pemeriksaan `EmployeeDisciplinary : ViewSanctions` pada mode HR; metode baru `GetDisciplinaryHistoryAsync` (sanksi resmi dua jenis ID + catatan lama, urut terbaru, uraian dipotong 120 karakter); `DisciplineHidden`; ruas usang `DisciplinarySanctions` diisi dari sumber yang sama |
+| `Areas/Corporate/HumanResource/WorkforceCore/DTOs/Employee360Dtos.cs` | `DisciplinaryRecords`, `DisciplineHidden`, kelas `Employee360DisciplinaryItemDto`; `DisciplinarySanctions` ditandai `[Obsolete]` |
 
----
+### 3.3 Dampak kontrak API, database, dan keamanan
 
-## 2. Perubahan
-
-| Berkas | Isi |
+| Aspek | Dampak |
 | --- | --- |
-| `Areas/SelfServices/HumanResource/Controllers/EarlyLeavePermissionSelfServiceController.cs` (baru) | Lima endpoint: `GET filters/metadata`, `GET /`, `GET {id}`, `POST /`, `POST {id}/cancel`. Modul `HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE`, resource `MyEarlyLeavePermission` (`Read`/`Create`/`Cancel`), `SortOrder = 13`. Profil dari `HumanResourceContextService.GetCurrentAsync` (akun tidak sah → `401`). Respons dipetakan ke `EarlyLeaveSelfResponse`. Log `AuditAsync` `EarlyLeavePermission.SelfCreate`/`SelfCancel` dengan isi di teks pesan |
-| `Areas/SelfServices/HumanResource/DTOs/EarlyLeavePermissionSelfServiceDtos.cs` (baru) | `EarlyLeaveSelfQuery`, `CreateEarlyLeaveSelfRequest` (tanpa ruas pegawai/rekap), `CancelSelfRequest` (dipakai juga `BE-HRD-454`), `EarlyLeaveSelfFilterMetadataResponse`, `EarlyLeaveSelfOptionResponse`, `EarlyLeaveSelfResponse` (tanpa data pegawai lain), label status `EarlyLeaveSelfStatus` (Diajukan, Disetujui, Ditolak, Dibatalkan) |
-| `Areas/Corporate/HumanResource/AttendanceManagement/Services/EarlyLeavePermissionService.cs` | Baru: `GetPagedForSelfAsync`, `GetByIdForSelfAsync`, `CreateForSelfAsync`, `CancelBySelfAsync`, `IsActiveProfileAsync`, `IsOwnRequestAsync`. `ApproveAsync`/`RejectAsync`: penjaga `VR-PK-36` sesudah pemeriksaan "tidak ditemukan", sebelum pemeriksaan status. Daftar dan detail mengisi `CancelDateTime` |
-| `…/AttendanceManagement/DTOs/EarlyLeavePermissionDtos.cs` | `EarlyLeavePermissionResponse.CancelDateTime` (baru, nullable) |
-| `Tests/QuilvianSystemBackend.HumanResourceTests/EarlyLeaveSelfServiceTests.cs` (baru), `AcceptanceTestIndex.md` | 6 uji lewat controller ESS dan service nyata; baris `AT-HRD-PK-49` dan baris kelas di indeks |
+| Kontrak API | Route dan hak endpoint tetap. Ruas baru `confidentialPersonalAndDiscipline.disciplinaryRecords[]` dan `disciplineHidden`; `disciplinarySanctions` tetap ada (usang) dan kini juga memuat sanksi resmi dengan format `SP1: <nomor> (yyyy-MM-dd)` |
+| Database | Tidak ada. Hanya membaca `hrd_disciplinary_sanction` dan `wfp_disciplinary_action`; tanpa migration |
+| Keamanan/Auth | Data disiplin kini hanya untuk pemegang `EmployeeDisciplinary : ViewSanctions` (`VR-PKB-09`). Tidak ada pengecualian nama peran |
 
-Tidak ada registrasi DI baru: `EarlyLeavePermissionService`, `HumanResourceContextService`, dan `LoggerService` sudah terdaftar.
+**Delta terhadap desain 38.3 (dicatat, tidak mengubah kontrak):**
 
-### Delta terhadap kartu roadmap dan kontrak
+1. Desain menaruh pemeriksaan `ViewSanctions` di controller dan meneruskan `includeDiscipline` ke service. Source sudah memeriksa hak mode HR di dalam service lewat `AccessPermissionService`, sehingga pemeriksaan baru diletakkan di tempat yang sama. Perilakunya identik; signature interface tidak berubah.
+2. **Fakta as-is yang mengoreksi desain:** atasan langsung ternyata **tidak pernah** menerima bagian `confidentialPersonalAndDiscipline` (selalu `null` di mode Atasan Langsung). Yang benar-benar kehilangan akses disiplin sesudah task ini adalah **pengguna mode HR yang tidak memegang `ViewSanctions`** (mis. petugas SK). Catatan rilis di `BE-HRD-462` memakai rumusan yang benar ini. Untuk mode Atasan Langsung objeknya tetap `null` (lebih ketat dari kontrak dan konsisten dengan layar yang sudah menampilkan pesan terbatas bila objek kosong).
+3. Uraian pelanggaran sanksi resmi dimuat ke `title` dalam bentuk dipotong 120 karakter; isi lengkap tetap lewat detail sanksi per pegawai yang juga dijaga `ViewSanctions`.
 
-| Hal | Kartu/kontrak | Pelaksanaan | Alasan |
+## 4. Dokumentasi endpoint
+
+#### Corporate / Human Resource / Workforce Core / Employee 360
+
+| Method | Path | Kegunaan | Hak akses |
 | --- | --- | --- | --- |
-| **Alasan batal** | `VR-PK-33`/38.9.3: alasan batal wajib (maks. 500) | Divalidasi (`400` bila kosong atau lebih dari 500), **tidak disimpan** di mana pun | Kamus data 31 menegaskan tidak ada kolom baru dan pembatalan hanya mengisi `IsCancel`/`CancelBy`/`CancelDateTime`; respons 36.4 tidak memuat alasan batal; matriks audit 34 menetapkan isi log `SelfCancel` hanya Id dan status sebelum. **Celah kontrak: perlu keputusan pass blueprint** (kolom baru dengan migration, atau mencabut kewajiban alasan) |
-| Penentu pemutus `VR-PK-36` | "profil pegawai pengguna = `WorkforceProfileId` pengajuan" | Profil dari `Users.WorkforceProfileId` akun login | `approverWorkforceProfileId` di body bisa diisi sembarang; aturan pemisahan tugas tidak boleh bergantung pada isian klien. Akun tanpa profil (mis. superadmin) tidak terhalang |
-| Rekap terkunci | `VR-PK-32`: "belum terkunci … atau periodenya tertutup → 409" | `IsLocked` pada rekap atau periode `Closed` → `409` dengan pesan kontrak | Sesuai kontrak. `CreateAsync` lama hanya memeriksa periode tertutup dengan pesan lain; ESS memeriksa lebih dulu agar pesannya sesuai kontrak |
-| Lebih dari satu rekap pada tanggal yang sama | Tidak disebut | Diambil rekap dengan jam masuk terjadwal paling awal | Model mengizinkan lebih dari satu rekap per hari; pilihan deterministik |
-| Pembatalan melepas tautan rekap | State 34.1: "tidak memengaruhi rekap harian" | `HrdAttendanceDaily.EarlyLeavePermissionId` dilepas bila menunjuk izin itu (seperti `RejectAsync`); status kehadiran tidak berubah | Tautan yang tertinggal menunjuk izin yang tidak berlaku; status dan menit kehadiran memang tidak disentuh |
-| `CancelDateTime` pada respons HR | Tidak disebut | Ruas baru, nullable | Respons ESS membutuhkannya; layar HR ikut mendapatkannya tanpa perubahan lain |
-| Status kontrak API 36.4 | "**Rencana (belum tersedia)**" | Tidak disunting | Artefak kontrak terkunci hash. Penyegaran status dicatat untuk pass blueprint |
+| `GET` | `/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/employee-360` | Profil 360 pegawai; bagian disiplin terisi hanya bagi pemegang `ViewSanctions` | `HrdEmployee360 : Read`; isi disiplin bergantung `EmployeeDisciplinary : ViewSanctions` |
 
----
+## 5. Verifikasi
 
-## 3. Verifikasi
-
-| Pemeriksaan | Hasil | Klasifikasi | Bukti |
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `EarlyLeaveSelfServiceTests` + `AttendanceDashboardTests` (pemakai izin pulang cepat) | 12/12 lulus | `PASS` (AC1–AC4) | Keluaran `dotnet test` |
-| Kontrol negatif: 21 mutasi — (1) penjaga `VR-PK-36` setuju dibuang; (2) penjaga tolak dibuang; (3) pemutus dari body; (4) rekap dicari tanpa saringan pegawai; (5) tanpa rekap `404`; (6) rekap terkunci diabaikan; (7) periode tertutup diabaikan; (8) profil nonaktif diterima; (9) batal tanpa saringan pemilik; (10) batal tanpa syarat `Submitted`; (11) alasan batal tidak dicek; (12) tautan rekap tidak dilepas; (13) `IsCancel` tidak diisi; (14) detail tanpa pemeriksaan pemilik; (15) daftar tanpa saringan pegawai; (16) batas 500 karakter alasan dibuang; (17) `CancelBy` tidak diisi; (18) log `SelfCreate` memuat alasan; (19) aksi log `SelfCancel` salah; (20) endpoint ajukan memakai hak `Read`; (21) label `Cancelled` salah | 21/21 tertangkap. AC1 oleh (4), (18); AC2 oleh (4)–(8), (16); AC3 oleh (4), (9)–(13), (17), (19), (21); AC4 oleh (1)–(4); daftar/detail oleh (4), (14), (15); hak akses oleh (20). Pada putaran pertama mutasi (18), (20), (21) gagal build karena sesi lain sedang menyunting dan mem-build modul Laboratorium di working tree yang sama (`LabOrderService.cs` sementara merujuk method yang belum ada; `obj/…sourcelink.json` terkunci); ketiganya diulang sesudahnya dan tertangkap. Ketiga berkas dipulihkan dengan `writeFileSync` (mtime baru), hash sama dengan salinan asli | `PASS` | `mut453.cjs`, `mut453-hasil.log`, `mut453-ulang.log` di scratchpad sesi |
-| Regresi penuh proyek uji HR | 451/451 lulus (13 menit 15 detik) sesudah build ulang dari source asli, dengan env `QUILVIAN_BACKEND_ROOT`. Dijalankan dari salinan tanpa empat uji payroll yang tidak terkompilasi sejak merge `815ce085`; salinan selain itu identik dengan folder uji repo. Build mencakup suntingan modul Laboratorium milik sesi lain yang ada di working tree saat itu | `PASS` | `test453-full.log` |
-| Build proyek utama | 0 galat (`-p:RunAnalyzers=False`) | `PASS` | `build453-final.log` |
-| QBE `Strict` atas 5 berkas | 0 violation, 0 review. Probe `TrxZzzQbeProbe453` (ber-`[Table]`) terdeteksi 4 violation lalu dihapus | `PASS` | Keluaran checker |
-| Bukti API data asli devYoga | Tidak dijalankan di task ini | `NOT RUN` | Kartu menempatkannya di `BE-HRD-455` |
+| `dotnet build QuilvianSystemBackend.csproj --no-restore -p:OutDir=<scratchpad>` sesudah `MVP-74` | 0 error, 614 warning; tidak ada warning baru di berkas task ini (CS8602 baris 99 dan 236 adalah kode lama yang tidak disentuh) | `PASS` | Log build 23 November 2026 |
+| `dotnet build` penuh seluruh Paket B | 0 error, 611 warning; tidak ada warning di berkas yang diubah | `PASS` | Log build 23 November 2026 |
+| QBE `Invoke-QbeConformanceCheck.ps1 -Mode Strict -Path` (19 berkas Paket B) | 0 VIOLATION, 0 REVIEW, 0 INFO, `PASS` | `PASS` | Keluaran checker |
+| Validator registri hak akses (skrip `dotnet fsi` atas assembly hasil build) | `IsValid=True`, 2.662 identitas, 0 endpoint tak terdaftar | `PASS` | Keluaran skrip |
+| Penelusuran: pegawai dengan sanksi resmi berkunci `MstEmployee.Id` dan `WorkforceProfileId` + catatan lama | Kedua kunci masuk `subjectIds`; catatan lama dibaca per `WorkforceProfileId` | `PASS` | `GetDisciplinaryHistoryAsync` |
+| Penelusuran: mode HR tanpa `ViewSanctions` | `DisciplineHidden = true`, kedua daftar kosong | `PASS` | Blok pengisian `ConfidentialPersonalAndDisciplineDto` |
+| Uji API runtime di DB dev (`QuilvianNewDevHamzah`), 23 November 2026 — backend `9062bd61` di port lokal 5199, akun superadmin + akun non-admin: Employee 360 profil aktif oleh superadmin (mode HR, memegang `ViewSanctions`) | `200`, `viewMode = HR`, `disciplineHidden = false`, `disciplinaryRecords = []` (bentuk sesuai kontrak; DB dev: 34 pegawai aktif; 0 kontrak, 0 lisensi, 0 SPK/RKK, 0 sanksi, 0 evaluasi kandidat) | `PASS` | Skrip uji API (27 skenario: 26 `PASS`, 1 gagal karena login akun uji atasan ditolak `401` — masalah akun, bukan kode) |
+| Uji API akun mode HR **tanpa** `ViewSanctions` | Tidak ada akun uji dengan kombinasi hak itu | `NOT RUN` | Dibuktikan lewat source (`DisciplineHidden = !canViewSanctions`) |
+| Kueri baca-saja jumlah `WfpDisciplinaryAction` (`HRD-DEC-246` butir 1; izin pengguna 23 November 2026) | **0 baris** (tidak ada yang aktif maupun terhapus) — HR tidak perlu memasukkan ulang catatan lama ke alur resmi | `PASS` | Kueri `SELECT` baca-saja (`readonly` session) |
 
-### Acceptance criteria
+Uji manual: `PASS` sebatas data dev (lihat tabel).
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+## 6. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| 1. Ajukan dengan `workforceProfileId` pegawai lain di body → tercatat atas profil sesi; tampil di daftar HR | Terpenuhi | `Ajukan_tercatat_atas_profil_sesi_dan_tampil_di_daftar_HR` (JSON memuat `workforceProfileId` dan `attendanceDailyId` milik Raka) |
-| 2. Tanpa rekap pada tanggal itu → `400`; periode tertutup → `409`; akun tanpa profil → `404` | Terpenuhi | `Ajukan_ditolak_bila_rekap_tidak_ada_periode_tertutup_atau_tanpa_profil` (termasuk rekap terkunci, profil nonaktif, dan aturan `CreateAsync` yang tetap berlaku) |
-| 3. Batal `Submitted` → `Cancelled`; batal kedua dan batal sesudah `Approved` → `409`; batal milik orang lain → `404` | Terpenuhi | `Batal_hanya_milik_sendiri_yang_masih_diajukan`; daftar/detail milik sendiri: `Daftar_dan_detail_hanya_milik_sendiri` |
-| 4. Kepala Unit menyetujui atau menolak izinnya sendiri → `403`; izin pegawai lain tetap bisa diputuskan | Terpenuhi | `Pemohon_tidak_dapat_memutuskan_izinnya_sendiri`; hak akses ESS: `Hak_akses_MyEarlyLeavePermission_terdaftar_dan_ditegakkan` |
+| 1. Pemegang `ViewSanctions`: SP 1 resmi (`MstEmployee.Id`), SP 2 resmi (`WorkforceProfileId`), dan satu catatan lama → 2 `OFFICIAL` + 1 `LEGACY`, `disciplineHidden = false` (`AT-HRD-PKB-13`) | Terpenuhi | `subjectIds` memuat kedua ID; baris resmi dan lama digabung lalu diurutkan |
+| 2. Akun `HrdEmployee360 : Read` tanpa `ViewSanctions` → `disciplineHidden = true`, kedua daftar kosong, bagian 360 lain tetap terisi (`AT-HRD-PKB-14` bagian backend) | Terpenuhi | Mode HR tanpa hak: `DisciplineHidden = !canViewSanctions`; mode Atasan Langsung: objek rahasia tetap `null` (delta 2) |
+| 3. `LEGACY` selalu `isActive = false`; `OFFICIAL` aktif hanya bila `Status = Active` dan `ValidUntil` belum lewat | Terpenuhi | Pemetaan `IsActive` di `GetDisciplinaryHistoryAsync` |
+| 4. Hak endpoint tetap `HrdEmployee360 : Read`; tanpa pengecualian nama peran | Terpenuhi | Controller tidak diubah; pemeriksaan memakai `HasAccessAsync` |
+| DoD: laporan tracked, tanda status roadmap | Terpenuhi | Berkas ini; roadmap bagian 31 |
 
----
-
-## 4. Temuan
-
-| Temuan | Dampak | Tindakan |
-| --- | --- | --- |
-| As-is: pegawai tidak bisa mengajukan izin pulang cepat sendiri; hanya HR yang mencatat atas nama (`HRD-TF-091`) | Menu Layanan Mandiri tertahan (`FE-HRD-100`) | Diperbaiki (inti task) |
-| As-is: `ApproveAsync`/`RejectAsync` hanya memeriksa status; identitas pemutus dari body | Kepala Ruang dapat menyetujui izinnya sendiri; `approvedByWorkforceId` dapat diisi siapa saja | `VR-PK-36` ditambahkan berbasis akun login. `ApprovedByWorkforceId` masih disalin dari body (perilaku lama, di luar lingkup task) |
-| Alasan batal wajib tetapi tidak ada tempat menyimpannya | Alasan yang diketik pegawai hilang | Celah kontrak, lihat delta. Perlu keputusan pass blueprint |
-| Hak `MyEarlyLeavePermission : Read/Create/Cancel` baru terdaftar di kode | Belum ada peran yang memegangnya | Admin Sistem memberikannya kepada Pegawai lewat Akses Role (Permission 34.3) |
-
----
-
-## 5. Catatan penutup
+## 7. Catatan penutup
 
 | Hal | Isi |
 | --- | --- |
-| Migration / database | Tidak ada migration. Tidak ada eksekusi database |
-| Git | Tidak ada stage, commit, push, pull, merge, rebase, atau deploy. Berkas baru: `EarlyLeavePermissionSelfServiceController.cs`, `EarlyLeavePermissionSelfServiceDtos.cs`, `EarlyLeaveSelfServiceTests.cs` |
-| Dampak frontend | Endpoint baru untuk `FE-HRD-100` (dibuka kembali). Layar HR menerima `403` pada keputusan atas izin sendiri dan ruas baru `cancelDateTime` |
-| Bukti data asli | Akun pegawai dan Kepala Ruang di devYoga dikerjakan di `BE-HRD-455` |
-| Task berikutnya | `BE-HRD-454` (ESS surat tugas dinas luar) memakai pola ini dan `CancelSelfRequest` yang sama |
+| Peringatan | Tidak ada warning baru |
+| Masalah yang diketahui | (1) Kolom `employee_id` modul disiplin berisi dua jenis ID — utang teknis, sengaja tidak diperbaiki. (2) Temuan di luar scope: service memeriksa `HrdEmployee360 : ReadFull`, tetapi aksi itu **tidak terdaftar** di registri (snapshot hanya memuat `HrdEmployee360.Read`), sehingga mode HR praktis hanya didapat lewat `HrdPersonnelActionOrder : Read` |
+| Risiko tersisa | Petugas mode HR tanpa `ViewSanctions` kehilangan riwayat disiplin yang selama ini terlihat — disengaja (`HRD-DEC-246` butir 4), masuk catatan rilis `BE-HRD-462` |
+| Perubahan sampingan | `NONE` |
+| Interupsi | `NONE`. Pengguna meng-commit source di tengah sesi (`9062bd61`); isinya sama dengan hasil task |
+| Status Git | `git status --short` sesudah source: bersih untuk `Areas/` dan `Program.cs` (sudah di-commit pengguna); hanya dokumen blueprint yang berubah |
+| Langkah berikutnya | `FE-HRD-401` (tampilan `disciplinaryRecords`) |

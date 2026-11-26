@@ -23,6 +23,48 @@ public sealed class PayrollRunActionRequest
     [MaxLength(40)] public string? ExpectedRowVersion { get; set; }
 }
 
+/// <summary>Mode pengajuan run. Normal = semua penahan harus beres; ReviewOnly = hanya histori PPh yang belum lengkap (PPh sementara).</summary>
+public static class PayrollRunSubmissionModes
+{
+    public const string Normal = "Normal";
+    public const string ReviewOnly = "ReviewOnly";
+}
+
+/// <summary>Kode alasan pengajuan review-only belum dapat dilakukan (PAY-BE-FIX-031). Keputusan klien memakai kode, bukan teks pesan.</summary>
+public static class PayrollRunReviewBlockCodes
+{
+    /// <summary>Run dihitung sebelum klasifikasi penahan PPh tersedia; hitung ulang (endpoint Calculate) sebelum dapat diajukan untuk review.</summary>
+    public const string RecalculationRequired = "RECALCULATION_REQUIRED_FOR_TAX_REVIEW";
+
+    /// <summary>Ada penahan selain histori PPh yang belum lengkap.</summary>
+    public const string OtherBlockers = "OTHER_BLOCKERS";
+
+    /// <summary>Estimasi PPh sementara tidak tersedia untuk sebagian penerima terdampak.</summary>
+    public const string EstimateUnavailable = "ESTIMATE_UNAVAILABLE";
+
+    /// <summary>Alasan lain: penerima bermasalah, belum ada yang terhitung, input manual, atau sumber kompensasi berubah.</summary>
+    public const string OtherReasons = "OTHER_REASONS";
+}
+
+/// <summary>
+/// Badan aksi Submit (PAY-BE-FIX-030). Tanpa badan atau tanpa <see cref="SubmissionMode"/> = pengajuan normal (perilaku lama). Mode
+/// <c>ReviewOnly</c> memakai izin PayrollRun:Submit yang sama dan diperiksa ulang penuh oleh backend; bukan jalan pintas pengesahan.
+/// </summary>
+public sealed class PayrollRunSubmitRequest
+{
+    /// <summary>Token versi run yang dilihat klien (<c>rowVersion</c>). Kosong = tanpa pemeriksaan; berbeda = 409.</summary>
+    [MaxLength(40)] public string? ExpectedRowVersion { get; set; }
+
+    /// <summary><c>Normal</c> (bawaan) atau <c>ReviewOnly</c>.</summary>
+    [MaxLength(20)] public string? SubmissionMode { get; set; }
+
+    /// <summary>Alasan pengajuan untuk review dengan PPh sementara; wajib pada mode ReviewOnly.</summary>
+    [MaxLength(1500)] public string? Reason { get; set; }
+
+    /// <summary>Pernyataan pengaju bahwa PPh masih estimasi dan belum final; wajib true pada mode ReviewOnly.</summary>
+    public bool AcknowledgeProvisionalTax { get; set; }
+}
+
 public sealed class PayrollRunQuery
 {
     public Guid? PayrollPeriodId { get; set; }
@@ -52,6 +94,18 @@ public class PayrollRunListItemResponse
     public DateTime? CalculatedAt { get; set; }
     public DateTime? SubmittedAt { get; set; }
     public DateTime? ApprovedAt { get; set; }
+
+    /// <summary>
+    /// PAY-BE-FIX-030: true bila run diajukan untuk review dengan PPh sementara (belum final). Run seperti ini tidak dapat disahkan sampai
+    /// dikembalikan, dihitung ulang, dan diajukan ulang. Aditif.
+    /// </summary>
+    public bool IsTaxProvisional { get; set; }
+
+    /// <summary>BELUM_FINAL bila <see cref="IsTaxProvisional"/>; null selain itu. Aditif.</summary>
+    public string? TaxFinalStatus { get; set; }
+
+    /// <summary>Total PPh sementara (estimasi) saat diajukan untuk review; null bila bukan pengajuan review. BUKAN TotalTax resmi. Aditif.</summary>
+    public decimal? ProvisionalTaxTotal { get; set; }
 
     /// <summary>
     /// Token konkurensi optimistik turunan (tick waktu pembaruan). Kirim kembali sebagai <c>expectedRowVersion</c> pada aksi run
@@ -153,6 +207,79 @@ public class PayrollRunEmployeeResponse
     /// <summary>Total pembalikan potongan cicilan yang sudah disetujui untuk pegawai ini.</summary>
     public decimal ReversedAmount { get; set; }
     public bool HasPendingReversal { get; set; }
+
+    /// <summary>
+    /// PAY-BE-FIX-030: PPh sementara penerima ini (hanya bila penahannya histori PPh yang belum lengkap). Terpisah dari TotalTax/NetPay resmi.
+    /// Null pada penerima lain. Aditif.
+    /// </summary>
+    public PayrollRunProvisionalTaxResponse? ProvisionalTax { get; set; }
+}
+
+/// <summary>
+/// PPh SEMENTARA satu penerima. Bukan hasil pajak resmi: tidak masuk TotalTax, tidak menjadi dasar potong/lapor/Finance. Bila
+/// <see cref="IsAvailable"/> false tampilkan "Estimasi Tidak Tersedia" beserta <see cref="UnavailableReason"/>, jangan Rp0.
+/// </summary>
+public sealed class PayrollRunProvisionalTaxResponse
+{
+    public bool IsAvailable { get; set; }
+    public decimal? ProvisionalTaxAmount { get; set; }
+
+    /// <summary>Gaji bersih resmi dikurangi PPh sementara (bila dipotong dari pegawai). Tampilkan dengan label "Estimasi Gaji Bersih".</summary>
+    public decimal? EstimatedNetPay { get; set; }
+
+    /// <summary>Gaji bersih resmi saat ini (PPh resmi masih 0 karena penahan); hanya pembanding.</summary>
+    public decimal OfficialNetPay { get; set; }
+
+    /// <summary>TER_MONTHLY_PROXY.</summary>
+    public string Method { get; set; } = string.Empty;
+    public string Treatment { get; set; } = string.Empty;
+    public string? PolicyVersion { get; set; }
+    public string? PolicyLegalBasis { get; set; }
+    public decimal? BasisGross { get; set; }
+    public string? TerCategory { get; set; }
+    public decimal? TerRatePercent { get; set; }
+    public decimal NoNpwpSurchargePercent { get; set; }
+    public List<int> MissingTaxMonths { get; set; } = new();
+
+    /// <summary>Selalu BELUM_FINAL.</summary>
+    public string TaxFinalStatus { get; set; } = string.Empty;
+    public string Explanation { get; set; } = string.Empty;
+    public string? UnavailableReason { get; set; }
+}
+
+/// <summary>Ringkasan PPh sementara pada tingkat run (hanya penerima yang penahannya histori PPh belum lengkap).</summary>
+public sealed class PayrollRunProvisionalTaxSummaryResponse
+{
+    /// <summary>TAX_YTD_HISTORY_INCOMPLETE.</summary>
+    public string BlockCode { get; set; } = string.Empty;
+    public int AffectedEmployeeCount { get; set; }
+    public int TaxBlockerCount { get; set; }
+    public int EstimateAvailableCount { get; set; }
+    public int EstimateUnavailableCount { get; set; }
+
+    /// <summary>Jumlah PPh sementara penerima yang estimasinya tersedia. BUKAN TotalTax resmi.</summary>
+    public decimal TotalProvisionalTax { get; set; }
+    public decimal TotalEstimatedNetPay { get; set; }
+    public string Method { get; set; } = string.Empty;
+    public List<string> PolicyVersions { get; set; } = new();
+    public List<int> MissingTaxMonths { get; set; } = new();
+    public string TaxFinalStatus { get; set; } = string.Empty;
+    public string Explanation { get; set; } = string.Empty;
+    public string NetPayNotice { get; set; } = string.Empty;
+}
+
+/// <summary>Jejak pengajuan untuk review dengan PPh sementara (dari penanda tersimpan pada run).</summary>
+public sealed class PayrollRunReviewOnlyResponse
+{
+    public DateTime SubmittedAt { get; set; }
+    public Guid SubmittedByUserId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public int AffectedEmployeeCount { get; set; }
+    public decimal TotalProvisionalTax { get; set; }
+    public string? PolicyVersion { get; set; }
+    public List<int> MissingTaxMonths { get; set; } = new();
+    public string BlockCode { get; set; } = string.Empty;
+    public string TaxFinalStatus { get; set; } = string.Empty;
 }
 
 /// <summary>Satu baris komponen penghasilan/potongan pada slip penerima (gross-to-net yang dapat ditelusuri).</summary>
@@ -233,6 +360,12 @@ public sealed class PayrollRunTaxResultResponse
 
     /// <summary>Langkah hitung (kategori TER, tarif, PKP, dst.) sebagai bukti penelusuran; null untuk nominal manual dan pengecualian.</summary>
     public Dictionary<string, object?>? Detail { get; set; }
+
+    /// <summary>PAY-BE-FIX-030: TAX_YTD_HISTORY_INCOMPLETE bila penahan murni histori PPh yang belum lengkap; null selain itu. Aditif.</summary>
+    public string? BlockCode { get; set; }
+
+    /// <summary>PAY-BE-FIX-030: PPh sementara, terpisah dari EmployeeAmount di atas (yang tetap resmi). Aditif.</summary>
+    public PayrollRunProvisionalTaxResponse? Provisional { get; set; }
 }
 
 public sealed class PayrollRunWageBaseItemResponse
@@ -473,6 +606,51 @@ public sealed class PayrollRunDetailResponse : PayrollRunListItemResponse
     /// Nilai: Calculate, ImportHrd, Submit, Return, Approve, Cancel, FinanceHandoff, Close, RequestReversal, GeneratePayslips.
     /// </summary>
     public List<string> AvailableActions { get; set; } = new();
+
+    /// <summary>
+    /// Alasan run berstatus Calculated belum dapat diajukan, atau berstatus Submitted belum dapat disahkan (teks siap tampil, dari backend).
+    /// Kosong berarti tidak ada alasan menahan; run lain selalu kosong. Syaratnya sama dengan yang diperiksa ulang oleh SubmitAsync dan
+    /// ApproveAsync, sehingga "Submit"/"Approve" pada <see cref="AvailableActions"/> hanya muncul bila daftar ini kosong. Daftar penahan
+    /// rinci tetap ada di <c>Blockers</c>. Bantuan tampilan, bukan pengaman. Aditif.
+    /// </summary>
+    public List<string> DecisionBlockReasons { get; set; } = new();
+
+    /// <summary>
+    /// PAY-BE-FIX-030: true bila run berstatus Calculated dan SATU-SATUNYA penahan yang tersisa adalah histori PPh yang belum lengkap
+    /// (TAX_YTD_HISTORY_INCOMPLETE) dengan estimasi tersedia untuk semua penerimanya, serta syarat pengajuan lain terpenuhi. Pengajuan
+    /// untuk review TIDAK membuat run dapat disahkan. Bantuan tampilan; backend memeriksa ulang. Aditif.
+    /// </summary>
+    public bool CanSubmitForReview { get; set; }
+
+    /// <summary>Alasan <see cref="CanSubmitForReview"/> false padahal ada penahan histori PPh (teks siap tampil). Aditif.</summary>
+    public List<string> SubmitForReviewBlockReasons { get; set; } = new();
+
+    /// <summary>
+    /// PAY-BE-FIX-031: kode terstruktur untuk <see cref="SubmitForReviewBlockReasons"/> (<see cref="PayrollRunReviewBlockCodes"/>). Klien memilih
+    /// tampilan (hitung ulang, penahan lain, estimasi tidak tersedia) dari kode ini. Aditif.
+    /// </summary>
+    public List<string> SubmitForReviewBlockCodes { get; set; } = new();
+
+    /// <summary>
+    /// PAY-BE-FIX-031: Calculated dan penahan PPh terlihat, tetapi run dihitung sebelum klasifikasi penahan tersedia (snapshot lama atau
+    /// tanpa metadata klasifikasi). Pengajuan review baru dapat dinilai setelah run dihitung ulang lewat endpoint Calculate. Aditif.
+    /// </summary>
+    public bool ReviewRecalculationRequired { get; set; }
+
+    /// <summary>NotApplicable | RecalculationRequired | Blocked | Eligible. Hanya informasi diagnosis; keputusan ada pada CanSubmitForReview. Aditif.</summary>
+    public string TaxReviewState { get; set; } = "NotApplicable";
+
+    /// <summary>
+    /// PAY-BE-FIX-030: true hanya bila run Submitted, tidak ada alasan menahan, dan PPh sudah final (bukan PPh sementara). Beda dengan izin
+    /// PayrollRun:Approve: izin dan kesiapan bisnis adalah dua syarat terpisah. Aditif.
+    /// </summary>
+    public bool CanApproveFinal { get; set; }
+
+    /// <summary>Jejak pengajuan review-only; null bila run tidak diajukan dengan PPh sementara. Aditif.</summary>
+    public PayrollRunReviewOnlyResponse? ReviewOnlySubmission { get; set; }
+
+    /// <summary>Ringkasan PPh sementara; null bila tidak ada penerima dengan penahan histori PPh. Aditif.</summary>
+    public PayrollRunProvisionalTaxSummaryResponse? ProvisionalTax { get; set; }
 
     /// <summary>Catatan tidak menahan (mis. rekening belum terverifikasi, input Draft tidak dihitung).</summary>
     public List<string> Warnings { get; set; } = new();

@@ -1988,22 +1988,48 @@ Dasar: `HRD-DEC-229`, `HRD-DEC-232`, `HRD-DEC-234`, `HRD-DEC-235`; fakta `HRD-TF
 | Mekanisme | Peta `ReferenceType` → rute di frontend (mis. `HRD_TRV_REQUEST` → daftar SPPD, `LEAVE_REQUEST` → cuti saya). Instance `isModuleManaged = true` menampilkan tautan "Perbaiki di layar …" alih-alih tombol kirim ulang/batal generik |
 | Jenis tanpa rute | Ditampilkan tanpa tautan, dengan keterangan "Buka modul terkait untuk memperbaiki"; tidak ada tombol aksi generik |
 
-## 27. Integrasi Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v30`, approved 24 November 2026)
+---
 
-Dasar: `HRD-DEC-238`, `HRD-DEC-240`, `HRD-DEC-241`, `HRD-DEC-245`. Seluruhnya **integrasi di dalam modul HR**; tidak ada integrasi lintas modul, antrean pesan, atau sistem luar baru. Billing dan klinis tidak tersentuh.
+## 27. Integrasi Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v30`, approved 23 November 2026)
 
-### 27.1 `INT-HR-115` — Layanan Mandiri → Service Izin Pulang Cepat / Dinas Luar
+| Field | Nilai |
+| --- | --- |
+| `last_changed_in` | `v30` — 22 November 2026 |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`) |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `input_revision` | Decision log revision `42` bagian 57 |
+
+Semua integrasi Paket B adalah **pembacaan sinkron di dalam proses yang sama** (satu `ApplicationDbContext`, satu permintaan HTTP). Tidak ada event, antrean, atau sistem luar; karena itu tidak ada idempotensi, retry, atau dead-letter yang perlu dirancang.
+
+| ID | Arah | Pemanggil → sumber | Data | Mode | Bila gagal |
+| --- | --- | --- | --- | --- | --- |
+| `INT-HR-115` | Dashboard SDM ← Lifecycle | `HrdWorkforceDashboardService` → `ContractRenewalBuckets` atas `WfpContractHistory` | Jumlah dan daftar kontrak per tahapan perpanjangan | Sinkron, baca-saja | Seluruh `/summary` gagal `500`; frontend menampilkan "Data dashboard gagal dimuat." dengan Coba lagi. Tidak ada angka sebagian yang ditampilkan sebagai angka lengkap |
+| `INT-HR-116` | Dashboard SDM ← Credentialing | Dashboard → `ICredentialVerificationService.GetLicenseExpiringRadarListAsync` (SIP/STR, sudah mengecualikan STR seumur hidup) dan kueri `TrxSpkRkkIssuance` (`IssuanceStatus = Active`, `ValidUntil` ≤ hari ini + 90) | Dokumen kedaluwarsa | Sinkron, baca-saja | Sama dengan `INT-HR-115` |
+| `INT-HR-117` | Dashboard SDM ← Learning & Development | Dashboard → `ITrainingExpiryRadarService.GetExpiringRadarSummaryAsync` | Sertifikat pelatihan wajib kedaluwarsa | Sinkron, baca-saja | Sama dengan `INT-HR-115` |
+| `INT-HR-118` | Employee 360 ← Employee Relation | `HrdEmployee360Service` → `HrdDisciplinarySanction` (resmi) dan `WfpDisciplinaryAction` (lama) | Riwayat disiplin pegawai | Sinkron, baca-saja; hanya bila pemanggil memegang `ViewSanctions` | Bagian 360 gagal bersama respons 360 (perilaku existing) |
+
+Batas yang dijaga:
+
+1. Dashboard **tidak** menulis ke modul sumber dan tidak menyimpan salinan angka.
+2. Dashboard memakai ulang service radar milik modul sumber; aturan "STR seumur hidup tidak dihitung" tetap dimiliki `CredentialingManagement`.
+3. Hanya SPK/RKK yang dibaca langsung dari tabel karena belum ada radar; bila kelak `CredentialingManagement` menyediakan radar SPK/RKK, dashboard wajib beralih memakainya.
+
+## 28. Integrasi Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v31`, approved 24 November 2026)
+
+Dasar: `HRD-DEC-249`, `HRD-DEC-251`, `HRD-DEC-252`, `HRD-DEC-256`. Seluruhnya **integrasi di dalam modul HR**; tidak ada integrasi lintas modul, antrean pesan, atau sistem luar baru. Billing dan klinis tidak tersentuh.
+
+### 28.1 `INT-HR-119` — Layanan Mandiri → Service Izin Pulang Cepat / Dinas Luar
 
 | Field | Isi |
 | --- | --- |
 | Arah | `EarlyLeavePermissionSelfServiceController` / `OfficialDutySelfServiceController` → `HumanResourceContextService` (identitas) → `EarlyLeavePermissionService` / `OfficialDutyRequestService` (aturan yang sama dengan layar HR) |
 | Mekanisme | Pemanggilan service sinkron di proses yang sama |
-| Hasil | Pengajuan ESS tersimpan pada tabel yang sama dan tampil di daftar HR; diputuskan lewat endpoint approve/reject yang ada (`HRD-DEC-245`) |
+| Hasil | Pengajuan ESS tersimpan pada tabel yang sama dan tampil di daftar HR; diputuskan lewat endpoint approve/reject yang ada (`HRD-DEC-256`) |
 | Transaksi | Satu `SaveChanges` per aksi |
 | Idempotensi | Klik ganda dicegah layar; izin ganda pada tanggal sama ditolak aturan yang ada; batal kedua kali `409` |
 | Kegagalan | Galat validasi → tidak ada yang tersimpan; lampiran yang terunggah tetapi tidak dipakai tetap di penyimpanan (perilaku `HrAttachmentStorage` yang ada) |
 
-### 27.2 `INT-HR-116` — Tutup Periode → Pengecualian Presensi
+### 28.2 `INT-HR-120` — Tutup Periode → Pengecualian Presensi
 
 | Field | Isi |
 | --- | --- |
@@ -2011,7 +2037,7 @@ Dasar: `HRD-DEC-238`, `HRD-DEC-240`, `HRD-DEC-241`, `HRD-DEC-245`. Seluruhnya **
 | Transaksi | Satu transaksi `Serializable` bersama status periode; gagal → seluruhnya batal |
 | Hilir | Sinkronisasi payroll membaca hasil tutup seperti sebelumnya; tidak ada perubahan kontrak payroll |
 
-### 27.3 `INT-HR-117` — Daftar Penempatan Sementara → Cakupan Unit
+### 28.3 `INT-HR-121` — Daftar Penempatan Sementara → Cakupan Unit
 
 | Field | Isi |
 | --- | --- |

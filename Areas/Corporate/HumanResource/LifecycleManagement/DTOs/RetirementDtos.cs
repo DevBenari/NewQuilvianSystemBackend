@@ -20,6 +20,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public int HandoffCompleted { get; set; }
         public int Cancelled { get; set; }
         public int ApproachingRetirementCount { get; set; }
+        /// <summary><c>CONFIGURED</c> atau <c>POLICY_NOT_CONFIGURED</c> (BE-HRD-368).</summary>
+        public string RetirementPolicyStatus { get; set; } = string.Empty;
+        /// <summary>Usia pensiun normal bila seluruh RS memakai satu nilai; <c>null</c> bila belum ditetapkan atau berbeda per RS.</summary>
+        public int? NormalRetirementAge { get; set; }
     }
 
     public class RetirementListResponse

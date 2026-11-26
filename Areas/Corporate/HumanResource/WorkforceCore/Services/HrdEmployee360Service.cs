@@ -44,6 +44,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                        || await _permissionService.HasAccessAsync(userPrincipal, "HrdPersonnelActionOrder", "Read");
 
             // Check if caller is active direct manager of target employee
+            // BE-HRD-400: hak atasan dinilai pada tanggal server, bukan tanggal acuan kiriman pemanggil,
+            // supaya mantan atasan tidak dapat membuka profil mantan bawahan dengan tanggal lampau.
+            var serverToday = DateTime.UtcNow.Date;
             var isDirectManager = false;
             if (!isHr && caller.WorkforceProfileId.HasValue && caller.WorkforceProfileId.Value != Guid.Empty)
             {
@@ -54,8 +57,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                                    x.IsPrimaryManager &&
                                    x.IsActive &&
                                    !x.IsDelete &&
-                                   x.EffectiveStartDate <= today &&
-                                   (x.EffectiveEndDate == null || x.EffectiveEndDate >= today), ct);
+                                   x.EffectiveStartDate <= serverToday &&
+                                   (x.EffectiveEndDate == null || x.EffectiveEndDate >= serverToday), ct);
             }
 
             if (!isHr && !isDirectManager)
@@ -138,7 +141,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     EffectiveDate = x.EffectiveDate,
                     PostingDate = x.PostingDate,
                     OrderStatus = x.OrderStatus,
-                    ReasonText = x.ReasonText,
+                    // BE-HRD-400 / HRD-DEC-053: alasan SK (dapat memuat alasan disiplin) hanya untuk mode HR.
+                    ReasonText = isHr ? x.ReasonText : string.Empty,
                     HasSignedDocument = !string.IsNullOrEmpty(x.SignedDocumentPath),
                     SignedDocumentFileName = x.SignedDocumentFileName,
                     TargetOrganizationUnitName = x.TargetOrganizationUnit != null ? x.TargetOrganizationUnit.UnitName : null,
@@ -324,11 +328,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     .Select(x => $"{x.FullName} ({x.Relationship})")
                     .ToListAsync(ct);
 
-                var sanctions = await _dbContext.WfpDisciplinaryActions
-                    .AsNoTracking()
-                    .Where(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete)
-                    .Select(x => $"{x.ActionType}: {x.Subject} ({x.ActionDate:yyyy-MM-dd})")
-                    .ToListAsync(ct);
+                // BE-HRD-453 (HRD-DEC-246 butir 4, VR-PKB-09): data disiplin hanya untuk pemegang
+                // EmployeeDisciplinary : ViewSanctions, walaupun pemanggil berada pada mode HR.
+                var canViewSanctions = await _permissionService.HasAccessAsync(userPrincipal, "EmployeeDisciplinary", "ViewSanctions");
+                var discipline = canViewSanctions
+                    ? await GetDisciplinaryHistoryAsync(workforceProfileId, employee?.Id, ct)
+                    : (Records: new List<Employee360DisciplinaryItemDto>(), Summaries: new List<string>());
 
                 response.ConfidentialPersonalAndDiscipline = new ConfidentialPersonalAndDisciplineDto
                 {
@@ -337,7 +342,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     DateOfBirth = employee?.BirthDate,
                     BloodType = employee?.BloodType.ToString(),
                     FamilyMembersSummary = familyMembers,
-                    DisciplinarySanctions = sanctions
+#pragma warning disable CS0618 // ruas usang tetap diisi untuk kompatibilitas (kontrak v30 bagian 36.3)
+                    DisciplinarySanctions = discipline.Summaries,
+#pragma warning restore CS0618
+                    DisciplinaryRecords = discipline.Records,
+                    DisciplineHidden = !canViewSanctions
                 };
             }
             else
@@ -347,6 +356,105 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             }
 
             return Employee360ServiceResult.Ok(response);
+        }
+
+        private const int DisciplinaryTitleMaxLength = 120;
+
+        /// <summary>
+        /// Riwayat disiplin satu pegawai untuk Employee 360 (kontrak v30 bagian 36.3, <c>INT-HR-118</c>):
+        /// sanksi alur resmi sebagai <c>OFFICIAL</c> ditambah catatan profil lama sebagai <c>LEGACY</c> (baca-saja).
+        /// </summary>
+        /// <remarks>
+        /// Kolom <c>employee_id</c> pada <c>HrdDisciplinarySanction</c> dapat berisi <c>MstEmployee.Id</c> atau
+        /// <c>MstWorkforceProfile.Id</c>, sehingga keduanya dicari. Uraian pelanggaran dipotong 120 karakter;
+        /// isi lengkapnya tetap lewat detail sanksi per pegawai.
+        /// </remarks>
+        private async Task<(List<Employee360DisciplinaryItemDto> Records, List<string> Summaries)> GetDisciplinaryHistoryAsync(
+            Guid workforceProfileId,
+            Guid? employeeId,
+            CancellationToken ct)
+        {
+            var now = DateTime.UtcNow;
+            var subjectIds = new List<Guid> { workforceProfileId };
+            if (employeeId.HasValue && employeeId.Value != Guid.Empty && employeeId.Value != workforceProfileId)
+            {
+                subjectIds.Add(employeeId.Value);
+            }
+
+            var official = await _dbContext.HrdDisciplinarySanctions
+                .AsNoTracking()
+                .Where(s => !s.IsDelete && subjectIds.Contains(s.EmployeeId))
+                .Select(s => new
+                {
+                    s.SanctionNumber,
+                    s.SanctionLevel,
+                    s.ViolationDescription,
+                    s.IssuedDate,
+                    s.ValidUntil,
+                    s.Status
+                })
+                .ToListAsync(ct);
+
+            var legacy = await _dbContext.WfpDisciplinaryActions
+                .AsNoTracking()
+                .Where(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete)
+                .Select(x => new
+                {
+                    x.ActionCode,
+                    x.ActionType,
+                    x.ActionLevel,
+                    x.Subject,
+                    x.ActionDate,
+                    x.EffectiveEndDate,
+                    x.ActionStatus
+                })
+                .ToListAsync(ct);
+
+            var rows = new List<(Employee360DisciplinaryItemDto Record, string Summary)>();
+
+            rows.AddRange(official.Select(s => (
+                new Employee360DisciplinaryItemDto
+                {
+                    Source = "OFFICIAL",
+                    ReferenceNumber = s.SanctionNumber,
+                    Level = s.SanctionLevel,
+                    Title = TruncateTitle(s.ViolationDescription),
+                    IssuedDate = s.IssuedDate,
+                    ValidUntil = s.ValidUntil,
+                    Status = s.Status,
+                    IsActive = string.Equals(s.Status, "Active", StringComparison.OrdinalIgnoreCase) && s.ValidUntil > now
+                },
+                $"{s.SanctionLevel}: {s.SanctionNumber} ({s.IssuedDate:yyyy-MM-dd})")));
+
+            rows.AddRange(legacy.Select(x => (
+                new Employee360DisciplinaryItemDto
+                {
+                    Source = "LEGACY",
+                    ReferenceNumber = string.IsNullOrWhiteSpace(x.ActionCode) ? null : x.ActionCode,
+                    Level = string.IsNullOrWhiteSpace(x.ActionLevel) ? x.ActionType : x.ActionLevel,
+                    Title = TruncateTitle(x.Subject),
+                    IssuedDate = x.ActionDate,
+                    ValidUntil = x.EffectiveEndDate,
+                    Status = x.ActionStatus,
+                    IsActive = false
+                },
+                $"{x.ActionType}: {x.Subject} ({x.ActionDate:yyyy-MM-dd})")));
+
+            var ordered = rows.OrderByDescending(r => r.Record.IssuedDate).ToList();
+            return (ordered.Select(r => r.Record).ToList(), ordered.Select(r => r.Summary).ToList());
+        }
+
+        private static string? TruncateTitle(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var trimmed = value.Trim();
+            return trimmed.Length <= DisciplinaryTitleMaxLength
+                ? trimmed
+                : trimmed[..DisciplinaryTitleMaxLength] + "…";
         }
     }
 }

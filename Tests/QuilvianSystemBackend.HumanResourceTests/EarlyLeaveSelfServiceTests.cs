@@ -27,8 +27,8 @@ using QuilvianSystemBackend.Shared.HumanResource.Services;
 
 namespace QuilvianSystemBackend.Tests.HumanResource;
 
-// BE-HRD-453 — AT-HRD-PK-49 (HRD-DEC-241, HRD-DEC-245, kontrak v30 API 36.4, VR-PK-32 s.d. VR-PK-34, VR-PK-36, state 34.1,
-// INT-HR-115): Sari (perawat ICU) mengajukan izin pulang cepat dari Layanan Mandiri; Dodi (Kepala Ruang) memutuskan di layar HR.
+// BE-HRD-466 — AT-HRD-PK-49 (HRD-DEC-252, HRD-DEC-256, kontrak v31 API 37.4, VR-PK-32 s.d. VR-PK-34, VR-PK-36, state 35.1,
+// INT-HR-119): Sari (perawat ICU) mengajukan izin pulang cepat dari Layanan Mandiri; Dodi (Kepala Ruang) memutuskan di layar HR.
 public sealed class EarlyLeaveSelfServiceTests : IDisposable
 {
     private const string AlasanIzin = "Anak sakit, harus menjemput ke dokter";

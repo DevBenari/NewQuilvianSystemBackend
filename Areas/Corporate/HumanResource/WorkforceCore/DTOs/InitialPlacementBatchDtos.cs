@@ -72,6 +72,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public bool IsValid { get; set; }
         public string? ValidationMessage { get; set; }
         public DateTime? ProcessedAt { get; set; }
+
+        // Diagnostik Smart Validation & Guided Data Correction (Revisi UAT HRD-DEC-054)
+        public string? EligibilityStatus { get; set; }
+        public string? ReasonCode { get; set; }
+        public string? ReasonMessage { get; set; }
+        public string? TargetResourceKey { get; set; }
+        public Guid? TargetRecordId { get; set; }
     }
 
     public class BatchValidationResultResponse
@@ -90,5 +97,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public Guid WorkforceProfileId { get; set; }
         public bool IsValid { get; set; }
         public string? ErrorMessage { get; set; }
+
+        // Diagnostik Smart Validation & Guided Data Correction
+        public string? EligibilityStatus { get; set; }
+        public string? ReasonCode { get; set; }
+        public string? ReasonMessage { get; set; }
+        public string? TargetResourceKey { get; set; }
+        public Guid? TargetRecordId { get; set; }
     }
 }

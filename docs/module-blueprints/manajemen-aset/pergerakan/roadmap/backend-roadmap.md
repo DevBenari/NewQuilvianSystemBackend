@@ -24,7 +24,7 @@ BE-AST-004 [REG] ─> BE-AST-016 ✅ ─┬────┴─> BE-AST-017 ✅ �
                                 │                                    │
                                 │  BE-AST-010 [REG] ─┐               │
                                 │                    │               │
-                                └────────────────────┴─> BE-AST-018 ✅ ─┴─> BE-AST-019
+                                └────────────────────┴─> BE-AST-018 ✅ ─┴─> BE-AST-019 ✅
 ```
 
 `[REG]` = task backend sub-modul `register`, cermin baca-saja.
@@ -69,9 +69,9 @@ Pasangan prasyarat→task: **7** (sama dengan kolom `Dependency`).
 | **Status** | ✅ **SELESAI 19 November 2026.** `AssetLoanService` (+`.Query`), `AssetLoansController` (14 endpoint, resource `AssetLoan` 8 aksi), `RenderLoanReport` (BA peminjaman/pengembalian), deret `AST-PJM`, kode `020..023`. QBE Strict 8 berkas `PASS`; atribut akses 14/14; nol baris komentar; build Rizki DLL 14:28:05. Runtime **73/73** dengan Siti (Kepala Unit pemilik) dan Dimas (Kepala Unit peminjam): `AT-MOV-04` (Terlambat 1 hari, diuji hari ini dengan pinjaman 18–18 Nov), `05`, `06` (`AST-KND-000013`), `32..35` lulus; validasi `001..005`, `007`, `010`, `014..016`, `020..023`; PDF diperiksa visual. `006` memakai gerbang opname yang terisi `BE-AST-021`; `011` tidak punya jalur pemicu pada pinjaman (pengajuan Kepala Unit pemilik langsung `Disetujui`). Delta (`loanable-assets`, `metadata`/`summary`, body `rowVersion`, status ganda, perpanjangan terbuka ditolak otomatis saat konfirmasi kembali) dicatat di laporan. Cakupan negatif "di luar unit → 403" belum teruji dengan akun nyata (akun penyetuju punya hak seluruh unit). Laporan: [`BE-AST-018.md`](../task/report/backend/BE-AST-018.md) |
 | Acceptance criteria | 1. Matriks state §2–3. 2. `isOverdue` turunan pada respons. 3. Konfirmasi kembali dengan kondisi per butir; kondisi berubah → laporan kondisi `PengembalianPinjaman`. 4. Satu perpanjangan terbuka. 5. Aset tetap milik unit pemilik |
 
-### `BE-AST-019` — Dashboard 1.4 dan laporan mutasi
+### ✅ `BE-AST-019` — Dashboard 1.4 dan laporan mutasi
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 23 November 2026.** `MovementQueryService` (kartu 1.4, laporan + ekspor Excel, `HasInFlightForUnitAsync`/`FindInFlightForUnitAsync`), `AssetMovementDashboardController` (`AssetTransfer : Read`) dan `AssetMovementReportsController` (`AssetReport : Read` milik register, resource tetap satu); saringan daftar mutasi dipisah agar laporan dan ekspor memakai saringan yang sama. QBE Strict 7 berkas `PASS`; nol baris komentar; build Rizki DLL 09:07:56. Runtime **22/23** (satu FAIL = perapian data uji karena hak sementara skrip kurang `ConfirmReturn`, diselesaikan ulang 1/1): kartu = jumlah baris daftar, kartu pinjaman hanya bila `AssetLoan : Read`, cakupan unit 403, `AT-MOV-07` laporan periode dan Excel sama baris per baris dengan laporan, tanpa rupiah. Kriteria 3 diuji pemanggilnya (`BE-AST-021`). Delta (dua controller, `filters/metadata` laporan) dicatat di laporan. Laporan: [`BE-AST-019.md`](../task/report/backend/BE-AST-019.md) |
 | Acceptance criteria | 1. Ringkasan mutasi berjalan per status, pinjaman aktif, pinjaman terlambat. 2. Laporan mutasi per periode dan ekspor. 3. `HasInFlightForUnit` untuk `inventarisasi` |

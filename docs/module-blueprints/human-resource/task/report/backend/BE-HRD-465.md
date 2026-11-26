@@ -1,22 +1,22 @@
-# Laporan Perubahan Backend — `BE-HRD-452`
+# Laporan Perubahan Backend — `BE-HRD-465`
 
 ## Metadata
 
 | Field | Nilai |
 | --- | --- |
-| Task ID | `BE-HRD-452` |
+| Task ID | `BE-HRD-465` |
 | Judul | Cakupan unit pada Perubahan Shift dan Tukar Dinas sisi HR |
-| Slice | `A52-B` / `MVP-74` · `EPIC HRD-129` |
-| Roadmap | `roadmap/backend-roadmap.md` bagian 30, kartu `BE-HRD-452` |
-| Trace | `FR-PK-038`; `HRD-DEC-242`; fakta `HRD-TF-090`, `HRD-TF-095` |
-| Contract version | `v30` — API 36.7; Validation `VR-PK-35`; Permission 34.2; desain `02` 38.4, 38.9.5, 38.10 — approved 24 November 2026 |
-| Dependency | Kontrak `v30` ✅; memakai `HrdUnitScopeService` (`BE-HRD-336`) |
+| Slice | `A52-B` / `MVP-77` · `EPIC HRD-135` |
+| Roadmap | `roadmap/backend-roadmap.md` bagian 32, kartu `BE-HRD-465` |
+| Trace | `FR-PK-038`; `HRD-DEC-253`; fakta `HRD-TF-094`, `HRD-TF-099` |
+| Contract version | `v31` — API 37.7; Validation `VR-PK-35`; Permission 35.2; desain `02` 39.4, 38.9.5, 38.10 — approved 24 November 2026 |
+| Dependency | Kontrak `v31` ✅; memakai `HrdUnitScopeService` (`BE-HRD-336`) |
 | Klasifikasi | `STANDARD` — saringan baca dan penjaga Terapkan di service, pengalihan action controller HR; tanpa perubahan skema maupun hak akses |
-| Task mode | `BACKEND` (instruksi pengguna 25 November 2026: "lanjutkan BE-HRD-452") |
+| Task mode | `BACKEND` (instruksi pengguna 25 November 2026: "lanjutkan BE-HRD-465") |
 | Model | Claude Opus 5.5 |
-| Source acuan | Backend `4d2c0162` (branch `yoga`). Working tree sebelum task memuat `BE-HRD-450`, `BE-HRD-451` (belum di-commit) dan dokumen amandemen `A52-B`; tidak disentuh task ini |
+| Source acuan | Backend `4d2c0162` (branch `yoga`). Working tree sebelum task memuat `BE-HRD-463`, `BE-HRD-464` (belum di-commit) dan dokumen amandemen `A52-B`; tidak disentuh task ini |
 | Tanggal | 25 November 2026 |
-| Status | ✅ Selesai — 4/4 acceptance criteria terpenuhi di harness; bukti API data asli devYoga ada di `BE-HRD-455` |
+| Status | ✅ Selesai — 4/4 acceptance criteria terpenuhi di harness; bukti API data asli devYoga ada di `BE-HRD-468` |
 
 ### Backend Governance Preflight
 
@@ -67,7 +67,7 @@ Controller ESS (`ScheduleChangeSelfServiceController`, `ShiftSwapSelfServiceCont
 | Sumber unit shift | Desain 38.4: `TrxShiftAssignment.OrganizationUnitId` | Unit periode roster shift itu, atau `TrxShiftAssignment.OrganizationUnitId` bila periode tidak bertautan unit | Aturan yang sama dipakai cakupan Ganti Petugas (`ShiftReplacementService`) dan roster. Dengan begitu satu shift selalu jatuh di unit yang sama untuk setiap layar. Shift bertanda unit pada periode tanpa unit tetap terbaca (diuji) |
 | Bentuk perubahan | "Daftar, ringkasan, detail, dan workflow hanya memuat…" | Method bercakupan baru; method lama tetap tanpa saringan | Method lama juga dipakai ESS dan penerapan otomatis workflow (`…WorkflowLifecycleService.ApplyAsync`). Menyaring di sana akan mengubah alur ESS dan persetujuan engine (AC4) |
 | Pengajuan di luar cakupan baca saat Terapkan | Tidak disebut | `403` (bukan `404`) | AC2 meminta `403` untuk Terapkan pengajuan IGD; penjaga kelola dinilai langsung |
-| Status kontrak API 36.7 | Tabel masih "**Rencana (belum tersedia)**" | Tidak disunting | Artefak kontrak terkunci hash. Penyegaran status dicatat untuk pass blueprint |
+| Status kontrak API 37.7 | Tabel masih "**Rencana (belum tersedia)**" | Tidak disunting | Artefak kontrak terkunci hash. Penyegaran status dicatat untuk pass blueprint |
 
 ---
 
@@ -82,7 +82,7 @@ Controller ESS (`ScheduleChangeSelfServiceController`, `ShiftSwapSelfServiceCont
 | Build proyek utama | 0 galat (`-p:RunAnalyzers=False`) | `PASS` | `build452-final.log` |
 | QBE `Strict` atas 5 berkas | 0 violation, 0 review. Probe `TrxZzzQbeProbe452` (ber-`[Table]`) terdeteksi 4 violation lalu dihapus | `PASS` | Keluaran checker |
 | Regresi uji perubahan jadwal / tukar dinas | Tidak ada uji sebelumnya untuk kedua service (pencarian `ScheduleChange`/`ShiftSwap` di folder `Tests` kosong) | `N/A` | Pencarian source |
-| Bukti API data asli devYoga | Tidak dijalankan di task ini | `NOT RUN` | Kartu menempatkannya di `BE-HRD-455` |
+| Bukti API data asli devYoga | Tidak dijalankan di task ini | `NOT RUN` | Kartu menempatkannya di `BE-HRD-468` |
 
 ### Acceptance criteria
 
@@ -99,7 +99,7 @@ Controller ESS (`ScheduleChangeSelfServiceController`, `ShiftSwapSelfServiceCont
 
 | Temuan | Dampak | Tindakan |
 | --- | --- | --- |
-| As-is: daftar, ringkasan, detail, workflow, dan Terapkan sisi HR tidak dibatasi unit (`HRD-TF-095`) | Siapa pun yang memegang hak `ScheduleChangeRequest`/`ShiftSwapRequest` melihat dan menerapkan pengajuan semua unit | Diperbaiki (inti task) |
+| As-is: daftar, ringkasan, detail, workflow, dan Terapkan sisi HR tidak dibatasi unit (`HRD-TF-099`) | Siapa pun yang memegang hak `ScheduleChangeRequest`/`ShiftSwapRequest` melihat dan menerapkan pengajuan semua unit | Diperbaiki (inti task) |
 | **Pengajuan Perubahan Shift tanpa shift** (jadwal tetap, `CurrentShiftAssignmentId` kosong) tidak punya unit shift | Hanya terlihat oleh pemegang cakupan semua unit (`ManageAllUnits`/`ReadAllUnits`). Kepala Unit tidak melihatnya di layar HR. Ini konsekuensi definisi kontrak ("unit shift `CurrentShiftAssignmentId`") dan aturan gagal tertutup `HrdUnitScope` | **Perlu keputusan pemilik modul**: tetap seperti ini, atau memakai unit penempatan jadwal pegawai (`WfpWorkScheduleAssignment.OrganizationUnitId`) sebagai cadangan lewat amandemen kontrak |
 | Pengguna HR tanpa cakupan yang sebelumnya melihat semua kini melihat lebih sedikit | Risiko kartu: perubahan perilaku yang disetujui | Petugas HR lintas unit perlu penanda `RosterPeriod : ManageAllUnits` lewat Akses Role |
 | Penjaga Terapkan dinilai sebelum transaksi `ApplyAsync` | Cakupan bisa berubah di antara keduanya (misalnya penempatan berakhir tepat saat itu) | Diterima: cakupan berdasar penempatan hari ini dan tidak berubah dalam satu permintaan |
@@ -112,6 +112,6 @@ Controller ESS (`ScheduleChangeSelfServiceController`, `ShiftSwapSelfServiceCont
 | --- | --- |
 | Migration / database | Tidak ada migration. Tidak ada eksekusi database |
 | Git | Tidak ada stage, commit, push, pull, merge, rebase, atau deploy. Berkas baru: `ScheduleChangeScopeTests.cs` (cukup `git add`) |
-| Dampak frontend | Kontrak respons tidak berubah. Layar HR (`FE-HRD-404`, `FE-HRD-405`) menerima `403` "Anda tidak berwenang mengubah roster unit ini." pada Terapkan di luar cakupan, dan `404` pada detail di luar cakupan |
-| Bukti data asli | Akun Kepala Unit dan pengajuan lintas unit di devYoga dikerjakan di `BE-HRD-455` |
-| Task berikutnya | `BE-HRD-359` (daftar penempatan sementara lintas pegawai, dibuka kembali) atau `BE-HRD-453`, sesuai urutan bagian 30 |
+| Dampak frontend | Kontrak respons tidak berubah. Layar HR (`FE-HRD-413`, `FE-HRD-414`) menerima `403` "Anda tidak berwenang mengubah roster unit ini." pada Terapkan di luar cakupan, dan `404` pada detail di luar cakupan |
+| Bukti data asli | Akun Kepala Unit dan pengajuan lintas unit di devYoga dikerjakan di `BE-HRD-468` |
+| Task berikutnya | `BE-HRD-359` (daftar penempatan sementara lintas pegawai, dibuka kembali) atau `BE-HRD-466`, sesuai urutan bagian 32 |

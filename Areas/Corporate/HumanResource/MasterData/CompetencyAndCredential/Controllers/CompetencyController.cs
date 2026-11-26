@@ -11,6 +11,8 @@ using QuilvianSystemBackend.Enums.HumanResource;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Services.Security;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using System.Security.Claims;
 
 using ResponseCompetencyPagedResult =
@@ -40,13 +42,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Compete
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly AccessPermissionService _accessPermissionService;
+        private readonly HrdUnitScopeService _unitScopeService;
 
         public CompetencyController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            AccessPermissionService accessPermissionService,
+            HrdUnitScopeService unitScopeService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _accessPermissionService = accessPermissionService ?? throw new ArgumentNullException(nameof(accessPermissionService));
+            _unitScopeService = unitScopeService ?? throw new ArgumentNullException(nameof(unitScopeService));
         }
 
         [HttpGet("filters/metadata")]
@@ -704,12 +712,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Compete
             MstWorkforceProfile? profile = null;
             if (workforceProfileId.HasValue)
             {
+                // BE-HRD-429: evaluasi per pegawai dibatasi cakupan pemanggil. Di luar cakupan dijawab sama dengan
+                // "tidak ditemukan" agar keberadaan pegawai unit lain tidak dapat ditebak.
+                if (!await CanEvaluateProfileComplianceAsync(workforceProfileId.Value, cancellationToken))
+                {
+                    return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Profil pegawai tidak ditemukan."));
+                }
+
                 profile = await _dbContext.MstWorkforceProfiles
                     .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.Id == workforceProfileId.Value && !p.IsDelete, cancellationToken);
             }
 
-            var now = asOfDate ?? DateTime.UtcNow;
+            // BE-HRD-429: tanggal acuan (as-of). Bukti dinilai menurut keadaan pada tanggal itu.
+            var now = (asOfDate ?? DateTime.UtcNow).Date;
             var summary = new PositionCompetencyComplianceSummaryResponse
             {
                 PositionId = position.Id,
@@ -726,14 +742,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Compete
             List<WfpCredentialLicense> employeeLicenses = new();
             if (profile != null)
             {
+                var asOfEnd = now.AddDays(1);
                 employeeCerts = await _dbContext.Set<WfpCertification>()
                     .AsNoTracking()
-                    .Where(c => c.WorkforceProfileId == profile.Id && !c.IsDelete && c.IsActive)
+                    .Where(c => c.WorkforceProfileId == profile.Id && !c.IsDelete && c.IsActive && c.IssueDate < asOfEnd)
                     .ToListAsync(cancellationToken);
 
+                // Lisensi hanya dihitung bila terbit sebelum tanggal acuan, belum kedaluwarsa pada tanggal itu, dan lolos PSV.
                 employeeLicenses = await _dbContext.WfpCredentialLicenses
                     .AsNoTracking()
-                    .Where(l => l.WorkforceProfileId == profile.Id && !l.IsDelete && l.IsActive && !l.IsRevoked)
+                    .Where(l => l.WorkforceProfileId == profile.Id && !l.IsDelete && l.IsActive && !l.IsRevoked
+                                && l.IssueDate < asOfEnd && l.ExpiredDate >= now && l.IsPsvVerified)
                     .ToListAsync(cancellationToken);
             }
 
@@ -761,10 +780,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Compete
                     // Cari bukti sertifikat yang relevan (berdasarkan kode atau nama kompetensi)
                     var compCode = req.Competency?.CompetencyCode;
                     var compName = req.Competency?.CompetencyName;
-                    var matchedCert = employeeCerts.FirstOrDefault(c =>
-                        (!string.IsNullOrEmpty(compCode) && !string.IsNullOrEmpty(c.RequirementCode) && c.RequirementCode.Equals(compCode, StringComparison.OrdinalIgnoreCase)) ||
-                        (!string.IsNullOrEmpty(compName) && c.CertificationName.Contains(compName, StringComparison.OrdinalIgnoreCase)) ||
-                        (!string.IsNullOrEmpty(compName) && c.CertificationType.Contains(compName, StringComparison.OrdinalIgnoreCase)));
+                    // BE-HRD-429: bila ada beberapa bukti cocok, yang terverifikasi dan masih berlaku pada tanggal acuan
+                    // didahulukan; bukti tertolak tidak dihitung.
+                    var matchedCert = employeeCerts
+                        .Where(c =>
+                            !string.Equals(c.VerificationStatus, "Rejected", StringComparison.OrdinalIgnoreCase) &&
+                            ((!string.IsNullOrEmpty(compCode) && !string.IsNullOrEmpty(c.RequirementCode) && c.RequirementCode.Equals(compCode, StringComparison.OrdinalIgnoreCase)) ||
+                             (!string.IsNullOrEmpty(compName) && c.CertificationName.Contains(compName, StringComparison.OrdinalIgnoreCase)) ||
+                             (!string.IsNullOrEmpty(compName) && c.CertificationType.Contains(compName, StringComparison.OrdinalIgnoreCase))))
+                        .OrderByDescending(c => c.IsVerified)
+                        .ThenByDescending(c => c.IsLifetime || !c.ExpiredDate.HasValue || c.ExpiredDate.Value.Date >= now)
+                        .ThenByDescending(c => c.ExpiredDate)
+                        .FirstOrDefault();
 
                     var matchedLicense = employeeLicenses.FirstOrDefault(l =>
                         l.LicenseType == "STR" || l.LicenseType == "SIP");
@@ -775,7 +802,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Compete
                         item.EvidenceNumber = matchedCert.CertificateNumber;
                         item.EvidenceValidUntil = matchedCert.ExpiredDate;
 
-                        if (!matchedCert.IsVerified || matchedCert.VerificationStatus == "Pending")
+                        if (!matchedCert.IsVerified)
                         {
                             item.Status = "Perlu Verifikasi";
                             item.Reason = "Sertifikat pendukung telah diunggah namun masih menunggu verifikasi SDM.";
@@ -829,6 +856,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Compete
             return Ok(ApiResponse<PositionCompetencyComplianceSummaryResponse>.Ok(
                 summary,
                 "Matriks evaluasi kepatuhan persyaratan jabatan berhasil dihitung."));
+        }
+
+        /// <summary>
+        /// BE-HRD-429: pemegang <c>Competency : ReadAllUnitsCompliance</c> dapat mengevaluasi siapa pun; selain itu hanya
+        /// diri sendiri dan pegawai yang penempatan organisasinya (hari ini) berada di unit yang dipimpin pengguna
+        /// beserta turunannya.
+        /// </summary>
+        private async Task<bool> CanEvaluateProfileComplianceAsync(Guid workforceProfileId, CancellationToken cancellationToken)
+        {
+            if (await _accessPermissionService.HasAccessAsync(User, "Competency", CompetencyCompliancePermissions.ReadAllUnitsCompliance))
+            {
+                return true;
+            }
+
+            var callerUserId = GetCurrentUserId();
+            var callerProfileId = await _dbContext.Users
+                .AsNoTracking()
+                .Where(u => u.Id == callerUserId)
+                .Select(u => u.WorkforceProfileId)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (callerProfileId.HasValue && callerProfileId.Value == workforceProfileId)
+            {
+                return true;
+            }
+
+            var scope = await _unitScopeService.GetManagerialReadScopeAsync(cancellationToken);
+            var unitIds = scope.UnitIds.ToList();
+            if (unitIds.Count == 0)
+            {
+                return false;
+            }
+
+            var today = DateTime.UtcNow.Date;
+            return await _dbContext.WfpOrganizationAssignments
+                .AsNoTracking()
+                .AnyAsync(a => a.WorkforceProfileId == workforceProfileId &&
+                               a.OrganizationUnitId.HasValue && unitIds.Contains(a.OrganizationUnitId.Value) &&
+                               a.IsActive && !a.IsDelete &&
+                               a.EffectiveStartDate <= today &&
+                               (a.EffectiveEndDate == null || a.EffectiveEndDate >= today), cancellationToken);
         }
 
         [HttpPost("positions/{positionId:guid}/requirements")]

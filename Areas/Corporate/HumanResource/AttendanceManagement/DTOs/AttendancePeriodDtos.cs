@@ -202,7 +202,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         /// <summary>
         /// Jumlah pengecualian Open/UnderReview bertipe MissingCheckIn, MissingCheckOut, atau Absent pada hari yang akan
         /// menjadi Absent. Tidak memblokir penutupan dan tidak dihitung di OpenPayrollBlockingException; ditutup otomatis
-        /// saat periode ditutup (HRD-DEC-238).
+        /// saat periode ditutup (HRD-DEC-249).
         /// </summary>
         public int ConversionExceptionCount { get; set; }
 
@@ -243,7 +243,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public int ConvertedIncompleteToAbsentCount { get; set; }
 
         /// <summary>
-        /// Jumlah pengecualian presensi pada hari yang dikonversi yang ditutup bersama penutupan periode (HRD-DEC-238).
+        /// Jumlah pengecualian presensi pada hari yang dikonversi yang ditutup bersama penutupan periode (HRD-DEC-249).
         /// Hanya terisi pada aksi tutup.
         /// </summary>
         public int ClosedConversionExceptionCount { get; set; }

@@ -58,12 +58,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             try
             {
                 var actorEmail = ResolveActorName();
-                var result = await _clearanceService.SignoffChecklistAsync(checklistId, request, actorEmail, cancellationToken);
+                var result = await _clearanceService.SignoffChecklistAsync(checklistId, request, actorEmail, User, cancellationToken);
                 return Ok(ApiResponse<ExitClearanceChecklistDto>.Ok(result, "Verifikasi persetujuan serah terima item checklist departemen berhasil disimpan."));
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(ApiResponse<ExitClearanceChecklistDto>.Fail(404, ex.Message));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                // BE-HRD-365: identitas tidak sah atau bukan petugas departemen item → 403 tanpa perubahan data.
+                return StatusCode(403, ApiResponse<ExitClearanceChecklistDto>.Fail(403, ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return UnprocessableEntity(ApiResponse<ExitClearanceChecklistDto>.Fail(422, ex.Message));
             }
             catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {

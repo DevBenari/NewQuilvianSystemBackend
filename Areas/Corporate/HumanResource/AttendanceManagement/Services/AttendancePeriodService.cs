@@ -37,7 +37,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             AttendanceValueConstants.AttendanceStatus.NoScan
         };
 
-        // HRD-DEC-238 (desain 38.9.2): tipe pengecualian yang ikut selesai bila harinya dikonversi menjadi Absent.
+        // HRD-DEC-249 (desain 39.9.2): tipe pengecualian yang ikut selesai bila harinya dikonversi menjadi Absent.
         private static readonly string[] ConversionExceptionTypes =
         {
             AttendanceValueConstants.AttendanceExceptionType.MissingCheckIn,
@@ -407,8 +407,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     daily.UpdateBy = actorUserId;
                 }
 
-                // HRD-DEC-238: pengecualian konversi selesai bersama konversi, dalam transaksi yang sama.
-                var resolutionNote = $"Diselesaikan oleh penutupan periode {period.PeriodCode} (HRD-DEC-238): hari dikonversi menjadi Absent";
+                // HRD-DEC-249: pengecualian konversi selesai bersama konversi, dalam transaksi yang sama.
+                var resolutionNote = $"Diselesaikan oleh penutupan periode {period.PeriodCode} (HRD-DEC-249): hari dikonversi menjadi Absent";
                 foreach (var exception in conversionExceptions)
                 {
                     exception.ExceptionStatus = AttendanceValueConstants.AttendanceExceptionStatus.Closed;
@@ -698,7 +698,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             var dailyIdsQuery = dailyQuery.Select(x => x.Id);
             var conversionDailyIdsQuery = dailyQuery.Where(x => CloseConversionStatuses.Contains(x.AttendanceStatus)).Select(x => x.Id);
 
-            // VR-PK-31 / HRD-DEC-238: pengecualian konversi tidak memblokir tutup; pengecualian lain yang memblokir payroll tetap memblokir.
+            // VR-PK-31 / HRD-DEC-249: pengecualian konversi tidak memblokir tutup; pengecualian lain yang memblokir payroll tetap memblokir.
             var blockingException = await _dbContext.Set<HrdAttendanceException>()
                 .AsNoTracking()
                 .CountAsync(x =>
@@ -870,7 +870,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             };
         }
 
-        // HRD-DEC-238 (desain 38.9.2): pengecualian Open/UnderReview bertipe MissingCheckIn, MissingCheckOut, atau Absent
+        // HRD-DEC-249 (desain 39.9.2): pengecualian Open/UnderReview bertipe MissingCheckIn, MissingCheckOut, atau Absent
         // yang menempel pada hari calon konversi (CloseConversionStatuses) dalam cakupan periode.
         private IQueryable<HrdAttendanceException> ConversionExceptions(IQueryable<HrdAttendanceDaily> scopedDailies)
         {
