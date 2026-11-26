@@ -30,6 +30,12 @@
 
         public Guid? PrimaryPositionId { get; set; }
 
+        /// <summary>Nama departemen utama (dari MstDepartment). Null bila belum ditetapkan atau tidak ditemukan.</summary>
+        public string? DepartmentName { get; set; }
+
+        /// <summary>Nama jabatan utama (dari MstPosition). Null bila belum ditetapkan atau tidak ditemukan.</summary>
+        public string? PositionName { get; set; }
+
         public Guid? WorkforceProfileId { get; set; }
 
         public Guid? EmployeeId { get; set; }

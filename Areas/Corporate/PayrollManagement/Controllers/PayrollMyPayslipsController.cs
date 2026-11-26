@@ -36,11 +36,19 @@ public sealed class PayrollMyPayslipsController : ControllerBase
 
     private Guid CurrentUserId() => PayrollControllerSupport.CurrentUserId(User);
 
+    /// <summary>PAY-BE-FIX-039: data gaji pribadi tidak boleh disimpan cache bersama atau peramban perantara.</summary>
+    private void NoStore()
+    {
+        Response.Headers.CacheControl = "private, no-store";
+        Response.Headers.Pragma = "no-cache";
+    }
+
     [HttpGet]
     [AccessAction("Read", "Read My Payslips", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("MyPayslip", "Read")]
     public Task<IActionResult> GetMine([FromQuery] PayrollPayslipQuery query, CancellationToken cancellationToken)
     {
+        NoStore();
         var userId = CurrentUserId();
         if (userId == Guid.Empty) return Task.FromResult<IActionResult>(Unauthorized(ApiResponse<object>.Fail(401, "Identitas pengguna tidak valid.")));
         return PayrollControllerSupport.RunAsync(() => _service.GetMineAsync(userId, query, cancellationToken), "Slip gaji berhasil dimuat.");
@@ -51,6 +59,7 @@ public sealed class PayrollMyPayslipsController : ControllerBase
     [AccessPermission("MyPayslip", "ReadDetail")]
     public Task<IActionResult> GetMineDetail(Guid id, CancellationToken cancellationToken)
     {
+        NoStore();
         var userId = CurrentUserId();
         if (userId == Guid.Empty) return Task.FromResult<IActionResult>(Unauthorized(ApiResponse<object>.Fail(401, "Identitas pengguna tidak valid.")));
         return PayrollControllerSupport.RunAsync(
@@ -62,6 +71,7 @@ public sealed class PayrollMyPayslipsController : ControllerBase
     [AccessPermission("MyPayslip", "Download")]
     public async Task<IActionResult> Download(Guid id, CancellationToken cancellationToken)
     {
+        NoStore();
         var userId = CurrentUserId();
         if (userId == Guid.Empty) return Unauthorized(ApiResponse<object>.Fail(401, "Identitas pengguna tidak valid."));
         try

@@ -440,9 +440,9 @@ public sealed class BillingSettlementService
                     ? await RequireCashierShiftAsync(actorUserId, cancellationToken)
                     : null;
                 var collectibleAmount = CalculateCollectibleAmount(settlement);
-                var maxCollectible = paymentMethod.IsCash
-                    ? Math.Max(collectibleAmount, Math.Round(collectibleAmount, 0, MidpointRounding.AwayFromZero))
-                    : collectibleAmount;
+                // BE-BKC-FIX-027: pembulatan KE ATAS ke rupiah penuh untuk semua metode (BillingPaymentRounding); bukan lagi
+                // pembulatan terdekat khusus tunai. Nominal di atas batas ini tetap ditolak.
+                var maxCollectible = Math.Max(collectibleAmount, BillingPaymentRounding.RoundUp(collectibleAmount));
                 // Amount tetap pembayaran NETO dan dibatasi sisa tagihan di atas. Uang fisik tunai yang boleh
                 // melebihi tagihan hanya dicatat sebagai CashTenderedAmount; kembalian dihitung di sini.
                 if (request.Amount > maxCollectible)
@@ -458,8 +458,9 @@ public sealed class BillingSettlementService
                             "Masih ada pembayaran tunai yang belum selesai pada tagihan ini. Lanjutkan pembayaran tersebut "
                             + "dengan uang tunai diterima yang sama, atau batalkan percobaan itu lebih dulu bila uang "
                             + "yang diterima berbeda.");
-                    throw new BillingSettlementValidationException(
-                        "Total metode pembayaran melebihi saldo yang harus dibayar.");
+                    // BE-BKC-FIX-026: penyebab penolakan dibedakan, bukan satu pesan generik. Tidak ada batas yang dilonggarkan:
+                    // semua cabang tetap menolak Amount di atas saldo yang dapat ditagih.
+                    throw BuildOverCollectibleException(settlement, request.Amount, collectibleAmount, maxCollectible);
                 }
                 var cashBreakdown = ResolveCashBreakdown(paymentMethod, request);
 
@@ -806,10 +807,10 @@ public sealed class BillingSettlementService
                     tender, actorUserId, result.OccurredAt, cancellationToken);
             }
 
-            // BE-02 / BE-03: Penyesuaian pembulatan tunai otomatis (Cash Rounding) ke BilAdjustment yang sah dan dapat diaudit
+            // BE-02 / BE-03 / BE-BKC-FIX-027: penyesuaian pembulatan ke atas ke rupiah penuh untuk SEMUA metode pembayaran ke
+            // BilAdjustment yang sah dan dapat diaudit (sebelumnya hanya tunai dan pembulatan terdekat).
             if (targetStatus == BillingTenderStatuses.Succeeded
                 && beforeTenderStatus != BillingTenderStatuses.Succeeded
-                && paymentMethod.IsCash
                 && tender.Settlement.Purpose == BillingSettlementPurposes.InvoicePayment
                 && tender.Settlement.InvoiceId.HasValue)
             {
@@ -821,7 +822,7 @@ public sealed class BillingSettlementService
                 if (currentCalc is not null)
                 {
                     var pos = await _allocationService.CalculateInvoicePositionAsync(invId, currentCalc.PatientAmount, cancellationToken);
-                    var roundedRemaining = Math.Round(pos.OutstandingAmount, 0, MidpointRounding.AwayFromZero);
+                    var roundedRemaining = BillingPaymentRounding.RoundUp(pos.OutstandingAmount);
                     var diff = tender.Amount - pos.OutstandingAmount;
                     if (tender.Amount == roundedRemaining && Math.Abs(diff) > 0m && Math.Abs(diff) < 1.00m)
                     {
@@ -841,7 +842,7 @@ public sealed class BillingSettlementService
                                 Status = BillingAdjustmentStatuses.Posted,
                                 RequestedBy = actorUserId,
                                 ApprovedBy = actorUserId,
-                                Reason = $"Penyesuaian pembulatan tunai otomatis (Cash Rounding) untuk tender {tender.Id:N}",
+                                Reason = $"Penyesuaian pembulatan pembayaran ke atas otomatis (Cash Rounding) untuk tender {tender.Id:N}",
                                 IdempotencyKey = adjIdempotency,
                                 PayloadHash = adjPayloadHash,
                                 CorrelationId = tender.Id,
@@ -881,7 +882,7 @@ public sealed class BillingSettlementService
                         Status = BillingAdjustmentStatuses.Posted,
                         RequestedBy = actorUserId,
                         ApprovedBy = actorUserId,
-                        Reason = $"Pembalikan penyesuaian pembulatan tunai untuk tender {tender.Id:N}",
+                        Reason = $"Pembalikan penyesuaian pembulatan pembayaran ke atas untuk tender {tender.Id:N}",
                         ReversesAdjustmentId = existingAdj.Id,
                         IdempotencyKey = revIdempotency,
                         PayloadHash = revPayloadHash,
@@ -1935,7 +1936,7 @@ public sealed class BillingSettlementService
                 calculation.PatientAmount - paidAmount + allocationExcess - writeOffTotal - adjustmentNet, 0);
             // Kunjungan benefit: batas = K (sisa tagihan pasien) + E sisa (kelebihan plafon) yang diizinkan.
             available += benefitExcessAllowed;
-            var maxAvailable = Math.Max(available, Math.Round(available, 0, MidpointRounding.AwayFromZero));
+            var maxAvailable = Math.Max(available, BillingPaymentRounding.RoundUp(available));
             if (request.RequestedAmount > maxAvailable)
                 throw new BillingSettlementValidationException(
                     "Nominal settlement melebihi saldo pasien pada invoice.");
@@ -2234,6 +2235,46 @@ public sealed class BillingSettlementService
         settlement.UpdateBy = actorUserId;
     }
 
+    private static string FormatRupiah(decimal amount) =>
+        "Rp " + amount.ToString("N2", CultureInfo.GetCultureInfo("id-ID"));
+
+    /// <summary>
+    /// BE-BKC-FIX-026: alasan spesifik mengapa nominal tender melebihi saldo yang dapat ditagih. Hanya menyusun pesan; batas
+    /// (collectible, pembulatan ke atas ke rupiah penuh) dan pemilihan 409/422 ditentukan di sini tanpa mengubah angka.
+    /// - Ada tender CREATED/PENDING yang memesan saldo: 409 (selesaikan atau batalkan percobaan itu dulu; bukan tender kedua).
+    /// - Sebagian sudah berhasil dibayar: 422 dengan angka sehingga kasir tahu pembayaran sebelumnya sudah tercatat
+    ///   (mis. klien memakai sisa yang basi atau terpotong desimal), bukan sekadar "melebihi saldo".
+    /// - Selain itu: 422 dengan nominal dan sisa yang dapat ditagih.
+    /// </summary>
+    private static BillingSettlementException BuildOverCollectibleException(
+        BilSettlement settlement,
+        decimal requestedAmount,
+        decimal collectibleAmount,
+        decimal maxCollectible)
+    {
+        const string prefix = "Total metode pembayaran melebihi saldo yang harus dibayar.";
+        var pending = CalculatePendingAmount(settlement);
+        var ceiling = maxCollectible > collectibleAmount
+            ? $"{FormatRupiah(collectibleAmount)} (dapat dibulatkan ke atas ke rupiah penuh sampai {FormatRupiah(maxCollectible)})"
+            : FormatRupiah(collectibleAmount);
+
+        if (pending > 0)
+            return new BillingSettlementConflictException(
+                $"{prefix} Ada pembayaran yang masih menunggu konfirmasi sebesar {FormatRupiah(pending)} sehingga saldo yang dapat "
+                + $"ditagih tinggal {ceiling}, sedangkan nominal yang dikirim {FormatRupiah(requestedAmount)}. Selesaikan atau "
+                + "batalkan percobaan yang menunggu itu lebih dulu; jangan membuat pembayaran kedua untuk nominal yang sama.");
+
+        if (settlement.SuccessfulAmount > 0)
+            return new BillingSettlementValidationException(
+                $"{prefix} Pada settlement ini sudah tercatat berhasil {FormatRupiah(settlement.SuccessfulAmount)} dari "
+                + $"{FormatRupiah(settlement.RequestedAmount)}, sehingga sisa yang dapat ditagih {ceiling}, sedangkan nominal yang "
+                + $"dikirim {FormatRupiah(requestedAmount)}. Muat ulang halaman pembayaran untuk melihat pembayaran yang sudah tercatat.");
+
+        return new BillingSettlementValidationException(
+            $"{prefix} Nominal yang dikirim {FormatRupiah(requestedAmount)} melebihi sisa yang dapat ditagih {ceiling}. "
+            + "Uang tunai yang diterima boleh lebih besar, tetapi nominal pembayaran tagihan tidak boleh melebihi sisa.");
+    }
+
     private static decimal CalculatePendingAmount(BilSettlement settlement) =>
         settlement.Tenders
             .Where(x => !x.IsDelete
@@ -2511,7 +2552,7 @@ public sealed class BillingSettlementService
     {
         var pending = CalculatePendingAmount(settlement);
         var targetAmount = settlement.RequestedAmount;
-        var roundedTarget = Math.Round(targetAmount, 0, MidpointRounding.AwayFromZero);
+        var roundedTarget = BillingPaymentRounding.RoundUp(targetAmount);
         var isTargetSatisfiedByRounding = targetAmount > 0
             && Math.Abs(settlement.SuccessfulAmount - roundedTarget) == 0
             && Math.Abs(settlement.SuccessfulAmount - targetAmount) < 1.00m;
@@ -2630,7 +2671,7 @@ public sealed class BillingSettlementService
         if (tender.Settlement != null)
         {
             var target = tender.Settlement.RequestedAmount;
-            var roundedTarget = Math.Round(target, 0, MidpointRounding.AwayFromZero);
+            var roundedTarget = BillingPaymentRounding.RoundUp(target);
             decimal prior = 0m;
             var tenderList = tender.Settlement.Tenders
                 .Where(t => !t.IsDelete && (t.Status == BillingTenderStatuses.Succeeded || t.Id == tender.Id))
