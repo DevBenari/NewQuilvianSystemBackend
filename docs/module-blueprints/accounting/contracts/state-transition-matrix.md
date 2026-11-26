@@ -285,3 +285,35 @@ Amendment Master COA (`ACC-API-0.18`, `02-backend-architecture.md` bagian 26) **
 status maupun perpindahan status. Akun tetap hanya punya `IsActive` dan `IsPostable` dengan aturan lama;
 kode otomatis dan klasifikasi laporan adalah isian master, bukan status. Karena itu `ACC-STATE` tidak
 naik versi pada amendment ini.
+
+
+---
+
+## 6. Anggaran (`BudgetStatus`) — baru *(`ACC-STATE-0.7`, Amendment ACC-FIN-013, 26 November 2026, **`draft`**)*
+
+Dasar: `ACC-DEC-190`, `191`, `196`, `199`.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft: Buat (v1) / Revisi (vN+1)
+    Draft --> Diajukan: Ajukan
+    Ditolak --> Diajukan: Ajukan ulang
+    Diajukan --> Draft: Tarik (pengaju)
+    Diajukan --> Disetujui: Setujui (bukan pengaju)
+    Diajukan --> Ditolak: Tolak (bukan pengaju, beralasan)
+    Disetujui --> Digantikan: versi berikutnya disetujui
+    Draft --> [*]: Hapus
+    Ditolak --> [*]: Hapus
+```
+
+| Status | Boleh ubah baris | Aksi sah | Terminal |
+|---|:---:|---|:---:|
+| Draft (`1`) | Ya | Simpan, unggah, ajukan, hapus | Tidak |
+| Diajukan (`2`) | Tidak | Tarik, setujui, tolak | Tidak |
+| Disetujui (`3`) | Tidak | Revisi (membuat versi baru) | Tidak — sampai digantikan |
+| Ditolak (`4`) | Ya | Simpan, unggah, ajukan ulang, hapus | Tidak |
+| Digantikan (`5`) | Tidak | — | Ya |
+
+**Transisi tidak sah** → `409`, mis. Setujui versi Draft, Hapus versi Disetujui, Revisi dari versi Digantikan.
+**Invariant:** per badan hukum × tahun buku paling banyak satu Disetujui dan paling banyak satu dalam proses
+(Draft/Diajukan/Ditolak), dijaga index unik bersaring dan kunci transaksi.

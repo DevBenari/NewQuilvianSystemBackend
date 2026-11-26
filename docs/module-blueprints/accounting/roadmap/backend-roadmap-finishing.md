@@ -4,21 +4,21 @@
 
 ```yaml
 blueprint_id: ACC-BP-001
-blueprint_revision: 19
-blueprint_status: approved              # FIN-0/FIN-1: GATE-DESAIN-1124 (24 Nov 2026); ACC-FIN-001: GATE-DESAIN-1125 (25 Nov 2026)
-roadmap_revision: 2                     # 1 = 24 Nov 2026 (FIN-0, FIN-1); 2 = 25 Nov 2026 (+ FIN-2..FIN-4 Master COA)
-roadmap_status: APPROVED                # revisi 2 disusun atas perintah Rizki sesudah GATE-DESAIN-1125 ("saya setujui, lanjut plan-module-delivery")
+blueprint_revision: 20
+blueprint_status: approved              # FIN-0/FIN-1: GATE-DESAIN-1124 (24 Nov 2026); ACC-FIN-001: GATE-DESAIN-1125 (25 Nov 2026); 008-04 rasio: GATE-DESAIN-1126 (26 Nov 2026)
+roadmap_revision: 3                     # 1 = 24 Nov 2026 (FIN-0, FIN-1); 2 = 25 Nov 2026 (+ FIN-2..FIN-4 Master COA); 3 = 26 Nov 2026 (008-04 rasio dirancang, FIN-5)
+roadmap_status: APPROVED                # revisi 3 disusun atas persetujuan Rizki 26 Nov 2026 ("SAYA SETUJU" atas desain 008-04 sesudah ditawarkan lanjut plan-module-delivery); revisi 2 sesudah GATE-DESAIN-1125
 approved_by: [Rizki]
-approved_at: 2026-11-25
-source_backend: 0f67c5c2                # rizkiG; revisi 1 disusun pada 1f353c45
-source_frontend: a2ddb52d2              # RizkiV2; revisi 1 disusun pada 22894248
-decision_revision: 20                   # 00-interview-decisions.md, ACC-DEC-141..173
-contracts: [ACC-API-0.17, ACC-API-0.18, ACC-VALIDATION-0.12, ACC-VALIDATION-0.13, ACC-PERMISSION-0.8, ACC-PERMISSION-0.9, ACC-TEST bagian 4 dan 5]
-design_inputs: [02-backend-architecture.md bagian 25 dan 26, 04-prd-to-mvp.md bagian 30 dan 31, erd/data-dictionary.md bagian 20 dan 21, flowcharts/06-laporan-keuangan.md, flowcharts/07-master-coa.md]
+approved_at: 2026-11-26
+source_backend: 26229ec7                # rizkiG + BE-ACC-FIN-001-03 belum di-commit; revisi 2 pada 0f67c5c2, revisi 1 pada 1f353c45
+source_frontend: 64ba2c07e              # RizkiV2 + FE-ACC-FIN-001-03 belum di-commit; revisi 2 pada a2ddb52d2
+decision_revision: 21                   # 00-interview-decisions.md, ACC-DEC-141..184
+contracts: [ACC-API-0.17, ACC-API-0.18, ACC-API-0.19, ACC-VALIDATION-0.12, ACC-VALIDATION-0.13, ACC-VALIDATION-0.14, ACC-PERMISSION-0.8, ACC-PERMISSION-0.9, ACC-PERMISSION-0.10, ACC-TEST bagian 4, 5, dan 6]
+design_inputs: [02-backend-architecture.md bagian 25, 26, dan 27, 04-prd-to-mvp.md bagian 30, 31, dan 32, erd/data-dictionary.md bagian 20, 21, dan 22, flowcharts/06-laporan-keuangan.md, flowcharts/07-master-coa.md, flowcharts/08-rasio-keuangan.md]
 requirement_source: MASTER PRD ACC-FIN-PRD-001 (24 Nov 2026) + keputusan tertulis Rizki 25 Nov 2026 - ClickUp belum terbaca (U-01)
 clickup_refs: [z8m132yv7x Transaksi, z8m132yv84 Laporan Keuangan]
-scope_waves: [FIN-0, FIN-1, FIN-2, FIN-3, FIN-4]
-excluded_scope: [ACC-FIN-008 rasio keuangan (008-04, belum dirancang), ACC-FIN-008 target pendapatan (008-05), ACC-FIN-008 laporan pajak (008-06), ACC-FIN-002 kunci grup COA]
+scope_waves: [FIN-0, FIN-1, FIN-2, FIN-3, FIN-4, FIN-5]
+excluded_scope: [ACC-FIN-008 target pendapatan (008-05), ACC-FIN-008 laporan pajak (008-06), ACC-FIN-002 kunci grup COA]
 task_namespace: BE-ACC-FIN-<nomor kebutuhan PRD>-<urut>
 acceptance_policy: automated test bukan acceptance criterion (ACC-DEC-081); unit test tidak ditulis (kesepakatan kerja Rizki)
 migration: satu - AddChartOfAccountReportClassification (BE-ACC-FIN-001-02), diizinkan Rizki 25 Nov 2026 (OQ-167-1), dibuat dan diterapkan Rizki sendiri
@@ -54,11 +54,10 @@ flowchart LR
     BEACCFIN00803["✅ BE-ACC-FIN-008-03<br/>Neraca dengan laba belum ditutup"]:::selesai
     BEACCFIN00101["✅ BE-ACC-FIN-001-01<br/>Kode otomatis dan jenis warisan"]:::selesai
     BEACCFIN00102["✅ BE-ACC-FIN-001-02<br/>Kolom klasifikasi dan pewarisannya"]:::selesai
-    BEACCFIN00103["BE-ACC-FIN-001-03<br/>Peringatan klasifikasi di neraca"]:::belum
-    BEACCFIN00804["⛔ BE-ACC-FIN-008-04<br/>Rasio keuangan"]:::terblokir
+    BEACCFIN00103["✅ BE-ACC-FIN-001-03<br/>Peringatan klasifikasi di neraca"]:::selesai
+    BEACCFIN00804["✅ BE-ACC-FIN-008-04<br/>Rasio keuangan"]:::selesai
     BEACCFIN00805["⛔ BE-ACC-FIN-008-05<br/>Analisis target pendapatan"]:::terblokir
     BEACCFIN00806["⛔ BE-ACC-FIN-008-06<br/>Laporan pajak"]:::terblokir
-    D804{{"⛔ Desain 008-04<br/>belum dirancang"}}:::terblokir
     F013{{"⛔ ACC-FIN-013<br/>Fondasi anggaran belum dirancang"}}:::terblokir
     OQ1601{{"⛔ OQ-160-1<br/>Akun pajak dan kontrak sumber"}}:::terblokir
 
@@ -68,9 +67,7 @@ flowchart LR
     BEACCFIN00101 --> BEACCFIN00102
     BEACCFIN00102 --> BEACCFIN00103
     BEACCFIN00803 --> BEACCFIN00103
-    BEACCFIN00803 --> BEACCFIN00804
-    BEACCFIN00102 --> BEACCFIN00804
-    D804 --> BEACCFIN00804
+    BEACCFIN00103 --> BEACCFIN00804
     BEACCFIN00802 --> BEACCFIN00805
     F013 --> BEACCFIN00805
     OQ1601 --> BEACCFIN00806
@@ -81,12 +78,12 @@ flowchart LR
 | 1 | — | ✅ `BE-ACC-FIN-005-01` (`FIN-0`); `BE-ACC-FIN-001-01` (`FIN-2`) |
 | 2 | `BE-ACC-FIN-005-01` / `BE-ACC-FIN-001-01` | ✅ `BE-ACC-FIN-008-01` (`FIN-0`), ✅ `BE-ACC-FIN-008-02` (`FIN-1`); `BE-ACC-FIN-001-02` (`FIN-3`, sesudah `001-01`) |
 | 3 | `BE-ACC-FIN-008-02` | ✅ `BE-ACC-FIN-008-03` (`FIN-1`) |
-| 4 | `BE-ACC-FIN-001-02` dan `BE-ACC-FIN-008-03` | `BE-ACC-FIN-001-03` (`FIN-4`) |
-| — | ⛔ menunggu desain 008-04, `BE-ACC-FIN-008-03`, `BE-ACC-FIN-001-02` | `BE-ACC-FIN-008-04` |
+| 4 | `BE-ACC-FIN-001-02` dan `BE-ACC-FIN-008-03` | ✅ `BE-ACC-FIN-001-03` (`FIN-4`) |
+| 5 | `BE-ACC-FIN-001-03` | ✅ `BE-ACC-FIN-008-04` (`FIN-5`) |
 | — | ⛔ menunggu ACC-FIN-013 dan `BE-ACC-FIN-008-02` | `BE-ACC-FIN-008-05` |
 | — | ⛔ menunggu `OQ-160-1` | `BE-ACC-FIN-008-06` |
 
-Jumlah panah: 12. Jumlah entri kolom `Dependency` pada ringkasan task: 12.
+Jumlah panah: 10. Jumlah entri kolom `Dependency` pada ringkasan task: 10.
 
 **Gelombang eksekusi dan gelombang pengiriman berbeda arti.** Gelombang eksekusi (1–4) adalah urutan
 teknis menurut prasyarat. Gelombang pengiriman (`FIN-0`..`FIN-4`) adalah paket yang diuji bersama dari
@@ -98,6 +95,12 @@ Rizki lewat layar dan bukan task roadmap.
 `C-02`, dan `U-07` sudah tertutup arahnya (`ACC-DEC-161`, `159`, `160`), sehingga yang tersisa adalah
 desain atau kontrak masing-masing. `008-04` kini juga bergantung pada `001-02` (penghitung
 klasifikasi).
+
+**Perubahan revisi 3 (26 November 2026).** `BE-ACC-FIN-008-04` dirancang (`GATE-DESAIN-1126`) dan tidak
+lagi terblokir; node blocker "Desain 008-04" dihapus. Prasyaratnya dipadatkan menjadi satu:
+`BE-ACC-FIN-001-03`, karena task itu yang menambah kolom klasifikasi ke `MuatAkunLaporanAsync` yang
+dipakai rasio, dan ia sendiri sudah menunggu `001-02` dan `008-03`. Tiga panah lama (`008-03`, `001-02`,
+blocker desain) diganti satu panah; jumlah panah 12 → 10.
 
 ## Baca ini lebih dahulu
 
@@ -129,9 +132,10 @@ klasifikasi).
 
 ### Batas cakupan ACC-FIN-008 dan ACC-FIN-001
 
-ACC-FIN-008 pada PRD memuat enam laporan; roadmap ini merencanakan tiga (neraca saldo + CSV, laba rugi,
-neraca). Tiga sisanya tercatat sebagai task ⛔ `008-04`..`06`. ACC-FIN-008 **tidak boleh** ditandai
-selesai sebelum ketiganya dikerjakan atau dikeluarkan dari lingkup lewat keputusan Rizki.
+ACC-FIN-008 pada PRD memuat enam laporan; roadmap ini merencanakan empat (neraca saldo + CSV, laba rugi,
+neraca, rasio keuangan `008-04` sejak revisi 3). Dua sisanya tercatat sebagai task ⛔ `008-05` dan `06`.
+ACC-FIN-008 **tidak boleh** ditandai selesai sebelum keduanya dikerjakan atau dikeluarkan dari lingkup
+lewat keputusan Rizki.
 
 ACC-FIN-001 direncanakan lewat `001-01`..`03` (kode otomatis, jenis warisan, klasifikasi laporan).
 Penguncian grup COA adalah ACC-FIN-002 dan belum dirancang; definisi grupnya sudah dikunci
@@ -147,8 +151,8 @@ Penguncian grup COA adalah ACC-FIN-002 dan belum dirancang; definisi grupnya sud
 | ✅ `BE-ACC-FIN-008-03` | Neraca per akhir periode dengan pembanding, dua baris laba belum ditutup, status seimbang, tercatat saat dibuka, dapat diunduh | `FR-FIN-012`, `014`, `015`, `020`..`022`; `ACC-DEC-143`..`146`, `149`, `150`, `154`, `155` | `ACC-API-0.17` (`balance-sheet`, `/export`); `VAL-GL-04`, `05`, `07`..`09` | Penyusun hierarki dan rentang periode dari `008-02` | Lihat kartu | `BE-ACC-FIN-008-02` | AC-1..AC-9 | `F4`, `F5`, `F8`, `F9`, `F14`, `F16`, `F17` | Rumus laba tahun berjalan; Rizki | Kartu |
 | ✅ `BE-ACC-FIN-001-01` | Kode akun disusun backend dengan pratinjau dan aman dari simpan bersamaan; jenis akun anak diwarisi | `FR-FIN-050`..`053`, `058`; `ACC-DEC-162`..`166`, `170`, `172` | `ACC-API-0.18` (`GET next-code`, `POST`, `PUT`); `VAL-COA-01`..`06`, `13`..`15`; `ACC-PERMISSION-0.9` | `CreateAsync`, `PeriksaIndukAsync`, `PeriksaTingkatTerhadapInduk`, `KodeKembar`, pola kunci `AccJournalService` | Lihat kartu | — | AC-1..AC-9 | Swagger + skrip serentak, `F25`..`F33`, `F40` | Kunci + transaksi di `CreateAsync`; tangkapan `23505`; Rizki | Kartu |
 | ✅ `BE-ACC-FIN-001-02` | Klasifikasi Lancar/Tidak Lancar dan sub-klasifikasi tersimpan, diwariskan, divalidasi, tercatat, dan dapat disaring | `FR-FIN-054`..`056`, `058`; `ACC-DEC-167`..`169`, `173` | `ACC-API-0.18` (`GET /`, `/{id}`, `/tree`, `POST`, `PUT` + `Classification`); `VAL-COA-07`..`12`; `ACC-PERMISSION-0.9`; kamus data bagian 21 | `AmbilTurunanAsync`, pola `HitungSaldoAsync` static, `TanpaNominal` | Lihat kartu | `BE-ACC-FIN-001-01` | AC-1..AC-10 | Swagger + layar, `F34`..`F37`, `F39`..`F41` | Migration dan snapshot; aturan turunan `VAL-COA-11`; Rizki | Kartu |
-| `BE-ACC-FIN-001-03` | Neraca menyebut akun bersaldo yang klasifikasinya belum lengkap tanpa mengubah angka | `FR-FIN-057`; `ACC-DEC-168`, `173` butir 5–6 | `ACC-API-0.18` (`GET /balance-sheet`); `ACC-PERMISSION-0.9` | `MuatAkunLaporanAsync`, `AccChartOfAccountClassification` | Lihat kartu | `BE-ACC-FIN-001-02`, `BE-ACC-FIN-008-03` | AC-1..AC-6 | `F38`, regresi `F8`, `F9` | Menyentuh FIN-1 (izin `ACC-DEC-171` lewat `168`); Rizki | Kartu |
-| ⛔ `BE-ACC-FIN-008-04` | Rasio keuangan | ACC-FIN-008 (PRD); `ACC-DEC-161` | Belum dirancang | `AccChartOfAccountClassification` (`001-02`) | Belum dirancang | Desain 008-04, `BE-ACC-FIN-008-03`, `BE-ACC-FIN-001-02` | — | — | Rizki | — |
+| ✅ `BE-ACC-FIN-001-03` | Neraca menyebut akun bersaldo yang klasifikasinya belum lengkap tanpa mengubah angka | `FR-FIN-057`; `ACC-DEC-168`, `173` butir 5–6 | `ACC-API-0.18` (`GET /balance-sheet`); `ACC-PERMISSION-0.9` | `MuatAkunLaporanAsync`, `AccChartOfAccountClassification` | Lihat kartu | `BE-ACC-FIN-001-02`, `BE-ACC-FIN-008-03` | AC-1..AC-6 | `F38`, regresi `F8`, `F9` | Menyentuh FIN-1 (izin `ACC-DEC-171` lewat `168`); Rizki | Kartu |
+| ✅ `BE-ACC-FIN-008-04` | Delapan rasio keuangan kini dan pembanding dengan rumus, pembilang, penyebut, status, dan alasan; CSV; log | `FR-FIN-059`..`066`; `ACC-DEC-161`, `167`, `169`, `174`..`184` | `ACC-API-0.19` (`financial-ratios`, `/export`); `VAL-RAT-01`..`10`; `ACC-PERMISSION-0.10` | `MuatAkunLaporanAsync`, `BarisDisahkan`, `BarisTanpaTutupTahunAsync`, `JumlahPerAkunAsync`, `HitungLabaBelumDipindahAsync`, `NilaiMenurutJenis`, `SiapkanPeriodeLaporanAsync`, `AccChartOfAccountClassification.Hitung`, `AccLedgerCsv` | Lihat kartu | `BE-ACC-FIN-001-03` | AC-1..AC-10 | API `F42`..`F48`, `F50`..`F52`; regresi neraca/laba rugi | Kecocokan angka dengan Neraca/Laba Rugi; data uji jalur Dihitung butuh izin; Rizki | Kartu |
 | ⛔ `BE-ACC-FIN-008-05` | Analisis target pendapatan | ACC-FIN-008 (PRD); `ACC-DEC-159` | Belum dirancang | — | Belum dirancang | ACC-FIN-013, `BE-ACC-FIN-008-02` | — | — | Rizki; owner Procurement untuk ratifikasi | — |
 | ⛔ `BE-ACC-FIN-008-06` | Laporan pajak | ACC-FIN-008 (PRD); `ACC-DEC-160` | Belum dirancang | — | Belum dirancang | `OQ-160-1` | — | — | Rizki + PIC Pajak + owner modul sumber | — |
 
@@ -678,9 +682,9 @@ log; laporan `task/report/backend/BE-ACC-FIN-001-02.md`.
 
 ---
 
-## `BE-ACC-FIN-001-03` — Peringatan klasifikasi di neraca
+## ✅ `BE-ACC-FIN-001-03` — Peringatan klasifikasi di neraca
 
-**Status:** belum dikerjakan. **Gelombang pengiriman:** `FIN-4`. **Pasangan frontend:** `FE-ACC-FIN-001-03`.
+**Status:** ✅ SELESAI (development), 26 November 2026. AC-1..AC-6 `RUNTIME VERIFIED`: uji API G0–G9 9/10 + periksa ulang log G9b 1/1 (G9 awal FAIL karena jendela waktu skrip, bukan cacat kode). Build Rizki `PASS` (DLL 26 November 2026 10:08:46 WIB); QBE Strict `PASS` (3 berkas). Klasifikasi 1-1000 diisi sementara atas izin Rizki lalu dikosongkan kembali. Tidak ada butir DoD yang dikecualikan; UAT `F38` milik tim UAT. Bukti: [laporan BE-ACC-FIN-001-03](../task/report/backend/BE-ACC-FIN-001-03.md). **Gelombang pengiriman:** `FIN-4`. **Pasangan frontend:** `FE-ACC-FIN-001-03`.
 **Prasyarat:** `BE-ACC-FIN-001-02` (penghitung klasifikasi), `BE-ACC-FIN-008-03` (neraca).
 
 | Field | Isi |
@@ -738,17 +742,108 @@ respons + dua field. `/balance-sheet/export` tidak berubah.
 
 ---
 
+## ✅ `BE-ACC-FIN-008-04` — Rasio keuangan
+
+**Status:** ✅ SELESAI (development), 26 November 2026. Uji API H0–H12 13/13; build Rizki `PASS` (DLL 11:25:52 WIB); QBE Strict `PASS` (7 berkas). AC-1..AC-6, AC-9, AC-10 `RUNTIME VERIFIED`; AC-7 dan jalur Dihitung AC-8 `SOURCE VERIFIED` (data uji jurnal/tahun buku 2025 tidak diizinkan Rizki — dikecualikan sesuai DoD); agregasi AC-8 runtime. Klasifikasi 1-1000/1-3000 diisi sementara lalu dikosongkan. UAT milik tim UAT. Bukti: [laporan BE-ACC-FIN-008-04](../task/report/backend/BE-ACC-FIN-008-04.md). **Gelombang pengiriman:** `FIN-5`. **Pasangan frontend:** `FE-ACC-FIN-008-04`.
+**Prasyarat:** `BE-ACC-FIN-001-03` (pemuat akun laporan yang membawa kolom klasifikasi; transitif `001-02`
+dan `008-03`).
+
+| Field | Isi |
+|---|---|
+| Requirement | `FR-FIN-059`..`066` (`04-prd-to-mvp.md` bagian 32) |
+| Decision | `ACC-DEC-161`, `167` butir 4, `169`, `174`..`184` (`GATE-DESAIN-1126`) |
+| Kontrak | `ACC-API-0.19` (`GET /general-ledger/financial-ratios`, `/financial-ratios/export`); `ACC-VALIDATION-0.14` `VAL-RAT-01`..`10`; `ACC-PERMISSION-0.10` |
+| Desain | `02-backend-architecture.md` bagian 27 |
+
+**Implementasi yang sudah ada.** Pembantu `private` di `AccGeneralLedgerService`: `SiapkanPeriodeLaporanAsync`,
+`MuatAkunLaporanAsync` (sejak `001-03` membawa `IsPostable`, `ReportClassification`,
+`CurrentAssetCategory`), `BarisDisahkan`, `BarisTanpaTutupTahunAsync`, `JumlahPerAkunAsync`,
+`HitungLabaBelumDipindahAsync`, `NilaiMenurutJenis`; `AccChartOfAccountClassification.Hitung` dan
+`BerlakuUntuk`; `AccLedgerCsv`; pola log dan unduhan action laporan di `GeneralLedgerController`.
+
+**Cakupan.**
+1. Enum `FinancialRatioCode`, `FinancialRatioUnit`, `FinancialRatioStatus` di `GeneralLedger/Enums/`.
+2. DTO di `FinancialStatementDtos.cs`: `FinancialRatioQuery`, `FinancialRatioResponse`,
+   `FinancialRatioRowResponse`, `FinancialRatioValueResponse` (bentuk persis `ACC-API-0.19`).
+3. `AccGeneralLedgerService.FinancialRatio.cs` (`partial` baru): `GetFinancialRatiosAsync` — posisi neraca
+   per akhir periode, akhir tahun buku lalu, akhir dua tahun buku lalu (total aset, liabilitas, ekuitas
+   termasuk laba belum dipindah, komponen lancar menurut klasifikasi efektif, celah per kolom, status
+   seimbang); laba dan pendapatan YTD serta setahun penuh tahun lalu tanpa `JT`; delapan rasio dengan
+   urutan status bagian 27.7; pembulatan dua desimal `AwayFromZero`.
+4. `AccGeneralLedgerService.Export.cs`: `BuildFinancialRatioCsvAsync` (bagian 27.9).
+5. `GeneralLedgerController`: dua action `[AccessAction("Read", "Read General Ledger", ...)]` +
+   `[AccessPermission("GeneralLedger", "Read")]`; log `FinancialStatement.Ratio` (jumlah status di teks
+   pesan) dan `GeneralLedger.Export` (`RasioKeuangan`).
+
+**Berkas terdampak.**
+
+| Berkas | Status |
+|---|---|
+| `GeneralLedger/Enums/FinancialRatioCode.cs`, `FinancialRatioUnit.cs`, `FinancialRatioStatus.cs` | Baru |
+| `GeneralLedger/DTOs/FinancialStatementDtos.cs` | Diperbarui |
+| `GeneralLedger/Services/AccGeneralLedgerService.FinancialRatio.cs` | Baru |
+| `GeneralLedger/Services/AccGeneralLedgerService.Export.cs` | Diperbarui |
+| `GeneralLedger/Controllers/GeneralLedgerController.cs` | Diperbarui |
+
+`AccGeneralLedgerService.FinancialStatement.cs` (neraca, laba rugi) **tidak** disunting.
+
+**Kontrak API.**
+
+| Method | Path | Hak | Request | Respons |
+|---|---|---|---|---|
+| `GET` | `/api/v1/corporate/accounting/general-ledger/financial-ratios` | `GeneralLedger : Read` | `FinancialRatioQuery` | `ApiResponse<FinancialRatioResponse>` |
+| `GET` | `/api/v1/corporate/accounting/general-ledger/financial-ratios/export` | `GeneralLedger : Read` | `FinancialRatioQuery` | `text/csv` `rasio-keuangan_{periode}.csv` |
+
+**Aturan bisnis.**
+
+| Aturan | Contoh |
+|---|---|
+| Klasifikasi belum lengkap hanya menahan Current/Quick/Cash; sub-klasifikasi kosong hanya Quick/Cash | 1-3002 tanpa klasifikasi → tiga rasio likuiditas tidak dapat dihitung; Debt to Asset `0,00%` |
+| Tahun buku lalu tidak ada → pembanding dan ROA/ROE kini tidak dapat dihitung | 2026-09 dengan 2025 tidak ada |
+| Neraca tidak seimbang → tujuh rasio tidak sah; Net Profit Margin tetap | Selisih Rp 100 |
+| Penyebut nol → N/A, bukan 0 | Liabilitas lancar Rp 0 |
+| Total aset/liabilitas/ekuitas sama persis dengan total layar Neraca | Debt to Asset: Rp 0 ÷ Rp 3.230.000 |
+| Nominal dan hasil rasio tidak masuk log | "Kolom kini: dihitung 3, N/A 0, tidak dapat dihitung 5, tidak sah 0." |
+
+**Acceptance criteria.**
+
+| # | Kriteria |
+|---|---|
+| AC-1 | `GET` 2026-09 → `200`, delapan baris urutan 1..8, `Formula`/`Unit` sesuai bagian 27.5 (`F42`) |
+| AC-2 | Debt to Asset dan Debt to Equity: pembilang dan penyebut sama persis dengan Total Liabilitas, Total Aset, Total Ekuitas layar Neraca 2026-09; Net Profit Margin sama dengan kolom YTD Laba Rugi (`F45`) |
+| AC-3 | Akun aset bersaldo tanpa klasifikasi → Current/Quick/Cash `Unavailable` dengan alasan menyebut akunnya; `ClassificationGaps` terisi; rasio lain tidak terpengaruh (`F44`) |
+| AC-4 | Hanya sub-klasifikasi kosong → Current dihitung (atau N/A), Quick/Cash `Unavailable` (`F44` bagian 2) |
+| AC-5 | Tahun buku lalu tidak ada → seluruh kolom pembanding dan ROA/ROE kini `Unavailable` dengan alasan kontrak (`F47`) |
+| AC-6 | Penyebut nol → `NotApplicable`, `Value = null` (`F43`) |
+| AC-7 | Neraca tidak seimbang → tujuh rasio `Invalid`, NPM tetap — dari source bila tidak dapat dibuat di DB dev (`F48`) |
+| AC-8 | Jalur `Calculated` untuk Current/Quick/Cash/ROA/ROE terbukti dengan data uji berizin, atau dicatat `SOURCE VERIFIED` bila izin tidak diberikan (`F46`) |
+| AC-9 | CSV: BOM, `;`, koma desimal, `0,00%`/`0,00x`, status bertulis; log `FinancialStatement.Ratio` dan `GeneralLedger.Export` tanpa nominal, jumlah status di teks pesan (`F50`, `F51`) |
+| AC-10 | Tanpa `GeneralLedger : Read` → `403` pada kedua endpoint; periode salah bentuk `400`, tidak ada `404` (`F52`, `VAL-RAT-02`, `03`) |
+
+**Skenario negatif.** Periode `2026/09` → `400`; `2099-01` → `404`; akun tanpa hak → `403`.
+
+**Skenario regresi.** Neraca dan Laba Rugi 2026-09 identik sebelum dan sesudah task (JSON); CSV neraca
+tidak berubah.
+
+**Bukti.** Diff; QBE preflight; build Rizki; JSON `financial-ratios` dan kutipan layar Neraca/Laba Rugi
+pembanding; dua CSV; kutipan log; laporan `task/report/backend/BE-ACC-FIN-008-04.md`.
+
+**DoD.** AC-1..AC-10 terbukti (AC-7, AC-8 boleh `SOURCE VERIFIED` dengan alasan tertulis); laporan;
+roadmap dan traceability diperbarui.
+
+---
+
 ## Sisa cakupan ACC-FIN-008 — task ⛔ belum dirancang
 
-Ketiga task berikut dicatat supaya ACC-FIN-008 tidak terbaca selesai. Masing-masing **belum punya
+Kedua task berikut dicatat supaya ACC-FIN-008 tidak terbaca selesai. Masing-masing **belum punya
 desain maupun kontrak**; arahnya sudah diputuskan 25 November 2026, sehingga yang dibutuhkan berikutnya
-adalah `design-business-module` per task (dan `grill-me` untuk butir yang belum terkunci).
+adalah `design-business-module` per task (dan `grill-me` untuk butir yang belum terkunci). `008-04`
+dirancang 26 November 2026 (`GATE-DESAIN-1126`) dan kini punya kartu di atas.
 
 | Task | Isi | Arah yang sudah diputuskan | Blocker tersisa | Pekerjaan yang tetap berjalan |
 |---|---|---|---|---|
-| ⛔ `BE-ACC-FIN-008-04` Rasio keuangan | Delapan rasio tahap pertama | `ACC-DEC-161` (rasio, aturan N/A, rata-rata saldo ROA/ROE), `167`, `168` | Desain 008-04 belum ada; butuh penghitung klasifikasi `001-02` dan neraca `008-03` | Seluruh `FIN-2`..`FIN-4` |
-| ⛔ `BE-ACC-FIN-008-05` Analisis target pendapatan | Realisasi lawan target per badan hukum dan COA | `ACC-DEC-159` (anggaran milik Accounting, `PrcBudget` tetap milik Procurement) | Fondasi anggaran ACC-FIN-013 belum dirancang; ratifikasi Procurement `OQ-159-1` hanya untuk integrasi | Seluruh `FIN-2`..`FIN-4` |
-| ⛔ `BE-ACC-FIN-008-06` Laporan pajak | Cakupan A rekap akun pajak; Cakupan B transaksi dan rekonsiliasi | `ACC-DEC-160` | `OQ-160-1` — akun pajak yang berlaku (Cakupan A) dan kontrak sumber data (Cakupan B) | Seluruh `FIN-2`..`FIN-4` |
+| ⛔ `BE-ACC-FIN-008-05` Analisis target pendapatan | Realisasi lawan target per badan hukum dan COA | `ACC-DEC-159` (anggaran milik Accounting, `PrcBudget` tetap milik Procurement) | Fondasi anggaran ACC-FIN-013 belum dirancang; ratifikasi Procurement `OQ-159-1` hanya untuk integrasi | Seluruh `FIN-2`..`FIN-5` |
+| ⛔ `BE-ACC-FIN-008-06` Laporan pajak | Cakupan A rekap akun pajak; Cakupan B transaksi dan rekonsiliasi | `ACC-DEC-160` | `OQ-160-1` — akun pajak yang berlaku (Cakupan A) dan kontrak sumber data (Cakupan B) | Seluruh `FIN-2`..`FIN-5` |
 
 ## Keputusan terbuka yang tidak memblokir
 

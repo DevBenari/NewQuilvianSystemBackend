@@ -369,3 +369,69 @@ Pelaku dan waktu dibaca `LoggerService` dari klaim permintaan. Permintaan yang d
    dapat membuka layar itu (lama), sehingga pratinjau tidak perlu jalan cadangan.
 3. Tautan "Lengkapi di Bagan Akun" pada peringatan neraca tunduk pada `ChartOfAccount : Read` di layar
    tujuan; pemegang `GeneralLedger : Read` tanpa hak itu tetap melihat peringatannya.
+
+
+---
+
+## `ACC-PERMISSION-0.10` — rasio keuangan *(**`approved`** Rizki 26 November 2026, `GATE-DESAIN-1126`)*
+
+Dasar: `ACC-DEC-182`, `183`; kontrak `ACC-API-0.19`. **Nol Resource baru, nol Action baru**, nol
+pemberian hak baru di Akses Role.
+
+### Hak akses per endpoint
+
+| Endpoint | Resource | Action | Atribut | Pembacaan dicatat? |
+|---|---|---|---|---|
+| `GET /general-ledger/financial-ratios` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — `FinancialStatement.Ratio` |
+| `GET /general-ledger/financial-ratios/export` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — `GeneralLedger.Export` |
+
+Keduanya di `GeneralLedgerController` yang ada, dengan
+`[AccessAction("Read", "Read General Ledger", Description = "...", AccessType = AccessTypes.Read, SortOrder = 1)]`
+mengikuti pola action laporan yang ada. Akses Role tetap menampilkan satu modul akses
+`ACCOUNTING_GENERAL_LEDGER`.
+
+### Isi catatan
+
+| Aksi logger | Kapan | Isi (di teks pesan) | Dilarang masuk |
+|---|---|---|---|
+| `FinancialStatement.Ratio` | Rasio dibuka | Periode, jumlah rasio per status kolom kini | Seluruh nominal, hasil rasio, nama akun |
+| `GeneralLedger.Export` | CSV rasio diunduh | Jenis laporan `RasioKeuangan`, periode, jumlah baris | Seluruh nominal dan isi berkas |
+
+Isi wajib ditulis di teks pesan karena `LoggerService` tidak menyimpan objek muatan. Permintaan gagal
+dicatat `WarningAsync`.
+
+### Aturan yang tidak dapat diwakili matriks
+
+1. Tombol Unduh CSV dan Cetak hanya tampil bagi pemegang `GeneralLedger : Read`; penolakan
+   sesungguhnya di backend (`403`).
+2. Tautan **Lengkapi di Bagan Akun** tunduk pada `ChartOfAccount : Read` di layar tujuan.
+
+
+---
+
+## `ACC-PERMISSION-0.11` — anggaran Accounting *(**`draft`**, menunggu gerbang desain Rizki)*
+
+Dasar: `ACC-DEC-190`, `193`, `196`; kontrak `ACC-API-0.20`. **Satu Resource baru `Budget`** di modul akses baru
+`ACCOUNTING_BUDGET`; muncul di Akses Role dari `[AccessController]`. Belum ada peran yang memegangnya sampai
+admin mencentang.
+
+### Hak akses per endpoint
+
+| Endpoint | Resource | Action (`[AccessAction]` arg 1) | `AccessType` | Atribut |
+|---|---|---|---|---|
+| `GET /budgets`, `GET /budgets/{id}`, `GET /budgets/{id}/lines/export` | `Budget` | `Read` | `Read` | `[AccessPermission("Budget", "Read")]` |
+| `POST /budgets`, `POST /budgets/{id}/revise` | `Budget` | `Create` | `Create` | `[AccessPermission("Budget", "Create")]` |
+| `PUT /budgets/{id}`, `PUT /budgets/{id}/lines`, `POST /budgets/{id}/lines/import`, `POST /budgets/{id}/submit`, `POST /budgets/{id}/withdraw` | `Budget` | `Update` | `Update` | `[AccessPermission("Budget", "Update")]` |
+| `POST /budgets/{id}/approve`, `POST /budgets/{id}/reject` | `Budget` | `Approve` | `Update` | `[AccessPermission("Budget", "Approve")]` |
+| `DELETE /budgets/{id}` | `Budget` | `Delete` | `Delete` | `[AccessPermission("Budget", "Delete")]` |
+
+Kewenangan yang melekat pada data — pengaju tidak boleh menyetujui versinya sendiri, hanya pengaju yang
+boleh menarik — diperiksa service, bukan lewat nama peran.
+
+### Isi catatan
+
+| Aksi logger | Kapan | Isi (teks pesan) | Dilarang masuk |
+|---|---|---|---|
+| `Budget.Create`, `Budget.Revise`, `Budget.Update`, `Budget.Lines`, `Budget.Submit`, `Budget.Withdraw`, `Budget.Approve`, `Budget.Reject`, `Budget.Delete` | Setiap aksi tulis | Tahun, nomor versi, status, jumlah baris, sumber (layar/CSV), alasan tolak | Seluruh nominal |
+
+Membaca dan mengunduh anggaran tidak dicatat. Penolakan dicatat `WarningAsync`.

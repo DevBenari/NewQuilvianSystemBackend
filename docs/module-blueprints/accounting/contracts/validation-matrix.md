@@ -415,3 +415,57 @@ bagian 26. Aturan bagian 1 yang lama (tingkat, lingkaran, induk bertransaksi, ko
 | Kecocokan klasifikasi dengan nama akun atau awalan kode | `ACC-DEC-168` |
 | `NormalBalance` bernilai `0` | Catatan impor 30 September 2026; di luar keputusan pass ini |
 | Klasifikasi pada akun nonaktif atau yang sudah bertransaksi | Diizinkan (`ACC-DEC-169`) |
+
+
+---
+
+## 8. Rasio keuangan *(`ACC-VALIDATION-0.14`, **`approved`** Rizki 26 November 2026, `GATE-DESAIN-1126`)*
+
+Dasar: `ACC-DEC-161`, `174`..`184`; kontrak `ACC-API-0.19`. Tidak ada aturan yang menulis data. Hanya
+`VAL-RAT-01`..`03` yang menolak permintaan; sisanya **bukan galat** — rasio tetap dikirim `200` dengan
+status dan alasannya.
+
+| ID | Aturan | Kode | Pesan untuk pengguna | Contoh |
+|---|---|---|---|---|
+| `VAL-RAT-01` | Penjaga badan hukum yang ada | `400`/`403` | Pesan penjaga yang ada | — |
+| `VAL-RAT-02` | `PeriodCode` wajib, berbentuk `YYYY-MM` — sama dengan `VAL-GL-04` | `400` | "Periode wajib dipilih dengan bentuk tahun-bulan, contoh 2026-11." | `2026/09` → ditolak |
+| `VAL-RAT-03` | Periode harus ada pada badan hukum itu — sama dengan `VAL-GL-05` | `404` | "Periode akuntansi tidak ditemukan." | `2099-01` → ditolak |
+| `VAL-RAT-04` | Tahun buku lalu tidak ada → seluruh kolom pembanding Tidak dapat dihitung | `200` | "Tahun buku {t} belum ada di sistem." | 2026-09, tahun 2025 tidak ada |
+| `VAL-RAT-05` | Saldo awal tahun tidak tersedia → ROA/ROE Tidak dapat dihitung | `200` | "Saldo awal tahun buku {t} tidak tersedia: tahun buku {t-1} belum ada di sistem." | sama |
+| `VAL-RAT-06` | Akun Aset/Liabilitas bersaldo tanpa klasifikasi → Current, Quick, Cash Tidak dapat dihitung | `200` | "Klasifikasi laporan belum lengkap pada {n} akun bersaldo: {daftar, maks. lima}." | 1-3002 tanpa klasifikasi |
+| `VAL-RAT-07` | Akun Aset Lancar bersaldo tanpa sub-klasifikasi → Quick, Cash Tidak dapat dihitung; Current tetap | `200` | "Sub-klasifikasi aset lancar belum diisi pada {n} akun bersaldo: …" | 1-2001 Lancar tanpa sub-klasifikasi |
+| `VAL-RAT-08` | Posisi neraca kolom (atau posisi awal tahun untuk ROA/ROE) tidak seimbang → tujuh rasio Tidak sah; Net Profit Margin tetap | `200` | "Neraca per {tanggal} tidak seimbang, selisih Rp {x}. Rasio ini tidak dapat dipakai." | Selisih Rp 100 |
+| `VAL-RAT-09` | Penyebut nol → N/A, bukan 0 | `200` | "Penyebut bernilai nol." | Liabilitas lancar Rp 0 |
+| `VAL-RAT-10` | Ekuitas (atau rata-ratanya) negatif → tetap dihitung + catatan | `200` | `Note`: "Ekuitas negatif; tafsirkan dengan hati-hati." | Ekuitas −Rp 50.000 |
+
+**Urutan bila beberapa berlaku:** `04` → `05` → `06` → `07` → `08` → `09`.
+
+**Yang sengaja tidak divalidasi:** status periode (`Open`, `Closing`, `Closed`, dibuka kembali) — sama
+dengan laporan keuangan lain (`ACC-DEC-144` butir 5).
+
+
+---
+
+## 9. Anggaran Accounting *(`ACC-VALIDATION-0.15`, **`draft`**, menunggu gerbang desain Rizki)*
+
+Dasar: `ACC-DEC-185`..`199`; kontrak `ACC-API-0.20`.
+
+| ID | Aturan | Kode | Pesan untuk pengguna | Contoh |
+|---|---|---|---|---|
+| `VAL-BGT-01` | Penjaga badan hukum yang ada; versi harus milik badan hukum yang sedang dipakai | `400`/`403`/`404` | Pesan penjaga yang ada / "Anggaran tidak ditemukan." | — |
+| `VAL-BGT-02` | Tahun buku harus sudah punya dua belas periode | `422` | "Tahun buku {t} belum dibangkitkan. Bangkitkan periodenya di layar Periode Akuntansi lebih dahulu." | 2028 belum dibangkitkan |
+| `VAL-BGT-03` | Buat hanya bila tahun itu belum punya versi | `409` | "Anggaran {t} sudah punya versi. Buka versi yang ada atau buat revisi dari versi yang disetujui." | Buat 2027 kedua kali |
+| `VAL-BGT-04` | Revisi hanya dari versi Disetujui yang berlaku, dan tidak ada versi lain dalam proses | `409` | "Revisi hanya dapat dibuat dari versi yang disetujui." / "Anggaran {t} versi {n} masih dalam proses. Selesaikan atau hapus dulu." | — |
+| `VAL-BGT-05` | Akun: milik badan hukum, belum dihapus, aktif, penerima transaksi, berjenis Pendapatan/Beban | `400` | "Baris {i}: akun {kode} bukan akun Pendapatan atau Beban penerima transaksi yang aktif." | 1-1003, 4-0000 |
+| `VAL-BGT-06` | Akun Beban wajib unit biaya; unit biaya milik badan hukum, belum dihapus, aktif | `400` | "Baris {i}: akun beban {kode} wajib memiliki unit biaya." / "Baris {i}: unit biaya tidak ditemukan atau tidak aktif pada badan hukum ini." | 5-1001 tanpa unit |
+| `VAL-BGT-07` | Tepat dua belas nilai; masing-masing ≥ 0, ≤ 2 desimal, ≤ 999.999.999.999.999,99 | `400` | "Baris {i}: nilai {bulan} tidak boleh negatif." | −5.000 |
+| `VAL-BGT-08` | Akun × unit biaya tidak boleh berulang dalam satu versi | `400` | "Baris {i}: akun {kode} dengan unit {unit} sudah ada di baris {j}." | — |
+| `VAL-BGT-09` | Ubah keterangan/baris hanya pada Draft atau Ditolak | `409` | "Anggaran berstatus {status} tidak dapat diubah." | Ubah versi Diajukan |
+| `VAL-BGT-10` | Versi revisi: nilai bulan berperiode bukan Terbuka harus sama dengan versi Disetujui yang berlaku — diperiksa saat simpan dan saat ajukan | `422` | "Nilai bulan {bulan tahun} tidak boleh berubah karena periodenya sudah tidak Terbuka: {kode akun · unit, maks. lima}." | Maret 2027 berubah |
+| `VAL-BGT-11` | Ajukan butuh ≥ 1 baris; hanya dari Draft/Ditolak | `422` / `409` | "Anggaran tanpa baris tidak dapat diajukan." | — |
+| `VAL-BGT-12` | Tarik hanya oleh pengaju, hanya dari Diajukan | `403` / `409` | "Hanya pengaju yang dapat menarik pengajuan ini." | — |
+| `VAL-BGT-13` | Setujui/Tolak hanya dari Diajukan, oleh pengguna selain pengaju | `409` / `403` | "Anggaran tidak dapat disetujui oleh pengajunya sendiri." | — |
+| `VAL-BGT-14` | Alasan tolak wajib 1–500 karakter | `400` | "Alasan penolakan wajib diisi." | — |
+| `VAL-BGT-15` | Hapus hanya Draft/Ditolak | `409` | "Anggaran berstatus {status} tidak dapat dihapus." | Hapus versi Disetujui |
+| `VAL-BGT-16` | Impor CSV: ≤ 2 MB, ≤ 10.000 baris, kepala kolom sesuai templat; satu baris galat menggagalkan seluruh impor (maks. 50 galat disebut) | `400` | "Baris {r} kolom {k}: {pesan}." | Kode akun tidak dikenal |
+| `VAL-BGT-17` | Dua persetujuan serentak untuk badan hukum × tahun yang sama: hanya satu berhasil | `409` | "Anggaran {t} baru saja disetujui oleh pengguna lain. Muat ulang." | — |

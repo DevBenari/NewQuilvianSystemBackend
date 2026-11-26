@@ -5,7 +5,7 @@ blueprint_id: ACC-BP-001
 module_name: Accounting
 module_slug: accounting
 module_prefix: ACC
-revision: 19   # 25 Nov 2026 - Amendment ACC-FIN-001 Master COA (ACC-DEC-162..173, draft desain, 1 migration menunggu izin OQ-167-1); 18 = 24 Nov 2026 - finishing ACC-FIN-005 + 008 (ACC-DEC-141..155, draft desain, nol migration); 17 = 5 Okt 2026 - jawaban atas surat Finance 22 + permintaan kode sewa (ACC-DEC-132..140, ACC-XMOD-0.7, dokumen saja); 16 = 1 Okt 2026 - jawaban atas surat Finance 15/16/21 (ACC-DEC-125..131, ACC-XMOD-0.6, dokumen saja); 15 = 30 Sep 2026 - amendment ACC-DEC-122..124 (dokumen saja, nol kode), GATE-DESAIN-0930; 14 = 29 Sep 2026 - amendment draft jurnal hasil kejadian (ACC-DEC-116..121), GATE-DESAIN-0929; 13 = 28 Sep 2026 rekonsiliasi saldo subledger (ACC-DEC-107..115), GATE-DESAIN-0928; 12 = 24 Sep 2026 pasca-ratifikasi Finance
+revision: 21   # 26 Nov 2026 - Amendment ACC-FIN-013 fondasi anggaran (ACC-DEC-185..199, draft desain, 1 migration menunggu izin); 20 = 26 Nov 2026 - Amendment ACC-FIN-008-04 rasio keuangan (ACC-DEC-174..184, draft desain, nol migration); 19 = 25 Nov 2026 - Amendment ACC-FIN-001 Master COA (ACC-DEC-162..173, draft desain, 1 migration menunggu izin OQ-167-1); 18 = 24 Nov 2026 - finishing ACC-FIN-005 + 008 (ACC-DEC-141..155, draft desain, nol migration); 17 = 5 Okt 2026 - jawaban atas surat Finance 22 + permintaan kode sewa (ACC-DEC-132..140, ACC-XMOD-0.7, dokumen saja); 16 = 1 Okt 2026 - jawaban atas surat Finance 15/16/21 (ACC-DEC-125..131, ACC-XMOD-0.6, dokumen saja); 15 = 30 Sep 2026 - amendment ACC-DEC-122..124 (dokumen saja, nol kode), GATE-DESAIN-0930; 14 = 29 Sep 2026 - amendment draft jurnal hasil kejadian (ACC-DEC-116..121), GATE-DESAIN-0929; 13 = 28 Sep 2026 rekonsiliasi saldo subledger (ACC-DEC-107..115), GATE-DESAIN-0928; 12 = 24 Sep 2026 pasca-ratifikasi Finance
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
@@ -1187,3 +1187,96 @@ sebagai task ⛔.
 Urutan pengerjaan: `BE-ACC-FIN-001-01` → `FE-ACC-FIN-001-01` → `BE-ACC-FIN-001-02` (agent berhenti sebelum
 `dotnet ef migrations add`; Rizki membuat dan menerapkan migration) → `FE-ACC-FIN-001-02` →
 `BE-ACC-FIN-001-03` → `FE-ACC-FIN-001-03`. Sesudahnya `design-business-module` untuk 008-04 rasio.
+
+
+## Amendment ACC-FIN-008-04 Rasio keuangan — revision 20, 26 November 2026 (`approved`, `GATE-DESAIN-1126`)
+
+| Field | Nilai |
+|---|---|
+| `revision` | **19 → 20**, 26 November 2026. `00-interview-decisions.md` revision 21 (`ACC-DEC-174`..`183` approved; `184` `draft` turunan desain) |
+| Masukan | `grill-me` Amendment 26 November 2026 (seluruh jawaban = opsi rekomendasi) di atas `ACC-DEC-161`, `167` |
+| Dikerjakan lewat | `grill-me` Amendment → `design-business-module` Amendment. `requirement-completeness-gate` **tidak dijalankan ulang** dan `hospital-domain-architect` **tidak dijalankan** (`DOMAIN_ARCHITECTURE_NOT_RUN`); alasannya di `04-prd-to-mvp.md` bagian 32 |
+| `backend_commit_sha` | `26229ec7` (branch `rizkiG`) + `BE-ACC-FIN-001-03` dan dokumen belum di-commit |
+| `frontend_commit_sha` | `64ba2c07e` (branch `RizkiV2`) + `FE-ACC-FIN-001-03` belum di-commit |
+| Impact scan | Tidak dibutuhkan: source yang dibaca desain (`AccGeneralLedgerService.FinancialStatement.cs`, `AccChartOfAccountClassification`, layar Neraca) baru saja disentuh dan diuji sendiri 26 November 2026 |
+| `blueprint_shape` | Tetap `SINGLE` |
+| Status desain | **`approved`** Rizki, 26 November 2026 — `GATE-DESAIN-1126` ("SAYA SETUJU"), termasuk `ACC-DEC-184` |
+| Kode dan migration | Belum ada kode. **Nol** tabel, kolom, migration, hak, controller, baris `Program.cs` |
+
+| Artefak | Versi | Perubahan |
+|---|---|---|
+| `00-interview-decisions.md` | revision 21 | + `ACC-DEC-174`..`184`, acceptance R1..R7 |
+| `02-backend-architecture.md` | bagian 27 | Kepemilikan data, class diagram, berkas `partial` `.FinancialRatio.cs`, tiga enum, rumus, kolom/tanggal, urutan status, log, CSV, yang sengaja tidak dibuat |
+| `03-frontend-architecture.md` | bagian 17 | Butir menu baru "Rasio Keuangan" sesudah Neraca, skema `FE-L5`, state, berkas tersentuh |
+| `04-prd-to-mvp.md` | bagian 32 | `MH-RAT-1`..`3`, `FR-FIN-059`..`066`, DoD, gelombang `FIN-5` |
+| `contracts/api-contract.md` | `ACC-API-0.19` | Dua endpoint baru di grup General Ledger; tiga enum |
+| `contracts/validation-matrix.md` | `ACC-VALIDATION-0.14` | `VAL-RAT-01`..`10` |
+| `contracts/permission-audit-matrix.md` | `ACC-PERMISSION-0.10` | Hak dua endpoint (nol baru), log `FinancialStatement.Ratio` |
+| `contracts/state-transition-matrix.md` | tetap | Tidak disunting — rasio tidak punya status tersimpan |
+| `erd/data-dictionary.md` | bagian 22 | Nol tabel/kolom berubah; kolom yang dibaca dan nilai yang dihitung |
+| `flowcharts/08-rasio-keuangan.md` | baru | Membaca rasio dan melengkapi klasifikasi penyebab; diindeks di `00-alur-utama.md` |
+| `testing/acceptance-test-matrix.md` | bagian 6 | `F42`..`F52` + regresi |
+| `contracts/integration-contract.md`, `cross-module-contract.md` | — | **Tidak disunting** — tidak menyentuh integrasi maupun modul lain |
+
+### Koreksi yang terjadi saat desain
+
+| Hal | Koreksi |
+|---|---|
+| Ringkasan grill-me menyebut Debt to Equity `N/A` bila liabilitas nol | Keliru: penyebut Debt to Equity adalah ekuitas, sehingga hasilnya `0,00x`. Dan di DB dev, Current/Quick/Cash lebih dulu berstatus Tidak dapat dihitung (celah klasifikasi) sebelum N/A. Butir R1 decision log dan contoh bagian 27 dibetulkan |
+
+### Yang masih `OPEN`
+
+| Butir | Pemilik | Memblokir |
+|---|---|---|
+| Pengesahan `ACC-DEC-184` | Rizki | **Tertutup** — `GATE-DESAIN-1126` |
+| Izin data uji jalur Dihitung (liabilitas lancar, klasifikasi sementara, tahun buku 2025) | Rizki | Tidak memblokir desain; ditanyakan saat uji |
+| `OQ-173-1` neraca terkelompok | Rizki + pemilik proses akuntansi | Tidak |
+
+### Roadmap finishing revisi 3 — `plan-module-delivery`, 26 November 2026
+
+| Artefak | Isi |
+|---|---|
+| `roadmap/backend-roadmap-finishing.md` | Revisi 3 `APPROVED`. `BE-ACC-FIN-008-04` dari ⛔ menjadi kartu siap dikerjakan (`FIN-5`, prasyarat `BE-ACC-FIN-001-03`); node blocker "Desain 008-04" dihapus. Grafik 12 → 10 panah |
+| `roadmap/frontend-roadmap-finishing.md` | Revisi 3 `APPROVED`. `FE-ACC-FIN-008-04` siap dikerjakan (prasyarat `BE-ACC-FIN-008-04`, `FE-ACC-FIN-001-03`). Grafik tetap 18 panah |
+| `roadmap/requirement-traceability-finishing.md` | Revisi 3. + `FR-FIN-059`..`066`; dependency 008-04 diperbarui; coverage gap jalur Dihitung (data uji berizin) dan `F48` (simulasi) |
+
+Urutan pengerjaan: `BE-ACC-FIN-008-04` → `FE-ACC-FIN-008-04`. Sesudahnya yang tersisa di ACC-FIN-008 hanya
+⛔ `008-05` (ACC-FIN-013) dan ⛔ `008-06` (`OQ-160-1`).
+
+
+## Amendment ACC-FIN-013 Fondasi anggaran — revision 21, 26 November 2026 (`draft`)
+
+| Field | Nilai |
+|---|---|
+| `revision` | **20 → 21**, 26 November 2026. `00-interview-decisions.md` revision 22 (`ACC-DEC-185`..`196`, `198` approved; `197`, `199` `draft`) |
+| Masukan | `grill-me` Amendment 26 November 2026 (seluruh jawaban = opsi rekomendasi) + pertanyaan `Program.cs` (`ACC-DEC-198`) |
+| Dikerjakan lewat | `grill-me` Amendment → `design-business-module` Amendment. `requirement-completeness-gate` tidak dijalankan ulang; `DOMAIN_ARCHITECTURE_NOT_RUN` (alasan di `04-prd-to-mvp.md` bagian 33) |
+| `backend_commit_sha` | `26229ec7` (branch `rizkiG`) + pekerjaan 26 November belum di-commit |
+| `frontend_commit_sha` | `64ba2c07e` (branch `RizkiV2`) + pekerjaan 26 November belum di-commit |
+| Impact scan | Tidak dibutuhkan: amendment ini hanya menambah; source yang dibaca (`AccJournal*`, `AccAccountingPeriod`, `MstCostCenter`, `Program.cs` blok Accounting) dicek langsung 26 November 2026 |
+| `blueprint_shape` | Tetap `SINGLE` (`ACC-DEC-186`) |
+| Status desain | **`draft`** — menunggu gerbang desain Rizki, termasuk `ACC-DEC-197`, `199` |
+| Kode dan migration | Belum ada kode. Desain menetapkan **tiga tabel baru** dan **satu migration** `AddAccountingBudget` (dibuat Rizki sendiri, izin terpisah), satu controller baru, satu service baru (satu baris `Program.cs`, `ACC-DEC-198`), satu Resource hak baru `Budget` |
+
+| Artefak | Versi | Perubahan |
+|---|---|---|
+| `00-interview-decisions.md` | revision 22 | + `ACC-DEC-185`..`199`, acceptance A1..A9 |
+| `02-backend-architecture.md` | bagian 28 | Kepemilikan, class diagram, folder `Budget/`, endpoint, status, aturan baris, CSV, tabel/index, migration, log, data awal, yang tidak dibuat |
+| `03-frontend-architecture.md` | bagian 18 | Butir menu Anggaran, skema `FE-B1`..`FE-B4`, state, berkas |
+| `04-prd-to-mvp.md` | bagian 33 | `MH-BGT-1`..`4`, `FR-FIN-067`..`075`, DoD, gelombang `FIN-6`/`FIN-7` |
+| `contracts/api-contract.md` | `ACC-API-0.20` | Tiga belas endpoint baru, dua enum |
+| `contracts/validation-matrix.md` | `ACC-VALIDATION-0.15` | `VAL-BGT-01`..`17` |
+| `contracts/permission-audit-matrix.md` | `ACC-PERMISSION-0.11` | Resource `Budget`, log aksi |
+| `contracts/state-transition-matrix.md` | `ACC-STATE-0.7` | Bagian 6: `BudgetStatus` |
+| `erd/data-dictionary.md` | bagian 23 | `AccBudget`, `AccBudgetLine`, `AccBudgetApproval` (`Baru`) |
+| `flowcharts/09-anggaran.md` | baru | Menyusun/menyetujui dan revisi; diindeks di `00-alur-utama.md` |
+| `testing/acceptance-test-matrix.md` | bagian 7 | `F53`..`F68` |
+| `contracts/integration-contract.md`, `cross-module-contract.md` | — | **Tidak disunting** — tidak ada integrasi; `PrcBudget` tidak dipakai |
+
+### Yang masih `OPEN`
+
+| Butir | Pemilik | Memblokir |
+|---|---|---|
+| Pengesahan `ACC-DEC-197`, `199` | Rizki | Ya — bersama gerbang desain |
+| Izin migration `AddAccountingBudget` | Rizki | Ya untuk implementasi `FIN-6` |
+| `OQ-159-1`, `OQ-159-2` | Rizki + pihak terkait | Tidak |

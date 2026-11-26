@@ -2346,3 +2346,553 @@ database dev, tanpa SQL tulis (data uji = akun uji yang dibuat lewat layar atau 
 bukan acceptance (`ACC-DEC-081`) dan tidak ditulis. Uji bersamaan kode otomatis (`F28`) memakai dua
 permintaan `POST` serentak dari skrip. Batas kapasitas (999 dan 99) dibuktikan dari source, bukan
 dengan membuat ratusan akun di DB dev.
+
+---
+
+## 27. Amendment 26 November 2026 — rasio keuangan (ACC-FIN-008-04) — **approved** Rizki (`GATE-DESAIN-1126`)
+
+Dasar: `ACC-DEC-161` (delapan rasio dan aturannya), `167` butir 4 (komponen Cash dan Quick Ratio),
+`169` (klasifikasi terkini), `174`..`183` (approved Rizki 26 November 2026), dan turunan desain
+`ACC-DEC-184` (`draft`, disahkan bersama gerbang desain). Source acuan: `rizkiG` `26229ec7` +
+`BE-ACC-FIN-001-03` (belum di-commit), `RizkiV2` `64ba2c07e` + `FE-ACC-FIN-001-03` (belum di-commit).
+Arsitektur domain rumah sakit: `NOT_RUN` — kemampuan ini laporan internal Accounting yang hanya membaca
+data Accounting sendiri, tidak melintasi bounded context, tidak menyentuh billing maupun keselamatan klinis.
+
+**Ringkasnya:** dua endpoint baru di `GeneralLedgerController` yang ada (layar dan CSV), satu berkas
+`partial` baru di `AccGeneralLedgerService`, tiga enum baru, DTO baru di berkas DTO laporan yang ada.
+**Nol tabel, nol kolom, nol migration, nol hak baru, nol controller baru, nol baris `Program.cs`.**
+Rasio **tidak disimpan**; dihitung setiap kali diminta dari jurnal `Posted` dan bagan akun.
+
+**Contoh ujung ke ujung.** Staf akuntansi membuka menu Rasio Keuangan dan memilih September 2026.
+Backend menyusun posisi neraca per 30 September 2026 (aset Rp 3.230.000, liabilitas Rp 0, ekuitas
+Rp 3.230.000) dan laba rugi Januari–September 2026. Hasilnya: Debt to Asset `0,00%` dan Debt to
+Equity `0,00x` (liabilitas nol, penyebutnya aset dan ekuitas); Current, Quick, dan Cash *tidak dapat
+dihitung* karena empat akun aset bersaldo (1002, 1-1003, 1-1004, 1-3002) belum berklasifikasi — alasannya
+menyebut keempat akun itu; ROA dan ROE *tidak dapat dihitung* karena tahun buku 2025 tidak ada sehingga
+saldo awal tahun tidak tersedia; Net Profit Margin dihitung dari laba rugi Januari–September; seluruh
+kolom pembanding *tidak dapat dihitung* karena tahun buku 2025 tidak ada. Sesudah seluruh akun aset
+bersaldo diklasifikasi, Current/Quick/Cash berubah menjadi `N/A`, karena liabilitas lancar masih nol.
+
+### 27.1 Kepemilikan data
+
+| Kelompok data | Pemilik | Dipakai amendment ini | Dibuat ulang? |
+|---|---|---|---|
+| Baris jurnal `Posted` | Accounting — `JournalManagement` | Dibaca: posisi neraca dan laba YTD | Tidak |
+| Bagan akun dan klasifikasi laporan | Accounting — `MasterData/ChartOfAccount` | Dibaca lewat `AccChartOfAccountClassification` | Tidak |
+| Periode dan tahun buku | Accounting — `AccountingPeriod` | Dibaca: akhir periode, awal tahun, akhir tahun buku lalu dan dua tahun lalu | Tidak |
+| Jenis jurnal `JT` | Accounting — `MasterData/JournalType` | Dibaca: pengecualian sisi laba rugi (`ACC-DEC-142`) | Tidak |
+| Badan hukum | HR Master Data — Organization | Dibaca lewat penjaga badan hukum | Tidak |
+| Hasil rasio | — | **Tidak disimpan** | — |
+
+**Mengapa hasil rasio tidak disimpan:** setiap rasio adalah turunan neraca dan laba rugi pada saat
+diminta. Menyimpannya berarti hasil lama tetap terbaca sesudah jurnal koreksi disahkan atau sesudah
+klasifikasi akun diperbaiki (`ACC-DEC-169`), padahal neraca di sebelahnya sudah berubah.
+
+### 27.2 Class diagram
+
+```mermaid
+classDiagram
+    class GeneralLedgerController {
+        <<Diperbarui>>
+        +GetFinancialRatios(query)
+        +ExportFinancialRatios(query)
+    }
+    class AccGeneralLedgerService {
+        <<Diperbarui, partial>>
+        +GetFinancialRatiosAsync(query)
+        +BuildFinancialRatioCsvAsync(query)
+        -HitungPosisiAsync(akun, awalTahun, sampai)
+        -HitungLabaYtdAsync(akun, dari, sampai)
+        -SusunRasio(posisi, posisiAwal, laba, celah)
+    }
+    class AccChartOfAccountClassification {
+        <<Sudah ada, static>>
+        +Hitung(akun) Dictionary
+    }
+    class FinancialRatioResponse {
+        <<Baru>>
+        +Ratios List
+    }
+    class FinancialRatioRowResponse {
+        <<Baru>>
+        +Code FinancialRatioCode
+        +Unit FinancialRatioUnit
+        +Current FinancialRatioValueResponse
+        +Comparison FinancialRatioValueResponse
+    }
+    class FinancialRatioValueResponse {
+        <<Baru>>
+        +Status FinancialRatioStatus
+        +Value decimal?
+        +Numerator decimal?
+        +Denominator decimal?
+    }
+    GeneralLedgerController --> AccGeneralLedgerService
+    AccGeneralLedgerService --> AccChartOfAccountClassification : klasifikasi efektif
+    AccGeneralLedgerService ..> FinancialRatioResponse
+    FinancialRatioResponse --> FinancialRatioRowResponse
+    FinancialRatioRowResponse --> FinancialRatioValueResponse
+```
+
+### 27.3 Penjelasan class
+
+| Class | Status | Lokasi file | Fungsi | Dipanggil oleh | Transaksi DB |
+|---|---|---|---|---|---|
+| `GeneralLedgerController` | Diperbarui | `GeneralLedger/Controllers/GeneralLedgerController.cs` | + `GetFinancialRatios` (`GET financial-ratios`) dan `ExportFinancialRatios` (`GET financial-ratios/export`), keduanya `[AccessAction("Read", "Read General Ledger", ...)]` + `[AccessPermission("GeneralLedger", "Read")]`; log `FinancialStatement.Ratio` dan `GeneralLedger.Export` | — | — |
+| `AccGeneralLedgerService` | Diperbarui — berkas `partial` baru | `GeneralLedger/Services/AccGeneralLedgerService.FinancialRatio.cs` | `GetFinancialRatiosAsync`: penjaga badan hukum → periode (`SiapkanPeriodeLaporanAsync` yang ada) → posisi akhir periode, akhir tahun buku lalu, akhir dua tahun buku lalu → laba YTD kini dan setahun penuh tahun lalu → klasifikasi efektif sekali → delapan rasio per kolom. Memakai pembantu yang ada: `MuatAkunLaporanAsync`, `BarisDisahkan`, `BarisTanpaTutupTahunAsync`, `JumlahPerAkunAsync`, `HitungLabaBelumDipindahAsync`, `NilaiMenurutJenis` | `GeneralLedgerController` | Tidak — baca saja, `AsNoTracking` |
+| `AccGeneralLedgerService` | Diperbarui | `GeneralLedger/Services/AccGeneralLedgerService.Export.cs` | + `BuildFinancialRatioCsvAsync`: memanggil `GetFinancialRatiosAsync`, menulis CSV lewat `AccLedgerCsv` yang ada | `GeneralLedgerController` | Tidak |
+| `AccChartOfAccountClassification` | Sudah ada | `MasterData/ChartOfAccount/Services/AccChartOfAccountClassification.cs` | Dipakai apa adanya (`Hitung`, `BerlakuUntuk`); tidak diubah | — | — |
+| `FinancialRatioCode` | Baru, enum | `GeneralLedger/Enums/FinancialRatioCode.cs` | `CurrentRatio = 1`, `QuickRatio = 2`, `CashRatio = 3`, `NetProfitMargin = 4`, `ReturnOnAssets = 5`, `ReturnOnEquity = 6`, `DebtToAssetRatio = 7`, `DebtToEquityRatio = 8`. Tanpa nilai bawaan; urutan tampil = urutan nilai | — | — |
+| `FinancialRatioUnit` | Baru, enum | `GeneralLedger/Enums/FinancialRatioUnit.cs` | `Times = 1` (kali), `Percent = 2` (persen) — `ACC-DEC-179` | — | — |
+| `FinancialRatioStatus` | Baru, enum | `GeneralLedger/Enums/FinancialRatioStatus.cs` | `Calculated = 1` (Dihitung), `NotApplicable = 2` (N/A), `Unavailable = 3` (Tidak dapat dihitung), `Invalid = 4` (Tidak sah) — `ACC-DEC-184` butir 2 | — | — |
+| `FinancialRatioQuery` | Baru | `GeneralLedger/DTOs/FinancialStatementDtos.cs` | `LegalEntityId` (`Guid`), `PeriodCode` (`string?`) — tanpa unit biaya, tanpa akun nol (`ACC-DEC-184` butir 5) | — | — |
+| `FinancialRatioResponse` | Baru | sama | Kepala laporan + `Ratios` (delapan baris, urutan tetap) + `ClassificationGaps` per kolom | — | — |
+| `FinancialRatioRowResponse` | Baru | sama | `Code`, `Name`, `Formula`, `Unit`, `Current`, `Comparison` | — | — |
+| `FinancialRatioValueResponse` | Baru | sama | `Status`, `Value`, `Numerator`, `Denominator`, `DenominatorOpening`, `DenominatorClosing`, `Reason`, `Note` | — | — |
+
+**Mengapa di `GeneralLedgerController` dan `AccGeneralLedgerService`, bukan controller/service baru.**
+Controller baru dengan `[AccessController]` sendiri memunculkan modul akses baru di Akses Role, padahal
+`ACC-DEC-183` memakai `GeneralLedger : Read` yang sama. Service baru menuntut baris `Program.cs`. Seluruh
+pembantu neraca dan laba rugi yang dibutuhkan sudah `private` di kelas `partial` ini, sehingga berkas
+`partial` baru dapat memakainya tanpa membuka akses baru.
+
+**Mengapa `GetBalanceSheetAsync` dan `GetIncomeStatementAsync` tidak dipanggil atau diubah.** Keduanya
+menyusun tabel bertingkat lengkap untuk layar, sementara rasio hanya butuh total per kelompok untuk
+**tiga** tanggal (akhir periode, akhir tahun lalu, akhir dua tahun lalu). Memanggil neraca tiga kali
+berarti tiga kali membangun pohon yang dibuang. Mengubah keduanya menyentuh FIN-1 tanpa kebutuhan
+(`ACC-DEC-171`). Kecocokan angka dijamin karena rasio memakai **pembantu yang sama** dan rumus total
+yang sama: total satu kelompok neraca = jumlah nilai milik setiap akun berjenis itu, persis seperti
+total bagian di `SusunBagian`. Uji `F45` membandingkan langsung dengan layar Neraca.
+
+### 27.4 Arsitektur folder
+
+```text
+Areas/Corporate/AccountingManagement/GeneralLedger/
+├── Controllers/
+│   └── GeneralLedgerController.cs                       Diperbarui (+2 action)
+├── DTOs/
+│   └── FinancialStatementDtos.cs                        Diperbarui (+5 class)
+├── Enums/
+│   ├── FinancialStatementRowKind.cs                     Sudah ada
+│   ├── LedgerSourceKind.cs                              Sudah ada
+│   ├── FinancialRatioCode.cs                            Baru
+│   ├── FinancialRatioUnit.cs                            Baru
+│   └── FinancialRatioStatus.cs                          Baru
+└── Services/
+    ├── AccGeneralLedgerService.cs                       Sudah ada
+    ├── AccGeneralLedgerService.FinancialStatement.cs    Sudah ada (tidak diubah)
+    ├── AccGeneralLedgerService.Export.cs                Diperbarui (+BuildFinancialRatioCsvAsync)
+    └── AccGeneralLedgerService.FinancialRatio.cs        Baru
+```
+
+Tidak ada penyimpangan pola folder. Baris baru ditulis tanpa komentar (kesepakatan kerja Rizki).
+
+### 27.5 Rumus (`ACC-DEC-161`, `167` butir 4, `178`, `184` butir 1)
+
+| Kode | Rasio | Pembilang | Penyebut | Satuan |
+|---|---|---|---|---|
+| 1 | Current Ratio | Aset Lancar | Liabilitas Lancar | kali |
+| 2 | Quick Ratio | Kas dan Setara Kas + Investasi Jangka Pendek + Piutang | Liabilitas Lancar | kali |
+| 3 | Cash Ratio | Kas dan Setara Kas | Liabilitas Lancar | kali |
+| 4 | Net Profit Margin | Laba Bersih YTD | Total Pendapatan YTD | persen |
+| 5 | Return on Assets | Laba Bersih YTD | rata-rata Total Aset awal tahun buku dan akhir periode | persen |
+| 6 | Return on Equity | Laba Bersih YTD | rata-rata Total Ekuitas awal tahun buku dan akhir periode | persen |
+| 7 | Debt to Asset Ratio | Total Liabilitas | Total Aset | persen |
+| 8 | Debt to Equity Ratio | Total Liabilitas | Total Ekuitas | kali |
+
+**Besaran yang dipakai.**
+
+| Besaran | Cara menghitung | Cocok dengan |
+|---|---|---|
+| Total Aset / Liabilitas | Jumlah `NilaiMenurutJenis` setiap akun berjenis itu dari baris jurnal `Posted` sampai tanggal kolom | Total bagian layar Neraca |
+| Total Ekuitas | Jumlah nilai akun Ekuitas + Laba Tahun Berjalan + Laba Tahun Lalu Belum Ditutup (`HitungLabaBelumDipindahAsync`) | Total Ekuitas layar Neraca (`ACC-DEC-178`) |
+| Aset Lancar, Kas dan Setara Kas, Investasi Jangka Pendek, Piutang | Jumlah nilai akun Aset yang klasifikasi efektifnya Lancar, dan untuk komponen, sub-klasifikasi efektifnya sesuai | — |
+| Liabilitas Lancar | Jumlah nilai akun Liabilitas yang klasifikasi efektifnya Lancar | — |
+| Laba Bersih YTD, Total Pendapatan YTD | Baris jurnal `Posted` tanpa `JT` dan pembaliknya (`BarisTanpaTutupTahunAsync`), dari awal tahun buku sampai akhir periode; pendapatan = jumlah nilai akun Pendapatan (sudah bersih dari akun kontra) | Kolom YTD layar Laba Rugi |
+| Awal tahun buku | Posisi akhir tahun buku sebelumnya (`ACC-DEC-177`) | Kolom pembanding layar Neraca |
+
+Klasifikasi efektif memakai **klasifikasi terkini** untuk kedua kolom (`ACC-DEC-169`). Hasil dibulatkan
+dua desimal dalam satuan tampilnya (`MidpointRounding.AwayFromZero`); pembilang dan penyebut dikirim
+tanpa pembulatan. Contoh: liabilitas lancar Rp 400.000, aset lancar Rp 500.000 → Current Ratio `1,25`
+kali; laba Rp 25.000 atas pendapatan Rp 200.000 → Net Profit Margin `12,50` persen.
+
+### 27.6 Kolom dan tanggal (`ACC-DEC-176`, `177`)
+
+| Kolom | Posisi neraca per | Laba | Awal tahun untuk ROA/ROE |
+|---|---|---|---|
+| Kini | Akhir periode terpilih | Awal tahun buku periode itu s.d. akhir periode | Akhir tahun buku lalu |
+| Pembanding | Akhir tahun buku lalu | Setahun penuh tahun buku lalu | Akhir dua tahun buku lalu |
+
+"Akhir tahun buku" = tanggal akhir terbesar di antara periode tahun buku itu; "awal tahun buku" = tanggal
+mulai terkecil — cara yang sama dengan neraca dan laba rugi.
+
+### 27.7 Status per rasio per kolom (`ACC-DEC-184` butir 2–4)
+
+Diperiksa berurutan; yang pertama berlaku menentukan status.
+
+| Urutan | Kondisi | Status | Alasan (`Reason`) | Berlaku untuk |
+|---:|---|---|---|---|
+| 1 | Kolom pembanding dan tahun buku lalu tidak ada | Tidak dapat dihitung | "Tahun buku {t} belum ada di sistem." | Delapan rasio kolom pembanding |
+| 2 | Tahun buku sebelum tahun kolom itu tidak ada (saldo awal) | Tidak dapat dihitung | "Saldo awal tahun buku {t} tidak tersedia: tahun buku {t-1} belum ada di sistem." | ROA, ROE |
+| 3 | Ada akun Aset/Liabilitas bernilai ≠ 0 di kolom itu dengan klasifikasi efektif kosong | Tidak dapat dihitung | "Klasifikasi laporan belum lengkap pada {n} akun bersaldo: {kode nama, maks. lima}." | Current, Quick, Cash |
+| 4 | Ada akun Aset Lancar bernilai ≠ 0 dengan sub-klasifikasi efektif kosong | Tidak dapat dihitung | "Sub-klasifikasi aset lancar belum diisi pada {n} akun bersaldo: …" | Quick, Cash |
+| 5 | Posisi neraca kolom itu — atau posisi awal tahunnya untuk ROA/ROE — tidak seimbang | Tidak sah | "Neraca per {tanggal} tidak seimbang, selisih Rp {x}. Rasio ini tidak dapat dipakai." | Tujuh rasio selain Net Profit Margin |
+| 6 | Penyebut = 0 | N/A | "Penyebut bernilai nol." | Semua |
+| — | Selain itu | Dihitung | — | Semua |
+
+**Catatan (`Note`)** — tidak mengubah status: penyebut ROE atau Debt to Equity negatif → "Ekuitas
+negatif; tafsirkan dengan hati-hati." (`ACC-DEC-161` butir 6). Pembilang negatif (rugi) tetap dihitung
+dan hasilnya negatif.
+
+Pembilang dan penyebut tetap dikirim pada status Tidak sah dan N/A supaya pengguna melihat penyebabnya;
+pada status Tidak dapat dihitung keduanya `null` bila besaran itu memang tidak dapat disusun (misalnya
+Aset Lancar ketika ada akun tanpa klasifikasi).
+
+### 27.8 Pencatatan audit
+
+| Aksi logger | Kapan | Teks pesan | Dilarang masuk |
+|---|---|---|---|
+| `FinancialStatement.Ratio` (**baru**) | `GET financial-ratios` | "Rasio keuangan {periode} berhasil diambil. Kolom kini: dihitung {a}, N/A {b}, tidak dapat dihitung {c}, tidak sah {d}." | Seluruh nominal, hasil rasio, nama akun |
+| `GeneralLedger.Export` (lama) | `GET financial-ratios/export` | Pesan unduhan yang ada + jenis laporan `RasioKeuangan` | Seluruh nominal dan isi berkas |
+
+Jumlah per status ditulis di **teks pesan**, karena `LoggerService` tidak menyimpan objek muatan (temuan
+`BE-ACC-FIN-001-02`). Gagal → `WarningAsync` dengan pesan galat.
+
+### 27.9 CSV (`ACC-DEC-182`)
+
+Format sama dengan CSV laporan lain lewat `AccLedgerCsv`: BOM UTF-8, pemisah `;`, koma desimal, sel
+berawalan `=`, `+`, `-`, `@` dinetralkan. Nama berkas `rasio-keuangan_{periode}.csv`.
+
+| Bagian | Isi |
+|---|---|
+| Kepala | Laporan "Rasio Keuangan"; Badan Hukum; Periode; Per Tanggal; Pembanding (tanggal atau alasan tidak tersedia); Diunduh |
+| Kolom | Rasio; Rumus; Pembilang Kini; Penyebut Kini; Hasil Kini; Status Kini; Keterangan Kini; Pembilang Pembanding; Penyebut Pembanding; Hasil Pembanding; Status Pembanding; Keterangan Pembanding |
+| Baris | Delapan, urutan tetap. Hasil ditulis `1,25x` atau `12,50%`; status selain Dihitung ditulis "N/A", "Tidak dapat dihitung", atau "Tidak sah" di kolom Hasil |
+| Catatan | Satu baris "Catatan" per akun penyebab klasifikasi belum lengkap, bila ada |
+
+### 27.10 Status model dan migration
+
+**Tidak ada tabel atau kolom yang berubah. Tidak ada migration.** Klasifikasi yang dibutuhkan sudah
+tersedia sejak `AddChartOfAccountReportClassification` (`BE-ACC-FIN-001-02`).
+
+### 27.11 Data master awal
+
+Tidak ada. Rasio likuiditas baru dapat dihitung sesudah pemilik proses akuntansi melengkapi klasifikasi
+akun bersaldo (bagian 26.13); sebelum itu layar menyebut akun penyebabnya.
+
+### 27.12 Yang sengaja tidak dibuat
+
+| Hal | Alasan |
+|---|---|
+| Tabel atau cache hasil rasio | Bagian 27.1 |
+| Ambang sehat/tidak sehat, warna merah-hijau per rasio | `ACC-DEC-161` butir 9 |
+| Rasio disetahunkan | `ACC-DEC-161` butir 3 |
+| Saringan unit biaya | `ACC-DEC-184` butir 5 |
+| Rasio di luar delapan (perputaran piutang, perputaran persediaan, dll.) | Di luar tahap pertama `ACC-DEC-161` butir 1 |
+| Menebak klasifikasi akun yang kosong | `ACC-DEC-168` |
+| Memanggil atau mengubah `GetBalanceSheetAsync`/`GetIncomeStatementAsync` | Bagian 27.3 |
+| Controller atau service baru | Bagian 27.3 |
+| Tautan pembilang/penyebut ke Neraca atau Laba Rugi | `ACC-DEC-181` |
+
+### 27.13 Pengujian developer
+
+Skenario `F42`..`F52` di `testing/acceptance-test-matrix.md` bagian 6, lewat API dan layar terhadap DB
+dev, tanpa SQL tulis. Karena DB dev saat ini tidak punya liabilitas maupun tahun buku 2025, jalur
+`Dihitung` untuk Current/Quick/Cash/ROA/ROE dibuktikan dengan data uji yang dibuat lewat aplikasi atas
+izin Rizki (jurnal liabilitas lancar, klasifikasi sementara, pembangkitan tahun buku) atau, bila tidak
+diizinkan, dari source beserta simulasi respons di layar. Neraca tidak seimbang hanya dapat disimulasikan
+(`ACC-DEC-154`).
+
+---
+
+## 28. Amendment 26 November 2026 — fondasi anggaran Accounting (ACC-FIN-013) — **draft**, menunggu gerbang desain Rizki
+
+Dasar: `ACC-DEC-159` (arah), `185`..`198` (approved Rizki 26 November 2026), turunan `197` dan `199`
+(`draft`, disahkan bersama gerbang desain). Source acuan: `rizkiG` `26229ec7` + pekerjaan 26 November belum
+di-commit; `RizkiV2` `64ba2c07e` + pekerjaan 26 November belum di-commit. Arsitektur domain rumah sakit:
+`NOT_RUN` — anggaran finansial adalah data internal Accounting; ia hanya **membaca** bagan akun, periode,
+dan unit biaya (milik HR Master Data), tidak menyentuh billing maupun keselamatan klinis, dan tidak
+menulis ke modul lain. `PrcBudget` milik Procurement tidak dibaca maupun ditulis.
+
+**Ringkasnya:** satu aggregate baru `AccBudget` (satu baris = satu **versi** anggaran) dengan dua tabel
+anak (`AccBudgetLine`, `AccBudgetApproval`) → **tiga tabel baru, satu migration** (dibuat Rizki sendiri,
+izin terpisah). Satu controller baru `BudgetController` (modul akses baru `ACCOUNTING_BUDGET`), satu
+service baru `AccBudgetService` (tepat satu baris `Program.cs`, `ACC-DEC-198`), dua enum baru. Tidak ada
+tabel atau kolom lama yang berubah.
+
+**Contoh ujung ke ujung.** Staf anggaran membuat "Anggaran 2027" untuk PT Metropolitan Medical Centre
+(versi 1, Draft), mengunduh templat CSV berisi akun Pendapatan dan Beban, mengisinya di Excel (4-1001
+Pendapatan Rawat Jalan Rp 1.200.000.000 setahun tanpa unit; 5-1001 Beban Gaji per unit Rawat Inap dan
+IGD), lalu mengunggahnya. Ia mengajukan. Kepala Keuangan — pengguna lain yang memegang `Budget : Approve` —
+menyetujui; versi 1 menjadi **Disetujui** dan target pendapatan 2027 berlaku. Juli 2027 periode
+Januari–Juni sudah ditutup; staf membuat **Revisi** (versi 2, salinan versi 1), menaikkan target
+Juli–Desember, mengajukan, dan disetujui: versi 2 berlaku, versi 1 menjadi **Digantikan**. Bila staf
+mencoba mengubah angka Maret di versi 2, penyimpanan ditolak karena periode Maret 2027 sudah tidak Terbuka.
+
+### 28.1 Kepemilikan data
+
+| Kelompok data | Pemilik | Dipakai amendment ini | Dibuat ulang? |
+|---|---|---|---|
+| Anggaran finansial dan target pendapatan | **Accounting** (`ACC-DEC-159`) | **Baru**: `AccBudget`, `AccBudgetLine`, `AccBudgetApproval` | — |
+| Anggaran pengadaan (`PrcBudget`, `PrcBudgetCommitment`) | Procurement | **Tidak dipakai** (`OQ-159-1`) | Tidak — dimensinya berbeda; pemetaan menunggu ratifikasi |
+| Bagan akun | Accounting — `MasterData/ChartOfAccount` | Dibaca: akun Pendapatan/Beban penerima transaksi aktif | Tidak |
+| Periode dan tahun buku | Accounting — `AccountingPeriod` | Dibaca: tahun buku dibangkitkan, status per bulan untuk bulan terkunci | Tidak |
+| Unit biaya (`MstCostCenter`) | HR Master Data | Dibaca: milik badan hukum, aktif | Tidak |
+| Badan hukum (`MstLegalEntity`) | HR Master Data | Dibaca lewat penjaga badan hukum | Tidak |
+| Realisasi (baris jurnal `Posted`) | Accounting — `JournalManagement` | **Tidak** dipakai di slice ini; dibandingkan di 008-05 | Tidak |
+
+### 28.2 Class diagram
+
+```mermaid
+classDiagram
+    class BudgetController {
+        <<Baru>>
+        +GetPaged(query)
+        +GetById(id)
+        +Create(request)
+        +Revise(id)
+        +UpdateHeader(id, request)
+        +ReplaceLines(id, request)
+        +ImportLines(id, file)
+        +ExportLines(id)
+        +Submit(id)
+        +Withdraw(id)
+        +Approve(id)
+        +Reject(id, request)
+        +Delete(id)
+    }
+    class AccBudgetService {
+        <<Baru>>
+        +GetPagedAsync()
+        +GetByIdAsync()
+        +CreateAsync()
+        +ReviseAsync()
+        +ReplaceLinesAsync()
+        +ImportLinesAsync()
+        +BuildLinesCsvAsync()
+        +SubmitAsync()
+        +WithdrawAsync()
+        +ApproveAsync()
+        +RejectAsync()
+        +DeleteAsync()
+    }
+    class AccBudget {
+        <<Baru>>
+        +LegalEntityId Guid
+        +FiscalYear int
+        +VersionNo int
+        +BudgetStatus BudgetStatus
+        +SourceBudgetId Guid?
+    }
+    class AccBudgetLine {
+        <<Baru>>
+        +BudgetId Guid
+        +AccountId Guid
+        +CostCenterId Guid?
+        +Amount01..Amount12 decimal
+    }
+    class AccBudgetApproval {
+        <<Baru>>
+        +BudgetId Guid
+        +ApprovalAction BudgetApprovalAction
+        +ActionBy Guid
+        +Reason string?
+    }
+    class AccChartOfAccount {
+        <<Sudah ada>>
+    }
+    class AccAccountingPeriod {
+        <<Sudah ada>>
+    }
+    class MstCostCenter {
+        <<Sudah ada, HR>>
+    }
+    BudgetController --> AccBudgetService
+    AccBudgetService ..> AccBudget : tulis
+    AccBudget "1" --> "*" AccBudgetLine
+    AccBudget "1" --> "*" AccBudgetApproval
+    AccBudget --> AccBudget : SourceBudgetId (revisi)
+    AccBudgetLine --> AccChartOfAccount
+    AccBudgetLine --> MstCostCenter
+    AccBudgetService ..> AccAccountingPeriod : baca status bulan
+```
+
+### 28.3 Penjelasan class
+
+| Class | Status | Lokasi file | Fungsi | Dipanggil oleh | Transaksi DB |
+|---|---|---|---|---|---|
+| `AccBudget` | Baru | `Budget/Models/AccBudget.cs` | Satu versi anggaran: badan hukum, tahun buku, nomor versi, status, versi asal revisi, jejak ajukan/setuju/tolak/digantikan | — | — |
+| `AccBudgetLine` | Baru | `Budget/Models/AccBudgetLine.cs` | Satu akun × unit biaya dengan dua belas nilai bulan | — | — |
+| `AccBudgetApproval` | Baru | `Budget/Models/AccBudgetApproval.cs` | Riwayat aksi (ajukan, tarik, setujui, tolak) — pola `AccJournalApproval` | — | — |
+| `BudgetStatus` | Baru, enum | `Budget/Enums/BudgetStatus.cs` | `Draft = 1`, `Submitted = 2` (Diajukan), `Approved = 3` (Disetujui), `Rejected = 4` (Ditolak), `Superseded = 5` (Digantikan). Bawaan `Draft` | — | — |
+| `BudgetApprovalAction` | Baru, enum | `Budget/Enums/BudgetApprovalAction.cs` | `Submitted = 1`, `Withdrawn = 2`, `Approved = 3`, `Rejected = 4` | — | — |
+| `AccBudgetConfiguration`, `AccBudgetLineConfiguration`, `AccBudgetApprovalConfiguration` | Baru | `Repositories/Configurations/Corporate/AccountingManagement/Budget/` | Index, unique, presisi, `DeleteBehavior` (bagian 28.10). Terbaca otomatis oleh `ApplyConfigurationsFromAssembly`; **tanpa** `DbSet` baru di `ApplicationDbContext` (service memakai `_db.Set<T>()` seperti service Accounting lain) | — | — |
+| `AccBudgetService` | Baru | `Budget/Services/AccBudgetService.cs` (+ `partial` `.Lines.cs`, `.Workflow.cs`, `.Csv.cs` bila berkas melebihi ±600 baris) | Seluruh aturan bagian 28.6–28.9 | `BudgetController` | Ya: `CreateAsync`, `ReviseAsync`, `ReplaceLinesAsync`, `ImportLinesAsync`, `SubmitAsync`, `WithdrawAsync`, `ApproveAsync`, `RejectAsync`, `DeleteAsync` — masing-masing satu transaksi; yang menyentuh status memakai kunci `ACC_ANGGARAN_{LegalEntityId:N}_{FiscalYear}` (`pg_advisory_xact_lock`, pola `AccChartOfAccountService`) |
+| `BudgetController` | Baru | `Budget/Controllers/BudgetController.cs` | Endpoint bagian 28.5; `[AccessController(moduleCode: "ACCOUNTING_BUDGET", ControllerName = "Budget", ...)]`; log bagian 28.11 | — | — |
+| DTO | Baru | `Budget/DTOs/BudgetDtos.cs` | `BudgetPagedQuery`, `CreateBudgetRequest`, `UpdateBudgetHeaderRequest`, `ReplaceBudgetLinesRequest`, `BudgetLineRequest`, `RejectBudgetRequest`, `BudgetListResponse`, `BudgetDetailResponse`, `BudgetLineResponse`, `BudgetApprovalResponse`, `BudgetMonthTotalResponse`, `BudgetImportResultResponse`, `BudgetImportErrorResponse` | — | — |
+| `Program.cs` | Diperbarui — **satu baris** | `Program.cs` blok CORPORATE - ACCOUNTING | `builder.Services.AddScoped<AccBudgetService>();` (`ACC-DEC-198`) | — | — |
+
+**Mengapa satu tabel = satu versi, bukan header + tabel versi.** Versi anggaran adalah unit yang diajukan,
+disetujui, dan digantikan; pengguna memperlakukannya sebagai dokumen tersendiri ("Anggaran 2027 v2").
+Menyimpan "anggaran" dan "versi" di dua tabel menambah satu join di setiap query tanpa aturan bisnis
+yang membutuhkannya — semua aturan (satu Disetujui, satu dalam proses) dapat dijaga per badan hukum ×
+tahun langsung di `AccBudget`.
+
+### 28.4 Arsitektur folder
+
+```text
+Areas/Corporate/AccountingManagement/Budget/                Baru
+├── Controllers/BudgetController.cs                         Baru
+├── DTOs/BudgetDtos.cs                                      Baru
+├── Enums/
+│   ├── BudgetStatus.cs                                     Baru
+│   └── BudgetApprovalAction.cs                             Baru
+├── Models/
+│   ├── AccBudget.cs                                        Baru
+│   ├── AccBudgetLine.cs                                    Baru
+│   └── AccBudgetApproval.cs                                Baru
+└── Services/AccBudgetService.cs (+ partial bila perlu)     Baru
+
+Repositories/Configurations/Corporate/AccountingManagement/Budget/   Baru
+├── AccBudgetConfiguration.cs                               Baru
+├── AccBudgetLineConfiguration.cs                           Baru
+└── AccBudgetApprovalConfiguration.cs                       Baru
+
+Migrations/{timestamp}_AddAccountingBudget.cs               Baru — dibuat Rizki sendiri
+Program.cs                                                  Diperbarui — satu baris AddScoped
+```
+
+Folder `Budget/` sejajar dengan `JournalManagement/`, `AccountingPeriod/`, dan subdomain Accounting lain.
+Tidak ada penyimpangan pola. Baris baru tanpa komentar (kesepakatan kerja Rizki).
+
+### 28.5 Endpoint (rangkuman; kontrak lengkap `ACC-API-0.20`)
+
+Base URL `api/v1/corporate/accounting/budgets`, `[Tags("Corporate / Accounting / Budget")]`. Arketipe
+transaksi **aggregate ber-lifecycle**: perpindahan status lewat `POST /{id}/<aksi>`; tidak ada
+`/options` maupun `PATCH /{id}/status` generik.
+
+| Method | Path | Hak (`[AccessPermission("Budget", ...)]`) | Kegunaan |
+|---|---|---|---|
+| `GET` | `/` | `Read` | Daftar versi, saringan badan hukum, tahun, status |
+| `GET` | `/{id}` | `Read` | Rincian versi: kepala, baris, total per bulan per jenis, bulan terkunci, riwayat |
+| `POST` | `/` | `Create` | Buat versi 1 sebuah tahun buku (Draft, tanpa baris) |
+| `POST` | `/{id}/revise` | `Create` | Buat versi N+1 (Draft) dari versi Disetujui, menyalin seluruh baris |
+| `PUT` | `/{id}` | `Update` | Ubah keterangan versi (Draft/Ditolak) |
+| `PUT` | `/{id}/lines` | `Update` | Ganti seluruh baris (simpan dari layar) |
+| `POST` | `/{id}/lines/import` | `Update` | Unggah CSV → ganti seluruh baris |
+| `GET` | `/{id}/lines/export` | `Read` | Unduh CSV baris; versi tanpa baris → templat akun |
+| `POST` | `/{id}/submit` | `Update` | Ajukan |
+| `POST` | `/{id}/withdraw` | `Update` | Tarik pengajuan (pengaju sendiri) |
+| `POST` | `/{id}/approve` | `Approve` | Setujui (bukan pengaju) |
+| `POST` | `/{id}/reject` | `Approve` | Tolak dengan alasan |
+| `DELETE` | `/{id}` | `Delete` | Hapus lunak versi Draft/Ditolak |
+
+### 28.6 Status dan transisi (`ACC-STATE-0.7` bagian 6)
+
+| Dari | Aksi | Ke | Syarat |
+|---|---|---|---|
+| — | Buat | Draft (v1) | Belum ada versi untuk badan hukum × tahun; tahun buku sudah dibangkitkan |
+| Disetujui | Revisi | (versi baru) Draft v N+1 | Tidak ada versi lain dalam proses |
+| Draft / Ditolak | Simpan baris, ubah keterangan | tetap | — |
+| Draft / Ditolak | Ajukan | Diajukan | ≥ 1 baris; aturan bulan terkunci lulus |
+| Diajukan | Tarik | Draft | Pelaku = pengaju |
+| Diajukan | Setujui | Disetujui | Pelaku ≠ pengaju; versi Disetujui lama (bila ada) → Digantikan dalam transaksi yang sama |
+| Diajukan | Tolak | Ditolak | Pelaku ≠ pengaju; alasan 1–500 karakter |
+| Draft / Ditolak | Hapus | (terhapus lunak) | — |
+| Disetujui, Digantikan | apa pun selain Revisi (dari Disetujui) | — | Ditolak `409` |
+
+### 28.7 Aturan baris
+
+| Aturan | Kode | Contoh |
+|---|---|---|
+| Akun milik badan hukum yang sama, belum dihapus, aktif, penerima transaksi (`IsPostable`), berjenis Pendapatan atau Beban | `400` | 1-1003 Kas Kecil → ditolak (jenis Aset); 4-0000 (induk) → ditolak |
+| Akun Beban wajib unit biaya; unit biaya harus milik badan hukum yang sama, belum dihapus, aktif | `400` | 5-1001 tanpa unit → ditolak |
+| Satu akun × unit biaya hanya sekali per versi (unit kosong dihitung sebagai satu nilai) | `400` | 4-1001 tanpa unit dua kali → ditolak |
+| Setiap nilai bulan ≥ 0, paling banyak dua desimal, ≤ 999.999.999.999.999,99 | `400` | −5.000 → ditolak |
+| Hanya versi Draft atau Ditolak yang dapat diubah | `409` | Ubah versi Diajukan → ditolak |
+| Versi revisi: nilai bulan yang periodenya bukan Terbuka harus sama dengan versi Disetujui yang berlaku (baris tidak ada = 0) | `422` | Maret 2027 Tutup Sementara, nilai berubah 100.000 → 120.000 → ditolak, pesan menyebut paling banyak lima baris |
+
+Nilai disimpan dalam arah saldo normal akun (`ACC-DEC-197` butir 1): akun kontra pendapatan (mis.
+potongan) diisi positif dan mengurangi total Pendapatan pada total per bulan.
+
+### 28.8 Sebar rata (`ACC-DEC-189`, `197` butir 8)
+
+Sebar rata dikerjakan **layar** sebagai bantuan isian; backend hanya menerima dua belas nilai. Rumus:
+nilai bulan = pembulatan ke bawah (tahunan ÷ 12) ke rupiah utuh; Desember = tahunan − 11 × nilai bulan.
+Contoh Rp 1.000.000 → Rp 83.333 × 11 + Rp 83.337.
+
+### 28.9 CSV (`ACC-DEC-192`, `199` butir 8)
+
+| Butir | Isi |
+|---|---|
+| Format | Sama dengan CSV laporan (`AccLedgerCsv`): BOM UTF-8, pemisah `;`, koma desimal |
+| Kolom | Kode Akun; Nama Akun (diabaikan saat impor); Kode Unit Biaya (kosong boleh untuk Pendapatan); Jan; Feb; Mar; Apr; Mei; Jun; Jul; Agu; Sep; Okt; Nov; Des |
+| Templat (`export` pada versi tanpa baris) | Satu baris per akun Pendapatan/Beban aktif penerima transaksi, nilai 0, unit kosong; pengguna menggandakan baris Beban per unit |
+| Impor | Paling banyak 10.000 baris data, 2 MB. Diproses utuh: satu baris tidak sah → seluruh impor ditolak `400` dengan daftar galat `{ nomor baris, kolom, pesan }` (paling banyak 50); tidak ada yang disimpan. Sah → mengganti seluruh baris versi dalam satu transaksi |
+| Pengenal | Akun dicari menurut kode di badan hukum versi; unit biaya menurut `CostCenterCode` di badan hukum yang sama |
+
+### 28.10 Status model dan migration
+
+| Tabel | Status | Kolom | Index / unique | Perilaku hapus |
+|---|---|---|---|---|
+| `AccBudget` | **Baru** | Lihat kamus data bagian 23.1 | Unique `(LegalEntityId, FiscalYear, VersionNo)` bersaring `IsDelete = false`; unique `(LegalEntityId, FiscalYear)` bersaring `BudgetStatus = 3 AND IsDelete = false` (satu Disetujui); unique `(LegalEntityId, FiscalYear)` bersaring `BudgetStatus IN (1,2,4) AND IsDelete = false` (satu dalam proses); index `BudgetStatus` | FK `LegalEntityId` → `MstLegalEntity` `Restrict`; `SourceBudgetId` → `AccBudget` `Restrict` |
+| `AccBudgetLine` | **Baru** | Bagian 23.2 | Unique `(BudgetId, AccountId, CostCenterId)` bersaring `IsDelete = false`; index `AccountId`, `CostCenterId` | FK `BudgetId` `Cascade` (baris ikut aggregate); `AccountId` → `AccChartOfAccount` `Restrict`; `CostCenterId` → `MstCostCenter` `Restrict` |
+| `AccBudgetApproval` | **Baru** | Bagian 23.3 | Index `BudgetId` | FK `BudgetId` `Cascade` |
+
+Index unik baris tidak menangkap dua baris berunit kosong pada PostgreSQL (`NULL` dianggap berbeda);
+keunikan itu karena itu juga diperiksa service di dalam transaksi.
+
+### 28.11 Rencana migration
+
+| Butir | Rencana |
+|---|---|
+| Nama | `AddAccountingBudget` |
+| Isi `Up` | Tiga `CreateTable` di schema `public` + index di atas. **Tidak** ada operasi pada tabel lain |
+| Isi `Down` | Tiga `DropTable` (urutan anak dulu) |
+| Tanpa downtime? | **Ya** — hanya tabel baru; aplikasi lama tidak mengenalnya |
+| Pengisian data lama | Tidak ada |
+| Langkah mundur | `Down`; anggaran yang sempat diisi hilang, tidak ada data lain terdampak |
+| Siapa | **Rizki sendiri** menjalankan `dotnet ef migrations add AddAccountingBudget` dan menerapkannya sesudah izin terpisah (ditanyakan saat `plan-module-delivery`). Agent berhenti sebelum langkah itu |
+| Pemeriksaan sebelum `migrations add` | Bandingkan model dengan snapshot: model modul lain tanpa migration dapat ikut tersapu (19 dan 25 November 2026). Migration yang terbentuk harus hanya berisi tiga tabel ini |
+
+### 28.12 Pencatatan audit
+
+| Aksi logger | Kapan | Teks pesan (contoh) |
+|---|---|---|
+| `Budget.Create` | Buat v1 | "Anggaran 2027 versi 1 dibuat." |
+| `Budget.Revise` | Revisi | "Anggaran 2027 versi 2 dibuat dari versi 1 (148 baris disalin)." |
+| `Budget.Update` | Ubah keterangan | "Keterangan anggaran 2027 versi 2 diubah." |
+| `Budget.Lines` | Simpan baris / impor | "Baris anggaran 2027 versi 2 disimpan: 152 baris (impor CSV)." |
+| `Budget.Submit` / `Withdraw` / `Approve` / `Reject` / `Delete` | Aksi status | "Anggaran 2027 versi 2 disetujui; versi 1 digantikan." / "… ditolak: {alasan}." |
+
+**Tanpa nominal** (`ACC-DEC-155`, `197` butir 7); isi wajib di teks pesan karena `LoggerService` tidak
+menyimpan muatan. Penolakan validasi dicatat `WarningAsync`. Membaca anggaran tidak dicatat.
+
+### 28.13 Data master awal
+
+Tidak ada seed. Prasyarat operasional sebelum dipakai: tahun buku anggaran sudah dibangkitkan di layar
+Periode Akuntansi; bagan akun Pendapatan/Beban dan unit biaya badan hukum sudah ada; admin mencentang
+`Budget : Read/Create/Update/Delete` untuk penyusun dan `Budget : Read/Approve` untuk penyetuju di Akses
+Role (modul akses baru muncul otomatis dari `[AccessController]`).
+
+### 28.14 Yang sengaja tidak dibuat
+
+| Hal | Alasan |
+|---|---|
+| Memakai atau mengubah `PrcBudget` | `ACC-DEC-159`; pemetaan `OQ-159-1` |
+| Tabel induk "anggaran" terpisah dari tabel versi | Bagian 28.3 |
+| Tabel nilai per bulan (baris × bulan) | `ACC-DEC-199` butir 2; dua belas kolom cukup untuk grid, CSV, dan penjumlahan per bulan |
+| Anggaran akun Aset/Liabilitas/Ekuitas, CAPEX | `ACC-DEC-187`; ACC-FIN-014 |
+| Persetujuan bertingkat | `ACC-DEC-190`; ACC-FIN-004 belum dirancang |
+| Peringatan/blokir jurnal yang melewati anggaran | ACC-FIN-017 |
+| Laporan realisasi lawan target, endpoint target berlaku | 008-05 (`ACC-DEC-199` butir 9) |
+| Nomor dokumen anggaran dari `AccNumberSeries` | Pengenal versi = tahun + nomor versi; tidak dibutuhkan nomor seri |
+| Sebar rata di backend | Bagian 28.8 — bantuan isian, bukan aturan data |
+| `DbSet` baru di `ApplicationDbContext` | Tidak dibutuhkan; menghindari berkas bersama |
+
+### 28.15 Pengujian developer
+
+Skenario `F53`..`F68` di `testing/acceptance-test-matrix.md` bagian 7, lewat API dan layar terhadap DB
+dev, tanpa SQL tulis. Data uji: anggaran tahun buku yang sudah ada di DB dev (2026), dibuat lewat aplikasi
+lalu dihapus (Draft) bila memungkinkan; versi Disetujui tidak dapat dihapus sehingga uji persetujuan
+meninggalkan data — **izin Rizki diminta saat uji**. Aturan empat mata memakai akun penyetuju uji yang ada.

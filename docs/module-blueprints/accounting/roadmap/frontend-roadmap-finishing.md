@@ -4,20 +4,20 @@
 
 ```yaml
 blueprint_id: ACC-BP-001
-blueprint_revision: 19
-blueprint_status: approved              # FIN-0/FIN-1: GATE-DESAIN-1124; ACC-FIN-001: GATE-DESAIN-1125 (25 Nov 2026)
-roadmap_revision: 2                     # 1 = 24 Nov 2026 (FIN-0, FIN-1); 2 = 25 Nov 2026 (+ FIN-2..FIN-4 Master COA)
-roadmap_status: APPROVED                # revisi 2 disusun atas perintah Rizki sesudah GATE-DESAIN-1125
+blueprint_revision: 20
+blueprint_status: approved              # FIN-0/FIN-1: GATE-DESAIN-1124; ACC-FIN-001: GATE-DESAIN-1125 (25 Nov 2026); 008-04 rasio: GATE-DESAIN-1126 (26 Nov 2026)
+roadmap_revision: 3                     # 1 = 24 Nov 2026 (FIN-0, FIN-1); 2 = 25 Nov 2026 (+ FIN-2..FIN-4 Master COA); 3 = 26 Nov 2026 (008-04 rasio dirancang, FIN-5)
+roadmap_status: APPROVED                # revisi 3 atas persetujuan Rizki 26 Nov 2026 ("SAYA SETUJU"); revisi 2 sesudah GATE-DESAIN-1125
 approved_by: [Rizki]
-approved_at: 2026-11-25
-source_backend: 0f67c5c2                # rizkiG
-source_frontend: a2ddb52d2              # RizkiV2; revisi 1 disusun pada 22894248
-decision_revision: 20                   # ACC-DEC-141..173
-contracts: [ACC-API-0.17, ACC-API-0.18, ACC-VALIDATION-0.12, ACC-VALIDATION-0.13, ACC-PERMISSION-0.8, ACC-PERMISSION-0.9, ACC-TEST bagian 4 dan 5]
-design_inputs: [03-frontend-architecture.md bagian 15 dan 16, 04-prd-to-mvp.md bagian 30 dan 31, flowcharts/06-laporan-keuangan.md, flowcharts/07-master-coa.md]
+approved_at: 2026-11-26
+source_backend: 26229ec7                # rizkiG + BE-ACC-FIN-001-03 belum di-commit
+source_frontend: 64ba2c07e              # RizkiV2 + FE-ACC-FIN-001-03 belum di-commit; revisi 2 pada a2ddb52d2
+decision_revision: 21                   # ACC-DEC-141..184
+contracts: [ACC-API-0.17, ACC-API-0.18, ACC-API-0.19, ACC-VALIDATION-0.12, ACC-VALIDATION-0.13, ACC-VALIDATION-0.14, ACC-PERMISSION-0.8, ACC-PERMISSION-0.9, ACC-PERMISSION-0.10, ACC-TEST bagian 4, 5, dan 6]
+design_inputs: [03-frontend-architecture.md bagian 15, 16, dan 17, 04-prd-to-mvp.md bagian 30, 31, dan 32, flowcharts/06-laporan-keuangan.md, flowcharts/07-master-coa.md, flowcharts/08-rasio-keuangan.md]
 backend_roadmap: backend-roadmap-finishing.md
 clickup_refs: [z8m132yv7x Transaksi, z8m132yv84 Laporan Keuangan]
-scope_waves: [FIN-0, FIN-1, FIN-2, FIN-3, FIN-4]
+scope_waves: [FIN-0, FIN-1, FIN-2, FIN-3, FIN-4, FIN-5]
 task_namespace: FE-ACC-FIN-<nomor kebutuhan PRD>-<urut>
 branch: RizkiV2
 ```
@@ -52,8 +52,8 @@ flowchart LR
         BEACCFIN00803["✅ BE-ACC-FIN-008-03<br/>Neraca dengan laba belum ditutup"]:::luar
         BEACCFIN00101["✅ BE-ACC-FIN-001-01<br/>Kode otomatis dan jenis warisan"]:::luar
         BEACCFIN00102["✅ BE-ACC-FIN-001-02<br/>Kolom klasifikasi dan pewarisannya"]:::luar
-        BEACCFIN00103["BE-ACC-FIN-001-03<br/>Peringatan klasifikasi di neraca"]:::luar
-        BEACCFIN00804["⛔ BE-ACC-FIN-008-04<br/>Rasio keuangan"]:::luar
+        BEACCFIN00103["✅ BE-ACC-FIN-001-03<br/>Peringatan klasifikasi di neraca"]:::luar
+        BEACCFIN00804["✅ BE-ACC-FIN-008-04<br/>Rasio keuangan"]:::luar
         BEACCFIN00805["⛔ BE-ACC-FIN-008-05<br/>Analisis target pendapatan"]:::luar
         BEACCFIN00806["⛔ BE-ACC-FIN-008-06<br/>Laporan pajak"]:::luar
     end
@@ -64,8 +64,8 @@ flowchart LR
     FEACCFIN00803["✅ FE-ACC-FIN-008-03<br/>Layar neraca dan menunya"]:::selesai
     FEACCFIN00101["✅ FE-ACC-FIN-001-01<br/>Tambah Akun dengan kode otomatis"]:::selesai
     FEACCFIN00102["✅ FE-ACC-FIN-001-02<br/>Klasifikasi di form, rincian, daftar"]:::selesai
-    FEACCFIN00103["FE-ACC-FIN-001-03<br/>Peringatan klasifikasi di Neraca"]:::belum
-    FEACCFIN00804["⛔ FE-ACC-FIN-008-04<br/>Layar rasio keuangan"]:::terblokir
+    FEACCFIN00103["✅ FE-ACC-FIN-001-03<br/>Peringatan klasifikasi di Neraca"]:::selesai
+    FEACCFIN00804["✅ FE-ACC-FIN-008-04<br/>Layar rasio keuangan"]:::selesai
     FEACCFIN00805["⛔ FE-ACC-FIN-008-05<br/>Layar target pendapatan"]:::terblokir
     FEACCFIN00806["⛔ FE-ACC-FIN-008-06<br/>Layar laporan pajak"]:::terblokir
 
@@ -83,7 +83,7 @@ flowchart LR
     FEACCFIN00102 --> FEACCFIN00103
     FEACCFIN00803 --> FEACCFIN00103
     BEACCFIN00804 --> FEACCFIN00804
-    FEACCFIN00803 --> FEACCFIN00804
+    FEACCFIN00103 --> FEACCFIN00804
     BEACCFIN00805 --> FEACCFIN00805
     FEACCFIN00802 --> FEACCFIN00805
     BEACCFIN00806 --> FEACCFIN00806
@@ -94,8 +94,8 @@ flowchart LR
 | 1 | Backend pasangannya | ✅ `FE-ACC-FIN-005-01` (`FIN-0`); `FE-ACC-FIN-001-01` (`FIN-2`, sesudah `BE-ACC-FIN-001-01`) |
 | 2 | `FE-ACC-FIN-005-01` / `FE-ACC-FIN-001-01`; backend pasangannya | ✅ `FE-ACC-FIN-008-01` (`FIN-0`), ✅ `FE-ACC-FIN-008-02` (`FIN-1`); `FE-ACC-FIN-001-02` (`FIN-3`, sesudah `BE-ACC-FIN-001-02`) |
 | 3 | `FE-ACC-FIN-008-02`; backend `008-03` | ✅ `FE-ACC-FIN-008-03` (`FIN-1`) |
-| 4 | `FE-ACC-FIN-001-02`, `FE-ACC-FIN-008-03`; backend `001-03` | `FE-ACC-FIN-001-03` (`FIN-4`) |
-| — | ⛔ menunggu `BE-ACC-FIN-008-04` dan `FE-ACC-FIN-008-03` | `FE-ACC-FIN-008-04` |
+| 4 | `FE-ACC-FIN-001-02`, `FE-ACC-FIN-008-03`; backend `001-03` | ✅ `FE-ACC-FIN-001-03` (`FIN-4`) |
+| 5 | `FE-ACC-FIN-001-03`; backend `008-04` | ✅ `FE-ACC-FIN-008-04` (`FIN-5`) |
 | — | ⛔ menunggu `BE-ACC-FIN-008-05` dan `FE-ACC-FIN-008-02` | `FE-ACC-FIN-008-05` |
 | — | ⛔ menunggu `BE-ACC-FIN-008-06` | `FE-ACC-FIN-008-06` |
 
@@ -103,6 +103,11 @@ Jumlah panah: 18. Jumlah entri kolom `Dependency` pada ringkasan task: 18. Node 
 subgraph adalah cermin baca-saja; tandanya disalin dari `backend-roadmap-finishing.md`.
 
 **Perubahan revisi 2.** + `FE-ACC-FIN-001-01`..`03` beserta tiga cermin backend.
+
+**Perubahan revisi 3 (26 November 2026).** `FE-ACC-FIN-008-04` dirancang (`GATE-DESAIN-1126`) dan tidak
+lagi terblokir. Prasyarat frontend-nya diganti dari `FE-ACC-FIN-008-03` menjadi `FE-ACC-FIN-001-03`:
+layar rasio memakai ulang pola peringatan klasifikasi dan tautan Bagan Akun tersaring dari task itu,
+yang sendiri sudah menunggu `008-03`. Jumlah panah tetap 18.
 
 ## Baca ini lebih dahulu
 
@@ -134,8 +139,8 @@ subgraph adalah cermin baca-saja; tandanya disalin dari `backend-roadmap-finishi
 | ✅ `FE-ACC-FIN-008-03` | Layar neraca bertingkat dengan baris laba, peringatan, status seimbang, telusur, unduh, cetak, dan butir menu | `FR-FIN-012`, `014`, `020`..`022`, `040`; `ACC-DEC-143`..`146`, `149`, `152`, `154` | `balance-sheet`, `/export` | Komponen tabel laporan dari `008-02` | Kartu | `BE-ACC-FIN-008-03`, `FE-ACC-FIN-008-02` | AC-1..AC-9 | `F4`, `F5`, `F8`, `F14`, `F16` | Rendah; Rizki | Kartu |
 | ✅ `FE-ACC-FIN-001-01` | Tambah Akun menampilkan kode otomatis, mengunci jenis warisan, mengusulkan saldo normal, dan memberi tahu kode final | `FR-FIN-050`..`053`; `ACC-DEC-162`..`164`, `166`, `172` | `ACC-API-0.18` `next-code`, `POST` | `use-chart-of-account-editor.jsx`, `chart-of-account-form-view.jsx`, `buildPayload`, `validateForm` | Kartu | `BE-ACC-FIN-001-01` | AC-1..AC-8 | Layar `F25`, `F29`, `F31`, `F33` | Pratinjau basi dan kirim ganda; Rizki | Kartu |
 | ✅ `FE-ACC-FIN-001-02` | Klasifikasi dapat diisi di Tambah/Perbarui Akun, terbaca beserta asalnya di Rincian, tampil dan dapat disaring di Daftar | `FR-FIN-054`..`056`; `ACC-DEC-167`..`169`, `173` | `ACC-API-0.18` `GET /`, `/{id}`, `/tree`, `POST`, `PUT` | Editor dan detail COA, `FilterSelect`, konfigurasi daftar COA | Kartu | `BE-ACC-FIN-001-02`, `FE-ACC-FIN-001-01` | AC-1..AC-9 | Layar `F34`..`F37` | Aturan tampil isian; pembacaan alamat; Rizki | Kartu |
-| `FE-ACC-FIN-001-03` | Neraca memberi peringatan klasifikasi belum lengkap bertaut ke Daftar COA tersaring | `FR-FIN-057`; `ACC-DEC-168` | `ACC-API-0.18` `GET /balance-sheet` | `balance-sheet-view.jsx`, `use-balance-sheet.jsx`, `InformationAlert` | Kartu | `BE-ACC-FIN-001-03`, `FE-ACC-FIN-001-02`, `FE-ACC-FIN-008-03` | AC-1..AC-6 | Layar `F38` | Menyentuh layar FIN-1; Rizki | Kartu |
-| ⛔ `FE-ACC-FIN-008-04` | Layar rasio keuangan | ACC-FIN-008 (PRD); `ACC-DEC-161` | Belum dirancang | — | — | `BE-ACC-FIN-008-04`, `FE-ACC-FIN-008-03` | — | — | Desain 008-04 | — |
+| ✅ `FE-ACC-FIN-001-03` | Neraca memberi peringatan klasifikasi belum lengkap bertaut ke Daftar COA tersaring | `FR-FIN-057`; `ACC-DEC-168` | `ACC-API-0.18` `GET /balance-sheet` | `balance-sheet-view.jsx`, `use-balance-sheet.jsx`, `InformationAlert` | Kartu | `BE-ACC-FIN-001-03`, `FE-ACC-FIN-001-02`, `FE-ACC-FIN-008-03` | AC-1..AC-6 | Layar `F38` | Menyentuh layar FIN-1; Rizki | Kartu |
+| ✅ `FE-ACC-FIN-008-04` | Layar Rasio Keuangan di menu sesudah Neraca: delapan rasio kini dan pembanding dengan rumus, pembilang ÷ penyebut, status dan alasan; peringatan klasifikasi bertaut ke Bagan Akun; unduh CSV dan cetak | `FR-FIN-059`, `061`..`065`; `ACC-DEC-174`..`184` | `ACC-API-0.19` `financial-ratios`, `/export` | `balance-sheet-view.jsx`, `use-balance-sheet.jsx`, pola peringatan `FE-ACC-FIN-001-03`, `formatStatementAmount`, `accounting-download-utils`, menu Neraca | Kartu | `BE-ACC-FIN-008-04`, `FE-ACC-FIN-001-03` | AC-1..AC-8 | Layar `F44`, `F47`..`F50` | Tampilan delapan baris dua kolom tetap terbaca saat cetak; Rizki | Kartu |
 | ⛔ `FE-ACC-FIN-008-05` | Layar target pendapatan | ACC-FIN-008 (PRD); `ACC-DEC-159` | Belum dirancang | — | — | `BE-ACC-FIN-008-05`, `FE-ACC-FIN-008-02` | — | — | ACC-FIN-013 | — |
 | ⛔ `FE-ACC-FIN-008-06` | Layar laporan pajak | ACC-FIN-008 (PRD); `ACC-DEC-160` | Belum dirancang | — | — | `BE-ACC-FIN-008-06` | — | — | `OQ-160-1` | — |
 
@@ -578,9 +583,9 @@ mengubahnya; saringan lama daftar COA tetap jalan.
 
 ---
 
-## `FE-ACC-FIN-001-03` — Peringatan klasifikasi di Neraca
+## ✅ `FE-ACC-FIN-001-03` — Peringatan klasifikasi di Neraca
 
-**Status:** belum dikerjakan. **Gelombang pengiriman:** `FIN-4`. **Prasyarat:** `BE-ACC-FIN-001-03`,
+**Status:** ✅ SELESAI (development), 26 November 2026. AC-1..AC-6 terbukti: uji layar Playwright 9/9 terhadap `next dev` Rizki (V7 lima-plus-sisa dan V8 jumlah nol lewat simulasi `route.fulfill`), ESLint 0 galat 0 peringatan pada 3 berkas. `npm run build` `NOT RUN` (milik Rizki). Klasifikasi 1-1000 diisi sementara atas izin Rizki lalu dikosongkan kembali. UAT `F38` milik tim UAT. Bukti: [laporan FE-ACC-FIN-001-03](../task/report/frontend/FE-ACC-FIN-001-03.md). **Gelombang pengiriman:** `FIN-4`. **Prasyarat:** `BE-ACC-FIN-001-03`,
 `FE-ACC-FIN-001-02` (tujuan tautan), `FE-ACC-FIN-008-03` (layar neraca).
 
 | Field | Isi |
@@ -623,11 +628,61 @@ Laba Rugi tidak berubah.
 
 ---
 
+## ✅ `FE-ACC-FIN-008-04` — Layar Rasio Keuangan
+
+**Status:** ✅ SELESAI (development), 26 November 2026. AC-1..AC-8 terbukti: uji layar Playwright 8/8 terhadap `next dev` Rizki (putaran ketiga; dua putaran awal gagal karena kompilasi rute pertama dan pemeriksa skrip, bukan layar), V6 lewat simulasi `route.fulfill`; ESLint 0/0. `npm run build` `NOT RUN` (milik Rizki). UAT milik tim UAT. Bukti: [laporan FE-ACC-FIN-008-04](../task/report/frontend/FE-ACC-FIN-008-04.md). **Gelombang pengiriman:** `FIN-5`. **Prasyarat:** `BE-ACC-FIN-008-04`,
+`FE-ACC-FIN-001-03` (pola peringatan klasifikasi dan tautan Bagan Akun tersaring).
+
+| Field | Isi |
+|---|---|
+| Requirement | `FR-FIN-059`, `061`..`065` |
+| Decision | `ACC-DEC-174`..`184` (`GATE-DESAIN-1126`) |
+| Kontrak | `ACC-API-0.19` `GET /general-ledger/financial-ratios`, `/financial-ratios/export` |
+| Desain | `03-frontend-architecture.md` bagian 17 (skema `FE-L5`) |
+
+**Implementasi yang sudah ada.** `balance-sheet-view.jsx` + `use-balance-sheet.jsx` (periode, muat ulang,
+unduhan blob, cetak, `requestId`), peringatan klasifikasi + `openClassificationGaps` dari `FE-ACC-FIN-001-03`,
+`CLASSIFICATION_FILTER_QUERY`, `formatStatementAmount`, `accounting-download-utils`, aturan cetak
+`balance-sheet-view.module.css`, butir menu Neraca di `menu-items.jsx`.
+
+**Cakupan.**
+1. Rute `src/app/corporate/accounting/financial-ratios/` (`page.jsx` + klien, pola `balance-sheet`).
+2. Thunk `getFinancialRatios` + potongan state di `accounting-general-ledger-slice.jsx` (pola `requestId`).
+3. Hook `use-financial-ratio.jsx`, konstanta `financial-ratio-constants.jsx`, view `financial-ratio-view.jsx`
+   sesuai skema `FE-L5`: tabel delapan baris; per kolom hasil `1,25x`/`12,50%` dari `Value`+`Unit`, atau
+   `StatusBadge` + `Reason`; pembilang ÷ penyebut rupiah; `Note`; peringatan klasifikasi (kolom kini) +
+   Lengkapi di Bagan Akun; info pembanding; keterangan kaki tanpa ambang.
+4. Unduh CSV, Cetak (filter, tombol, peringatan klasifikasi tidak tercetak), Muat Ulang.
+5. Butir menu **Rasio Keuangan** tepat sesudah Neraca; kartu beranda Akuntansi bila pola Neraca ada.
+
+**Berkas terdampak.** Lihat `03-frontend-architecture.md` bagian 17.7.
+
+**Acceptance criteria.**
+
+| # | Kriteria |
+|---|---|
+| AC-1 | Butir menu Rasio Keuangan tepat sesudah Neraca membuka layar; belum pilih periode → keadaan kosong, Unduh/Cetak mati (`F49`) |
+| AC-2 | 2026-09: delapan baris urutan tetap; Debt to Asset `0,00%` dan Debt to Equity `0,00x` beserta pembilang ÷ penyebut rupiah yang sama dengan layar Neraca (`F45`, `F49`) |
+| AC-3 | Rasio berstatus selain Dihitung tampil sebagai lencana + alasan, **tidak pernah** angka; layar tidak menghitung atau membulatkan ulang (`F44`, `F47`) |
+| AC-4 | Peringatan klasifikasi menyebut akun penyebab dan tautannya membuka Bagan Akun tersaring Belum lengkap (`F44`, `F49`) |
+| AC-5 | Pembanding tidak ada → info alasan; kolom pembanding seluruhnya lencana Tidak dapat dihitung (`F47`) |
+| AC-6 | Tidak sah dan catatan ekuitas negatif tampil benar (simulasi `route.fulfill`) (`F48`) |
+| AC-7 | Unduh CSV menyimpan `rasio-keuangan_{periode}.csv`; tampilan cetak tanpa filter, tombol, dan peringatan klasifikasi (`F50`) |
+| AC-8 | `npm run lint` nol galat pada berkas tersentuh |
+
+**Skenario regresi.** Layar Neraca dan Laba Rugi tidak berubah; menu Akuntansi lain tetap urutannya.
+
+**Bukti.** Lint; uji layar Playwright terhadap server Rizki (tangkapan sebelum/sesudah, cetak, simulasi);
+laporan `task/report/frontend/FE-ACC-FIN-008-04.md`.
+
+**DoD.** AC-1..AC-8 terbukti; laporan; roadmap dan traceability diperbarui.
+
+---
+
 ## Sisa cakupan ACC-FIN-008 — task ⛔ belum dirancang
 
 | Task | Blocker | Catatan |
 |---|---|---|
-| ⛔ `FE-ACC-FIN-008-04` Layar rasio keuangan | `BE-ACC-FIN-008-04` (desain 008-04); `FE-ACC-FIN-008-03` | Bentuk layar dirancang bersama desain 008-04 (`ACC-DEC-161`) |
 | ⛔ `FE-ACC-FIN-008-05` Layar target pendapatan | `BE-ACC-FIN-008-05` (ACC-FIN-013); `FE-ACC-FIN-008-02` | Bergantung fondasi anggaran Accounting |
 | ⛔ `FE-ACC-FIN-008-06` Layar laporan pajak | `BE-ACC-FIN-008-06` (`OQ-160-1`) | Cakupan A dapat dirancang lebih dulu sesudah akun pajak dikonfirmasi |
 

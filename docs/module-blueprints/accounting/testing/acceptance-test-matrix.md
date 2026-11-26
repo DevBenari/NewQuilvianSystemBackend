@@ -405,4 +405,81 @@ yang sama), dan Tambah/Perbarui akun lama tanpa klasifikasi (permintaan lama yan
 | `F37` | 26 Nov 2026 | `PASS` (API dan layar) | K6; L7, L7b |
 | `F39` | 26 Nov 2026 | `PASS` (API) sesudah perbaikan — log memuat kode akun dan nilai lama → baru; putaran pertama `FAIL` (`LoggerService` tidak menyimpan muatan) | K11, K11b |
 | `F41` | 26 Nov 2026 | `PASS` — draft jurnal diterima lalu dihapus | K10 |
-| `F38` | — | `NOT RUN` — menunggu `BE-ACC-FIN-001-03` | — |
+| `F38` | 26 Nov 2026 | `PASS` (API dan layar) — sebelum: 1002, 1-1003, 1-1004, 1-3002; sesudah 1-1000 diisi: hanya 1-3002; angka, CSV, dan laba rugi identik; peringatan layar ikut berkurang, tidak tercetak, tautan ke Daftar COA tersaring | `fin-001-03-20261126` G1–G6, G9b; V1–V9 |
+
+
+---
+
+## 6. Amendment ACC-FIN-008-04 Rasio keuangan *(26 November 2026, **`approved`**, `GATE-DESAIN-1126`)*
+
+Diuji lewat API dan layar terhadap database dev, **tanpa SQL tulis** dan tanpa automated test
+(`ACC-DEC-081`). DB dev 26 November 2026: total aset Rp 3.230.000, liabilitas Rp 0, ekuitas
+Rp 3.230.000; tahun buku 2025 tidak ada; empat akun aset bersaldo tanpa klasifikasi (1002, 1-1003,
+1-1004, 1-3002). Skenario yang membutuhkan data lain (liabilitas lancar, tahun buku 2025) memakai data
+uji yang dibuat lewat aplikasi **hanya atas izin Rizki**; tanpa izin, jalurnya dibuktikan dari source dan
+simulasi respons di layar, dan dicatat apa adanya.
+
+| Skenario | Requirement | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| `F42` | `FR-FIN-059` | `GET financial-ratios` 2026-09 | `200`; tepat delapan baris urutan kode 1..8; Debt to Asset `0.00` persen dan Debt to Equity `0.00` kali berstatus Dihitung; Net Profit Margin berstatus Dihitung bila pendapatan YTD ≠ 0 |
+| `F43` | `VAL-RAT-09` | Klasifikasi seluruh akun aset bersaldo diisi sementara (izin), lalu `GET` 2026-09 | Current, Quick, Cash berstatus N/A "Penyebut bernilai nol." (liabilitas lancar Rp 0) |
+| `F44` | `FR-FIN-061`, `VAL-RAT-06`, `07` | `GET` 2026-09 apa adanya; lalu dengan satu akun aset lancar tanpa sub-klasifikasi | Pertama: Current/Quick/Cash Tidak dapat dihitung, alasan menyebut 1002, 1-1003, 1-1004, 1-3002; Debt to Asset tetap Dihitung. Kedua: Current Dihitung atau N/A, Quick/Cash Tidak dapat dihitung |
+| `F45` | `FR-FIN-063` | Bandingkan pembilang/penyebut Debt to Asset dan Debt to Equity dengan layar Neraca 2026-09; Net Profit Margin dengan kolom YTD Laba Rugi | Sama persis sampai rupiah |
+| `F46` | `FR-FIN-059` | Data uji berizin: jurnal liabilitas lancar Rp 400.000 dan klasifikasi lengkap | Current = aset lancar ÷ 400.000, dua desimal, satuan kali; Quick dan Cash sesuai komponen `ACC-DEC-167` |
+| `F47` | `FR-FIN-060`, `VAL-RAT-04`, `05` | `GET` 2026-09 (tahun 2025 tidak ada) | ROA/ROE kini Tidak dapat dihitung dengan alasan saldo awal; seluruh kolom pembanding Tidak dapat dihitung "Tahun buku 2025 belum ada di sistem." |
+| `F48` | `FR-FIN-062`, `VAL-RAT-08` | Simulasi respons neraca tidak seimbang di layar; dari source untuk backend | Tujuh rasio Tidak sah dengan alasan selisih; Net Profit Margin tetap tampil |
+| `F49` | `FR-FIN-064` | Buka menu Akuntansi → Rasio Keuangan; pilih 2026-09 | Butir tepat sesudah Neraca; delapan baris dengan rumus, pembilang ÷ penyebut, lencana status dan alasan; peringatan klasifikasi bertaut ke Bagan Akun tersaring |
+| `F50` | `FR-FIN-065` | Unduh CSV; Cetak | CSV ber-BOM, `;`, koma desimal, hasil `0,00%`/`0,00x`, status bertulis; tampilan cetak tanpa filter, tombol, dan peringatan klasifikasi |
+| `F51` | `FR-FIN-065` | Periksa log sesudah `F42` dan `F50` | `FinancialStatement.Ratio` dan `GeneralLedger.Export` tercatat; teks pesan memuat jumlah status, tanpa nominal |
+| `F52` | `FR-FIN-066` | Akun tanpa `GeneralLedger : Read` memanggil kedua endpoint | `403` |
+
+**Regresi.** Skenario laba rugi dan neraca bagian 4 serta `F38` tetap lulus tanpa perubahan angka maupun susunan,
+karena `GetBalanceSheetAsync` dan `GetIncomeStatementAsync` tidak disentuh.
+
+### Register hasil developer verification — bagian 6
+
+| Skenario | Tanggal | Hasil | Bukti (`fin-008-04-20261126`) |
+|---|---|---|---|
+| `F42` | 26 Nov 2026 | `PASS` (API) — delapan baris; DAR `0.00` persen, DER `0.00` kali, NPM `100.00` persen berstatus Dihitung | H1 |
+| `F43` | 26 Nov 2026 | `PASS` (API) — sesudah klasifikasi sementara 1-1000 dan 1-3000: Current/Quick/Cash N/A "Penyebut bernilai nol." | H5 |
+| `F44` | 26 Nov 2026 | `PASS` (API) — 4 akun penyebab disebut; bagian 2: hanya sub-klasifikasi kosong → Current N/A, Quick/Cash tidak dapat dihitung menyebut 1-3002 | H3, H7 |
+| `F45` | 26 Nov 2026 | `PASS` (API) — DAR/DER = total Neraca (0; 3.230.000; 3.230.000); NPM = Laba Rugi YTD (2.000.000 ÷ 2.000.000) | H2 |
+| `F46` | 26 Nov 2026 | `SOURCE VERIFIED` — jurnal liabilitas lancar tidak diizinkan; agregasi pembilang terbukti runtime (3.230.000 / 2.330.000 / 2.330.000) | H6 |
+| `F47` | 26 Nov 2026 | `PASS` (API) — pembanding dan ROA/ROE kini tidak dapat dihitung, alasan kontrak | H4 |
+| `F48` | 26 Nov 2026 | Backend `SOURCE VERIFIED`; layar `PASS` (simulasi `route.fulfill`) — tujuh Tidak sah, NPM tetap, catatan ekuitas negatif | `fin-008-04-20261126` V6 |
+| `F49` | 26 Nov 2026 | `PASS` (layar) — menu sesudah Neraca, delapan baris, lencana + alasan, peringatan klasifikasi bertaut | V1–V4, V7 |
+| `F50` | 26 Nov 2026 | `PASS` (API, CSV) — BOM, `;`, `0,00%`/`0,00x`/`100,00%`, status bertulis, empat Catatan; layar: unduh dan cetak `PASS` | H9; V5 |
+| `F51` | 26 Nov 2026 | `PASS` — log `FinancialStatement.Ratio` jumlah status di teks pesan, WRN 404, `GeneralLedger.Export`; tanpa nominal | H12 |
+| `F52` | 26 Nov 2026 | `PASS` — `403` pada kedua endpoint | H10 |
+
+
+---
+
+## 7. Amendment ACC-FIN-013 Anggaran *(26 November 2026, **`draft`**)*
+
+Diuji lewat API dan layar terhadap database dev, **tanpa SQL tulis** dan tanpa automated test
+(`ACC-DEC-081`), sesudah migration `AddAccountingBudget` diterapkan Rizki. Tahun uji: tahun buku yang sudah
+punya dua belas periode di DB dev (2026; Januari–Oktober 2026 berstatus sesuai DB dev saat uji). Uji
+persetujuan meninggalkan versi Disetujui/Digantikan yang tidak dapat dihapus — **izin Rizki diminta saat
+uji**. Empat mata memakai akun penyetuju uji yang ada.
+
+| Skenario | Requirement | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| `F53` | `FR-FIN-067` | Buat anggaran 2026; buat lagi | Pertama `201` v1 Draft; kedua `409` |
+| `F54` | `VAL-BGT-02` | Buat anggaran untuk tahun tanpa periode (mis. 2028) | `422` |
+| `F55` | `FR-FIN-068` | Simpan baris: 4-1001 tanpa unit; 5-xxxx dengan unit | `200`; total per bulan Pendapatan/Beban benar |
+| `F56` | `VAL-BGT-05`..`08` | Baris akun Aset; akun induk; Beban tanpa unit; nilai negatif; baris kembar | Masing-masing `400` menyebut nomor baris |
+| `F57` | `FR-FIN-069` | Layar: isi tahunan Rp 1.000.000, Sebar rata | Jan–Nov Rp 83.333, Des Rp 83.337 |
+| `F58` | `FR-FIN-070` | Unduh templat CSV (versi kosong), isi, unggah | Baris tersimpan sama dengan berkas; unduh ulang menghasilkan isi yang sama |
+| `F59` | `VAL-BGT-16` | Unggah CSV dengan satu kode akun salah | `400` daftar galat; baris lama tidak berubah |
+| `F60` | `FR-FIN-071` | Ajukan; pengaju mencoba menyetujui | Diajukan; `403` |
+| `F61` | `FR-FIN-071` | Tarik oleh pengaju; ajukan ulang | Draft; Diajukan |
+| `F62` | `FR-FIN-071` | Penyetuju menolak tanpa alasan, lalu dengan alasan; penyusun memperbaiki dan mengajukan ulang | `400`; Ditolak + alasan tampil; Diajukan |
+| `F63` | `FR-FIN-071` | Penyetuju menyetujui | Disetujui; riwayat empat aksi |
+| `F64` | `FR-FIN-072` | Revisi v1 → v2 berisi salinan baris; buat revisi kedua saat v2 masih Draft | `201`; `409` |
+| `F65` | `VAL-BGT-10` | v2 mengubah nilai bulan berperiode bukan Terbuka; lalu hanya bulan Terbuka | `422` menyebut baris; `200` |
+| `F66` | `FR-FIN-072` | Setujui v2 | v2 Disetujui, v1 Digantikan; daftar menampilkan keduanya |
+| `F67` | `VAL-BGT-15`, `FR-FIN-073` | Hapus v Disetujui; hapus Draft | `409`; terhapus |
+| `F68` | `FR-FIN-074` | Akun tanpa `Budget : Approve` menyetujui; tanpa `Budget : Read` membuka daftar | `403`; layar menolak |
+
+**Regresi.** Laporan keuangan, jurnal, dan bagan akun tidak berubah (anggaran tidak menulis ke tabel lain).
