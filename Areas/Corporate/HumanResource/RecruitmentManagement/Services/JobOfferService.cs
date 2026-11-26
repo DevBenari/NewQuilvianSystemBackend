@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
@@ -95,6 +96,108 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             };
 
             return RecruitmentResult<PagedResult<JobOfferListItemResponse>>.Ok(result, "Daftar penawaran kerja berhasil diambil.");
+        }
+
+        public async Task<RecruitmentResult<List<EligibleOfferApplicationResponse>>> GetEligibleApplicationsAsync(
+            string? search,
+            CancellationToken cancellationToken = default)
+        {
+            var dbQuery = _dbContext.HrdCandidateApplications
+                .AsNoTracking()
+                .Include(a => a.Candidate)
+                .Include(a => a.Vacancy)
+                .Include(a => a.Screening)
+                .Include(a => a.Evaluations)
+                .Include(a => a.Offers)
+                .Where(a => !a.IsDelete
+                            && a.Candidate != null && !a.Candidate.IsDelete && a.Candidate.Status != CandidateStatus.Blacklisted
+                            && a.Vacancy != null && !a.Vacancy.IsDelete
+                            && a.Vacancy.Status != JobVacancyStatus.Draft
+                            && a.Vacancy.Status != JobVacancyStatus.Cancelled
+                            && a.Screening != null && !a.Screening.IsDelete && a.Screening.Status == ScreeningStatus.Passed);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                dbQuery = dbQuery.Where(a =>
+                    a.ApplicationNumber.ToLower().Contains(term) ||
+                    (a.Candidate != null && (a.Candidate.FullName.ToLower().Contains(term) || a.Candidate.CandidateCode.ToLower().Contains(term))) ||
+                    (a.Vacancy != null && a.Vacancy.Title.ToLower().Contains(term)));
+            }
+
+            var apps = await dbQuery.OrderByDescending(a => a.ApplicationDate).ToListAsync(cancellationToken);
+
+            var vacancyIds = apps.Select(a => a.VacancyId).Distinct().ToList();
+            var filledByVacancy = vacancyIds.Count == 0
+                ? new Dictionary<Guid, int>()
+                : await _dbContext.HrdCandidateHiringHandoffs
+                    .AsNoTracking()
+                    .Include(h => h.Offer)
+                        .ThenInclude(o => o!.Application)
+                    .Where(h => !h.IsDelete
+                                && h.Status != HandoffStatus.Cancelled
+                                && h.Offer != null
+                                && h.Offer.Application != null
+                                && vacancyIds.Contains(h.Offer.Application.VacancyId))
+                    .GroupBy(h => h.Offer!.Application!.VacancyId)
+                    .Select(g => new { VacancyId = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.VacancyId, x => x.Count, cancellationToken);
+
+            var eligible = new List<EligibleOfferApplicationResponse>();
+            foreach (var app in apps)
+            {
+                var hasActiveOffer = app.Offers.Any(o => !o.IsDelete
+                    && o.Status != JobOfferStatus.RejectedByApprover
+                    && o.Status != JobOfferStatus.ConditionalRejected
+                    && o.Status != JobOfferStatus.FinalRejected
+                    && o.Status != JobOfferStatus.Revoked
+                    && o.Status != JobOfferStatus.Expired);
+                if (hasActiveOffer)
+                {
+                    continue;
+                }
+
+                if (app.Vacancy != null && app.Vacancy.QuotaSeats > 0
+                    && filledByVacancy.TryGetValue(app.VacancyId, out var filled)
+                    && filled >= app.Vacancy.QuotaSeats)
+                {
+                    continue;
+                }
+
+                var evals = app.Evaluations.Where(e => !e.IsDelete).ToList();
+                var prereq = RecruitmentJourneyPolicy.EvaluateOfferPrerequisites(app, app.Vacancy, app.Screening, evals, app.Candidate);
+                if (!prereq.CanCreateOffer)
+                {
+                    continue;
+                }
+
+                var latestHr = evals
+                    .Where(e => e.EvaluationType == EvaluationType.HrInterview && RecruitmentJourneyPolicy.IsEvaluationSubmitted(e))
+                    .OrderByDescending(e => e.UpdateDateTime)
+                    .FirstOrDefault();
+                var latestClin = evals
+                    .Where(e => (e.EvaluationType == EvaluationType.ClinicalAssessment || e.EvaluationType == EvaluationType.UserInterview)
+                                && RecruitmentJourneyPolicy.IsEvaluationSubmitted(e))
+                    .OrderByDescending(e => e.UpdateDateTime)
+                    .FirstOrDefault();
+
+                eligible.Add(new EligibleOfferApplicationResponse
+                {
+                    ApplicationId = app.Id,
+                    ApplicationNumber = app.ApplicationNumber,
+                    CandidateId = app.CandidateId,
+                    CandidateCode = app.Candidate?.CandidateCode ?? string.Empty,
+                    CandidateName = app.Candidate?.FullName ?? string.Empty,
+                    VacancyId = app.VacancyId,
+                    VacancyTitle = app.Vacancy?.Title ?? string.Empty,
+                    IsClinical = app.Vacancy?.IsClinical ?? false,
+                    HrScore = latestHr?.Score,
+                    ClinicalScore = latestClin?.Score,
+                    StageStatus = app.StageStatus
+                });
+            }
+
+            return RecruitmentResult<List<EligibleOfferApplicationResponse>>.Ok(eligible, "Daftar lamaran layak penawaran berhasil diambil.");
         }
 
         public async Task<RecruitmentResult<JobOfferResponse>> GetByIdAsync(

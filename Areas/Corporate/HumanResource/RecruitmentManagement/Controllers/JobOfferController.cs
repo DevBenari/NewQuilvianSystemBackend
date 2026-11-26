@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -44,6 +45,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             CancellationToken cancellationToken)
         {
             var result = await _service.GetPagedAsync(query, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("eligible-applications")]
+        [AccessAction("Read", "Melihat Penawaran Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("JobOffer", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<List<EligibleOfferApplicationResponse>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetEligibleApplications(
+            [FromQuery] string? search,
+            CancellationToken cancellationToken)
+        {
+            var result = await _service.GetEligibleApplicationsAsync(search, cancellationToken);
             return ToActionResult(result);
         }
 

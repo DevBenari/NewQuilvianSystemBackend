@@ -44,8 +44,8 @@ yang memegang jabatan yang sama akan mendapat izin yang sama.
 
 | Jabatan | Izin dasar | Total izin |
 |---|---|---|
-| Kepala Bagian SDM *(baru)* | Salinan izin **Manajer HR** + izin kontrak di bawah | 1.598 |
-| Staf Administrasi Kepegawaian *(baru)* | Salinan izin **Staff HR** + izin kontrak di bawah | 1.110 |
+| Kepala Bagian SDM *(baru)* | Paket izin bersih modul SDM (penyetuju/pengawas), ESS & referensi gaji *(ditata 26 Nov 2026)* | 814 |
+| Staf Administrasi Kepegawaian *(baru)* | Paket izin bersih modul SDM (operator/pembuat), ESS & referensi gaji *(ditata 26 Nov 2026)* | 664 |
 | Kepala Ruangan *(sudah ada)* | Izin lama dipertahankan + 3 izin tambahan di bawah | 13 |
 | Perawat Rawat Inap *(sudah ada)* | Tidak diubah | 34 |
 

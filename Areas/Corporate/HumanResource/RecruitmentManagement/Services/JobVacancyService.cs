@@ -185,6 +185,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var userId = GetUserId(user);
 
             var entity = await _dbContext.HrdJobVacancies
+                .Include(v => v.Requisition)
+                    .ThenInclude(r => r!.Vacancies)
                 .FirstOrDefaultAsync(v => v.Id == id && !v.IsDelete, cancellationToken);
 
             if (entity == null)
@@ -244,11 +246,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var userId = GetUserId(user);
 
             var entity = await _dbContext.HrdJobVacancies
+                .Include(v => v.Requisition)
+                    .ThenInclude(r => r!.Vacancies)
                 .FirstOrDefaultAsync(v => v.Id == id && !v.IsDelete, cancellationToken);
 
             if (entity == null)
             {
                 return RecruitmentResult<JobVacancyResponse>.NotFound("Lowongan kerja tidak ditemukan.");
+            }
+
+            if (entity.Requisition == null || entity.Requisition.IsDelete || entity.Requisition.Status != JobRequisitionStatus.Approved)
+            {
+                return RecruitmentResult<JobVacancyResponse>.Unprocessable(
+                    "Lowongan kerja tidak dapat dipublikasikan karena Requisition induk belum disetujui (Approved).");
+            }
+
+            var otherSeats = entity.Requisition.Vacancies
+                .Where(v => v.Id != entity.Id && !v.IsDelete && v.Status != JobVacancyStatus.Cancelled && v.Status != JobVacancyStatus.Closed)
+                .Sum(v => v.QuotaSeats);
+            var availableSeats = entity.Requisition.ApprovedSeats - otherSeats;
+            if (entity.QuotaSeats > availableSeats)
+            {
+                return RecruitmentResult<JobVacancyResponse>.Unprocessable(
+                    $"Lowongan tidak dapat dipublikasikan karena kuota ({entity.QuotaSeats}) melebihi sisa kursi Requisition ({availableSeats}).");
             }
 
             if (entity.Status != JobVacancyStatus.Draft)
@@ -282,6 +302,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var userId = GetUserId(user);
 
             var entity = await _dbContext.HrdJobVacancies
+                .Include(v => v.Requisition)
+                    .ThenInclude(r => r!.Vacancies)
                 .FirstOrDefaultAsync(v => v.Id == id && !v.IsDelete, cancellationToken);
 
             if (entity == null)

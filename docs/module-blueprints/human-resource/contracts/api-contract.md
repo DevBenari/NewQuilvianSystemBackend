@@ -3458,3 +3458,41 @@ Base URL: `api/v1/corporate/human-resource/recruitment/evaluations`.
 | `403` | Detail evaluasi milik penilai lain (`VR-PKB-07`) | "Evaluasi ini ditugaskan kepada penilai lain." |
 | `403` | Kirim nilai uji klinis oleh bukan penilai yang ditugaskan (`VR-PKB-08`) | "Hanya penilai yang ditugaskan yang dapat mengirim nilai uji ini." |
 | `403` | Tanpa hak endpoint | Pesan standar hak akses |
+
+
+---
+
+## 37. Kontrak Tambahan Penyempurnaan Menu 03 Rekrutmen & Seleksi (`BE-HRD-FIN-REC`, `v31` Additive — 26 November 2026)
+
+> **Catatan status kontrak & schema gate:** Endpoint pada bagian 37.1 bersifat aditif murni pada tabel database existing (`NO MIGRATION`). Rancangan konseptual yang membutuhkan tabel/kolom atau enum baru (`VacancyRequirementTemplate`, `ApplicationRequirementSnapshot`, `ScreeningChecklistItem`, `EvaluationRubricTemplate`, `EvaluationSessionScoreDetail`, `McuClearanceResult` 4-nilai, dan konfirmasi restriksi MCU) dicatat terpisah pada bagian 37.2 sebagai **`Rencana (terblokir gate schema & kebijakan owner)`**.
+
+### 37.1 Endpoint Aditif Berlaku (`NO MIGRATION`, Kompatibel Backward)
+
+Base URL: `api/v1/corporate/human-resource/recruitment`
+
+| Tag Swagger / Controller | Method | Path | Kegunaan | Hak Akses | Response / Kode Error |
+| --- | --- | --- | --- | --- | --- |
+| `Candidate Screening` | `GET` | `/screenings/application/{applicationId:guid}` | Mengambil detail penapisan berkas beserta ringkasan dokumen pelamar langsung berdasarkan `ApplicationId` tanpa cari berdasarkan nama/`pageSize=50` (`BE-006`) | `CandidateScreening : Read` | `200 ApiResponse<CandidateScreeningResponse>`, `404` bila lamaran belum memiliki screening |
+| `Candidate Screening` | `GET` | `/screenings/summary` | Angka agregat worklist penapisan (`pendingCount`, `passedCount`, `rejectedCount`, `clinicalPendingCount`, `missingScreeningEligibleCount`) | `CandidateScreening : Read` | `200 ApiResponse<ScreeningSummaryResponse>` |
+| `Candidate Screening` | `GET` | `/screenings/reconcile-preview` | Dry-run read-only melihat lamaran `Screening`/`Submitted` aktif yang belum memiliki baris screening dan daftar yang dilewati beserta alasannya (`BE-004`) | `CandidateScreening : Read` | `200 ApiResponse<ScreeningReconcilePreviewResponse>` |
+| `Candidate Screening` | `POST` | `/screenings/reconcile` | Rekonsiliasi idempoten berizin untuk membuat screening `Pending` pada lamaran aktif yang belum punya screening tanpa menyentuh data lulus/gugur (`BE-004`) | `CandidateScreening : Evaluate` | `200 ApiResponse<ScreeningReconcileResultResponse>`, `409` |
+| `Candidate Evaluation` | `GET` | `/evaluations/eligible-applications` | Antrean lamaran yang sudah lulus administrasi (`Passed`) beserta status kesiapan/sesi HR dan Klinis meski sesi belum dijadwalkan (`BE-006`, `AC-03`) | `CandidateEvaluation : Read` | `200 ApiResponse<PagedResult<EvaluationEligibleApplicationResponse>>` |
+| `Job Offer` | `GET` | `/offers/eligible-applications` | Daftar lamaran layak dibuatkan draf penawaran (lolos screening, lulus evaluasi wajib tanpa veto, tanpa offer aktif) (`BE-006`, `BE-014`) | `JobOffer : Read` | `200 ApiResponse<List<EligibleOfferApplicationResponse>>` |
+| `MCU Clearance` | `GET` | `/mcu-clearance/eligible-offers` | Daftar penawaran `ConditionalAccepted` yang belum memiliki rujukan MCU (`BE-006`, `BE-015`) | `OccupationalHealthClearance : Read` | `200 ApiResponse<List<EligibleMcuOfferResponse>>` |
+| `Talent Pool` | `GET` | `/talent-pool/eligible-applications` | Daftar lamaran yang memenuhi syarat masuk Talent Pool cadangan (lolos screening/evaluasi tanpa veto, tidak terminal, kuota lowongan asal penuh) (`BE-016`) | `TalentPool : Read` | `200 ApiResponse<List<EligibleTalentPoolApplicationResponse>>` |
+| `Hiring Handoff` | `GET` | `/handoffs/eligible-offers` | Daftar penawaran `FinalAccepted` dengan hasil MCU `Fit` yang belum memiliki handoff aktif atau butuh pemulihan onboarding (`BE-018`) | `HiringHandoff : Read` | `200 ApiResponse<List<EligibleHandoffOfferResponse>>` |
+| `MCU Clearance` | `GET` | `/mcu-clearance/certificates/attachments/download` | Diperketat dari `Read` ke `OccupationalHealthClearance : Evaluate` (atau pengunggah asli) agar peran HR umum tidak dapat mengunduh berkas sertifikat medis (`BE-015`, `BE-019`) | `OccupationalHealthClearance : Evaluate` | `200 FileStreamResult`, `404` bila tidak berizin/tidak ada |
+
+Perubahan aditif pada kontrak respons existing:
+1. `CandidateListItemResponse`: ditambah properti read-only opsional `applicationsCount`, `activeApplicationsCount`, `latestApplicationId`, `latestApplicationNumber`, `latestVacancyTitle`, `latestApplicationStage`, `latestApplicationStageName`, `latestApplicationStageStatus`, `documentsCount`, `maskedNationalIdNumber`.
+2. `CandidateScreeningListItemResponse` & `CandidateScreeningResponse`: ditambah `clinicalScreeningResultLabel` (mengembalikan `"Menunggu Pemeriksaan STR"` bila `IsStrRequired && Status == Pending && ClinicalScreeningResult == NotApplicable`), `candidateCode`, `documentsCount`, `hasStrDocument`, `hasExpiredStr`.
+3. `CandidateEvaluationListItemResponse` & `CandidateEvaluationResponse`: ditambah `isSubmitted`, `sessionStatus` (`"Scheduled"` / `"Submitted"`), `candidateCode`, `vacancyTitle`, `isClinicalVacancy`.
+
+### 37.2 Rancangan Tertahan Gate Schema & Kebijakan Owner (`BLOCKED_SCHEMA_AND_POLICY_GATE`)
+
+| Area | Usulan Perubahan | Alasan Tertahan |
+| --- | --- | --- |
+| `BE-007`, `BE-008`, `BE-009` | Master `VacancyRequirementTemplate/Item`, `ApplicationRequirementSnapshot`, `ScreeningChecklistItem`, serta `ScreeningStatus.InProgress`/`NeedsCompletion` & `EvaluatedByUserId` nullable | Membutuhkan migration EF Core baru + persetujuan kebijakan pengecualian dokumen perpanjangan/khusus |
+| `BE-011`, `BE-012` | Master `EvaluationRubricTemplate/Indicator`, `EvaluationSessionScoreDetail`, dan kolom eksplisit `IsSubmitted` | Membutuhkan migration EF Core baru + pengesahan bobot, ambang lulus, skala/rounding dari Owner HRD |
+| `BE-015` (Lanjutan) | Enum `McuClearanceResult.TemporarilyUnfit` / `PermanentlyUnfit`, konfirmasi `FitWithRestrictions`, serta pemetaan data lama `Unfit` | Membutuhkan migration EF Core baru + keputusan workflow konfirmasi restriksi dari Owner K3RS & HRD |
+| `BE-016` (Formula Skor) | Rumus skor gabungan & aturan *tie-break* peringkat Talent Pool | Kebijakan formula peringkat menunggu pengesahan Owner HRD |

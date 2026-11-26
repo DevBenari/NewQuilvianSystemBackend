@@ -61,6 +61,52 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             return ToActionResult(result);
         }
 
+        [HttpGet("application/{applicationId:guid}")]
+        [AccessAction("Read", "Melihat Seleksi Administrasi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("CandidateScreening", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<CandidateScreeningResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetByApplicationId(
+            [FromRoute] Guid applicationId,
+            CancellationToken cancellationToken)
+        {
+            var result = await _service.GetByApplicationIdAsync(applicationId, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("summary")]
+        [AccessAction("Read", "Melihat Seleksi Administrasi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("CandidateScreening", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<ScreeningSummaryResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetSummary(
+            [FromQuery] Guid? vacancyId,
+            CancellationToken cancellationToken)
+        {
+            var result = await _service.GetSummaryAsync(vacancyId, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("reconcile-preview")]
+        [AccessAction("Read", "Melihat Seleksi Administrasi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("CandidateScreening", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<ScreeningReconcilePreviewResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetReconcilePreview(CancellationToken cancellationToken)
+        {
+            var result = await _service.GetReconcilePreviewAsync(cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpPost("reconcile")]
+        [AccessAction("Evaluate", "Menilai Seleksi Administrasi", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("CandidateScreening", "Evaluate")]
+        [ProducesResponseType(typeof(ApiResponse<ScreeningReconcileResultResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> ReconcileMissingScreenings(CancellationToken cancellationToken)
+        {
+            var result = await _service.ReconcileMissingScreeningsAsync(User, cancellationToken);
+            return ToActionResult(result);
+        }
+
         [HttpPost]
         [AccessAction("Evaluate", "Menilai Seleksi Administrasi", AccessType = AccessTypes.Update, SortOrder = 2)]
         [AccessPermission("CandidateScreening", "Evaluate")]

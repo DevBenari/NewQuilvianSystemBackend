@@ -181,7 +181,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     Label = "Masukkan ke Talent Pool",
                     StageKey = currentStageKey,
                     ActionType = "NAVIGATE",
-                    RoutePath = $"/hr/recruitment/talent-pool?candidateId={candidate.Id}&vacancyId={app.VacancyId}",
+                    RoutePath = $"/hr/recruitment/talent-pool/create?candidateId={candidate.Id}&vacancyId={app.VacancyId}&applicationId={app.Id}",
                     RequiredPermission = "TalentPool.Create",
                     Description = "Simpan kandidat cadangan yang layak ke Talent Pool (retensi maks 6 bulan)."
                 });
@@ -195,7 +195,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     Label = "Promosi Cepat dari Talent Pool",
                     StageKey = currentStageKey,
                     ActionType = "NAVIGATE",
-                    RoutePath = $"/hr/recruitment/talent-pool?candidateId={candidate.Id}&talentPoolId={talentPool.Id}",
+                    RoutePath = $"/hr/recruitment/talent-pool/{talentPool.Id}/promote?candidateId={candidate.Id}&applicationId={app.Id}",
                     RequiredPermission = "TalentPool.Promote",
                     Description = "Promosikan kandidat cadangan langsung ke tahap penawaran lowongan terbuka."
                 });
@@ -549,13 +549,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             {
                 stageStatus = RecruitmentJourneyStageStatuses.Completed;
                 summary = isClinical
-                    ? $"Lulus seleksi administrasi & verifikasi STR ({screening.ClinicalScreeningResult})."
+                    ? $"Lulus seleksi administrasi & verifikasi STR ({RecruitmentJourneyPolicy.ResolveClinicalScreeningResultLabel(screening.Status, screening.IsStrRequired, screening.ClinicalScreeningResult)})."
                     : "Lulus seleksi administrasi non-klinis.";
             }
             else if (screening.Status == ScreeningStatus.Rejected)
             {
                 stageStatus = RecruitmentJourneyStageStatuses.Rejected;
-                summary = screening.Notes ?? $"Gugur seleksi administrasi ({screening.ClinicalScreeningResult}).";
+                summary = screening.Notes ?? $"Gugur seleksi administrasi ({RecruitmentJourneyPolicy.ResolveClinicalScreeningResultLabel(screening.Status, screening.IsStrRequired, screening.ClinicalScreeningResult)}).";
                 var blk = new JourneyBlockerDto
                 {
                     BlockerCode = screening.ClinicalScreeningResult == ClinicalScreeningResult.StrExpiredAutoReject
@@ -573,22 +573,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             {
                 stageStatus = RecruitmentJourneyStageStatuses.InProgress;
                 summary = isClinical
-                    ? "Penapisan berkas telah diinisiasi; menunggu evaluasi kelayakan administrasi & keabsahan STR."
-                    : "Penapisan berkas telah diinisiasi; menunggu evaluasi tim administrasi HR.";
+                    ? "Penapisan berkas dalam antrean; menunggu pemeriksaan berkas & keabsahan STR."
+                    : "Penapisan berkas dalam antrean; menunggu pemeriksaan berkas administrasi HR.";
 
                 if (perms.CanEvaluateScreening && !isTerminalOrFailed)
                 {
                     var act = new JourneyActionDto
                     {
                         ActionCode = "EVALUATE_SCREENING",
-                        Label = "Evaluasi Berkas Administrasi",
+                        Label = "Periksa Seleksi Administrasi",
                         StageKey = RecruitmentJourneyStageKeys.AdministrationScreening,
-                        ActionType = "POST_ACTION",
+                        ActionType = "NAVIGATE",
                         Method = "POST",
                         Endpoint = "/api/v1/corporate/human-resource/recruitment/screenings/evaluate",
-                        RoutePath = $"/hr/recruitment/screenings?applicationId={app.Id}",
+                        RoutePath = $"/hr/recruitment/screenings/{screening.Id}?applicationId={app.Id}",
                         RequiredPermission = "CandidateScreening.Evaluate",
-                        Description = "Putuskan kelulusan administrasi berdasarkan kelengkapan berkas" + (isClinical ? " dan masa berlaku STR." : ".")
+                        Description = "Buka halaman pemeriksaan berkas untuk memverifikasi dokumen wajib" + (isClinical ? " dan STR klinis." : ".")
                     };
                     stageActions.Add(act);
                     allowedActions.Add(act);
@@ -890,13 +890,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     {
                         var act = new JourneyActionDto
                         {
-                            ActionCode = "CREATE_JOB_OFFER",
-                            Label = "Buat Surat Penawaran",
-                            StageKey = RecruitmentJourneyStageKeys.JobOffer,
-                            ActionType = "POST_ACTION",
-                            Method = "POST",
-                            Endpoint = "/api/v1/corporate/human-resource/recruitment/offers",
-                            RoutePath = $"/hr/recruitment/offers?applicationId={app.Id}",
+                        ActionCode = "CREATE_JOB_OFFER",
+                        Label = "Buat Surat Penawaran",
+                        StageKey = RecruitmentJourneyStageKeys.JobOffer,
+                        ActionType = "NAVIGATE",
+                        Method = "POST",
+                        Endpoint = "/api/v1/corporate/human-resource/recruitment/offers",
+                        RoutePath = $"/hr/recruitment/offers/create?applicationId={app.Id}",
                             RequiredPermission = "JobOffer.Create",
                             Description = "Susun surat penawaran kerja dengan skala upah dan jenis kontrak kerja."
                         };
@@ -1045,7 +1045,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     Label = "Buka Detail Penawaran",
                     StageKey = RecruitmentJourneyStageKeys.JobOffer,
                     ActionType = "NAVIGATE",
-                    RoutePath = $"/hr/recruitment/job-offers/{offer.Id}?applicationId={app.Id}",
+                    RoutePath = $"/hr/recruitment/offers/{offer.Id}?applicationId={app.Id}",
                     RequiredPermission = "JobOffer.Read",
                     Description = "Buka rincian surat penawaran dan riwayat persetujuan."
                 });
@@ -1153,10 +1153,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                         ActionCode = "REGISTER_MCU_REFERRAL",
                         Label = "Terbitkan Rujukan MCU",
                         StageKey = RecruitmentJourneyStageKeys.PreEmploymentMcu,
-                        ActionType = "POST_ACTION",
+                        ActionType = "NAVIGATE",
                         Method = "POST",
                         Endpoint = "/api/v1/corporate/human-resource/recruitment/mcu-clearance/register",
-                        RoutePath = $"/hr/recruitment/mcu-clearance?applicationId={app.Id}&offerId={offer!.Id}",
+                        RoutePath = $"/hr/recruitment/mcu-clearance/create?applicationId={app.Id}&offerId={offer!.Id}",
                         RequiredPermission = "OccupationalHealthClearance.Create",
                         Description = "Daftarkan jadwal rujukan pemeriksaan kesehatan pra-kerja untuk kandidat."
                     };
@@ -1226,10 +1226,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                         ActionCode = "RECORD_MCU_RESULT",
                         Label = "Catat Hasil MCU",
                         StageKey = RecruitmentJourneyStageKeys.PreEmploymentMcu,
-                        ActionType = "POST_ACTION",
+                        ActionType = "NAVIGATE",
                         Method = "POST",
                         Endpoint = $"/api/v1/corporate/human-resource/recruitment/mcu-clearance/{mcu.Id}/record-result",
-                        RoutePath = $"/hr/recruitment/mcu-clearance?applicationId={app.Id}&mcuId={mcu.Id}",
+                        RoutePath = $"/hr/recruitment/mcu-clearance/{mcu.Id}?applicationId={app.Id}",
                         RequiredPermission = "OccupationalHealthClearance.Evaluate",
                         Description = "Catat keputusan kelaikan kerja (Fit, FitWithRestrictions, atau Unfit) beserta catatan medis terisolasi."
                     };
@@ -1327,10 +1327,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                         ActionCode = "GENERATE_HIRING_HANDOFF",
                         Label = "Proses Serah Terima ke Onboarding",
                         StageKey = RecruitmentJourneyStageKeys.HandoffOnboarding,
-                        ActionType = "POST_ACTION",
+                        ActionType = "NAVIGATE",
                         Method = "POST",
-                        Endpoint = "/api/v1/corporate/human-resource/recruitment/handoff/generate",
-                        RoutePath = $"/hr/recruitment/handoffs?applicationId={app.Id}&offerId={offer!.Id}",
+                        Endpoint = "/api/v1/corporate/human-resource/recruitment/handoffs/generate",
+                        RoutePath = $"/hr/recruitment/handoffs/create?applicationId={app.Id}&offerId={offer!.Id}",
                         RequiredPermission = "HiringHandoff.Execute",
                         Description = "Bentuk atau tautkan profil tenaga kerja serta inisiasi kasus onboarding secara atomik."
                     };
@@ -1397,8 +1397,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                         StageKey = RecruitmentJourneyStageKeys.HandoffOnboarding,
                         ActionType = "POST_ACTION",
                         Method = "POST",
-                        Endpoint = "/api/v1/corporate/human-resource/recruitment/handoff/generate",
-                        RoutePath = $"/hr/recruitment/handoff?applicationId={app.Id}&offerId={offer.Id}",
+                        Endpoint = "/api/v1/corporate/human-resource/recruitment/handoffs/generate",
+                        RoutePath = $"/hr/recruitment/handoffs/create?applicationId={app.Id}&offerId={offer.Id}",
                         RequiredPermission = "HiringHandoff.Execute",
                         Description = "Lanjutkan pembentukan kasus onboarding secara idempoten tanpa menduplikasi profil atau kursi formasi."
                     };
@@ -1424,8 +1424,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                         StageKey = RecruitmentJourneyStageKeys.HandoffOnboarding,
                         ActionType = "POST_ACTION",
                         Method = "POST",
-                        Endpoint = $"/api/v1/corporate/human-resource/recruitment/handoff/{handoff.Id}/confirm-transfer",
-                        RoutePath = $"/hr/recruitment/handoff?applicationId={app.Id}",
+                        Endpoint = $"/api/v1/corporate/human-resource/recruitment/handoffs/{handoff.Id}/confirm-transfer",
+                        RoutePath = $"/hr/recruitment/handoffs?applicationId={app.Id}",
                         RequiredPermission = "HiringHandoff.Execute",
                         Description = "Tandai serah terima berkas dari rekrutmen ke onboarding telah terkonfirmasi."
                     };

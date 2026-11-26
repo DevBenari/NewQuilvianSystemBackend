@@ -18,6 +18,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             Guid id,
             CancellationToken cancellationToken = default);
 
+        Task<RecruitmentResult<CandidateScreeningResponse>> GetByApplicationIdAsync(
+            Guid applicationId,
+            CancellationToken cancellationToken = default);
+
+        Task<RecruitmentResult<ScreeningSummaryResponse>> GetSummaryAsync(
+            Guid? vacancyId,
+            CancellationToken cancellationToken = default);
+
+        Task<RecruitmentResult<ScreeningReconcilePreviewResponse>> GetReconcilePreviewAsync(
+            CancellationToken cancellationToken = default);
+
+        Task<RecruitmentResult<ScreeningReconcileResultResponse>> ReconcileMissingScreeningsAsync(
+            ClaimsPrincipal user,
+            CancellationToken cancellationToken = default);
+
         Task<RecruitmentResult<CandidateScreeningResponse>> InitiateScreeningAsync(
             InitiateScreeningRequest request,
             ClaimsPrincipal user,

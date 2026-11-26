@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
@@ -120,6 +121,51 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             return RecruitmentResult<PagedResult<McuClearanceListItemResponse>>.Ok(result, "Daftar rujukan MCU berhasil diambil.");
         }
 
+        public async Task<RecruitmentResult<List<EligibleMcuOfferResponse>>> GetEligibleOffersAsync(
+            string? search,
+            CancellationToken cancellationToken = default)
+        {
+            var dbQuery = _dbContext.HrdJobOffers
+                .AsNoTracking()
+                .Include(o => o.Application)
+                    .ThenInclude(a => a!.Candidate)
+                .Include(o => o.Application)
+                    .ThenInclude(a => a!.Vacancy)
+                .Where(o => !o.IsDelete
+                            && o.Status == JobOfferStatus.ConditionalAccepted
+                            && o.Application != null && !o.Application.IsDelete
+                            && o.Application.Candidate != null && !o.Application.Candidate.IsDelete && o.Application.Candidate.Status != CandidateStatus.Blacklisted
+                            && !_dbContext.HrdPreEmploymentMedicalChecks.Any(m => m.OfferId == o.Id && !m.IsDelete));
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                dbQuery = dbQuery.Where(o =>
+                    o.OfferNumber.ToLower().Contains(term) ||
+                    (o.Application != null && o.Application.ApplicationNumber.ToLower().Contains(term)) ||
+                    (o.Application != null && o.Application.Candidate != null && o.Application.Candidate.FullName.ToLower().Contains(term)));
+            }
+
+            var items = await dbQuery
+                .OrderByDescending(o => o.CandidateResponseDate ?? o.OfferDate)
+                .Select(o => new EligibleMcuOfferResponse
+                {
+                    OfferId = o.Id,
+                    OfferNumber = o.OfferNumber,
+                    ApplicationId = o.ApplicationId,
+                    ApplicationNumber = o.Application != null ? o.Application.ApplicationNumber : string.Empty,
+                    CandidateId = o.Application != null ? o.Application.CandidateId : Guid.Empty,
+                    CandidateCode = o.Application != null && o.Application.Candidate != null ? o.Application.Candidate.CandidateCode : string.Empty,
+                    CandidateName = o.Application != null && o.Application.Candidate != null ? o.Application.Candidate.FullName : string.Empty,
+                    VacancyTitle = o.Application != null && o.Application.Vacancy != null ? o.Application.Vacancy.Title : o.OfferedPositionTitle,
+                    ProposedJoinDate = o.ProposedJoinDate,
+                    OfferStatus = o.Status.ToString()
+                })
+                .ToListAsync(cancellationToken);
+
+            return RecruitmentResult<List<EligibleMcuOfferResponse>>.Ok(items, "Daftar penawaran bersyarat yang layak dirujuk MCU berhasil diambil.");
+        }
+
         public async Task<RecruitmentResult<McuClearanceResponse>> GetByIdAsync(
             Guid id,
             ClaimsPrincipal user,
@@ -174,6 +220,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             CancellationToken cancellationToken = default)
         {
             var userId = GetUserId(user);
+            if (userId == Guid.Empty)
+            {
+                return RecruitmentResult<McuClearanceResponse>.Fail("Identitas user pada token tidak valid.", 401);
+            }
 
             var offer = await _dbContext.HrdJobOffers
                 .Include(o => o.Application)
@@ -259,6 +309,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             CancellationToken cancellationToken = default)
         {
             var userId = GetUserId(user);
+            if (userId == Guid.Empty)
+            {
+                return RecruitmentResult<McuClearanceResponse>.Fail("Identitas user pada token tidak valid.", 401);
+            }
 
             if (request.ClearanceResult == McuClearanceResult.Pending)
             {

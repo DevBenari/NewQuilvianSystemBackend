@@ -37,6 +37,93 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public static bool IsEvaluationSubmitted(HrdCandidateEvaluation eval)
             => !eval.IsDelete && eval.UpdateDateTime.HasValue;
 
+        public static HrdCandidateScreening CreateInitialPendingScreening(
+            Guid applicationId,
+            bool isClinicalVacancy,
+            Guid actorUserId,
+            string? notes = null)
+        {
+            return new HrdCandidateScreening
+            {
+                Id = Guid.NewGuid(),
+                ApplicationId = applicationId,
+                ScreeningDate = DateTime.UtcNow,
+                Status = ScreeningStatus.Pending,
+                IsStrRequired = isClinicalVacancy,
+                ClinicalScreeningResult = ClinicalScreeningResult.NotApplicable,
+                Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
+                EvaluatedByUserId = actorUserId,
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = actorUserId
+            };
+        }
+
+        public static string ResolveClinicalScreeningResultLabel(
+            ScreeningStatus status,
+            bool isStrRequired,
+            ClinicalScreeningResult result)
+        {
+            if (isStrRequired && status == ScreeningStatus.Pending && result == ClinicalScreeningResult.NotApplicable)
+            {
+                return "Menunggu Pemeriksaan STR";
+            }
+
+            return result switch
+            {
+                ClinicalScreeningResult.StrValid => "STR Valid",
+                ClinicalScreeningResult.StrMissing => "STR Tidak Ditemukan",
+                ClinicalScreeningResult.StrExpiredAutoReject => "STR Kedaluwarsa (Auto-Reject)",
+                _ => isStrRequired ? "Memerlukan Verifikasi STR" : "Tidak Wajib STR (Non-Klinis)"
+            };
+        }
+
+        public static List<string> GetMissingMandatoryGeneralDocuments(IEnumerable<HrdCandidateDocument> documents)
+        {
+            var available = documents
+                .Where(d => !d.IsDelete)
+                .Select(d => d.DocumentType)
+                .ToHashSet();
+
+            var missing = new List<string>();
+            if (!available.Contains(DocumentType.IdentityCard))
+            {
+                missing.Add("KTP (Identitas)");
+            }
+
+            if (!available.Contains(DocumentType.CurriculumVitae))
+            {
+                missing.Add("CV / Daftar Riwayat Hidup");
+            }
+
+            if (!available.Contains(DocumentType.DiplomaCertificate))
+            {
+                missing.Add("Ijazah Pendidikan Terakhir");
+            }
+
+            return missing;
+        }
+
+        public static (bool HasStr, bool IsExpired, HrdCandidateDocument? SelectedStr) EvaluateClinicalStrDocument(
+            IEnumerable<HrdCandidateDocument> documents,
+            Guid applicationId,
+            DateOnly today)
+        {
+            var strDoc = documents
+                .Where(d => !d.IsDelete && d.DocumentType == DocumentType.StrCertificate)
+                .OrderByDescending(d => d.ApplicationId == applicationId)
+                .ThenByDescending(d => d.CreateDateTime)
+                .ThenByDescending(d => d.Id)
+                .FirstOrDefault();
+
+            if (strDoc == null)
+            {
+                return (false, false, null);
+            }
+
+            var isExpired = strDoc.ValidUntil.HasValue && strDoc.ValidUntil.Value < today;
+            return (true, isExpired, strDoc);
+        }
+
         public static bool IsTerminalApplication(HrdCandidateApplication app, HrdCandidate? candidate = null)
         {
             if (candidate != null && candidate.Status == CandidateStatus.Blacklisted)

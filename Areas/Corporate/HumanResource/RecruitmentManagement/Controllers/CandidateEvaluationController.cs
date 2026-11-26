@@ -54,6 +54,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             return ToActionResult(result);
         }
 
+        [HttpGet("eligible-applications")]
+        [AccessAction("Read", "Melihat Evaluasi Kandidat", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("CandidateEvaluation", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<EvaluationEligibleApplicationResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetEligibleApplications(
+            [FromQuery] EvaluationEligibleQuery query,
+            CancellationToken cancellationToken)
+        {
+            var canViewAll = await CanViewAllEvaluationsAsync();
+            var result = await _service.GetEligibleApplicationsAsync(query, User, canViewAll, cancellationToken);
+            return ToActionResult(result);
+        }
+
         [HttpGet("{id:guid}")]
         [AccessAction("Read", "Melihat Evaluasi Kandidat", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("CandidateEvaluation", "Read")]

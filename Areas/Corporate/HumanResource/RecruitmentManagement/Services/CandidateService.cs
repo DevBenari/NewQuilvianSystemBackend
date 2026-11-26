@@ -98,6 +98,55 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 })
                 .ToListAsync(cancellationToken);
 
+            var candidateIds = items.Select(i => i.Id).ToList();
+            if (candidateIds.Count > 0)
+            {
+                var apps = await _dbContext.HrdCandidateApplications
+                    .AsNoTracking()
+                    .Include(a => a.Vacancy)
+                    .Where(a => candidateIds.Contains(a.CandidateId) && !a.IsDelete)
+                    .OrderByDescending(a => a.ApplicationDate)
+                    .ToListAsync(cancellationToken);
+
+                var docCounts = await _dbContext.HrdCandidateDocuments
+                    .AsNoTracking()
+                    .Where(d => candidateIds.Contains(d.CandidateId) && !d.IsDelete)
+                    .GroupBy(d => d.CandidateId)
+                    .Select(g => new { CandidateId = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.CandidateId, x => x.Count, cancellationToken);
+
+                var appsByCandidate = apps.GroupBy(a => a.CandidateId)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                foreach (var item in items)
+                {
+                    item.MaskedNationalIdNumber = RecruitmentJourneyPolicy.MaskNationalIdNumber(item.NationalIdNumber);
+                    if (appsByCandidate.TryGetValue(item.Id, out var cApps) && cApps.Count > 0)
+                    {
+                        var latest = cApps[0];
+                        item.ApplicationsCount = cApps.Count;
+                        item.ActiveApplicationsCount = cApps.Count(a => !RecruitmentJourneyPolicy.IsInactiveApplicationForCandidateStatus(a));
+                        item.LatestApplicationId = latest.Id;
+                        item.LatestApplicationNumber = latest.ApplicationNumber;
+                        item.LatestVacancyTitle = latest.Vacancy?.Title;
+                        item.LatestApplicationStage = latest.CurrentStage;
+                        item.LatestApplicationStageStatus = latest.StageStatus;
+                    }
+
+                    if (docCounts.TryGetValue(item.Id, out var dCount))
+                    {
+                        item.DocumentsCount = dCount;
+                    }
+                }
+            }
+            else
+            {
+                foreach (var item in items)
+                {
+                    item.MaskedNationalIdNumber = RecruitmentJourneyPolicy.MaskNationalIdNumber(item.NationalIdNumber);
+                }
+            }
+
             var result = new PagedResult<CandidateListItemResponse>
             {
                 Items = items,
@@ -290,6 +339,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<CandidateApplicationResponse>.NotFound("Kandidat tidak ditemukan.");
             }
 
+            if (candidate.Status == CandidateStatus.Blacklisted)
+            {
+                return RecruitmentResult<CandidateApplicationResponse>.Unprocessable(
+                    "Pelamar dengan status daftar hitam (Blacklisted) tidak dapat mengajukan lamaran baru.");
+            }
+
             // Validasi keberadaan dan status lowongan kerja
             var vacancy = await _dbContext.HrdJobVacancies
                 .FirstOrDefaultAsync(v => v.Id == request.VacancyId && !v.IsDelete, cancellationToken);
@@ -319,8 +374,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<CandidateApplicationResponse>.Conflict("Kandidat sudah pernah mengajukan lamaran untuk lowongan kerja ini.");
             }
 
-            // Alokasi ApplicationNumber atomik melalui NumberSeriesAllocator (QBE-CODE-003/006)
+            // Alokasi ApplicationNumber atomik melalui NumberSeriesAllocator sebelum membuka transaksi (QBE-CODE-003/006)
             var applicationNumber = await AllocateApplicationNumberAsync(userId, cancellationToken);
+
+            await using var transaction = _dbContext.Database.IsRelational() && _dbContext.Database.CurrentTransaction == null
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                : null;
 
             var application = new HrdCandidateApplication
             {
@@ -337,6 +396,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 CreateBy = userId
             };
 
+            // Auto-screening Pending atomik per ApplicationId (BE-HRD-FIN-REC-002/003)
+            var initialScreening = RecruitmentJourneyPolicy.CreateInitialPendingScreening(
+                application.Id,
+                vacancy.IsClinical,
+                userId);
+
             // Update status kandidat jika masih Registered -> Active
             if (candidate.Status == CandidateStatus.Registered)
             {
@@ -347,16 +412,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             }
 
             await _dbContext.HrdCandidateApplications.AddAsync(application, cancellationToken);
+            await _dbContext.HrdCandidateScreenings.AddAsync(initialScreening, cancellationToken);
             try
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
+                if (transaction != null)
+                {
+                    await transaction.CommitAsync(cancellationToken);
+                }
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                }
                 return RecruitmentResult<CandidateApplicationResponse>.Conflict("Kandidat sudah pernah mengajukan lamaran untuk lowongan kerja ini.");
             }
             catch (DbUpdateConcurrencyException)
             {
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                }
                 return RecruitmentResult<CandidateApplicationResponse>.Conflict("Data kandidat sedang diperbarui oleh sesi lain. Silakan muat ulang dan coba kembali.");
             }
 
@@ -580,7 +658,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
 
         private static bool IsUniqueViolation(DbUpdateException ex)
         {
-            return ex.InnerException is PostgresException pg && pg.SqlState == PostgresErrorCodes.UniqueViolation;
+            if (ex.InnerException is PostgresException pg && pg.SqlState == PostgresErrorCodes.UniqueViolation)
+            {
+                return true;
+            }
+
+            var message = ex.InnerException?.Message ?? ex.Message;
+            return message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase);
         }
 
         private static DateOnly GetBusinessDate(DateTimeOffset instant)
@@ -626,6 +710,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 Id = c.Id,
                 CandidateCode = c.CandidateCode,
                 NationalIdNumber = c.NationalIdNumber,
+                MaskedNationalIdNumber = RecruitmentJourneyPolicy.MaskNationalIdNumber(c.NationalIdNumber),
                 FullName = c.FullName,
                 Gender = c.Gender,
                 BirthDate = c.BirthDate,

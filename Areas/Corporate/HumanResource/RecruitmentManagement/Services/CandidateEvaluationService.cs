@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -44,6 +45,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 .AsNoTracking()
                 .Include(e => e.Application)
                     .ThenInclude(a => a!.Candidate)
+                .Include(e => e.Application)
+                    .ThenInclude(a => a!.Vacancy)
                 .Where(e => !e.IsDelete);
 
             // VR-PKB-07 (HRD-DEC-241): tanpa CandidateEvaluation : ViewAll hanya evaluasi milik penilai yang login.
@@ -118,13 +121,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     Id = e.Id,
                     ApplicationId = e.ApplicationId,
                     ApplicationNumber = e.Application != null ? e.Application.ApplicationNumber : string.Empty,
+                    CandidateId = e.Application != null ? e.Application.CandidateId : Guid.Empty,
+                    CandidateCode = e.Application != null && e.Application.Candidate != null ? e.Application.Candidate.CandidateCode : string.Empty,
                     CandidateName = e.Application != null && e.Application.Candidate != null ? e.Application.Candidate.FullName : string.Empty,
+                    VacancyTitle = e.Application != null && e.Application.Vacancy != null ? e.Application.Vacancy.Title : string.Empty,
+                    IsClinicalVacancy = e.Application != null && e.Application.Vacancy != null && e.Application.Vacancy.IsClinical,
                     EvaluationType = e.EvaluationType,
                     EvaluatorName = e.EvaluatorName,
                     EvaluationDate = e.EvaluationDate,
                     Score = e.Score,
                     Recommendation = e.Recommendation,
-                    IsClinicalVetoApplied = e.IsClinicalVetoApplied
+                    IsClinicalVetoApplied = e.IsClinicalVetoApplied,
+                    IsSubmitted = e.UpdateDateTime.HasValue
                 })
                 .ToListAsync(cancellationToken);
 
@@ -140,6 +148,144 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             return RecruitmentResult<PagedResult<CandidateEvaluationListItemResponse>>.Ok(result, "Daftar evaluasi kandidat berhasil diambil.");
         }
 
+        public async Task<RecruitmentResult<PagedResult<EvaluationEligibleApplicationResponse>>> GetEligibleApplicationsAsync(
+            EvaluationEligibleQuery query,
+            ClaimsPrincipal user,
+            bool canViewAll,
+            CancellationToken cancellationToken = default)
+        {
+            var track = string.IsNullOrWhiteSpace(query.Track) ? null : query.Track.Trim().ToUpperInvariant();
+            if (track != null && track != CandidateEvaluationTracks.Hr && track != CandidateEvaluationTracks.Clinical)
+            {
+                return RecruitmentResult<PagedResult<EvaluationEligibleApplicationResponse>>.Fail(UnknownTrackMessage);
+            }
+
+            var actorUserId = user.GetUserId();
+            if (!canViewAll && actorUserId == Guid.Empty)
+            {
+                return RecruitmentResult<PagedResult<EvaluationEligibleApplicationResponse>>.Fail(InvalidActorMessage, 401);
+            }
+
+            var dbQuery = _dbContext.HrdCandidateApplications
+                .AsNoTracking()
+                .Include(a => a.Candidate)
+                .Include(a => a.Vacancy)
+                .Include(a => a.Screening)
+                .Include(a => a.Evaluations)
+                .Where(a => !a.IsDelete
+                            && a.Candidate != null && !a.Candidate.IsDelete && a.Candidate.Status != CandidateStatus.Blacklisted
+                            && a.CurrentStage != ApplicationStage.Rejected
+                            && a.CurrentStage != ApplicationStage.Withdrawn
+                            && a.Screening != null && !a.Screening.IsDelete && a.Screening.Status == ScreeningStatus.Passed);
+
+            if (track == CandidateEvaluationTracks.Clinical)
+            {
+                dbQuery = dbQuery.Where(a => a.Vacancy != null && a.Vacancy.IsClinical);
+            }
+
+            if (!canViewAll)
+            {
+                dbQuery = dbQuery.Where(a => a.Evaluations.Any(e => !e.IsDelete && e.EvaluatorUserId == actorUserId));
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var term = query.Search.Trim().ToLower();
+                dbQuery = dbQuery.Where(a =>
+                    a.ApplicationNumber.ToLower().Contains(term) ||
+                    (a.Candidate != null && (a.Candidate.FullName.ToLower().Contains(term) || a.Candidate.CandidateCode.ToLower().Contains(term))) ||
+                    (a.Vacancy != null && a.Vacancy.Title.ToLower().Contains(term)));
+            }
+
+            var apps = await dbQuery
+                .OrderByDescending(a => a.ApplicationDate)
+                .ToListAsync(cancellationToken);
+
+            var projected = new List<EvaluationEligibleApplicationResponse>();
+            foreach (var app in apps)
+            {
+                if (RecruitmentJourneyPolicy.IsTerminalApplication(app, app.Candidate))
+                {
+                    continue;
+                }
+
+                var evals = app.Evaluations.Where(e => !e.IsDelete).ToList();
+                var hrEval = evals
+                    .Where(e => e.EvaluationType == EvaluationType.HrInterview)
+                    .OrderByDescending(e => RecruitmentJourneyPolicy.IsEvaluationSubmitted(e))
+                    .ThenByDescending(e => e.UpdateDateTime ?? e.CreateDateTime)
+                    .FirstOrDefault();
+
+                var clinEval = evals
+                    .Where(e => e.EvaluationType == EvaluationType.ClinicalAssessment || e.EvaluationType == EvaluationType.UserInterview)
+                    .OrderByDescending(e => RecruitmentJourneyPolicy.IsEvaluationSubmitted(e))
+                    .ThenByDescending(e => e.UpdateDateTime ?? e.CreateDateTime)
+                    .FirstOrDefault();
+
+                var isClinical = app.Vacancy?.IsClinical ?? false;
+                var hrSubmitted = hrEval != null && RecruitmentJourneyPolicy.IsEvaluationSubmitted(hrEval);
+                var clinSubmitted = clinEval != null && RecruitmentJourneyPolicy.IsEvaluationSubmitted(clinEval);
+
+                if (query.PendingOnly == true)
+                {
+                    var isTrackPending = track == CandidateEvaluationTracks.Hr
+                        ? !hrSubmitted
+                        : track == CandidateEvaluationTracks.Clinical
+                            ? isClinical && !clinSubmitted
+                            : !hrSubmitted || (isClinical && !clinSubmitted);
+                    if (!isTrackPending)
+                    {
+                        continue;
+                    }
+                }
+
+                var offerPrereq = RecruitmentJourneyPolicy.EvaluateOfferPrerequisites(app, app.Vacancy, app.Screening, evals, app.Candidate);
+                projected.Add(new EvaluationEligibleApplicationResponse
+                {
+                    ApplicationId = app.Id,
+                    ApplicationNumber = app.ApplicationNumber,
+                    CandidateId = app.CandidateId,
+                    CandidateCode = app.Candidate?.CandidateCode ?? string.Empty,
+                    CandidateName = app.Candidate?.FullName ?? string.Empty,
+                    VacancyId = app.VacancyId,
+                    VacancyTitle = app.Vacancy?.Title ?? string.Empty,
+                    IsClinicalVacancy = isClinical,
+                    CurrentStageName = app.CurrentStage.ToString(),
+                    StageStatus = app.StageStatus,
+                    HasHrSession = hrEval != null,
+                    HrEvaluationId = hrEval?.Id,
+                    HrIsSubmitted = hrSubmitted,
+                    HrScore = hrSubmitted ? hrEval!.Score : null,
+                    HrRecommendation = hrSubmitted ? hrEval!.Recommendation.ToString() : null,
+                    HasClinicalSession = clinEval != null,
+                    ClinicalEvaluationId = clinEval?.Id,
+                    ClinicalIsSubmitted = clinSubmitted,
+                    ClinicalScore = clinSubmitted ? clinEval!.Score : null,
+                    ClinicalRecommendation = clinSubmitted ? clinEval!.Recommendation.ToString() : null,
+                    HasClinicalVeto = offerPrereq.HasClinicalVeto,
+                    CanCreateOffer = offerPrereq.CanCreateOffer
+                });
+            }
+
+            var totalData = projected.Count;
+            var pageNumber = query.PageNumber > 0 ? query.PageNumber : 1;
+            var pageSize = query.PageSize > 0 ? query.PageSize : 10;
+            var pagedItems = projected.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+
+            var pageResult = new PagedResult<EvaluationEligibleApplicationResponse>
+            {
+                Items = pagedItems,
+                TotalData = totalData,
+                TotalPage = pageSize > 0 ? (int)Math.Ceiling((double)totalData / pageSize) : 0,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+
+            return RecruitmentResult<PagedResult<EvaluationEligibleApplicationResponse>>.Ok(
+                pageResult,
+                "Daftar antrean evaluasi berdasarkan kelayakan lamaran berhasil diambil.");
+        }
+
         public async Task<RecruitmentResult<CandidateEvaluationResponse>> GetByIdAsync(
             Guid id,
             ClaimsPrincipal user,
@@ -150,6 +296,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 .AsNoTracking()
                 .Include(x => x.Application)
                     .ThenInclude(a => a!.Candidate)
+                .Include(x => x.Application)
+                    .ThenInclude(a => a!.Vacancy)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
             if (e == null)
@@ -179,6 +327,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 .AsNoTracking()
                 .Include(x => x.Application)
                     .ThenInclude(a => a!.Candidate)
+                .Include(x => x.Application)
+                    .ThenInclude(a => a!.Vacancy)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
             if (e == null)
@@ -262,6 +412,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             CancellationToken cancellationToken = default)
         {
             var userId = GetUserId(user);
+            if (userId == Guid.Empty)
+            {
+                return RecruitmentResult<CandidateEvaluationResponse>.Fail(InvalidActorMessage, 401);
+            }
 
             var evaluation = await _dbContext.HrdCandidateEvaluations
                 .Include(e => e.Application)
@@ -472,7 +626,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 ApplicationId = e.ApplicationId,
                 ApplicationNumber = e.Application?.ApplicationNumber ?? string.Empty,
                 CandidateId = e.Application?.CandidateId ?? Guid.Empty,
+                CandidateCode = e.Application?.Candidate?.CandidateCode ?? string.Empty,
                 CandidateName = e.Application?.Candidate?.FullName ?? string.Empty,
+                VacancyTitle = e.Application?.Vacancy?.Title ?? string.Empty,
+                IsClinicalVacancy = e.Application?.Vacancy?.IsClinical ?? false,
                 EvaluationType = e.EvaluationType,
                 EvaluatorUserId = e.EvaluatorUserId,
                 EvaluatorName = e.EvaluatorName,
@@ -483,6 +640,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 IsClinicalVetoApplied = e.IsClinicalVetoApplied,
                 VetoReason = e.VetoReason,
                 Notes = e.Notes,
+                IsSubmitted = RecruitmentJourneyPolicy.IsEvaluationSubmitted(e),
                 CreateDateTime = e.CreateDateTime
             };
         }

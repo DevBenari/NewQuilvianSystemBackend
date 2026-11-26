@@ -12,10 +12,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
     public interface IHrdWorkforcePlanningSettingService
     {
         /// <summary>
+        /// Mengambil daftar pengaturan seluruh rumah sakit yang diizinkan (LEFT JOIN MstHospitalSite dan HrdWorkforcePlanningSetting)
+        /// beserta ringkasan kelengkapan konfigurasi.
+        /// </summary>
+        Task<WorkforcePlanningResult<WorkforcePlanningSettingListResponse>> GetListAsync(
+            WorkforcePlanningSettingListQuery query,
+            Guid currentUserId,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Mengambil pengaturan satu rumah sakit.
         /// Rumah sakit yang belum memiliki baris konfigurasi akan mengembalikan kedua nilai kosong (null), bukan angka bawaan.
         /// </summary>
         Task<WorkforcePlanningResult<WorkforcePlanningSettingResponse>> GetByHospitalSiteIdAsync(Guid hospitalSiteId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Mengambil pengaturan satu rumah sakit dengan penegakan pembatasan cakupan rumah sakit pengguna.
+        /// </summary>
+        Task<WorkforcePlanningResult<WorkforcePlanningSettingResponse>> GetByHospitalSiteIdAsync(Guid hospitalSiteId, Guid currentUserId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Mengubah atau membuat pengaturan satu rumah sakit dengan validasi alasan, batas hari wajar, dan optimistic concurrency token.

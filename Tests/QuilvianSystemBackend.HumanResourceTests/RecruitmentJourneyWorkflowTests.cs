@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
@@ -749,6 +751,200 @@ public sealed class RecruitmentJourneyWorkflowTests : IDisposable
         var evalStage = assessorRes.Data!.Stages.Single(s => s.StageKey == RecruitmentJourneyStageKeys.Evaluation);
         Assert.True(evalStage.EvaluationDetail!.HasHiddenOtherEvaluatorSessions);
         Assert.Empty(evalStage.EvaluationDetail.Sessions);
+    }
+
+    [Fact]
+    public async Task ApplyVacancy_AutoCreates_Pending_Screening_Dan_Anti_Duplikasi_Serta_Reconcile_Idempoten()
+    {
+        using var ctx = _db.CreateContext();
+        var super = MakePrincipal(_superUserId, "Super");
+        var allocator = new NumberSeriesAllocator(new JourneyDbFactory(_db));
+        var storage = new HrAttachmentStorage(null!, new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
+        var candSvc = new CandidateService(ctx, allocator, storage);
+        var screeningSvc = new CandidateScreeningService(ctx);
+
+        // Register profil saja -> tidak membuat lamaran atau screening
+        var reg = await candSvc.RegisterAsync(new RegisterCandidateRequest
+        {
+            NationalIdNumber = "3174010101900777",
+            FullName = "Kandidat Auto Screening",
+            Gender = "Perempuan",
+            BirthDate = new DateOnly(1996, 3, 15),
+            BirthPlace = "Bandung",
+            Email = "auto.screen@uji.local",
+            PhoneNumber = "0812333444"
+        }, super);
+        Assert.True(reg.Success, reg.Message);
+        Assert.Equal(0, ctx.HrdCandidateScreenings.Count(s => !s.IsDelete));
+
+        // Apply lowongan klinis -> atomik menghasilkan 1 application + 1 screening Pending (IsStrRequired=true)
+        var applyClin = await candSvc.ApplyVacancyAsync(reg.Data!.Id, new ApplyVacancyRequest
+        {
+            VacancyId = _vacClinicalId,
+            Notes = "Lamaran IGD"
+        }, super);
+        Assert.True(applyClin.Success, applyClin.Message);
+
+        var createdScreening = await screeningSvc.GetByApplicationIdAsync(applyClin.Data!.Id);
+        Assert.True(createdScreening.Success, createdScreening.Message);
+        Assert.Equal(ScreeningStatus.Pending, createdScreening.Data!.Status);
+        Assert.True(createdScreening.Data.IsStrRequired);
+        Assert.Equal("Menunggu Pemeriksaan STR", createdScreening.Data.ClinicalScreeningResultLabel);
+
+        // Double-click / apply ulang ke lowongan yang sama -> 409 Conflict, tidak ada duplikasi screening
+        var dupApply = await candSvc.ApplyVacancyAsync(reg.Data.Id, new ApplyVacancyRequest
+        {
+            VacancyId = _vacClinicalId
+        }, super);
+        Assert.Equal(409, dupApply.StatusCode);
+        Assert.Equal(1, ctx.HrdCandidateScreenings.Count(s => s.ApplicationId == applyClin.Data.Id && !s.IsDelete));
+
+        // Seed lamaran lama (Screening/Submitted) tanpa screening + lamaran FastTrack (Offering) -> reconcile hanya buat 1
+        var (_, legacyAppId) = SeedApplication(ctx, clinical: false, nik: "3174010101900778");
+        var legacyApp = ctx.HrdCandidateApplications.First(a => a.Id == legacyAppId);
+        legacyApp.StageStatus = "Submitted";
+        var (_, ftAppId) = SeedApplication(ctx, clinical: false, nik: "3174010101900779");
+        var ftApp = ctx.HrdCandidateApplications.First(a => a.Id == ftAppId);
+        ftApp.CurrentStage = ApplicationStage.Offering;
+        ftApp.StageStatus = "FastTrackPromotedFromTalentPool";
+        ctx.SaveChanges();
+
+        var preview = await screeningSvc.GetReconcilePreviewAsync();
+        Assert.True(preview.Success);
+        Assert.Equal(1, preview.Data!.EligibleCount);
+        Assert.Equal(legacyAppId, preview.Data.EligibleItems[0].ApplicationId);
+        Assert.Contains(preview.Data.SkippedItems, s => s.ApplicationId == ftAppId);
+
+        var reconcile = await screeningSvc.ReconcileMissingScreeningsAsync(super);
+        Assert.True(reconcile.Success, reconcile.Message);
+        Assert.Equal(1, reconcile.Data!.CreatedCount);
+
+        // Rerun idempoten -> 0 baru
+        var rerun = await screeningSvc.ReconcileMissingScreeningsAsync(super);
+        Assert.True(rerun.Success);
+        Assert.Equal(0, rerun.Data!.CreatedCount);
+    }
+
+    [Fact]
+    public async Task Screening_HardGate_Str_Dan_Dokumen_Wajib_Umum_Serta_Eligible_Worklist()
+    {
+        using var ctx = _db.CreateContext();
+        var super = MakePrincipal(_superUserId, "Super");
+        var allocator = new NumberSeriesAllocator(new JourneyDbFactory(_db));
+        var storage = new HrAttachmentStorage(null!, new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
+        var candSvc = new CandidateService(ctx, allocator, storage);
+        var screeningSvc = new CandidateScreeningService(ctx);
+        var evalSvc = new CandidateEvaluationService(ctx);
+
+        var (candId, appId) = SeedApplication(ctx, clinical: true, nik: "3174010101900888");
+        var app = ctx.HrdCandidateApplications.First(a => a.Id == appId);
+        app.StageStatus = "Submitted";
+        ctx.SaveChanges();
+        var initRes = await screeningSvc.InitiateScreeningAsync(new InitiateScreeningRequest
+        {
+            ApplicationId = appId,
+            IsStrRequired = true
+        }, super);
+        Assert.True(initRes.Success);
+
+        // Hanya punya STR valid tanpa KTP/CV/Ijazah -> Decision=Passed wajib ditolak 422
+        ctx.HrdCandidateDocuments.Add(new HrdCandidateDocument
+        {
+            Id = Guid.NewGuid(),
+            CandidateId = candId,
+            ApplicationId = appId,
+            DocumentType = DocumentType.StrCertificate,
+            DocumentTitle = "STR Aktif",
+            DocumentNumber = "STR-001",
+            FilePath = "recruitment-candidate-document/2026/11/str.pdf",
+            MimeType = "application/pdf",
+            ValidUntil = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1))
+        });
+        ctx.SaveChanges();
+
+        var missingDocsFail = await screeningSvc.EvaluateScreeningAsync(new EvaluateScreeningRequest
+        {
+            ApplicationId = appId,
+            Decision = ScreeningStatus.Passed
+        }, super);
+        Assert.False(missingDocsFail.Success);
+        Assert.Equal(422, missingDocsFail.StatusCode);
+
+        // Simpan catatan kelengkapan (Decision = Pending) -> tetap Pending
+        var draftSave = await screeningSvc.EvaluateScreeningAsync(new EvaluateScreeningRequest
+        {
+            ApplicationId = appId,
+            Decision = ScreeningStatus.Pending,
+            Notes = "Menunggu unggah KTP, CV, dan Ijazah."
+        }, super);
+        Assert.True(draftSave.Success);
+        Assert.Equal(ScreeningStatus.Pending, draftSave.Data!.Status);
+
+        // Lengkapi KTP, CV, Ijazah -> sekarang lulus dan langsung muncul di eligible-applications evaluasi meski 0 sesi
+        ctx.HrdCandidateDocuments.AddRange(
+            new HrdCandidateDocument { Id = Guid.NewGuid(), CandidateId = candId, ApplicationId = appId, DocumentType = DocumentType.IdentityCard, DocumentTitle = "KTP", FilePath = "ktp.pdf", MimeType = "application/pdf" },
+            new HrdCandidateDocument { Id = Guid.NewGuid(), CandidateId = candId, ApplicationId = appId, DocumentType = DocumentType.CurriculumVitae, DocumentTitle = "CV", FilePath = "cv.pdf", MimeType = "application/pdf" },
+            new HrdCandidateDocument { Id = Guid.NewGuid(), CandidateId = candId, ApplicationId = appId, DocumentType = DocumentType.DiplomaCertificate, DocumentTitle = "Ijazah", FilePath = "ijazah.pdf", MimeType = "application/pdf" }
+        );
+        ctx.SaveChanges();
+
+        var passed = await screeningSvc.EvaluateScreeningAsync(new EvaluateScreeningRequest
+        {
+            ApplicationId = appId,
+            Decision = ScreeningStatus.Passed,
+            Notes = "Lengkap & sesuai"
+        }, super);
+        Assert.True(passed.Success, passed.Message);
+        Assert.Equal(ScreeningStatus.Passed, passed.Data!.Status);
+        Assert.Equal(ClinicalScreeningResult.StrValid, passed.Data.ClinicalScreeningResult);
+
+        var eligibleEvals = await evalSvc.GetEligibleApplicationsAsync(new EvaluationEligibleQuery { PendingOnly = true }, super, canViewAll: true);
+        Assert.True(eligibleEvals.Success);
+        var row = Assert.Single(eligibleEvals.Data!.Items, x => x.ApplicationId == appId);
+        Assert.False(row.HasHrSession);
+        Assert.False(row.HasClinicalSession);
+
+        // Pastikan Journey API menghasilkan route /offers/ & /handoffs/ yang bersih
+        var journeySvc = new RecruitmentJourneyService(ctx, Pelaku.Izin(ctx));
+        var j = await journeySvc.GetApplicationJourneyAsync(appId, super);
+        Assert.True(j.Success);
+        Assert.Equal(6, j.Data!.Stages.Count);
+    }
+
+    [Fact]
+    public async Task TalentPool_Eligibility_Dan_FastTrack_Clinical_Str_Guards()
+    {
+        using var ctx = _db.CreateContext();
+        var super = MakePrincipal(_superUserId, "Super");
+        var poolSvc = new TalentPoolService(ctx);
+
+        // Kasus 1: kandidat veto klinis tidak boleh masuk Talent Pool
+        var (candVetoId, appVetoId) = SeedApplication(ctx, clinical: true, nik: "3174010101900901");
+        ctx.HrdCandidateScreenings.Add(new HrdCandidateScreening { Id = Guid.NewGuid(), ApplicationId = appVetoId, Status = ScreeningStatus.Passed, ClinicalScreeningResult = ClinicalScreeningResult.StrValid });
+        ctx.HrdCandidateEvaluations.Add(new HrdCandidateEvaluation { Id = Guid.NewGuid(), ApplicationId = appVetoId, EvaluationType = EvaluationType.HrInterview, EvaluatorUserId = _superUserId, Score = 80m, Recommendation = EvaluationRecommendation.Recommended, UpdateDateTime = DateTime.UtcNow });
+        ctx.HrdCandidateEvaluations.Add(new HrdCandidateEvaluation { Id = Guid.NewGuid(), ApplicationId = appVetoId, EvaluationType = EvaluationType.ClinicalAssessment, EvaluatorUserId = _clinicalAssessorUserId, Score = 45m, Recommendation = EvaluationRecommendation.NotRecommended, IsClinicalVetoApplied = true, VetoReason = "Gagal asesmen", UpdateDateTime = DateTime.UtcNow });
+        ctx.SaveChanges();
+
+        var vetoEnroll = await poolSvc.EnrollAsync(new EnrollTalentPoolRequest
+        {
+            CandidateId = candVetoId,
+            OriginalVacancyId = _vacClinicalId,
+            QualificationSummary = "Test veto",
+            RankingScore = 80m,
+            RankingPosition = 1
+        }, super);
+        Assert.Equal(422, vetoEnroll.StatusCode);
+
+        // Kasus 2: download sertifikat MCU membutuhkan hak Evaluate, bukan hanya Read
+        var downloadMethod = typeof(McuClearanceController).GetMethod(nameof(McuClearanceController.DownloadHrAttachment))!;
+        var permAttr = downloadMethod.GetCustomAttribute<AccessPermissionAttribute>();
+        Assert.Equal("OccupationalHealthClearance", (string)permAttr!.Arguments![0]);
+        Assert.Equal("Evaluate", (string)permAttr.Arguments[1]);
+    }
+
+    private sealed class JourneyDbFactory(JourneyTestDb db) : IDbContextFactory<ApplicationDbContext>
+    {
+        public ApplicationDbContext CreateDbContext() => db.CreateContext();
     }
 
     private sealed class JourneySqliteModelCustomizer(ModelCustomizerDependencies dependencies) : RelationalModelCustomizer(dependencies)

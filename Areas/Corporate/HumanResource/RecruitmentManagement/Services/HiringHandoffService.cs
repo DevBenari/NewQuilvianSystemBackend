@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
@@ -101,6 +102,89 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             };
 
             return RecruitmentResult<PagedResult<HiringHandoffListItemResponse>>.Ok(result, "Daftar berkas serah terima onboarding berhasil diambil.");
+        }
+
+        public async Task<RecruitmentResult<List<EligibleHandoffOfferResponse>>> GetEligibleOffersAsync(
+            string? search,
+            CancellationToken cancellationToken = default)
+        {
+            var dbQuery = _dbContext.HrdJobOffers
+                .AsNoTracking()
+                .Include(o => o.Application)
+                    .ThenInclude(a => a!.Candidate)
+                .Include(o => o.Application)
+                    .ThenInclude(a => a!.Vacancy)
+                .Include(o => o.MedicalCheck)
+                .Include(o => o.HiringHandoff)
+                .Where(o => !o.IsDelete
+                            && o.Status == JobOfferStatus.FinalAccepted
+                            && o.Application != null && !o.Application.IsDelete
+                            && o.Application.Candidate != null && !o.Application.Candidate.IsDelete);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                dbQuery = dbQuery.Where(o =>
+                    o.OfferNumber.ToLower().Contains(term) ||
+                    (o.Application != null && o.Application.ApplicationNumber.ToLower().Contains(term)) ||
+                    (o.Application != null && o.Application.Candidate != null && o.Application.Candidate.FullName.ToLower().Contains(term)));
+            }
+
+            var offers = await dbQuery.OrderByDescending(o => o.CandidateResponseDate ?? o.OfferDate).ToListAsync(cancellationToken);
+            var existingHandoffIds = offers
+                .Where(o => o.HiringHandoff != null && !o.HiringHandoff.IsDelete)
+                .Select(o => o.HiringHandoff!.Id)
+                .ToList();
+
+            var handoffsWithOnboarding = existingHandoffIds.Count == 0
+                ? new HashSet<Guid>()
+                : (await _dbContext.HrdOnboardingCases
+                    .AsNoTracking()
+                    .Where(c => !c.IsDelete && existingHandoffIds.Contains(c.HiringHandoffId))
+                    .Select(c => c.HiringHandoffId)
+                    .ToListAsync(cancellationToken)).ToHashSet();
+
+            var eligible = new List<EligibleHandoffOfferResponse>();
+            foreach (var offer in offers)
+            {
+                var app = offer.Application!;
+                var handoffPrereq = RecruitmentJourneyPolicy.EvaluateHandoffPrerequisites(app, offer, offer.MedicalCheck, app.Candidate);
+                if (!handoffPrereq.IsEligible)
+                {
+                    continue;
+                }
+
+                var activeHandoff = offer.HiringHandoff != null && !offer.HiringHandoff.IsDelete && offer.HiringHandoff.Status != HandoffStatus.Cancelled
+                    ? offer.HiringHandoff
+                    : null;
+                var needsRecovery = activeHandoff != null && !handoffsWithOnboarding.Contains(activeHandoff.Id);
+                if (activeHandoff != null && !needsRecovery)
+                {
+                    continue;
+                }
+
+                eligible.Add(new EligibleHandoffOfferResponse
+                {
+                    OfferId = offer.Id,
+                    OfferNumber = offer.OfferNumber,
+                    ApplicationId = offer.ApplicationId,
+                    ApplicationNumber = app.ApplicationNumber,
+                    CandidateId = app.CandidateId,
+                    CandidateCode = app.Candidate?.CandidateCode ?? string.Empty,
+                    CandidateName = app.Candidate?.FullName ?? string.Empty,
+                    VacancyId = app.VacancyId,
+                    VacancyTitle = app.Vacancy?.Title ?? offer.OfferedPositionTitle,
+                    IsRehire = app.Candidate?.IsRehire ?? false,
+                    PreviousWorkforceProfileId = app.Candidate?.PreviousWorkforceProfileId,
+                    McuClearanceId = offer.MedicalCheck!.Id,
+                    McuReferralNumber = offer.MedicalCheck.ReferralNumber,
+                    McuClearanceResult = offer.MedicalCheck.ClearanceResult.ToString(),
+                    NeedsOnboardingRecovery = needsRecovery,
+                    ExistingHandoffId = activeHandoff?.Id
+                });
+            }
+
+            return RecruitmentResult<List<EligibleHandoffOfferResponse>>.Ok(eligible, "Daftar penawaran final yang layak serah terima berhasil diambil.");
         }
 
         public async Task<RecruitmentResult<HiringHandoffResponse>> GetByIdAsync(

@@ -146,4 +146,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public JobOfferApprovalTier? ApprovalTier { get; set; }
         public string? Search { get; set; }
     }
+
+    public sealed class EligibleOfferApplicationResponse
+    {
+        public Guid ApplicationId { get; set; }
+        public string ApplicationNumber { get; set; } = string.Empty;
+        public Guid CandidateId { get; set; }
+        public string CandidateCode { get; set; } = string.Empty;
+        public string CandidateName { get; set; } = string.Empty;
+        public Guid VacancyId { get; set; }
+        public string VacancyTitle { get; set; } = string.Empty;
+        public bool IsClinical { get; set; }
+        public decimal? HrScore { get; set; }
+        public decimal? ClinicalScore { get; set; }
+        public string StageStatus { get; set; } = string.Empty;
+    }
 }
