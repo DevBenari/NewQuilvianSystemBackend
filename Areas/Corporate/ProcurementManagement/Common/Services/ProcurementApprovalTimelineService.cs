@@ -103,6 +103,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Ser
                     .Where(x => x.Id == documentId && !x.IsDelete).Select(x => x.WorkflowInstanceId).FirstOrDefaultAsync(cancellationToken),
                 ProcurementDocumentTypes.PackagePlan => _dbContext.PrcPackagePlans.AsNoTracking()
                     .Where(x => x.Id == documentId && !x.IsDelete).Select(x => x.WorkflowInstanceId).FirstOrDefaultAsync(cancellationToken),
+                // BE-PBJ-VD-007: usulan blokir/buka blokir vendor.
+                ProcurementDocumentTypes.VendorStatusRequest => _dbContext.PrcVendorStatusRequests.AsNoTracking()
+                    .Where(x => x.Id == documentId && !x.IsDelete).Select(x => x.WorkflowInstanceId).FirstOrDefaultAsync(cancellationToken),
                 _ => Task.FromResult<Guid?>(null)
             };
     }

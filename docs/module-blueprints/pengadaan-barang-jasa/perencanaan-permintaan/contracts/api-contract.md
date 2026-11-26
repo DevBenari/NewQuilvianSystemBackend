@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PP-API` · `last_changed_in: 1.3` (`PBJ-DEC-041`, `PBJ-DEC-042`, 2026-11-17) · status `approved` (`PBJ-DEC-034`) |
+| Kontrak | `PBJ-PP-API` · `last_changed_in: 1.4` (`PBJ-DEC-055`, 2026-11-17) · status `approved` (`PBJ-DEC-034`) |
 | Pemilik | Pengguna sesi · `approved_by: Pengguna sesi` · `approved_at: 2026-11-12` |
 | Masukan | `02-backend-architecture.md` revisi 2; `PBJ-PP-STATE` 1.0; `PBJ-PP-VAL` 1.0 |
 | Kompatibilitas | Seluruh endpoint baru. **Tidak ada endpoint existing yang diubah.** Perubahan `Wfl` bersifat internal (tanpa endpoint baru) |
@@ -14,6 +14,7 @@ Konvensi bersama:
 - Aksi pengubah status menerima header `Idempotency-Key` (UUID). Request ulang dengan kunci sama mengembalikan hasil pertama.
 - Ubah data mewajibkan `expectedRowVersion` di body.
 - Kode umum: 400 isian tidak terbaca; 401 belum masuk; 403 tidak punya izin; 404 tidak ada atau di luar cakupan unit; 409 bentrok status atau data basi; 422 aturan bisnis (`PBJ-VAL-*`).
+- **Saringan tanggal daftar (1.4, `PBJ-DEC-055`).** `GET /` pada `purchase-requests`, `purchase-request-verifications`, `purchase-request-verifications/stock-checks`, `need-plans`, `budgets`, `package-plans`, `master-data/items`, `master-data/item-categories`, `master-data/fund-sources`, dan `master-data/procurement-types` menerima `startDate` dan `endDate` (`yyyy-MM-dd`, tanggal akhir inklusif) serta `customPeriod` (`custom`, `today`, `last7days`, `last30days`, `thismonth`, `lastmonth`). Basis tanggal = tanggal data dibuat. `customPeriod` selain `custom` mengabaikan `startDate`/`endDate`. Rentang terbalik atau periode tak dikenal → 422 `PBJ-VAL-094`. `GET /filters/metadata` pada endpoint yang sama mengirim `customPeriods: [{ value, label, usesStartDate, usesEndDate }]`. **Contoh:** `GET /purchase-requests?customPeriod=thismonth` pada 17-11-2026 → PR yang dibuat 01-11-2026 s.d. 30-11-2026.
 
 Kolom **Hak akses** di sini adalah satu-satunya pemetaan endpoint ke izin di blueprint ini.
 

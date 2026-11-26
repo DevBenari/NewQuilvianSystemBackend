@@ -9,6 +9,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enum
         Staff = 1,
 
         [Display(Name = "Kiosk")]
-        Kiosk = 2
+        Kiosk = 2,
+
+        /// <summary>Diisi pasien di halaman Pendaftaran Pasien Online (kiosk Amendment PO, KSK-DSN-PO-014).</summary>
+        [Display(Name = "Pendaftaran Online")]
+        OnlineRegistration = 3
     }
 }

@@ -19,6 +19,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string PackagePlanDefinition = "PBJ-RPK";
         public const string BudgetDefinition = "PBJ-PAGU";
 
+        // Manajemen vendor (BE-PBJ-VD-001; PBJ-DEC-021, PBJ-ASM-003): usulan blokir dan buka blokir.
+        public const string VendorBlockDefinition = "PBJ-VND-BLOKIR";
+        public const string VendorUnblockDefinition = "PBJ-VND-BUKA";
+
         public const string OverBudgetCondition = "PBJ_OVER_BUDGET";
         public const string OutOfPlanCondition = "PBJ_OUT_OF_PLAN";
     }

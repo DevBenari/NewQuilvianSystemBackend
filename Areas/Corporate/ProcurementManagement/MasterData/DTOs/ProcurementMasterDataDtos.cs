@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.DTOs;
 
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.DTOs;
 
@@ -18,6 +19,9 @@ public sealed class UpdateProcurementMasterStatusRequest
 
 public sealed class ProcurementReferenceQuery
 {
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+    [MaxLength(20)] public string? CustomPeriod { get; set; }
     public string? Search { get; set; }
     public bool? IsActive { get; set; }
     public string SortBy { get; set; } = "name";
@@ -89,6 +93,7 @@ public sealed class ProcurementSortOptionResponse
 
 public sealed class ProcurementReferenceFilterMetadataResponse
 {
+    public List<ProcurementPeriodOptionResponse> CustomPeriods { get; set; } = ProcurementPeriodOptionResponse.Defaults();
     public ProcurementReferenceDefaultFilterResponse DefaultFilter { get; set; } = new();
     public List<ProcurementSortOptionResponse> SortOptions { get; set; } = new();
     public List<string> SortDirections { get; set; } = ["asc", "desc"];
@@ -115,6 +120,9 @@ public sealed class ProcurementTypeResponse
 
 public sealed class ProcurementItemQuery
 {
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+    [MaxLength(20)] public string? CustomPeriod { get; set; }
     public string? Search { get; set; }
     public bool? IsActive { get; set; }
     public Guid? ProcurementTypeId { get; set; }
@@ -213,6 +221,7 @@ public sealed class ProcurementItemDefaultFilterResponse
 
 public sealed class ProcurementItemFilterMetadataResponse
 {
+    public List<ProcurementPeriodOptionResponse> CustomPeriods { get; set; } = ProcurementPeriodOptionResponse.Defaults();
     public ProcurementItemDefaultFilterResponse DefaultFilter { get; set; } = new();
     public List<ProcurementSortOptionResponse> SortOptions { get; set; } = new();
     public List<string> SortDirections { get; set; } = ["asc", "desc"];
