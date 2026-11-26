@@ -147,12 +147,16 @@ public class ApiContractTests
 
         foreach (var nama in new[]
                  {
-                     "hasApproveAuthority", "hasUnitAuthority", "unitAuthorityMessage",
+                     "hasApproveAuthority",
                      "hasEmergencyAuthority", "verifyEmergencyMessage", "isOwnRequest",
                      "isLegacySubmission", "canApprove", "canAuthorizeEmergency", "version", "histories",
                      "emergencyRequestReason", "emergencyReviewDueState", "emergencyReviewDueAt",
                      "emergencyAuthorizedByName"
                  })
             Assert.True(akar.TryGetProperty(nama, out _), $"properti {nama} harus ada");
+
+        // FIN-LGS-070: penanda atasan unit dihapus dari kontrak; kewenangan hanya dari izin aktif.
+        foreach (var nama in new[] { "hasUnitAuthority", "unitAuthorityMessage" })
+            Assert.False(akar.TryGetProperty(nama, out _), $"properti {nama} tidak boleh ada lagi");
     }
 }

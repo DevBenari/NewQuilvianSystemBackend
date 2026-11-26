@@ -794,6 +794,8 @@ try
     builder.Services.AddScoped<PrescriptionStockReservationService>();
     builder.Services.AddScoped<StockRequestService>();
     builder.Services.AddScoped<DrugStockService>();
+    // Transaksi Stock Opname Logistik (FIN-LGS-091); tabelnya menunggu migrasi (BLOCKED_SCHEMA sebelum itu).
+    builder.Services.AddScoped<StockOpnameService>();
     builder.Services.AddScoped<DrugUnitConversionResolver>();
     builder.Services.AddScoped<StockTransferService>();
     builder.Services.AddScoped<DrugUsageService>();

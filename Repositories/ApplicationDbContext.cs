@@ -1117,6 +1117,11 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmDrugStockBalance> PhmDrugStockBalances { get; set; }
         public DbSet<PhmDrugStockMutation> PhmDrugStockMutations { get; set; }
 
+        // Stock Opname Logistik (FIN-LGS-091). Tabelnya menunggu migrasi oleh pihak berwenang;
+        // sebelum itu layanan menjawab BLOCKED_SCHEMA (PHM039), bukan galat basis data mentah.
+        public DbSet<PhmStockOpname> PhmStockOpnames { get; set; }
+        public DbSet<PhmStockOpnameLine> PhmStockOpnameLines { get; set; }
+
         public DbSet<PhmDrugReturn> PhmDrugReturns { get; set; }
         public DbSet<PhmDrugReturnItem> PhmDrugReturnItems { get; set; }
         public DbSet<PhmDrugReturnHistory> PhmDrugReturnHistories { get; set; }

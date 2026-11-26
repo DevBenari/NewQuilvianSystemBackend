@@ -4,8 +4,8 @@ using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 namespace QuilvianSystemBackend.Tests.Pharmacy.StockRequestApprovalTests;
 
 /// <summary>
-/// Uji unit murni atas pengaturan operasional: tenggat verifikasi susulan CITO (FIN-LGS-BE-005)
-/// dan penunjukan jabatan otorisasi CITO (FIN-LGS-BE-003). Tanpa basis data maupun jam sistem.
+/// Uji unit murni atas pengaturan operasional: tenggat verifikasi susulan CITO (FIN-LGS-BE-005).
+/// Penunjukan jabatan otorisasi CITO dihapus pada FIN-LGS-070. Tanpa basis data maupun jam sistem.
 /// </summary>
 public class OperationalSettingsUnitTests
 {
@@ -61,28 +61,5 @@ public class OperationalSettingsUnitTests
 
         Assert.Equal(StockRequestEmergencyReviewDueState.NotDue, tenggat.Classify(Otorisasi, Otorisasi.AddHours(7.99)));
         Assert.Equal(StockRequestEmergencyReviewDueState.Overdue, tenggat.Classify(Otorisasi, Otorisasi.AddHours(8)));
-    }
-
-    [Fact]
-    public void Penunjukan_jabatan_menerima_id_dan_kode_dalam_daftar_maupun_teks_berkoma()
-    {
-        var id = Guid.NewGuid();
-        var tunjuk = StockRequestEmergencyAuthorizerDesignation.Parse(
-            [$"{id}, POS-KEP-002", "POS-LOG-002", null, " "]);
-
-        Assert.True(tunjuk.IsConfigured);
-        Assert.Equal(id, Assert.Single(tunjuk.PositionIds));
-        Assert.Equal(2, tunjuk.PositionCodes.Count);
-        Assert.Contains("POS-KEP-002", tunjuk.PositionCodes);
-    }
-
-    [Fact]
-    public void Penunjukan_kosong_berarti_tidak_ada_jabatan_berwenang()
-    {
-        var kosong = StockRequestEmergencyAuthorizerDesignation.Parse([null, "", " , "]);
-
-        Assert.False(kosong.IsConfigured);
-        Assert.Empty(kosong.PositionIds);
-        Assert.Empty(kosong.PositionCodes);
     }
 }

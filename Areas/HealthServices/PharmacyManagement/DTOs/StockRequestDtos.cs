@@ -68,7 +68,7 @@ public class SubmitStockRequestRequest
 
 // ------------------------------------------------------------- keputusan atasan
 
-/// <summary>Persetujuan atasan unit atas permintaan yang menunggu persetujuan.</summary>
+/// <summary>Persetujuan penyetuju atas permintaan yang menunggu persetujuan.</summary>
 public class ApproveStockRequestRequest
 {
     [MaxLength(1000)] public string? Note { get; set; }
@@ -76,7 +76,7 @@ public class ApproveStockRequestRequest
     [Required, MaxLength(100)] public string IdempotencyKey { get; set; } = string.Empty;
 }
 
-/// <summary>Penolakan atasan unit; alasannya wajib.</summary>
+/// <summary>Penolakan oleh penyetuju; alasannya wajib.</summary>
 public class RejectStockRequestRequest
 {
     [Required, MaxLength(1000)] public string Reason { get; set; } = string.Empty;
@@ -177,7 +177,7 @@ public class StockRequestPagedQuery
 
     /// <summary>
     /// Menyaring menurut keadaan verifikasi susulan CITO, misalnya <c>Pending</c> untuk daftar
-    /// CITO yang belum diverifikasi atasan unit.
+    /// CITO yang belum diverifikasi susulan.
     /// </summary>
     [EnumDataType(typeof(StockRequestEmergencyReviewState))]
     public StockRequestEmergencyReviewState? EmergencyReviewState { get; set; }
@@ -190,8 +190,8 @@ public class StockRequestPagedQuery
     public StockRequestEmergencyReviewDueState? EmergencyReviewDueState { get; set; }
 
     /// <summary>
-    /// Cakupan daftar. <c>MyAuthority</c> = "Unit yang Saya Pimpin": dihitung backend dari
-    /// kewenangan aktual pengguna yang login, bukan dari daftar unit yang dikirim klien.
+    /// Cakupan daftar. <c>MyAuthority</c> = "Dalam Kewenangan Saya": dihitung backend dari izin
+    /// aktif pengguna yang login (Approve: seluruh unit, CITO: permintaan CITO; tanpa draf).
     /// </summary>
     [EnumDataType(typeof(StockRequestListScope))]
     public StockRequestListScope Scope { get; set; } = StockRequestListScope.All;
@@ -296,7 +296,7 @@ public class StockRequestSummaryResponse
     /// aturan transisi hanya ada di backend, layar cukup menuruti.
     /// </summary>
     /// <remarks>
-    /// Gudang tetap tidak memutuskan permintaan. Persetujuan dilakukan atasan unit
+    /// Gudang tetap tidak memutuskan permintaan. Persetujuan dilakukan pemegang izin persetujuan
     /// (<see cref="CanApprove"/>) atau petugas CITO berwenang (<see cref="CanAuthorizeEmergency"/>);
     /// gudang hanya menyerahkan permintaan yang sudah disetujui (<c>LGS-DEC-002</c>).
     /// </remarks>
@@ -356,70 +356,47 @@ public class StockRequestSummaryResponse
 }
 
 /// <summary>
-/// Cakupan kewenangan pengguna yang login atas permintaan stok, dihitung backend
-/// ("Unit yang Saya Pimpin"). Tidak memuat data pegawai lain.
+/// Cakupan kewenangan pengguna yang login atas permintaan stok, dihitung backend dari izin
+/// aktifnya ("Dalam Kewenangan Saya", FIN-LGS-070). Tidak memuat data pegawai lain.
 /// </summary>
 public class StockRequestApprovalScopeResponse
 {
-    /// <summary>Izin <c>StockRequest:Approve</c> diberikan eksplisit pada penempatan jabatan aktif.</summary>
+    /// <summary>
+    /// Izin <c>StockRequest:Approve</c> diberikan eksplisit lewat Akses Role: pengguna dapat
+    /// menyetujui, menolak, dan memverifikasi susulan permintaan unit mana pun, kecuali miliknya sendiri.
+    /// </summary>
     public bool HasApprovePermission { get; set; }
 
-    /// <summary>Berwenang mengotorisasi CITO (jabatan ditunjuk manajemen + izin eksplisit).</summary>
+    /// <summary>Izin <c>StockRequest:AuthorizeEmergency</c> diberikan eksplisit lewat Akses Role.</summary>
     public bool HasEmergencyAuthority { get; set; }
-
-    /// <summary>Daftar jabatan otorisasi CITO sudah ditetapkan di lingkungan ini.</summary>
-    public bool EmergencyDesignationConfigured { get; set; }
-
-    /// <summary>Unit layanan yang dipimpin, sah menurut struktur organisasi.</summary>
-    public List<StockRequestSupervisedUnitResponse> SupervisedUnits { get; set; } = [];
 
     /// <summary>Penjelasan bila cakupan kosong atau tidak lengkap; null bila tidak ada catatan.</summary>
     public string? Message { get; set; }
 }
 
-public class StockRequestSupervisedUnitResponse
-{
-    public Guid ServiceUnitId { get; set; }
-    public string ServiceUnitCode { get; set; } = string.Empty;
-    public string ServiceUnitName { get; set; } = string.Empty;
-    public string OrganizationUnitName { get; set; } = string.Empty;
-}
-
 /// <summary>
-/// Kesiapan data organisasi dan konfigurasi untuk persetujuan permintaan stok. Hanya membaca;
-/// berisi jumlah dan identitas unit, tanpa identitas pegawai.
+/// Kesiapan izin dan konfigurasi untuk persetujuan permintaan stok. Hanya membaca; berisi jumlah,
+/// tanpa identitas pegawai. Data organisasi HRD tidak lagi dibaca (FIN-LGS-070).
 /// </summary>
 public class StockRequestApprovalReadinessResponse
 {
-    public int ActiveServiceUnits { get; set; }
-    public int MappedServiceUnits { get; set; }
-    public int MappedServiceUnitsWithSupervisor { get; set; }
-
-    /// <summary>Unit tertaut yang atasannya benar-benar memegang izin Approve eksplisit.</summary>
-    public int MappedServiceUnitsWithAuthorizedSupervisor { get; set; }
-    public int ActiveManagerialAssignments { get; set; }
+    /// <summary>Kebijakan akses aktif yang memberi <c>StockRequest:Approve</c>.</summary>
     public int ApprovePermissionGrants { get; set; }
+
+    /// <summary>Kebijakan akses aktif yang memberi <c>StockRequest:AuthorizeEmergency</c>.</summary>
     public int EmergencyPermissionGrants { get; set; }
-    public int EmergencyDesignatedPositions { get; set; }
-    public int EmergencyDesignatedPositionsWithGrant { get; set; }
+
+    /// <summary>Akun aktif yang benar-benar memegang <c>StockRequest:Approve</c>.</summary>
+    public int ApproveUsers { get; set; }
+
+    /// <summary>Akun aktif yang benar-benar memegang <c>StockRequest:AuthorizeEmergency</c>.</summary>
+    public int EmergencyUsers { get; set; }
+
     public string ApprovalCutoverState { get; set; } = string.Empty;
     public string EmergencyReviewDeadline { get; set; } = string.Empty;
     public bool IsReadyForApproval { get; set; }
     public bool IsReadyForEmergency { get; set; }
     public List<string> Blockers { get; set; } = [];
-    public List<StockRequestReadinessUnitResponse> Units { get; set; } = [];
-}
-
-public class StockRequestReadinessUnitResponse
-{
-    public Guid ServiceUnitId { get; set; }
-    public string ServiceUnitCode { get; set; } = string.Empty;
-    public string ServiceUnitName { get; set; } = string.Empty;
-    public string? OrganizationUnitName { get; set; }
-    public int ActiveSupervisors { get; set; }
-
-    /// <summary>Atasan aktif pada unit ini yang memegang izin Approve eksplisit.</summary>
-    public int AuthorizedSupervisors { get; set; }
 }
 
 public class StockRequestDetailResponse : StockRequestSummaryResponse
@@ -427,14 +404,14 @@ public class StockRequestDetailResponse : StockRequestSummaryResponse
     public Guid RequestedByWorkforceId { get; set; }
     public string? Notes { get; set; }
     /// <summary>
-    /// Waktu keputusan atasan unit — disetujui, ditolak, atau diotorisasi CITO (LGS-DEC-002).
+    /// Waktu keputusan penyetuju — disetujui, ditolak, atau diotorisasi CITO (LGS-DEC-002).
     /// Sejak FIN-LGS-015 tidak lagi ditimpa penyerahan maupun pembatalan. Baris lama yang dibuat
     /// sebelum perbaikan itu dapat masih berisi waktu penyerahan/pembatalan; untuk tampilan pakai
     /// <see cref="StockRequestSummaryResponse.DecisionAt"/> yang dibaca dari riwayat.
     /// </summary>
     public DateTime? DecidedAt { get; set; }
 
-    /// <summary>Alasan atau catatan keputusan atasan unit; dengan catatan yang sama untuk baris lama.</summary>
+    /// <summary>Alasan atau catatan keputusan penyetuju; dengan catatan yang sama untuk baris lama.</summary>
     public string? DecisionReason { get; set; }
     public List<StockRequestItemResponse> Items { get; set; } = [];
     public List<StockRequestHistoryResponse> Histories { get; set; } = [];
@@ -446,29 +423,21 @@ public class StockRequestDetailResponse : StockRequestSummaryResponse
     public bool IsOwnRequest { get; set; }
 
     /// <summary>
-    /// Pengguna yang sedang membuka adalah atasan unit dari unit peminta. Hanya dihitung
-    /// selama permintaan menunggu persetujuan; selain itu bernilai null.
-    /// </summary>
-    public bool? HasUnitAuthority { get; set; }
-
-    /// <summary>Sebab pengguna tidak berwenang sebagai atasan unit, untuk ditampilkan apa adanya.</summary>
-    public string? UnitAuthorityMessage { get; set; }
-
-    /// <summary>
-    /// Pengguna memegang izin otorisasi CITO yang diberikan eksplisit lewat penempatan jabatan.
+    /// Pengguna memegang izin otorisasi CITO yang diberikan eksplisit lewat Akses Role.
     /// Hanya dihitung untuk permintaan CITO yang menunggu; selain itu bernilai null.
     /// </summary>
     public bool? HasEmergencyAuthority { get; set; }
 
     /// <summary>
-    /// Pengguna memegang izin <c>StockRequest:Approve</c> yang diberikan eksplisit lewat penempatan
-    /// jabatan. Dihitung selama permintaan menunggu persetujuan atau menunggu verifikasi susulan.
+    /// Pengguna memegang izin <c>StockRequest:Approve</c> yang diberikan eksplisit lewat Akses Role.
+    /// Dihitung selama permintaan menunggu persetujuan atau menunggu verifikasi susulan. Bersama
+    /// <see cref="IsOwnRequest"/>, inilah seluruh syarat memutus sejak FIN-LGS-070.
     /// </summary>
     public bool? HasApproveAuthority { get; set; }
 
     /// <summary>
     /// Pengguna boleh melakukan verifikasi susulan CITO atas permintaan ini: izin persetujuan
-    /// eksplisit, atasan unit peminta, bukan pemohon, dan bukan pengotorisasi CITO-nya.
+    /// eksplisit, bukan pemohon, dan bukan pengotorisasi CITO-nya.
     /// Null bila permintaan tidak sedang menunggu verifikasi susulan.
     /// </summary>
     public bool? CanVerifyEmergency { get; set; }
@@ -524,6 +493,18 @@ public class StockRequestItemResponse
 
     public string? Note { get; set; }
     public int LineNumber { get; set; }
+
+    /// <summary>
+    /// Stok yang dapat diserahkan untuk obat baris ini di gudang pemenuhan (FIN-LGS-081), dengan
+    /// aturan yang sama dengan penyerahan: status Siap Pakai, belum kedaluwarsa, saldo fisik dikurangi
+    /// yang ditahan, dalam satuan stok obat. Baris lain dengan obat yang sama memakai stok yang sama.
+    /// Hanya diisi selama permintaan dapat diserahkan; null selain itu. Ini informasi untuk petugas —
+    /// kecukupan tetap diperiksa backend saat penyerahan (<c>PHM028</c>).
+    /// </summary>
+    public decimal? AvailableQuantity { get; set; }
+
+    /// <summary>Satuan stok obat, satuan dari <see cref="AvailableQuantity"/>; null bila belum diatur.</summary>
+    public string? StockUnitName { get; set; }
 }
 
 public class StockRequestHistoryResponse

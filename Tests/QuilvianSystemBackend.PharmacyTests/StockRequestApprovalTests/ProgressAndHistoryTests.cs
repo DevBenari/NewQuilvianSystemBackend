@@ -189,11 +189,13 @@ public class ProgressAndHistoryTests
         using var h = new StockRequestApprovalHarness();
         var (unitA, _) = await h.PermintaanAsync(unitId: h.UnitId);
         var (unitB, _) = await h.PermintaanAsync(unitId: h.UnitLainId);
+        var (draf, _) = await h.PermintaanAsync(status: StockRequestStatus.Draft, unitId: h.UnitId);
 
-        var atasanLain = await h.Layanan(h.CreateContext(), h.AtasanLainUserId)
+        // Pemegang izin persetujuan melihat permintaan seluruh unit yang sudah diajukan (FIN-LGS-070).
+        var penyetuju = await h.Layanan(h.CreateContext(), h.AtasanLainUserId)
             .GetHistoryPagedAsync(new StockRequestHistoryPagedQuery { Scope = StockRequestListScope.MyAuthority });
-        Assert.All(atasanLain.Items, x => Assert.Equal(unitB, x.StockRequestId));
-        Assert.DoesNotContain(atasanLain.Items, x => x.StockRequestId == unitA);
+        Assert.Equal(new HashSet<Guid> { unitA, unitB }, penyetuju.Items.Select(x => x.StockRequestId).ToHashSet());
+        Assert.DoesNotContain(penyetuju.Items, x => x.StockRequestId == draf);
 
         var tanpaKewenangan = await h.Layanan(h.CreateContext(), h.StafUserId)
             .GetHistoryPagedAsync(new StockRequestHistoryPagedQuery { Scope = StockRequestListScope.MyAuthority });

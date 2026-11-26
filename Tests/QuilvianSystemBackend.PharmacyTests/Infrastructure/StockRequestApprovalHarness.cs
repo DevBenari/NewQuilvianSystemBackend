@@ -11,6 +11,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
@@ -28,20 +29,20 @@ namespace QuilvianSystemBackend.Tests.Pharmacy.Infrastructure;
 /// berawalan "Uji" supaya tidak pernah tertukar dengan data organisasi sungguhan.
 /// </para>
 /// <para>
-/// Struktur organisasinya memakai tabel yang sudah ada, persis seperti yang dibaca
-/// <see cref="StockRequestApprovalAuthority"/>:
+/// Sejak FIN-LGS-070 kewenangan hanya dibaca dari izin aktif:
+/// penempatan akses pengguna (<c>ApplicationUserOrganization</c>) × kebijakan akses. Jabatan
+/// <see cref="JabatanPenyetujuId"/> diberi izin <c>StockRequest:Approve</c>; jabatan
+/// <see cref="JabatanCitoId"/> diberi izin <c>StockRequest:AuthorizeEmergency</c>; jabatan
+/// <see cref="JabatanStafId"/> tidak diberi izin apa pun. Peran SuperAdmin sengaja disiapkan tanpa
+/// penempatan apa pun.
 /// </para>
-/// <list type="bullet">
-/// <item>unit layanan <see cref="UnitId"/> → unit organisasi <see cref="OrgUnitId"/>;</item>
-/// <item>unit layanan <see cref="UnitLainId"/> → <see cref="OrgUnitLainId"/>;</item>
-/// <item>unit layanan <see cref="UnitTanpaTautanId"/> belum ditautkan;</item>
-/// <item>atasan unit = penempatan manajerial HR (<c>WfpOrganizationAssignment</c>) yang aktif;</item>
-/// <item>izin = penempatan jabatan pengguna (<c>ApplicationUserOrganization</c>) × kebijakan akses.</item>
-/// </list>
 /// <para>
-/// Jabatan <see cref="JabatanPenyetujuId"/> diberi izin <c>StockRequest:Approve</c>; jabatan
-/// <see cref="JabatanCitoId"/> diberi izin <c>StockRequest:AuthorizeEmergency</c>. Peran
-/// SuperAdmin sengaja disiapkan tanpa penempatan apa pun.
+/// Data organisasi HRD tetap disemai dengan sengaja — unit layanan <see cref="UnitId"/> →
+/// <see cref="OrgUnitId"/>, <see cref="UnitLainId"/> → <see cref="OrgUnitLainId"/>,
+/// <see cref="UnitTanpaTautanId"/> tanpa tautan, dan penempatan manajerial
+/// (<c>WfpOrganizationAssignment</c>) yang aktif, berakhir, atau tidak ada — supaya uji dapat
+/// membuktikan bahwa data itu tidak lagi menentukan siapa yang boleh memutus. Nama pengguna
+/// "Atasan…" dipertahankan dari rancangan lama; perannya kini ditentukan izinnya saja.
 /// </para>
 /// </remarks>
 public sealed class StockRequestApprovalHarness : IDisposable
@@ -68,32 +69,32 @@ public sealed class StockRequestApprovalHarness : IDisposable
     public Guid JabatanCitoId { get; } = Guid.NewGuid();
     public Guid JabatanStafId { get; } = Guid.NewGuid();
 
-    /// <summary>Pemohon; sekaligus atasan unit, berizin Approve dan CITO — untuk menguji larangan memutus sendiri.</summary>
+    /// <summary>Pemohon; berizin Approve dan CITO — untuk menguji larangan memutus sendiri.</summary>
     public Guid PemohonUserId { get; } = Guid.NewGuid();
-    /// <summary>Atasan unit <see cref="UnitId"/> dengan izin Approve.</summary>
+    /// <summary>Penyetuju berizin Approve (penempatan manajerial HRD pada <see cref="OrgUnitId"/>).</summary>
     public Guid AtasanUserId { get; } = Guid.NewGuid();
-    /// <summary>Atasan unit <see cref="UnitId"/> dengan izin Approve dan CITO.</summary>
+    /// <summary>Berizin Approve dan CITO.</summary>
     public Guid AtasanCitoUserId { get; } = Guid.NewGuid();
-    /// <summary>Atasan unit <see cref="UnitLainId"/> dengan izin Approve.</summary>
+    /// <summary>Berizin Approve; penempatan manajerial HRD-nya pada unit lain (<see cref="OrgUnitLainId"/>).</summary>
     public Guid AtasanLainUserId { get; } = Guid.NewGuid();
-    /// <summary>Penempatan manajerialnya sudah berakhir.</summary>
+    /// <summary>Berizin Approve; penempatan manajerial HRD-nya sudah berakhir.</summary>
     public Guid AtasanKedaluwarsaUserId { get; } = Guid.NewGuid();
-    /// <summary>Atasan unit <see cref="UnitId"/> tanpa izin Approve.</summary>
+    /// <summary>Penempatan manajerial HRD aktif, tetapi tanpa izin Approve.</summary>
     public Guid AtasanTanpaIzinUserId { get; } = Guid.NewGuid();
-    /// <summary>Atasan unit <see cref="UnitId"/> yang profil tenaga kerjanya sudah dinonaktifkan.</summary>
+    /// <summary>Berizin Approve; profil tenaga kerja HRD-nya sudah dinonaktifkan, akunnya tetap aktif.</summary>
     public Guid AtasanNonaktifUserId { get; } = Guid.NewGuid();
-    /// <summary>Petugas berizin CITO, bukan atasan unit.</summary>
+    /// <summary>Petugas berizin CITO, tanpa izin Approve.</summary>
     public Guid PetugasCitoUserId { get; } = Guid.NewGuid();
-    /// <summary>Pernah berizin CITO, penempatannya sudah berakhir.</summary>
+    /// <summary>Pernah berizin CITO, penempatan aksesnya sudah berakhir.</summary>
     public Guid PetugasCitoKedaluwarsaUserId { get; } = Guid.NewGuid();
-    /// <summary>Staf unit yang sama dengan izin Approve, tanpa penempatan manajerial.</summary>
+    /// <summary>Staf gudang/unit tanpa izin Approve maupun CITO; dipakai sebagai petugas penyerah barang.</summary>
     public Guid StafUserId { get; } = Guid.NewGuid();
     /// <summary>Berperan SuperAdmin, tanpa profil tenaga kerja dan tanpa penempatan apa pun.</summary>
     public Guid SuperAdminUserId { get; } = Guid.NewGuid();
-    /// <summary>Atasan unit pada DUA unit organisasi (<see cref="OrgUnitId"/> dan <see cref="OrgUnitLainId"/>), berizin Approve.</summary>
+    /// <summary>Berizin Approve; penempatan manajerial HRD pada dua unit organisasi.</summary>
     public Guid AtasanGandaUserId { get; } = Guid.NewGuid();
 
-    /// <summary>Kode jabatan CITO pada <c>MstPosition</c>, untuk menguji penunjukan berdasarkan kode.</summary>
+    /// <summary>Kode jabatan CITO pada <c>MstPosition</c> uji.</summary>
     public const string KodeJabatanCito = "UJI-POS-CITO";
 
     private readonly Guid _pemohonWfp = Guid.NewGuid();
@@ -190,7 +191,8 @@ public sealed class StockRequestApprovalHarness : IDisposable
         k.Roles.Add(peranSuperAdmin);
         k.UserRoles.Add(new IdentityUserRole<Guid> { UserId = SuperAdminUserId, RoleId = peranSuperAdmin.Id });
 
-        // Atasan unit: penempatan manajerial HR pada unit organisasi yang ditautkan.
+        // Penempatan manajerial HRD: tidak lagi dibaca persetujuan (FIN-LGS-070), disemai supaya
+        // uji dapat membuktikan bahwa ada atau tidaknya penempatan ini tidak mengubah kewenangan.
         var setahunLalu = now.AddYears(-1);
         Penempatan(k, _atasanWfp, OrgUnitId, manajerial: true, mulai: setahunLalu, akhir: null);
         Penempatan(k, _atasanCitoWfp, OrgUnitId, manajerial: true, mulai: setahunLalu, akhir: null);
@@ -242,7 +244,7 @@ public sealed class StockRequestApprovalHarness : IDisposable
         foreach (var userId in new[]
                  {
                      PemohonUserId, AtasanUserId, AtasanCitoUserId, AtasanLainUserId,
-                     AtasanKedaluwarsaUserId, AtasanNonaktifUserId, StafUserId
+                     AtasanKedaluwarsaUserId, AtasanNonaktifUserId
                  })
             PenempatanJabatan(k, userId, JabatanPenyetujuId, akhir: null);
 
@@ -250,8 +252,9 @@ public sealed class StockRequestApprovalHarness : IDisposable
         PenempatanJabatan(k, AtasanCitoUserId, JabatanCitoId, akhir: null);
         PenempatanJabatan(k, PetugasCitoUserId, JabatanCitoId, akhir: null);
         PenempatanJabatan(k, PetugasCitoKedaluwarsaUserId, JabatanCitoId, akhir: now.AddDays(-1));
-        // Atasan tanpa izin hanya memegang jabatan staf yang tidak diberi izin apa pun.
+        // Atasan tanpa izin dan staf hanya memegang jabatan staf yang tidak diberi izin apa pun.
         PenempatanJabatan(k, AtasanTanpaIzinUserId, JabatanStafId, akhir: null);
+        PenempatanJabatan(k, StafUserId, JabatanStafId, akhir: null);
         PenempatanJabatan(k, AtasanGandaUserId, JabatanPenyetujuId, akhir: null);
 
         k.SaveChanges();
@@ -264,6 +267,58 @@ public sealed class StockRequestApprovalHarness : IDisposable
         return konteks;
     }
 
+    // ------------------------------------------------------------- Stock Opname (FIN-LGS-091)
+
+    private TestDatabase? _databaseNomor;
+
+    /// <summary>Aksesor yang bertindak sebagai <paramref name="userId"/>, untuk service selain permintaan stok.</summary>
+    public IHttpContextAccessor AksesorPengguna(Guid userId) => Accessor(userId);
+
+    /// <summary>
+    /// Alokator nomor bersama di atas basis data SQLite tersendiri, seperti harness keanggotaan pasien.
+    /// Alokator membuka transaksinya sendiri; pada satu koneksi SQLite transaksi itu akan bertabrakan
+    /// dengan transaksi bisnis pemanggil.
+    /// </summary>
+    public NumberSeriesAllocator AlokatorNomor()
+    {
+        _databaseNomor ??= TestDatabase.Create();
+        return new NumberSeriesAllocator(new PabrikKonteks(_databaseNomor));
+    }
+
+    /// <summary>
+    /// Izin <c>StockOpname:Approve</c> pada jabatan penyetuju, sehingga Pemohon, Atasan, AtasanCito, AtasanLain,
+    /// dan AtasanGanda memegangnya; Staf dan AtasanTanpaIzin tidak. Hanya dipanggil uji Stock Opname.
+    /// </summary>
+    public async Task SediakanIzinStockOpnameAsync()
+    {
+        using var k = _database.CreateContext();
+        var now = DateTime.UtcNow;
+        var controllerId = Guid.NewGuid();
+        var aksiId = Guid.NewGuid();
+
+        k.SysControllerAccesses.Add(new SysControllerAccess
+        {
+            Id = controllerId, ModuleId = Guid.NewGuid(), ControllerName = StockOpnamePermissions.Resource,
+            DisplayName = "Stock Opname", IsActive = true, CreateDateTime = now
+        });
+        k.SysActionAccesses.Add(new SysActionAccess
+        {
+            Id = aksiId, ControllerAccessId = controllerId, ActionName = StockOpnamePermissions.Approve,
+            DisplayName = "Approve Stock Opname", IsActive = true, CreateDateTime = now
+        });
+        k.SysAccessPolicies.Add(new SysAccessPolicy
+        {
+            DepartmentId = DepartemenId, PositionId = JabatanPenyetujuId, ControllerAccessId = controllerId,
+            ActionAccessId = aksiId, IsAllowed = true, IsActive = true, CreateDateTime = now
+        });
+        await k.SaveChangesAsync();
+    }
+
+    private sealed class PabrikKonteks(TestDatabase db) : IDbContextFactory<ApplicationDbContext>
+    {
+        public ApplicationDbContext CreateDbContext() => db.CreateContext();
+    }
+
     /// <summary>
     /// Service permintaan stok yang bertindak sebagai <paramref name="userId"/>.
     /// </summary>
@@ -271,15 +326,11 @@ public sealed class StockRequestApprovalHarness : IDisposable
     /// Nilai <see cref="StockRequestService.ApprovalEnforcedFromConfigKey"/>; kosong berarti tidak diatur.
     /// </param>
     /// <param name="denganStok">Bila benar, penyerahan benar-benar mengurangi stok lewat <see cref="DrugStockService"/>.</param>
-    /// <param name="jabatanCito">
-    /// Nilai <see cref="StockRequestEmergencyAuthorizerDesignation.ConfigKey"/>. Null berarti
-    /// bawaan harness (<see cref="JabatanCitoId"/>); string kosong berarti belum ditunjuk.
-    /// </param>
     /// <param name="tenggatJam">Nilai tenggat verifikasi susulan; null berarti belum dikonfigurasi.</param>
     /// <param name="peringatanJam">Nilai batas peringatan tenggat.</param>
     /// <param name="log">Logger penangkap untuk membuktikan jejak audit; null berarti dibuang.</param>
     public StockRequestService Layanan(ApplicationDbContext k, Guid userId,
-        string? batasAktivasi = null, bool denganStok = false, string? jabatanCito = null,
+        string? batasAktivasi = null, bool denganStok = false,
         string? tenggatJam = null, string? peringatanJam = null, CatatanLogUji? log = null)
     {
         var accessor = Accessor(userId);
@@ -290,7 +341,6 @@ public sealed class StockRequestApprovalHarness : IDisposable
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [StockRequestService.ApprovalEnforcedFromConfigKey] = batasAktivasi,
-                [StockRequestEmergencyAuthorizerDesignation.ConfigKey] = jabatanCito ?? JabatanCitoId.ToString(),
                 [StockRequestEmergencyReviewDeadline.DueHoursConfigKey] = tenggatJam,
                 [StockRequestEmergencyReviewDeadline.WarningHoursConfigKey] = peringatanJam
             })
@@ -427,12 +477,19 @@ public sealed class StockRequestApprovalHarness : IDisposable
         await k.SaveChangesAsync();
     }
 
-    /// <summary>Menonaktifkan jabatan pada master jabatan basis data uji.</summary>
-    public async Task NonaktifkanJabatanAsync(Guid positionId)
+    /// <summary>
+    /// Mencabut izin <c>StockRequest:<paramref name="aksi"/></c> dengan menonaktifkan kebijakan
+    /// aksesnya pada basis data uji, seperti administrator mencabutnya di Akses Role.
+    /// </summary>
+    public async Task CabutIzinAsync(string aksi)
     {
         using var k = _database.CreateContext();
-        var jabatan = await k.MstPositions.SingleAsync(x => x.Id == positionId);
-        jabatan.IsActive = false;
+        var aksiId = await k.SysActionAccesses
+            .Where(x => x.ActionName == aksi)
+            .Select(x => x.Id)
+            .SingleAsync();
+        var kebijakan = await k.SysAccessPolicies.Where(x => x.ActionAccessId == aksiId).ToListAsync();
+        foreach (var baris in kebijakan) baris.IsActive = false;
         await k.SaveChangesAsync();
     }
 
@@ -593,5 +650,6 @@ public sealed class StockRequestApprovalHarness : IDisposable
     {
         foreach (var konteks in _contexts) konteks.Dispose();
         _database.Dispose();
+        _databaseNomor?.Dispose();
     }
 }

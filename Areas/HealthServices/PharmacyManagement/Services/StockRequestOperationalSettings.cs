@@ -5,63 +5,6 @@ using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 
 /// <summary>
-/// Jabatan yang ditunjuk manajemen untuk mengotorisasi CITO (<c>LGS-DEC-004</c>).
-/// </summary>
-/// <remarks>
-/// <para>
-/// Dibaca dari konfigurasi lingkungan <see cref="ConfigKey"/>, bukan dari isi permintaan. Entri
-/// boleh berupa id jabatan (<c>MstPosition.Id</c>) atau kode jabatan (<c>MstPosition.PositionCode</c>),
-/// dalam bentuk daftar (array) atau satu teks dipisah koma.
-/// </para>
-/// <para>
-/// Daftar kosong berarti <b>tidak ada</b> jabatan yang berwenang — tidak pernah berarti semua
-/// jabatan. Izin <c>StockRequest:AuthorizeEmergency</c> tetap wajib diberikan eksplisit kepada
-/// jabatan yang ditunjuk; penunjukan saja tidak memberi izin, dan izin saja tidak cukup tanpa
-/// penunjukan.
-/// </para>
-/// </remarks>
-public sealed record StockRequestEmergencyAuthorizerDesignation(
-    IReadOnlyCollection<Guid> PositionIds,
-    IReadOnlyCollection<string> PositionCodes)
-{
-    public const string ConfigKey = "PharmacyManagement:StockRequest:EmergencyAuthorizerPositions";
-
-    public static readonly StockRequestEmergencyAuthorizerDesignation Empty = new([], []);
-
-    public bool IsConfigured => PositionIds.Count > 0 || PositionCodes.Count > 0;
-
-    /// <summary>Menafsirkan daftar entri mentah. Fungsi murni.</summary>
-    public static StockRequestEmergencyAuthorizerDesignation Parse(IEnumerable<string?> rawEntries)
-    {
-        var ids = new HashSet<Guid>();
-        var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var raw in rawEntries)
-        {
-            foreach (var part in (raw ?? string.Empty).Split(',', StringSplitOptions.TrimEntries |
-                                                                   StringSplitOptions.RemoveEmptyEntries))
-            {
-                if (Guid.TryParse(part, out var id) && id != Guid.Empty) ids.Add(id);
-                else codes.Add(part);
-            }
-        }
-
-        return new StockRequestEmergencyAuthorizerDesignation(ids.ToList(), codes.ToList());
-    }
-
-    /// <summary>Membaca dari konfigurasi: nilai tunggal maupun daftar anak.</summary>
-    public static StockRequestEmergencyAuthorizerDesignation FromConfiguration(IConfiguration? configuration)
-    {
-        if (configuration == null) return Empty;
-
-        var section = configuration.GetSection(ConfigKey);
-        var entries = new List<string?> { section.Value };
-        entries.AddRange(section.GetChildren().Select(x => x.Value));
-        return Parse(entries);
-    }
-}
-
-/// <summary>
 /// Tenggat verifikasi susulan CITO (<c>LGS-DEC-005</c>), dapat dikonfigurasi per lingkungan.
 /// </summary>
 /// <remarks>

@@ -8,53 +8,40 @@ using static QuilvianSystemBackend.Tests.Pharmacy.StockRequestApprovalTests.Peri
 namespace QuilvianSystemBackend.Tests.Pharmacy.StockRequestApprovalTests;
 
 /// <summary>
-/// Celah yang ditemukan pada verifikasi pasca-finishing (FIN-LGS-VER-003): unit organisasi tidak
-/// aktif, akun dinonaktifkan, data yang tidak ada, jabatan CITO yang dinonaktifkan, draf lintas
-/// unit, kesiapan data yang mencocokkan atasan dengan izinnya, dan jejak audit di log.
+/// Ketahanan aturan kewenangan setelah disederhanakan (<c>FIN-LGS-070</c>): data organisasi HRD
+/// yang tidak berlaku tidak berpengaruh, akun nonaktif dan izin yang dicabut langsung tidak
+/// berlaku, data yang tidak ada, draf lintas unit, kesiapan yang menghitung akun berizin, dan
+/// jejak audit di log.
 /// </summary>
 public class RobustnessAndAuditTests
 {
-    // ------------------------------------------------ data organisasi tidak berlaku
+    // ------------------------------------------------ data organisasi HRD tidak berlaku
 
-    [Fact]
-    public async Task Unit_organisasi_nonaktif_mencabut_kewenangan_atasan_dan_cakupannya()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Unit_organisasi_HRD_yang_tidak_berlaku_tidak_memengaruhi_kewenangan_penyetuju(bool nonaktif)
     {
         using var h = new StockRequestApprovalHarness();
         var (id, _) = await h.PermintaanAsync(unitId: h.UnitId);
-        await h.UbahUnitOrganisasiAsync(h.OrgUnitId, aktif: false);
-
-        var galat = await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
-            h.Layanan(h.CreateContext(), h.AtasanUserId).ApproveAsync(id, Setujui("uji-org-nonaktif")));
-        Assert.Contains("tidak aktif", galat.Message);
+        // Nonaktif, atau masih aktif tetapi masa berlakunya sudah habis.
+        await h.UbahUnitOrganisasiAsync(h.OrgUnitId, aktif: !nonaktif,
+            berakhir: nonaktif ? (DateTime?)null : DateTime.UtcNow.AddDays(-1));
 
         var cakupan = await h.Layanan(h.CreateContext(), h.AtasanUserId).GetApprovalScopeAsync();
-        Assert.Empty(cakupan.SupervisedUnits);
+        Assert.True(cakupan.HasApprovePermission);
 
         var daftar = await h.Layanan(h.CreateContext(), h.AtasanUserId)
             .GetPagedAsync(new StockRequestPagedQuery { Scope = StockRequestListScope.MyAuthority });
-        Assert.Empty(daftar.Items);
+        Assert.Contains(daftar.Items, x => x.Id == id);
 
-        await AssertMasihMenungguAsync(h, id);
+        var hasil = await h.Layanan(h.CreateContext(), h.AtasanUserId)
+            .ApproveAsync(id, Setujui($"uji-org-{(nonaktif ? "nonaktif" : "habis")}"));
+        Assert.Equal(StockRequestStatus.Approved, hasil.Status);
     }
 
     [Fact]
-    public async Task Unit_organisasi_yang_masa_berlakunya_habis_tidak_memberi_kewenangan()
-    {
-        using var h = new StockRequestApprovalHarness();
-        var (id, _) = await h.PermintaanAsync(unitId: h.UnitId);
-        await h.UbahUnitOrganisasiAsync(h.OrgUnitId, aktif: true, berakhir: DateTime.UtcNow.AddDays(-1));
-
-        await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
-            h.Layanan(h.CreateContext(), h.AtasanUserId).ApproveAsync(id, Setujui("uji-org-habis")));
-
-        var siap = await h.Layanan(h.CreateContext(), h.SuperAdminUserId).GetApprovalReadinessAsync();
-        Assert.Null(siap.Units.Single(x => x.ServiceUnitId == h.UnitId).OrganizationUnitName);
-
-        await AssertMasihMenungguAsync(h, id);
-    }
-
-    [Fact]
-    public async Task Akun_atasan_yang_dinonaktifkan_tidak_lagi_berwenang()
+    public async Task Akun_penyetuju_yang_dinonaktifkan_tidak_lagi_berwenang()
     {
         using var h = new StockRequestApprovalHarness();
         var (id, _) = await h.PermintaanAsync();
@@ -67,18 +54,24 @@ public class RobustnessAndAuditTests
     }
 
     [Fact]
-    public async Task Jabatan_CITO_yang_dinonaktifkan_tidak_lagi_memberi_kewenangan()
+    public async Task Izin_yang_dicabut_di_Akses_Role_langsung_tidak_berlaku()
     {
         using var h = new StockRequestApprovalHarness();
-        var (id, _) = await h.PermintaanAsync(prioritas: StockRequestPriority.Emergency);
-        await h.NonaktifkanJabatanAsync(h.JabatanCitoId);
+        var (rutin, _) = await h.PermintaanAsync();
+        var (cito, _) = await h.PermintaanAsync(prioritas: StockRequestPriority.Emergency);
+        await h.CabutIzinAsync(StockRequestApprovalAuthority.ApprovePermissionAction);
+        await h.CabutIzinAsync(StockRequestApprovalAuthority.EmergencyPermissionAction);
 
-        var galat = await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
-            h.Layanan(h.CreateContext(), h.PetugasCitoUserId).AuthorizeEmergencyAsync(id, Cito("uji-jabatan-nonaktif")));
+        var setuju = await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
+            h.Layanan(h.CreateContext(), h.AtasanUserId).ApproveAsync(rutin, Setujui("uji-izin-dicabut")));
+        Assert.Contains("StockRequest:Approve", setuju.Message);
 
-        // Satu-satunya jabatan yang ditunjuk sudah nonaktif, jadi penunjukan efektifnya kosong.
-        Assert.Contains("belum ditetapkan", galat.Message);
-        await AssertMasihMenungguAsync(h, id);
+        var otorisasi = await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
+            h.Layanan(h.CreateContext(), h.PetugasCitoUserId).AuthorizeEmergencyAsync(cito, Cito("uji-izin-dicabut-cito")));
+        Assert.Contains("StockRequest:AuthorizeEmergency", otorisasi.Message);
+
+        await AssertMasihMenungguAsync(h, rutin);
+        await AssertMasihMenungguAsync(h, cito);
     }
 
     // ------------------------------------------------------- data yang tidak ada
@@ -116,39 +109,43 @@ public class RobustnessAndAuditTests
     // ------------------------------------------------------------- kesiapan data
 
     [Fact]
-    public async Task Kesiapan_mencocokkan_atasan_unit_dengan_izin_persetujuannya()
+    public async Task Kesiapan_menghitung_akun_aktif_yang_benar_benar_memegang_izin()
     {
         using var h = new StockRequestApprovalHarness();
 
-        var siap = await h.Layanan(h.CreateContext(), h.SuperAdminUserId).GetApprovalReadinessAsync();
+        var awal = await h.Layanan(h.CreateContext(), h.SuperAdminUserId).GetApprovalReadinessAsync();
+        Assert.Equal(7, awal.ApproveUsers);
+        Assert.Equal(3, awal.EmergencyUsers);
 
-        // OrgUnit: Atasan, AtasanCito, Pemohon, AtasanTanpaIzin, AtasanGanda (manajerial aktif);
-        // AtasanTanpaIzin tidak memegang izin Approve.
-        var unitA = siap.Units.Single(x => x.ServiceUnitId == h.UnitId);
-        Assert.Equal(5, unitA.ActiveSupervisors);
-        Assert.Equal(4, unitA.AuthorizedSupervisors);
+        // Akun nonaktif tidak dihitung, walaupun kebijakan aksesnya tetap ada.
+        await h.NonaktifkanPenggunaAsync(h.AtasanCitoUserId);
+        var sesudah = await h.Layanan(h.CreateContext(), h.SuperAdminUserId).GetApprovalReadinessAsync();
 
-        var unitB = siap.Units.Single(x => x.ServiceUnitId == h.UnitLainId);
-        Assert.Equal(2, unitB.ActiveSupervisors);
-        Assert.Equal(2, unitB.AuthorizedSupervisors);
-
-        Assert.Equal(2, siap.MappedServiceUnitsWithAuthorizedSupervisor);
-        Assert.True(siap.IsReadyForApproval);
+        Assert.Equal(6, sesudah.ApproveUsers);
+        Assert.Equal(2, sesudah.EmergencyUsers);
+        Assert.Equal(1, sesudah.ApprovePermissionGrants);
+        Assert.True(sesudah.IsReadyForApproval);
+        Assert.True(sesudah.IsReadyForEmergency);
     }
 
     [Fact]
-    public async Task Kesiapan_tidak_menyatakan_siap_bila_atasan_tidak_memegang_izin()
+    public async Task Kesiapan_tidak_menyatakan_siap_bila_tidak_ada_akun_aktif_berizin()
     {
         using var h = new StockRequestApprovalHarness();
-        // Seluruh atasan berizin dinonaktifkan akunnya; yang tersisa hanya atasan tanpa izin.
-        foreach (var userId in new[] { h.AtasanUserId, h.AtasanCitoUserId, h.PemohonUserId, h.AtasanGandaUserId, h.AtasanLainUserId })
+        // Seluruh akun berizin Approve dinonaktifkan; kebijakan aksesnya tetap tercatat.
+        foreach (var userId in new[]
+                 {
+                     h.PemohonUserId, h.AtasanUserId, h.AtasanCitoUserId, h.AtasanLainUserId,
+                     h.AtasanKedaluwarsaUserId, h.AtasanNonaktifUserId, h.AtasanGandaUserId
+                 })
             await h.NonaktifkanPenggunaAsync(userId);
 
         var siap = await h.Layanan(h.CreateContext(), h.SuperAdminUserId).GetApprovalReadinessAsync();
 
-        Assert.Equal(0, siap.MappedServiceUnitsWithAuthorizedSupervisor);
+        Assert.Equal(1, siap.ApprovePermissionGrants);
+        Assert.Equal(0, siap.ApproveUsers);
         Assert.False(siap.IsReadyForApproval);
-        Assert.Contains(siap.Blockers, x => x.Contains("akunnya aktif dan memegang izin"));
+        Assert.Contains(siap.Blockers, x => x.Contains("Belum ada akun aktif yang memegang izin StockRequest:Approve"));
     }
 
     [Fact]
@@ -169,8 +166,8 @@ public class RobustnessAndAuditTests
         var siap = await h.Layanan(h.CreateContext(), h.SuperAdminUserId).GetApprovalReadinessAsync();
         Assert.Equal(0, siap.ApprovePermissionGrants);
         Assert.Equal(0, siap.EmergencyPermissionGrants);
-        Assert.Equal(0, siap.EmergencyDesignatedPositionsWithGrant);
-        Assert.Equal(0, siap.MappedServiceUnitsWithAuthorizedSupervisor);
+        Assert.Equal(0, siap.ApproveUsers);
+        Assert.Equal(0, siap.EmergencyUsers);
         Assert.False(siap.IsReadyForApproval);
         Assert.False(siap.IsReadyForEmergency);
 
