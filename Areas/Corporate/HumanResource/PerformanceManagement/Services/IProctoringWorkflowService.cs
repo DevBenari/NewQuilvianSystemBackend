@@ -25,7 +25,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// <summary>
         /// Verifikasi dan evaluasi kemandirian kasus oleh Dokter Proctor pendamping (VR-OPP-12)
         /// </summary>
-        Task<FppeCaseLogResponseDto> VerifyCaseLogAsync(Guid logId, VerifyFppeCaseLogRequestDto request, CancellationToken cancellationToken = default);
+        Task<FppeCaseLogResponseDto> VerifyCaseLogAsync(Guid logId, VerifyFppeCaseLogRequestDto request, Guid currentProctorWorkforceId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Mengesahkan putusan berita acara sidang pleno Komite Medik atas hasil FPPE (VR-OPP-13, VR-OPP-14)

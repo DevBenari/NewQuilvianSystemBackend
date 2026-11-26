@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Controllers
@@ -15,6 +17,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
     [Route("api/v1/corporate/human-resource/payroll/runs")]
     [Route("api/payroll/runs")]
     [Tags("HR Payroll - Runs & Batches")]
+    // Satu jalur kalkulasi: jalur lama tidak boleh menghitung PPh, tidak boleh mengubah run yang sudah dihitung mesin Payroll Run
+    // resmi, dan seluruh aksi tulisnya dapat dimatikan lewat Payroll:Policy:LegacyModernMutationsEnabled.
+    [TypeFilter(typeof(LegacyModernPayrollGateFilter))]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_PAYROLL",
         moduleName: "Human Resource Payroll",
@@ -29,7 +34,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         private readonly IPayrollRunInitializationService _runInitializationService;
         private readonly IPayrollEarningsCalculationService _earningsCalculationService;
         private readonly IPayrollOvertimeAndShiftIngestionService _overtimeAndShiftService;
-        private readonly IPayrollBpjsCalculationService _bpjsCalculationService;
         private readonly IPayrollTaxCalculationService _taxCalculationService;
         private readonly IPayrollDeductionsIngestionService _deductionsService;
         private readonly IPayrollVarianceGuardService _varianceGuardService;
@@ -44,7 +48,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             IPayrollRunInitializationService runInitializationService,
             IPayrollEarningsCalculationService earningsCalculationService,
             IPayrollOvertimeAndShiftIngestionService overtimeAndShiftService,
-            IPayrollBpjsCalculationService bpjsCalculationService,
             IPayrollTaxCalculationService taxCalculationService,
             IPayrollDeductionsIngestionService deductionsService,
             IPayrollVarianceGuardService varianceGuardService,
@@ -58,7 +61,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             _runInitializationService = runInitializationService ?? throw new ArgumentNullException(nameof(runInitializationService));
             _earningsCalculationService = earningsCalculationService ?? throw new ArgumentNullException(nameof(earningsCalculationService));
             _overtimeAndShiftService = overtimeAndShiftService ?? throw new ArgumentNullException(nameof(overtimeAndShiftService));
-            _bpjsCalculationService = bpjsCalculationService ?? throw new ArgumentNullException(nameof(bpjsCalculationService));
             _taxCalculationService = taxCalculationService ?? throw new ArgumentNullException(nameof(taxCalculationService));
             _deductionsService = deductionsService ?? throw new ArgumentNullException(nameof(deductionsService));
             _varianceGuardService = varianceGuardService ?? throw new ArgumentNullException(nameof(varianceGuardService));
@@ -220,49 +222,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             }
 
             return Ok(ApiResponse<EmployeeVariableEarningSummaryDto>.Ok(result.Data!, result.Message));
-        }
-
-        [HttpPost("{id:guid}/calculate-bpjs")]
-        [AccessAction("CalculateBpjs", "Kalkulasi Iuran BPJS Batch", Description = "Menghitung iuran BPJS Kesehatan dan 4 program BPJS Ketenagakerjaan berplafon seluruh pegawai", AccessType = AccessTypes.Update, SortOrder = 9)]
-        [AccessPermission("PayrollRunModern", "CalculateBpjs")]
-        [ProducesResponseType(typeof(ApiResponse<CalculateBpjsResultDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        public async Task<IActionResult> CalculateBpjs(
-            Guid id,
-            CancellationToken cancellationToken = default)
-        {
-            var actorUserId = GetCurrentUserId();
-            var result = await _bpjsCalculationService.CalculateBpjsContributionsAsync(id, actorUserId, cancellationToken);
-
-            if (!result.Success)
-            {
-                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
-            }
-
-            return Ok(ApiResponse<CalculateBpjsResultDto>.Ok(result.Data!, result.Message));
-        }
-
-        [HttpPost("{id:guid}/employees/{employeeRunId:guid}/calculate-bpjs")]
-        [AccessAction("CalculateEmployeeBpjs", "Kalkulasi Iuran BPJS Pegawai", Description = "Menghitung iuran BPJS Kesehatan dan 4 program BPJS Ketenagakerjaan satu pegawai", AccessType = AccessTypes.Update, SortOrder = 10)]
-        [AccessPermission("PayrollRunModern", "CalculateEmployeeBpjs")]
-        [ProducesResponseType(typeof(ApiResponse<EmployeeBpjsCalculationDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        public async Task<IActionResult> CalculateEmployeeBpjs(
-            Guid id,
-            Guid employeeRunId,
-            CancellationToken cancellationToken = default)
-        {
-            var actorUserId = GetCurrentUserId();
-            var result = await _bpjsCalculationService.CalculateEmployeeBpjsAsync(id, employeeRunId, actorUserId, cancellationToken);
-
-            if (!result.Success)
-            {
-                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
-            }
-
-            return Ok(ApiResponse<EmployeeBpjsCalculationDto>.Ok(result.Data!, result.Message));
         }
 
         [HttpPost("{id:guid}/calculate-pph21")]
@@ -669,7 +628,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             [FromQuery] int? year,
             CancellationToken cancellationToken = default)
         {
-            var employeeId = GetCurrentUserId();
+            var employeeId = GetPayslipOwnerKey();
+            if (employeeId == Guid.Empty) return PayslipProfileNotLinked();
             var list = await _payslipService.GetMyPayslipsAsync(employeeId, year, cancellationToken);
             return Ok(ApiResponse<List<SelfServicePayslipSummaryDto>>.Ok(list, "Daftar slip gaji mandiri berhasil dimuat."));
         }
@@ -684,7 +644,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             [FromBody] VerifyPayslipPinRequest request,
             CancellationToken cancellationToken = default)
         {
-            var employeeId = GetCurrentUserId();
+            var employeeId = GetPayslipOwnerKey();
+            if (employeeId == Guid.Empty) return PayslipProfileNotLinked();
             var result = await _payslipService.VerifyPinAsync(employeeId, request.Pin, cancellationToken);
             if (!result.IsSuccess && result.LockoutMinutesRemaining > 0)
             {
@@ -709,7 +670,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             [FromHeader(Name = "X-Payroll-PIN")] string pinToken,
             CancellationToken cancellationToken = default)
         {
-            var employeeId = GetCurrentUserId();
+            var employeeId = GetPayslipOwnerKey();
+            if (employeeId == Guid.Empty) return PayslipProfileNotLinked();
             try
             {
                 var detail = await _payslipService.GetPayslipDetailAsync(payslipId, employeeId, pinToken, cancellationToken);
@@ -728,6 +690,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         [HttpGet("self-service/payslips/{payslipId:guid}/download-pdf")]
         [Tags("HR Payroll - Self-Service Payslips")]
         [AccessAction("DownloadPayslipPdf", "Portal ESS: Unduh Dokumen PDF Slip Gaji", Description = "Mengunduh berkas PDF slip gaji ber-watermark resmi RS berproteksi kata sandi (VR-PAY-24)", AccessType = AccessTypes.Read, SortOrder = 32)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessPermission("PayrollRunModern", "DownloadPayslipPdf")]
         [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -737,11 +700,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             [FromHeader(Name = "X-Payroll-PIN")] string pinToken,
             CancellationToken cancellationToken = default)
         {
-            var employeeId = GetCurrentUserId();
+            var employeeId = GetPayslipOwnerKey();
+            if (employeeId == Guid.Empty) return PayslipProfileNotLinked();
             try
             {
                 var (fileBytes, fileName, contentType) = await _payslipService.DownloadPayslipPdfAsync(payslipId, employeeId, pinToken, cancellationToken);
                 return File(fileBytes, contentType, fileName);
+            }
+            catch (InvalidOperationException ex) when (HrSafeError.IsDomain(ex))
+            {
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, ex.Message));
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -752,6 +720,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
         }
+
+        /// <summary>
+        /// MSL-04 (18 Nov 2026): slip gaji dicocokkan dengan kunci pegawai dari token (workforce_profile_id, lalu employee_id),
+        /// tidak pernah dengan ID akun login. Guid.Empty berarti akun belum terhubung ke data pegawai.
+        /// </summary>
+        private Guid GetPayslipOwnerKey() => User.GetWorkforceProfileId() ?? User.GetEmployeeId() ?? Guid.Empty;
+
+        private IActionResult PayslipProfileNotLinked() =>
+            StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(StatusCodes.Status403Forbidden,
+                "Akun Anda belum terhubung dengan data pegawai, sehingga slip gaji belum dapat ditampilkan. Hubungi bagian SDM."));
 
         private Guid GetCurrentUserId()
         {

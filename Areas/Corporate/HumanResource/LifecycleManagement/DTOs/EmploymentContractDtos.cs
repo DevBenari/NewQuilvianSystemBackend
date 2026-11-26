@@ -62,6 +62,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public string? ContractStatus { get; set; }
         public Guid? WorkforceProfileId { get; set; }
         public string? Search { get; set; }
+        public int? ExpiringInDays { get; set; }
     }
 
     // --- BE-HRD-080: Keputusan Kontrak T16 & Batas 5 Tahun PKWT ---
@@ -77,6 +78,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public bool CanExtend { get; set; }
         public int MaxExtensionMonths { get; set; }
         public string Message { get; set; } = string.Empty;
+
+        // UU 27/2026 versioned policy fields (FIN-HRD-08-BE-001)
+        public string RuleVersion { get; set; } = "UU-27-2026";
+        public string LegalBasis { get; set; } = "Undang-Undang Nomor 27 Tahun 2026 tentang Pelindungan Ketenagakerjaan (Pasal 82-87)";
+        public int RenewalSequence { get; set; }
+        public int MaxRenewalCount { get; set; } = 2;
+        public int MaxMonthsPerRenewal { get; set; } = 12;
+        public DateOnly? RequiredNoticeDate { get; set; }
+        public string? LegalTransitionStatus { get; set; }
+        public List<string> ValidationErrors { get; set; } = new List<string>();
     }
 
     public sealed class SubmitContractDecisionRequest
@@ -94,15 +105,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public string? ReasonText { get; set; }
     }
 
+    public sealed class ContractDecisionQuery
+    {
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+        public ContractDecisionType? DecisionType { get; set; }
+        public ContractDecisionStatus? DecisionStatus { get; set; }
+        public Guid? WorkforceProfileId { get; set; }
+        public string? Search { get; set; }
+    }
+
     public sealed class ContractDecisionResponse
     {
         public Guid Id { get; set; }
         public string DecisionNumber { get; set; } = string.Empty;
         public Guid ContractHistoryId { get; set; }
+        public Guid EmploymentContractId { get => ContractHistoryId; set => ContractHistoryId = value; }
         public string ContractNumber { get; set; } = string.Empty;
         public Guid WorkforceProfileId { get; set; }
         public string WorkforceCode { get; set; } = string.Empty;
+        public string EmployeeWorkforceCode { get => WorkforceCode; set => WorkforceCode = value; }
         public string FullName { get; set; } = string.Empty;
+        public string EmployeeFullName { get => FullName; set => FullName = value; }
+        public int RenewalSequence { get; set; }
         public ContractDecisionType DecisionType { get; set; }
         public string DecisionTypeName => DecisionType.ToString();
         public int? ExtensionMonths { get; set; }
@@ -121,12 +146,69 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public Guid? FollowUpContractHistoryId { get; set; }
         public DateOnly? EmployeeNotifiedOn { get; set; }
         public Guid? EmployeeSeparationId { get; set; }
+
+        // Evidensi & Kepatuhan Pemberitahuan Tertulis (FIN-HRD-08-BE-004 / AUD-08-16)
+        public string? NotificationChannel { get; set; }
+        public string? NotificationEvidenceNotes { get; set; }
+        public string NotificationComplianceStatus { get; set; } = "NOT_APPLICABLE"; // ON_TIME, LATE, MISSING, NOT_APPLICABLE
+        public string NoticeCompliance { get => NotificationComplianceStatus; set => NotificationComplianceStatus = value; }
+        public DateOnly? RequiredNoticeDate { get; set; }
+    }
+
+    public sealed class ContractSalaryDetailResponse
+    {
+        public Guid ContractId { get; set; }
+        public decimal? BasicSalary { get; set; }
+        public string Currency { get; set; } = "IDR";
+        public string? SalaryGradeName { get; set; }
+        public string? SalaryStructureName { get; set; }
+        public bool IsMasked { get; set; }
     }
 
     public sealed class RecordEmployeeNotifiedRequest
     {
         [Required]
         public DateOnly NotifiedOn { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        [MaxLength(100)]
+        public string? DeliveryChannel { get; set; } = "Surat Tertulis";
+
+        [MaxLength(1000)]
+        public string? EvidenceNotes { get; set; }
+    }
+
+    // --- Ringkasan Dashboard Menu 08 Submenu 1, 2, 4 (AUD-08-12..14) ---
+
+    public sealed class EmploymentContractSummaryResponse
+    {
+        public int ActiveContractsCount { get; set; }
+        public int ActiveCount { get => ActiveContractsCount; set => ActiveContractsCount = value; }
+        public int PendingSignedCount { get; set; }
+        public int ExpiringSoonCount { get; set; }
+        public int NeedsReviewCount { get; set; }
+    }
+
+    public sealed class ContractRenewalSummaryResponse
+    {
+        public int ReminderH60Count { get; set; }
+        public int Due60DaysCount { get => ReminderH60Count; set => ReminderH60Count = value; }
+
+        public int EscalationH14Count { get; set; }
+        public int Due14DaysCount { get => EscalationH14Count; set => EscalationH14Count = value; }
+
+        public int NoticeDueH7Count { get; set; }
+        public int Due7DaysNoticeCount { get => NoticeDueH7Count; set => NoticeDueH7Count = value; }
+
+        public int PendingDecisionCount { get; set; }
+        public int OverdueCount { get; set; }
+    }
+
+    public sealed class EmploymentStatusChangeSummaryResponse
+    {
+        public int SubmittedCount { get; set; }
+        public int PendingSignedCount { get; set; }
+        public int ScheduledOrEffectiveCount { get; set; }
+        public int RejectedCount { get; set; }
     }
 
     // --- BE-HRD-081: Koreksi Kontrak T17 ---

@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManage
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Controllers
 {
@@ -48,7 +49,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return UnprocessableEntity(ApiResponse<SeparationResponseDto>.Fail(422, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<SeparationResponseDto>.Fail(500, ex.Message));
             }
@@ -61,16 +62,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             [FromQuery] string? status,
             [FromQuery] string? separationReason,
             [FromQuery] Guid? departmentId,
+            [FromQuery] int? pageNumber,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
             CancellationToken cancellationToken = default)
         {
             try
             {
-                var result = await _separationService.GetSeparationsAsync(status, separationReason, departmentId, page, pageSize, cancellationToken);
+                var targetPage = pageNumber ?? page;
+                var result = await _separationService.GetSeparationsAsync(status, separationReason, departmentId, targetPage, pageSize, cancellationToken);
                 return Ok(ApiResponse<PagedResult<SeparationResponseDto>>.Ok(result, "Daftar proses terminasi kerja berhasil diambil."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<PagedResult<SeparationResponseDto>>.Fail(500, ex.Message));
             }
@@ -92,7 +95,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return NotFound(ApiResponse<SeveranceCalculationResponseDto>.Fail(404, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<SeveranceCalculationResponseDto>.Fail(500, ex.Message));
             }
@@ -112,7 +115,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 }
                 return Ok(ApiResponse<SeveranceCalculationDetailDto>.Ok(result, "Lembar transparansi kalkulasi pesangon PP 35/2021 berhasil dimuat."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<SeveranceCalculationDetailDto>.Fail(500, ex.Message));
             }
@@ -133,7 +136,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return NotFound(ApiResponse<SeveranceCalculationResponseDto>.Fail(404, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<SeveranceCalculationResponseDto>.Fail(500, ex.Message));
             }

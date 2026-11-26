@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManageme
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Controllers
 {
@@ -77,7 +78,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _rateService.ConfigureRateAsync(dto, userId);
                 return StatusCode(StatusCodes.Status201Created, ApiResponse<TravelAllowanceRateResponseDto>.Ok(result, "Tarif per diem dinas berhasil dikonfigurasi"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<TravelAllowanceRateResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }

@@ -9953,3 +9953,902 @@ yang perlu disimpan.
 | String hak akses kontrak `v10` (`HrdScheduling`, `HrdOnCall`) berbeda dari kode (`RosterPeriod`, `ShiftReplacement`, `OnCallAssignment`) | Kode mengikuti aturan "resource = `ControllerName`" hasil remediasi 11 November 2026 | Kontrak `v26` memakai string kode. Selisih `v10` dicatat untuk owner; tidak memblokir |
 | `roadmap/frontend-unfinished-work.md` menulis layar kehadiran `S-B1` belum dikerjakan | `FE@6a5658269` sudah punya monitoring harian, drawer log mesin, tutup/buka periode, setelan | Dicatat; disegarkan saat `/plan-module-delivery` |
 | Layar persetujuan lembur memakai data contoh tertanam | `overtime-approvals-view.jsx:13-38` | Di luar amandemen ini; milik `S-B3` |
+
+---
+
+## 36. Amandemen `S-D5` — Persetujuan SPPD lewat Workflow Persetujuan Umum (revision `64`, kontrak `v28`, 18 November 2026; approved 19 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | Decision log revision `39` bagian 55 (`HRD-DEC-224` s.d. `HRD-DEC-228`); fakta `HRD-TF-072` s.d. `HRD-TF-079` |
+| Source acuan | Backend `d7d4eb3b` (branch `yoga`); frontend `e01411158` (branch `YogaV2`) |
+| Kontrak | api-contract 34; state-transition 32; validation 33; integration 25; permission-audit 32; acceptance 36; kamus data 29 |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — tidak ada konsep klinis atau billing baru; persetujuan memakai Workflow V2 yang sudah ada |
+| Migration | **Tidak ada** |
+| Status | `approved` — pengguna, 19 November 2026 ("setujui kontrak v28, lanjut plan") |
+
+Inti perubahan: SPPD tidak lagi "langsung diajukan" saat dibuat. Pemohon menyimpan Draft, menekan Ajukan, lalu Workflow V2 membawa SPPD ke atasan. Setiap kali workflow berubah, penangan milik modul perjalanan dinas menyalin hasilnya ke SPPD, dan saat disetujui memasang presensi Dinas Luar dan gembok roster. Uang muka dan settlement baru dibuka sesudah disetujui.
+
+### 36.1 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai di sini | Dibuat ulang? |
+| --- | --- | --- | --- |
+| SPPD (`TrxBusinessTravelRequest`) | `BusinessTravelManagement` (`S-D5`) | Ya — status dan kolom persetujuan mulai diisi | Tidak |
+| Definisi, instance, tugas, riwayat workflow (`MstWorkflowDefinition`, `MstWorkflowStep`, `TrxWorkflowInstance`, …) | `WorkflowManagement` (`S-A7-V2`) | Ya — lewat `WorkflowService` dan `IWorkflowReferenceLifecycleHandler` | Tidak; hanya satu definisi baru ditanam seeder |
+| Tautan presensi Dinas Luar (`TrxTravelAttendanceLink`), penanda gembok roster | `BusinessTravelManagement` | Ya — lewat `TravelAttendanceAndRosterLockService` yang sudah ada | Tidak |
+| Atasan langsung pemohon | `WorkforceCore` / Workflow V2 (`RequesterManager`) | Ya — dibaca engine workflow | Tidak |
+| Uang muka, settlement | `BusinessTravelManagement` | Ya — gerbang baru | Tidak |
+| Jadwal potongan payroll (`TrxPayrollDeductionSchedule`) | Payroll | Dibaca untuk event audit | Tidak |
+| Persetujuan per tahap SPPD (`TrxBusinessTravelApproval`) | `BusinessTravelManagement` | **Tidak** — digantikan riwayat Workflow V2 | Tidak |
+
+### 36.2 Class diagram
+
+```mermaid
+classDiagram
+    direction LR
+    class BusinessTravelRequestsController {
+        +Create() Draft
+        +Update() hanya Draft/NeedRevision
+        +Submit() BARU
+        +Cancel() tarik workflow
+    }
+    class IBusinessTravelRequestService {
+        +CreateRequestAsync()
+        +UpdateRequestAsync()
+        +SubmitRequestAsync() BARU
+        +CancelRequestAsync()
+    }
+    class BusinessTravelWorkflowLifecycleHandler {
+        <<BARU>>
+        +CanHandle(referenceType) bool
+        +SynchronizeAsync(workflow, actor, allowAutoApply, ct)
+    }
+    class IWorkflowReferenceLifecycleHandler {
+        <<interface Workflow V2>>
+    }
+    class WorkflowService {
+        <<Workflow V2>>
+        +CreateAsync()
+        +SubmitAsync()
+        +WithdrawAsync()
+    }
+    class ITravelAttendanceAndRosterLockService {
+        +SyncAttendanceAndLockRosterAsync(id, actor)
+        +ReleaseRosterLockAsync(id, actor)
+    }
+    class TravelAdvanceRequestService {
+        +CreateAdvanceRequestAsync() gerbang Disetujui
+    }
+    class TravelSettlementService {
+        +SubmitSettlementAsync() gerbang Disetujui
+    }
+    class TravelAuditTrailService {
+        +GetAuditTrailAsync() 12 event matriks
+    }
+    class BusinessTravelWorkflowDefinitionSeeder {
+        <<BARU>>
+        +SeedAsync(services)
+    }
+    BusinessTravelRequestsController --> IBusinessTravelRequestService
+    IBusinessTravelRequestService --> WorkflowService : ajukan / tarik
+    IBusinessTravelRequestService --> ITravelAttendanceAndRosterLockService : lepas gembok saat batal
+    BusinessTravelWorkflowLifecycleHandler ..|> IWorkflowReferenceLifecycleHandler
+    WorkflowService --> IWorkflowReferenceLifecycleHandler : penyelarasan
+    BusinessTravelWorkflowLifecycleHandler --> ITravelAttendanceAndRosterLockService : saat Approved
+    BusinessTravelWorkflowDefinitionSeeder ..> WorkflowService : definisi BUSINESS_TRAVEL_REQUEST
+```
+
+### 36.3 Penjelasan class
+
+| Class | Status | Lokasi file | Fungsi | Dipanggil oleh | Transaksi |
+| --- | --- | --- | --- | --- | --- |
+| `BusinessTravelRequestsController` | Diperbarui | `Areas/Corporate/HumanResource/BusinessTravelManagement/Controllers/BusinessTravelRequestsController.cs` | Tambah action `Submit`: `[HttpPost("{id}/submit")]`, `[AccessAction("Create", "Mengajukan Perjalanan Dinas", AccessType = AccessTypes.Create, SortOrder = 2)]` (sama persis dengan `POST /`), `[AccessPermission("BusinessTravelRequest", "Create")]` (hak yang sama dengan membuat SPPD; validator registri mengizinkan satu hak menjaga beberapa action dalam satu controller, preseden `AttendanceProcessing : Create`), `[ProducesResponseType]` 200/400/403/404/409, tanpa `<summary>` XML | HTTP | Tidak |
+| `IBusinessTravelRequestService` / `BusinessTravelRequestService` | Diperbarui | `…/BusinessTravelManagement/Services/BusinessTravelRequestService.cs` | `CreateRequestAsync` → `Draft`, `ApprovedBudgetAmount = 0`; `UpdateRequestAsync` hanya `Draft`/`NeedRevision`/`Submitted` tanpa workflow; **baru** `SubmitRequestAsync` (buat instance `BUSINESS_TRAVEL_REQUEST` bila belum ada, lalu `SubmitAsync`; isi `SubmittedAt`, `WorkflowDefinitionId`, `WorkflowInstanceId`); `CancelRequestAsync` menarik workflow bila `Submitted`, melepas gembok bila sudah `Approved` | Controller | Ya — satu transaksi per aksi; Workflow V2 ikut transaksi yang sama |
+| `BusinessTravelWorkflowLifecycleHandler` | Baru | `…/BusinessTravelManagement/Services/BusinessTravelWorkflowLifecycleHandler.cs` | Memetakan status workflow ke status SPPD (state-transition 32.3), mengisi kolom persetujuan, memanggil sinkron presensi/gembok saat `Approved` | `WorkflowReferenceLifecycleService` (Workflow V2) | Tidak — memakai transaksi pemanggil |
+| `BusinessTravelWorkflowCodes` | Baru | `…/BusinessTravelManagement/Constants/BusinessTravelWorkflowCodes.cs` | Konstanta `ReferenceType = "HRD_TRV_REQUEST"`, `DefinitionCode = "BUSINESS_TRAVEL_REQUEST"`, `StepCode = "HRD-TRV-01"` | Service, handler, seeder | — |
+| `BusinessTravelWorkflowDefinitionSeeder` | Baru | `…/BusinessTravelManagement/Seeders/BusinessTravelWorkflowDefinitionSeeder.cs` | Menanam definisi "Persetujuan Perjalanan Dinas" versi 1 dengan satu tahap `RequesterManager`, `AllowSelfApproval = false`, `AllowRequesterWithdraw = true`; idempoten (tidak menimpa konfigurasi admin) | `Program.cs` `RunStartupSeederAsync` | Ya — sendiri saat startup |
+| `ITravelAttendanceAndRosterLockService` / `TravelAttendanceAndRosterLockService` | Diperbarui | `…/BusinessTravelManagement/Services/TravelAttendanceAndRosterLockService.cs` | Tambah parameter `Guid actorUserId` pada kedua method (sebelumnya `Guid.Empty`); perilaku lain tetap | Handler, service SPPD | Tidak — ikut pemanggil |
+| `TravelAdvanceRequestService` | Diperbarui | `…/Services/TravelAdvanceRequestService.cs` | Gerbang `VR-TRV-30` sebelum perhitungan plafon; plafon dari `ApprovedBudgetAmount` | Controller uang muka | Tidak berubah |
+| `TravelSettlementService` | Diperbarui | `…/Services/TravelSettlementService.cs` | Gerbang `VR-TRV-31` (pengecualian uang muka `Paid`) | Controller settlement | Tidak berubah |
+| `TravelAuditTrailService` | Diperbarui | `…/Services/TravelAuditTrailService.cs` | 12 event bernama matriks + `REQUEST_CREATED`, `REQUEST_REJECTED`, dan tiga event uang muka yang ada (matriks izin 32.2) | Endpoint audit | Tidak — baca saja |
+| `BusinessTravelDetailResponseDto` | Diperbarui | `…/BusinessTravelManagement/DTOs/BusinessTravelDtos.cs` | Field baru kontrak API 34.4 | Service | — |
+| `Program.cs` | Diperbarui | `Program.cs` | `AddScoped<IWorkflowReferenceLifecycleHandler, BusinessTravelWorkflowLifecycleHandler>()` dan `RunStartupSeederAsync("BusinessTravelWorkflowDefinitionSeeder", …)` | — | — |
+
+### 36.4 Arsitektur folder
+
+```text
+Areas/Corporate/HumanResource/BusinessTravelManagement/
+├── Constants/
+│   ├── BusinessTravelNumberSeries.cs                 Sudah ada
+│   └── BusinessTravelWorkflowCodes.cs                Baru
+├── Controllers/
+│   └── BusinessTravelRequestsController.cs           Diperbarui (Submit)
+├── DTOs/
+│   └── BusinessTravelDtos.cs                         Diperbarui (field persetujuan)
+├── Seeders/                                          Baru (folder)
+│   └── BusinessTravelWorkflowDefinitionSeeder.cs     Baru
+└── Services/
+    ├── BusinessTravelRequestService.cs               Diperbarui
+    ├── BusinessTravelWorkflowLifecycleHandler.cs     Baru
+    ├── TravelAdvanceRequestService.cs                Diperbarui (gerbang)
+    ├── TravelSettlementService.cs                    Diperbarui (gerbang)
+    ├── TravelAttendanceAndRosterLockService.cs       Diperbarui (pelaku)
+    └── TravelAuditTrailService.cs                    Diperbarui (12 event)
+Program.cs                                            Diperbarui (DI + seeder)
+Tests/QuilvianSystemBackend.HumanResourceTests/
+    ├── TravelContractV25Tests.cs                     Diperbarui (endpoint submit)
+    └── TravelWorkflowApprovalTests.cs                Baru (AT-HRD-TRV-23..37)
+```
+
+Penyimpangan yang dibiarkan (utang teknis, jangan ditiru): status SPPD masih string bebas tanpa konstanta terpusat; `TravelAttendanceAndRosterLockService` memanggil `SaveChangesAsync` sendiri.
+
+### 36.5 Status model dan dampak migration
+
+| Model | Status | Kolom berubah | Migration |
+| --- | --- | --- | --- |
+| `TrxBusinessTravelRequest` | Sudah ada | Tidak ada kolom berubah; nilai `TravelStatus` baru `NeedRevision`; makna `ApprovedBudgetAmount` berubah (kamus data 29.1) | Tidak |
+| `TrxBusinessTravelApproval` | Sudah ada | — (tetap tidak ditulis) | Tidak |
+| `MstWorkflowDefinition`, `MstWorkflowStep` | Sudah ada (milik `S-A7-V2`) | — ; satu baris data baru lewat seeder | Tidak |
+
+### 36.6 Rencana migration
+
+Tidak ada migration. Rollback = kembalikan rilis; definisi workflow yang sudah tertanam dapat dinonaktifkan admin di Master Workflow (SPPD yang sedang menunggu tetap dapat dibatalkan pemohon).
+
+### 36.7 Rencana data master awal
+
+| Data | Isi minimum | Penanam |
+| --- | --- | --- |
+| Definisi workflow `BUSINESS_TRAVEL_REQUEST` v1 | Nama "Persetujuan Perjalanan Dinas", `RequestType = HRD_TRV_REQUEST`, satu tahap `HRD-TRV-01` "Atasan langsung pemohon" (`RequesterManager`, `ApprovalMode = Any`, `RequiredApprovalCount = 1`, SLA 48 jam sesuai `HRD-TF-075`), `IsDefault = true`, **aktif** | `BusinessTravelWorkflowDefinitionSeeder` |
+
+Berbeda dari seeder pengadaan (ditanam nonaktif karena tahap jabatannya harus diisi admin), definisi SPPD ditanam **aktif** karena tahap `RequesterManager` tidak memerlukan konfigurasi. Ini usulan desain (pertanyaan terbuka `HRD-Q-222`); bila pemilik memilih ditanam nonaktif, Ajukan ditolak `VR-TRV-29` sampai admin mengaktifkannya.
+
+### 36.8 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+| --- | --- |
+| Endpoint `POST /requests/{id}/approve` dan `/reject` di modul | `HRD-DEC-224`: persetujuan lewat kotak masuk Workflow V2; endpoint modul akan menggandakan jalur persetujuan |
+| Penulis `TrxBusinessTravelApproval` | Riwayat per tahap sudah dicatat Workflow V2; menulis dua tempat berisiko berbeda |
+| Isian anggaran disetujui oleh penyetuju | `HRD-DEC-226`: anggaran disetujui = estimasi; pemangkasan lewat "kembalikan untuk revisi" |
+| Migration data SPPD lama `Submitted` → `Draft` | `HRD-DEC-227`: tanpa perubahan data otomatis |
+| Sinkron surut presensi/gembok untuk SPPD lama | `HRD-DEC-227` |
+| Menghapus kolom `ManagerApprovedAt` dan seterusnya | Butuh migration; manfaat kecil — dibiarkan sebagai utang teknis |
+| Tabel audit perjalanan dinas baru | Jejak audit tetap diturunkan dari cap waktu (`HRD-TF-076`); semua sumber data 12 event sudah ada |
+
+---
+
+## 37. Amandemen `S-A7-V2` — Kotak Masuk Persetujuan Terpadu di atas Engine Workflow (revision `66`, kontrak `v29`, 20 November 2026; approved 20 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | Decision log revision `40` bagian 56: `HRD-DEC-229` s.d. `HRD-DEC-236`; fakta `HRD-TF-080` s.d. `HRD-TF-087`; asumsi `HRD-ASM-88` s.d. `HRD-ASM-90` |
+| Kontrak | API bagian 35, state bagian 33, validasi bagian 34, integrasi bagian 26, izin & audit bagian 33, uji penerimaan bagian 37, kamus data bagian 30 |
+| Source as-is | Backend `815ce085` (branch `yoga`), frontend `564365595` (branch `YogaV2`) |
+| Status | `approved` — pengguna, 20 November 2026 ("setujui kontrak v29, lanjut plan") |
+| Gerbang domain rumah sakit | Tidak berlaku: ini kemampuan platform workflow internal HR (bukan alur klinis, billing, atau keselamatan pasien). `requirement-completeness-gate`/`hospital-domain-architect` tidak dijalankan, sama seperti amandemen `v28` |
+
+### 37.1 Ringkasan perubahan
+
+Sekarang ada dua engine persetujuan yang berjalan berdampingan:
+- Engine `WorkflowService` dipakai delapan modul HR.
+- Engine "V2 lama" (`WorkflowApprovalActionService`, `WorkflowInstanceCreationService`, worker SLA) hanya dipakai Kotak Masuk Terpadu dan endpoint generik.
+
+Amandemen ini **tidak menulis engine ketiga** dan tidak membuang kotak terpadu. Lapisan layanan kotak terpadu diubah menjadi **adapter** atas `WorkflowService`:
+
+1. Pembacaan antrean, ringkasan, dan detail memakai penugasan engine, termasuk delegasi aktif.
+2. Aksi Setujui, Tolak, Kembalikan, dan Massal diteruskan ke metode engine.
+3. Eskalasi SLA bekerja pada penugasan engine dengan menambahkan penugasan atasan.
+4. Otorisasi engine diperluas ke Plh aktif untuk penugasan yang sudah ada.
+5. Endpoint generik yang melewati modul dihentikan untuk permohonan modul.
+
+### 37.2 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai amandemen ini | Dibuat ulang? |
+| --- | --- | --- | --- |
+| Instance, tahap, penugasan workflow (`TrxWorkflowInstance`, `TrxWorkflowStepInstance`, `TrxWorkflowApproverAssignment`) | Workflow (`S-A7`/`S-A7-V2`, engine `WorkflowService`) | Ya — dibaca adapter; satu kolom baru `EscalatedFromAssignmentId` | Tidak |
+| Riwayat aksi (`TrxApprovalAction`) | Workflow (engine) | Ya — ditulis engine; nilai `ActionType` baru `Escalate` | Tidak |
+| Delegasi (`TrxApprovalDelegation`) | Workflow | Ya — dibaca antrean dan otorisasi engine | Tidak |
+| Definisi workflow (`MstWorkflowDefinition`) | Master Data Workflow | Ya — kolom baru `AllowBulkApproval` | Tidak |
+| Alasan penolakan (`MstRejectionReason`) | Master Data Workflow | Ya — dibaca untuk `myAction.rejectionReasons` dan validasi engine | Tidak |
+| Atasan langsung (`WfpManagerAssignment`) | WorkforceCore | Ya — dibaca resolver atasan eskalasi | Tidak |
+| Data permohonan modul (SPPD, cuti, lembur, …) | Modul masing-masing | Tidak diubah; status diubah oleh penangan modul lewat engine | Tidak |
+| Notifikasi | Workflow (`UnifiedNotificationGatewayService`) | Ya — notifikasi eskalasi | Tidak |
+
+### 37.3 Class diagram — konteks Workflow (perubahan)
+
+```mermaid
+classDiagram
+    class WorkflowInboxAndInstancesController {
+      +GetInbox()
+      +GetInboxSummary()
+      +GetInstanceDetail(id)
+      +CreateInstance() 409
+      +CancelInstance(id)
+      +GetMyRequests()
+    }
+    class WorkflowApprovalActionsController {
+      +Approve(stepInstanceId)
+      +Reject(stepInstanceId)
+      +ReturnForRevision(stepInstanceId)
+      +BulkApprove()
+      +Resubmit(id)
+    }
+    class ApprovalInboxQueryService {
+      +GetInboxAsync(userId, filter)
+      +GetInboxSummaryAsync(userId)
+      +GetMyActionAsync(instanceId, userId)
+    }
+    class WorkflowApprovalActionService {
+      +ApproveAsync(stepInstanceId, dto, userId)
+      +RejectAsync(stepInstanceId, dto, userId)
+      +ReturnForRevisionAsync(stepInstanceId, dto, userId)
+      -ResolveActionableAssignmentAsync()
+    }
+    class BulkApprovalService {
+      +ExecuteBulkApprovalAsync(dto, userId)
+    }
+    class WorkflowSlaEnforcementService {
+      +ScanAndEscalateOverdueTicketsAsync()
+      +ManualEscalateAsync(id, dto, userId)
+      +GetOverdueTicketsAsync()
+    }
+    class WorkflowService {
+      +ApproveAsync(instanceId, assignmentId, req)
+      +RejectAsync(instanceId, assignmentId, req)
+      +RequestRevisionAsync(instanceId, assignmentId, req)
+      +AddEscalationAssignmentAsync(assignmentId, approverUserId, reason, isSystem)
+      -CanActOnAssignment(assignment, actor)
+      -IsApprovalRequirementSatisfied(step)
+    }
+    class TrxWorkflowApproverAssignment {
+      +Guid AssignedApproverUserId
+      +Guid? EscalatedFromAssignmentId
+      +bool IsRequired
+      +DateTime? DueAt
+    }
+    WorkflowInboxAndInstancesController --> ApprovalInboxQueryService
+    WorkflowApprovalActionsController --> WorkflowApprovalActionService
+    WorkflowApprovalActionsController --> BulkApprovalService
+    WorkflowApprovalActionService --> WorkflowService
+    BulkApprovalService --> WorkflowService
+    WorkflowSlaEnforcementService --> WorkflowService
+    WorkflowService --> TrxWorkflowApproverAssignment
+```
+
+### 37.4 Penjelasan class
+
+| Class | Status | Lokasi file | Perubahan | Dipanggil oleh | Membuka transaksi |
+| --- | --- | --- | --- | --- | --- |
+| `WorkflowService` | Diperbarui | `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowService.cs`, `WorkflowService.ActionsV2.cs` | (1) `CanActOnAssignment`: pemegang penugasan **atau** Plh aktif dari pemegang penugasan (`VR-WF-30`), bukan pemohon; aksi oleh Plh mengisi `IsDelegated`, `ApprovalDelegationId`, `DelegatedFromUserId` pada `TrxApprovalAction`. (2) Metode baru `AddEscalationAssignmentAsync` (membuat penugasan atasan, `IsRequired = false`, `EscalatedFromAssignmentId`, `DueAt` baru, aksi `Escalate`). (3) `IsApprovalRequirementSatisfied`: penugasan wajib dihitung disetujui bila ia atau turunan eskalasinya `Approved` (state 33.3). (4) Saat satu dari pasangan asal/eskalasi memutuskan, kembarannya `Skipped`. (5) Tidak lagi mengisi `DigitalSignatureHash` | Adapter kotak terpadu, kotak lama, modul | Ya (Serializable, as-is) |
+| `WorkflowApprovalActionService` | Diperbarui | `…/Services/WorkflowApprovalActionService.cs` | Menjadi adapter: `ResolveActionableAssignmentAsync(stepInstanceId, userId)` (penugasan sendiri → penugasan via delegasi aktif → `403`), lalu memanggil engine. Logika ubah status langsung, `ComputeSignatureHash`, dan pemanggilan `IdempotentDownstreamExecutionService` dihapus dari jalur engine. Signature publik memakai `userId` (akun), bukan `employeeId` | `WorkflowApprovalActionsController` | Tidak |
+| `ApprovalInboxQueryService` | Diperbarui | `…/Services/ApprovalInboxQueryService.cs` | Kueri penugasan engine terbuka milik pengguna + delegasi aktif; kecualikan penugasan dengan `ApproverEmployeeId` terisi; isi `assignmentId`, `referenceNumber`, `canBulkApprove`; metode baru `GetMyActionAsync` untuk blok `myAction` (memakai ulang pembentuk alasan dari `ApprovalInboxService`) | `WorkflowInboxAndInstancesController` | Tidak |
+| `BulkApprovalService` | Diperbarui | `…/Services/BulkApprovalService.cs` | Hapus syarat PIN; kelayakan `VR-WF-32` (termasuk `AllowBulkApproval`); per butir memanggil `WorkflowApprovalActionService.ApproveAsync` (adapter → engine) | `WorkflowApprovalActionsController` | Tidak (engine per butir) |
+| `WorkflowSlaEnforcementService` | Diperbarui | `…/Services/WorkflowSlaEnforcementService.cs` | Pindai penugasan engine (`DueAt` lewat, wajib, terbuka, belum dieskalasi); atasan dari `ResolveManagerApproverAsync`; panggil `AddEscalationAssignmentAsync`; peringatan dini, daftar overdue, eskalasi manual, dan laporan kepatuhan membaca penugasan engine | `WorkflowSlaEscalationWorker`, `WorkflowSlaEarlyWarningWorker`, `WorkflowSlaAndMatrixController` | Ya, satu per penugasan (lewat engine) |
+| `WorkflowInstanceCreationService` | Diperbarui | `…/Services/WorkflowInstanceCreationService.cs` | `CreateInstanceAsync` → `409` (`VR-WF-29`); `CancelInstanceAsync` → `409` untuk instance engine; `GetMyRequestsAsync` cocokkan `RequestedByUserId` atau `RequestedByEmployeeId`, isi `isModuleManaged`; `GetInstanceDetailAsync` menambah `myAction` | `WorkflowInboxAndInstancesController` | Tidak |
+| `WorkflowResubmitService` | Diperbarui | `…/Services/WorkflowResubmitService.cs` | `ResubmitAsync` → `409` untuk instance engine | `WorkflowApprovalActionsController` | Tidak |
+| `WorkflowApprovalActionsController` | Diperbarui | `…/Controllers/WorkflowApprovalActionsController.cs` | Meneruskan `userId` (akun) ke adapter; memetakan `WorkflowServiceResult` engine ke `400/403/404/409`; atribut akses tidak berubah | — | — |
+| `WorkflowInboxAndInstancesController` | Diperbarui | `…/Controllers/WorkflowInboxAndInstancesController.cs` | Meneruskan `userId`; `POST /instances` → `409` | — | — |
+| `WorkflowSlaAndMatrixController` | Sudah ada | `…/Controllers/WorkflowSlaAndMatrixController.cs` | Tidak berubah; perilaku dari service | — | — |
+| `WorkflowDefinitionController` + `WorkflowDefinitionDtos` | Diperbarui | `Areas/Corporate/HumanResource/MasterData/Workflow/Controllers/WorkflowDefinitionController.cs`, `…/DTOs/WorkflowDefinitionDtos.cs` | Ruas `AllowBulkApproval` pada DTO buat/ubah/respons definisi | Layar Master Workflow | As-is |
+| `ApprovalDelegationV2Service` | Sudah ada | `…/Services/ApprovalDelegationV2Service.cs` | Tidak berubah (sudah mengisi kedua kunci sejak `815ce085`) | — | — |
+| `IdempotentDownstreamExecutionService` | Sudah ada (tidak dipakai untuk engine) | `…/Services/IdempotentDownstreamExecutionService.cs` | Tidak lagi dipanggil untuk instance engine; dipertahankan sampai tidak ada instance engine lama | — | — |
+| `WorkflowValueConstants.ActionType` | Diperbarui | `…/Models/WorkflowValueConstants.cs` | Konstanta `Escalate` | Engine | — |
+| `TrxWorkflowApproverAssignment` | Diperbarui | `…/Models/TrxWorkflowApproverAssignment.cs` + `Repositories/Configurations/Corporate/HumanResource/WorkflowManagement/TrxWorkflowApproverAssignmentConfiguration.cs` | Kolom `EscalatedFromAssignmentId` + navigasi `EscalatedFromAssignment`, FK diri sendiri `Restrict`, index | — | — |
+| `MstWorkflowDefinition` | Diperbarui | `Areas/Corporate/HumanResource/MasterData/Workflow/Models/MstWorkflowDefinition.cs` + konfigurasinya | Kolom `AllowBulkApproval` bawaan `false` | — | — |
+
+DTO yang berubah (`…/DTOs/WorkflowV2Dtos.cs`):
+
+| DTO | Jenis | Perubahan |
+| --- | --- | --- |
+| `ApproveActionRequestDto` | Status | Hapus `PinSignature` |
+| `RejectActionRequestDto` | Status | Ganti `RejectReason` → `RejectionReasonId` (Guid, wajib) + `Comment` (string?, maks 1000); hapus `PinSignature` |
+| `ReturnForRevisionRequestDto` | Status | Tetap (`RevisionNotes` wajib, maks 1000) |
+| `BulkApproveRequestDto` | Status | Hapus `PinSignature` |
+| `ApprovalInboxItemV2ResponseDto` | Response | Tambah `AssignmentId`, `ReferenceNumber`, `CanBulkApprove` |
+| `WorkflowInstanceDetailV2ResponseDto` | Response | Tambah `MyAction` (`WorkflowMyActionDto` baru: `AssignmentId`, `StepInstanceId`, `IsDelegated`, `OnBehalfOfName`, `AvailableActions`, `RejectionReasons`) |
+| `WorkflowInstanceV2ResponseDto` | Response | Tambah `IsModuleManaged` |
+
+### 37.5 Arsitektur folder (yang tersentuh)
+
+```text
+Areas/Corporate/HumanResource/
+├── WorkflowManagement/
+│   ├── Controllers/
+│   │   ├── WorkflowApprovalActionsController.cs      (Diperbarui)
+│   │   ├── WorkflowInboxAndInstancesController.cs    (Diperbarui)
+│   │   └── ApprovalInboxController.cs                (Sudah ada — dipensiunkan kemudian, HRD-DEC-231)
+│   ├── DTOs/WorkflowV2Dtos.cs                        (Diperbarui)
+│   ├── Models/
+│   │   ├── TrxWorkflowApproverAssignment.cs          (Diperbarui)
+│   │   └── WorkflowValueConstants.cs                 (Diperbarui)
+│   ├── Services/
+│   │   ├── WorkflowService.cs / .ActionsV2.cs        (Diperbarui)
+│   │   ├── WorkflowApprovalActionService.cs          (Diperbarui — adapter)
+│   │   ├── ApprovalInboxQueryService.cs              (Diperbarui)
+│   │   ├── BulkApprovalService.cs                    (Diperbarui)
+│   │   ├── WorkflowSlaEnforcementService.cs          (Diperbarui)
+│   │   ├── WorkflowInstanceCreationService.cs        (Diperbarui)
+│   │   └── WorkflowResubmitService.cs                (Diperbarui)
+│   └── Workers/WorkflowV2Workers.cs                  (Sudah ada — perilaku dari service)
+└── MasterData/Workflow/
+    ├── Controllers/WorkflowDefinitionController.cs   (Diperbarui)
+    ├── DTOs/WorkflowDefinitionDtos.cs                (Diperbarui)
+    └── Models/MstWorkflowDefinition.cs               (Diperbarui)
+Repositories/Configurations/Corporate/HumanResource/
+├── WorkflowManagement/TrxWorkflowApproverAssignmentConfiguration.cs (Diperbarui)
+└── MasterData/Workflow/MstWorkflowDefinitionConfiguration.cs        (Diperbarui)
+```
+
+Utang teknis yang **tidak** dirapikan: `WorkflowDefinitionController` memakai `DbContext` langsung (tanpa service), dan `WorkflowService` terbagi dua berkas parsial. Keduanya as-is.
+
+### 37.6 Status model dan dampak migration
+
+| Model | Status | Kolom yang berubah | Migration |
+| --- | --- | --- | --- |
+| `MstWorkflowDefinition` | Diperbarui | `AllowBulkApproval` `boolean NOT NULL DEFAULT false` | Ya |
+| `TrxWorkflowApproverAssignment` | Diperbarui | `EscalatedFromAssignmentId uuid NULL` + FK `Restrict` ke diri sendiri + index | Ya |
+| `TrxApprovalAction`, `TrxApprovalDelegation`, `TrxWorkflowInstance`, `TrxWorkflowStepInstance` | Sudah ada | — | Tidak |
+
+### 37.7 Rencana migration dan data
+
+| Urutan | Langkah | Tanpa downtime? | Cara mundur |
+| --- | --- | --- | --- |
+| 1 | Migration `AddWorkflowBulkFlagAndEscalationLink`: tambah `AllowBulkApproval` (bawaan `false`) dan `EscalatedFromAssignmentId` + FK + index | Ya — kolom baru, null/berbawaan; tidak mengunci tabel lama lama | `Down`: hapus FK, index, dan kedua kolom |
+| 2 | Skrip data (izin eksekusi terpisah): `AllowBulkApproval = true` untuk definisi lembur rutin dan cuti tahunan (`HRD-ASM-90`); kode definisi dipastikan saat implementasi dari Master Workflow | Ya | Set kembali `false` |
+| 3 | Skrip data (izin eksekusi terpisah): lengkapi `PrincipalEmployeeId`/`DelegateEmployeeId` delegasi lama dari akun (`DelegatorUserId`/`DelegateUserId` → pegawai akun) bila kosong | Ya | Kosongkan kembali kolom yang diisi skrip (daftar id disimpan) |
+| 4 | Pemeriksaan pra-rilis `VR-WF-33` (baca-saja): jumlah penugasan terbuka dengan `ApproverEmployeeId` terisi = 0 | — | Bila > 0, rilis ditahan (`HRD-DEC-236`) |
+
+Migration dibuat dan dijalankan hanya atas izin eksplisit pengguna.
+
+### 37.8 Data master awal
+
+| Tabel | Isi minimum |
+| --- | --- |
+| `MstWorkflowDefinition.AllowBulkApproval` | `true` untuk lembur rutin dan cuti tahunan; `false` untuk sisanya, termasuk `BUSINESS_TRAVEL_REQUEST` |
+| `MstRejectionReason` | Sekurang-kurangnya satu alasan aktif per jenis permohonan yang dapat ditolak. Ini konfigurasi Admin HR (di luar scope); tanpa alasan, Tolak tidak dapat dikirim (`VR-WF-26`). devYoga saat ini hanya punya `UJI_376_TOLAK` untuk SPPD |
+
+### 37.9 Strategi uji
+
+Harness `HumanResourceTests` (SQLite) untuk `AT-HRD-WF-23` s.d. `AT-HRD-WF-37`, masing-masing dengan kontrol negatif. `AT-HRD-WF-38`/`39` lewat browser. Regresi penuh HR sekali di akhir gelombang backend. Uji SPPD `TravelSubmitTests`/`TravelWorkflowLifecycleTests` wajib tetap hijau (perilaku kotak lama tidak berubah).
+
+### 37.10 Yang sengaja tidak dibuat
+
+| Dipertimbangkan | Alasan ditolak |
+| --- | --- |
+| Engine baru atau penggabungan kode kedua engine menjadi satu kelas | Tidak perlu: engine `WorkflowService` sudah lengkap; cukup adapter (`HRD-DEC-229`) |
+| Mengubah path aksi menjadi `{assignmentId}` | Path `{stepInstanceId}` dipertahankan agar layar dan klien lain tidak putus; penugasan ditentukan server |
+| Tabel PIN / tanda tangan elektronik | Dihapus (`HRD-DEC-230`); bila perlu kelak lewat amandemen tersendiri |
+| Memindahkan penugasan ke atasan saat eskalasi | Ditolak pengguna (`HRD-DEC-232`): atasan ditambahkan, bukan pengganti |
+| Migrasi tiket engine lama | Ditolak (`HRD-DEC-236`); diganti pemeriksaan pra-rilis |
+| Endpoint kirim ulang generik untuk permohonan modul | Ditolak (`HRD-DEC-235`); kirim ulang dari layar modul |
+| Menghapus `ApprovalInboxController` sekarang | Ditunda sampai kotak terpadu terbukti dan pemanggil nol (`HRD-DEC-231`) |
+
+---
+
+## 38. Amandemen Paket B — Lima Entry Point Menu SDM (revision `68`, kontrak `v30`, 22 November 2026; approved 23 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | Decision log revision `42` bagian 57 (`HRD-DEC-237` s.d. `HRD-DEC-246`, `HRD-ASM-91` s.d. `HRD-ASM-98`); `HRD-DEC-240` `superseded` oleh `HRD-DEC-244`; `HRD-DEC-243` panel 4 diubah `HRD-DEC-245` |
+| Capability map | Revisi `1.5` bagian 17 (`HRD-CAP-92` s.d. `HRD-CAP-104`) |
+| Source acuan | Backend `b164edc12790d92e55e2a8f102cc5791ba39d440` (branch `MHamzah`); frontend `573b7429c967a3229fc651437a902c33eac3708f` (branch `HamzahV2`) |
+| Kontrak | api-contract 36; state-transition 34; validation 35; integration 27; permission-audit 34; acceptance 39; kamus data 31 |
+| Requirement completeness gate | Tidak dijalankan. Mengikuti preseden amandemen `A52`, `S-A8`, dan `S-D5`: Paket B tidak menambah konsep bisnis rumah sakit baru, hanya membuka jalan masuk ke kemampuan yang sudah diputuskan (`HRD-DEC-076`, `077`, `146`, `151`, `158`, `170` s.d. `173`) dan menambah agregasi baca-saja. Seluruh keputusan `approved`; tidak ada keputusan `BLOCKING` |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — tidak ada bounded context, aggregate, atau status baru. Data kredensial dan SPK/RKK hanya **dibaca** untuk hitungan dashboard; larangan manifest bagian 6 butir 1 (jangan mengarang bounded context klinis) tidak tersentuh |
+| Migration | **Tidak ada** |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`). Delivery: roadmap backend bagian 31 (`BE-HRD-453` s.d. `BE-HRD-462`) |
+
+Inti perubahan:
+
+1. **Dashboard SDM** — satu controller baca-saja baru di `WorkforceCore` yang menghitung lima panel dari data pemilik masing-masing (`MstEmployee`, kontrak kerja, lisensi, sertifikat pelatihan wajib, SPK/RKK) dan menyediakan daftar nama untuk setiap angka.
+2. **Riwayat Penyelesaian** — daftar sanksi menerima beberapa status sekaligus.
+3. **Employee 360** — bagian disiplin membaca sanksi alur resmi plus catatan lama sebagai riwayat, dan hanya diisi untuk pemegang `EmployeeDisciplinary : ViewSanctions`.
+4. **Tes/Wawancara** — daftar evaluasi dibatasi menurut penilai kecuali pemegang hak baru `CandidateEvaluation : ViewAll`; kirim nilai uji klinis hanya oleh penilai yang ditugaskan.
+5. Seleksi Administrasi dan Tindak Disiplin **tidak** mengubah backend: keduanya memakai endpoint yang sudah ada (`GET recruitment/screenings`, `GET hrd/disciplinary/sanctions`).
+
+### 38.1 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai di sini | Dibuat ulang? |
+| --- | --- | --- | --- |
+| Pegawai (`MstEmployee`: `IsActive`, `ProfessionId`, `JoinDate`, `ResignDate`) | `MasterData/Workforce` | Ya — dibaca panel 1–3 dan daftar nama | Tidak |
+| Profesi (`MstProfession`) | `MasterData/CompetencyAndCredential` | Ya — nama profesi panel 2 | Tidak |
+| Kontrak kerja (`WfpContractHistory`, dikelola `HrdEmploymentContractService`) | `WorkforceCore` (model) / `LifecycleManagement` (layanan, `S-C4`) | Ya — panel 4 memakai aturan tahapan perpanjangan yang sama dengan `renewal-summary` | Tidak |
+| Lisensi STR/SIP (`WfpCredentialLicense` dan radar `CredentialVerificationService`) | `CredentialingManagement` (`S-C1`) | Ya — panel 5, lewat radar yang sudah mengecualikan STR seumur hidup | Tidak |
+| Sertifikat pelatihan wajib (radar `TrainingExpiryRadarService`) | `LearningAndDevelopment` (`S-C2`) | Ya — panel 5 | Tidak |
+| SPK/RKK (`TrxSpkRkkIssuance`: `ValidUntil`, `IssuanceStatus`) | `CredentialingManagement` (`S-C1`) | Ya — panel 5, kueri baca-saja baru | Tidak |
+| Sanksi, insiden (`HrdDisciplinarySanction`, `HrdDisciplinaryIncidentReport`) | `EmployeeRelationManagement` (`S-C5`) | Ya — daftar sanksi multi-status; bagian disiplin Employee 360 | Tidak |
+| Catatan disiplin profil lama (`WfpDisciplinaryAction`) | `EmployeeRelationManagement` | Ya — hanya dibaca sebagai riwayat Employee 360 (`HRD-DEC-246`) | Tidak; endpoint tulisnya dibiarkan tetapi tidak dipakai layar baru |
+| Penapisan lamaran (`HrdCandidateScreening`) | `RecruitmentManagement` (`S-D2`) | Ya — tanpa perubahan backend | Tidak |
+| Evaluasi kandidat (`HrdCandidateEvaluation`: `EvaluationType`, `EvaluatorUserId`) | `RecruitmentManagement` (`S-D2`) | Ya — pembatasan menurut penilai | Tidak |
+
+### 38.2 Class diagram
+
+**38.2a Dashboard SDM**
+
+```mermaid
+classDiagram
+    direction LR
+    class HrdWorkforceDashboardController {
+        <<BARU>>
+        +GetSummary() lima panel
+        +GetDrilldown(panel, bucket, page) daftar nama
+    }
+    class IHrdWorkforceDashboardService {
+        <<BARU>>
+        +GetSummaryAsync(ct)
+        +GetDrilldownAsync(query, ct)
+    }
+    class ContractRenewalBuckets {
+        <<BARU static>>
+        +Classify(contract, today) bucket
+        +Predicate(bucket, today) expression
+    }
+    class HrdEmploymentContractService {
+        +GetRenewalSummaryAsync() memakai ContractRenewalBuckets
+    }
+    class ICredentialVerificationService {
+        +GetLicenseExpiringRadarListAsync(level)
+    }
+    class ITrainingExpiryRadarService {
+        +GetExpiringRadarSummaryAsync()
+    }
+    class MstEmployee
+    class TrxSpkRkkIssuance
+    HrdWorkforceDashboardController --> IHrdWorkforceDashboardService
+    IHrdWorkforceDashboardService --> MstEmployee : panel 1-3 baca
+    IHrdWorkforceDashboardService --> ContractRenewalBuckets : panel 4
+    HrdEmploymentContractService --> ContractRenewalBuckets : refactor tanpa ubah hasil
+    IHrdWorkforceDashboardService --> ICredentialVerificationService : panel 5 SIP/STR
+    IHrdWorkforceDashboardService --> ITrainingExpiryRadarService : panel 5 sertifikat
+    IHrdWorkforceDashboardService --> TrxSpkRkkIssuance : panel 5 SPK/RKK baca
+```
+
+**38.2b Disiplin, Employee 360, dan evaluasi kandidat**
+
+```mermaid
+classDiagram
+    direction LR
+    class EmployeeDisciplinaryController {
+        +GetSanctionList(query) statuses BARU
+    }
+    class DisciplinaryListQueryService {
+        +GetSanctionsAsync(query) filter multi-status
+    }
+    class HrdEmployee360Controller {
+        +Get() cek ViewSanctions
+    }
+    class HrdEmployee360Service {
+        +GetAsync(id, includeDiscipline)
+    }
+    class CandidateEvaluationController {
+        +GetPaged() scope penilai
+        +GetById() scope penilai
+        +SubmitClinical() cek penilai
+    }
+    class CandidateEvaluationService {
+        +GetPagedAsync(query, actorId, canViewAll)
+        +GetByIdAsync(id, actorId, canViewAll)
+        +SubmitClinicalEvaluationAsync(id, req, actorId)
+    }
+    class AccessPermissionService {
+        +HasAccessAsync(user, resource, action)
+    }
+    EmployeeDisciplinaryController --> DisciplinaryListQueryService
+    HrdEmployee360Controller --> AccessPermissionService : ViewSanctions
+    HrdEmployee360Controller --> HrdEmployee360Service
+    HrdEmployee360Service --> HrdDisciplinarySanction : resmi
+    HrdEmployee360Service --> WfpDisciplinaryAction : riwayat lama
+    CandidateEvaluationController --> AccessPermissionService : ViewAll
+    CandidateEvaluationController --> CandidateEvaluationService
+```
+
+### 38.3 Penjelasan class
+
+| Class | Status | Lokasi file | Fungsi | Dipanggil oleh | Transaksi |
+| --- | --- | --- | --- | --- | --- |
+| `HrdWorkforceDashboardController` | Baru | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/HrdWorkforceDashboardController.cs` | `[Route("api/v1/corporate/human-resource/workforce-dashboard")]`; `[AccessController(moduleCode: "HUMAN_RESOURCE_WORKFORCE_CORE", moduleName: "Human Resource Workforce Core", displayName: "Dashboard SDM", AreaName = "Corporate", ControllerName = "HrdWorkforceDashboard", SortOrder = 23)]`; `[Tags("Corporate / Human Resource / Workforce Core / Workforce Dashboard")]`. Action `GetSummary` (`GET /summary`) dan `GetDrilldown` (`GET /drilldown`), keduanya `[AccessAction("Read", "Melihat Dashboard SDM", AccessType = AccessTypes.Read, SortOrder = 1)]` dan `[AccessPermission("HrdWorkforceDashboard", "Read")]` | Frontend Dashboard SDM | Tidak |
+| `IHrdWorkforceDashboardService` / `HrdWorkforceDashboardService` | Baru | `…/WorkforceCore/Services/HrdWorkforceDashboardService.cs` | Menghitung lima panel saat dipanggil (tanpa snapshot, `HRD-ASM-92`) dengan `AsNoTracking`; memetakan tingkat radar ke kelompok dashboard (kamus data 31.2); daftar nama berhalaman per panel dan kelompok | Controller dashboard | Tidak — baca saja |
+| `ContractRenewalBuckets` | Baru | `…/LifecycleManagement/Services/ContractRenewalBuckets.cs` | Satu-satunya definisi kelompok tahapan perpanjangan (`H60`, `H14`, `H7`, `PENDING_DECISION`, `OVERDUE`) dan batas 60 hari, dipindahkan dari `GetRenewalSummaryAsync` **tanpa mengubah hasil** agar dashboard dan layar Kontrak selalu sama (`HRD-DEC-245`) | `HrdEmploymentContractService`, `HrdWorkforceDashboardService` | — |
+| `HrdEmploymentContractService` | Diperbarui | `…/LifecycleManagement/Services/HrdEmploymentContractService.cs` | `GetContractSummaryAsync` (`ExpiringSoonCount`) dan `GetRenewalSummaryAsync` memakai `ContractRenewalBuckets`; angka keluaran tidak berubah (dijaga uji regresi) | Controller kontrak | Tidak berubah |
+| `HrdWorkforceDashboardDtos` | Baru | `…/WorkforceCore/DTOs/HrdWorkforceDashboardDtos.cs` | `WorkforceDashboardSummaryResponse`, `WorkforceDashboardDrilldownQuery`, `WorkforceDashboardDrilldownItem` (kontrak API 36.1) | Service, controller | — |
+| `WorkforceDashboardPanels` | Baru | `…/WorkforceCore/Constants/WorkforceDashboardPanels.cs` | Konstanta kode panel dan kelompok (state-transition 34.1) | Service, validasi query | — |
+| `DisciplinaryListQuery` | Diperbarui | `…/EmployeeRelationManagement/DTOs/DisciplinaryListDtos.cs` | Tambah `List<string>? Statuses` (diikat dari `?statuses=Expired&statuses=RevokedOnAppeal`); `Status` lama tetap | Controller disiplin | — |
+| `DisciplinaryListQueryService` | Diperbarui | `…/EmployeeRelationManagement/Services/DisciplinaryListQueryService.cs` | `GetSanctionsAsync`: bila `Statuses` terisi → `Where(Statuses.Contains(s.Status))`; validasi nilai `VR-PKB-04`; bila `Status` dan `Statuses` sama-sama terisi → `400` (`VR-PKB-05`) | Controller disiplin | Tidak |
+| `HrdEmployee360Controller` | Diperbarui | `…/WorkforceCore/Controllers/HrdEmployee360Controller.cs` | Sebelum memanggil service, `includeDiscipline = await accessPermissionService.HasAccessAsync(User, "EmployeeDisciplinary", "ViewSanctions")`; hak endpoint tetap `HrdEmployee360 : Read` | Frontend Employee 360 | — |
+| `IHrdEmployee360Service` / `HrdEmployee360Service` | Diperbarui | `…/WorkforceCore/Services/HrdEmployee360Service.cs` | Parameter baru `bool includeDiscipline`. Bila `true`: baca `HrdDisciplinarySanction` dengan `EmployeeId` = `MstEmployee.Id` **atau** `workforceProfileId` (kolom ini menampung keduanya, capability map 17.1 dan komentar `DisciplinaryListQueryService` baris 13), ditambah `WfpDisciplinaryAction` sebagai riwayat lama; isi `DisciplinaryRecords`. Bila `false`: kedua daftar kosong dan `DisciplineHidden = true` | Controller 360 | Tidak |
+| `ConfidentialPersonalAndDisciplineDto` | Diperbarui | `…/WorkforceCore/DTOs/Employee360Dtos.cs` | Tambah `List<Employee360DisciplinaryItemDto> DisciplinaryRecords` dan `bool DisciplineHidden`; `DisciplinarySanctions` (daftar teks) tetap diisi dari sumber yang sama untuk kompatibilitas, ditandai `[Obsolete]` | Service 360 | — |
+| `Employee360DisciplinaryItemDto` | Baru | `…/WorkforceCore/DTOs/Employee360Dtos.cs` | `Source` (`OFFICIAL`/`LEGACY`), `ReferenceNumber`, `Level`, `Title`, `IssuedDate`, `ValidUntil`, `Status`, `IsActive` | Service 360 | — |
+| `CandidateEvaluationController` | Diperbarui | `…/RecruitmentManagement/Controllers/CandidateEvaluationController.cs` | `GetPaged` dan `GetById`: hitung `canViewAll = HasAccessAsync(User, "CandidateEvaluation", "ViewAll")` dan `actorId = User.GetUserId()`, teruskan ke service. `SubmitClinical`: teruskan `actorId`. Atribut akses endpoint tidak berubah | Frontend Tes/Wawancara | — |
+| `CandidateEvaluationQuery` | Diperbarui | `…/RecruitmentManagement/DTOs/CandidateEvaluationDtos.cs` | Tambah `string? Track` (`HR` = `HrInterview`; `CLINICAL` = `ClinicalAssessment` + `UserInterview`, `HRD-ASM-96`) dan `bool? PendingOnly` (belum ada rekomendasi) | Controller evaluasi | — |
+| `ICandidateEvaluationService` / `CandidateEvaluationService` | Diperbarui | `…/RecruitmentManagement/Services/CandidateEvaluationService.cs` | `GetPagedAsync`/`GetByIdAsync` menerima `actorId`, `canViewAll`; tanpa `canViewAll` hasil dibatasi `EvaluatorUserId == actorId` (detail milik penilai lain → `403`, `VR-PKB-07`). `SubmitClinicalEvaluationAsync` menolak `403` bila `EvaluatorUserId != actorId` (`VR-PKB-08`, `HRD-ASM-98`) | Controller evaluasi | Tidak berubah |
+| `RecruitmentEvaluationExplicitPermissions` | Baru | `…/RecruitmentManagement/RecruitmentEvaluationExplicitPermissions.cs` | `[assembly: AccessExplicitPermission(moduleCode: "HUMAN_RESOURCE_RECRUITMENT", resourceName: "CandidateEvaluation", actionName: "ViewAll", displayName: "View All Evaluations", accessType: AccessTypes.Read, Description = "Melihat seluruh evaluasi kandidat, bukan hanya yang ditugaskan kepada diri sendiri", SortOrder = 10)]`; mengikuti pola `MultiDeptExitClearanceExplicitPermissions.cs` | Katalog hak akses | — |
+| `Program.cs` | Diperbarui | `Program.cs` | `AddScoped<IHrdWorkforceDashboardService, HrdWorkforceDashboardService>()` | — | — |
+
+### 38.4 Arsitektur folder
+
+```text
+Areas/Corporate/HumanResource/
+├── WorkforceCore/
+│   ├── Constants/WorkforceDashboardPanels.cs              Baru
+│   ├── Controllers/
+│   │   ├── HrdWorkforceDashboardController.cs             Baru
+│   │   └── HrdEmployee360Controller.cs                    Diperbarui (cek ViewSanctions)
+│   ├── DTOs/
+│   │   ├── HrdWorkforceDashboardDtos.cs                   Baru
+│   │   └── Employee360Dtos.cs                             Diperbarui (DisciplinaryRecords)
+│   └── Services/
+│       ├── HrdWorkforceDashboardService.cs                Baru
+│       └── HrdEmployee360Service.cs                       Diperbarui
+├── LifecycleManagement/Services/
+│   ├── ContractRenewalBuckets.cs                          Baru
+│   └── HrdEmploymentContractService.cs                    Diperbarui (refactor, hasil sama)
+├── EmployeeRelationManagement/
+│   ├── DTOs/DisciplinaryListDtos.cs                       Diperbarui (Statuses)
+│   └── Services/DisciplinaryListQueryService.cs           Diperbarui
+└── RecruitmentManagement/
+    ├── RecruitmentEvaluationExplicitPermissions.cs        Baru
+    ├── Controllers/CandidateEvaluationController.cs       Diperbarui
+    ├── DTOs/CandidateEvaluationDtos.cs                    Diperbarui (Track, PendingOnly)
+    └── Services/CandidateEvaluationService.cs             Diperbarui (scope penilai)
+Program.cs                                                 Diperbarui (DI)
+Tests/QuilvianSystemBackend.HumanResourceTests/
+    ├── WorkforceDashboardTests.cs                         Baru (AT-HRD-PKB-01..08)
+    ├── ContractRenewalBucketsRegressionTests.cs           Baru (AT-HRD-PKB-05)
+    ├── DisciplinaryResolutionHistoryTests.cs              Baru (AT-HRD-PKB-10..12)
+    ├── Employee360DisciplineTests.cs                      Baru (AT-HRD-PKB-13..15)
+    └── CandidateEvaluationScopeTests.cs                   Baru (AT-HRD-PKB-18..22)
+```
+
+Penyimpangan yang dibiarkan (utang teknis, jangan ditiru): kolom `employee_id` modul disiplin menampung dua jenis ID (`MstEmployee.Id` atau `MstWorkforceProfile.Id`); status sanksi masih string bebas; `WfpDisciplinaryAction` tetap memiliki endpoint tulis walaupun tidak lagi dipakai layar.
+
+### 38.5 Status model dan dampak migration
+
+| Model | Status | Kolom berubah | Migration |
+| --- | --- | --- | --- |
+| `MstEmployee`, `MstProfession` | Sudah ada | — | Tidak |
+| `WfpContractHistory` | Sudah ada | — | Tidak |
+| `TrxSpkRkkIssuance` | Sudah ada | — (dibaca `ValidUntil`, `IssuanceStatus`) | Tidak |
+| `HrdDisciplinarySanction`, `HrdDisciplinaryIncidentReport`, `WfpDisciplinaryAction` | Sudah ada | — | Tidak |
+| `HrdCandidateScreening`, `HrdCandidateEvaluation` | Sudah ada | — | Tidak |
+
+### 38.6 Rencana migration
+
+Tidak ada migration. Rollback = kembalikan rilis. Satu-satunya perubahan yang dapat terasa sebagai regresi adalah pembatasan daftar evaluasi (38.9); rollback-nya adalah memberikan `CandidateEvaluation : ViewAll` ke peran yang membutuhkan, bukan mengembalikan kode.
+
+### 38.7 Rencana data master awal
+
+Tidak ada tabel master baru. Hak akses baru terdaftar otomatis dari atribut:
+
+| Hak akses | Sumber pendaftaran | Wajib diberikan sebelum rilis ke |
+| --- | --- | --- |
+| `HrdWorkforceDashboard : Read` | `[AccessPermission]` pada controller baru | Manajer SDM, Admin HRD |
+| `CandidateEvaluation : ViewAll` | `[assembly: AccessExplicitPermission]` | Recruiter HR dan Manajer SDM — **tanpa langkah ini HR hanya melihat evaluasi yang ditugaskan kepadanya sendiri** |
+| `EmployeeDisciplinary : ViewSanctions` | Sudah ada | Sudah dimiliki HR Relations dan Manajer SDM; kini juga menentukan apakah bagian disiplin Employee 360 terisi |
+
+Pemberian hak dilakukan admin di Manajemen Role → Akses Role. Tidak ada pengecualian berdasarkan nama peran di kode.
+
+### 38.8 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+| --- | --- |
+| Tabel snapshot harian dashboard | `HRD-ASM-92`: dihitung saat dibuka; jumlah pegawai ratusan, kueri agregat cukup |
+| Dashboard per unit untuk Kepala Unit | `HRD-ASM-91`: rilis pertama hanya HR tingkat rumah sakit |
+| Hitungan kontrak 30/60/90 hari khusus dashboard | `HRD-DEC-245`: satu definisi bersama layar Kontrak |
+| Endpoint daftar global untuk `WfpDisciplinaryAction` | `HRD-DEC-238`: satu sumber kebenaran sanksi |
+| Migrasi otomatis `WfpDisciplinaryAction` ke `HrdDisciplinarySanction` | `HRD-DEC-246` butir 2 |
+| Menghapus endpoint tulis `WfpDisciplinaryAction` | Bukan bagian keputusan; dibiarkan sebagai utang teknis sampai ada keputusan penghapusan |
+| Endpoint daftar penapisan baru | `GET recruitment/screenings` sudah memenuhi `HRD-DEC-244` |
+| Endpoint gabungan "riwayat penyelesaian" (sanksi + insiden) | Dua daftar existing sudah memenuhi; frontend menampilkannya berdampingan (`HRD-ASM-97`) |
+| Kolom penugasan asesor baru | `EvaluatorUserId` sudah ada pada evaluasi |
+| Penanda hak akses per jalur (HR vs klinis) | `CandidateEvaluation : Evaluate` dan `EvaluateClinical` sudah memisahkan pengisian; pembatasan baca cukup menurut penilai |
+
+### 38.9 Risiko rilis
+
+| Risiko | Dampak | Mitigasi |
+| --- | --- | --- |
+| Hak `CandidateEvaluation : ViewAll` belum diberikan saat rilis | Recruiter tiba-tiba tidak melihat evaluasi yang dijadwalkan untuk orang lain | Langkah rilis wajib 38.7; uji `AT-HRD-PKB-18` dengan dua akun |
+| Pengguna Employee 360 tanpa `ViewSanctions` (mis. atasan langsung) kehilangan bagian disiplin yang selama ini terlihat | Perubahan perilaku yang disengaja (`HRD-DEC-246` butir 4, `HRD-ASM-94`) | Disebut di catatan rilis; frontend menampilkan "Data disiplin hanya untuk HR" |
+| Refactor `ContractRenewalBuckets` mengubah angka layar Kontrak | Angka kontrak berbeda dari sebelum rilis | Uji regresi `AT-HRD-PKB-05` membandingkan hasil sebelum dan sesudah pada data uji yang sama |
+
+## 39. Amandemen `A52-B` — Pembuka Task Tertahan Penjadwalan & Kehadiran (revision `70`, kontrak `v31`, 24 November 2026; approved 24 November 2026)
+
+> **Status:** `approved` — pengguna, 24 November 2026 ("setujui kontrak v30, lanjut plan"). Dasar: decision log bagian 58 (`HRD-DEC-248` s.d. `HRD-DEC-256`, approved 24 November 2026). Backend rujukan `4d2c0162` (branch `yoga`), frontend `004524f4c` + working tree (branch `YogaV2`). Bagian 35 (`A52`, kontrak `v26`) tidak diubah; bagian ini menambah dan menyesuaikan perilaku di atasnya.
+> **Gerbang:** kemampuan HR operasional tanpa konsep klinis atau billing baru (`DOMAIN_ARCHITECTURE_NOT_RUN`, sama dengan bagian 35). Tidak ada keputusan bisnis yang terbuka.
+
+### 39.1 Ringkasan perubahan
+
+| Kode | Keputusan | Perubahan backend | Tabel/migration |
+| --- | --- | --- | --- |
+| `B-T1` | `HRD-DEC-248` | Detail roster menempatkan shift pada baris petugas yang bertugas sekarang; butir shift membawa petugas saat ini dan penanda pengganti | Tidak ada |
+| `B-T2` | `HRD-DEC-249` | Pengecualian scan hilang milik hari calon Alpa tidak memblokir tutup; ditutup bersama konversi | Tidak ada |
+| `B-TA` | `HRD-DEC-251` | Endpoint baca daftar penempatan sementara lintas pegawai (membuka `BE-HRD-359`) | Tidak ada |
+| `B-ESS` | `HRD-DEC-252`, `HRD-DEC-256` | Endpoint self-service izin pulang cepat dan surat tugas dinas luar: daftar, detail, ajukan, batal | Tidak ada |
+| `B-SC` | `HRD-DEC-253` (`HRD-TF-099`) | Daftar, detail, dan Terapkan Perubahan Shift / Tukar Dinas sisi HR dibatasi cakupan unit | Tidak ada |
+| `B-DOC` | `HRD-DEC-254`, `HRD-DEC-255` | Daftar periksa izin per peran; kontrak `v10` hak akses superseded; batas 92 hari tetap | Tidak ada |
+
+Seluruh perubahan **tanpa migration**: kolom yang dibutuhkan sudah ada (`TrxShiftAssignment.OriginalEmployeeId`, `HrdAttendanceException.ResolvedByUserId/ResolvedAt/ResolutionNote`, kolom batal warisan `IdentityModel`).
+
+### 39.2 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai amandemen ini | Dibuat ulang? |
+| --- | --- | --- | --- |
+| Roster, penugasan roster, shift (`TrxRosterPeriod`, `TrxRosterAssignment`, `TrxShiftAssignment`) | Scheduling Management | Dibaca (`B-T1`, `B-SC`) | Tidak |
+| Rekap harian, pengecualian, periode (`HrdAttendanceDaily`, `HrdAttendanceException`, `HrdAttendancePeriod`) | Attendance Management | Ditulis oleh transaksi tutup (`B-T2`) | Tidak |
+| Izin pulang cepat, surat tugas dinas luar (`HrdEarlyLeavePermission`, `HrdOfficialDutyRequest`) | Attendance Management | Ditulis lewat service yang ada (`B-ESS`) | Tidak |
+| Penempatan (`WfpOrganizationAssignment`) | Workforce Core | Dibaca (`B-TA`) | Tidak |
+| Pengajuan ubah jadwal dan tukar dinas (`WfpScheduleChangeRequest`, `WfpShiftSwapRequest`) | Scheduling Management | Dibaca dan diterapkan (`B-SC`) | Tidak |
+| Profil pegawai, unit (`MstWorkforceProfile`, `MstOrganizationUnit`) | Workforce Core / Master | Dibaca | Tidak |
+| Cakupan unit (`HrdUnitScopeService`) | Workforce Core (`A52` bagian 35) | Dipakai ulang (`B-TA`, `B-SC`) | Tidak |
+| Identitas pegawai dari sesi (`HumanResourceContextService`) | Self Services | Dipakai ulang (`B-ESS`) | Tidak |
+
+### 39.3 Class diagram
+
+#### 39.3.1 Kisi roster (`B-T1`)
+
+```mermaid
+classDiagram
+  class RosterPeriodService {
+    +GetByIdAsync(id) RosterPeriodDetailResponse
+    -BuildAssignmentRows(period) List~RosterAssignmentResponse~
+  }
+  class RosterAssignmentResponse {
+    +Guid Id
+    +Guid WorkforceProfileId
+    +bool IsReplacementOnly
+    +List~ShiftAssignmentItemResponse~ ShiftAssignments
+  }
+  class ShiftAssignmentItemResponse {
+    +Guid WorkforceProfileId
+    +string WorkforceDisplayName
+    +bool IsReplacement
+    +Guid? OriginalWorkforceProfileId
+    +string? OriginalWorkforceDisplayName
+  }
+  RosterPeriodService ..> RosterAssignmentResponse
+  RosterAssignmentResponse "1" o-- "*" ShiftAssignmentItemResponse
+```
+
+#### 39.3.2 Tutup periode (`B-T2`)
+
+```mermaid
+classDiagram
+  class AttendancePeriodService {
+    +PreviewCloseAsync(id)
+    +CloseAsync(id, request, actor)
+    -CountBlockingExceptionsAsync(period, dailyIds, candidateIds)
+    -CloseConvertedExceptions(candidateIds, period, actor, now)
+  }
+  class HrdAttendanceException {
+    +string ExceptionType
+    +string ExceptionStatus
+    +bool IsPayrollBlocking
+    +Guid? ResolvedByUserId
+    +DateTime? ResolvedAt
+    +string? ResolutionNote
+  }
+  AttendancePeriodService ..> HrdAttendanceException : tutup bersama konversi
+```
+
+#### 39.3.3 Layanan mandiri izin dan dinas luar (`B-ESS`)
+
+```mermaid
+classDiagram
+  class EarlyLeavePermissionSelfServiceController
+  class OfficialDutySelfServiceController
+  class EarlyLeavePermissionService {
+    +GetPagedForSelfAsync(profileId, query)
+    +GetByIdForSelfAsync(profileId, id)
+    +CreateForSelfAsync(profileId, request, actor)
+    +CancelBySelfAsync(profileId, id, request, actor)
+  }
+  class OfficialDutyRequestService {
+    +GetPagedForSelfAsync(profileId, query)
+    +GetByIdForSelfAsync(profileId, id)
+    +CreateForSelfAsync(profileId, request, actor)
+    +CancelBySelfAsync(profileId, id, request, actor)
+  }
+  class HumanResourceContextService
+  EarlyLeavePermissionSelfServiceController ..> EarlyLeavePermissionService
+  EarlyLeavePermissionSelfServiceController ..> HumanResourceContextService
+  OfficialDutySelfServiceController ..> OfficialDutyRequestService
+  OfficialDutySelfServiceController ..> HumanResourceContextService
+```
+
+#### 39.3.4 Penempatan sementara dan cakupan Perubahan Shift / Tukar Dinas (`B-TA`, `B-SC`)
+
+```mermaid
+classDiagram
+  class TemporaryAssignmentController
+  class TemporaryAssignmentQueryService {
+    +GetFilterMetadataAsync()
+    +GetPagedAsync(query) TemporaryAssignmentPagedResponse
+  }
+  class HrdUnitScopeService {
+    +GetReadScopeAsync()
+    +GetManageScopeAsync()
+  }
+  class ScheduleChangeService {
+    +GetPagedAsync(query)
+    +ApplyAsync(id, actor)
+  }
+  class ShiftSwapService {
+    +GetPagedAsync(query)
+    +ApplyAsync(id, actor)
+  }
+  TemporaryAssignmentController ..> TemporaryAssignmentQueryService
+  TemporaryAssignmentQueryService ..> HrdUnitScopeService
+  ScheduleChangeService ..> HrdUnitScopeService
+  ShiftSwapService ..> HrdUnitScopeService
+```
+
+### 39.4 Penjelasan setiap class
+
+| Class | Status | Lokasi file | Tanggung jawab dan perubahan |
+| --- | --- | --- | --- |
+| `RosterPeriodService` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/RosterPeriodService.cs` | `GetByIdAsync` (detail roster) mengelompokkan shift berdasarkan `TrxShiftAssignment.WorkforceProfileId` (petugas sekarang), bukan berdasarkan `TrxRosterAssignment`. Petugas pengganti yang tidak punya baris penugasan pada roster itu mendapat baris tampilan (`IsReplacementOnly = true`, `Id = Guid.Empty`). Hanya baca; tanpa transaksi |
+| `RosterAssignmentResponse` (DTO Response) | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/DTOs/RosterSchedulingDtos.cs` | Field baru `IsReplacementOnly` (bool) |
+| `ShiftAssignmentItemResponse` (DTO Response) | `Diperbarui` | sama | Field baru `WorkforceProfileId`, `WorkforceProfileCode`, `WorkforceDisplayName` (petugas sekarang), `IsReplacement` (`OriginalEmployeeId` terisi dan berbeda dari petugas sekarang), `OriginalWorkforceProfileId`, `OriginalWorkforceDisplayName`. `ShiftName` diisi pada setiap jalur pemetaan |
+| `AttendancePeriodService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/AttendancePeriodService.cs` | (1) Hitungan `PAYROLL_BLOCKING_EXCEPTION` mengecualikan pengecualian bertipe `MissingCheckIn`, `MissingCheckOut`, atau `Absent` yang menempel pada hari calon konversi (`CloseConversionStatuses`). (2) `CloseAsync` menutup pengecualian itu dalam transaksi `Serializable` yang sama dengan konversi: `ExceptionStatus = Closed`, `ResolvedByUserId` = penutup, `ResolvedAt` = jam tutup, `ResolutionNote` = "Diselesaikan oleh penutupan periode {kode} (HRD-DEC-249): hari dikonversi menjadi Absent". (3) Respons tutup menambah `ClosedConversionExceptionCount`; pratinjau menambah `ConversionExceptionCount` |
+| `AttendancePeriodActionResponse`, `AttendancePeriodClosePreviewResponse` (DTO Response) | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/DTOs/AttendancePeriodDtos.cs` | Field baru `ClosedConversionExceptionCount` (int) dan `ConversionExceptionCount` (int) |
+| `EarlyLeavePermissionService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/EarlyLeavePermissionService.cs` | Metode baru: `GetPagedForSelfAsync`, `GetByIdForSelfAsync` (data milik profil sendiri; selain itu 404), `CreateForSelfAsync` (mencari rekap harian milik sendiri pada `AttendanceDate`, lalu memakai aturan `CreateAsync` yang ada), `CancelBySelfAsync` (`Submitted` → `Cancelled`; selain itu 409). Transaksi: satu `SaveChanges` per aksi |
+| `OfficialDutyRequestService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/OfficialDutyRequestService.cs` | Metode baru yang sama polanya dengan izin pulang cepat; `CreateForSelfAsync` memakai aturan `CreateAsync` yang ada dengan `WorkforceProfileId` dari sesi |
+| `EarlyLeavePermissionSelfServiceController` | `Baru` | `Areas/SelfServices/HumanResource/Controllers/EarlyLeavePermissionSelfServiceController.cs` | Lima endpoint ESS; `AccessController` modul `HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE`, resource `MyEarlyLeavePermission`; identitas lewat `HumanResourceContextService.GetByUserIdAsync`; log audit `AuditAsync` untuk ajukan dan batal |
+| `OfficialDutySelfServiceController` | `Baru` | `Areas/SelfServices/HumanResource/Controllers/OfficialDutySelfServiceController.cs` | Tujuh endpoint ESS (termasuk unggah dan unduh lampiran surat tugas lewat `HrAttachmentStorage` yang ada, kategori `attendance-official-duty`; unduh hanya untuk lampiran pengajuan milik sendiri); resource `MyOfficialDuty`; pola sama |
+| `EarlyLeavePermissionSelfServiceDtos`, `OfficialDutySelfServiceDtos` (Create/PagedQuery/Response/Cancel) | `Baru` | `Areas/SelfServices/HumanResource/DTOs/` | Query tanpa parameter pegawai; Create tanpa `WorkforceProfileId`/`AttendanceDailyId` (lihat kontrak `v31` bagian 37.4–37.5) |
+| `TemporaryAssignmentController` | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/TemporaryAssignmentController.cs` | `GET filters/metadata`, `GET /`; `AccessController` modul `HUMAN_RESOURCE_WORKFORCE_CORE`, resource `TemporaryAssignment`, `AccessPermission("TemporaryAssignment", "Read")` |
+| `TemporaryAssignmentQueryService` | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/Services/TemporaryAssignmentQueryService.cs` | Membaca `WfpOrganizationAssignment` berjenis `Temporary`, aktif, tidak dihapus; menyaring cakupan baca (`HrdUnitScopeService.GetReadScopeAsync`): unit tujuan **atau** unit penempatan utama pegawai berada dalam cakupan; filter unit, rentang tanggal (bersinggungan), status waktu, pencarian; paginasi di basis data. Hanya baca |
+| `TemporaryAssignmentDtos` (PagedQuery/Response/FilterMetadata) | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/DTOs/TemporaryAssignmentDtos.cs` | Lihat kontrak 37.6 |
+| `ScheduleChangeService`, `ShiftSwapService` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/` | Daftar dan detail sisi HR hanya memuat pengajuan yang unit shift-nya (`TrxShiftAssignment.OrganizationUnitId` dari shift yang dirujuk; tukar dinas: shift pemohon atau shift tujuan) berada dalam cakupan baca. `ApplyAsync` mensyaratkan unit itu dalam cakupan kelola; selain itu 403 "Anda tidak berwenang mengubah roster unit ini" |
+| `Program.cs` | `Diperbarui` | `Program.cs` | Satu registrasi `AddScoped<TemporaryAssignmentQueryService>()` |
+
+### 39.5 Arsitektur folder
+
+```text
+Areas/
+├── Corporate/HumanResource/
+│   ├── SchedulingManagement/
+│   │   ├── DTOs/RosterSchedulingDtos.cs                       (Diperbarui)
+│   │   └── Services/
+│   │       ├── RosterPeriodService.cs                         (Diperbarui)
+│   │       ├── ScheduleChangeService.cs                       (Diperbarui)
+│   │       └── ShiftSwapService.cs                            (Diperbarui)
+│   ├── AttendanceManagement/
+│   │   ├── DTOs/AttendancePeriodDtos.cs                       (Diperbarui)
+│   │   └── Services/
+│   │       ├── AttendancePeriodService.cs                     (Diperbarui)
+│   │       ├── EarlyLeavePermissionService.cs                 (Diperbarui)
+│   │       └── OfficialDutyRequestService.cs                  (Diperbarui)
+│   └── WorkforceCore/
+│       ├── Controllers/TemporaryAssignmentController.cs       (Baru)
+│       ├── DTOs/TemporaryAssignmentDtos.cs                    (Baru)
+│       └── Services/TemporaryAssignmentQueryService.cs        (Baru)
+└── SelfServices/HumanResource/
+    ├── Controllers/
+    │   ├── EarlyLeavePermissionSelfServiceController.cs       (Baru)
+    │   └── OfficialDutySelfServiceController.cs               (Baru)
+    └── DTOs/
+        ├── EarlyLeavePermissionSelfServiceDtos.cs             (Baru)
+        └── OfficialDutySelfServiceDtos.cs                     (Baru)
+Program.cs                                                     (Diperbarui: 1 registrasi DI)
+```
+
+Utang teknis yang **tidak** dirapikan di sini: `EarlyLeavePermissionController` dan `OfficialDutyRequestController` masih memakai `[Tags]` gaya lama ("HR Attendance - …") dan route ganda tanpa/ dengan `v1`; dibiarkan agar klien yang ada tidak putus.
+
+### 39.6 Status model dan dampak migration
+
+| Model | Status | Kolom yang dipakai | Dampak migration |
+| --- | --- | --- | --- |
+| `TrxShiftAssignment` | `Sudah ada` | `WorkforceProfileId`, `OriginalEmployeeId`, `RosterAssignmentId`, `OrganizationUnitId` | Tidak ada |
+| `HrdAttendanceException` | `Sudah ada` | `ExceptionType`, `ExceptionStatus`, `IsPayrollBlocking`, `ResolvedByUserId`, `ResolvedAt`, `ResolutionNote` | Tidak ada |
+| `HrdEarlyLeavePermission`, `HrdOfficialDutyRequest` | `Sudah ada` | `WorkforceProfileId`, `Status` (nilai `Cancelled` sudah dikenal filter daftar), `IsCancel`, `CancelBy`, `CancelDateTime` (warisan `IdentityModel`) | Tidak ada |
+| `WfpOrganizationAssignment` | `Sudah ada` | `AssignmentType = Temporary`, `OrganizationUnitId`, `EffectiveStartDate`, `EffectiveEndDate`, `IsActive`, `IsDelete` | Tidak ada; indeks yang ada (`WorkforceProfileId`) cukup untuk volume penempatan sementara |
+| `WfpScheduleChangeRequest`, `WfpShiftSwapRequest` | `Sudah ada` | `CurrentShiftAssignmentId`, `RequesterShiftAssignmentId`, `TargetShiftAssignmentId`, `RequestStatus` | Tidak ada |
+
+### 39.7 Rencana migration
+
+Tidak ada migration. Penerapan cukup dengan build dan deploy aplikasi; tidak ada pengisian data lama.
+
+### 39.8 Rencana data master awal
+
+Tidak ada master baru. Resource hak akses baru (`MyEarlyLeavePermission`, `MyOfficialDuty`, `TemporaryAssignment`) terdaftar otomatis saat startup lewat registri `AccessController`; pemberiannya ke jabatan mengikuti daftar periksa 40.14 yang diperbarui (`HRD-DEC-254`, PRD bagian 44.9).
+
+### 39.9 Aturan bisnis yang dirancang
+
+#### 39.9.1 Kisi roster (`HRD-DEC-248`)
+
+1. Baris kisi = petugas yang **sekarang** memegang shift. Shift yang `OriginalEmployeeId`-nya terisi dan berbeda dari `WorkforceProfileId` diberi `IsReplacement = true` beserta nama petugas awal.
+2. Petugas yang hanya muncul sebagai pengganti (tidak punya `TrxRosterAssignment` di roster itu) mendapat baris tampilan `IsReplacementOnly = true` dengan `Id = Guid.Empty`; baris ini tidak dapat dihapus atau divalidasi sebagai penugasan roster.
+3. Baris petugas awal tetap ada (dari `TrxRosterAssignment`) walaupun semua shift-nya sudah dialihkan.
+4. Shift `Cancelled` tidak tampil (perilaku yang ada).
+5. Contoh: Pagi 16 Feb Indra → Raka. Respons: baris Raka memuat shift 16 Feb (`IsReplacement = true`, `OriginalWorkforceDisplayName = "Indra Setiawan"`); baris Indra tanpa shift 16 Feb.
+
+#### 39.9.2 Tutup periode (`HRD-DEC-249`)
+
+1. **Calon konversi** = rekap pada periode dan cakupannya dengan status dalam `CloseConversionStatuses` (`IncompletePunch`, `Incomplete`, `NoScan`).
+2. **Pengecualian konversi** = pengecualian `Open`/`UnderReview` bertipe `MissingCheckIn`, `MissingCheckOut`, atau `Absent` yang menempel pada calon konversi. Pengecualian ini tidak dihitung pada isu `PAYROLL_BLOCKING_EXCEPTION`; jumlahnya ditampilkan sebagai `ConversionExceptionCount`.
+3. Pengecualian lain yang memblokir payroll (mis. `ScheduleConflict`, `ExcessiveWorkHours`, atau `MissingCheckOut` pada hari yang **bukan** calon konversi) tetap memblokir.
+4. Saat tutup, pengecualian konversi ditutup dalam transaksi yang sama (lihat 39.4). Bila transaksi gagal, tidak ada yang berubah.
+5. Buka kembali periode (`Reopen`) tidak membuka kembali pengecualian maupun membatalkan konversi (perilaku yang ada: hanya membuka kunci); koreksi dilakukan lewat koreksi presensi.
+
+#### 39.9.3 Layanan mandiri izin pulang cepat dan dinas luar (`HRD-DEC-252`, `HRD-DEC-256`)
+
+1. Identitas pegawai hanya dari sesi; parameter pegawai pada query/body diabaikan. Akun tanpa profil pegawai → 404 "Akun ini belum terhubung ke profil pegawai".
+2. Izin pulang cepat: `AttendanceDate` wajib; rekap harian milik sendiri pada tanggal itu wajib ada dan belum terkunci; selanjutnya aturan `CreateAsync` yang ada (jam izin di dalam shift, tidak ganda dengan izin aktif, alasan wajib).
+3. Dinas luar: aturan `CreateAsync` yang ada (kategori, nomor surat tugas, rentang jam, tujuan, maksud); lampiran surat tugas lewat endpoint unggah ESS.
+4. Batal: hanya pengajuan milik sendiri berstatus `Submitted`; alasan batal wajib (maks. 500); status `Cancelled`, `IsCancel = true`, `CancelBy` = pengguna, `CancelDateTime` = sekarang. Status lain → 409 "Pengajuan sudah diputuskan dan tidak dapat dibatalkan".
+5. Persetujuan dan penolakan tetap lewat endpoint HR yang ada (`HRD-DEC-256`); pengajuan ESS tampil di daftar HR yang sama (tanpa kolom sumber baru; pembuat tercatat di `CreateBy`).
+6. Pemohon tidak boleh menyetujui atau menolak pengajuannya sendiri (`VR-PK-36`, prinsip `VR-WF-02`): `ApproveAsync`/`RejectAsync` kedua service menolak dengan 403 bila profil pegawai pengguna = `WorkforceProfileId` pengajuan. Pemeriksaan ini belum ada di source (hanya status yang diperiksa) dan ditambahkan bersama endpoint ESS.
+
+#### 39.9.4 Daftar penempatan sementara (`HRD-DEC-251`)
+
+1. Sumber: `WfpOrganizationAssignment` dengan `AssignmentType = Temporary`, `IsActive`, tidak dihapus.
+2. Cakupan: baris tampil bila unit tujuan **atau** unit penempatan utama pegawai pada tanggal mulai berada dalam cakupan baca pengguna. Filter unit di luar cakupan → 403 "Anda tidak berwenang melihat data unit ini" (`VR-PK-27`).
+3. Status waktu (dihitung, WIB): `Upcoming` (mulai > hari ini), `Ongoing`, `Ended` (selesai < hari ini).
+4. Hanya baca; pencatatan dan perubahan tetap di Profil Pegawai 360 (`WfpOrganizationAssignmentController`).
+
+#### 39.9.5 Cakupan Perubahan Shift dan Tukar Dinas (`HRD-DEC-253`)
+
+1. Unit pengajuan ubah jadwal = unit shift `CurrentShiftAssignmentId`. Tukar dinas: unit shift pemohon atau shift tujuan; tampil bila salah satu dalam cakupan baca.
+2. Terapkan hanya bila unit (atau kedua unit pada tukar dinas lintas unit) dalam cakupan kelola.
+3. Pemegang `RosterPeriod : ManageAllUnits` tetap melihat dan menerapkan semua unit (perilaku cakupan bagian 35).
+
+### 39.10 Transaksi, konkurensi, idempotensi, dan kegagalan
+
+| Aksi | Transaksi | Konkurensi / idempotensi | Kegagalan |
+| --- | --- | --- | --- |
+| Tutup periode | Satu transaksi `Serializable` (konversi + penutupan pengecualian + status periode) | Tutup kedua kali → 409 (status bukan Open/Reopened) | Seluruhnya batal |
+| ESS ajukan | Satu `SaveChanges` | Izin ganda pada hari yang sama ditolak aturan yang ada | Tidak ada yang tersimpan |
+| ESS batal | Satu `SaveChanges` dengan pemeriksaan status | Batal kedua kali → 409 | Status tidak berubah |
+| Terapkan perubahan / tukar dinas | Perilaku yang ada | Perilaku yang ada | 403 cakupan sebelum perubahan apa pun |
+
+### 39.11 Hak akses, privasi, dan pencatatan
+
+| String hak akses | Endpoint |
+| --- | --- |
+| `[AccessPermission("MyEarlyLeavePermission", "Read")]` | ESS izin: metadata, daftar, detail |
+| `[AccessPermission("MyEarlyLeavePermission", "Create")]` | ESS izin: ajukan |
+| `[AccessPermission("MyEarlyLeavePermission", "Cancel")]` | ESS izin: batal |
+| `[AccessPermission("MyOfficialDuty", "Read")]` | ESS dinas luar: metadata, daftar, detail, unduh lampiran milik sendiri |
+| `[AccessPermission("MyOfficialDuty", "Create")]` | ESS dinas luar: ajukan, unggah lampiran |
+| `[AccessPermission("MyOfficialDuty", "Cancel")]` | ESS dinas luar: batal |
+| `[AccessPermission("TemporaryAssignment", "Read")]` | Daftar penempatan sementara |
+| Tidak berubah | Detail roster, tutup periode, Perubahan Shift / Tukar Dinas (cakupan ditambahkan di service) |
+
+Log audit (`LoggerService.AuditAsync`, isi di teks pesan): `EarlyLeavePermission.SelfCreate`, `EarlyLeavePermission.SelfCancel`, `OfficialDuty.SelfCreate`, `OfficialDuty.SelfCancel`, dan `AttendancePeriod.Close` diperluas dengan jumlah pengecualian konversi yang ditutup. Alasan izin/batal tidak memuat data pasien; daftar penempatan sementara tidak memuat data gaji.
+
+### 39.12 Strategi test
+
+| Uji | Bukti |
+| --- | --- |
+| `AT-HRD-PK-47` kisi roster pengganti | Harness: shift dialihkan muncul di baris pengganti, baris pengganti-saja, Ganti Petugas berikutnya diterima |
+| `AT-HRD-PK-48` tutup periode dengan Belum Lengkap | Harness + devYoga: tutup berhasil, Absent, pengecualian `Closed` dengan catatan; pengecualian lain tetap memblokir; kontrol negatif |
+| `AT-HRD-PK-49`, `-50` ESS izin dan dinas luar | Harness: ajukan, ID pegawai lain diabaikan, batal hanya `Submitted`, tampil di daftar HR |
+| `AT-HRD-PK-51` daftar penempatan sementara | Harness: cakupan tujuan/asal, 403 unit lain, status waktu |
+| `AT-HRD-PK-52` cakupan Perubahan Shift / Tukar Dinas | Harness: daftar per cakupan, Terapkan unit lain 403 |
+| Registri hak akses | `A52PermissionRegistryTests` diperluas tiga resource baru |
+
+### 39.13 Deployment dan langkah mundur
+
+Tanpa migration; deploy biasa. Langkah mundur: kembalikan build sebelumnya. Data yang ditulis (pengajuan ESS, pengecualian yang ditutup saat tutup periode) tetap sah dibaca versi lama.
+
+### 39.14 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+| --- | --- |
+| Integrasi izin pulang cepat dan dinas luar ke `WorkflowService` | `HRD-DEC-256`; dapat menjadi amandemen tersendiri |
+| Endpoint tulis penempatan sementara di daftar baru | Pencatatan sudah ada per pegawai; `HRD-DEC-251` hanya meminta daftar baca |
+| Memindahkan `TrxShiftAssignment` ke `TrxRosterAssignment` pengganti saat Ganti Petugas | Mengubah data historis dan jejak revisi; cukup pengelompokan saat dibaca (`HRD-DEC-248`) |
+| Status pengecualian baru "ResolvedByClose" | Nilai `Closed` + `ResolutionNote` sudah cukup dan dikenal laporan |
+| Layar baru untuk 14 submenu yang berbagi layar | `HRD-DEC-250` |
+
+### 39.15 Traceability
+
+| Keputusan | Bagian |
+| --- | --- |
+| `HRD-DEC-248` | 39.4 `RosterPeriodService`, 39.9.1 |
+| `HRD-DEC-249` | 39.4 `AttendancePeriodService`, 39.9.2, 39.10 |
+| `HRD-DEC-250` | Frontend bagian 36 (tanpa perubahan backend) |
+| `HRD-DEC-251` | 39.4 `TemporaryAssignment*`, 39.9.4 |
+| `HRD-DEC-252`, `HRD-DEC-256` | 39.4 ESS, 39.9.3 |
+| `HRD-DEC-253` | 39.4 `ScheduleChangeService`/`ShiftSwapService`, 39.9.5 |
+| `HRD-DEC-254` | 39.8; PRD 44.9 |
+| `HRD-DEC-255` | Kontrak bagian 37.1 |

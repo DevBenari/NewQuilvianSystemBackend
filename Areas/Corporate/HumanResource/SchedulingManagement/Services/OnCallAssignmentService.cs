@@ -422,21 +422,69 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     : 30);
 
             bool isSlaMet = responseMinutes <= expectedMinutes;
+            var callAt = DateTime.SpecifyKind(req.CallInTime, req.CallInTime.Kind == DateTimeKind.Local ? DateTimeKind.Local : DateTimeKind.Utc).ToUniversalTime();
+            var arriveAt = DateTime.SpecifyKind(req.ArrivalTime, req.ArrivalTime.Kind == DateTimeKind.Local ? DateTimeKind.Local : DateTimeKind.Utc).ToUniversalTime();
 
-            assignment.IsCalledIn = true;
-            assignment.CallInTime = req.CallInTime;
-            assignment.ArrivalTime = req.ArrivalTime;
-            assignment.ResponseMinutes = responseMinutes;
-            assignment.ExpectedResponseMinutes = expectedMinutes;
-            assignment.IsSlaMet = isSlaMet;
-            assignment.CalledByUnitId = req.CalledByUnitId;
-            assignment.CallNotes = req.CallNotes?.Trim();
+            // HRD-ASM-75: ringkasan diisi dari panggilan Diterima pertama. Call-in kini juga satu catatan Completed, jadi
+            // ringkasan hanya ditulis bila belum ada panggilan Diterima/Selesai yang lebih awal (sama dengan OnCallCallService).
+            var accepted = QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Constants.SchedulingRequestValueConstants.OnCallCallStatus.Accepted;
+            var completed = QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Constants.SchedulingRequestValueConstants.OnCallCallStatus.Completed;
+            var hasEarlierAccepted = await _context.HrdOnCallCalls.AsNoTracking().AnyAsync(x =>
+                x.OnCallAssignmentId == assignment.Id && !x.IsDelete &&
+                (x.CallStatus == accepted || x.CallStatus == completed) && x.CalledAt <= callAt, cancellationToken);
+            if (!hasEarlierAccepted)
+            {
+                assignment.IsCalledIn = true;
+                assignment.CallInTime = req.CallInTime;
+                assignment.ArrivalTime = req.ArrivalTime;
+                assignment.ResponseMinutes = responseMinutes;
+                assignment.ExpectedResponseMinutes = expectedMinutes;
+                assignment.IsSlaMet = isSlaMet;
+                assignment.CalledByUnitId = req.CalledByUnitId;
+                assignment.CallNotes = req.CallNotes?.Trim();
+            }
 
             // Status penugasan tetap 'Active' saat dipanggil (HRD-DEC-103, menutup bug HRD-TF-053)
             assignment.AssignmentStatus = "Active";
             if (!assignment.ActivatedAt.HasValue)
             {
                 assignment.ActivatedAt = req.CallInTime;
+            }
+
+            // BE-HRD-352 / kontrak v26: endpoint lama kini juga menulis satu catatan panggilan Completed (HRD-DEC-198),
+            // dalam penyimpanan yang sama dengan ringkasan. Unit pemanggil: dari permintaan, lalu unit penugasan, lalu unit roster.
+            var callingUnitId = req.CalledByUnitId ?? assignment.UnitId ?? await _context.TrxRosterPeriods
+                .AsNoTracking()
+                .Where(x => x.Id == assignment.RosterPeriodId)
+                .Select(x => x.OrganizationUnitId)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (callingUnitId.HasValue)
+            {
+                _context.HrdOnCallCalls.Add(new HrdOnCallCall
+                {
+                    Id = Guid.NewGuid(),
+                    OnCallAssignmentId = assignment.Id,
+                    CalledWorkforceProfileId = assignment.WorkforceProfileId,
+                    BackupSequence = 0,
+                    CallingOrganizationUnitId = callingUnitId.Value,
+                    CallReason = string.IsNullOrWhiteSpace(req.CallNotes) ? "Dicatat lewat call-in" : req.CallNotes.Trim()[..Math.Min(500, req.CallNotes.Trim().Length)],
+                    CallStatus = QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Constants.SchedulingRequestValueConstants.OnCallCallStatus.Completed,
+                    CalledAt = callAt,
+                    RecordedByUserId = currentUserId,
+                    AnsweredAt = callAt,
+                    AnswerRecordedByUserId = currentUserId,
+                    ArrivedAt = arriveAt,
+                    CompletedAt = DateTime.UtcNow,
+                    CompletedByUserId = currentUserId,
+                    ResponseMinutes = responseMinutes,
+                    RowVersion = Guid.NewGuid(),
+                    CreateDateTime = DateTime.UtcNow,
+                    CreateBy = currentUserId
+                });
+            }
+            else
+            {
+                _logger.LogWarning("Call-in penugasan siaga {Id} tanpa unit pemanggil, unit penugasan, maupun unit roster; catatan panggilan tidak ditulis.", assignment.Id);
             }
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -469,6 +517,116 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 response,
                 response.Message);
         }
+
+        /// <summary>Daftar cadangan berurutan penugasan siaga (HRD-DEC-205 butir 1). Nomor kontak tidak dikirim di sini.</summary>
+        public async Task<SchedulingRequestServiceResult<List<OnCallBackupResponse>>> GetBackupsAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            if (!await _context.TrxOnCallAssignments.AnyAsync(x => x.Id == id && !x.IsDelete, cancellationToken))
+            {
+                return SchedulingRequestServiceResult<List<OnCallBackupResponse>>.Fail(StatusCodes.Status404NotFound, "Penugasan siaga tidak ditemukan.");
+            }
+
+            return SchedulingRequestServiceResult<List<OnCallBackupResponse>>.Ok(await ReadBackupsAsync(id, cancellationToken), "Daftar cadangan siaga berhasil diambil.");
+        }
+
+        /// <summary>
+        /// Menetapkan seluruh daftar cadangan (ganti utuh). VR-PK-08: urutan ganda, pegawai ganda, atau cadangan = siaga utama
+        /// ditolak 422. Daftar lama dihapus lunak lalu daftar baru disimpan dalam satu transaksi.
+        /// </summary>
+        public async Task<SchedulingRequestServiceResult<List<OnCallBackupResponse>>> SetBackupsAsync(
+            Guid id,
+            SetOnCallBackupsRequest req,
+            Guid currentUserId,
+            CancellationToken cancellationToken = default)
+        {
+            const string duplicateMessage = "Urutan cadangan dan nama cadangan tidak boleh ganda atau sama dengan siaga utama";
+            var items = req.Items ?? new List<SetOnCallBackupItemRequest>();
+            var assignment = await _context.TrxOnCallAssignments.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            if (assignment == null)
+            {
+                return SchedulingRequestServiceResult<List<OnCallBackupResponse>>.Fail(StatusCodes.Status404NotFound, "Penugasan siaga tidak ditemukan.");
+            }
+
+            if (assignment.AssignmentStatus is "Completed" or "Cancelled")
+            {
+                return SchedulingRequestServiceResult<List<OnCallBackupResponse>>.Fail(StatusCodes.Status409Conflict, $"Cadangan tidak dapat diubah pada penugasan berstatus {assignment.AssignmentStatus}.");
+            }
+
+            if (items.Any(x => x.BackupSequence < 1))
+            {
+                return SchedulingRequestServiceResult<List<OnCallBackupResponse>>.Fail(StatusCodes.Status400BadRequest, "Urutan cadangan dimulai dari 1.");
+            }
+
+            if (items.GroupBy(x => x.BackupSequence).Any(g => g.Count() > 1) ||
+                items.GroupBy(x => x.WorkforceProfileId).Any(g => g.Count() > 1) ||
+                items.Any(x => x.WorkforceProfileId == assignment.WorkforceProfileId))
+            {
+                return SchedulingRequestServiceResult<List<OnCallBackupResponse>>.Fail(StatusCodes.Status422UnprocessableEntity, duplicateMessage);
+            }
+
+            var ids = items.Select(x => x.WorkforceProfileId).ToList();
+            var found = await _context.Set<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile>()
+                .AsNoTracking()
+                .CountAsync(x => ids.Contains(x.Id) && !x.IsDelete && x.IsActive, cancellationToken);
+            if (found != ids.Count)
+            {
+                return SchedulingRequestServiceResult<List<OnCallBackupResponse>>.Fail(StatusCodes.Status400BadRequest, "Pegawai cadangan tidak ditemukan atau tidak aktif.");
+            }
+
+            var now = DateTime.UtcNow;
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                var existing = await _context.HrdOnCallBackups.Where(x => x.OnCallAssignmentId == id && !x.IsDelete).ToListAsync(cancellationToken);
+                foreach (var backup in existing)
+                {
+                    backup.IsDelete = true;
+                    backup.IsActive = false;
+                    backup.DeleteDateTime = now;
+                    backup.DeleteBy = currentUserId;
+                    backup.UpdateDateTime = now;
+                    backup.UpdateBy = currentUserId;
+                }
+
+                // Hapus lunak disimpan dulu agar indeks unik tersaring IsDelete tidak bentrok dengan daftar baru.
+                await _context.SaveChangesAsync(cancellationToken);
+                _context.HrdOnCallBackups.AddRange(items.OrderBy(x => x.BackupSequence).Select(x => new HrdOnCallBackup
+                {
+                    Id = Guid.NewGuid(),
+                    OnCallAssignmentId = id,
+                    BackupSequence = x.BackupSequence,
+                    WorkforceProfileId = x.WorkforceProfileId,
+                    IsActive = true,
+                    CreateDateTime = now,
+                    CreateBy = currentUserId
+                }));
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex)
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                _context.ChangeTracker.Clear();
+                _logger.LogWarning(ex, "Daftar cadangan siaga {Id} gagal disimpan.", id);
+                return SchedulingRequestServiceResult<List<OnCallBackupResponse>>.Fail(StatusCodes.Status409Conflict, "Daftar cadangan baru saja diubah petugas lain. Muat ulang lalu ulangi.");
+            }
+
+            return SchedulingRequestServiceResult<List<OnCallBackupResponse>>.Ok(await ReadBackupsAsync(id, cancellationToken), "Daftar cadangan siaga berhasil disimpan.");
+        }
+
+        private async Task<List<OnCallBackupResponse>> ReadBackupsAsync(Guid id, CancellationToken cancellationToken) =>
+            await _context.HrdOnCallBackups.AsNoTracking()
+                .Where(x => x.OnCallAssignmentId == id && !x.IsDelete)
+                .OrderBy(x => x.BackupSequence)
+                .Select(x => new OnCallBackupResponse
+                {
+                    Id = x.Id,
+                    BackupSequence = x.BackupSequence,
+                    WorkforceProfileId = x.WorkforceProfileId,
+                    ProfileCode = x.WorkforceProfile != null ? x.WorkforceProfile.ProfileCode : null,
+                    DisplayName = x.WorkforceProfile != null ? x.WorkforceProfile.DisplayName : null
+                })
+                .ToListAsync(cancellationToken);
 
         /// <summary>
         /// Resolver dokter siaga aktif untuk kebutuhan integrasi Laboratorium (BE-HRD-099, LAB-DEC-111, INT-HR-37).

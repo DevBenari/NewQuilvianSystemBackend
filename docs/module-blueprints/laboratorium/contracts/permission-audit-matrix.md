@@ -3,7 +3,8 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-PERM-v1` |
-| Revision | **`16` — `approved`** 2026-10-08, bagian 18 (tiga endpoint ringkasan Beranda dijaga `LabOrder : Read`; nol aksi baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`15` — `approved`** 2026-10-08, bagian 17 (dua endpoint alur v1 dipetakan; nol aksi baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`14` — `approved`** 2026-10-07, bagian 16 (daftar dokter pemeriksa dijaga `LabOrder : Confirm`; nol aksi baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-10-07, bagian 15 (`LabOrder : Confirm`) — disetujui Yoga Aji Pratama. Sebelumnya: **`12` — `approved`** 2026-09-28, bagian 14 (`S16a`: resource `LabOperationalReport`) — disetujui Yoga Aji Pratama, termasuk `Export` terpisah dari `Read`. Sebelumnya: **`11` — `approved`** 2026-09-25, bagian 13 (`S4`: `Validate`, `Release`, `Return`, dua data induk alasan). Terakhir `approved`: `10` — **`approved`** 2026-09-24, bagian 12. *Baris ini sempat tertinggal di `7` sejak revision 8; dirapikan 2026-09-24* |
+| Revision | **18 — `approved`** 2026-11-25, bagian 20 (`LabOrder : Reschedule`). Sebelumnya: **revision 17 `approved`** 2026-10-20 bagian 19; **`16` — `approved`** 2026-10-08, bagian 18 (tiga endpoint ringkasan Beranda dijaga `LabOrder : Read`; nol aksi baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`15` — `approved`** 2026-10-08, bagian 17 (dua endpoint alur v1 dipetakan; nol aksi baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`14` — `approved`** 2026-10-07, bagian 16 (daftar dokter pemeriksa dijaga `LabOrder : Confirm`; nol aksi baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-10-07, bagian 15 (`LabOrder : Confirm`) — disetujui Yoga Aji Pratama. Sebelumnya: **`12` — `approved`** 2026-09-28, bagian 14 (`S16a`: resource `LabOperationalReport`) — disetujui Yoga Aji Pratama, termasuk `Export` terpisah dari `Read`. Sebelumnya: **`11` — `approved`** 2026-09-25, bagian 13 (`S4`: `Validate`, `Release`, `Return`, dua data induk alasan). Terakhir `approved`: `10` — **`approved`** 2026-09-24, bagian 12. *Baris ini sempat tertinggal di `7` sejak revision 8; dirapikan 2026-09-24* |
+| Revision 18 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-11-25** — *"setuju semua sesuai rekomendasi, lanjut plan-module-delivery"* — atas keempat kontrak `S20-1` dan keenam butir `02-backend-architecture.md` 33.10 |
 | Revision 17 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-20** — bagian 19: `LabCancellationReport` dan `LabOrderStatisticsReport`, masing-masing `Read`/`Export`; cetak memakai `Export` |
 | Revision 16 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju 11 butir"* atas `LAB-REQ-021`, kesebelas butir |
 | Revision 15 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju ketujuh butir"* atas `LAB-REQ-019`, ketujuh butir |
@@ -1184,3 +1185,68 @@ payload tidak bernama `Id`, `Name`, maupun `Path` (menimpa pelaku dan alamat).
 | Bawaan Laporan Pembatalan sempit | `LAB-DEC-239` | A8.8, A8.12 | `AC-330` |
 | Cetak memakai izin unduh, ditegakkan server | `LAB-DEC-248` | A8.9 | `AC-337` |
 | Log tanpa identitas pasien | `LAB-DEC-233`, `248` | A8.12 | `AC-332`, `AC-337` |
+
+## 20. Amandemen revision 18 — Penjadwalan ulang pemeriksaan (`S20-1`), 2026-11-25
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-PERM-v1` |
+| Revision | **18** |
+| Status | **`approved`** 2026-11-25 |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-11-25 — *"setuju semua sesuai rekomendasi, lanjut plan-module-delivery"* — atas keempat kontrak `S20-1` dan keenam butir `02-backend-architecture.md` 33.10 |
+| `input_revision` | decisions rev 143 (`LAB-DEC-254`, `268`, `272`, `273`, `274`); `LAB-DA-001` rev 12 A9.9; `LAB-API-v1` `r50` usulan; `02-backend-architecture.md` rev 24 bagian 33 |
+
+### 20.1 Kenapa amandemen ini ada
+
+`LAB-DEC-254` memutuskan menjadwalkan ulang dijaga **aksi izin tersendiri**, terpisah dari mengubah, menahan, atau
+membatalkan pesanan — supaya admin dapat memberikannya kepada petugas meja penerimaan tanpa membuka pembatalan.
+`LAB-DEC-274` menetapkan cara pemberian bawaannya.
+
+### 20.2 Aksi yang ditambahkan
+
+| Resource | Aksi | `AccessType` | Kegunaan |
+|---|---|---|---|
+| `LabOrder` | **`Reschedule`** | `Update` | Memindahkan tanggal rencana pesanan (`PUT /lab-orders/{id}/reschedule`) |
+
+Atribut: `[AccessAction("Reschedule", "Reschedule Lab Order", Description = "Menjadwalkan ulang tanggal rencana pemeriksaan laboratorium", AccessType = AccessTypes.Update, SortOrder = 7)]`
+dan `[AccessPermission("LabOrder", "Reschedule")]`. Aksi terdaftar otomatis lewat `AccessMenuSeeder` dan diperiksa
+`PermissionRegistryValidator` saat startup. *`SortOrder` pasti mengikuti urutan aksi `LabOrder` yang ada — ditetapkan
+implementer tanpa bertabrakan.*
+
+### 20.3 Pemetaan endpoint
+
+| Endpoint | String yang dipakai | Dicatat logger |
+|---|---|:---:|
+| `PUT /lab-orders/{id}/reschedule` | `[AccessPermission("LabOrder", "Reschedule")]` | **Ya** — tanpa alasan dan identitas pasien (`02-backend-architecture.md` 33.10 no. 4) |
+| `GET /lab-orders/{id}/reschedules` | `[AccessPermission("LabOrder", "Read")]` | Tidak (konvensi `GET`) |
+| `GET /lab-orders/{id}` dan daftar pantau (ruas baru) | Tidak berubah | Tidak |
+| `GET /lab-orders/kiosk/pending-by-patient/{patientId}` (ruas baru) | Tidak berubah — `KioskReadPolicy` | Tidak |
+
+### 20.4 Pemberian bawaan
+
+| Langkah | Siapa memperoleh | Cara |
+|---|---|---|
+| Seeder sekali jalan `LabOrderReschedulePermissionSeeder` | Setiap departemen–jabatan yang memegang kebijakan **aktif** `LabOrder : Hold` — di devYoga 2026-11-25: *Penunjang Medis / Analis Laboratorium* saja | Berjalan hanya bila `LabOrder : Reschedule` belum pernah punya baris kebijakan, **termasuk yang sudah dicabut**; sesudah itu admin memegang kendali — pencabutan tidak dipulihkan pada startup berikutnya. Wajib sesudah `AccessMenuSeeder` |
+| Langkah rilis | *Penunjang Medis / Kepala Instalasi Laboratorium* | Role Access — baca set jabatan lebih dulu; POST menimpa seluruh set |
+| Jabatan lain (mis. dokter) | — | Admin lewat Role Access bila diperlukan |
+
+**Catatan:** Kepala Instalasi **tidak** memegang `LabMonitoring : Read` (capability map rev 10) — ia menjadwalkan ulang
+dari detail pesanan. Pemberian izin daftar **bukan** bagian amandemen ini.
+
+### 20.5 Aksi yang tidak dibuat
+
+| Yang tidak dibuat | Alasan |
+|---|---|
+| Izin baca riwayat jadwal ulang tersendiri | `LAB-DEC-268` — pemegang `LabOrder : Read` |
+| Izin menjadwal ulang pesanan bertaut MCU | `LAB-DEC-272` — tidak seorang pun dari Lab |
+| Izin mencabut CITO permintaan | `LAB-DEC-271` |
+
+### 20.6 Traceability revision 18
+
+| Butir | Keputusan | Arsitektur domain | AC |
+|---|---|---|---|
+| `LabOrder : Reschedule` | `LAB-DEC-254` | A9.9 | `AC-340` |
+| Seeder salin dari `Hold` + Kepala manual | `LAB-DEC-274` | A9.9 | `AC-354` |
+| Riwayat dibaca `LabOrder : Read` | `LAB-DEC-268` | A9.10 | `AC-352` |
+| Penanda bukan izin | `LAB-DEC-273` | `INV-67` | `AC-353` |
+

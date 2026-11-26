@@ -29,6 +29,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public decimal? MaximumAmount { get; set; }
         public bool IsRecurring { get; set; }
         public bool IsTaxable { get; set; }
+
         public bool IsProrated { get; set; }
         public bool RequiresAttendance { get; set; }
         public bool RequiresApproval { get; set; }
@@ -65,6 +66,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public string CurrencyCode { get; set; } = string.Empty;
         public decimal DefaultAmount { get; set; }
         public decimal DefaultPercentage { get; set; }
+        public decimal? MaximumAmount { get; set; }
+        public bool IsRecurring { get; set; }
+        public bool RequiresApproval { get; set; }
+        public DateTime? EffectiveStartDate { get; set; }
+        public DateTime? EffectiveEndDate { get; set; }
+        public bool IsEligibleForWorkforceAssignment { get; set; }
+        public string? IneligibleReason { get; set; }
+        public bool IsDirectlyAssignable { get; set; }
+        public bool IsPolicyBased { get; set; }
+        public string? PolicySource { get; set; }
     }
 
     public class AllowanceTypeOptionPagedResponse
@@ -73,6 +84,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public int PageSize { get; set; }
         public int TotalData { get; set; }
         public int TotalPage { get; set; }
+
+        /// <summary>Jumlah total Master Tunjangan (tidak terhapus) tanpa filter kelayakan/pencarian. Terisi saat eligibleForWorkforceAssignment=true atau prioritizeWorkforceEligible=true.</summary>
+        public int? TotalMasterCount { get; set; }
+
+        /// <summary>Jumlah Master Tunjangan aktif tanpa filter kelayakan/pencarian. Terisi saat eligibleForWorkforceAssignment=true atau prioritizeWorkforceEligible=true.</summary>
+        public int? TotalActiveMasterCount { get; set; }
+
+        /// <summary>Jumlah Master Tunjangan aktif yang layak ditetapkan langsung kepada pegawai (tanpa filter pencarian). Terisi saat eligibleForWorkforceAssignment=true atau prioritizeWorkforceEligible=true.</summary>
+        public int? TotalEligibleCount { get; set; }
+
         public List<AllowanceTypeOptionResponse> Items { get; set; } = new();
     }
 
@@ -157,6 +178,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
         public bool IsRecurring { get; set; } = true;
         public bool IsTaxable { get; set; } = true;
+
         public bool IsProrated { get; set; } = true;
         public bool RequiresAttendance { get; set; }
         public bool RequiresApproval { get; set; }

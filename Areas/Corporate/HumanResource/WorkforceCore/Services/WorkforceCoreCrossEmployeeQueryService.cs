@@ -19,13 +19,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
         private const string LogCategory = "Corporate.HumanResource.WorkforceCore.CrossEmployee";
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.IJobDescriptionService _jobDescriptionService;
+
+        private readonly bool _requireApprovedSalary;
 
         public WorkforceCoreCrossEmployeeQueryService(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.IJobDescriptionService jobDescriptionService,
+            Microsoft.Extensions.Options.IOptions<QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options.PayrollPolicyOptions> payrollPolicyOptions)
         {
+            _requireApprovedSalary = payrollPolicyOptions.Value.RequireApprovedSalaryAssignment;
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _jobDescriptionService = jobDescriptionService;
         }
 
         #region 1. Organization Assignments (Penempatan Organisasi)
@@ -529,10 +536,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             string? sortDirection,
             int pageNumber,
             int pageSize,
+            string? authorizationStatus = null,
+            string? operationalStatus = null,
             CancellationToken ct = default)
         {
             NormalizePaging(ref pageNumber, ref pageSize);
             var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+            // Tanggal acuan sama dengan pembacaan lain (WfpSalaryAssignmentController, PayrollCompensationService).
+            var today = DateTime.UtcNow.Date;
 
             var query = _dbContext.Set<WfpSalaryAssignment>().AsNoTracking()
                 .Include(x => x.WorkforceProfile)
@@ -558,6 +569,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             }
             if (isActive.HasValue) query = query.Where(x => x.IsActive == isActive.Value);
 
+            // PAY-BE-FIX-010: dua filter tambahan, terpisah dari isApproved (yang tetap berarti persetujuan manual tercatat). Nilai tidak
+            // dikenal diabaikan di sini; controller menolaknya lebih dulu dengan 400.
+            if (WfpSalaryAssignmentRules.NormalizeAuthorizationStatus(authorizationStatus) is { } authorizationFilter)
+                query = query.Where(WfpSalaryAssignmentRules.AuthorizationStatusExpression(authorizationFilter, _requireApprovedSalary));
+            if (WfpSalaryAssignmentRules.NormalizeOperationalStatus(operationalStatus) is { } operationalFilter)
+                query = query.Where(WfpSalaryAssignmentRules.OperationalStatusExpression(operationalFilter, today));
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -578,6 +596,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             var actorNames = await GetActorNamesAsync(actorIds, ct);
 
             // Mappings explicitly OMIT BaseSalary (HRD-DEC-033)
+            // Kedudukan terhadap Payroll diturunkan dari kebijakan, status aktif, penetapan utama, dan masa berlaku; tidak pernah mengisi
+            // atau menebak ApprovedAt/ApprovedByUserId (PAY-BE-FIX-010).
+            SalaryStanding StandingOf(WfpSalaryAssignment x) => WfpSalaryAssignmentRules.StandingOf(
+                x.IsActive, x.IsPrimary, x.EffectiveStartDate, x.EffectiveEndDate, x.ApprovedAt, x.ApprovedByUserId, _requireApprovedSalary, today);
+
             var items = entities.Select(x => new WfpSalaryAssignmentCrossEmployeeResponse
             {
                 Id = x.Id,
@@ -603,6 +626,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 ApprovedByUserName = x.ApprovedByUserId.HasValue ? GetActorName(actorNames, x.ApprovedByUserId.Value) : null,
                 ApprovedAt = x.ApprovedAt,
                 IsApproved = x.ApprovedAt.HasValue && x.ApprovedByUserId.HasValue,
+                ApprovalRequired = _requireApprovedSalary,
+                ApprovalStatus = WfpSalaryAssignmentRules.StatusOf(x.ApprovedAt, x.ApprovedByUserId),
+                AuthorizationStatus = StandingOf(x).AuthorizationStatus,
+                OperationalStatusCode = StandingOf(x).OperationalStatus,
+                IsPayrollUsable = StandingOf(x).IsPayrollUsable,
                 Description = x.Description,
                 CreateDateTime = x.CreateDateTime,
                 CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
@@ -707,6 +735,76 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
         private static string? GetActorName(IReadOnlyDictionary<Guid, string?> map, Guid id) =>
             id == Guid.Empty ? null : map.TryGetValue(id, out var name) ? name : null;
+
+        #endregion
+
+        #region 6. Employee Effective Job Description
+
+        public async Task<EmployeeEffectiveJobDescriptionResponse?> GetEmployeeEffectiveJobDescriptionAsync(
+            Guid workforceProfileId,
+            DateTime? asOfDate,
+            CancellationToken ct = default)
+        {
+            var targetDate = (asOfDate ?? DateTime.UtcNow).Date;
+
+            var profile = await _dbContext.MstWorkforceProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == workforceProfileId && !p.IsDelete, ct);
+
+            if (profile == null) return null;
+
+            // Source of truth: WfpPositionAssignment effective as of targetDate (HRD-DEC-047 / AUD-HRD07-09)
+            // Tanpa filter x.IsActive (agar riwayat lampau tetap sah), dan tanpa fallback PrimaryPositionId hari ini
+            var effectivePos = await _dbContext.WfpPositionAssignments
+                .Include(x => x.Position)
+                .Include(x => x.Department)
+                .Include(x => x.OrganizationUnit)
+                .AsNoTracking()
+                .Where(x => x.WorkforceProfileId == workforceProfileId &&
+                            x.IsPrimary && !x.IsDelete &&
+                            x.EffectiveStartDate <= targetDate &&
+                            (x.EffectiveEndDate == null || x.EffectiveEndDate >= targetDate))
+                .OrderByDescending(x => x.EffectiveStartDate)
+                .FirstOrDefaultAsync(ct);
+
+            var positionId = effectivePos?.PositionId;
+            string? positionName = effectivePos?.Position?.PositionName;
+            Guid? deptId = effectivePos?.DepartmentId;
+            string? deptName = effectivePos?.Department?.DepartmentName;
+            Guid? orgUnitId = effectivePos?.OrganizationUnitId;
+            string? orgUnitName = effectivePos?.OrganizationUnit?.UnitName;
+
+            if (string.IsNullOrEmpty(positionName) && positionId.HasValue)
+            {
+                var pos = await _dbContext.MstPositions.AsNoTracking().FirstOrDefaultAsync(p => p.Id == positionId.Value && !p.IsDelete, ct);
+                positionName = pos?.PositionName;
+            }
+
+            QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs.JobDescriptionDetailResponse? jobDesc = null;
+            var history = new List<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs.JobDescriptionHistoryResponse>();
+
+            if (positionId.HasValue && positionId.Value != Guid.Empty)
+            {
+                jobDesc = await _jobDescriptionService.GetEffectiveByPositionAsync(positionId.Value, targetDate);
+                history = await _jobDescriptionService.GetHistoryByPositionAsync(positionId.Value);
+            }
+
+            return new EmployeeEffectiveJobDescriptionResponse
+            {
+                WorkforceProfileId = workforceProfileId,
+                EmployeeName = profile.DisplayName,
+                ProfileCode = profile.ProfileCode,
+                PositionId = positionId,
+                PositionName = positionName,
+                DepartmentId = deptId,
+                DepartmentName = deptName,
+                OrganizationUnitId = orgUnitId,
+                OrganizationUnitName = orgUnitName,
+                AsOfDate = targetDate,
+                JobDescription = jobDesc,
+                VersionHistory = history
+            };
+        }
 
         #endregion
     }

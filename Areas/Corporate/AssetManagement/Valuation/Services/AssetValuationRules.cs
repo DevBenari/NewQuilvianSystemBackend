@@ -11,6 +11,16 @@ public static class AssetValuationErrorCodes
     public const string PolicyRange = "AST-VAL-NLI-004";
     public const string GroupNotDepreciable = "AST-VAL-NLI-005";
     public const string ParameterMissing = "AST-VAL-NLI-008";
+    public const string RunFuturePeriod = "AST-VAL-NLI-010";
+    public const string RunAlreadyProcessed = "AST-VAL-NLI-011";
+    public const string RunSequence = "AST-VAL-NLI-012";
+    public const string RunPreviewErrors = "AST-VAL-NLI-013";
+    public const string RunCostCenterUnclear = "AST-VAL-NLI-014";
+    public const string RunGroupWithoutPolicy = "AST-VAL-NLI-015";
+    public const string RunGroupWithoutAccount = "AST-VAL-NLI-016";
+    public const string AccountCode = "AST-VAL-NLI-017";
+    public const string CostCenterInactive = "AST-VAL-NLI-018";
+    public const string Concurrent = "AST-VAL-NLI-028";
     public const string OpeningBalanceExhausted = "AST-VAL-NLI-040";
     public const string OpeningAccumulation = "AST-VAL-REG-064";
     public const string Field = "AST-NLI-FIELD";
@@ -33,6 +43,31 @@ public static class AssetValuationMessages
     public const string GroupNotFound = "Kelompok aset tidak ditemukan atau sudah dihapus.";
     public const string GroupRequired = "Kelompok aset wajib dipilih.";
     public const string EventCodeFormat = "Kode kejadian {0} tidak dikenal modul aset.";
+    public const string AccountRequired = "Kode akun kontrol harga perolehan dan akumulasi penyusutan wajib diisi.";
+    public const string AccountLengthFormat = "Kode akun paling panjang {0} karakter.";
+    public const string AccountCodeFormat = "Kode akun {0} tidak ada di daftar akun Akuntansi, tidak aktif, atau bukan akun yang dapat diposting.";
+    public const string AccountUnknownFormat = "Akun {0} tidak lagi ada atau aktif di daftar akun Akuntansi.";
+    public const string AccountNotControlFormat = "Akun {0} belum ditandai akun kontrol di Akuntansi.";
+    public const string GroupWithoutAccountFormat = "Saldo kelompok {0} tidak akan dikirim untuk rekonsiliasi.";
+    public const string UnitNotFound = "Unit tidak ditemukan atau tidak aktif.";
+    public const string CostCenterRequired = "Pusat biaya wajib dipilih.";
+    public const string CostCenterNotFound = "Pusat biaya tidak ditemukan.";
+    public const string CostCenterInactive = "Pusat biaya ini tidak aktif.";
+    public const string MappingNotFound = "Unit ini belum punya pemetaan pusat biaya.";
+    public const string MappedCostCenterInactiveFormat = "Pusat biaya pemetaan {0} tidak aktif lagi.";
+    public const string NoActiveCostCenter = "Unit ini belum punya pusat biaya aktif.";
+    public const string ManyActiveCostCentersFormat = "Unit ini punya {0} pusat biaya aktif; tetapkan salah satu.";
+    public const string Concurrent = "Data ini baru saja diubah orang lain. Muat ulang lalu coba lagi.";
+    public const string RunFuturePeriodFormat = "Penyusutan {0} belum dapat diproses.";
+    public const string RunAlreadyProcessedFormat = "Penyusutan {0} sudah diproses pada {1} oleh {2}.";
+    public const string RunSequenceFormat = "Proses penyusutan {0} terlebih dahulu.";
+    public const string RunBeforeFirstFormat = "Penyusutan pertama adalah {0}, bulan berlakunya parameter nilai pertama.";
+    public const string RunPreviewErrorsFormat = "Masih ada {0} galat pada pratinjau. Selesaikan sebelum memproses.";
+    public const string RunCostCenterUnclearFormat = "Unit {0} belum jelas pusat biayanya. Petakan di Parameter Nilai.";
+    public const string RunUnplacedFormat = "{0} aset belum ditempatkan pada akhir {1} sehingga pusat biayanya tidak dapat ditentukan: {2}.";
+    public const string RunGroupWithoutPolicyFormat = "Kelompok {0} belum punya umur manfaat.";
+    public const string RunPeriodFormat = "Periode wajib berformat YYYY-MM.";
+    public const string RunNotFound = "Proses penyusutan tidak ditemukan.";
 }
 
 public static class AssetValuationPeriod

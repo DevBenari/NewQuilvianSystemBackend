@@ -947,6 +947,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             }
         }
 
+        // BE-HRD-401: riwayat pegawai yang sudah dinonaktifkan (offboarding/purnatugas) tetap dapat dibuka; hanya profil terhapus yang dianggap tidak ada.
         private async Task<bool> WorkforceProfileExistsAsync(
             Guid workforceProfileId,
             CancellationToken cancellationToken)
@@ -956,7 +957,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                        .AsNoTracking()
                        .AnyAsync(x =>
                            x.Id == workforceProfileId &&
-                           x.IsActive &&
                            !x.IsDelete,
                            cancellationToken);
         }

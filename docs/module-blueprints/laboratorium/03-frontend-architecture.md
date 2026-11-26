@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `18` — amandemen 2026-10-20: Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`), bagian terakhir dokumen. Sebelumnya `17` — pencatatan susulan 2026-10-14: kolom tabel dan halaman hasil mengikuti v1 (`r47`, `r48`; `LAB-REQ-024`, `LAB-REQ-025`), bagian terakhir dokumen. Sebelumnya `16` — amandemen 2026-10-08: Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — amandemen 2026-10-07 (kedua): pemilih dokter pemeriksa memakai daftar Lab (BR-139). Sebelumnya `14` — amandemen 2026-10-07: urutan Konfirmasi v1 (BR-138) dan pencatatan susulan putaran 22 (menu, aksi baris). Sebelumnya `13` — amandemen 2026-09-25 (keempat), laporan operasional `S16a`. Sebelumnya `12` — amandemen 2026-09-25 (ketiga), label keadaan hasil (`LAB-DEC-156`). Sebelumnya `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
+| Revision | `19` — amandemen 2026-11-25: penjadwalan ulang pemeriksaan (`S20-1`), bagian terakhir dokumen (`draft`). Sebelumnya `18` — amandemen 2026-10-20: Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`), bagian terakhir dokumen. Sebelumnya `17` — pencatatan susulan 2026-10-14: kolom tabel dan halaman hasil mengikuti v1 (`r47`, `r48`; `LAB-REQ-024`, `LAB-REQ-025`), bagian terakhir dokumen. Sebelumnya `16` — amandemen 2026-10-08: Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — amandemen 2026-10-07 (kedua): pemilih dokter pemeriksa memakai daftar Lab (BR-139). Sebelumnya `14` — amandemen 2026-10-07: urutan Konfirmasi v1 (BR-138) dan pencatatan susulan putaran 22 (menu, aksi baris). Sebelumnya `13` — amandemen 2026-09-25 (keempat), laporan operasional `S16a`. Sebelumnya `12` — amandemen 2026-09-25 (ketiga), label keadaan hasil (`LAB-DEC-156`). Sebelumnya `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S14`, `S15`. **Revision 4 menambah menu Penerimaan Sampling/Specimen** (bagian 10). **Revision 5 menyerap `LAB-DEC-048`**: butir menu Pesanan Laboratorium dicabut, Monitoring dinamai ulang menjadi Pemeriksaan, dan disiplin diturunkan dari pemeriksaan yang dipilih |
 | Frontend SHA | Revision 1-3: `688daff90`. **Revision 4: `9cd4cd03f`** — fakta `F5` dicabut capability map revision 3 |
@@ -1818,3 +1818,112 @@ Lokasi mengikuti `rules/frontend/frontend-architecture.md`; **nama berkas `DEV_D
 | Hook cetak | `POST /print-log` gagal → pratinjau tidak terbuka; berhasil → terbuka; tombol nonaktif selama menunggu |
 | Menu | Butir tampil hanya bagi pemegang `Read` laporannya; `LabOperationalReport : Read` **tidak** menampilkannya |
 | E2E (pola standalone) | Dua laporan dengan API tiruan; satu putaran nyata dengan akun dr. Bima bila izin sudah diberikan |
+
+## Amandemen 2026-11-25 — Penjadwalan ulang pemeriksaan (`S20-1`)
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** — kontrak `r50` dan keenam butir 33.10 **disetujui 2026-11-25** |
+| Slice | `S20-1` sisi Laboratorium. **`S20-2`** (pilihan tanggal pada layar dokter poli/IGD/Rawat Inap) **tidak** dirancang — `LAB-COORD-023` |
+| Masukan | decisions rev 143 (`LAB-DEC-251`..`277`); `LAB-DA-001` rev 12 A9; `02-backend-architecture.md` bagian 33; `LAB-API-v1` `r50`, `LAB-PERM-v1` revision 18, `LAB-VAL-v1` `r22` — **ketiganya `draft`** |
+| Frontend SHA | **`004524f4c`** (branch `YogaV2`) — sama dengan capability map rev 10 |
+| Sifat | **Nol layar baru, nol menu baru.** Perluasan tiga layar yang ada: Daftar Pasien Lab (tiga disiplin), detail pesanan, kiosk *Konfirmasi Kehadiran* |
+
+### Keadaan frontend saat dirancang
+
+| Sudah ada | Berkas | Hubungan |
+|---|---|---|
+| Daftar Pasien Lab (mode `worklist`) dan Hasil dan Riwayat (mode `results`) | `components/view/health-services/laboratory-management/lab-monitoring/lab-monitoring-view.jsx` (prop `mode`), `lab-monitoring-table-columns.jsx`; halaman `app/health-services/laboratory-management/lab-monitoring/*` dan `lab-result-history/*` | Kolom, penyaring periode, aksi baris |
+| Bawaan penyaring bersama | `lib/constants/health-services/laboratory-management/lab-monitoring-constants.jsx:56` `dateCategory: "OrderDate"`, `dateCategoryOptions` | Bawaan **dibedakan per `mode`** (`LAB-DEC-277`) |
+| Aturan penyaring | `lib/hooks/health-services/laboratory-management/lab-monitoring-rules.js:77-80` — kini hanya meneruskan `SamplingDate`/`ExaminationDate` | Ditambah `PlannedDate` dan `includeOverdue` |
+| Dialog Batal pesanan beralasan | `lab-monitoring-slice.jsx#submitLabOrderCancellation`, `lab-cancellation-rules.js` | **Pola** dialog jadwal ulang (`LAB-DEC-267`) |
+| Detail pesanan | `components/view/health-services/laboratory-management/lab-orders/detail/lab-order-detail-view.jsx` | Tanggal rencana, tombol, riwayat |
+| Kiosk pasien lama | `components/view/kiosk/registration/old-patient/kiosk-old-patient-view.jsx`, `lib/hooks/kiosk/registration/use-kiosk-old-patient-registration.jsx:520-555` | Tampilkan tanggal rencana + penanda |
+| Izin | `usePermission(resource, action)` (`lab-monitoring-table-columns.jsx:286-291`) | `usePermission("LabOrder", "Reschedule")` |
+
+### Hierarki wewenang yang dipakai
+
+| Tingkat | Yang diputuskan di tingkat itu |
+|---|---|
+| Keamanan/privasi/invariant | Tombol hanya bagi pemegang `LabOrder : Reschedule`; tombol **nonaktif beralasan** bila `canReschedule = false` — alasan **dari backend**, tidak dihitung ulang (`INV-67`); alasan jadwal ulang tidak ditampilkan di kiosk; kiosk tidak menolak (`LAB-DEC-266`) |
+| Brief produk yang disetujui | Aksi baris Daftar Pasien Lab **dan** tombol di detail, keduanya dialog tanggal + alasan (`LAB-DEC-267`); kolom dan periode *Tanggal Rencana* bawaan **hanya** di Daftar Pasien Lab (`LAB-DEC-258`, `277`); penanda *Terlewat* (`LAB-DEC-260`); *Dijadwalkan ulang n kali* + riwayat di detail (`LAB-DEC-264`, `268`); kiosk *lebih awal*/*Terlewat* (`LAB-DEC-266`) |
+| Konvensi proyek | Dialog beralasan pola Batal pesanan; penyaring tanggal `FilterDatePicker`; pesan galat dari `ApiResponse.message` |
+| `DEV_DISCRETION` | Warna, ikon, label tombol, susunan isi dialog, bentuk tabel/daftar riwayat, letak kolom *Tanggal Rencana* di tabel, bentuk penanda *Terlewat* (lencana/teks) — dalam pola layar Lab (`LAB-DEC-267`) |
+
+### Kebutuhan layar — Daftar Pasien Lab (mode `worklist`)
+
+| Kebutuhan | Perilaku |
+|---|---|
+| Bawaan penyaring | `dateCategory = "PlannedDate"`, periode = hari ini, `includeOverdue = true`. Mode `results` **tetap** `OrderDate` |
+| Pilihan periode | *Tanggal Order · Tanggal Sampling · Tanggal Pemeriksaan · **Tanggal Rencana*** — di kedua mode |
+| Kolom | *Tanggal Rencana* (`dd-MM-yyyy`); penanda *Terlewat {n} hari* bila `isOverdue` |
+| Aksi baris *Jadwal Ulang* | Tampil hanya bila `usePermission("LabOrder","Reschedule")`; aktif bila `canReschedule`, selain itu nonaktif dengan `rescheduleBlockReason` sebagai keterangan |
+| Sesudah berhasil | Tutup dialog, notifikasi sukses, muat ulang daftar — pesanan pindah ke daftar tanggal barunya |
+
+### Kebutuhan dialog *Jadwal Ulang* (dipakai daftar dan detail)
+
+| Isian | Aturan layar (cermin kontrak, server tetap otoritatif) |
+|---|---|
+| Tanggal rencana saat ini | Baca saja |
+| Tanggal baru | Wajib; pemilih tanggal menolak sebelum hari ini dan tanggal yang sama dengan saat ini (`VAL-157`, `VAL-158`) |
+| Alasan | Wajib, teks bebas, maks. 1000 karakter; kosong/spasi → tombol Simpan nonaktif (`VAL-159`) |
+| `version` | Dikirim dari data yang dimuat (33.10 no. 2, disetujui) |
+
+### Kebutuhan layar — detail pesanan
+
+| Kebutuhan | Perilaku |
+|---|---|
+| Ringkasan | *Tanggal Rencana*, penanda *Terlewat*, *Dijadwalkan ulang {n} kali* (`rescheduleCount`) |
+| Tombol *Jadwal Ulang* | Aturan sama dengan aksi baris |
+| Riwayat | Dimuat dari `GET /lab-orders/{id}/reschedules` saat bagian riwayat dibuka; kolom: tanggal lama → tanggal baru, alasan, pelaku, waktu WIB |
+
+### Kebutuhan layar — kiosk *Konfirmasi Kehadiran*
+
+| Kebutuhan | Perilaku |
+|---|---|
+| Setiap butir pesanan | Tampilkan *rencana {tanggal}*; tambahkan *(lebih awal)* bila `isEarly`, *(terlewat)* bila `isOverdue` |
+| Konfirmasi | **Tidak berubah** — tetap jalan, nol tulis |
+
+### Aksi per peran
+
+| Peran | Daftar Pasien Lab | Detail | Kiosk |
+|---|---|---|---|
+| Analis (pemegang `Reschedule` lewat seeder) | Lihat + jadwal ulang | Lihat + jadwal ulang + riwayat | — |
+| Kepala Instalasi (langkah rilis) | **Tidak dapat membuka** — tanpa `LabMonitoring : Read` | Lihat + jadwal ulang + riwayat | — |
+| Pemegang `LabOrder : Read` saja (mis. dokter) | Sesuai izin daftar | Lihat + riwayat, **tanpa** tombol | — |
+| Pasien di kiosk | — | — | Lihat tanggal rencana; konfirmasi |
+
+### Penanganan keadaan
+
+| Keadaan | Perilaku |
+|---|---|
+| Memuat | Pola daftar/detail yang ada |
+| Simpan sedang berjalan | Tombol Simpan nonaktif — cegah kirim ganda |
+| `409` | Tampilkan pesan server **apa adanya** (mis. *Sampel sudah diambil…*), dialog tetap terbuka, daftar dimuat ulang — penanda baris ikut berubah |
+| `422` | Pesan di bawah isian terkait |
+| `403` | Pesan *akses ditolak*; sembunyikan tombol |
+| Riwayat kosong | *Belum pernah dijadwalkan ulang* |
+| Data basi | Sesudah `409` versi, muat ulang detail sebelum pengguna mencoba lagi |
+
+### Berkas yang terdampak
+
+| Berkas | Perubahan |
+|---|---|
+| `lib/services/health-services/laboratory-management/lab-order.service.js` | `rescheduleLabOrder(id, payload)`, `getLabOrderReschedules(id)` |
+| `lib/state/slice/health-services/laboratory-management/lab-monitoring-slice.jsx` | Thunk jadwal ulang pola `submitLabOrderCancellation` |
+| `lib/hooks/health-services/laboratory-management/lab-reschedule-rules.js` (**baru**) | Aturan layar dialog (tanggal minimum, alasan wajib, susun payload) — **tidak** menghitung kelayakan |
+| `lib/hooks/health-services/laboratory-management/lab-monitoring-rules.js` | Teruskan `PlannedDate` dan `includeOverdue` |
+| `lib/constants/health-services/laboratory-management/lab-monitoring-constants.jsx` | Opsi `PlannedDate`; bawaan per `mode` |
+| `components/view/health-services/laboratory-management/lab-monitoring/lab-monitoring-view.jsx`, `lab-monitoring-table-columns.jsx` | Kolom, penanda, aksi baris |
+| Dialog jadwal ulang (**baru**, nama `DEV_DISCRETION`) | Dipakai daftar dan detail |
+| `components/view/health-services/laboratory-management/lab-orders/detail/lab-order-detail-view.jsx` | Ringkasan, tombol, riwayat |
+| `components/view/kiosk/registration/old-patient/kiosk-old-patient-view.jsx` | Tanggal rencana + penanda |
+
+### Uji yang dibutuhkan
+
+| Uji | Isi |
+|---|---|
+| Unit (`node --import ./tests/helpers/register.mjs --test tests/unit/`) | `lab-reschedule-rules`: tanggal minimum, alasan kosong, payload; bawaan penyaring per `mode` |
+| E2E (Playwright, API tiruan) | Aksi tampil/nonaktif/tersembunyi menurut izin dan `canReschedule`; dialog berhasil memuat ulang daftar; `409` menampilkan pesan server; Hasil dan Riwayat tetap `OrderDate`; kiosk menampilkan *lebih awal* |
+| Peramban data asli | Lewat dev 3000 dengan akun Analis dan Kepala Instalasi, data uji izin tulis tersendiri |
+

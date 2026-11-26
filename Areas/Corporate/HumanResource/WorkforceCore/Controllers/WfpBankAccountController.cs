@@ -344,6 +344,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            // BE-HRD-391 / HRD-DEC-052: pembuat rekening tidak boleh sekaligus memverifikasinya.
+            // Verifikasi dilakukan petugas lain lewat PATCH /{id}/verify.
+            if (request.IsVerified)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Rekening baru tersimpan sebagai belum terverifikasi. Verifikasi dilakukan petugas lain (bukan pembuat data) melalui aksi Verifikasi rekening (HRD-DEC-052).",
+                    "SELF_VERIFICATION_PROHIBITED"
+                ));
+            }
+
+            // Rekening baru yang belum terverifikasi tidak boleh mengambil alih rekening utama atau
+            // rekening gaji yang sudah terverifikasi; tujuan transfer gaji tidak boleh berganti diam-diam.
+            var takeoverFailure = await GuardUnverifiedTakeoverAsync(
+                workforceProfileId,
+                null,
+                request.IsPrimary,
+                request.IsPayrollAccount,
+                cancellationToken);
+            if (takeoverFailure != null)
+            {
+                return takeoverFailure;
+            }
+
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
             try
@@ -366,9 +390,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                     CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant(),
                     IsPayrollAccount = request.IsPayrollAccount,
                     IsPrimary = request.IsPrimary,
-                    IsVerified = request.IsVerified,
-                    VerifiedAt = request.IsVerified ? now : null,
-                    VerifiedByUserId = request.IsVerified ? actorUserId : null,
+                    IsVerified = false,
+                    VerifiedAt = null,
+                    VerifiedByUserId = null,
                     EffectiveStartDate = request.EffectiveStartDate?.Date,
                     EffectiveEndDate = request.EffectiveEndDate?.Date,
                     Description = NormalizeNullableText(request.Description),
@@ -448,6 +472,56 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                     validation.ErrorMessage ?? "Data rekening bank workforce tidak valid."));
             }
 
+            // Guard FIN-HRD-04-BE-005 / HRD-DEC-052: Guard rekening bank dari mutasi langsung
+            var oldBankId = entity.BankId;
+            var oldAccountNumber = entity.AccountNumber?.Trim() ?? string.Empty;
+            var oldAccountHolder = entity.AccountHolderName?.Trim() ?? string.Empty;
+
+            var newBankId = NormalizeNullableGuid(request.BankId);
+            var newAccountNumber = NormalizeAccountNumber(request.AccountNumber) ?? string.Empty;
+            var newAccountHolder = request.AccountHolderName?.Trim() ?? string.Empty;
+
+            // Bank dianggap berubah bila Id bank berbeda atau nama bank hasil validasi berbeda
+            // (termasuk mengosongkan Id bank yang sebelumnya terisi).
+            var oldBankName = entity.BankName?.Trim() ?? string.Empty;
+            var newBankName = validation.BankName?.Trim() ?? string.Empty;
+            var isBankChanged =
+                (oldBankId.HasValue && oldBankId != newBankId) ||
+                (!string.IsNullOrEmpty(oldBankName) && !string.Equals(oldBankName, newBankName, StringComparison.OrdinalIgnoreCase));
+            var isAccountNumChanged = !string.IsNullOrEmpty(oldAccountNumber) && !string.Equals(oldAccountNumber, newAccountNumber, StringComparison.OrdinalIgnoreCase);
+            var isHolderChanged = !string.IsNullOrEmpty(oldAccountHolder) && !string.Equals(oldAccountHolder, newAccountHolder, StringComparison.OrdinalIgnoreCase);
+
+            if (isBankChanged || isAccountNumChanged || isHolderChanged)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan nomor rekening, bank, atau nama pemilik rekening merupakan data finansial sensitif (HRD-DEC-052). Penggantian data rekening existing tidak dapat dilakukan langsung dan wajib diajukan melalui Pengajuan Perubahan Data Menu 06.",
+                    "SENSITIVE_BANK_ACCOUNT_LOCKED"
+                ));
+            }
+
+            // BE-HRD-391: status verifikasi hanya berubah lewat PATCH /{id}/verify, yang menolak
+            // verifikasi oleh pembuat data. PUT tidak boleh menjadi jalan pintasnya.
+            if (entity.IsVerified != request.IsVerified)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Status verifikasi rekening tidak dapat diubah lewat form ubah. Gunakan aksi Verifikasi rekening oleh petugas selain pembuat data (HRD-DEC-052).",
+                    "BANK_VERIFICATION_VIA_VERIFY_ACTION"
+                ));
+            }
+
+            var takeoverFailure = await GuardUnverifiedTakeoverAsync(
+                workforceProfileId,
+                entity,
+                request.IsPrimary && request.IsActive && !entity.IsPrimary,
+                request.IsPayrollAccount && !entity.IsPayrollAccount,
+                cancellationToken);
+            if (takeoverFailure != null)
+            {
+                return takeoverFailure;
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -469,13 +543,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 entity.CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant();
                 entity.IsPayrollAccount = request.IsPayrollAccount;
                 entity.IsPrimary = request.IsPrimary && request.IsActive;
-
-                if (entity.IsVerified != request.IsVerified)
-                {
-                    entity.IsVerified = request.IsVerified;
-                    entity.VerifiedAt = request.IsVerified ? now : null;
-                    entity.VerifiedByUserId = request.IsVerified ? actorUserId : null;
-                }
 
                 entity.EffectiveStartDate = request.EffectiveStartDate?.Date;
                 entity.EffectiveEndDate = request.EffectiveEndDate?.Date;
@@ -595,6 +662,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                     "Rekening bank tidak aktif tidak dapat dijadikan rekening utama."));
             }
 
+            var primaryTakeoverFailure = await GuardUnverifiedTakeoverAsync(
+                workforceProfileId,
+                entity,
+                request.IsPrimary && !entity.IsPrimary,
+                false,
+                cancellationToken);
+            if (primaryTakeoverFailure != null)
+            {
+                return primaryTakeoverFailure;
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -665,6 +743,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+
+            if (request.IsVerified && entity.CreateBy == actorUserId)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Petugas verifikasi rekening bank harus berbeda dari pembuat data (segregasi tugas / dual-actor verification / FIN-HRD-04-BE-005).",
+                    "SELF_VERIFICATION_PROHIBITED"
+                ));
+            }
 
             entity.IsVerified = request.IsVerified;
             entity.VerifiedAt = request.IsVerified ? now : null;
@@ -913,6 +1000,61 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             return (true, null, bankName);
         }
 
+        /// <summary>
+        /// BE-HRD-391 / HRD-DEC-052: rekening yang belum terverifikasi tidak boleh mengambil alih
+        /// status rekening utama atau rekening gaji dari rekening lain yang sudah terverifikasi.
+        /// </summary>
+        /// <remarks>
+        /// Contoh: Perawat B punya rekening gaji Bank X terverifikasi. Seseorang menambahkan rekening
+        /// Bank Y lalu menandainya rekening utama/gaji. Tanpa penjaga ini, gaji bulan berikutnya bisa
+        /// berpindah ke Bank Y sebelum ada petugas lain yang memverifikasi. Rekening pertama (belum ada
+        /// rekening terverifikasi sama sekali) tetap boleh ditandai, karena tidak ada yang diambil alih.
+        /// </remarks>
+        private async Task<IActionResult?> GuardUnverifiedTakeoverAsync(
+            Guid workforceProfileId,
+            WfpBankAccount? target,
+            bool becomesPrimary,
+            bool becomesPayroll,
+            CancellationToken cancellationToken)
+        {
+            if (!becomesPrimary && !becomesPayroll)
+            {
+                return null;
+            }
+
+            if (target != null && target.IsVerified)
+            {
+                return null;
+            }
+
+            var targetId = target?.Id;
+
+            var verifiedOthers = await _dbContext.Set<WfpBankAccount>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.WorkforceProfileId == workforceProfileId &&
+                    x.IsVerified &&
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    (!targetId.HasValue || x.Id != targetId.Value))
+                .Select(x => new { x.IsPrimary, x.IsPayrollAccount })
+                .ToListAsync(cancellationToken);
+
+            var takesOverPrimary = becomesPrimary && verifiedOthers.Any(x => x.IsPrimary);
+            var takesOverPayroll = becomesPayroll && verifiedOthers.Any(x => x.IsPayrollAccount);
+
+            if (!takesOverPrimary && !takesOverPayroll)
+            {
+                return null;
+            }
+
+            return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict,
+                "Rekening yang belum terverifikasi tidak dapat menggantikan rekening utama atau rekening gaji yang sudah terverifikasi. Verifikasi rekening ini oleh petugas lain lebih dulu, atau ajukan penggantian rekening melalui Pengajuan Perubahan Data Menu 06 (HRD-DEC-052).",
+                "UNVERIFIED_BANK_ACCOUNT_TAKEOVER"
+            ));
+        }
+
         private async Task UnsetOtherPrimaryAsync(
             Guid workforceProfileId,
             Guid? exceptId,
@@ -940,6 +1082,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             }
         }
 
+        // BE-HRD-401: riwayat pegawai yang sudah dinonaktifkan (offboarding/purnatugas) tetap dapat dibuka; hanya profil terhapus yang dianggap tidak ada.
         private async Task<bool> WorkforceProfileExistsAsync(
             Guid workforceProfileId,
             CancellationToken cancellationToken)
@@ -949,7 +1092,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                        .AsNoTracking()
                        .AnyAsync(x =>
                            x.Id == workforceProfileId &&
-                           x.IsActive &&
                            !x.IsDelete,
                            cancellationToken);
         }

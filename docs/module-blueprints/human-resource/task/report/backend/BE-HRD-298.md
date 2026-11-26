@@ -5,7 +5,7 @@
 * **Nama Task**: Service Surveilans Bahaya Ruangan, TLD Radiasi & Worker Alarm Batas Dosis OHS-W5
 * **Modul / Sub-Modul**: Human Resource / Sub-modul 19: Occupational Health & Staff Safety (K3RS & Medical Check-Up)
 * **Slice Delivery**: `S-C6` (Kontrak API `v23`, Gelombang `MVP-58`)
-* **Status**: `✅ Selesai (2026-11-09)`
+* **Status**: `✅ Selesai (2026-11-18)` — `AT-HRD-OHS-17` terbukti lewat harness dan ambang dosis kini kumulatif sesuai `VR-OHS-17`; lihat bagian "Pengerjaan Ulang 18 November 2026" di akhir laporan
 * **Deliverables**:
   - `Implementasi IHazardSurveillanceService, HazardSurveillanceService, dan RadiationDoseThresholdAlertWorker (OHS-W5).`
 
@@ -136,3 +136,60 @@ Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamz
 Nomor surveilans radiasi kini dari `NumberSeriesAllocator`, bukan potongan GUID.
 
 `dotnet build` 0 error, 602 warning. QBE Strict `PASS`. Aplikasi dijalankan pada 11 November 2026: seluruh worker berjalan tanpa galat query dan lima dokumen Swagger berhasil dibuat. Uji API dengan akun sungguhan `NOT RUN`.
+
+## Pengerjaan Ulang 18 November 2026 — `AT-HRD-OHS-17` dan ambang dosis kumulatif
+
+| Field | Nilai |
+| --- | --- |
+| Task mode | `BACKEND` (instruksi pengguna 18 November 2026 "lanjut BE-HRD-298") |
+| Commit backend saat dikerjakan | `d7d4eb3b` (branch `yoga`, sesudah merge `origin/QuilvianIntegrationBackend`) |
+| Backend Governance Preflight | Area `Corporate`; Module `HumanResource` / `OccupationalHealthManagement`; prefix `Trx` (berkas lama `TrxEmployeeHealthSurveillance`); keberlakuan `TOUCHED LEGACY`; QBE berlaku `QBE-SVC-001`, `QBE-VAL-001`; tanpa entity baru, tanpa migration |
+| Status | ✅ Selesai — `AT-HRD-OHS-17` terbukti lewat harness; satu cacat `VR-OHS-17` diperbaiki |
+
+### Cacat yang ditemukan
+
+`VR-OHS-17` menilai dosis **kumulatif**: triwulanan > 5 mSv wajib investigasi K3RS, tahunan > 20 mSv wajib rotasi. Kontrak API menyebut dosis TLD diimpor **bulanan** (`INT-HR-91`). Namun `RecordRadiationDoseAsync` hanya menilai satu bacaan (> 5 mSv), sehingga:
+
+| Contoh | Sebelum perbaikan | Seharusnya |
+| --- | --- | --- |
+| Januari 3 mSv, Februari 3 mSv (triwulan 1 = 6 mSv) | Keduanya "Dalam batas aman", tanpa alarm | Bacaan Februari melampaui ambang triwulanan |
+| Bacaan November 1,5 mSv yang membuat total tahun 20,5 mSv | "Dalam batas aman"; worker `OHS-W5` tidak memberi alarm (radar tetap menampilkan rekomendasi rotasi) | Tidak patuh, pesan wajib rotasi, alarm `OHS-W5` |
+
+### Perubahan
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/Corporate/HumanResource/OccupationalHealthManagement/Services/HazardSurveillanceService.cs` | `RecordRadiationDoseAsync` menjumlahkan bacaan pegawai yang sama pada triwulan dan tahun periode bacaan (cara baca sama dengan radar, termasuk catatan lama "Dosis Tercatat: x mSv"). `IsCompliant` = tidak melampaui ambang triwulanan **dan** tahunan. Teks hasil kini memuat pesan `VR-OHS-17` ("Batas Dosis Radiasi Terlampaui (Bapeten): … wajib dirotasi sementara") atau "wajib investigasi K3RS", ditambah kumulatif triwulan dan tahun. "Dosis Tercatat: x mSv" tetap di awal teks sehingga pembacaan catatan lama tidak berubah. CRLF dipertahankan; +22 −2 |
+| `Tests/QuilvianSystemBackend.HumanResourceTests/RadiationDoseThresholdTests.cs` (baru) | 3 uji atas `HazardSurveillanceService`, radar, worker `RadiationDoseThresholdAlertWorker` (`OHS-W5`), dan `HrdNotificationService` yang sesungguhnya |
+
+"Tiket rotasi dinas" pada kartu roadmap tidak ada di kontrak; kontrak dan matriks uji meminta **rekomendasi rotasi**, yang diberikan radar (`RotasiWajibKeluarZonaRadiasi`).
+
+### Verifikasi
+
+| Skenario | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| Januari 3 + Februari 3 mSv | Januari patuh; Februari tidak patuh, "kumulatif triwulanan 5 mSv; wajib investigasi K3RS", "Kumulatif triwulan 1/2026: 6.0 mSv" | `PASS` | `Kumulatif_triwulan_melebihi_5_mSv_dari_bacaan_bulanan` |
+| `AT-HRD-OHS-17`: Februari, Mei, Agustus 5,0; Oktober 4,0 (tahun 19,0, semua patuh); November 1,5 | November tidak patuh dengan pesan `VR-OHS-17` wajib dirotasi, "tahun 2026: 20.5 mSv"; radar: 20,5 mSv, melampaui tahunan, `RotasiWajibKeluarZonaRadiasi` | `PASS` | `OHS17_kumulatif_tahunan_di_atas_20_mSv_alarm_dan_rekomendasi_rotasi` |
+| — Worker `OHS-W5` dijalankan satu siklus | Alarm `Critical` kategori kesehatan kerja, merujuk rekaman November, ke akun pegawai **dan** petugas K3RS pemegang `OccupationalMedicalExamination : RecordHazardSurveillance`; isi menyebut dosis dan rotasi tugas | `PASS` | idem |
+| — Worker dijalankan lagi | Tidak ada alarm ganda (tetap 2) | `PASS` | idem |
+| Batas tahun, bacaan tunggal, catatan lama | Desember 2025 4,0 + Januari 2026 3,0 tidak dijumlahkan; satu bacaan 5,5 tetap tidak patuh; catatan lama tanpa kolom dosis ("4,2 mSv" di teks) ikut dijumlahkan (triwulan 3 = 5,2) | `PASS` | `Batas_tahun_bacaan_tunggal_dan_catatan_lama` |
+| Kontrol negatif (berkas dipulihkan identik tiap putaran) | K1 service sebelum perbaikan → 3 uji gagal; K2 worker membalik syarat tidak patuh → uji alarm gagal; K3 worker tanpa kunci anti-duplikat → uji alarm ganda gagal | `PASS` | Keluaran `dotnet test` |
+| Proyek uji HR (`dotnet test -p:RunAnalyzers=False`, build penuh) | 287/287 lulus (284 + 3 baru) | `PASS` | Keluaran `dotnet test` |
+| Pemeriksa QBE | Dua pemanggilan dengan probe kontrol (kena 2 `QBE-CODE-002` + 2 `QBE-SVC-001`), service tanpa temuan; `Strict`: 0 VIOLATION, 0 REVIEW, PASS; probe dihapus | `PASS` | Keluaran pemeriksa |
+| Uji lewat API devYoga | Tidak dijalankan; uji harness tanpa menulis basis data (pola keputusan pemilik pada `BE-HRD-235`/`240`) | `NOT RUN` | — |
+
+### Acceptance criteria
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| Rekaman dosis TLD tersimpan per periode | Terpenuhi | Rekaman per bulan dengan periode; kumulatif triwulan/tahun dihitung |
+| Dosis melebihi ambang 20 mSv memicu alarm bahaya dan rekomendasi rotasi | Terpenuhi (harness) | Rekaman tidak patuh → alarm `OHS-W5`; radar `RotasiWajibKeluarZonaRadiasi` |
+| `AT-HRD-OHS-17` | Terpenuhi lewat harness | Bagian verifikasi |
+
+### Catatan
+
+| Hal | Isi |
+| --- | --- |
+| Pengamatan (tidak diubah) | Teks alarm worker memformat dosis menurut budaya server ("1,5 mSv" pada Windows berbahasa Indonesia). Radar menghitung triwulan "terakhir yang punya catatan", sedangkan pencatat menilai triwulan periode bacaan — keduanya konsisten untuk impor berurutan |
+| Perubahan sampingan | `NONE`. Probe QBE dihapus; tidak ada data devYoga yang ditulis |
+| Status Git | 1 berkas source diubah, 1 berkas uji baru, laporan ini, roadmap/traceability/indeks uji. Tidak ada commit |

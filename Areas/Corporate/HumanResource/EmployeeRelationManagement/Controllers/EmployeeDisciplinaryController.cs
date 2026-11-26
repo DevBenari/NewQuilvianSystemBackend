@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManage
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Controllers
 {
@@ -54,7 +55,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return UnprocessableEntity(ApiResponse<IncidentReportResponseDto>.Fail(422, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<IncidentReportResponseDto>.Fail(500, ex.Message));
             }
@@ -76,7 +77,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 var result = await _incidentService.GetIncidentsAsync(employeeId, justCultureClassification, status, page, pageSize, cancellationToken);
                 return Ok(ApiResponse<PagedResult<IncidentReportResponseDto>>.Ok(result, "Daftar laporan insiden berhasil diambil."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<PagedResult<IncidentReportResponseDto>>.Fail(500, ex.Message));
             }
@@ -96,7 +97,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 }
                 return Ok(ApiResponse<IncidentReportDetailDto>.Ok(result, "Detail laporan insiden dan histori investigasi berhasil dimuat."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<IncidentReportDetailDto>.Fail(500, ex.Message));
             }
@@ -121,7 +122,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return NotFound(ApiResponse<InvestigationRecordResponseDto>.Fail(404, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<InvestigationRecordResponseDto>.Fail(500, ex.Message));
             }
@@ -146,7 +147,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return NotFound(ApiResponse<InvestigationRecordResponseDto>.Fail(404, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<InvestigationRecordResponseDto>.Fail(500, ex.Message));
             }
@@ -167,7 +168,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return UnprocessableEntity(ApiResponse<SanctionResponseDto>.Fail(422, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<SanctionResponseDto>.Fail(500, ex.Message));
             }
@@ -183,7 +184,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 var result = await _sanctionService.GetSanctionsByEmployeeIdAsync(employeeId, cancellationToken);
                 return Ok(ApiResponse<List<SanctionResponseDto>>.Ok(result, "Riwayat sanksi pegawai berhasil dimuat."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<List<SanctionResponseDto>>.Fail(500, ex.Message));
             }
@@ -208,7 +209,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return NotFound(ApiResponse<SanctionAppealResponseDto>.Fail(404, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<SanctionAppealResponseDto>.Fail(500, ex.Message));
             }
@@ -229,7 +230,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return UnprocessableEntity(ApiResponse<SuspensionResponseDto>.Fail(422, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<SuspensionResponseDto>.Fail(500, ex.Message));
             }
@@ -250,7 +251,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return NotFound(ApiResponse<SuspensionResponseDto>.Fail(404, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<SuspensionResponseDto>.Fail(500, ex.Message));
             }
@@ -270,6 +271,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             }
 
             return actorName;
+        }
+
+        /// <summary>
+        /// Daftar sanksi seluruh pegawai. Filter: search, status, level, activeOnly, pageNumber, pageSize (MSL-14, DEC-FER-05 opsi A, 18 Nov 2026).
+        /// </summary>
+        [HttpGet("sanctions")]
+        [AccessAction("ViewSanctions", "Melihat Daftar Sanksi Seluruh Pegawai", AccessType = AccessTypes.Read, SortOrder = 20)]
+        [AccessPermission("EmployeeDisciplinary", "ViewSanctions")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<SanctionListItemDto>>), 200)]
+        [ProducesResponseType(typeof(ApiResponse<object>), 400)]
+        public async Task<IActionResult> GetSanctionList(
+            [FromQuery] DisciplinaryListQuery query,
+            [FromServices] IDisciplinaryListQueryService listService,
+            CancellationToken cancellationToken = default)
+        {
+            // BE-HRD-456: filter beberapa status untuk Riwayat Penyelesaian (VR-PKB-04, VR-PKB-05).
+            var filterError = DisciplinaryListQueryService.ValidateSanctionStatusFilter(query);
+            if (filterError != null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(400, filterError));
+            }
+
+            var result = await listService.GetSanctionsAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<SanctionListItemDto>>.Ok(result, "Daftar berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Daftar skorsing seluruh pegawai. Filter: search, status, activeOnly, pageNumber, pageSize (MSL-14, DEC-FER-05 opsi A, 18 Nov 2026).
+        /// </summary>
+        [HttpGet("suspensions")]
+        [AccessAction("ManageSuspension", "Melihat Daftar Skorsing Seluruh Pegawai", AccessType = AccessTypes.Read, SortOrder = 21)]
+        [AccessPermission("EmployeeDisciplinary", "ManageSuspension")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<SuspensionListItemDto>>), 200)]
+        public async Task<IActionResult> GetSuspensionList(
+            [FromQuery] DisciplinaryListQuery query,
+            [FromServices] IDisciplinaryListQueryService listService,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await listService.GetSuspensionsAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<SuspensionListItemDto>>.Ok(result, "Daftar berhasil diambil."));
         }
     }
 }

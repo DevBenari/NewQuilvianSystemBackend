@@ -22,10 +22,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string NeedPlanSequenceKey = "PBJ_NEED_PLAN";
         public const string PackagePlanSequenceKey = "PBJ_PACKAGE_PLAN";
         public const string ItemSequenceKey = "PBJ_ITEM";
+        /// <summary>Usulan blokir/buka blokir vendor (BE-PBJ-VD-001). Contoh: <c>UBV-000003</c>.</summary>
+        public const string VendorStatusRequestSequenceKey = "PBJ_VENDOR_STATUS";
 
         public const string PurchaseRequestPrefix = "PR";
         public const string NeedPlanPrefix = "RKB";
         public const string PackagePlanPrefix = "RPK";
         public const string ItemPrefix = "KTL";
+        public const string VendorStatusRequestPrefix = "UBV";
     }
 }

@@ -19,6 +19,16 @@ public sealed class PayrollPolicyOptions
     /// </summary>
     public bool AllowProfileSalaryFallback { get; set; } = false;
 
+    /// <summary>
+    /// NEEDS CONFIRMATION (PAY-BE-FIX-008). Bila true, Payroll hanya memakai penetapan gaji yang DISETUJUI (ApprovedAt dan ApprovedByUserId
+    /// terisi): penetapan aktif yang belum disetujui tidak dibayarkan, tidak dianggap siap, dan menjadi penahan. Bila false (bawaan),
+    /// berlaku keputusan "peniadaan approval" 19 November 2026: penetapan aktif, utama, dan efektif dianggap sah tanpa approval. Bawaan
+    /// sengaja false: belum ada layar persetujuan penetapan gaji di HRD dan data lama belum disetujui, sehingga menyalakannya sekarang
+    /// akan menahan seluruh penerima. Pemilik proses menyalakannya setelah layar persetujuan dan pengisian data lama siap; kode tidak
+    /// mengubah nilai ini diam-diam.
+    /// </summary>
+    public bool RequireApprovedSalaryAssignment { get; set; } = false;
+
     /// <summary>NEEDS CONFIRMATION. Bila true, tunjangan tetap ikut diprorata dengan faktor yang sama seperti gaji pokok.</summary>
     public bool ProrateFixedAllowances { get; set; } = true;
 
@@ -28,8 +38,25 @@ public sealed class PayrollPolicyOptions
     /// </summary>
     public bool UnpaidLeaveDeductionEnabled { get; set; } = true;
 
-    /// <summary>NEEDS CONFIRMATION. Bila true, pengesah run tidak boleh orang yang sama dengan pengaju (pemisahan kewenangan).</summary>
+    /// <summary>
+    /// TIDAK BERLAKU untuk Payroll Run sejak 24 Nov 2026: pemilik proses memutuskan pengaju dan pengesah run boleh orang yang sama bila
+    /// Role Management memberinya izin PayrollRun:Submit dan PayrollRun:Approve, sehingga nilai ini tidak lagi dibaca oleh PayrollRunService
+    /// (nilai true tidak menghalangi pengesahan). Properti dipertahankan agar konfigurasi lama tetap valid dan karena masih dipakai
+    /// persetujuan Tunjangan Pegawai (PayrollWorkforceAllowanceService) serta tercatat pada snapshot kebijakan run. Bawaan false.
+    /// </summary>
     public bool RequireDifferentApprover { get; set; } = false;
+
+    /// <summary>
+    /// Saklar jalur perhitungan lama (modul "Modern": <c>PayrollRunModernController</c>). Payroll Run resmi adalah satu-satunya pemilik hasil
+    /// gaji. Konsumen jalur lama di Frontend (layar HR payroll lama: siklus, wizard, persetujuan, handoff, variansi, pengaturan) tidak lagi
+    /// memiliki route maupun menu yang dapat dijangkau (diperiksa statis pada kode Frontend), sehingga bawaannya false: seluruh aksi tulis
+    /// jalur lama ditolak (HTTP 422), sedangkan pembacaan riwayat tetap berjalan dan tidak ada data historis yang dihapus. Setel true
+    /// HANYA bila ada run lama yang masih berjalan di alur persetujuan lama dan perlu diselesaikan; riwayat database wajib diperiksa
+    /// pemilik sebelum saklar dibiarkan mati. Terlepas dari saklar ini: kalkulasi PPh jalur lama SELALU ditolak (tarifnya tertanam
+    /// atau berasal dari nilai bawaan yang belum diverifikasi), dan run yang sudah dihitung mesin resmi tidak pernah dapat diubah jalur
+    /// lama (mencegah komponen ganda).
+    /// </summary>
+    public bool LegacyModernMutationsEnabled { get; set; } = false;
 
     /// <summary>
     /// NEEDS CONFIRMATION. Persentase maksimum potongan cicilan terhadap gaji bersih yang tersedia, dipakai HANYA bila master jenis
@@ -66,6 +93,18 @@ public sealed class PayrollPolicyOptions
 
     /// <summary>Batas jumlah pegawai per permintaan simulasi penggajian (PRL-DEC-32, validasi SIM-02).</summary>
     public int SimulationMaxEmployees { get; set; } = 50;
+
+    /// <summary>
+    /// Saklar fitur BPJS di luar Payroll, dibaca lewat <c>IBpjsFeatureGate</c>: HRD Benefit (klaim COB berbasis SEP, nomor kepesertaan
+    /// BPJS pada benefit) dan K3 (formulir klaim dan worker JKK), serta Frontend lewat <c>GET api/v1/system/features</c>.
+    ///
+    /// Sejak PAY-BE-FIX-007 saklar ini TIDAK lagi memengaruhi Payroll: iuran BPJS Kesehatan dan BPJS Ketenagakerjaan dihapus dari jalur
+    /// aktif Payroll (kalkulasi, kebijakan, profil iuran, kesiapan data, laporan) dan tidak dapat dinyalakan kembali lewat konfigurasi.
+    /// Nama properti dipertahankan hanya agar konfigurasi lingkungan yang ada tetap terbaca; nilai bawaan <c>false</c>. Keputusan
+    /// lanjutan untuk alur BPJS di HRD Benefit dan K3 (hapus atau pertahankan) menunggu pemilik proses (NEEDS BUSINESS DECISION).
+    /// Penahan Finance Handoff produksi TIDAK bergantung pada saklar ini lagi (lihat <c>PayrollFinanceHandoffGuard</c>).
+    /// </summary>
+    public bool EnableBpjsInPayroll { get; set; } = false;
 }
 
 public static class PayrollPayslipPublishTriggers

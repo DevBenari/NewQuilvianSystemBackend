@@ -4,7 +4,7 @@
 |---|---|
 | Contract version | `LAB-VAL-v1` |
 | `r21` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-20** — bagian 23: `VAL-155` alasan wajib batal pemeriksaan/wadah; `VAL-147`..`149` dipakai dua laporan baru |
-| Revision | **`20` — `approved`** 2026-10-08, bagian 22 (`VAL-154`, tahun pada ringkasan Beranda Lab) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`19` — `approved`** 2026-10-08, bagian 21 (`VAL-152`/`VAL-153` dipersempit) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`18` — `approved`** 2026-10-08, bagian 20 (`VAL-152`, `VAL-153`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`17` — `approved`** 2026-10-07, bagian 19 (`VAL-71` dipersempit, `VAL-151` baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`16` — `approved`** 2026-10-06, bagian 18 (`VAL-150`, Spesifik Specimen nonaktif pada koreksi specimen, `LAB-DEC-167`) — disetujui Yoga Aji Pratama. Sebelumnya: **`15` — `approved`** 2026-09-28, bagian 17 (`VAL-147`..`VAL-149`, periode laporan) — disetujui Yoga Aji Pratama, termasuk batas 366 hari. Sebelumnya: **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
+| Revision | **`r22` — `approved`** 2026-11-25, bagian 24 (`VAL-156`..`VAL-166`). Sebelumnya: **`r21` `approved`** 2026-10-20 bagian 23; **`20` — `approved`** 2026-10-08, bagian 22 (`VAL-154`, tahun pada ringkasan Beranda Lab) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`19` — `approved`** 2026-10-08, bagian 21 (`VAL-152`/`VAL-153` dipersempit) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`18` — `approved`** 2026-10-08, bagian 20 (`VAL-152`, `VAL-153`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`17` — `approved`** 2026-10-07, bagian 19 (`VAL-71` dipersempit, `VAL-151` baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`16` — `approved`** 2026-10-06, bagian 18 (`VAL-150`, Spesifik Specimen nonaktif pada koreksi specimen, `LAB-DEC-167`) — disetujui Yoga Aji Pratama. Sebelumnya: **`15` — `approved`** 2026-09-28, bagian 17 (`VAL-147`..`VAL-149`, periode laporan) — disetujui Yoga Aji Pratama, termasuk batas 366 hari. Sebelumnya: **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
 | `r20` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju 11 butir"* atas `LAB-REQ-021`, kesebelas butir |
 | `r19` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"setuju keenam butir"* atas `LAB-REQ-020`, keenam butir |
 | `r18` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju ketujuh butir"* atas `LAB-REQ-019`, ketujuh butir |
@@ -1042,3 +1042,72 @@ Penyaring enum yang tidak dikenal (`discipline`, `cancellationKind`, `encounterT
 |---|---|---|---|
 | `VAL-155` | `LAB-DEC-237`, `LAB-DEC-247` | `INV-60` | `AC-326`, `AC-327` |
 | `VAL-147`..`149` pada laporan baru | `LAB-DEC-240`, `LAB-DEC-245` | A8.2 *periode laporan* (A7.2) | `AC-331`, `AC-333` |
+
+## 24. Amandemen `r22` — Penjadwalan ulang pemeriksaan (`S20-1`), 2026-11-25
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r22` |
+| Status | **`approved`** 2026-11-25 |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-11-25 — *"setuju semua sesuai rekomendasi, lanjut plan-module-delivery"* — atas keempat kontrak `S20-1` dan keenam butir `02-backend-architecture.md` 33.10 |
+| `input_revision` | decisions rev 143 (`LAB-DEC-253`, `256`, `261`, `264`, `270`..`273`, `275`, `276`); `LAB-DA-001` rev 12 `INV-62`..`INV-67`; `LAB-API-v1` `r50` usulan; `02-backend-architecture.md` bagian 33 |
+| Sifat | **Sebelas aturan baru** (`VAL-156`..`VAL-166`) pada dua endpoint baru dan dua endpoint pembuatan pesanan yang sudah ada |
+
+### 24.1 Aturan yang ditambahkan
+
+**Urutan pemeriksaan pada `PUT /lab-orders/{id}/reschedule`:** pesanan ada (`404`) → izin (`403`) → pengikatan (`VAL-156`)
+→ versi (`VAL-165`) → kelayakan, urutan sama dengan penanda layar (`VAL-164`, `VAL-160`, `VAL-161`, `VAL-162`, `VAL-163`)
+→ isi (`VAL-157`, `VAL-158`, `VAL-159`). Penolakan keadaan lebih dulu: pesanan yang memang tidak boleh dipindah tidak perlu
+diminta alasannya — pola `VAL-75` lalu `VAL-74`.
+
+| ID | Endpoint | Aturan | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|---|
+| `VAL-156` | `PUT /reschedule` | `plannedDate` wajib dan berformat tanggal; `reason` ≤ 1000 karakter | Pesan pengikatan bawaan | `400` | Pola `[MaxLength]` |
+| `VAL-157` | `PUT /reschedule` | `plannedDate` ≥ hari ini (WIB) | "Tanggal rencana tidak boleh sebelum hari ini." | `422` | `LAB-DEC-253`, `264` |
+| `VAL-158` | `PUT /reschedule` | `plannedDate` ≠ tanggal rencana saat ini | "Tanggal baru sama dengan tanggal rencana saat ini." | `422` | `LAB-DEC-264` |
+| `VAL-159` | `PUT /reschedule` | `reason` berisi selain spasi, tab, dan baris baru; disimpan sesudah di-*trim* | "Alasan penjadwalan ulang wajib diisi." | `422` | `LAB-DEC-256` (pola `VAL-74`) |
+| `VAL-160` | `PUT /reschedule` | Status `Requested`/`Confirmed`, atau `OnHold` ber-`StatusBeforeHold` `Requested`/`Confirmed` | "Pesanan berstatus {status} tidak dapat dijadwalkan ulang." | `409` | `LAB-DEC-270` |
+| `VAL-161` | `PUT /reschedule` | Setiap wadah yang dinilai (selain `Cancelled`/`RecollectionRequired`; `OnHold` menurut status sebelum ditahan) berstatus `Planned` | Wadah `Rejected`: "Sampel ditolak; minta ambil ulang lebih dulu." Lainnya: "Sampel sudah diambil; batalkan wadah atau ambil ulang lebih dulu." | `409` | `LAB-DEC-270`, `275`, `276` |
+| `VAL-162` | `PUT /reschedule` | Kunjungan pesanan bukan `Completed`/`Cancelled`/`NoShow` | "Kunjungan pesanan ini sudah selesai; pesan ulang pada kunjungan baru." | `409` | `LAB-DEC-261` (pola `VAL-67`) |
+| `VAL-163` | `PUT /reschedule` | Nol permintaan `Ordered` ber-CITO dan nol pemeriksaan ber-CITO yang tidak gugur/batal | "Pesanan memuat pemeriksaan CITO; minta dokter mencabut tanda CITO lebih dulu, atau batalkan lalu pesan ulang." | `409` | `LAB-DEC-262`, `271` |
+| `VAL-164` | `PUT /reschedule` | Nol komponen order MCU (tidak terhapus) yang menautkan pesanan | "Pesanan ini bagian MCU; jadwal ulang dilakukan petugas MCU." | `409` | `LAB-DEC-272` |
+| `VAL-165` | `PUT /reschedule` | Bila `version` dikirim: sama dengan `LabOrder.Version` — disetujui 33.10 no. 2 | "Pesanan ini baru saja diubah petugas lain. Muat ulang lalu coba lagi." | `409` | `ARCH-GAP-LAB-18` |
+| `VAL-166` | `POST /lab-orders`; `POST /lab-orders/by-examinations` | `plannedDate` bila dikirim ≥ hari ini (WIB); kosong = hari ini | "Tanggal rencana tidak boleh sebelum hari ini." | `422` | `LAB-DEC-253` |
+
+**Contoh.**
+
+| Permintaan | Hasil |
+|---|---|
+| Pesanan `Confirmed`, wadah `Planned`, `{"plannedDate":"2026-12-03","reason":"pasien belum puasa"}` pada 2 Desember | `200` |
+| Sama, `reason: "   "` | `422` `VAL-159`; tanggal tetap |
+| Pesanan `Accepted`, alasan kosong | `409` `VAL-160` — bukan pesan alasan |
+| Troponin CITO belum berwadah | `409` `VAL-163` |
+| HbA1c tambahan MCU | `409` `VAL-164` |
+| `plannedDate` = tanggal rencana saat ini | `422` `VAL-158` |
+| `POST /by-examinations` dengan `plannedDate` kemarin | `422` `VAL-166`; nol pesanan lahir |
+
+**Satu rumus.** `VAL-160`..`VAL-164` dihitung oleh `LabRescheduleEligibility` yang sama dengan penanda `canReschedule`
+(`INV-67`) — pesan `409` sama persis dengan `rescheduleBlockReason`.
+
+### 24.2 Yang bukan aturan
+
+| Hal | Alasan |
+|---|---|
+| Batas jumlah jadwal ulang atau jarak tanggal | `LAB-DEC-264` |
+| Menolak perencanaan/pengambilan wadah di luar tanggal rencana | `LAB-DEC-259` |
+| `includeOverdue` pada kategori selain `PlannedDate` | Diabaikan, tidak ditolak (`LAB-API-v1` `r50` 45.5) |
+| Nilai `dateCategory` tidak dikenal | Ditolak pengikatan bawaan `400` — catatan `VAL-76` |
+
+### 24.3 Traceability `r22`
+
+| Aturan | Keputusan | Arsitektur domain | AC |
+|---|---|---|---|
+| `VAL-157`, `VAL-158`, `VAL-166` | `LAB-DEC-253`, `264` | `INV-66`, `INV-68` | `AC-339`, `AC-349` |
+| `VAL-159` | `LAB-DEC-256` | `INV-66` | `AC-342` |
+| `VAL-160`, `VAL-161` | `LAB-DEC-270`, `275`, `276` | `INV-62` | `AC-341`, `AC-355` |
+| `VAL-162` | `LAB-DEC-261` | `INV-64` | `AC-347` |
+| `VAL-163` | `LAB-DEC-262`, `271` | `INV-63` | `AC-348` |
+| `VAL-164` | `LAB-DEC-272` | `INV-65` | `AC-350` |
+| `VAL-165` | 33.10 no. 2 (disetujui 2026-11-25) | `ARCH-GAP-LAB-18` | `T-S20-14` |
+

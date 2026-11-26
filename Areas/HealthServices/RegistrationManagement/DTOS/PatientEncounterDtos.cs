@@ -547,6 +547,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         /// sama. Hanya diterima di <c>POST /admin</c>; kiosk menolaknya.
         /// </summary>
         public Guid? AdmissionTicketId { get; set; }
+
+        /// <summary>
+        /// kiosk Amendment PO (BE-KSK-PO-007, KSK-DSN-PO-008): diisi bersama
+        /// <see cref="OnlineRegistrationCheckInToken"/> bila kunjungan ini adalah check-in pendaftaran
+        /// online. Hanya diterima di <c>POST /kiosk</c>; <c>POST /admin</c> menolaknya
+        /// (<c>KSK-VAL-PO-047</c>).
+        /// </summary>
+        public Guid? OnlineRegistrationId { get; set; }
+
+        /// <summary>
+        /// Token check-in dari <c>POST online-registrations/kiosk/check-in/verify</c>. Berlaku 15 menit;
+        /// hanya hash-nya yang disimpan backend (<c>KSK-VAL-PO-046</c>).
+        /// </summary>
+        [MaxLength(64)]
+        public string? OnlineRegistrationCheckInToken { get; set; }
     }
 
     /// <summary>

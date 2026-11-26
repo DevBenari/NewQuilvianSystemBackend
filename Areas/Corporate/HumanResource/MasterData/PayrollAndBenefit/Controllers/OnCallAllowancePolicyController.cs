@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -42,18 +45,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 "PercentageOfBaseSalary"
             };
 
-        private const string CodePrefix = "OAP-RSMMC-";
-        private const int CodeNumberLength = 5;
+        private const string LogCategory = "Corporate.PayrollManagement.MasterData";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly AllowancePolicyCodeService _allowancePolicyCodeService;
 
         public OnCallAllowancePolicyController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            AllowancePolicyCodeService allowancePolicyCodeService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _allowancePolicyCodeService = allowancePolicyCodeService;
         }
 
         [HttpGet("filters/metadata")]
@@ -120,6 +125,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
             [FromQuery] Guid? allowanceTypeId,
+            [FromQuery] Guid? salaryGradeId,
+            [FromQuery] Guid? salaryStructureId,
             [FromQuery] Guid? onCallTypeId,
             [FromQuery] string? calculationMethod,
             [FromQuery] bool? isDefault,
@@ -138,6 +145,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
             if (allowanceTypeId.HasValue)
                 query = query.Where(x => x.AllowanceTypeId == allowanceTypeId.Value);
+
+            // Filter cakupan TERSIMPAN (PAY-BE-FIX-019): Grade Gaji dan Struktur Gaji; kebijakan lama tanpa cakupan tidak ikut bila filter dipakai.
+            if (salaryGradeId.HasValue)
+                query = query.Where(x => x.SalaryGradeId == salaryGradeId.Value);
+
+            if (salaryStructureId.HasValue)
+                query = query.Where(x => x.SalaryStructureId == salaryStructureId.Value);
 
             if (onCallTypeId.HasValue)
                 query = query.Where(x => x.OnCallTypeId == onCallTypeId.Value);
@@ -179,6 +193,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     OrganizationUnitId = x.OrganizationUnitId,
                     EmployeeCategoryId = x.EmployeeCategoryId,
                     EmploymentTypeId = x.EmploymentTypeId,
+                    EmployeeGradeId = x.EmployeeGradeId,
+                    EmployeeGradeName = x.EmployeeGrade != null ? x.EmployeeGrade.GradeName : null,
+                    SalaryGradeId = x.SalaryGradeId,
+                    SalaryGradeName = x.SalaryGrade != null ? x.SalaryGrade.SalaryGradeName : null,
+                    SalaryStructureId = x.SalaryStructureId,
+                    SalaryStructureName = x.SalaryStructure != null ? x.SalaryStructure.SalaryStructureName : null,
                     OnCallAllowancePolicyCode = x.OnCallAllowancePolicyCode,
                     OnCallAllowancePolicyName = x.OnCallAllowancePolicyName,
                     CalculationMethod = x.CalculationMethod,
@@ -282,6 +302,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public async Task<IActionResult> GetById(Guid id)
         {
             var entity = await BuildBaseQuery()
+                .Include(x => x.EmployeeGrade)
+                .Include(x => x.SalaryGrade)
+                .Include(x => x.SalaryStructure)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
             if (entity == null)
@@ -300,6 +323,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     OrganizationUnitId = entity.OrganizationUnitId,
                     EmployeeCategoryId = entity.EmployeeCategoryId,
                     EmploymentTypeId = entity.EmploymentTypeId,
+                    EmployeeGradeId = entity.EmployeeGradeId,
+                    EmployeeGradeName = entity.EmployeeGrade?.GradeName,
+                    SalaryGradeId = entity.SalaryGradeId,
+                    SalaryGradeName = entity.SalaryGrade?.SalaryGradeName,
+                    SalaryStructureId = entity.SalaryStructureId,
+                    SalaryStructureName = entity.SalaryStructure?.SalaryStructureName,
                     OnCallAllowancePolicyCode = entity.OnCallAllowancePolicyCode,
                     OnCallAllowancePolicyName = entity.OnCallAllowancePolicyName,
                     CalculationMethod = entity.CalculationMethod,
@@ -335,15 +364,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [AccessAction("Create", "Create On Call Allowance Policy", Description = "Membuat on call allowance policy", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("OnCallAllowancePolicy", "Create")]
         public async Task<IActionResult> Create(
-            [FromBody] CreateOnCallAllowancePolicyRequest request)
+            [FromBody] CreateOnCallAllowancePolicyRequest? request)
         {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Data kebijakan tunjangan on call wajib diisi."));
+            }
+
             var validation = await ValidateRequestAsync(null, request);
 
             if (!validation.IsValid)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data tidak valid."));
+                return BuildValidationErrorResult(
+                    validation.StatusCode,
+                    validation.ErrorMessage ?? "Data tidak valid.");
             }
 
             var now = DateTime.UtcNow;
@@ -352,16 +388,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             var entity = new MstOnCallAllowancePolicy
             {
                 Id = Guid.NewGuid(),
-                OnCallAllowancePolicyCode = await GenerateCodeAsync(),
                 AllowanceTypeId = request.AllowanceTypeId,
                 OnCallTypeId = NormalizeGuid(request.OnCallTypeId),
                 HospitalSiteId = NormalizeGuid(request.HospitalSiteId),
                 OrganizationUnitId = NormalizeGuid(request.OrganizationUnitId),
                 EmployeeCategoryId = NormalizeGuid(request.EmployeeCategoryId),
                 EmploymentTypeId = NormalizeGuid(request.EmploymentTypeId),
+                EmployeeGradeId = NormalizeGuid(request.EmployeeGradeId),
+                SalaryGradeId = NormalizeGuid(request.SalaryGradeId),
+                SalaryStructureId = NormalizeGuid(request.SalaryStructureId),
                 OnCallAllowancePolicyName = request.OnCallAllowancePolicyName.Trim(),
-                CalculationMethod = request.CalculationMethod.Trim(),
-                CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant(),
+                CalculationMethod = NormalizeMethod(request.CalculationMethod),
+                CurrencyCode = NormalizeCurrencyCode(request.CurrencyCode),
                 BaseRateAmount = request.BaseRateAmount,
                 ActualCallRateAmount = request.ActualCallRateAmount,
                 HourlyRateAmount = request.HourlyRateAmount,
@@ -372,8 +410,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 HolidayMultiplier = request.HolidayMultiplier,
                 RequireAttendanceEvidence = request.RequireAttendanceEvidence,
                 RequireSupervisorVerification = request.RequireSupervisorVerification,
-                EffectiveStartDate = request.EffectiveStartDate?.Date,
-                EffectiveEndDate = request.EffectiveEndDate?.Date,
+                EffectiveStartDate = NormalizeDateOnly(request.EffectiveStartDate),
+                EffectiveEndDate = NormalizeDateOnly(request.EffectiveEndDate),
                 Description = NormalizeText(request.Description),
                 Priority = request.Priority,
                 IsDefault = request.IsDefault,
@@ -384,8 +422,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 IsCancel = false
             };
 
+            if (entity.IsDefault)
+            {
+                await UnsetOtherDefaultAsync(entity.Id, entity.AllowanceTypeId, now, actor);
+            }
+
+            try
+            {
+                entity.OnCallAllowancePolicyCode = await _allowancePolicyCodeService.AllocateOnCallPolicyCodeAsync(actor);
+            }
+            catch (NumberSeriesAllocationException)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Kode kebijakan tunjangan on call gagal diterbitkan. Hubungi administrator sistem."));
+            }
+
             _dbContext.Set<MstOnCallAllowancePolicy>().Add(entity);
-            await _dbContext.SaveChangesAsync();
+
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                await TryLogErrorAsync("OnCallAllowancePolicy.Create", "Gagal menyimpan on call allowance policy.", ex, new { entity.Id, entity.OnCallAllowancePolicyCode });
+                var mapped = TryMapDatabaseException(ex);
+                if (mapped != null) return mapped;
+                throw;
+            }
 
             return Ok(ApiResponse<object>.Ok(
                 new { entity.Id },
@@ -397,8 +462,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [AccessPermission("OnCallAllowancePolicy", "Update")]
         public async Task<IActionResult> Update(
             Guid id,
-            [FromBody] UpdateOnCallAllowancePolicyRequest request)
+            [FromBody] UpdateOnCallAllowancePolicyRequest? request)
         {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Data kebijakan tunjangan on call wajib diisi."));
+            }
+
             var entity = await _dbContext.Set<MstOnCallAllowancePolicy>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
@@ -413,10 +485,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
             if (!validation.IsValid)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data tidak valid."));
+                return BuildValidationErrorResult(
+                    validation.StatusCode,
+                    validation.ErrorMessage ?? "Data tidak valid.");
             }
+
+            var now = DateTime.UtcNow;
+            var actor = GetCurrentUserId();
 
             entity.AllowanceTypeId = request.AllowanceTypeId;
             entity.OnCallTypeId = NormalizeGuid(request.OnCallTypeId);
@@ -424,9 +499,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             entity.OrganizationUnitId = NormalizeGuid(request.OrganizationUnitId);
             entity.EmployeeCategoryId = NormalizeGuid(request.EmployeeCategoryId);
             entity.EmploymentTypeId = NormalizeGuid(request.EmploymentTypeId);
+            entity.EmployeeGradeId = NormalizeGuid(request.EmployeeGradeId);
+            entity.SalaryGradeId = NormalizeGuid(request.SalaryGradeId);
+            entity.SalaryStructureId = NormalizeGuid(request.SalaryStructureId);
             entity.OnCallAllowancePolicyName = request.OnCallAllowancePolicyName.Trim();
-            entity.CalculationMethod = request.CalculationMethod.Trim();
-            entity.CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant();
+            entity.CalculationMethod = NormalizeMethod(request.CalculationMethod);
+            entity.CurrencyCode = NormalizeCurrencyCode(request.CurrencyCode);
             entity.BaseRateAmount = request.BaseRateAmount;
             entity.ActualCallRateAmount = request.ActualCallRateAmount;
             entity.HourlyRateAmount = request.HourlyRateAmount;
@@ -437,16 +515,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             entity.HolidayMultiplier = request.HolidayMultiplier;
             entity.RequireAttendanceEvidence = request.RequireAttendanceEvidence;
             entity.RequireSupervisorVerification = request.RequireSupervisorVerification;
-            entity.EffectiveStartDate = request.EffectiveStartDate?.Date;
-            entity.EffectiveEndDate = request.EffectiveEndDate?.Date;
+            entity.EffectiveStartDate = NormalizeDateOnly(request.EffectiveStartDate);
+            entity.EffectiveEndDate = NormalizeDateOnly(request.EffectiveEndDate);
             entity.Description = NormalizeText(request.Description);
             entity.Priority = request.Priority;
-            entity.IsDefault = request.IsDefault;
+            entity.IsDefault = request.IsActive && request.IsDefault;
             entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actor;
 
-            await _dbContext.SaveChangesAsync();
+            if (entity.IsDefault)
+            {
+                await UnsetOtherDefaultAsync(entity.Id, entity.AllowanceTypeId, now, actor);
+            }
+
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                await TryLogErrorAsync("OnCallAllowancePolicy.Update", "Gagal memperbarui on call allowance policy.", ex, new { entity.Id, entity.OnCallAllowancePolicyCode });
+                var mapped = TryMapDatabaseException(ex);
+                if (mapped != null) return mapped;
+                throw;
+            }
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -534,21 +627,53 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 .Where(x => !x.IsDelete);
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
+        private async Task<(bool IsValid, int StatusCode, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
             CreateOnCallAllowancePolicyRequest request)
         {
             if (request.AllowanceTypeId == Guid.Empty)
-                return (false, "Allowance type wajib dipilih.");
+                return (false, StatusCodes.Status400BadRequest, "Allowance type wajib dipilih.");
 
             if (string.IsNullOrWhiteSpace(request.OnCallAllowancePolicyName))
-                return (false, "Nama wajib diisi.");
+                return (false, StatusCodes.Status400BadRequest, "Nama wajib diisi.");
 
-            if (request.EffectiveStartDate.HasValue &&
-                request.EffectiveEndDate.HasValue &&
-                request.EffectiveEndDate.Value.Date < request.EffectiveStartDate.Value.Date)
+            if (string.IsNullOrWhiteSpace(request.CalculationMethod))
+                return (false, StatusCodes.Status400BadRequest, "Calculation method wajib diisi.");
+
+            var calculationMethod = request.CalculationMethod.Trim();
+            if (!AllowedMethods.Contains(calculationMethod))
+                return (false, StatusCodes.Status400BadRequest, "Calculation method tidak valid.");
+
+            var currencyCode = NormalizeCurrencyCode(request.CurrencyCode);
+            if (currencyCode.Length != 3)
+                return (false, StatusCodes.Status400BadRequest, "Kode mata uang harus terdiri dari 3 karakter.");
+
+            if (request.BaseRateAmount < 0 ||
+                request.ActualCallRateAmount < 0 ||
+                request.HourlyRateAmount < 0 ||
+                request.PercentageOfBaseSalary < 0 ||
+                request.PercentageOfBaseSalary > 100 ||
+                request.MinimumOnCallHours < 0 ||
+                (request.MaximumAmountPerPeriod.HasValue && request.MaximumAmountPerPeriod.Value < 0) ||
+                request.WeekendMultiplier < 0 ||
+                request.HolidayMultiplier < 0 ||
+                request.Priority < 0)
             {
-                return (false, "EffectiveEndDate tidak boleh sebelum EffectiveStartDate.");
+                return (false, StatusCodes.Status400BadRequest, "Nilai tarif, persentase, jam minimum, pengali, batas maksimum, dan prioritas tidak valid.");
+            }
+
+            if (calculationMethod.Equals("PercentageOfBaseSalary", StringComparison.OrdinalIgnoreCase) &&
+                request.PercentageOfBaseSalary <= 0)
+            {
+                return (false, StatusCodes.Status400BadRequest, "PercentageOfBaseSalary harus lebih dari 0.");
+            }
+
+            var startDate = NormalizeDateOnly(request.EffectiveStartDate);
+            var endDate = NormalizeDateOnly(request.EffectiveEndDate);
+
+            if (startDate.HasValue && endDate.HasValue && endDate.Value < startDate.Value)
+            {
+                return (false, StatusCodes.Status400BadRequest, "EffectiveEndDate tidak boleh sebelum EffectiveStartDate.");
             }
 
             if (!await _dbContext.Set<MstAllowanceType>().AnyAsync(x =>
@@ -556,23 +681,50 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     x.IsActive &&
                     !x.IsDelete))
             {
-                return (false, "Allowance type tidak ditemukan atau tidak aktif.");
+                return (false, StatusCodes.Status400BadRequest, "Allowance type tidak ditemukan atau tidak aktif.");
             }
 
-            if (!AllowedMethods.Contains(request.CalculationMethod.Trim()))
-                return (false, "Calculation method tidak valid.");
-
-            if (request.WeekendMultiplier < 0 || request.HolidayMultiplier < 0)
-                return (false, "Multiplier tidak boleh negatif.");
-
-            if (request.OnCallTypeId.HasValue &&
-                !await _dbContext.Set<MstOnCallType>().AnyAsync(x =>
-                    x.Id == request.OnCallTypeId.Value &&
-                    x.IsActive &&
-                    !x.IsDelete))
+            if (NormalizeGuid(request.OnCallTypeId) is { } onCallTypeId &&
+                !await _dbContext.Set<MstOnCallType>().AnyAsync(x => x.Id == onCallTypeId && x.IsActive && !x.IsDelete))
             {
-                return (false, "On-call type tidak valid.");
+                return (false, StatusCodes.Status400BadRequest, "On-call type tidak valid atau tidak aktif.");
             }
+
+            if (NormalizeGuid(request.HospitalSiteId) is { } hospitalSiteId &&
+                !await _dbContext.Set<MstHospitalSite>().AnyAsync(x => x.Id == hospitalSiteId && x.IsActive && !x.IsDelete))
+            {
+                return (false, StatusCodes.Status400BadRequest, "Hospital site tidak ditemukan atau tidak aktif.");
+            }
+
+            if (NormalizeGuid(request.OrganizationUnitId) is { } organizationUnitId &&
+                !await _dbContext.Set<MstOrganizationUnit>().AnyAsync(x => x.Id == organizationUnitId && x.IsActive && !x.IsDelete))
+            {
+                return (false, StatusCodes.Status400BadRequest, "Organization unit tidak ditemukan atau tidak aktif.");
+            }
+
+            if (NormalizeGuid(request.EmployeeCategoryId) is { } employeeCategoryId &&
+                !await _dbContext.Set<MstEmployeeCategory>().AnyAsync(x => x.Id == employeeCategoryId && x.IsActive && !x.IsDelete))
+            {
+                return (false, StatusCodes.Status400BadRequest, "Kategori karyawan tidak ditemukan atau tidak aktif.");
+            }
+
+            if (NormalizeGuid(request.EmploymentTypeId) is { } employmentTypeId &&
+                !await _dbContext.Set<MstEmploymentType>().AnyAsync(x => x.Id == employmentTypeId && x.IsActive && !x.IsDelete))
+            {
+                return (false, StatusCodes.Status400BadRequest, "Tipe kepegawaian tidak ditemukan atau tidak aktif.");
+            }
+
+            var scopeMessage = await AllowancePolicyScopeValidator.ValidateAsync(
+                _dbContext,
+                NormalizeGuid(request.EmployeeGradeId),
+                NormalizeGuid(request.SalaryGradeId),
+                NormalizeGuid(request.SalaryStructureId),
+                null,
+                NormalizeGuid(request.HospitalSiteId),
+                startDate,
+                endDate);
+            if (scopeMessage is not null)
+                return (false, StatusCodes.Status400BadRequest, scopeMessage);
 
             var normalizedName = request.OnCallAllowancePolicyName.Trim().ToLower();
 
@@ -586,10 +738,64 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 duplicateQuery = duplicateQuery.Where(x => x.Id != excludeId.Value);
 
             if (await duplicateQuery.AnyAsync())
-                return (false, "Nama sudah digunakan.");
+                return (false, StatusCodes.Status409Conflict, "Nama kebijakan tunjangan on call sudah digunakan.");
 
-            return (true, null);
+            return (true, StatusCodes.Status200OK, null);
         }
+
+        private IActionResult BuildValidationErrorResult(int statusCode, string message)
+        {
+            if (statusCode == StatusCodes.Status409Conflict)
+            {
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, message));
+            }
+
+            return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, message));
+        }
+
+        private IActionResult? TryMapDatabaseException(DbUpdateException exception)
+        {
+            var pgException = exception.InnerException as PostgresException
+                ?? exception.GetBaseException() as PostgresException;
+
+            if (pgException == null)
+                return null;
+
+            return pgException.SqlState switch
+            {
+                PostgresErrorCodes.UniqueViolation => Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Data kebijakan tunjangan on call bentrok dengan data yang sudah ada. Muat ulang daftar sebelum mencoba kembali.")),
+                "23503" => BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Referensi data terkait pada kebijakan tunjangan on call tidak valid atau tidak ditemukan.")),
+                "22001" or "22003" or "22007" or "23502" => BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Format atau batas nilai pada data kebijakan tunjangan on call tidak memenuhi ketentuan.")),
+                _ => null
+            };
+        }
+
+        private async Task TryLogErrorAsync(string action, string message, Exception exception, object? data = null)
+        {
+            try
+            {
+                await _loggerService.ErrorAsync(LogCategory, action, message, exception, data);
+            }
+            catch
+            {
+                // Jangan biarkan kegagalan logger menutupi exception utama.
+            }
+        }
+
+        private static DateTime? NormalizeDateOnly(DateTime? value) =>
+            value.HasValue ? DateTime.SpecifyKind(value.Value.Date, DateTimeKind.Unspecified) : null;
+
+        private static string NormalizeMethod(string value) =>
+            AllowedMethods.First(x => x.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        private static string NormalizeCurrencyCode(string? value) =>
+            string.IsNullOrWhiteSpace(value) ? "IDR" : value.Trim().ToUpperInvariant();
 
 
         private async Task UnsetOtherDefaultAsync(
@@ -612,28 +818,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 row.UpdateDateTime = now;
                 row.UpdateBy = actor;
             }
-        }
-
-        private async Task<string> GenerateCodeAsync()
-        {
-            var codes = await _dbContext.Set<MstOnCallAllowancePolicy>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete && x.OnCallAllowancePolicyCode.StartsWith(CodePrefix))
-                .Select(x => x.OnCallAllowancePolicyCode)
-                .ToListAsync();
-
-            var used = codes
-                .Select(x => x.Replace(CodePrefix, string.Empty))
-                .Where(x => int.TryParse(x, out _))
-                .Select(int.Parse)
-                .ToHashSet();
-
-            var next = 1;
-
-            while (used.Contains(next))
-                next++;
-
-            return CodePrefix + next.ToString().PadLeft(CodeNumberLength, '0');
         }
 
         private Guid GetCurrentUserId()

@@ -40,3 +40,34 @@ flowchart TD
 | Jenis Kunjungan → Layanan & Dokter | Pasien | Pilihan | Draf pendaftaran lengkap | Pesan di step itu |
 | Konfirmasi | Pasien | Draf lengkap | Kunjungan terdaftar | Tetap di Konfirmasi dengan pesan |
 | Cetak Antrean | Sistem | Kunjungan | Nomor antrean | Pasien menemui petugas |
+
+
+---
+
+## Amendment PO — Pendaftaran Pasien Online sampai tiket (jalur normal)
+
+Revisi blueprint `2` (`approved` — Sukma Giri Pratama, 19 Nov 2026 (`KSK-DEC-054`)). Jalur pengecualian ada di [pendaftaran-pasien-online.md](pendaftaran-pasien-online.md), [check-in-pasien-online.md](check-in-pasien-online.md), dan [pendaftaran-online-petugas-dan-penutupan.md](pendaftaran-online-petugas-dan-penutupan.md).
+
+```mermaid
+flowchart TD
+    subgraph rumah[Pasien di rumah]
+        A([Membuka halaman Pendaftaran Pasien Online]) --> B[Isi data, pilih jadwal besok s.d. 30 hari, kirim]
+    end
+    subgraph sistem[Sistem]
+        B --> C[(Menunggu Check-in)]
+        C --> D[Kode tampil dan dikirim ke email atau WhatsApp]
+    end
+    subgraph kiosk[Pasien di kiosk pada hari kunjungan]
+        D --> E[Masukkan kode dan tanggal lahir]
+        E --> F[Pasien baru memindai KTP atau KIA]
+        F --> G[Tekan Check-in Sekarang]
+    end
+    G --> H[(Menjadi Kunjungan)]
+    H --> I([Tiket antrean tercetak, pasien menuju poli])
+```
+
+| Langkah | Pelaku | Masukan yang dibutuhkan | Keluaran | Bila gagal |
+| --- | --- | --- | --- | --- |
+| Daftar online | Pasien | Data pasien, kontak, jadwal, penjamin, rujukan, consent (pasien baru) | Menunggu Check-in, kode | Lihat flowchart pendaftaran |
+| Terima kode | Sistem | Email atau No. WA | Email otomatis atau tombol WhatsApp | Kode tetap tampil di layar; Lupa Kode di kiosk |
+| Check-in | Pasien | Kode atau identitas, tanggal lahir, KTP/KIA (pasien baru) | Menjadi Kunjungan, nomor antrean, tiket | Lihat flowchart check-in; pasien diarahkan ke loket |

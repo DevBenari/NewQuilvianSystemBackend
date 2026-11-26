@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -59,7 +60,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _auditService.LogPeerReviewAccessAsync(request, cancellationToken);
                 return Ok(ApiResponse<ClinicalPeerReviewAuditLogDto>.Ok(result, "Jejak audit akses konfidensial berhasil dicatat (Tamper-Proof Read-Audit Log)."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }

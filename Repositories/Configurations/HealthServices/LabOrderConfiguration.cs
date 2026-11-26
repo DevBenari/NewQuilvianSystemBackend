@@ -68,6 +68,16 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.StatusBeforeHold)
                 .HasConversion<int>();
 
+            // BE-LAB-101 / LAB-DEC-253, LAB-DEC-263: tanggal rencana pemeriksaan sebagai tanggal
+            // murni (kolom date), wajib. Tanpa nilai bawaan basis data — aplikasi mengisinya
+            // (hari ini WIB bila pemanggil tidak mengirim), dan migration mengisi pesanan lama.
+            entity.Property(x => x.PlannedDate)
+                .HasColumnType("date")
+                .IsRequired();
+
+            // Daftar pantau menyaring rencana hari ini dan pesanan terlewat tepat pada kolom ini.
+            entity.HasIndex(x => x.PlannedDate);
+
             // LAB-DEC-025: disiplin pesanan, boleh kosong hanya untuk pesanan yang sudah ada
             // sebelum kolom ini dibuat.
             //

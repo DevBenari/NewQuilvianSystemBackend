@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.DTOs;
 
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.DTOs;
 
@@ -53,6 +54,9 @@ public sealed class PlanConsolidationRow
 
 public sealed class PackagePlanQuery
 {
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+    [MaxLength(20)] public string? CustomPeriod { get; set; }
     /// <summary>Cari nomor atau judul rencana paket.</summary>
     public string? Search { get; set; }
     public int? FiscalYear { get; set; }
@@ -175,6 +179,7 @@ public sealed class PackagePlanOptionValue
 
 public sealed class PackagePlanFilterMetadataResponse
 {
+    public List<ProcurementPeriodOptionResponse> CustomPeriods { get; set; } = ProcurementPeriodOptionResponse.Defaults();
     public PackagePlanQuery DefaultFilter { get; set; } = new();
     public List<PackagePlanOptionValue> StatusOptions { get; set; } = new();
     public List<PackagePlanOptionValue> SortOptions { get; set; } = new();

@@ -48,6 +48,13 @@ public sealed class AssetsController : AssetMasterControllerBase
     public Task<IActionResult> Get([FromQuery] AssetPagedQuery request, CancellationToken cancellationToken) =>
         ExecuteAsync(() => _service.GetAssetsAsync(request, cancellationToken), "Daftar aset berhasil diambil.");
 
+    [HttpGet("idle")]
+    [AccessAction("Read", "Read Asset Register", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("AssetRegister", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<AssetIdleItemResponse>>), StatusCodes.Status200OK)]
+    public Task<IActionResult> GetIdle([FromQuery] AssetPagedQuery request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _service.GetIdleAssetsAsync(request, cancellationToken), "Daftar aset menganggur berhasil diambil.");
+
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Asset Register", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("AssetRegister", "Read")]

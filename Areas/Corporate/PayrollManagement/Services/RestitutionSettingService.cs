@@ -155,6 +155,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             return MapToResponseDto(existing);
         }
 
+        public async Task<RestitutionSettingResponseDto> UpdateSettingAsync(
+            Guid id,
+            UpdateRestitutionSettingRequestDto dto,
+            Guid userId,
+            CancellationToken cancellationToken = default)
+        {
+            var existing = await _dbContext.HrdRestitutionSettings
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Konfigurasi kebijakan tidak ditemukan.");
+
+            existing.AnnualLimitAmount = dto.AnnualLimitAmount;
+            existing.MinimumServiceMonthsRequired = dto.MinimumServiceMonthsRequired;
+            existing.MaxDeductionPercentageOfGross = dto.MaxDeductionPercentageOfGross;
+            existing.AllowEmergencyCitoCashier = dto.AllowEmergencyCitoCashier;
+            existing.IsActive = dto.IsActive;
+            existing.UpdateDateTime = DateTime.UtcNow;
+            existing.UpdateBy = userId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return MapToResponseDto(existing);
+        }
+
         public async Task<int> SeedDefaultHospitalSettingsAsync(
             Guid userId,
             CancellationToken cancellationToken = default)

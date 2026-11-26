@@ -27,6 +27,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
         public Guid? EmploymentTypeId { get; set; }
 
+        /// <summary>Grade Pegawai (grade kepegawaian) yang menjadi cakupan kebijakan. Null = tidak dibatasi (PAY-BE-FIX-018).</summary>
+        public Guid? EmployeeGradeId { get; set; }
+
+        /// <summary>Grade Gaji (penggajian) yang menjadi cakupan kebijakan; BUKAN <see cref="EmployeeGradeId"/>. Null = tidak dibatasi.</summary>
+        public Guid? SalaryGradeId { get; set; }
+
+        /// <summary>Struktur Gaji cakupan kebijakan; harus milik <see cref="SalaryGradeId"/>. Null dengan grade terisi = seluruh struktur grade itu.</summary>
+        public Guid? SalaryStructureId { get; set; }
+
         [Required]
         [MaxLength(50)]
         public string ShiftAllowancePolicyCode { get; set; } = string.Empty;
@@ -90,5 +99,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public MstEmployeeCategory? EmployeeCategory { get; set; }
 
         public MstEmploymentType? EmploymentType { get; set; }
+        public MstEmployeeGrade? EmployeeGrade { get; set; }
+        public MstSalaryGrade? SalaryGrade { get; set; }
+        public MstSalaryStructure? SalaryStructure { get; set; }
     }
 }

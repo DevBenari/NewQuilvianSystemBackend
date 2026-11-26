@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services
 {
@@ -21,15 +22,59 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             _dbContext = dbContext;
         }
 
+        private const string OtherEvaluatorMessage = "Evaluasi ini ditugaskan kepada penilai lain.";
+        private const string NotAssignedEvaluatorMessage = "Hanya penilai yang ditugaskan yang dapat mengirim nilai uji ini.";
+        private const string UnknownTrackMessage = "Jalur evaluasi tidak dikenal.";
+        private const string InvalidActorMessage = "Identitas pengguna tidak valid.";
+
         public async Task<RecruitmentResult<PagedResult<CandidateEvaluationListItemResponse>>> GetPagedAsync(
             CandidateEvaluationQuery query,
+            ClaimsPrincipal user,
+            bool canViewAll,
             CancellationToken cancellationToken = default)
         {
+            // VR-PKB-06: jalur hanya HR atau CLINICAL.
+            var track = string.IsNullOrWhiteSpace(query.Track) ? null : query.Track.Trim().ToUpperInvariant();
+            if (track != null && track != CandidateEvaluationTracks.Hr && track != CandidateEvaluationTracks.Clinical)
+            {
+                return RecruitmentResult<PagedResult<CandidateEvaluationListItemResponse>>.Fail(UnknownTrackMessage);
+            }
+
             var dbQuery = _dbContext.HrdCandidateEvaluations
                 .AsNoTracking()
                 .Include(e => e.Application)
                     .ThenInclude(a => a!.Candidate)
                 .Where(e => !e.IsDelete);
+
+            // VR-PKB-07 (HRD-DEC-241): tanpa CandidateEvaluation : ViewAll hanya evaluasi milik penilai yang login.
+            if (!canViewAll)
+            {
+                var actorUserId = user.GetUserId();
+                if (actorUserId == Guid.Empty)
+                {
+                    return RecruitmentResult<PagedResult<CandidateEvaluationListItemResponse>>.Fail(InvalidActorMessage, 401);
+                }
+
+                dbQuery = dbQuery.Where(e => e.EvaluatorUserId == actorUserId);
+            }
+
+            if (track == CandidateEvaluationTracks.Hr)
+            {
+                dbQuery = dbQuery.Where(e => e.EvaluationType == EvaluationType.HrInterview);
+            }
+            else if (track == CandidateEvaluationTracks.Clinical)
+            {
+                dbQuery = dbQuery.Where(e =>
+                    e.EvaluationType == EvaluationType.ClinicalAssessment ||
+                    e.EvaluationType == EvaluationType.UserInterview);
+            }
+
+            // Belum dinilai = nilai belum pernah dikirim. Penjadwalan mengisi rekomendasi bawaan Considered dan skor 0,
+            // sehingga penandanya adalah baris yang belum pernah diperbarui oleh submit-hr / submit-clinical.
+            if (query.PendingOnly == true)
+            {
+                dbQuery = dbQuery.Where(e => e.UpdateDateTime == null);
+            }
 
             if (query.ApplicationId.HasValue && query.ApplicationId.Value != Guid.Empty)
             {
@@ -97,7 +142,38 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
 
         public async Task<RecruitmentResult<CandidateEvaluationResponse>> GetByIdAsync(
             Guid id,
+            ClaimsPrincipal user,
+            bool canViewAll,
             CancellationToken cancellationToken = default)
+        {
+            var e = await _dbContext.HrdCandidateEvaluations
+                .AsNoTracking()
+                .Include(x => x.Application)
+                    .ThenInclude(a => a!.Candidate)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+
+            if (e == null)
+            {
+                return RecruitmentResult<CandidateEvaluationResponse>.NotFound("Data evaluasi tidak ditemukan.");
+            }
+
+            // VR-PKB-07 (HRD-DEC-241): tanpa CandidateEvaluation : ViewAll, detail milik penilai lain ditolak.
+            if (!canViewAll)
+            {
+                var actorUserId = user.GetUserId();
+                if (actorUserId == Guid.Empty || e.EvaluatorUserId != actorUserId)
+                {
+                    return RecruitmentResult<CandidateEvaluationResponse>.Fail(OtherEvaluatorMessage, 403);
+                }
+            }
+
+            return RecruitmentResult<CandidateEvaluationResponse>.Ok(MapToResponse(e), "Detail evaluasi kandidat berhasil diambil.");
+        }
+
+        /// <summary>Muat ulang detail sesudah penjadwalan atau pengiriman nilai oleh pemanggil yang sudah lolos pemeriksaan.</summary>
+        private async Task<RecruitmentResult<CandidateEvaluationResponse>> LoadResponseAsync(
+            Guid id,
+            CancellationToken cancellationToken)
         {
             var e = await _dbContext.HrdCandidateEvaluations
                 .AsNoTracking()
@@ -156,7 +232,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             await _dbContext.HrdCandidateEvaluations.AddAsync(evaluation, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            return await GetByIdAsync(evaluation.Id, cancellationToken);
+            return await LoadResponseAsync(evaluation.Id, cancellationToken);
         }
 
         public async Task<RecruitmentResult<CandidateEvaluationResponse>> SubmitHrEvaluationAsync(
@@ -207,7 +283,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             await CheckAndAdvanceApplicationStageAsync(app, cancellationToken);
 
             await _dbContext.SaveChangesAsync(cancellationToken);
-            return await GetByIdAsync(evaluation.Id, cancellationToken);
+            return await LoadResponseAsync(evaluation.Id, cancellationToken);
         }
 
         public async Task<RecruitmentResult<CandidateEvaluationResponse>> SubmitClinicalEvaluationAsync(
@@ -228,6 +304,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             if (evaluation == null)
             {
                 return RecruitmentResult<CandidateEvaluationResponse>.NotFound("Data evaluasi tidak ditemukan.");
+            }
+
+            // VR-PKB-08 (HRD-ASM-98, HRD-DEC-241): hanya penilai yang ditugaskan, termasuk bagi pemegang ViewAll.
+            var actorUserId = user.GetUserId();
+            if (actorUserId == Guid.Empty || evaluation.EvaluatorUserId != actorUserId)
+            {
+                return RecruitmentResult<CandidateEvaluationResponse>.Fail(NotAssignedEvaluatorMessage, 403);
             }
 
             if (evaluation.EvaluationType != EvaluationType.ClinicalAssessment && evaluation.EvaluationType != EvaluationType.UserInterview)
@@ -283,7 +366,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             evaluation.UpdateBy = userId;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
-            return await GetByIdAsync(evaluation.Id, cancellationToken);
+            return await LoadResponseAsync(evaluation.Id, cancellationToken);
         }
 
         private async Task CheckAndAdvanceApplicationStageAsync(HrdCandidateApplication app, CancellationToken cancellationToken)

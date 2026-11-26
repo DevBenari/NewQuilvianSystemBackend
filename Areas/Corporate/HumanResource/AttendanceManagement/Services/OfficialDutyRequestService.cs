@@ -320,8 +320,34 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     $"Rentang penugasan dinas luar beririsan dengan periode kehadiran yang telah ditutup (Closed). Persetujuan ditolak.");
             }
 
+            // Resolusi identitas profil pejabat pengesah (MstWorkforceProfile)
+            Guid? approverWfpId = null;
+            if (request.ApproverWorkforceProfileId.HasValue && request.ApproverWorkforceProfileId.Value != Guid.Empty)
+            {
+                var isExplicitWfpValid = await _context.Set<MstWorkforceProfile>().AsNoTracking()
+                    .AnyAsync(w => w.Id == request.ApproverWorkforceProfileId.Value && !w.IsDelete, cancellationToken);
+                if (isExplicitWfpValid)
+                {
+                    approverWfpId = request.ApproverWorkforceProfileId.Value;
+                }
+            }
+
+            if (!approverWfpId.HasValue)
+            {
+                var userLinkedWfpId = await _context.Users.AsNoTracking()
+                    .Where(u => u.Id == currentUserId && u.WorkforceProfileId.HasValue)
+                    .Select(u => u.WorkforceProfileId)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (userLinkedWfpId.HasValue &&
+                    await _context.Set<MstWorkforceProfile>().AsNoTracking().AnyAsync(w => w.Id == userLinkedWfpId.Value && !w.IsDelete, cancellationToken))
+                {
+                    approverWfpId = userLinkedWfpId.Value;
+                }
+            }
+
             entity.Status = "Approved";
-            entity.ApprovedByWorkforceId = request.ApproverWorkforceProfileId;
+            entity.ApprovedByWorkforceId = approverWfpId;
             entity.ApprovedAt = DateTime.UtcNow;
             entity.UpdateBy = currentUserId;
             entity.UpdateDateTime = DateTime.UtcNow;
@@ -437,9 +463,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     "Alasan penolakan surat dinas luar wajib diisi.");
             }
 
+            // Resolusi identitas profil pejabat penolak (MstWorkforceProfile)
+            Guid? approverWfpId = null;
+            if (request.ApproverWorkforceProfileId.HasValue && request.ApproverWorkforceProfileId.Value != Guid.Empty)
+            {
+                var isExplicitWfpValid = await _context.Set<MstWorkforceProfile>().AsNoTracking()
+                    .AnyAsync(w => w.Id == request.ApproverWorkforceProfileId.Value && !w.IsDelete, cancellationToken);
+                if (isExplicitWfpValid)
+                {
+                    approverWfpId = request.ApproverWorkforceProfileId.Value;
+                }
+            }
+
+            if (!approverWfpId.HasValue)
+            {
+                var userLinkedWfpId = await _context.Users.AsNoTracking()
+                    .Where(u => u.Id == currentUserId && u.WorkforceProfileId.HasValue)
+                    .Select(u => u.WorkforceProfileId)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (userLinkedWfpId.HasValue &&
+                    await _context.Set<MstWorkforceProfile>().AsNoTracking().AnyAsync(w => w.Id == userLinkedWfpId.Value && !w.IsDelete, cancellationToken))
+                {
+                    approverWfpId = userLinkedWfpId.Value;
+                }
+            }
+
             entity.Status = "Rejected";
             entity.RejectionReason = request.RejectionReason.Trim();
-            entity.ApprovedByWorkforceId = request.ApproverWorkforceProfileId;
+            entity.ApprovedByWorkforceId = approverWfpId;
             entity.ApprovedAt = DateTime.UtcNow;
             entity.UpdateBy = currentUserId;
             entity.UpdateDateTime = DateTime.UtcNow;

@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Attributes;
@@ -54,19 +55,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
         private readonly OrganizationAuthorizationProjectionService _authorizationProjection;
+        private readonly IWorkforceIdentityResolverService _identityResolver;
+        private readonly IWorkforceLifecycleGuardService _lifecycleGuard;
 
         public DoctorController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration,
-            OrganizationAuthorizationProjectionService authorizationProjection)
+            OrganizationAuthorizationProjectionService authorizationProjection,
+            IWorkforceIdentityResolverService identityResolver,
+            IWorkforceLifecycleGuardService lifecycleGuard)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _userManager = userManager;
             _configuration = configuration;
             _authorizationProjection = authorizationProjection;
+            _identityResolver = identityResolver;
+            _lifecycleGuard = lifecycleGuard;
         }
 
         private static List<DoctorDetailTabMetadataResponse> BuildDoctorDetailTabs()
@@ -1035,7 +1042,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 identityNumber: request.IdentityNumber,
                 phoneNumber: request.PhoneNumber,
                 whatsAppNumber: request.WhatsAppNumber,
-                email: request.Email
+                email: request.Email,
+                identityType: request.IdentityType
             );
 
             if (!validation.IsValid)
@@ -1044,6 +1052,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     StatusCodes.Status400BadRequest,
                     validation.ErrorMessage ?? "Data doctor tidak valid."
                 ));
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.IdentityNumber) && !_identityResolver.IsValidIdentity(request.IdentityType, request.IdentityNumber, out var identityErr))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    identityErr ?? "Nomor identitas tidak valid."
+                ));
+            }
+
+            // BE-HRD-399: pendaftaran dokter di Data Induk tidak memberi kredensial atau kewenangan klinis.
+            // Status di luar tahap awal hanya diterbitkan alur kredensial (Menu 09) dan Komite Medik.
+            if (!IsPreCredentialingState(request.CredentialingStatus, request.ClinicalPrivilegeStatus))
+            {
+                return CredentialStatusManagedByCredentialing();
             }
 
             var now = DateTime.UtcNow;
@@ -1059,26 +1082,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 var primaryDepartmentId = NormalizeNullableGuid(request.PrimaryDepartmentId);
                 var primaryPositionId = NormalizeNullableGuid(request.PrimaryPositionId);
 
-                var workforceProfile = new MstWorkforceProfile
+                ResolvedWorkforceProfileResult profileResult;
+                try
                 {
-                    Id = Guid.NewGuid(),
-                    ProfileCode = await GenerateWorkforceProfileCodeAsync(),
-                    UserType = request.DoctorUserType,
-                    DisplayName = request.FullName.Trim(),
-                    Email = normalizedEmail,
-                    PhoneNumber = normalizedPhone,
-                    WhatsAppNumber = normalizedWhatsApp,
-                    PrimaryDepartmentId = primaryDepartmentId,
-                    PrimaryPositionId = primaryPositionId,
-                    IsActive = true,
-                    CreateDateTime = now,
-                    CreateBy = actorUserId,
-                    IsDelete = false,
-                    IsCancel = false
-                };
+                    profileResult = await _identityResolver.ResolveOrCreateProfileAsync(
+                        request.IdentityType,
+                        request.IdentityNumber,
+                        request.FullName,
+                        normalizedEmail,
+                        normalizedPhone,
+                        normalizedWhatsApp,
+                        primaryDepartmentId,
+                        primaryPositionId,
+                        UserType.PermanentDoctor,
+                        actorUserId
+                    );
+                }
+                catch (InvalidOperationException ex) when (ex.Message.StartsWith("DUPLICATE_ROLE"))
+                {
+                    await transaction.RollbackAsync();
+                    return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Dokter dengan nomor identitas ini sudah terdaftar.",
+                        "DUPLICATE_IDENTITY_NUMBER"
+                    ));
+                }
 
-                _dbContext.Set<MstWorkforceProfile>().Add(workforceProfile);
-                await _dbContext.SaveChangesAsync();
+                var workforceProfile = profileResult.Profile;
 
                 var entity = new MstDoctor
                 {
@@ -1095,7 +1125,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     MaritalStatus = request.MaritalStatus,
                     BloodType = request.BloodType,
                     IdentityType = NormalizeNullableText(request.IdentityType),
-                    IdentityNumber = NormalizeNullableText(request.IdentityNumber),
+                    IdentityNumber = NormalizeNullableText(
+                        _identityResolver.NormalizeIdentityNumber(request.IdentityType, request.IdentityNumber)),
                     PhoneNumber = normalizedPhone,
                     WhatsAppNumber = normalizedWhatsApp,
                     Email = normalizedEmail,
@@ -1289,6 +1320,56 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 ));
             }
 
+            // Guard FIN-HRD-04-BE-003 / HRD-DEC-052 (BE-HRD-389): Guard data identitas resmi dan status pernikahan dokter.
+            // Pembanding memakai normalisasi resolver identitas; jenis identitas ikut dikunci bila nomor sudah ada.
+            var oldDoctorIdentity = _identityResolver.NormalizeIdentityNumber(entity.IdentityType, entity.IdentityNumber);
+            var newDoctorIdentity = _identityResolver.NormalizeIdentityNumber(request.IdentityType, request.IdentityNumber);
+            var doctorIdentityTypeChanged = !string.Equals(
+                (entity.IdentityType ?? string.Empty).Trim(),
+                (request.IdentityType ?? string.Empty).Trim(),
+                StringComparison.OrdinalIgnoreCase);
+            if (!string.IsNullOrEmpty(oldDoctorIdentity) &&
+                (!string.Equals(oldDoctorIdentity, newDoctorIdentity, StringComparison.OrdinalIgnoreCase) || doctorIdentityTypeChanged))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan Nomor Identitas (NIK/Paspor) dokter adalah data sensitif dan tidak dapat diubah langsung melalui Master Data Dokter. Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data (HRD-DEC-052).",
+                    "SENSITIVE_IDENTITY_FIELD_LOCKED"
+                ));
+            }
+
+            if (entity.MaritalStatus != request.MaritalStatus && entity.MaritalStatus != MaritalStatus.Unknown)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan Status Pernikahan dokter adalah data sensitif yang memengaruhi pajak dan benefit, tidak dapat diubah langsung melalui Master Data Dokter. Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data (HRD-DEC-052).",
+                    "SENSITIVE_MARITAL_STATUS_LOCKED"
+                ));
+            }
+
+            // Pengisian identitas pertama kali (data lama tanpa NIK/paspor) tetap diperbolehkan, tetapi
+            // wajib valid dan tidak boleh milik profil orang lain (HRD-DEC-051, BE-HRD-387).
+            if (string.IsNullOrEmpty(oldDoctorIdentity) && !string.IsNullOrEmpty(newDoctorIdentity))
+            {
+                if (!_identityResolver.IsValidIdentity(request.IdentityType, request.IdentityNumber, out var firstIdentityError))
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        firstIdentityError ?? "Nomor identitas tidak valid."
+                    ));
+                }
+
+                var identityOwner = await _identityResolver.FindByIdentityAsync(request.IdentityType, request.IdentityNumber);
+                if (identityOwner.Found && identityOwner.WorkforceProfileId != entity.WorkforceProfileId)
+                {
+                    return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Nomor identitas ini sudah tercatat pada profil orang lain. Penggabungan profil tidak dilakukan otomatis; hubungi HR untuk penelusuran data ganda (HRD-DEC-051).",
+                        "IDENTITY_BELONGS_TO_OTHER_PROFILE"
+                    ));
+                }
+            }
+
             var requiredValidation = ValidateRequiredDoctorRequest(request);
 
             if (!requiredValidation.IsValid)
@@ -1331,7 +1412,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 identityNumber: request.IdentityNumber,
                 phoneNumber: request.PhoneNumber,
                 whatsAppNumber: request.WhatsAppNumber,
-                email: request.Email
+                email: request.Email,
+                identityType: request.IdentityType
             );
 
             if (!validation.IsValid)
@@ -1340,6 +1422,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     StatusCodes.Status400BadRequest,
                     validation.ErrorMessage ?? "Data doctor tidak valid."
                 ));
+            }
+
+            // BE-HRD-399: status kredensial dan kewenangan klinis dikelola alur kredensial (Menu 09),
+            // supaya dokter yang dicabut Komite Medik tidak dapat diaktifkan ulang lewat form Data Induk.
+            if (entity.CredentialingStatus != request.CredentialingStatus ||
+                entity.ClinicalPrivilegeStatus != request.ClinicalPrivilegeStatus)
+            {
+                return CredentialStatusManagedByCredentialing();
             }
 
             var now = DateTime.UtcNow;
@@ -1358,8 +1448,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             entity.Religion = request.Religion;
             entity.MaritalStatus = request.MaritalStatus;
             entity.BloodType = request.BloodType;
-            entity.IdentityType = NormalizeNullableText(request.IdentityType);
-            entity.IdentityNumber = NormalizeNullableText(request.IdentityNumber);
+            if (string.IsNullOrEmpty(oldDoctorIdentity))
+            {
+                // Hanya pengisian pertama yang ditulis; nomor yang sudah ada tidak pernah ditimpa di sini.
+                entity.IdentityType = NormalizeNullableText(request.IdentityType);
+                entity.IdentityNumber = NormalizeNullableText(newDoctorIdentity);
+            }
             entity.PhoneNumber = normalizedPhone;
             entity.WhatsAppNumber = normalizedWhatsApp;
             entity.Email = normalizedEmail;
@@ -1380,8 +1474,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             entity.ProfessionId = request.ProfessionId;
             entity.SpecializationId = NormalizeNullableGuid(request.SpecializationId);
             entity.PracticeType = request.PracticeType;
-            entity.CredentialingStatus = request.CredentialingStatus;
-            entity.ClinicalPrivilegeStatus = request.ClinicalPrivilegeStatus;
             entity.SpecialistName = NormalizeNullableText(request.SpecialistName);
             entity.SubSpecialistName = NormalizeNullableText(request.SubSpecialistName);
             entity.MedicalStaffGroup = NormalizeNullableText(request.MedicalStaffGroup);
@@ -1395,6 +1487,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             entity.ResignReason = NormalizeNullableText(request.ResignReason);
             entity.CredentialingDate = request.CredentialingDate;
             entity.IsAvailableForAppointment = request.IsAvailableForAppointment;
+            // BE-HRD-401: pegawai/akun purnatugas tidak diaktifkan kembali lewat Data Induk.
+            if (!entity.IsActive && request.IsActive &&
+                await _lifecycleGuard.IsSeparationFinalizedAsync(entity.WorkforceProfileId))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Pemberhentian orang ini sudah final. Data Induk tidak dapat mengaktifkan kembali pegawai atau akun purnatugas; penerimaan kembali dilakukan melalui Rekrutmen dan Onboarding.",
+                    "SEPARATED_WORKFORCE_REACTIVATION_BLOCKED"
+                ));
+            }
+
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
@@ -1437,7 +1540,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 linkedUser.PrimaryDepartmentId = entity.PrimaryDepartmentId;
                 linkedUser.PrimaryPositionId = entity.PrimaryPositionId;
                 linkedUser.WorkforceProfileId = entity.WorkforceProfileId;
-                linkedUser.IsActive = entity.IsActive;
+                // BE-HRD-401: akun yang dikunci karena skorsing tetap terkunci sampai skorsing berakhir.
+                linkedUser.IsActive = entity.IsActive && !await _lifecycleGuard.HasActiveSuspensionLockAsync(linkedUser.Id);
                 linkedUser.UpdateDateTime = now;
             }
 
@@ -1450,6 +1554,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     now,
                     actorUserId
                 );
+
+                var changedFields = CaptureChangedFieldNames(entity);
 
                 await _dbContext.SaveChangesAsync();
 
@@ -1483,7 +1589,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                         entity.IsActive,
                         entity.IsAvailableForAppointment,
                         entity.PrimaryDepartmentId,
-                        entity.PrimaryPositionId
+                        entity.PrimaryPositionId,
+                        entity.UpdateBy,
+                        ChangedFields = changedFields
                     }
                 );
 
@@ -1571,13 +1679,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 ));
             }
 
+            // BE-HRD-399: status kredensial tidak diubah dari endpoint status Data Induk.
+            if (entity.CredentialingStatus != request.CredentialingStatus ||
+                entity.ClinicalPrivilegeStatus != request.ClinicalPrivilegeStatus)
+            {
+                return CredentialStatusManagedByCredentialing();
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            // BE-HRD-401: pegawai/akun purnatugas tidak diaktifkan kembali lewat Data Induk.
+            if (!entity.IsActive && request.IsActive &&
+                await _lifecycleGuard.IsSeparationFinalizedAsync(entity.WorkforceProfileId))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Pemberhentian orang ini sudah final. Data Induk tidak dapat mengaktifkan kembali pegawai atau akun purnatugas; penerimaan kembali dilakukan melalui Rekrutmen dan Onboarding.",
+                    "SEPARATED_WORKFORCE_REACTIVATION_BLOCKED"
+                ));
+            }
+
             entity.IsActive = request.IsActive;
             entity.EmploymentStatusId = request.EmploymentStatusId;
-            entity.CredentialingStatus = request.CredentialingStatus;
-            entity.ClinicalPrivilegeStatus = request.ClinicalPrivilegeStatus;
             entity.IsAvailableForAppointment = request.IsActive && request.IsAvailableForAppointment;
             entity.ResignDate = request.ResignDate;
             entity.ResignReason = NormalizeNullableText(request.ResignReason);
@@ -1603,7 +1727,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
 
             if (linkedUser != null)
             {
-                linkedUser.IsActive = request.IsActive;
+                // BE-HRD-401: akun yang dikunci karena skorsing tetap terkunci sampai skorsing berakhir.
+                linkedUser.IsActive = request.IsActive && !await _lifecycleGuard.HasActiveSuspensionLockAsync(linkedUser.Id);
                 linkedUser.UpdateDateTime = now;
             }
 
@@ -1970,32 +2095,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             }
         }
 
-        private async Task<string> GenerateWorkforceProfileCodeAsync()
-        {
-            const string prefix = $"WFP-{HospitalCode}-";
-
-            var totalData = await _dbContext.Set<MstWorkforceProfile>()
-                .IgnoreQueryFilters()
-                .CountAsync();
-
-            var nextNumber = totalData + 1;
-
-            while (true)
-            {
-                var code = $"{prefix}{nextNumber.ToString("D5")}";
-
-                var exists = await _dbContext.Set<MstWorkforceProfile>()
-                    .AnyAsync(x => x.ProfileCode == code);
-
-                if (!exists)
-                {
-                    return code;
-                }
-
-                nextNumber++;
-            }
-        }
-
         private async Task<DoctorUserAccountCompactResponse?> BuildDoctorUserAccountCompactResponseAsync(Guid doctorId)
         {
             var now = DateTime.UtcNow;
@@ -2197,6 +2296,47 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             return (true, null);
         }
 
+        /// <summary>
+        /// Nama kolom yang benar-benar berubah pada entity ini (BE-HRD-389, HRD-DEC-052). Hanya nama
+        /// kolom yang dicatat ke log aplikasi, bukan nilainya, supaya data pribadi tidak tersalin ke log.
+        /// </summary>
+        private List<string> CaptureChangedFieldNames(object entity)
+        {
+            _dbContext.ChangeTracker.DetectChanges();
+
+            return _dbContext.Entry(entity).Properties
+                .Where(p => p.IsModified
+                    && p.Metadata.Name != "UpdateBy"
+                    && p.Metadata.Name != "UpdateDateTime")
+                .Select(p => p.Metadata.Name)
+                .OrderBy(name => name)
+                .ToList();
+        }
+
+        /// <summary>
+        /// BE-HRD-399: status awal yang sah saat dokter didaftarkan di Data Induk. Status lain
+        /// (Disetujui, Aktif, Ditangguhkan, Dicabut, Kedaluwarsa) hanya hasil alur kredensial.
+        /// </summary>
+        private static bool IsPreCredentialingState(
+            CredentialingStatus credentialingStatus,
+            ClinicalPrivilegeStatus clinicalPrivilegeStatus)
+        {
+            var credentialingOk = credentialingStatus == CredentialingStatus.NotStarted
+                || credentialingStatus == CredentialingStatus.Pending;
+            var privilegeOk = clinicalPrivilegeStatus == ClinicalPrivilegeStatus.NotApplicable
+                || clinicalPrivilegeStatus == ClinicalPrivilegeStatus.Pending;
+            return credentialingOk && privilegeOk;
+        }
+
+        private ObjectResult CredentialStatusManagedByCredentialing()
+        {
+            return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict,
+                "Status kredensial dan status kewenangan klinis dokter dikelola melalui alur Kredensial (Menu 09) dan keputusan Komite Medik, tidak dapat ditetapkan atau diubah dari Data Induk Dokter.",
+                "CREDENTIAL_STATUS_MANAGED_BY_CREDENTIALING"
+            ));
+        }
+
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateDoctorRequestAsync(
             Guid? excludeDoctorId,
             Guid? primaryDepartmentId,
@@ -2209,7 +2349,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             string? identityNumber,
             string? phoneNumber,
             string? whatsAppNumber,
-            string? email)
+            string? email,
+            string? identityType = null)
         {
             primaryDepartmentId = NormalizeNullableGuid(primaryDepartmentId);
             primaryPositionId = NormalizeNullableGuid(primaryPositionId);
@@ -2259,7 +2400,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 return regionValidation;
             }
 
-            var normalizedIdentityNumber = NormalizeNullableText(identityNumber);
+            // BE-HRD-387: bentuk normal nomor identitas mengikuti resolver identitas lintas peran.
+            var normalizedIdentityNumber = NormalizeNullableText(
+                _identityResolver.NormalizeIdentityNumber(identityType, identityNumber));
             var normalizedPhoneNumber = NormalizeDigitsOnly(phoneNumber);
             var normalizedWhatsAppNumber = NormalizeDigitsOnly(whatsAppNumber);
             var normalizedEmail = NormalizeNullableText(email);
@@ -3860,6 +4003,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             if (existingDoctorAccount)
             {
                 return (false, "Doctor ini sudah memiliki akun login.", null);
+            }
+
+            // BE-HRD-388: satu profil hanya punya satu akun login (index unik WorkforceProfileId).
+            // Dokter yang juga pegawai memakai akun yang sudah ada pada profil yang sama.
+            var profileAlreadyHasAccount = await _dbContext.Users
+                .AsNoTracking()
+                .AnyAsync(x => x.WorkforceProfileId == doctor.WorkforceProfileId);
+
+            if (profileAlreadyHasAccount)
+            {
+                return (false, "Orang ini sudah memiliki akun login melalui peran lain pada profil yang sama. Gunakan akun yang ada; jangan centang pembuatan akun login.", null);
             }
 
             var initialPassword = GenerateInitialPasswordFromBirthDate(doctor.BirthDate.Value);

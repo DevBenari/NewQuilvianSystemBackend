@@ -301,10 +301,11 @@ dan base component Quilvian) → keleluasaan developer.
 |---|---|---|---|---|---|
 | `AST-FE-001` | Letak grup menu "Manajemen Aset" pada sidebar Corporate | Rizki | `open` | Satu grup berisi 11 butir menu sesuai bagian 1 | `AST-OQ-015` |
 | `AST-FE-002` | Nama dan urutan butir menu | Rizki | `approved` | Mengikuti daftar cakupan bagian 1 apa adanya | Cakupan pemilik |
-| `AST-FE-003` | Pemindaian QR saat opname lewat kamera HP/tablet di browser | Rizki | `approved` | Wajib bisa dari perangkat genggam; tetap ada input nomor manual sebagai cadangan | `AST-DEC-010`, `AST-DEC-018` |
+| `AST-FE-003` | Pemindaian QR saat opname lewat kamera HP/tablet di browser | Rizki | `superseded` → `AST-FE-007` | Wajib bisa dari perangkat genggam; tetap ada input nomor manual sebagai cadangan | `AST-DEC-010`, `AST-DEC-018` |
 | `AST-FE-004` | Rupiah disembunyikan dari peran tanpa hak lihat nilai | Rizki | `approved` | Tidak boleh hanya disembunyikan di layar; backend tidak mengirim angkanya | `AST-DEC-025` |
 | `AST-FE-005` | Tata letak dashboard, bentuk kartu, grafik, tab/modal/drawer | — | `DEV_DISCRETION` | Dalam design token dan base component Quilvian | — |
 | `AST-FE-006` | Ukuran dan tata letak label QR | Bagian Aset | `open` | Bergantung printer label yang dipakai | `AST-OQ-016` |
+| `AST-FE-007` | Pemindaian QR saat opname lewat kamera **tablet** di browser; perangkat rumah sakit adalah desktop, laptop, dan tablet | Rizki | `approved` | Layar Pemeriksaan Fisik mengacu lebar tablet (±768 px); HP tidak menjadi acuan. Verifikasi developer di PC kantor (tidak tersedia tablet): Playwright dengan viewport tablet, sentuhan, dan kamera tiruan berisi QR di `localhost`; uji di tablet sungguhan lewat HTTPS menjadi bagian UAT. Input nomor manual tetap ada sebagai cadangan, termasuk untuk laptop/desktop | Rizki, 2026-11-23 (menggantikan `AST-FE-003`) |
 
 ---
 

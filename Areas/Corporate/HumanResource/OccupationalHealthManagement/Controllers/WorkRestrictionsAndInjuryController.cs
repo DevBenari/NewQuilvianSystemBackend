@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthMana
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Services.Features;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Controllers
 {
@@ -32,12 +33,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         private readonly IWorkRestrictionService _restrictionService;
         private readonly IReturnToWorkService _rtwService;
         private readonly IOccupationalInjuryService _injuryService;
+        private readonly IBpjsFeatureGate _bpjsGate;
 
         public WorkRestrictionsAndInjuryController(
             IWorkRestrictionService restrictionService,
             IReturnToWorkService rtwService,
-            IOccupationalInjuryService injuryService)
+            IOccupationalInjuryService injuryService,
+            IBpjsFeatureGate bpjsGate)
         {
+            _bpjsGate = bpjsGate ?? throw new ArgumentNullException(nameof(bpjsGate));
             _restrictionService = restrictionService ?? throw new ArgumentNullException(nameof(restrictionService));
             _rtwService = rtwService ?? throw new ArgumentNullException(nameof(rtwService));
             _injuryService = injuryService ?? throw new ArgumentNullException(nameof(injuryService));
@@ -117,13 +121,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         {
             var userId = GetCurrentUserId();
             var result = await _injuryService.ReportInjuryAsync(request, userId, cancellationToken);
-            return StatusCode(201, ApiResponse<EmployeeInjuryResponseDto>.Ok(result, "Laporan kecelakaan kerja (KAK/PAK) berhasil dicatat. Tiket klaim BPJS JKK Tahap I terdaftar."));
+            var message = _bpjsGate.IsEnabled
+                ? "Laporan kecelakaan kerja (KAK/PAK) berhasil dicatat. Tiket klaim BPJS JKK Tahap I terdaftar."
+                : "Laporan kecelakaan kerja (KAK/PAK) berhasil dicatat.";
+            return StatusCode(201, ApiResponse<EmployeeInjuryResponseDto>.Ok(result, message));
         }
 
         /// <summary>
         /// Generator berkas resmi pelaporan klaim JKK BPJS Ketenagakerjaan Tahap I/II
         /// </summary>
         [HttpGet("injuries/{injuryId:guid}/bpjs-jkk-form")]
+        [BpjsFeatureRequired] // Formulir klaim BPJS JKK tidak dibuat saat fitur BPJS nonaktif (409); pencatatan KAK/PAK tidak terpengaruh.
         [AccessAction("PrepareBpjsClaimStage1", "Menyiapkan Formulir BPJS JKK Tahap I", AccessType = AccessTypes.Read, SortOrder = 5)]
         [AccessPermission("WorkRestrictionAndInjury", "PrepareBpjsClaimStage1")]
         [Authorize]
@@ -132,6 +140,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         {
             var result = await _injuryService.GenerateBpjsFormAsync(injuryId, stage, cancellationToken);
             return Ok(ApiResponse<BpjsJkkClaimFormDto>.Ok(result, $"Formulir klaim JKK BPJS Ketenagakerjaan Tahap {stage} berhasil dibuat."));
+        }
+
+        /// <summary>
+        /// Daftar pembatasan kerja seluruh pegawai (MSL-14, DEC-FER-05 opsi A, 18 Nov 2026). Filter: search, status, activeOnly, pageNumber, pageSize.
+        /// </summary>
+        [HttpGet("restrictions")]
+        [AccessAction("Read", "Melihat Daftar Restriksi Kerja Seluruh Pegawai", AccessType = AccessTypes.Read, SortOrder = 20)]
+        [AccessPermission("WorkRestrictionAndInjury", "Read")]
+        [Authorize]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<WorkRestrictionListItemDto>>), 200)]
+        public async Task<IActionResult> GetRestrictionList(
+            [FromQuery] OccupationalHealthListQuery query,
+            [FromServices] IOccupationalHealthListQueryService listService,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await listService.GetRestrictionsAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<WorkRestrictionListItemDto>>.Ok(result, "Daftar berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Daftar kecelakaan kerja seluruh pegawai (MSL-14, DEC-FER-05 opsi A, 18 Nov 2026). Filter: search, status, activeOnly, pageNumber, pageSize.
+        /// </summary>
+        [HttpGet("injuries")]
+        [AccessAction("Read", "Melihat Daftar Kecelakaan Kerja Seluruh Pegawai", AccessType = AccessTypes.Read, SortOrder = 21)]
+        [AccessPermission("WorkRestrictionAndInjury", "Read")]
+        [Authorize]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<InjuryListItemDto>>), 200)]
+        public async Task<IActionResult> GetInjuryList(
+            [FromQuery] OccupationalHealthListQuery query,
+            [FromServices] IOccupationalHealthListQueryService listService,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await listService.GetInjuriesAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<InjuryListItemDto>>.Ok(result, "Daftar berhasil diambil."));
         }
     }
 }

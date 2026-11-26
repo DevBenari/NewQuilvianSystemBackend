@@ -81,7 +81,8 @@ public enum ConditionReportSource
     LaporanUnit = 1,
     PemeriksaanBagianAset = 2,
     PengembalianPinjaman = 3,
-    TindakLanjutOpname = 4
+    TindakLanjutOpname = 4,
+    PenerimaanMutasi = 5
 }
 
 /// <summary>Jenis pemanfaatan aset oleh pihak lain (AST-DEC-021).</summary>
@@ -141,4 +142,12 @@ public enum AssetHistoryEventType
     Dihapus = 12,
     Dipulihkan = 13,
     DiimporSaldoAwal = 14
+}
+
+public enum AssetDocumentExpiryState
+{
+    TanpaMasaBerlaku = 0,
+    Berlaku = 1,
+    HampirHabis = 2,
+    Habis = 3
 }

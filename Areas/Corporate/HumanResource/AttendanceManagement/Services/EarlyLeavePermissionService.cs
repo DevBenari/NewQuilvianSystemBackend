@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services
@@ -129,7 +130,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     RejectionReason = p.RejectionReason,
                     IsDeductible = p.IsDeductible,
                     IsActive = p.IsActive,
-                    CreateDateTime = p.CreateDateTime
+                    CreateDateTime = p.CreateDateTime,
+                    CancelDateTime = p.CancelDateTime
                 })
                 .ToListAsync(cancellationToken);
 
@@ -181,7 +183,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 RejectionReason = entity.RejectionReason,
                 IsDeductible = entity.IsDeductible,
                 IsActive = entity.IsActive,
-                CreateDateTime = entity.CreateDateTime
+                CreateDateTime = entity.CreateDateTime,
+                CancelDateTime = entity.CancelDateTime
             };
 
             return EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Ok(response);
@@ -300,6 +303,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     "Permohonan izin pulang cepat tidak ditemukan.");
             }
 
+            if (await IsOwnRequestAsync(currentUserId, entity.WorkforceProfileId, cancellationToken))
+            {
+                return EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Fail(StatusCodes.Status403Forbidden, SelfDecisionMessage);
+            }
+
             if (entity.Status != "Submitted" && entity.Status != "Draft")
             {
                 return EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Fail(
@@ -377,6 +385,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     "Permohonan izin pulang cepat tidak ditemukan.");
             }
 
+            if (await IsOwnRequestAsync(currentUserId, entity.WorkforceProfileId, cancellationToken))
+            {
+                return EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Fail(StatusCodes.Status403Forbidden, SelfDecisionMessage);
+            }
+
             if (entity.Status != "Submitted" && entity.Status != "Draft")
             {
                 return EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Fail(
@@ -409,6 +422,201 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 entity.Id, request.ApproverWorkforceProfileId, request.RejectionReason);
 
             return await GetByIdAsync(entity.Id, cancellationToken);
+        }
+
+        // ---------------------------------------------------------------- Layanan Mandiri (HRD-DEC-252, desain 39.9.3)
+        // Identitas pegawai hanya dari sesi (VR-PK-34): controller ESS meneruskan WorkforceProfileId akun login.
+
+        private const string SelfProfileMissingMessage = "Akun ini belum terhubung ke profil pegawai.";
+        private const string SelfDecisionMessage = "Anda tidak dapat memutuskan pengajuan Anda sendiri.";
+        private const string NotFoundMessage = "Permohonan izin pulang cepat tidak ditemukan.";
+        private const int SelfMaxPageSize = 100;
+        private const int MaxReasonLength = 500;
+
+        public async Task<EarlyLeavePermissionServiceResult<EarlyLeavePermissionPagedResponse>> GetPagedForSelfAsync(
+            Guid? workforceProfileId,
+            DateOnly? fromDate,
+            DateOnly? toDate,
+            string? status,
+            int pageNumber,
+            int pageSize,
+            CancellationToken cancellationToken = default)
+        {
+            if (!await IsActiveProfileAsync(workforceProfileId, cancellationToken))
+            {
+                return EarlyLeavePermissionServiceResult<EarlyLeavePermissionPagedResponse>.Fail(StatusCodes.Status404NotFound, SelfProfileMissingMessage);
+            }
+
+            var page = await GetPagedAsync(new EarlyLeavePermissionQueryRequest
+            {
+                WorkforceProfileId = workforceProfileId!.Value,
+                StartDate = fromDate,
+                EndDate = toDate,
+                Status = status,
+                PageNumber = pageNumber,
+                PageSize = Math.Clamp(pageSize, 1, SelfMaxPageSize)
+            }, cancellationToken);
+
+            return EarlyLeavePermissionServiceResult<EarlyLeavePermissionPagedResponse>.Ok(page, "Daftar izin pulang cepat Anda berhasil diambil.");
+        }
+
+        /// <summary>Detail milik sendiri; pengajuan pegawai lain diperlakukan tidak ditemukan (404).</summary>
+        public async Task<EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>> GetByIdForSelfAsync(
+            Guid id,
+            Guid? workforceProfileId,
+            CancellationToken cancellationToken = default)
+        {
+            if (!await IsActiveProfileAsync(workforceProfileId, cancellationToken))
+            {
+                return EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Fail(StatusCodes.Status404NotFound, SelfProfileMissingMessage);
+            }
+
+            var result = await GetByIdAsync(id, cancellationToken);
+            return result.Success && result.Data!.WorkforceProfileId != workforceProfileId!.Value
+                ? EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Fail(StatusCodes.Status404NotFound, NotFoundMessage)
+                : result;
+        }
+
+        /// <summary>
+        /// Pegawai mengajukan izin pulang cepat untuk dirinya (VR-PK-32): rekap harian miliknya pada tanggal itu wajib ada dan
+        /// belum terkunci, lalu aturan <see cref="CreateAsync"/> yang sama dengan layar HR.
+        /// </summary>
+        public async Task<EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>> CreateForSelfAsync(
+            Guid? workforceProfileId,
+            DateOnly attendanceDate,
+            DateTime requestedEarlyLeaveAt,
+            string? reason,
+            Guid currentUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (!await IsActiveProfileAsync(workforceProfileId, cancellationToken))
+            {
+                return EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Fail(StatusCodes.Status404NotFound, SelfProfileMissingMessage);
+            }
+
+            if (string.IsNullOrWhiteSpace(reason) || reason.Trim().Length > MaxReasonLength)
+            {
+                return EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan izin pulang cepat wajib diisi, paling banyak 500 karakter.");
+            }
+
+            var profileId = workforceProfileId!.Value;
+            var daily = await _context.Set<HrdAttendanceDaily>()
+                .AsNoTracking()
+                .Where(d => d.WorkforceProfileId == profileId && d.AttendanceDate == attendanceDate && !d.IsDelete)
+                .OrderBy(d => d.ScheduledCheckInAt)
+                .Select(d => new { d.Id, d.IsLocked })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (daily == null)
+            {
+                return EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Belum ada jadwal atau rekap kehadiran Anda pada tanggal ini.");
+            }
+
+            var isPeriodClosed = await _context.Set<HrdAttendancePeriod>().AsNoTracking()
+                .AnyAsync(p => p.StartDate <= attendanceDate && p.EndDate >= attendanceDate &&
+                               p.PeriodStatus == AttendanceValueConstants.AttendancePeriodStatus.Closed &&
+                               !p.IsDelete, cancellationToken);
+            if (daily.IsLocked || isPeriodClosed)
+            {
+                return EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Periode kehadiran tanggal ini sudah ditutup.");
+            }
+
+            return await CreateAsync(new CreateEarlyLeavePermissionRequest
+            {
+                AttendanceDailyId = daily.Id,
+                WorkforceProfileId = profileId,
+                RequestedEarlyLeaveAt = requestedEarlyLeaveAt,
+                Reason = reason.Trim()
+            }, currentUserId, cancellationToken);
+        }
+
+        /// <summary>
+        /// Pemohon membatalkan pengajuannya yang masih Submitted (VR-PK-33). Alasan wajib (1–500 karakter); kontrak v31 tidak
+        /// menyediakan kolom maupun ruas log untuk alasan ini, sehingga hanya divalidasi.
+        /// </summary>
+        public async Task<EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>> CancelBySelfAsync(
+            Guid id,
+            Guid? workforceProfileId,
+            string? cancelReason,
+            Guid currentUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (!await IsActiveProfileAsync(workforceProfileId, cancellationToken))
+            {
+                return EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Fail(StatusCodes.Status404NotFound, SelfProfileMissingMessage);
+            }
+
+            var profileId = workforceProfileId!.Value;
+            var entity = await _context.Set<HrdEarlyLeavePermission>()
+                .Include(p => p.AttendanceDaily)
+                .FirstOrDefaultAsync(p => p.Id == id && p.WorkforceProfileId == profileId && !p.IsDelete, cancellationToken);
+
+            if (entity == null)
+            {
+                return EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Fail(StatusCodes.Status404NotFound, NotFoundMessage);
+            }
+
+            if (string.IsNullOrWhiteSpace(cancelReason) || cancelReason.Trim().Length > MaxReasonLength)
+            {
+                return EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan pembatalan wajib diisi.");
+            }
+
+            if (entity.Status != "Submitted")
+            {
+                return EarlyLeavePermissionServiceResult<EarlyLeavePermissionResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Pengajuan sudah diputuskan dan tidak dapat dibatalkan.");
+            }
+
+            // Sama dengan penolakan: rekap harian tidak lagi menunjuk izin yang tidak berlaku.
+            if (entity.AttendanceDaily != null && entity.AttendanceDaily.EarlyLeavePermissionId == entity.Id)
+            {
+                entity.AttendanceDaily.EarlyLeavePermissionId = null;
+            }
+
+            var now = DateTime.UtcNow;
+            entity.Status = "Cancelled";
+            entity.IsCancel = true;
+            entity.CancelBy = currentUserId;
+            entity.CancelDateTime = now;
+            entity.UpdateBy = currentUserId;
+            entity.UpdateDateTime = now;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Permohonan izin pulang cepat {PermissionId} dibatalkan pemohon {WorkforceProfileId}.", entity.Id, entity.WorkforceProfileId);
+
+            return await GetByIdAsync(entity.Id, cancellationToken);
+        }
+
+        private async Task<bool> IsActiveProfileAsync(Guid? workforceProfileId, CancellationToken cancellationToken)
+        {
+            if (!workforceProfileId.HasValue)
+            {
+                return false;
+            }
+
+            var profileId = workforceProfileId.Value;
+            return await _context.Set<MstWorkforceProfile>().AsNoTracking()
+                .AnyAsync(w => w.Id == profileId && w.IsActive && !w.IsDelete, cancellationToken);
+        }
+
+        // VR-PK-36 (prinsip VR-WF-02): profil pegawai pemutus ditentukan dari akun login, bukan dari body request.
+        private async Task<bool> IsOwnRequestAsync(Guid currentUserId, Guid ownerWorkforceProfileId, CancellationToken cancellationToken)
+        {
+            var profileId = await _context.Users.AsNoTracking()
+                .Where(u => u.Id == currentUserId)
+                .Select(u => u.WorkforceProfileId)
+                .FirstOrDefaultAsync(cancellationToken);
+            return profileId.HasValue && profileId.Value == ownerWorkforceProfileId;
         }
     }
 }

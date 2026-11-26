@@ -4,17 +4,17 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `03-frontend-architecture.md` |
-| Revision | `3` — 3 November 2026: bagian 12 menambah layar `S-D1` Perencanaan Tenaga Kerja. Bagian 1–11 tidak berubah |
+| Revision | `4` — 20 November 2026: bagian 34 mencatat arsitektur navigasi SDM anti-tumpang-tindih dan hasil implementasi Paket A; bagian sebelumnya tidak diubah |
 | Status | `draft` — **belum** `approved` |
 | Owner desain | Technical owner (`HRD-DEC-015`), dengan ruang `DEV_DISCRETION` sesuai `HRD-FE-03` |
-| `approved_by` / `approved_at` | **Hanya bagian 12** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
+| `approved_by` / `approved_at` | Bagian 12 (`S-D1`) disetujui 2026-11-03. **Bagian 34** (penyesuaian navigasi SDM Paket A) disetujui pengguna pada 2026-11-20. Bagian lain mengikuti status persetujuan lokalnya; status dokumen keseluruhan tetap `draft` |
 | Repository target | `QuilvianSystemFrontendDev` |
-| Frontend SHA | `fff76a1b394d4b247c70a04f106c8ec098c9696e` (branch `AgentCodexFrontend`) |
+| Frontend SHA | `51853893e9f229f0f22f5e86bc5f2e8c08946779` (branch `HamzahV2`) — bukti terkini untuk bagian 34 |
 | Backend SHA rujukan kontrak | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | `input_revision` — arsitektur backend | `02-backend-architecture.md` revision `2` |
 | `input_revision` — decision log | `00-interview-decisions.md` revision `16` (Amendment Pass Workforce Core & Employee 360, `HRD-DEC-046` s.d. `HRD-DEC-057`) |
 | `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
-| Kompatibilitas | Tidak ada halaman existing yang dihapus. Satu halaman dipindahkan lokasinya (`S-A6`) dengan pengalihan |
+| Kompatibilitas | Tidak ada halaman existing yang dihapus. Bagian 34 hanya mengubah label, urutan, dan primary navigation owner; route, `key`, permission, API, dan data bisnis existing dipertahankan |
 
 ---
 
@@ -3746,3 +3746,563 @@ sidebar". Pilihannya dibawa ke approval desain; lihat `04-prd-to-mvp.md` bagian 
 4. Base component proyek wajib dipakai (utang `FE-HRD-R38` tidak boleh bertambah).
 5. Tidak ada data contoh tertanam pada layar baru; bila API gagal, tampilkan galat, bukan data
    contoh.
+
+---
+
+## 32. Arsitektur Frontend Amandemen `S-D5` — Persetujuan SPPD lewat Workflow Persetujuan Umum (kontrak `v28`, 18 November 2026; approved 19 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Status | `approved` — pengguna, 19 November 2026 ("setujui kontrak v28, lanjut plan"). `HRD-Q-221` tetap terbuka untuk cakupan `EPIC HRD-123` |
+| Frontend SHA | `e01411158` (branch `YogaV2`) |
+| `input_revision` | `00-interview-decisions.md` revision `39` bagian 55 (`HRD-DEC-224` s.d. `HRD-DEC-228`, `HRD-TF-079`); `contracts/api-contract.md` bagian 34 |
+| Hierarki kewenangan UI | Keamanan/privasi/invariant → keputusan `HRD-DEC-*` → konvensi proyek (base component, `AGENTS.md` frontend) → `DEV_DISCRETION` |
+
+Bagian ini menetapkan kontrak fungsional layar. Tata letak, posisi tombol, dan urutan kolom adalah
+`DEV_DISCRETION`, kecuali yang diikat di bawah. Layar persetujuan **tidak** dibuat di modul perjalanan
+dinas: atasan memakai kotak masuk persetujuan terpadu yang sudah ada (`HRD-DEC-224`).
+
+Contoh alur di layar: Perawat Sari membuka Daftar SPPD, membuat SPPD seminar (badge "Draf"), lalu
+menekan **Ajukan**. Badge berubah menjadi "Menunggu Persetujuan" dan tombol Ubah hilang. Kepala Ruang
+membuka Kotak Masuk Persetujuan, melihat baris berjenis "Perjalanan Dinas", lalu menyetujuinya. Saat
+Sari membuka daftar lagi, badge menjadi "Disetujui" dan tombol Ajukan Uang Muka aktif.
+
+### 32.1 Temuan awal: layar SPPD masih memakai data contoh (`HRD-TF-079`)
+
+Pada `FE@e01411158`, daftar SPPD membaca `MOCK_TRAVEL_REQUESTS` dari Redux
+(`src/lib/state/slice/hr/travel/businessTravelSlice.js`), dan formulir buat SPPD hanya
+`dispatch(addTravelRequest(...))` ke Redux tanpa memanggil API. Service
+`src/lib/services/hr/business-travel-service.js` sudah memanggil endpoint kontrak v25, tetapi belum
+dipakai layar mana pun; `submitTravelRequest` masih melempar "Pengajuan SPPD untuk persetujuan belum
+tersedia di server."
+
+Akibatnya, tombol Ajukan tidak berarti apa-apa sebelum daftar dan formulir SPPD tersambung ke API.
+Apakah penyambungan itu masuk epic amandemen ini atau task tersendiri adalah pertanyaan terbuka
+`HRD-Q-221` (tidak memblokir backend; lihat `04-prd-to-mvp.md` bagian 41.12).
+
+Ada dua pohon rute untuk layar yang sama: `/hrd/travel/...` dan `/corporate/hrd/travel/...`
+(`src/app/(dashboard)/…`), keduanya merender view `unified-travel-*-view.jsx` yang sama. Amandemen ini
+cukup mengubah view; kedua rute ikut berubah.
+
+### 32.2 Layar terdampak
+
+| Layar | File view | Status layar | Perubahan |
+| --- | --- | --- | --- |
+| Daftar SPPD | `src/components/view/hr/travel/unified-travel-requests-view.jsx` | Perlu ubah | Baca dari `GET /requests` (bila `HRD-Q-221` = disambung); label status 32.3; tombol **Ajukan** hanya bila `canSubmit`; tombol Ubah hanya bila `Draft`/`NeedRevision`; konfirmasi Batal menyebut "pengajuan ke atasan akan ditarik" bila status `Submitted` |
+| Formulir buat/ubah SPPD | `unified-travel-create-view.jsx` | Perlu ubah | Simpan menghasilkan Draf (bukan "terkirim"); pesan sukses "SPPD disimpan sebagai Draf. Tekan Ajukan untuk mengirim ke atasan." Langkah 4 "pengajuan uang muka" di formulir tidak boleh mengirim uang muka sebelum disetujui (`VR-TRV-30`) — dipindah ke layar uang muka atau dinonaktifkan dengan keterangan |
+| Uang muka | `unified-travel-advances-view.jsx` | Perlu ubah | Pilihan SPPD hanya yang `isApproved`; galat `409` `VR-TRV-30` ditampilkan apa adanya |
+| Settlement | `unified-travel-settlements-view.jsx` | Perlu ubah | Galat `409` `VR-TRV-31` ditampilkan apa adanya |
+| Kotak Masuk Persetujuan | `src/components/view/hr/workflow/approval-inbox-view.jsx` | Perlu ubah (kecil) | `getReferenceTypeLabel` mengenal `HRD_TRV_REQUEST` → "Perjalanan Dinas". Aksi setuju/kembalikan/tolak memakai yang sudah ada |
+| Dasbor perjalanan dinas | `unified-travel-dashboard-view.jsx` | Perlu ubah (kecil) | Memakai peta label 32.3 yang sama |
+
+### 32.3 Peta status dan label
+
+Backend mengirim `travelStatus` dalam PascalCase (kontrak API 34.4), sedangkan `TRAVEL_STATUS` di
+`src/utils/hr/travel/travel-display-utils.js` memakai kunci huruf besar contoh (`DRAFT`,
+`SETTLEMENT_PENDING`, dst.). Peta disesuaikan dengan nilai backend:
+
+| `travelStatus` | Label | Tombol yang boleh tampil |
+| --- | --- | --- |
+| `Draft` | Draf | Ubah, Ajukan, Batal |
+| `Submitted` (berworkflow) | Menunggu Persetujuan | Batal (menarik pengajuan) |
+| `Submitted` (lama, `canSubmit = true`) | Menunggu Persetujuan — perlu diajukan ulang | Ubah, Ajukan, Batal |
+| `NeedRevision` | Dikembalikan untuk Revisi | Ubah, Ajukan, Batal |
+| `Approved` | Disetujui | Ajukan Uang Muka, Batal |
+| `Rejected` | Ditolak | — |
+| `Cancelled` | Dibatalkan | — |
+| `AdvancePaid`, `SettlementSubmitted`, `SettlementVerified`, `Completed` | Label yang ada | Tidak berubah |
+
+Nilai yang tidak dikenal ditampilkan apa adanya dengan badge netral (perilaku yang ada).
+
+### 32.4 Service dan state
+
+| Unit | Perubahan |
+| --- | --- |
+| `businessTravelService.submitTravelRequest(id)` | Ganti lemparan "belum tersedia" dengan `POST /v1/hrd/travel/requests/{id}/submit` |
+| `businessTravelSlice.js` | Bila `HRD-Q-221` = disambung: data contoh diganti hasil API; bila tidak, slice tetap dan layar tetap bertanda data contoh |
+
+### 32.5 State wajib dan aturan yang diikat
+
+| Aturan | Sumber |
+| --- | --- |
+| Tombol Ajukan dinonaktifkan selama permintaan berjalan (tidak ada kirim ganda) | Konvensi proyek |
+| Konfirmasi Ajukan dan Batal memakai `ConfirmModal`; status nonaktif lewat `confirmProps={{ disabled }}` agar tombol Batal di modal tidak ikut terkunci | Konvensi proyek (temuan FE-HRD-326) |
+| Pesan galat `400`/`409` dari backend ditampilkan apa adanya, termasuk pesan Workflow V2 (`VR-TRV-29`, `VR-TRV-33`) | Kontrak API 34.5 |
+| Sesudah Ajukan/Batal berhasil, baris dimuat ulang dari server, bukan diubah lokal | Status ditentukan backend dan workflow |
+| Layar tidak menyediakan tombol Setujui/Tolak SPPD | `HRD-DEC-224` |
+| Tidak ada isian "anggaran disetujui" | `HRD-DEC-226` |
+
+### 32.6 Uji frontend
+
+| Uji | Bukti |
+| --- | --- |
+| Peta status 32.3 dan aturan tombol | Uji unit `node --test` untuk util peta status |
+| Alur Ajukan → kotak masuk → disetujui | `AT-HRD-TRV-39`, Playwright terhadap dev 3000 → backend lokal; bergantung `HRD-Q-221` |
+
+---
+
+## 33. Arsitektur Frontend Amandemen `S-A7-V2` — Kotak Masuk Terpadu di atas Engine Workflow (kontrak `v29`, 20 November 2026; approved 20 November 2026)
+
+Dasar: `HRD-DEC-229` s.d. `HRD-DEC-235`; kontrak API bagian 35. Hierarki wewenang UI: keamanan/invariant (penyetuju sah, tanpa PIN palsu) → keputusan bagian 56 → pola proyek (`useHrRemoteData`, `useHrAction`, `ConfirmModal`, `BaseSelectField`, `StatusBadge`) → `DEV_DISCRETION`. **Tidak ada menu, rute, atau layar baru.** Layar yang ada diselaraskan dengan respons `v29`.
+
+### 33.1 Layar terdampak
+
+| Layar | File view | Perubahan |
+| --- | --- | --- |
+| Kotak Masuk Persetujuan Terpadu `/hrd/approvals/inbox`, `/corporate/hrd/approvals/inbox` | `src/components/view/hr/approvals/unified-approval-inbox-view.jsx` | Baris dari penugasan engine. Kolom Jenis dari peta `REQUEST_TYPE` (33.2). Ringkasan memakai `referenceNumber` bila ada. Tombol "Pilih" untuk massal hanya aktif bila `canBulkApprove` (selain itu tampil nonaktif dengan keterangan "Setujui satu per satu"). Penanda Plh dari `isDelegated`/`delegatedFromEmployeeName` |
+| Modal Setujui | `modal/ApprovalConfirmationModal.jsx` | Hapus isian PIN; catatan opsional |
+| Modal Tolak | `modal/RejectRequestModal.jsx` | Hapus PIN dan aturan teks minimal 15 karakter. Saat dibuka, muat `GET /instances/{id}` dan pakai `myAction.rejectionReasons` untuk `BaseSelectField` "Alasan Penolakan" (wajib). "Catatan" wajib bila alasan `isCommentRequired`. Bila tidak ada alasan: keterangan "Belum ada alasan penolakan untuk jenis permohonan ini. Hubungi admin workflow." dan tombol konfirmasi nonaktif. Kirim `rejectionReasonId` + `comment` |
+| Modal Kembalikan | `modal/ReturnForRevisionModal.jsx` | Catatan revisi wajib (tetap); pesan galat server tampil apa adanya |
+| Modal Setujui Massal | `modal/BulkApprovalModal.jsx` | Hapus PIN; hasil menampilkan jumlah disetujui dan daftar `skippedItems` beserta alasannya |
+| Detail permohonan `/hrd/approvals/{id}` | `unified-approval-detail-view.jsx` | Tombol aksi dari `myAction` (bukan dari tahap berstatus `Pending`). Bila `myAction.isDelegated`, tampil "Anda bertindak sebagai Plh {onBehalfOfName}". Tanpa `myAction`: keterangan "Tidak ada tahap yang menunggu keputusan Anda" (as-is) |
+| Permohonan Saya (ESS) | `unified-ess-my-requests-view.jsx` | Untuk `isModuleManaged = true`: sembunyikan tombol kirim ulang dan batal generik; tampilkan tautan "Perbaiki di {nama modul}" ke rute modul (33.2). Jenis tanpa rute: keterangan saja |
+| Halaman revisi ESS `/hrd/self-service/revisions/{id}` | `unified-ess-revision-view.jsx` | Untuk instance modul: alih-alih formulir kirim ulang, tampilkan tautan ke layar modul; `409` dari server tampil apa adanya |
+| Master Workflow — definisi | `src/lib/constants/hr/master-data/workflow-definition/workflow-definition-constants.jsx` (+ halaman `src/app/hr/master-data/workflow-definition/*`) | Sakelar "Boleh disetujui massal" (`allowBulkApproval`) pada formulir dan kolom daftar |
+| Kotak masuk lama `/hr/workflow/approval-inbox` dan layar delegasi lama | `src/components/view/hr/workflow/approval-inbox-view.jsx` | **Tidak diubah di gelombang ini.** Pengalihan ke kotak terpadu adalah task terpisah sesudah `AT-HRD-WF-38` lulus untuk SPPD dan Cuti (`HRD-DEC-231`) |
+
+### 33.2 Konstanta
+
+| Unit | Perubahan |
+| --- | --- |
+| `REQUEST_TYPE` (`src/lib/constants/hr/approvals/approval-constants.js`) | Tambah kode `ReferenceType` engine: `LEAVE_REQUEST` "Cuti", `OVERTIME_REQUEST` "Lembur", `SHIFT_SWAP_REQUEST` "Tukar Shift", `SCHEDULE_CHANGE_REQUEST` "Perubahan Jadwal", `RESIGNATION_REQUEST` "Pengunduran Diri", koreksi presensi, rencana tenaga kerja, dan seterusnya (daftar lengkap diambil dari konstanta `ReferenceType` modul saat implementasi). `HRD_TRV_REQUEST` sudah ada (`FE-HRD-339`). Kode tak dikenal tetap tampil apa adanya |
+| Peta rute modul (baru, di file konstanta yang sama) | `ReferenceType` → rute layar pemohon, mis. `HRD_TRV_REQUEST` → `/hrd/travel/requests`. Hanya rute yang sudah ada; tidak membuat rute baru |
+| `src/lib/services/hr/unified-approval-service.js` | `rejectItem` mengirim `{ rejectionReasonId, comment }`; `approveItem` dan `executeBulkApproval` tanpa `pinSignature`; `getItemDetail` dipakai modal Tolak untuk `myAction.rejectionReasons` |
+
+### 33.3 State wajib dan aturan
+
+| Aturan | Sumber |
+| --- | --- |
+| Tombol konfirmasi nonaktif selama permintaan berjalan dan saat isian wajib belum lengkap, memakai `confirmProps={{ disabled }}` | Konvensi proyek |
+| Sesudah aksi berhasil, antrean dan ringkasan dimuat ulang dari server | Status ditentukan engine |
+| Pesan `400/403/409` dari server tampil apa adanya | Kontrak API 35.7 |
+| Tidak ada isian PIN di layar mana pun | `HRD-DEC-230` |
+| Pemohon tidak pernah melihat tombol keputusan atas permohonannya sendiri (server tetap penentu) | `VR-WF-02` |
+
+### 33.4 Wewenang UI
+
+| Pilihan | Kategori |
+| --- | --- |
+| Letak keterangan "Setujui satu per satu" dan "Anda bertindak sebagai Plh" | `DEV_DISCRETION` |
+| Tautan perbaikan di ESS memakai tombol sekunder atau tautan teks | `DEV_DISCRETION` |
+| Tidak menambah menu atau rute | Keputusan (tidak ada wewenang menambah menu) |
+
+### 33.5 Uji frontend
+
+| Uji | Bukti |
+| --- | --- |
+| Peta `REQUEST_TYPE`, peta rute modul, aturan isian modal Tolak/Kembalikan, kelayakan `canBulkApprove` | Uji unit `node --test` dengan kontrol negatif |
+| Kotak terpadu ujung-ke-ujung (`AT-HRD-WF-38`) | Playwright dev 3000 → backend lokal → devYoga, akun pemohon/atasan/Plh asli; desktop dan ponsel |
+| Lint dan build | `npm run lint:errors`, `npm run build` |
+
+---
+
+## 34. Amandemen Navigasi SDM Anti-Tumpang-Tindih — Paket A (approved 20 November 2026)
+
+### 34.1 Keputusan arsitektur
+
+Daftar 12 menu dan 61 submenu dari Business Analyst diperlakukan sebagai **register cakupan
+fungsi**, bukan instruksi untuk membuat parent baru secara satu-banding-satu. Satu fungsi hanya
+boleh mempunyai satu primary navigation owner. Route kompatibilitas atau deep-link boleh tetap
+hidup, tetapi tidak boleh menjadi pintu sidebar kedua menuju fungsi dan data yang sama.
+
+Paket A hanya mereorganisasi navigasi yang sudah mempunyai route. Paket ini tidak menambah API,
+entity, tabel, migration, halaman placeholder, maupun workflow backend. Menu existing yang tidak
+diminta Business Analyst tetap dipertahankan.
+
+### 34.2 Primary navigation owner yang dikunci
+
+| Kebutuhan BA | Primary navigation owner | Implementasi | Status |
+| --- | --- | --- | --- |
+| Administrasi Kepegawaian | `corporateHumanResourceWorkforceCore` | Lima fungsi BA ditempatkan di urutan awal; route existing tetap | `IMPLEMENTED` |
+| Perencanaan Kebutuhan SDM | `corporateWorkforcePlanningGroup` | Empat fungsi BA menjadi urutan awal; lima fungsi planning tambahan tetap ada | `IMPLEMENTED` |
+| Rekrutmen & Seleksi | `corporateRecruitmentGroup` | Lowongan, Pelamar, dan handoff Onboarding memakai route existing | `IMPLEMENTED` |
+| Data Induk Pegawai | Master Data Karyawan/Dokter | Blok `corporateHrDataIndukPegawai` tetap nonaktif pada sidebar; deep-link kompatibilitas tidak menjadi owner | `IMPLEMENTED` |
+| Struktur Organisasi & Jabatan | Master Data SDM | Struktur, unit, jabatan, rumpun, uraian tugas, dan relasi atasan tidak digandakan ke parent baru | `UNCHANGED / REUSED` |
+| Penempatan, Mutasi & Promosi | `corporateHrPlacementMutationPromotion` | Lima route existing dipertahankan | `UNCHANGED / REUSED` |
+| Kontrak & Masa Kerja | `corporateHrContractAndTenure` | Empat route existing dipertahankan | `UNCHANGED / REUSED` |
+| Pemberhentian & Pensiun | Group separation existing | Ejaan `Clearance` diperbaiki tanpa mengubah route atau `key` | `IMPLEMENTED` |
+| Kompetensi & Kredensial | `corporateCredentialingManagementGroup` | Lima fungsi BA tetap; OPPE/FPPE tidak lagi berada di owner credentialing | `IMPLEMENTED` |
+| Penilaian Kerja | `corporatePerformanceCareer` | Lima fungsi BA menjadi urutan awal; OPPE/FPPE dan fungsi karier berada pada owner kinerja yang sama | `IMPLEMENTED` |
+| Disiplin & Pembinaan | `corporateEmployeeRelations` | Teguran dan Pelanggaran memakai route existing; parent kedua tidak dibuat | `PARTIAL` |
+| Dashboard SDM dan worklist baru | Belum ditetapkan | Tidak dipublikasikan pada Paket A | `DEFERRED` |
+
+### 34.3 Invariant navigasi
+
+1. Setiap `pathname` dan `key` leaf menu harus unik di bawah root SDM.
+2. Permission existing tetap melekat pada item yang dipindahkan atau diurutkan ulang.
+3. Parent tanpa child yang boleh dilihat pengguna tidak ditampilkan oleh filter permission existing.
+4. Data Induk Pegawai tetap dapat dipakai sebagai deep-link kompatibilitas, tetapi tidak aktif di
+   sidebar selama Master Data menjadi owner data yang sama.
+5. OPPE dan FPPE hanya berada pada **Penilaian Kerja**, bukan pada Kompetensi & Kredensial.
+6. Onboarding pada Rekrutmen adalah handoff kandidat; pelaksanaan lifecycle tetap berada pada
+   **Onboarding & Kontrak**.
+7. Diklat, K3RS, SPPD, Layanan Mandiri, dan item non-BA lain tidak boleh dihapus sebagai efek
+   samping penyesuaian ini.
+
+### 34.4 Bukti implementasi
+
+| Bukti | Lokasi pada frontend SHA `51853893e9f229f0f22f5e86bc5f2e8c08946779` |
+| --- | --- |
+| Administrasi Kepegawaian | `src/utils/menu-sidebar/menu-items.jsx:652-718` |
+| Perencanaan Kebutuhan SDM | `src/utils/menu-sidebar/menu-items.jsx:827-918` |
+| Rekrutmen & Seleksi | `src/utils/menu-sidebar/menu-items.jsx:988-1059` |
+| Data Induk non-sidebar | `src/utils/menu-sidebar/menu-items.jsx:609-650` |
+| Clearance | `src/utils/menu-sidebar/menu-items.jsx:1515-1518` |
+| Kompetensi & Kredensial | `src/utils/menu-sidebar/menu-items.jsx:1557-1629` |
+| Penilaian Kerja termasuk OPPE/FPPE | `src/utils/menu-sidebar/menu-items.jsx:1723-1862` |
+| Hubungan Industrial & Terminasi | `src/utils/menu-sidebar/menu-items.jsx:1867-1958` |
+| Assertion anti-duplikasi dan urutan BA | `tests/unit/hr-master-data-sidebar-grouping.test.mjs:322-430` (`HR-07`, `HR-08`) |
+
+### 34.5 Gap dan konflik yang tidak boleh disamarkan sebagai menu siap pakai
+
+| Kebutuhan | Klasifikasi | Ketergantungan sebelum publikasi |
+| --- | --- | --- |
+| Dashboard SDM | `MISSING / DEFERRED` | Definisi kartu, owner sumber data agregat, cakupan dokumen kedaluwarsa, dan horizon peringatan |
+| Seleksi Administrasi | `EXTENSION / DEFERRED` | Keputusan filter Bank Pelamar atau worklist stabil |
+| Tes/Wawancara | `EXTENSION / DEFERRED` | Keputusan satu worklist atau pemisahan evaluasi HR dan klinis |
+| Riwayat Penyelesaian | `EXTENSION / DEFERRED` | Keputusan tab/filter atau worklist tersendiri |
+| Tindak Disiplin | `CONFLICT / NOT PUBLISHED` | Penyelarasan service frontend, kontrak backend, permission, serta keputusan entry point global atau per pegawai |
+
+Konflik Tindak Disiplin dibuktikan sebagai berikut:
+
+| Lapisan | Kontrak yang ditemukan | Dampak |
+| --- | --- | --- |
+| Frontend service | `src/lib/services/hr/employee-relations-service.js:6` memakai `GET /v1/hr/workforce-profile/disciplinary-actions` sebagai base URL | Tidak cocok dengan controller detail backend dan tidak membawa `workforceProfileId` |
+| Backend detail per pegawai | `GET /api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/disciplinary-actions` | Memerlukan ID profil dan permission `WorkforceDisciplinaryAction:Read` |
+| Swagger group backend | `Corporate / Human Resource / Employee Relation Management / Disciplinary Action` | Endpoint detail harus tetap terdokumentasi pada group ini |
+
+Endpoint read backend yang menjadi bukti kontrak detail, bukan kontrak menu global:
+
+| Method | Path relatif terhadap base controller | Permission | Hasil utama |
+| --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | `WorkforceDisciplinaryAction:Read` | Opsi status, klasifikasi, sort, dan page size |
+| `GET` | `/summary` | `WorkforceDisciplinaryAction:Read` | Ringkasan tindakan disiplin untuk satu `workforceProfileId` |
+| `GET` | `/` | `WorkforceDisciplinaryAction:Read` | Daftar terfilter untuk satu `workforceProfileId` |
+
+Karena itu, item sidebar **Tindak Disiplin** tidak boleh diarahkan ke service tersebut sampai
+kontrak global/per-pegawai diputuskan dan diperbaiki melalui task tersendiri.
+
+### 34.6 Validasi dan status acceptance
+
+| Validasi | Hasil |
+| --- | --- |
+| `npm run lint:errors` | `PASS` |
+| ESLint target menu dan test | `PASS` |
+| Pemeriksaan penggunaan CSS | `PASS`, 0 temuan |
+| Test target `hr-master-data-sidebar-grouping.test.mjs` | `PASS`, 8/8 |
+| `npm run build` | `PASS`, 890 route/page dihasilkan dan standalone disiapkan |
+| Seluruh unit test frontend | `PARTIAL`, 5.104/5.177 lulus; 73 kegagalan existing di luar target; test target lulus penuh |
+| Uji browser headed dan akun permission positif/negatif | `PENDING` |
+
+Putusan bagian ini adalah **`PARTIAL / VERIFYING`**. Paket A sudah diimplementasikan dan aman
+untuk dilanjutkan ke uji browser/permission, tetapi belum memenuhi syarat `DONE`. Paket B dan
+konflik Tindak Disiplin tidak termasuk implementasi commit ini.
+
+---
+
+## 35. Arsitektur Frontend Amandemen Paket B — Lima Entry Point Menu SDM (kontrak `v30`, 22 November 2026; approved 23 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | Decision log revision `43` bagian 57 (`HRD-DEC-247` menjawab `HRD-Q-234`); backend bagian 38; kontrak `v30` |
+| Source acuan | Frontend `573b7429c` (branch `HamzahV2`) |
+| Hierarki wewenang | Privasi/invariant (`HRD-DEC-238`, `246`) → keputusan produk (`HRD-DEC-239`, `241`–`245`, `247`) → konvensi Paket A (bagian 34.3) → `DEV_DISCRETION` |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`). Delivery: roadmap frontend bagian 31 (`FE-HRD-401` s.d. `FE-HRD-409`) |
+
+Paket B melanjutkan aturan Paket A: satu fungsi, satu pintu sidebar; tidak ada butir yang menuju placeholder.
+
+### 35.1 Peta butir menu
+
+```text
+Sumber Daya Manusia                               (root existing, key corporateHumanResource)
+├── Master Data                                   Sudah ada
+├── Dashboard SDM                    -> /hr/dashboard                          BARU
+├── ...
+├── Rekrutmen & Seleksi                           Sudah ada (corporateRecruitmentGroup)
+│   ├── Permintaan Requisition                    Sudah ada
+│   ├── Lowongan                                  Sudah ada
+│   ├── Pelamar                                   Sudah ada
+│   ├── Seleksi Administrasi         -> /hr/recruitment/screenings             BARU
+│   ├── Tes/Wawancara                -> /hr/recruitment/evaluations            BARU
+│   ├── Surat Penawaran (Offer) … Onboarding      Sudah ada
+├── ...
+└── Hubungan Industrial & Terminasi               Sudah ada (corporateEmployeeRelations)
+    ├── Dasbor Hubungan Industrial & Radar        Sudah ada
+    ├── Tindak Disiplin              -> /hrd/relations/sanctions               LABEL DIGANTI (HRD-DEC-247)
+    ├── Pelanggaran                               Sudah ada
+    ├── Riwayat Penyelesaian         -> /hrd/relations/sanctions/history       BARU
+    └── Skorsing … Exit Clearance                 Sudah ada
+```
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+| --- | :---: | --- | --- | --- | --- | --- |
+| Dashboard SDM | 1 | Sumber Daya Manusia | `/hr/dashboard` | `FE-PKB-01` | `HrdWorkforceDashboard : Read` | Baru |
+| Seleksi Administrasi | 2 | Rekrutmen & Seleksi | `/hr/recruitment/screenings` | `FE-PKB-02` | `CandidateScreening : Read` | Baru |
+| Tes/Wawancara | 2 | Rekrutmen & Seleksi | `/hr/recruitment/evaluations` | `FE-PKB-03` | `CandidateEvaluation : Read` | Baru |
+| Tindak Disiplin (label) | 2 | Hubungan Industrial & Terminasi | `/hrd/relations/sanctions` | Layar Sanksi existing | `EmployeeDisciplinary : ViewSanctions` | Label diganti dari "Teguran" (`HRD-DEC-247`) |
+| Riwayat Penyelesaian | 2 | Hubungan Industrial & Terminasi | `/hrd/relations/sanctions/history` | `FE-PKB-04` | `EmployeeDisciplinary : ViewSanctions` | Baru |
+
+Layar anak tanpa butir menu:
+
+| Layar | Jalan masuk |
+| --- | --- |
+| Detail evaluasi `/hr/recruitment/evaluations/hr/[id]` dan `/clinical/[id]` (sudah ada) | Baris pada Tes/Wawancara |
+| Detail kandidat dan berkas penapisan (sudah ada) | Baris pada Seleksi Administrasi |
+| Employee 360 `/hr/employee-360/...` (sudah ada) | Baris daftar nama Dashboard SDM |
+| `/hr/employee-relations/disciplinary-actions` (dipensiunkan) | Tidak ada; route dialihkan ke `/hrd/relations/sanctions` untuk tautan lama |
+
+**Konflik label `HRD-Q-234`.** Invariant Paket A 34.3 butir 1 melarang dua butir menuju `pathname` yang sama. Butir **Teguran** (Paket A) sudah menuju layar Sanksi, padahal `HRD-DEC-238` meminta **Tindak Disiplin** membuka layar yang sama. Rekomendasi desain: butir yang ada diganti labelnya menjadi **Tindak Disiplin**, dan "Teguran" menjadi filter tingkat sanksi (Teguran Lisan) di dalam layar — cara yang sudah diizinkan planning 5.11 ("label, tab, atau filter"). Karena mengubah label Paket A, ini butuh keputusan pemilik. **Diputuskan 23 November 2026 (`HRD-DEC-247`, opsi A):** label butir diganti menjadi **Tindak Disiplin**, tidak ada butir kedua, dan Teguran dicari lewat filter Tingkat "Teguran Lisan" yang sudah ada di layar.
+
+Urutan butir dan ikon: `DEV_DISCRETION`. `pathname` di atas mengikat; perubahan nama route wajib memperbarui tabel ini.
+
+### 35.2 Skema fitur per layar
+
+**`FE-PKB-01` Dashboard SDM**
+
+```text
++- Dashboard SDM ----------------------------- per 20 Des 2026 [Muat ulang] -+
+| [Pegawai aktif 326] [Masuk bulan ini 4] [Keluar bulan ini 2]              |
++--------------------------------------+------------------------------------+
+| Distribusi Profesi                   | Aktif / Nonaktif                   |
+| Perawat 142 ▸  Dokter 38 ▸ ...       | Aktif 326 ▸   Nonaktif 41 ▸        |
++--------------------------------------+------------------------------------+
+| Kontrak Berakhir (60 hari) 12        | Dokumen Kedaluwarsa 8              |
+| H-60 5 ▸ H-14 3 ▸ H-7 2 ▸            | Sudah habis 2 ▸ ≤30 hari 3 ▸       |
+| Menunggu keputusan 1 ▸ Lewat 1 ▸     | 31–60 2 ▸ 61–90 1 ▸  [Jenis v]     |
++--------------------------------------+------------------------------------+
+| ▸ = klik membuka panel daftar nama (drill-down)                           |
++---------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Endpoint | Hak akses | Kosong / gagal |
+| --- | --- | --- | --- | --- |
+| Kartu ringkasan | `employeeOverview.*` | `GET /workforce-dashboard/summary` | `HrdWorkforceDashboard : Read` | Gagal: "Data dashboard gagal dimuat." [Coba lagi]; tanpa angka nol palsu |
+| Distribusi profesi | `professionDistribution[]` | Idem | Idem | Kosong: "Belum ada pegawai aktif." |
+| Aktif/Nonaktif | `activeStatus.*` | Idem | Idem | — |
+| Kontrak Berakhir | `contractExpiry.*` | Idem | Idem | Kosong: "Tidak ada kontrak yang berakhir dalam 60 hari." |
+| Dokumen Kedaluwarsa | `documentExpiry.*`, filter jenis dari `byType[]` | Idem | Idem | Kosong: "Tidak ada dokumen yang kedaluwarsa dalam 90 hari." |
+| Daftar nama (drill-down) | `employeeCode`, `employeeName`, `professionName`, `detailLabel`, `referenceDate`, `daysRemaining`; baris membuka Employee 360 | `GET /workforce-dashboard/drilldown` | Idem | Kosong: "Tidak ada pegawai pada kelompok ini."; gagal: "Daftar gagal dimuat." [Coba lagi] |
+
+Bentuk panel daftar nama (drawer, modal, atau halaman): `DEV_DISCRETION`. Data dimuat ulang setiap halaman dibuka (`HRD-ASM-92`); tidak di-cache lintas sesi.
+
+**`FE-PKB-02` Seleksi Administrasi**
+
+```text
++- Seleksi Administrasi ------------------------------------------------------+
+| [cari nama pelamar]  [Lowongan v]  [Status: Menunggu v]  [Hasil STR v]      |
++-----------------------------------------------------------------------------+
+| Pelamar | Lowongan | Tgl lamar | Hasil cek STR | Status (chip) | [Periksa]  |
++-----------------------------------------------------------------------------+
+| kosong -> "Tidak ada lamaran yang menunggu penapisan."   [Lihat semua]      |
+| gagal  -> "Data gagal dimuat."                           [Coba lagi]        |
++-----------------------------------------------------------------------------+
+```
+
+| Wilayah | Endpoint | Hak akses | Catatan |
+| --- | --- | --- | --- |
+| Daftar dan filter | `GET /recruitment/screenings` (`status=Pending` bawaan) | `CandidateScreening : Read` | Satu baris per lamaran (`HRD-DEC-244`) |
+| Periksa → tandai Lolos/Gugur | Formulir penapisan existing, `POST /recruitment/screenings/evaluate` | `CandidateScreening : Evaluate` | Tombol disembunyikan tanpa hak; cegah kirim ganda saat menyimpan |
+
+**`FE-PKB-03` Tes/Wawancara**
+
+```text
++- Tes/Wawancara -------------------------------------------------------------+
+| [Wawancara HR | Uji Klinis/Teknis]  [cari kandidat] [Belum dinilai ☐]        |
++-----------------------------------------------------------------------------+
+| Kandidat | Lowongan | Jadwal | Penilai | Rekomendasi (chip) | [Buka]         |
++-----------------------------------------------------------------------------+
+| kosong (asesor) -> "Belum ada uji yang ditugaskan kepada Anda."             |
+| gagal           -> "Data gagal dimuat."                    [Coba lagi]      |
++-----------------------------------------------------------------------------+
+```
+
+| Wilayah | Endpoint | Hak akses | Catatan |
+| --- | --- | --- | --- |
+| Pemisah jalur | `track=HR` / `track=CLINICAL` | `CandidateEvaluation : Read` | Bentuk pemisah (tab/filter): `DEV_DISCRETION` |
+| Daftar | `GET /recruitment/evaluations` | Idem; cakupan penuh dengan `ViewAll` | Kandidat dengan veto klinis tampil "Gagal Asesmen" |
+| Buka | Route detail existing | Idem | `403` ditampilkan sebagai "Evaluasi ini ditugaskan kepada penilai lain." |
+
+**`FE-PKB-04` Riwayat Penyelesaian**
+
+```text
++- Riwayat Penyelesaian ------------------------------------------------------+
+| [cari pegawai]  [Tingkat v]                                                 |
++- Sanksi selesai ------------------------------------------------------------+
+| No. | Pegawai | Tingkat | Terbit | Berlaku s.d. | Status: Kedaluwarsa/Dicabut |
++- Insiden ditutup tanpa sanksi ----------------------------------------------+
+| Pegawai | Klasifikasi Just Culture | Tanggal | Status                       |
++-----------------------------------------------------------------------------+
+| kosong -> "Belum ada kasus yang selesai."                                   |
++-----------------------------------------------------------------------------+
+```
+
+| Wilayah | Endpoint | Hak akses | Catatan |
+| --- | --- | --- | --- |
+| Sanksi selesai | `GET /hrd/disciplinary/sanctions?statuses=Expired&statuses=RevokedOnAppeal` | `EmployeeDisciplinary : ViewSanctions` | Baca-saja; memakai ulang tabel layar Sanksi |
+| Insiden tanpa sanksi | `GET /hrd/disciplinary/incidents?status=ResolvedNoSanction` | `EmployeeDisciplinary : ViewIncidents` | Disembunyikan bila tanpa hak |
+
+**Perubahan Employee 360 (layar existing)** — bagian disiplin memakai `disciplinaryRecords`: baris `OFFICIAL` menampilkan nomor, tingkat, tanggal terbit, berlaku s.d., status; baris `LEGACY` berlabel "Catatan lama", tanpa tombol. Bila `disciplineHidden = true`: tampilkan "Data disiplin hanya untuk HR." (bukan daftar kosong).
+
+**Layar Sanksi existing** — mulai mengirim parameter `status` dari filter Status yang sudah ada di tabel (`SANCTION_STATUS`), agar Tindak Disiplin dapat difilter Aktif.
+
+### 35.3 Berkas frontend
+
+| Berkas | Status |
+| --- | --- |
+| `src/utils/menu-sidebar/menu-items.jsx` | Diperbarui (4 butir baru; label "Teguran" menjadi "Tindak Disiplin", `HRD-DEC-247`) |
+| `src/app/hr/dashboard/page.jsx` + view Dashboard SDM | Baru |
+| `src/lib/services/hr/workforce-dashboard-service.js` | Baru |
+| `src/app/hr/recruitment/screenings/page.jsx` + view daftar penapisan | Baru (memakai `recruitment-service.js` existing) |
+| `src/app/hr/recruitment/evaluations/page.jsx` + view daftar evaluasi | Baru |
+| `src/lib/services/hr/recruitment-service.js` | Diperbarui (param `track`, `pendingOnly`) |
+| `src/app/(dashboard)/hrd/relations/sanctions/history/page.jsx` + view | Baru |
+| `src/lib/services/hr/employee-relation-service.js` | Diperbarui (param `statuses`, `status`) |
+| `src/components/view/hrd/relations/relations-sanctions-view.jsx` | Diperbarui (kirim `status`) |
+| `src/components/view/hr/workforce-core/employee-360-view.jsx` | Diperbarui (`disciplinaryRecords`, `disciplineHidden`) |
+| `src/app/hr/employee-relations/disciplinary-actions/page.jsx` | Diperbarui → pengalihan ke `/hrd/relations/sanctions` |
+| `src/components/view/hr/employee-relations/disciplinary-action-view.jsx`, `src/lib/services/hr/employee-relations-service.js` | Dihapus setelah tidak ada pemakai |
+| `tests/unit/hr-master-data-sidebar-grouping.test.mjs` | Diperbarui (`AT-HRD-PKB-25`) |
+
+Semua route baru yang berada di `/hr/...` mengikuti pola App Router dan base component yang dipakai layar HR existing; component library dan rupa: `DEV_DISCRETION`.
+
+## 36. Arsitektur Frontend Amandemen `A52-B` — Pembuka Task Tertahan Penjadwalan & Kehadiran (kontrak `v31`, 24 November 2026; approved 24 November 2026)
+
+> **Status:** `approved` — pengguna, 24 November 2026 ("setujui kontrak v30, lanjut plan"). Dasar: decision log bagian 58 (`HRD-DEC-248` s.d. `HRD-DEC-256`). Frontend rujukan `004524f4c` + working tree (branch `YogaV2`). Bagian 31 (`A52`, kontrak `v26`) tetap berlaku; bagian ini menggantikan "Temuan pemetaan yang menunggu owner (`DSG-Q-01`)" di 31.1 dan menambah layar baru.
+> **Wewenang UI:** pemetaan submenu ke layar ditetapkan `HRD-DEC-250`. Nama parameter alamat (`?tab=`, `?status=`, dan sejenisnya) dan susunan visual layar baru adalah `DEV_DISCRETION` di dalam konvensi `/hr/...` dan komponen dasar yang ada (`DataFilter`, `DataTable`, `FilterSelect`, `SummaryCards`, `HrPanel`, `ConfirmModal`). Route yang sudah ada tidak diubah.
+
+### 36.1 Ringkasan perubahan
+
+| Kode | Keputusan | Perubahan frontend | Ketergantungan backend |
+| --- | --- | --- | --- |
+| `F-T1` | `HRD-DEC-248` | Matriks roster menempatkan shift di baris petugas yang bertugas sekarang, menandai sel pengganti, dan menampilkan baris pengganti-saja | `B-T1` |
+| `F-T2` | `HRD-DEC-249` | Pratinjau dan hasil tutup periode menampilkan jumlah pengecualian scan yang ikut diselesaikan | `B-T2` |
+| `F-MENU` | `HRD-DEC-250` | Grup menu "Penjadwalan & Kehadiran" 12 menu, 58 submenu; layar tujuan membaca parameter alamat | Tidak ada (kecuali entri yang menuju layar baru) |
+| `F-TA` | `HRD-DEC-251` | Layar daftar Penugasan Tambahan (penempatan sementara) | `B-TA` |
+| `F-ESS` | `HRD-DEC-252`, `HRD-DEC-256` | Portal ESS: izin pulang cepat dan surat tugas dinas luar milik sendiri (membuka `FE-HRD-100`) | `B-ESS` |
+| `F-SC` | `HRD-DEC-253` | Dua layar daftar HR: Perubahan Shift dan Tukar Dinas | Endpoint sudah ada; cakupan `B-SC` |
+
+### 36.2 Pemetaan 12 menu dan 58 submenu (menggantikan temuan `DSG-Q-01` di 31.1)
+
+Setiap submenu adalah entri sidebar sendiri. Entri yang berbagi layar membuka **keadaan berbeda** lewat parameter alamat. Parameter yang tidak dikenali diabaikan tanpa galat (layar tampil dalam keadaan bawaan). Kolom **Status**: `Ada` = layar dan keadaan sudah ada; `Param` = layar ada, perlu membaca parameter; `Task` = layar dari task yang sudah direncanakan; `Baru` = layar baru amandemen ini.
+
+| Menu | Submenu | Alamat tujuan | Keadaan yang dibuka | Status |
+| --- | --- | --- | --- | --- |
+| M01 Dashboard Kehadiran | Kehadiran Hari Ini | `/hr/attendance/dashboard/attendance-today` | Kartu terpilih + rincian | Ada (`FE-HRD-321`) |
+| | Pegawai Bertugas | `/hr/attendance/dashboard/on-duty` | sama | Ada |
+| | Keterlambatan | `/hr/attendance/dashboard/lateness` | sama | Ada |
+| | Ketidakhadiran | `/hr/attendance/dashboard/absence` | sama | Ada |
+| | Jadwal Belum Lengkap | `/hr/attendance/dashboard/incomplete-schedule` | sama | Ada |
+| M02 Master Pola & Jam Kerja | Jenis Shift | `/hr/master-data/shift` | Daftar | Ada |
+| | Pola Kerja | `/hr/master-data/shift-pattern` | Daftar | Ada |
+| | Kalender Kerja | `/hr/master-data/work-calendar` | Daftar | Ada |
+| | Hari Libur | `/hr/master-data/holiday` | Daftar | Ada (`FE-HRD-313`) |
+| | Toleransi Keterlambatan | `/hr/attendance/settings?section=tolerance` | Gulir dan sorot bagian toleransi | Param |
+| | Aturan Presensi | `/hr/attendance/settings?section=scan-window` | Gulir dan sorot bagian jendela scan | Param |
+| M03 Rencana Jadwal Dinas | Jadwal Bulanan | `/hr/scheduling/roster` | Daftar roster semua status | Ada |
+| | Jadwal Per-Unit | `/hr/scheduling/roster?view=unit` | Filter unit ditampilkan terbuka dan wajib dipilih; daftar roster unit itu | Param |
+| | Penugasan Per-Shift | `/hr/scheduling/roster?status=Published` | Roster terbit; petunjuk "Buka roster untuk melihat penugasan per shift" | Param |
+| | Publikasi Jadwal | `/hr/scheduling/roster?status=Draft` | Tab "Siap terbit" (roster `Draft`); petunjuk "Buka roster lalu tekan Terbitkan" | Param |
+| M04 Realisasi & Perubahan Jadwal | Perubahan Shift | `/hr/scheduling/schedule-changes` | Daftar pengajuan ubah jadwal | Baru (`F-SC`) |
+| | Tukar Dinas | `/hr/scheduling/shift-swaps` | Daftar tukar dinas | Baru (`F-SC`) |
+| | Penggantian Pegawai | `/hr/scheduling/revisions?type=Replace` | Riwayat Revisi tersaring jenis Ganti Petugas; petunjuk "Ganti petugas dilakukan dari matriks roster" | Param |
+| | Realisasi Jadwal | `/hr/scheduling/realization` | Rencana saat terbit vs kondisi akhir | Task (`FE-HRD-322`) |
+| | Riwayat Revisi | `/hr/scheduling/revisions` | Semua jenis | Ada (`FE-HRD-308`) |
+| M05 Jadwal Piket & On Call | Piket Unit | `/hr/scheduling/on-call` | Jadwal siaga per unit (keadaan bawaan) | Ada |
+| | Dokter Jaga | `/hr/scheduling/on-call?filter=on-call-type` | Filter "Jenis Siaga" terbuka dengan petunjuk "Pilih jenis siaga dokter jaga"; pilihan dari master jenis siaga | Param |
+| | Petugas Siaga | `/hr/scheduling/on-call?tab=backups` | Bagian cadangan siaga | Param + Task (`FE-HRD-317`) |
+| | Pemanggilan On Call | `/hr/scheduling/on-call/calls` | Catatan panggilan | Task (`FE-HRD-317`) |
+| M06 Presensi Pegawai | Check-In | `/self-services/human-resource/attendance?action=check-in` | Tombol Masuk difokuskan | Param |
+| | Check-Out | `/self-services/human-resource/attendance?action=check-out` | Tombol Pulang difokuskan | Param |
+| | Integrasi Mesin Absensi | `/hr/attendance/devices` | Daftar mesin | Ada (`FE-HRD-312`) |
+| | Rekap Kehadiran Harian | `/hr/attendance` | Monitoring harian | Ada |
+| M07 Koreksi Presensi | Lupa Absen | `/self-services/human-resource/attendance-correction?type=missing-scan` | Formulir baru dengan jenis "Lupa absen" terpilih | Param |
+| | Kegagalan Perangkat | `/hr/attendance/device-incidents` | Daftar kejadian gangguan mesin | Task (`FE-HRD-320`) |
+| | Koreksi Jam | `/self-services/human-resource/attendance-correction?type=time` | Formulir baru dengan jenis "Koreksi jam" terpilih | Param |
+| | Bukti Pendukung | `/self-services/human-resource/attendance-correction?section=evidence` | Daftar koreksi sendiri dengan kolom bukti; formulir dibuka pada bagian lampiran | Param |
+| | Approval | `/hrd/approvals/inbox` | Kotak masuk terpadu | Ada |
+| M08 Cuti, Izin & Ketidakhadiran | Cuti Tahunan | `/hr/leave/request?type=annual` | Jenis cuti tahunan tersaring | Param |
+| | Izin | `/hr/attendance/early-leave` | Daftar izin pulang cepat (termasuk pengajuan ESS) | Ada |
+| | Sakit | `/hr/leave/request?type=sick` | Jenis sakit tersaring | Param |
+| | Dispensasi | `/hr/attendance/dispensations` | Daftar dispensasi | Task (`FE-HRD-318`) |
+| | Dinas luar | `/hr/attendance/official-duty` | Daftar surat tugas (termasuk pengajuan ESS) | Ada |
+| | Tugas Belajar | `/hr/attendance/study-assignments` | Daftar tugas belajar | Task (`FE-HRD-319`) |
+| M09 Lembur & Penugasan Tambahan | Perintah Lembur | `/self-services/human-resource/overtime` | — | Ada |
+| | Persetujuan Lembur | `/hr/overtime/approvals` | — | Ada |
+| | Realisasi Jam Lembur | `/hr/overtime/verifications` | — | Ada |
+| | Penugasan Tambahan | `/hr/workforce-core/temporary-assignments` | Daftar penempatan sementara | Baru (`F-TA`) |
+| M10 Monitoring Kebutuhan Shift | Kebutuhan Tenaga Per-shift | `/hr/workforce-planning/staffing-standards` | — | Ada (`S-D1`) |
+| | Tenaga Terjadwal | `/hr/workforce-planning/staffing-workloads` | — | Ada (`S-D1`) |
+| | Kekurangan Personel | `/hr/workforce-planning/staffing-gaps` | — | Ada (`S-D1`) |
+| | Pemeriksaan kompetensi | `/hr/scheduling/roster?status=Draft&focus=validation` | Tab "Siap terbit" dengan petunjuk "Buka roster lalu tekan Periksa untuk hasil pemeriksaan kompetensi" | Param |
+| M11 Verifikasi & Tutup Periode | Verifikasi Jadwal Aktual | `/hr/scheduling/realization?changed=true` | Hanya tanggal yang berubah sejak terbit | Task (`FE-HRD-322`) + Param |
+| | Verifikasi Presensi | `/hr/attendance?exception=open` | Monitoring harian tersaring rekap berpengecualian terbuka | Param |
+| | Rekap Akhir Bulan | `/hr/attendance/periods` | Daftar periode | Ada |
+| | Penguncian Periode | `/hr/attendance/periods?status=Open` | Periode terbuka yang dapat ditutup | Param |
+| M12 Laporan Kehadiran | Laporan Shift | `/hr/attendance/reports/shift` | — | Ada (`FE-HRD-315`) |
+| | Kehadiran | `/hr/attendance/reports/attendance` | — | Ada |
+| | Cuti | `/hr/attendance/reports/leave` | — | Ada |
+| | Keterlambatan | `/hr/attendance/reports/lateness` | — | Ada |
+| | Lembur | `/hr/attendance/reports/overtime` | — | Ada |
+| | Ketidakhadiran | `/hr/attendance/reports/absence` | — | Ada |
+| | Rekap Per-Unit | `/hr/attendance/reports/unit-summary` | — | Ada |
+
+Jumlah: 5 + 6 + 4 + 5 + 4 + 4 + 5 + 6 + 4 + 4 + 4 + 7 = **58**.
+
+Aturan menu:
+
+1. Grup baru "Penjadwalan & Kehadiran" pada `src/utils/menu-sidebar/menu-items.jsx`, berisi 12 menu berurutan M01–M12. Setiap entri membawa `requiredPermission` endpoint utama layar tujuannya; entri tanpa hak tidak ditampilkan.
+2. Entri lama di grup lain yang menuju layar yang sama **dipindahkan** ke grup baru (tidak ada dua entri sidebar dengan alamat identik). Entri layanan mandiri (Check-In, Lupa Absen, Perintah Lembur, Jadwal Saya) tetap ada di grup Layanan Mandiri; entri di grup baru memakai alamat berparameter sehingga tidak identik.
+3. Penanda menu aktif membandingkan path dan parameter; dua entri berparameter berbeda tidak aktif bersamaan.
+4. Jadwal Saya (`HRD-DEC-209`) tetap di Layanan Mandiri.
+
+### 36.3 Kontrak fungsional layar baru atau diubah
+
+| Layar | Peran | Aksi | Data/status yang dikonsumsi | State wajib |
+| --- | --- | --- | --- | --- |
+| Matriks roster (`F-T1`, ubah `/hr/scheduling/roster/[id]`) | Kepala Unit, Kepala Bidang, Admin HRD | Ganti Petugas dari sel pengganti; hapus shift | `shiftAssignments[].workforceProfileId`, `isReplacement`, `originalWorkforceDisplayName`, `isReplacementOnly` | Sel pengganti bertanda "Pengganti" dengan keterangan "menggantikan {nama}"; baris pengganti-saja bertanda dan tanpa aksi hapus penugasan; `expectedWorkforceProfileId` = petugas sekarang |
+| Tutup periode (`F-T2`, ubah `/hr/attendance/periods`) | Admin HRD | Tutup | `conversionExceptionCount`, `closedConversionExceptionCount` | Konfirmasi menyebut "{n} pengecualian scan akan diselesaikan oleh penutupan"; pesan berhasil menyebut jumlah yang diselesaikan |
+| Penugasan Tambahan (`F-TA`, baru `/hr/workforce-core/temporary-assignments`) | Kepala Unit, Kepala Bidang, Admin HRD | Filter unit (hanya cakupan), rentang tanggal, status waktu, cari; buka profil pegawai | `TemporaryAssignmentResponse` | Loading, kosong ("Belum ada penempatan sementara"), galat + coba lagi, 403 → "tidak berwenang"; tanpa tombol tambah/ubah (pencatatan di Profil Pegawai 360) |
+| Perubahan Shift (`F-SC`, baru `/hr/scheduling/schedule-changes`) | Kepala Unit, Admin HRD | Filter status (termasuk "Disetujui — belum diterapkan"), unit, tanggal; detail + riwayat workflow; **Terapkan** | `schedule-change-requests` (daftar, ringkasan, detail, workflow, apply) | Terapkan hanya untuk status disetujui belum diterapkan; konfirmasi; tombol nonaktif saat mengirim; 403 cakupan → pesan server; 409 → "sudah berubah, muat ulang" |
+| Tukar Dinas (`F-SC`, baru `/hr/scheduling/shift-swaps`) | Kepala Unit, Admin HRD | Sama | `shift-swap-requests` | Sama; menampilkan kedua pegawai dan kedua shift |
+| ESS Izin Pulang Cepat (`F-ESS`) | Pegawai | Ajukan (tanggal, jam pulang, alasan), lihat, batal | Kontrak 37.4 | Batal hanya untuk "Diajukan"; alasan batal wajib; 404 tanpa profil → "Akun ini belum terhubung ke profil pegawai" |
+| ESS Dinas Luar (`F-ESS`) | Pegawai | Ajukan (kategori, nomor surat tugas, rentang jam, tujuan, maksud, lampiran), lihat, unduh lampiran, batal | Kontrak 37.5 | Sama; unggah lampiran sebelum kirim; tombol kirim nonaktif saat unggah berjalan |
+
+Penempatan layar ESS: dua tab baru pada halaman presensi layanan mandiri yang sudah ada (`/self-services/human-resource/attendance`) atau dua halaman di bawah `/self-services/human-resource/...` — `DEV_DISCRETION`, mengikuti pola halaman ESS yang ada. Entri sidebar layanan mandiri ditambahkan bila berupa halaman.
+
+### 36.4 Service, state, dan cache
+
+| Berkas | Status | Perubahan |
+| --- | --- | --- |
+| `src/lib/services/hr/attendance-management-service.js` | Diperbarui | Tidak ada fungsi baru untuk `F-T2` (respons diperluas) |
+| Service ESS presensi yang ada (`src/lib/services/hr/employee-self-service.js` atau berkas ESS presensi) | Diperbarui | Fungsi daftar/detail/ajukan/batal/unggah/unduh untuk 37.4–37.5 |
+| Service workforce core yang ada | Diperbarui | `getTemporaryAssignments`, `getTemporaryAssignmentFilterMetadata` |
+| Service scheduling yang ada | Diperbarui bila belum ada | Daftar, ringkasan, detail, workflow, Terapkan untuk Perubahan Shift dan Tukar Dinas |
+| Redux | Tidak ada slice baru wajib | Daftar memakai hook `useHrRemoteData` yang ada; sesudah Terapkan/batal, daftar dimuat ulang |
+
+Tidak ada cache lintas layar. Respons yang datang terlambat untuk filter lama diabaikan (pola `currentRequestId`/`AbortController` yang ada).
+
+### 36.5 Privasi dan aksesibilitas
+
+- Layar ESS hanya menampilkan data milik sendiri; tidak ada pilihan pegawai.
+- Alasan izin dan batal: petunjuk "Jangan menuliskan nama atau No. RM pasien".
+- Tanda "Pengganti" pada sel matriks tidak hanya berupa warna; ada teks atau ikon berlabel dan `title`.
+- Tab/filter yang dibuka dari parameter alamat tetap dapat diubah pengguna dan mengikuti tombol kembali peramban.
+
+### 36.6 Strategi uji frontend
+
+| Uji | Bukti |
+| --- | --- |
+| Unit | Fungsi murni: pemetaan parameter alamat → keadaan layar; pengelompokan sel pengganti; status waktu penempatan; aturan batal ESS |
+| E2E (API tiruan) | Matriks dengan sel pengganti dan baris pengganti-saja; tutup periode dengan jumlah pengecualian; daftar penempatan sementara; Perubahan Shift/Tukar Dinas + Terapkan; ESS ajukan/batal |
+| Keterjangkauan menu | Spec yang membuka 58 entri sidebar satu per satu dan memeriksa layar serta keadaan yang dibuka (`AT-HRD-PK-56`, `UAT-PK-23`) |
+| Data asli | Ulang `UAT-PK-03` (kisi pengganti) dan `UAT-PK-09` (tutup periode) di devYoga |
+
+### 36.7 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan |
+| --- | --- |
+| Layar baru untuk submenu yang berbagi layar | `HRD-DEC-250` |
+| Tombol persetujuan izin/dinas luar di kotak masuk terpadu | `HRD-DEC-256` |
+| Formulir tambah penempatan sementara di daftar baru | `HRD-DEC-251` (baca saja) |
+| Kategori tetap "dokter"/"penunjang" pada master jenis siaga agar Dokter Jaga tersaring otomatis | Jenis siaga adalah master yang diisi Admin HR tanpa kategori; menambah kategori butuh kolom dan keputusan baru. Selama ini pengguna memilih jenis siaga sendiri |
+| Penanda "diajukan dari ESS" di daftar HR | Tidak ada kolom sumber di backend (`B-ESS`); pembuat terlihat dari data pengajuan |

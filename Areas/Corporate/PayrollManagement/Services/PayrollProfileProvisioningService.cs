@@ -23,8 +23,9 @@ public sealed record PayrollProvisioningResult(int Created, int AlreadyExisting,
 ///   menjamin tidak pernah ada dua profil aktif untuk satu orang.
 /// - Orang yang penetapan gaji utamanya atau rekening payrollnya belum ada di HRD tidak dibuatkan profil: tidak ada gaji atau rekening
 ///   dummy. Mereka tampil sebagai kekurangan di Kelengkapan Data Payroll.
-/// - Tetapan PPh dan iuran per orang tidak punya sumber di HRD dan rumus PPh/BPJS belum disahkan, sehingga keduanya dibiarkan nol dan
-///   dianggap BELUM ditetapkan (PayrollProfileRules.IsTaxInsuranceUnset); mesin hitung dan Kelengkapan Data menandainya.
+/// - PPh dan iuran TIDAK ditetapkan di sini. Sumber resminya konfigurasi HRD (Profil Pajak dan Profil Iuran). Kolom kompatibilitas
+///   PrlPayroll.TaxAmount/InsuranceAmount dibiarkan nol: nol itu bukan keputusan, dan kelengkapannya dinilai dari konfigurasi HRD
+///   (PayrollTaxInsuranceRules), bukan dari nominal nol.
 /// - Idempoten: pemanggilan ulang tidak membuat apa pun bila semua profil sudah ada.
 ///
 /// Wajib dipanggil di dalam transaksi pemanggil (payroll run memakai transaksi Serializable dengan kunci advisory per periode atau run),
@@ -62,6 +63,11 @@ public sealed class PayrollProfileProvisioningService
     {
         if (_dbContext.Database.IsRelational() && _dbContext.Database.CurrentTransaction is null)
             throw new InvalidOperationException("Penyiapan profil payroll harus berjalan di dalam transaksi pemanggil.");
+
+        // Tanggal periode datang dari kolom date (Kind=Unspecified). Dinormalkan ke tanggal kalender UTC supaya pembanding dan jejak audit
+        // seragam dengan nilai yang ditulis ke kolom timestamptz (PayrollDateNormalizer).
+        periodStart = PayrollDateNormalizer.ToUtcDate(periodStart);
+        periodEnd = PayrollDateNormalizer.ToUtcDate(periodEnd);
 
         var people = await _hrdSource.LoadPopulationAsync(cancellationToken);
 

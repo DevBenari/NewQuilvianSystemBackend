@@ -6,17 +6,19 @@ using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Security;
-using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Controllers
 {
     /// <summary>
-    /// Data penggajian karyawan, perawat, dan dokter yang dikelola HRD: kelengkapan penetapan gaji utama dan rekening payroll, serta
-    /// ubah per orang. Daftar bersumber dari Master Karyawan dan Master Dokter yang aktif. Modul Payroll hanya membaca data ini.
-    /// Detail memuat gaji pokok dan nomor rekening lengkap, sehingga hanya pemegang hak ubah yang dapat memuatnya. Menyetujui
-    /// penetapan gaji dan memverifikasi rekening lewat endpoint ini hanya diterima bila pemanggil juga berwenang atas aksi itu pada
-    /// endpoint HRD (WfpSalaryAssignment dan WorkforceBankAccount : Update). Seluruh akses data lewat
-    /// <see cref="WorkforcePayrollDataService"/>.
+    /// Monitoring READ-ONLY Data Penggajian Pegawai (HRD): menampilkan kelengkapan penetapan gaji utama dan rekening payroll
+    /// karyawan, perawat, dan dokter aktif yang bersumber dari Master Karyawan dan Master Dokter.
+    ///
+    /// Controller ini tidak menyediakan operasi Create, Update, atau Delete. Pengelolaan penetapan gaji, persetujuan gaji,
+    /// pendaftaran rekening, dan verifikasi rekening hanya dilakukan melalui endpoint master HRD (WfpSalaryAssignmentController
+    /// dan WfpBankAccountController).
+    ///
+    /// Nominal gaji pokok hanya dikembalikan kepada pemegang izin ViewAmount; pengguna dengan izin Read saja tetap dapat memantau
+    /// status dan kelengkapan dengan nominal bernilai null. Nomor rekening selalu disamarkan.
     /// </summary>
     [ApiController]
     [Authorize]
@@ -27,13 +29,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         displayName: "Workforce Payroll Data",
         AreaName = "Corporate",
         ControllerName = "WorkforcePayrollData",
-        Description = "Kelengkapan dan perubahan penetapan gaji utama serta rekening payroll karyawan, perawat, dan dokter",
+        Description = "Monitoring read-only penetapan gaji utama dan rekening payroll karyawan, perawat, dan dokter dari Master HRD",
         SortOrder = 26)]
     [Tags("Corporate / Human Resource / Workforce Core / Payroll Data")]
     public class WorkforcePayrollDataController : ControllerBase
     {
-        private const string BankAccountResource = "WorkforceBankAccount";
-        private const string SalaryAssignmentResource = "WfpSalaryAssignment";
+        private const string Resource = "WorkforcePayrollData";
 
         private readonly WorkforcePayrollDataService _service;
         private readonly AccessPermissionService _accessPermissionService;
@@ -44,25 +45,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             _accessPermissionService = accessPermissionService;
         }
 
-        private Guid CurrentUserId()
-        {
-            var value = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("user_id");
-            return Guid.TryParse(value, out var id) ? id : Guid.Empty;
-        }
+        private Task<bool> CanViewAmountAsync() => _accessPermissionService.HasAccessAsync(User, Resource, "ViewAmount");
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<WorkforcePayrollDataItemResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Workforce Payroll Data", Description = "Melihat kelengkapan penetapan gaji utama dan rekening payroll karyawan, perawat, dan dokter", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Workforce Payroll Data", Description = "Melihat monitoring penetapan gaji utama dan rekening payroll karyawan, perawat, dan dokter", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkforcePayrollData", "Read")]
         public async Task<IActionResult> List([FromQuery] WorkforcePayrollDataQuery query, CancellationToken cancellationToken)
         {
-            var result = await _service.ListAsync(query, cancellationToken);
+            var includeAmounts = await CanViewAmountAsync();
+            var result = await _service.ListAsync(query, includeAmounts, cancellationToken);
             return Ok(ApiResponse<PagedResult<WorkforcePayrollDataItemResponse>>.Ok(result, "Data penggajian berhasil dimuat."));
         }
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<WorkforcePayrollDataSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Workforce Payroll Data", Description = "Melihat kelengkapan penetapan gaji utama dan rekening payroll karyawan, perawat, dan dokter", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Workforce Payroll Data", Description = "Melihat ringkasan monitoring data penggajian karyawan, perawat, dan dokter", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkforcePayrollData", "Read")]
         public async Task<IActionResult> Summary(CancellationToken cancellationToken)
         {
@@ -70,17 +68,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             return Ok(ApiResponse<WorkforcePayrollDataSummaryResponse>.Ok(result, "Ringkasan data penggajian berhasil dimuat."));
         }
 
-        /// <summary>Isian satu orang untuk diubah, termasuk gaji pokok dan nomor rekening lengkap.</summary>
+        /// <summary>
+        /// Rincian read-only data penggajian satu orang. Nominal gaji hanya dikirim bagi pemegang izin ViewAmount; nomor rekening
+        /// selalu disamarkan.
+        /// </summary>
         [HttpGet("{workforceProfileId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<WorkforcePayrollDataDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Workforce Payroll Data", Description = "Memuat dan mengubah penetapan gaji utama dan rekening payroll satu orang", AccessType = AccessTypes.Update, SortOrder = 2)]
-        [AccessPermission("WorkforcePayrollData", "Update")]
+        [AccessAction("Read", "Read Workforce Payroll Data", Description = "Melihat rincian read-only data penggajian satu orang", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforcePayrollData", "Read")]
         public async Task<IActionResult> Detail(Guid workforceProfileId, CancellationToken cancellationToken)
         {
             try
             {
-                var result = await _service.GetDetailAsync(workforceProfileId, cancellationToken);
+                var includeAmounts = await CanViewAmountAsync();
+                var result = await _service.GetDetailAsync(workforceProfileId, includeAmounts, cancellationToken);
                 return Ok(ApiResponse<WorkforcePayrollDataDetailResponse>.Ok(result, "Detail data penggajian berhasil dimuat."));
             }
             catch (WorkforcePayrollDataException ex)
@@ -90,36 +92,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         }
 
         /// <summary>
-        /// Menyimpan penetapan gaji utama dan/atau rekening payroll satu orang. Bagian yang null tidak disentuh. Bila ada isian yang
-        /// ditolak, tidak ada yang tersimpan.
+        /// Pintu izin nominal (pola ViewAmount existing): mendaftarkan aksi WorkforcePayrollData : ViewAmount pada layar Akses Role.
+        /// Pemegang izin ini melihat nominal gaji pokok pada daftar, detail, dan endpoint ini; tanpa izin, nominal bernilai null.
         /// </summary>
-        [HttpPut("{workforceProfileId:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforcePayrollDataSaveResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [HttpGet("{workforceProfileId:guid}/amounts")]
+        [ProducesResponseType(typeof(ApiResponse<WorkforcePayrollDataDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Workforce Payroll Data", Description = "Memuat dan mengubah penetapan gaji utama dan rekening payroll satu orang", AccessType = AccessTypes.Update, SortOrder = 2)]
-        [AccessPermission("WorkforcePayrollData", "Update")]
-        public async Task<IActionResult> Save(
-            Guid workforceProfileId,
-            [FromBody] UpdateWorkforcePayrollDataRequest request,
-            CancellationToken cancellationToken)
+        [AccessAction("ViewAmount", "View Workforce Payroll Data Amount", Description = "Melihat nominal gaji pokok pada monitoring data penggajian pegawai", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("WorkforcePayrollData", "ViewAmount")]
+        public async Task<IActionResult> Amounts(Guid workforceProfileId, CancellationToken cancellationToken)
         {
-            if (request.MarkBankAccountVerified && !await _accessPermissionService.HasAccessAsync(User, BankAccountResource, "Update"))
-            {
-                return StatusCode(StatusCodes.Status403Forbidden,
-                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, "Anda tidak berwenang memverifikasi rekening bank."));
-            }
-
-            if (request.ApproveSalaryAssignment && !await _accessPermissionService.HasAccessAsync(User, SalaryAssignmentResource, "Update"))
-            {
-                return StatusCode(StatusCodes.Status403Forbidden,
-                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, "Anda tidak berwenang menyetujui penetapan gaji."));
-            }
-
             try
             {
-                var result = await _service.SaveAsync(workforceProfileId, request, CurrentUserId(), cancellationToken);
-                return Ok(ApiResponse<WorkforcePayrollDataSaveResponse>.Ok(result, "Data penggajian berhasil disimpan."));
+                var result = await _service.GetDetailAsync(workforceProfileId, includeAmounts: true, cancellationToken);
+                return Ok(ApiResponse<WorkforcePayrollDataDetailResponse>.Ok(result, "Nominal data penggajian berhasil dimuat."));
             }
             catch (WorkforcePayrollDataException ex)
             {

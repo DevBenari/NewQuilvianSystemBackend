@@ -5,6 +5,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Mo
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Services.Security;
+using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 
@@ -21,15 +23,18 @@ public sealed class ExitClearanceService
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
     private readonly FinanceReceivableClearanceService _financeClearanceService;
+    private readonly AccessPermissionService _accessPermissionService;
 
     public ExitClearanceService(
         ApplicationDbContext dbContext,
         LoggerService loggerService,
-        FinanceReceivableClearanceService financeClearanceService)
+        FinanceReceivableClearanceService financeClearanceService,
+        AccessPermissionService accessPermissionService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _financeClearanceService = financeClearanceService;
+        _accessPermissionService = accessPermissionService;
     }
 
     public async Task<ExitClearanceFilterMetadataResponse> GetFilterMetadataAsync(CancellationToken cancellationToken)
@@ -100,7 +105,8 @@ public sealed class ExitClearanceService
             _ => descending ? dbQuery.OrderByDescending(x => x.CreateDateTime) : dbQuery.OrderBy(x => x.CreateDateTime)
         };
 
-        var page = query.Page < 1 ? 1 : query.Page;
+        var requestedPage = query.PageNumber ?? query.Page;
+        var page = requestedPage < 1 ? 1 : requestedPage;
         var pageSize = query.PageSize < 1 ? 10 : query.PageSize;
 
         var items = await dbQuery
@@ -248,6 +254,17 @@ public sealed class ExitClearanceService
             return await GetDetailAsync(existing.Id, cancellationToken);
         }
 
+        // BE-HRD-372: satu pemberhentian hanya punya satu clearance. Pemberhentian yang dibuka lewat
+        // jalur Hubungan Kerja sudah memiliki kliring lima departemen (MultiDeptExitClearance).
+        var hasMultiDepartmentClearance = await _dbContext.HrdExitClearanceProcesses
+            .AsNoTracking()
+            .AnyAsync(x => x.SeparationId == request.EmployeeSeparationId && !x.IsDelete, cancellationToken);
+        if (hasMultiDepartmentClearance)
+        {
+            throw new InvalidOperationException(
+                "Pemberhentian ini sudah memiliki kliring lima departemen (Exit Clearance Lintas Departemen). Gunakan kliring tersebut; clearance kedua tidak dibuat.");
+        }
+
         var now = DateTime.UtcNow;
         bool isFinanceCleared = false;
         decimal outstanding = 0m;
@@ -303,7 +320,7 @@ public sealed class ExitClearanceService
     /// AC 3: Flag IsFinanceCleared TIDAK DAPAT diubah secara manual di sini.
     /// </summary>
     public async Task<ExitClearanceDetailResponse> UpdateChecklistAsync(
-        Guid clearanceId, UpdateExitClearanceChecklistRequest request, Guid actorUserId, CancellationToken cancellationToken)
+        Guid clearanceId, UpdateExitClearanceChecklistRequest request, Guid actorUserId, CancellationToken cancellationToken, ClaimsPrincipal? user = null)
     {
         var clearance = await _dbContext.TrxExitClearances
             .FirstOrDefaultAsync(x => x.Id == clearanceId && !x.IsDelete, cancellationToken)
@@ -313,6 +330,13 @@ public sealed class ExitClearanceService
         {
             throw new InvalidOperationException($"Exit clearance berstatus {clearance.ClearanceStatus} tidak dapat diubah.");
         }
+
+        // BE-HRD-372: setiap aspek hanya diubah pemegang hak aspek itu (Akses Role); hak Update saja tidak cukup.
+        await RequireAspectPermissionAsync(user, request.IsDepartmentCleared, clearance.IsDepartmentCleared, LifecycleExitPermissions.ClearDepartment, "unit kerja");
+        await RequireAspectPermissionAsync(user, request.IsAssetCleared, clearance.IsAssetCleared, LifecycleExitPermissions.ClearAsset, "aset");
+        await RequireAspectPermissionAsync(user, request.IsPayrollCleared, clearance.IsPayrollCleared, LifecycleExitPermissions.ClearPayroll, "payroll");
+        await RequireAspectPermissionAsync(user, request.IsItAccessCleared, clearance.IsItAccessCleared, LifecycleExitPermissions.ClearItAccess, "akses IT");
+        await RequireAspectPermissionAsync(user, request.IsHrCleared, clearance.IsHrCleared, LifecycleExitPermissions.ClearHr, "HR");
 
         if (request.IsDepartmentCleared.HasValue) clearance.IsDepartmentCleared = request.IsDepartmentCleared.Value;
         if (request.IsAssetCleared.HasValue) clearance.IsAssetCleared = request.IsAssetCleared.Value;
@@ -404,6 +428,19 @@ public sealed class ExitClearanceService
             throw new InvalidOperationException("Exit clearance yang sudah dibatalkan tidak dapat diselesaikan.");
         }
 
+        // BE-HRD-372: seluruh aspek unit wajib selesai sebelum clearance disahkan, bukan hanya Finance.
+        var pendingAspects = new List<string>();
+        if (!clearance.IsDepartmentCleared) pendingAspects.Add("unit kerja");
+        if (!clearance.IsAssetCleared) pendingAspects.Add("aset");
+        if (!clearance.IsPayrollCleared) pendingAspects.Add("payroll");
+        if (!clearance.IsItAccessCleared) pendingAspects.Add("akses IT");
+        if (!clearance.IsHrCleared) pendingAspects.Add("HR");
+        if (pendingAspects.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Exit clearance belum dapat diselesaikan karena aspek berikut belum selesai: {string.Join(", ", pendingAspects)}.");
+        }
+
         // AC 1 & AC 2 (FIN-DEC-170, FIN-DEC-193): Verifikasi live status Finance
         if (clearance.EmployeeId.HasValue)
         {
@@ -447,6 +484,25 @@ public sealed class ExitClearanceService
             new { clearance.Id, clearance.EmployeeSeparationId, EmployeeId = clearance.EmployeeId, ActorUserId = actorUserId });
 
         return await GetDetailAsync(clearance.Id, cancellationToken);
+    }
+
+    private async Task RequireAspectPermissionAsync(
+        ClaimsPrincipal? user,
+        bool? requestedValue,
+        bool currentValue,
+        string permission,
+        string aspectLabel)
+    {
+        if (!requestedValue.HasValue || requestedValue.Value == currentValue)
+        {
+            return;
+        }
+
+        if (user == null || !await _accessPermissionService.HasAccessAsync(user, "ExitClearance", permission))
+        {
+            throw new UnauthorizedAccessException(
+                $"Anda tidak berwenang mengubah aspek {aspectLabel} pada exit clearance. Hak aspek diberikan admin di Akses Role.");
+        }
     }
 
     public async Task<ExitClearanceDetailResponse> CancelAsync(

@@ -12,6 +12,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public int ContractEscalationDays { get; set; } = 14;
         public int ProbationReminderDays { get; set; } = 14;
         public int LateStartFlagDays { get; set; } = 3;
+        /// <summary>Usia pensiun normal (BE-HRD-368); <c>null</c> = kebijakan belum ditetapkan.</summary>
+        public int? NormalRetirementAge { get; set; }
         public Guid RowVersion { get; set; }
     }
 
@@ -32,6 +34,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [Required]
         [Range(1, 30, ErrorMessage = "LateStartFlagDays harus antara 1 sampai 30 hari (VR-ONB-80).")]
         public int LateStartFlagDays { get; set; } = 3;
+
+        /// <summary>
+        /// Usia pensiun normal kebijakan RS (BE-HRD-368). Diisi hanya bila dikirim; tidak dikirim berarti
+        /// nilai tersimpan dipertahankan.
+        /// </summary>
+        [Range(45, 70, ErrorMessage = "NormalRetirementAge harus antara 45 sampai 70 tahun.")]
+        public int? NormalRetirementAge { get; set; }
 
         public Guid? RowVersion { get; set; }
     }

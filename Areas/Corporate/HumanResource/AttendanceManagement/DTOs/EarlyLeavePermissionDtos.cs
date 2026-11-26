@@ -79,6 +79,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public bool IsDeductible { get; set; } = false;
         public bool IsActive { get; set; } = true;
         public DateTime CreateDateTime { get; set; }
+
+        /// <summary>
+        /// Waktu pembatalan oleh pemohon lewat Layanan Mandiri (status Cancelled); null bila tidak dibatalkan.
+        /// </summary>
+        public DateTime? CancelDateTime { get; set; }
     }
 
     public class EarlyLeavePermissionPagedResponse

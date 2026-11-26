@@ -153,9 +153,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     .ThenInclude(a => a.WorkforceProfile)
                 .Include(p => p.RosterAssignments.Where(a => a.IsActive))
                     .ThenInclude(a => a.Position)
-                .Include(p => p.RosterAssignments.Where(a => a.IsActive))
-                    .ThenInclude(a => a.ShiftAssignments.Where(s => s.IsActive))
-                        .ThenInclude(s => s.Shift)
                 .FirstOrDefaultAsync(p => p.Id == id && p.IsActive, cancellationToken);
 
             if (period == null)
@@ -171,6 +168,100 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     StatusCodes.Status403Forbidden,
                     ReadScopeDeniedMessage);
             }
+
+            // HRD-DEC-248: shift ditampilkan di baris petugas yang memegangnya sekarang. Ganti Petugas hanya mengubah
+            // WorkforceProfileId shift (RosterAssignmentId tetap), jadi pengelompokan dilakukan saat dibaca.
+            var shifts = await _context.TrxShiftAssignments
+                .AsNoTracking()
+                .Include(s => s.Shift)
+                .Include(s => s.WorkforceProfile)
+                .Where(s => s.IsActive
+                    && s.RosterAssignment != null
+                    && s.RosterAssignment.RosterPeriodId == period.Id
+                    && s.RosterAssignment.IsActive)
+                .OrderBy(s => s.ShiftDate)
+                .ThenBy(s => s.ScheduledStartAt)
+                .ToListAsync(cancellationToken);
+
+            var originalIds = shifts
+                .Where(IsReplacementShift)
+                .Select(s => s.OriginalEmployeeId!.Value)
+                .Distinct()
+                .ToList();
+            var originalNames = originalIds.Count == 0
+                ? new Dictionary<Guid, string>()
+                : await _context.MstWorkforceProfiles
+                    .AsNoTracking()
+                    .Where(w => originalIds.Contains(w.Id))
+                    .ToDictionaryAsync(w => w.Id, w => w.DisplayName, cancellationToken);
+
+            var assignmentsById = period.RosterAssignments.ToDictionary(a => a.Id);
+            var firstAssignmentByWorker = period.RosterAssignments
+                .GroupBy(a => a.WorkforceProfileId)
+                .ToDictionary(g => g.Key, g => g.First().Id);
+            var shiftsByAssignment = period.RosterAssignments.ToDictionary(a => a.Id, _ => new List<TrxShiftAssignment>());
+            var replacementOnlyShifts = new Dictionary<Guid, List<TrxShiftAssignment>>();
+
+            foreach (var shift in shifts)
+            {
+                Guid? rowId = assignmentsById.TryGetValue(shift.RosterAssignmentId, out var own) && own.WorkforceProfileId == shift.WorkforceProfileId
+                    ? own.Id
+                    : firstAssignmentByWorker.TryGetValue(shift.WorkforceProfileId, out var other) ? other : null;
+
+                if (rowId.HasValue)
+                {
+                    shiftsByAssignment[rowId.Value].Add(shift);
+                }
+                else
+                {
+                    if (!replacementOnlyShifts.TryGetValue(shift.WorkforceProfileId, out var list))
+                    {
+                        list = new List<TrxShiftAssignment>();
+                        replacementOnlyShifts[shift.WorkforceProfileId] = list;
+                    }
+                    list.Add(shift);
+                }
+            }
+
+            var assignmentRows = period.RosterAssignments.Select(a => new RosterAssignmentResponse
+            {
+                Id = a.Id,
+                RosterPeriodId = a.RosterPeriodId,
+                WorkforceProfileId = a.WorkforceProfileId,
+                WorkforceProfileCode = a.WorkforceProfile?.ProfileCode ?? string.Empty,
+                WorkforceDisplayName = a.WorkforceProfile?.DisplayName ?? string.Empty,
+                PositionId = a.PositionId,
+                PositionName = a.Position?.PositionName,
+                AssignmentStatus = a.AssignmentStatus,
+                PlannedShiftCount = a.PlannedShiftCount,
+                HasConflict = a.HasConflict,
+                ConflictCount = a.ConflictCount,
+                IsValidationPassed = a.IsValidationPassed,
+                ValidationResultJson = a.ValidationResultJson,
+                Notes = a.Notes,
+                ShiftAssignments = shiftsByAssignment[a.Id].Select(s => ToShiftItem(s, originalNames)).ToList()
+            });
+
+            var replacementOnlyRows = replacementOnlyShifts
+                .Select(entry =>
+                {
+                    var first = entry.Value[0];
+                    return new RosterAssignmentResponse
+                    {
+                        Id = Guid.Empty,
+                        RosterPeriodId = period.Id,
+                        WorkforceProfileId = entry.Key,
+                        WorkforceProfileCode = first.WorkforceProfile?.ProfileCode ?? string.Empty,
+                        WorkforceDisplayName = first.WorkforceProfile?.DisplayName ?? string.Empty,
+                        AssignmentStatus = assignmentsById.TryGetValue(first.RosterAssignmentId, out var source)
+                            ? source.AssignmentStatus
+                            : first.AssignmentStatus,
+                        PlannedShiftCount = entry.Value.Count,
+                        IsReplacementOnly = true,
+                        ShiftAssignments = entry.Value.Select(s => ToShiftItem(s, originalNames)).ToList()
+                    };
+                })
+                .OrderBy(r => r.WorkforceDisplayName, StringComparer.CurrentCultureIgnoreCase);
 
             var detail = new RosterPeriodDetailResponse
             {
@@ -198,47 +289,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 SubmittedAt = period.SubmittedAt,
                 PublishedAt = period.PublishedAt,
                 ClosedAt = period.ClosedAt ?? period.LockedAt,
-                Assignments = period.RosterAssignments.Select(a => new RosterAssignmentResponse
-                {
-                    Id = a.Id,
-                    RosterPeriodId = a.RosterPeriodId,
-                    WorkforceProfileId = a.WorkforceProfileId,
-                    WorkforceProfileCode = a.WorkforceProfile?.ProfileCode ?? string.Empty,
-                    WorkforceDisplayName = a.WorkforceProfile?.DisplayName ?? string.Empty,
-                    PositionId = a.PositionId,
-                    PositionName = a.Position?.PositionName,
-                    AssignmentStatus = a.AssignmentStatus,
-                    PlannedShiftCount = a.PlannedShiftCount,
-                    HasConflict = a.HasConflict,
-                    ConflictCount = a.ConflictCount,
-                    IsValidationPassed = a.IsValidationPassed,
-                    ValidationResultJson = a.ValidationResultJson,
-                    Notes = a.Notes,
-                    ShiftAssignments = a.ShiftAssignments
-                        .OrderBy(s => s.ShiftDate)
-                        .ThenBy(s => s.ScheduledStartAt)
-                        .Select(s => new ShiftAssignmentItemResponse
-                        {
-                            Id = s.Id,
-                            ShiftDate = s.ShiftDate,
-                            ShiftId = s.ShiftId,
-                            ShiftName = s.Shift?.ShiftName,
-                            ScheduledStartAt = s.ScheduledStartAt,
-                            ScheduledEndAt = s.ScheduledEndAt,
-                            AssignmentType = s.AssignmentType,
-                            AssignmentStatus = s.AssignmentStatus,
-                            IsNightShift = s.IsNightShift,
-                            IsOnCall = s.IsOnCall,
-                            HasDoubleShiftConflict = s.HasDoubleShiftConflict,
-                            HasMinimumRestConflict = s.HasMinimumRestConflict,
-                            HasBlockingConflict = s.HasBlockingConflict
-                        }).ToList()
-                }).ToList()
+                Assignments = assignmentRows.Concat(replacementOnlyRows).ToList()
             };
 
             return SchedulingRequestServiceResult<RosterPeriodDetailResponse>.Ok(
                 detail,
                 "Detail periode roster berhasil diambil.");
+        }
+
+        private static bool IsReplacementShift(TrxShiftAssignment shift) =>
+            shift.OriginalEmployeeId.HasValue && shift.OriginalEmployeeId.Value != shift.WorkforceProfileId;
+
+        private static ShiftAssignmentItemResponse ToShiftItem(
+            TrxShiftAssignment s,
+            IReadOnlyDictionary<Guid, string> originalNames)
+        {
+            var isReplacement = IsReplacementShift(s);
+            return new ShiftAssignmentItemResponse
+            {
+                Id = s.Id,
+                ShiftDate = s.ShiftDate,
+                ShiftId = s.ShiftId,
+                ShiftName = s.Shift?.ShiftName,
+                ScheduledStartAt = s.ScheduledStartAt,
+                ScheduledEndAt = s.ScheduledEndAt,
+                AssignmentType = s.AssignmentType,
+                AssignmentStatus = s.AssignmentStatus,
+                IsNightShift = s.IsNightShift,
+                IsOnCall = s.IsOnCall,
+                HasDoubleShiftConflict = s.HasDoubleShiftConflict,
+                HasMinimumRestConflict = s.HasMinimumRestConflict,
+                HasBlockingConflict = s.HasBlockingConflict,
+                WorkforceProfileId = s.WorkforceProfileId,
+                WorkforceProfileCode = s.WorkforceProfile?.ProfileCode ?? string.Empty,
+                WorkforceDisplayName = s.WorkforceProfile?.DisplayName ?? string.Empty,
+                IsReplacement = isReplacement,
+                OriginalWorkforceProfileId = isReplacement ? s.OriginalEmployeeId : null,
+                OriginalWorkforceDisplayName = isReplacement && originalNames.TryGetValue(s.OriginalEmployeeId!.Value, out var name)
+                    ? name
+                    : null
+            };
         }
 
         public async Task<SchedulingRequestServiceResult<RosterPeriodResponse>> CreateAsync(
@@ -375,6 +465,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             int totalMinutes = 0;
             int nightCount = 0;
             int onCallCount = 0;
+            var shiftNames = new Dictionary<Guid, string>();
 
             foreach (var shiftItem in req.Shifts)
             {
@@ -382,6 +473,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     .FirstOrDefaultAsync(s => s.Id == shiftItem.ShiftId && s.IsActive, cancellationToken);
 
                 if (shift == null) continue;
+                shiftNames[shift.Id] = shift.ShiftName;
 
                 var startDateTime = AppDateTimeHelper.ToUtc(shiftItem.ShiftDate.ToDateTime(shift.StartTime));
                 var endDateTime = AppDateTimeHelper.ToUtc(shift.IsOvernight || shift.EndTime < shift.StartTime
@@ -458,12 +550,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     Id = s.Id,
                     ShiftDate = s.ShiftDate,
                     ShiftId = s.ShiftId,
+                    ShiftName = s.ShiftId.HasValue && shiftNames.TryGetValue(s.ShiftId.Value, out var shiftName) ? shiftName : null,
                     ScheduledStartAt = s.ScheduledStartAt,
                     ScheduledEndAt = s.ScheduledEndAt,
                     AssignmentType = s.AssignmentType,
                     AssignmentStatus = s.AssignmentStatus,
                     IsNightShift = s.IsNightShift,
-                    IsOnCall = s.IsOnCall
+                    IsOnCall = s.IsOnCall,
+                    WorkforceProfileId = s.WorkforceProfileId,
+                    WorkforceProfileCode = workforce.ProfileCode,
+                    WorkforceDisplayName = workforce.DisplayName
                 }).ToList()
             };
 
@@ -1269,6 +1365,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
 
             // Bentuk shift baru. Pada roster terbit, shift yang tidak dikenal ditolak, bukan dilewati diam-diam.
             var planned = new List<TrxShiftAssignment>();
+            var shiftNames = new Dictionary<Guid, string>();
             foreach (var item in req.Shifts)
             {
                 if (item.ShiftDate < period.PeriodStartDate || item.ShiftDate > period.PeriodEndDate)
@@ -1288,6 +1385,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                         $"Master shift dengan ID '{item.ShiftId}' tidak ditemukan atau tidak aktif.");
                 }
 
+                shiftNames[shift.Id] = shift.ShiftName;
                 var start = AppDateTimeHelper.ToUtc(item.ShiftDate.ToDateTime(shift.StartTime));
                 var end = AppDateTimeHelper.ToUtc(shift.IsOvernight || shift.EndTime < shift.StartTime
                     ? item.ShiftDate.AddDays(1).ToDateTime(shift.EndTime)
@@ -1462,12 +1560,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     Id = s.Id,
                     ShiftDate = s.ShiftDate,
                     ShiftId = s.ShiftId,
+                    ShiftName = s.ShiftId.HasValue && shiftNames.TryGetValue(s.ShiftId.Value, out var shiftName) ? shiftName : null,
                     ScheduledStartAt = s.ScheduledStartAt,
                     ScheduledEndAt = s.ScheduledEndAt,
                     AssignmentType = s.AssignmentType,
                     AssignmentStatus = s.AssignmentStatus,
                     IsNightShift = s.IsNightShift,
-                    IsOnCall = s.IsOnCall
+                    IsOnCall = s.IsOnCall,
+                    WorkforceProfileId = s.WorkforceProfileId,
+                    WorkforceProfileCode = workforce.ProfileCode,
+                    WorkforceDisplayName = workforce.DisplayName
                 }).ToList(),
                 RevisionIds = revisions.Select(r => r.Id).ToList(),
                 Warnings = warnings,

@@ -136,5 +136,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
             var result = await _healthRecordService.GetExecutiveDashboardAsync(year, departmentId, cancellationToken);
             return Ok(ApiResponse<OhsExecutiveDashboardDto>.Ok(result, "Dasbor eksekutif K3RS berhasil diambil."));
         }
+
+        /// <summary>
+        /// Daftar ringkasan kelaikan kerja (fitness to work) seluruh pegawai, tanpa kolom klinis (MSL-14, DEC-FER-05 opsi A, 18 Nov 2026). Filter: search, status, activeOnly, pageNumber, pageSize.
+        /// </summary>
+        [HttpGet("records")]
+        [AccessAction("ViewSummary", "Melihat Daftar Kelaikan Kerja Seluruh Pegawai", AccessType = AccessTypes.Read, SortOrder = 20)]
+        [AccessPermission("OccupationalHealthRecord", "ViewSummary")]
+        [Authorize]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<FitnessSummaryListItemDto>>), 200)]
+        public async Task<IActionResult> GetFitnessSummaryList(
+            [FromQuery] OccupationalHealthListQuery query,
+            [FromServices] IOccupationalHealthListQueryService listService,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await listService.GetFitnessSummariesAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<FitnessSummaryListItemDto>>.Ok(result, "Daftar berhasil diambil."));
+        }
     }
 }

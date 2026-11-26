@@ -1606,3 +1606,307 @@ service yang sudah terdaftar", tanpa registrasi DI baru.
 
 Skenario `A1`..`A10` pada `00-interview-decisions.md` bagian *Keputusan draft jurnal hasil kejadian*,
 lewat Swagger dan layar; tanpa SQL. Automated test bukan acceptance (`ACC-DEC-081`).
+
+## 25. Amendment 24 November 2026 — buku besar, laba rugi, dan neraca (ACC-FIN-005 + 008) — **approved** Rizki (`GATE-DESAIN-1124`)
+
+Dasar: `ACC-DEC-141`..`154` (`00-interview-decisions.md` revision 19), gerbang
+[`evidence/19`](evidence/19-finishing-005-008-requirement-completeness-gate.md)
+(`READY_FOR_DOMAIN_DESIGN`, arsitektur domain `NOT_RUN`), dan
+[peta kemampuan finishing](finishing/01-capability-map-finishing.md). Source acuan: `rizkiG`
+`1f353c45`.
+
+**Ringkasnya:** nol tabel baru, nol kolom baru, **nol migration**, nol hak akses baru, nol
+perubahan `Program.cs`. Tujuh endpoint baru dan satu endpoint lama yang diperluas tanpa
+mematahkan bentuknya, seluruhnya di `GeneralLedgerController` yang sudah ada — nol controller baru. Seluruhnya **membaca**; tidak satu pun menulis ke database.
+
+### 25.1 Kepemilikan data
+
+| Kelompok data | Pemilik | Dipakai slice ini | Dibuat ulang? |
+|---|---|---|---|
+| Baris jurnal, kepala jurnal | Accounting — `JournalManagement` | Dibaca sebagai satu-satunya sumber angka | Tidak |
+| Bagan akun (jenis, induk, tingkat) | Accounting — `MasterData/ChartOfAccount` | Dibaca untuk pengelompokan dan hierarki | Tidak |
+| Jenis jurnal (`JT`) | Accounting — `MasterData/JournalType` | Dibaca untuk mengenali jurnal penutup tahun | Tidak |
+| Periode akuntansi | Accounting — `AccountingPeriod` | Dibaca untuk rentang tanggal dan tahun buku | Tidak |
+| Kejadian akuntansi | Accounting — `AccountingEvent` | Dibaca untuk kolom Asal | Tidak |
+| Penerbitan jurnal berulang | Accounting — `RecurringJournal` | Dibaca untuk kolom Asal | Tidak |
+| Unit biaya (`MstCostCenter`) | HR Master Data — Organization | Dibaca untuk saringan dan nama unit | Tidak |
+| Badan hukum (`MstLegalEntity`) | HR Master Data — Organization | Dibaca lewat penjaga badan hukum yang ada | Tidak |
+| Hasil hitung laporan | — | **Tidak disimpan.** Dihitung ulang setiap permintaan | — |
+
+**Contoh mengapa hasil tidak disimpan:** bila neraca November disimpan pukul 10.00, lalu sebuah jurnal
+koreksi November disahkan pukul 11.00, neraca tersimpan menjadi salah tanpa ada yang tahu. Menghitung
+ulang dari baris jurnal menjamin neraca, neraca saldo, dan buku besar selalu sepakat.
+
+### 25.2 Class diagram
+
+```mermaid
+classDiagram
+    class GeneralLedgerController {
+        <<Diperbarui>>
+        +GetMovements(query)
+        +GetMovementSummary(query)
+        +ExportMovements(query)
+        +ExportTrialBalance(query)
+        +GetIncomeStatement(query)
+        +ExportIncomeStatement(query)
+        +GetBalanceSheet(query)
+        +ExportBalanceSheet(query)
+    }
+    class AccGeneralLedgerService {
+        <<Diperbarui, partial>>
+        +GetMovementsAsync()
+        +GetMovementSummaryAsync()
+        +GetTrialBalanceAsync()
+        +GetIncomeStatementAsync()
+        +GetBalanceSheetAsync()
+        +BuildMovementCsvAsync()
+        +BuildTrialBalanceCsvAsync()
+        +BuildIncomeStatementCsvAsync()
+        +BuildBalanceSheetCsvAsync()
+    }
+    class AccLedgerCsv {
+        <<Baru, static>>
+        +Tulis(kepala, kolom, baris) byte[]
+        +Angka(decimal) string
+        +Teks(string) string
+    }
+    class AccJournalLine
+    class AccJournal
+    class AccChartOfAccount
+    class AccAccountingPeriod
+    class AccAccountingEvent
+    class AccRecurringJournalRun
+    class MstCostCenter
+
+    GeneralLedgerController --> AccGeneralLedgerService
+    AccGeneralLedgerService --> AccLedgerCsv
+    AccGeneralLedgerService ..> AccJournalLine : baca Posted
+    AccGeneralLedgerService ..> AccJournal
+    AccGeneralLedgerService ..> AccChartOfAccount
+    AccGeneralLedgerService ..> AccAccountingPeriod
+    AccGeneralLedgerService ..> AccAccountingEvent : asal
+    AccGeneralLedgerService ..> AccRecurringJournalRun : asal
+    AccGeneralLedgerService ..> MstCostCenter : saringan
+```
+
+Ketujuh model di bagian bawah diagram berstatus **Sudah ada** dan tidak berubah.
+
+### 25.3 Penjelasan class
+
+| Class | Status | Lokasi file | Fungsi | Transaksi DB |
+|---|---|---|---|---|
+| `GeneralLedgerController` | Diperbarui | `GeneralLedger/Controllers/GeneralLedgerController.cs` | + tujuh action: `GET movements/summary`, `GET movements/export`, `GET trial-balance/export`, `GET income-statement`, `GET income-statement/export`, `GET balance-sheet`, `GET balance-sheet/export`. Semua `[AccessPermission("GeneralLedger", "Read")]` dan `[AccessAction("Read", ...)]`. **Bukan** controller baru: atribut kelas `[AccessController(moduleCode: "ACCOUNTING_GENERAL_LEDGER")]` membuat setiap controller menjadi modul akses tersendiri di Akses Role, dan `ACC-DEC-150` menetapkan nol hak baru | Tidak |
+| `AccGeneralLedgerService` | Diperbarui — dijadikan `partial` | `GeneralLedger/Services/AccGeneralLedgerService.cs` (yang ada) + `AccGeneralLedgerService.Movement.cs`, `AccGeneralLedgerService.FinancialStatement.cs`, `AccGeneralLedgerService.Export.cs` (baru) | Satu-satunya service buku besar. Dipecah per berkas supaya berkas lama tidak membengkak, tetapi tetap **satu** registrasi `AddScoped<AccGeneralLedgerService>()` yang sudah ada | Tidak — seluruh query `AsNoTracking` |
+| `AccLedgerCsv` | Baru, `static` | `GeneralLedger/Services/AccLedgerCsv.cs` | Menyusun berkas CSV (bagian 25.7). Murni, tanpa database | — |
+| `LedgerMovementQuery` | Diperbarui | `GeneralLedger/DTOs/GeneralLedgerDtos.cs` | + `CostCenterId` (`Guid?`) | — |
+| `LedgerMovementResponse` | Diperbarui | sama | + 11 field asal dan unit biaya (bagian 25.5) | — |
+| `LedgerMovementSummaryResponse` | Baru | sama | Saldo awal, total debit, total kredit, saldo akhir, jumlah baris | — |
+| `IncomeStatementQuery`, `BalanceSheetQuery` | Baru | `GeneralLedger/DTOs/FinancialStatementDtos.cs` | Query laporan | — |
+| `IncomeStatementResponse`, `BalanceSheetResponse`, `FinancialStatementSectionResponse`, `FinancialStatementRowResponse`, `FinancialStatementAmountsResponse` | Baru | sama | Bentuk laporan (kontrak `ACC-API-0.17`) | — |
+| `LedgerSourceKind` | Baru, enum | `GeneralLedger/Enums/LedgerSourceKind.cs` | `Manual = 1`, `AccountingEvent = 2`, `RecurringJournal = 3`, `YearEnd = 4`, `Correction = 5`; tanpa nilai bawaan | — |
+| `FinancialStatementRowKind` | Baru, enum | `GeneralLedger/Enums/FinancialStatementRowKind.cs` | `Account = 1` (akun transaksi), `Group = 2` (akun induk, subtotal), `Computed = 3` (baris laba hitungan neraca) | — |
+
+**Mengapa `partial`, bukan service baru.** Service baru menuntut satu baris registrasi baru di
+`Program.cs`, sedangkan kesepakatan kerja Accounting adalah tidak menambah kode ke berkas itu dan
+memakai service yang sudah terdaftar. Kelima kemampuan juga memakai penyaring yang sama,
+`BarisDisahkan`; memecahnya ke service lain berarti menyalin penyaring itu, persis yang dihindari
+kepala service ini.
+
+### 25.4 Arsitektur folder
+
+```text
+Areas/Corporate/AccountingManagement/GeneralLedger/
+├── Controllers/
+│   └── GeneralLedgerController.cs                     Diperbarui
+├── DTOs/
+│   ├── GeneralLedgerDtos.cs                           Diperbarui
+│   └── FinancialStatementDtos.cs                      Baru
+├── Enums/                                             Baru (folder)
+│   ├── LedgerSourceKind.cs                            Baru
+│   └── FinancialStatementRowKind.cs                   Baru
+└── Services/
+    ├── AccGeneralLedgerService.cs                     Diperbarui (kata kunci partial; GetMovementsAsync dipindah)
+    ├── AccGeneralLedgerService.Movement.cs            Baru
+    ├── AccGeneralLedgerService.FinancialStatement.cs  Baru
+    ├── AccGeneralLedgerService.Export.cs              Baru
+    └── AccLedgerCsv.cs                                Baru
+```
+
+`GetMovementsAsync` **dipindah** ke `AccGeneralLedgerService.Movement.cs` bersama perluasannya, karena
+method itu yang berubah paling banyak. Komentar lama ikut pindah apa adanya; baris baru tanpa
+komentar. `BarisDisahkan` tetap di berkas lama dan tetap `private` — `partial` membuatnya terlihat
+dari berkas lain kelas yang sama.
+
+### 25.5 Buku besar — perluasan mutasi
+
+**Saringan unit biaya (`ACC-DEC-147` butir 1).** Bila `CostCenterId` diisi, penyaring
+`CostCenterId == nilai` diterapkan pada dasar query **sebelum** saldo pembuka dan saldo sebelum
+halaman dihitung. Ketiga angka — saldo awal, saldo berjalan, saldo akhir — menjadi bagian akun milik
+unit itu.
+
+**Contoh:** akun Beban Obat (5-1001) November 2026: Radiologi Rp 4.000.000, Farmasi Rp 9.000.000.
+Tanpa saringan, saldo akhir Rp 13.000.000. Dengan saringan Radiologi, saldo akhir Rp 4.000.000.
+
+**Field baru per baris mutasi** — seluruhnya tambahan; field lama tidak berubah nama, tipe, maupun
+arti:
+
+| Field | Tipe | Isi |
+|---|---|---|
+| `JournalId` | `Guid` | Pengenal jurnal untuk membuka rinciannya |
+| `JournalTypeCode` | `string` | Contoh `JU`, `JP`, `JB`, `JT` |
+| `DocumentNumber` | `string?` | Nomor dokumen kepala jurnal |
+| `CostCenterId` | `Guid?` | Unit biaya baris |
+| `CostCenterCode` | `string?` | Kode unit biaya |
+| `CostCenterName` | `string?` | Nama unit biaya |
+| `SourceKind` | `LedgerSourceKind` | Asal jurnal |
+| `SourceLabel` | `string` | Bunyi asal untuk layar dan CSV |
+| `AccountingEventId` | `Guid?` | Diisi bila asalnya kejadian, untuk tautan ke Kotak Masuk Kejadian |
+| `RecurringTemplateId` | `Guid?` | Diisi bila asalnya jurnal berulang |
+| `ReversalOfJournalId` | `Guid?` | Diisi bila asalnya koreksi |
+
+**Penentuan asal (`ACC-DEC-148`).** Diperiksa berurutan; yang pertama cocok dipakai:
+
+| Urutan | `LedgerSourceKind` | Syarat | `SourceLabel` |
+|---:|---|---|---|
+| 1 | `Correction` | `ReversalOfJournalId` terisi | `Koreksi · {nomor jurnal yang dikoreksi}` |
+| 2 | `YearEnd` | Jenis jurnal `JT` | `Tutup Tahun` |
+| 3 | `AccountingEvent` | Ada `AccAccountingEvent` tidak terhapus dengan `JournalId` = jurnal ini | `{SourceModule} · {SourceTransactionId}` |
+| 4 | `RecurringJournal` | Ada `AccRecurringJournalRun` dengan `JournalId` = jurnal ini | `Jurnal Berulang · {TemplateName}` |
+| 5 | `Manual` | Selain di atas | `Manual`, atau `Manual · {DocumentNumber}` bila ada |
+
+Pencarian asal dilakukan **sekali per halaman** untuk seluruh `JournalId` di halaman itu (paling
+banyak 200), bukan per baris. Kedua kolom pencariannya sudah ber-index
+(`AccAccountingEvent.JournalId`, `AccRecurringJournalRun.JournalId`).
+
+**Endpoint ringkasan.** `GET movements/summary` menerima query yang sama tanpa nomor halaman dan
+mengembalikan saldo awal, total debit, total kredit, saldo akhir, dan jumlah baris untuk **seluruh**
+rentang. Dipisah dari daftar berhalaman supaya bentuk `PagedResult` yang sudah dipakai layar tidak
+berubah. **Contoh:** akun 1-1001, 1–30 November, saldo awal Rp 12.000.000, debit Rp 40.000.000, kredit
+Rp 31.000.000 → saldo akhir Rp 21.000.000, 640 baris.
+
+### 25.6 Laba rugi dan neraca — cara menghitung
+
+Seluruh hitungan memakai `BarisDisahkan(legalEntityId)` yang sudah ada sebagai pintu masuk tunggal.
+
+**Rentang tanggal (`ACC-DEC-144`).** Dari periode terpilih `P`:
+
+| Besaran | Rumus |
+|---|---|
+| Awal tahun buku `AwalTB(P)` | `StartDate` terkecil dari periode badan hukum yang sama dengan `FiscalYear = P.FiscalYear` |
+| Periode pembanding laba rugi `Q` | Periode badan hukum yang sama dengan `FiscalYear = P.FiscalYear − 1` dan `PeriodMonth = P.PeriodMonth`; boleh tidak ada |
+| Tanggal pembanding neraca | `EndDate` terbesar dari periode `FiscalYear = P.FiscalYear − 1`; boleh tidak ada |
+| Kolom laba rugi | Periode `[P.StartDate, P.EndDate]`; YTD `[AwalTB(P), P.EndDate]`; pembanding `[Q.StartDate, Q.EndDate]` dan `[AwalTB(Q), Q.EndDate]` |
+| Kolom neraca | Saldo sampai `P.EndDate`; pembanding saldo sampai tanggal pembanding |
+
+**Pengecualian laba rugi (`ACC-DEC-142`).** Baris jurnal dikecualikan bila jurnalnya berjenis `JT`,
+atau `ReversalOfJournalId`-nya menunjuk jurnal berjenis `JT`. Jenis `JT` dicari menurut kodenya lewat
+`AccJournalTypeService.CariMenurutKodeAsync` yang sudah ada — tidak ada Guid tertulis di kode. Bila
+jenis `JT` tidak ada di master, tidak ada yang dikecualikan.
+
+**Nilai per akun (`ACC-DEC-145`).** Aset dan Beban: debit − kredit. Liabilitas, Ekuitas, Pendapatan:
+kredit − debit. `NormalBalance` tidak dipakai. Laba bersih = total Pendapatan − total Beban.
+
+**Baris laba hitungan neraca (`ACC-DEC-143`).** Untuk tanggal neraca `T` dengan awal tahun buku
+`AwalTB`:
+
+| Baris | Rumus |
+|---|---|
+| Laba (Rugi) Tahun Berjalan | Σ (kredit − debit) seluruh baris akun Pendapatan dan Beban bertanggal `[AwalTB, T]`, **termasuk** `JT` |
+| Laba (Rugi) Tahun Lalu Belum Ditutup | Σ (kredit − debit) seluruh baris akun Pendapatan dan Beban bertanggal `< AwalTB`, termasuk `JT`. Tampil hanya bila ≠ 0 |
+| Tahun buku yang belum ditutup | Dari baris yang sama, dikelompokkan menurut `FiscalYear` periode jurnalnya; setiap tahun yang jumlahnya ≠ 0 disebut dalam peringatan |
+
+**Contoh lengkap neraca 31 Maret 2027.** 2026: pendapatan Rp 900.000.000, beban Rp 700.000.000, belum
+ada `JT`. Januari–Maret 2027: pendapatan Rp 250.000.000, beban Rp 205.000.000.
+Laba Tahun Lalu Belum Ditutup = Rp 200.000.000, dengan peringatan "Tahun buku 2026 belum ditutup";
+Laba Tahun Berjalan = Rp 45.000.000. Sesudah `JT` 2026 (31 Desember 2026) disahkan: baris pertama
+menjadi Rp 0 dan hilang, akun Laba Ditahan bertambah Rp 200.000.000, total ekuitas tidak berubah.
+
+**Hierarki (`ACC-DEC-146`).** Seluruh akun badan hukum dari jenis yang relevan dimuat sekali
+(termasuk nonaktif), lalu pohonnya disusun di memori dari `ParentAccountId`:
+
+1. Akun berjenis sama dengan induknya → anak induk itu.
+2. Induk berjenis lain → naik ke leluhur terdekat berjenis sama; tidak ada → akar kelompok jenisnya
+   (cadangan `C-05`).
+3. Nilai akun induk = jumlah nilai turunannya. Akun induk tidak pernah punya baris jurnal sendiri,
+   karena `AccChartOfAccountService.CreateAsync` menolak memberi anak pada akun yang sudah
+   bertransaksi.
+4. Baris disembunyikan bila seluruh kolom nilainya nol dan `IncludeZeroAccounts = false`; induk
+   disembunyikan bila semua turunannya tersembunyi.
+5. Urutan dalam satu tingkat: `AccountCode` naik.
+
+Pohon dikirim sebagai **daftar datar berurutan pra-order** dengan `Depth` dan `ParentAccountId`,
+supaya layar dan CSV membaca urutan yang sama tanpa menyusun ulang.
+
+**Beban query.** Laba rugi: empat jumlah terkelompok per akun (periode, YTD, dan kedua
+pembandingnya). Neraca: dua jumlah terkelompok per akun ditambah dua jumlah laba dan satu
+pengelompokan tahun buku. Seluruhnya `GROUP BY` di database; tidak ada baris jurnal yang ditarik ke
+memori.
+
+**Saringan unit biaya laba rugi (`ACC-DEC-147` butir 2).** Bila diisi, keempat jumlah hanya memuat
+baris berunit biaya itu, dan respons membawa `CostCenterNotice` berbunyi tetap: "Hanya baris jurnal
+yang mencatat unit biaya ini yang dihitung. Pendapatan dan beban yang dicatat tanpa unit biaya tidak
+ikut."
+
+### 25.7 Berkas CSV (`ACC-DEC-149`, `153`)
+
+| Aspek | Ketetapan desain | Alasan |
+|---|---|---|
+| Pengodean | UTF-8 dengan BOM | Excel mengenali huruf non-ASCII pada nama akun |
+| Pemisah kolom | `;` | Pemisah daftar bawaan Excel berbahasa Indonesia |
+| Angka | Tanpa pemisah ribuan, desimal koma, dua angka di belakang koma, minus di depan. Contoh `-1250000,00` | Terbaca sebagai angka oleh Excel berbahasa Indonesia |
+| Teks | Diapit `"`; tanda `"` di dalamnya digandakan | Keterangan jurnal dapat memuat `;` |
+| Pengaman rumus | Teks yang diawali `=`, `+`, `-`, `@` diberi awalan `'` | Mencegah sel dibaca sebagai rumus saat dibuka (*CSV injection*) |
+| Baris kepala | Nama laporan, badan hukum, periode atau rentang, saringan, waktu unduh WIB; satu baris kosong; lalu judul kolom | Berkas tetap bermakna bila diteruskan ke orang lain |
+| Nama berkas | `buku-besar_{kode akun}_{yyyyMMdd}-{yyyyMMdd}.csv`, `neraca-saldo_{kode periode}.csv`, `laba-rugi_{kode periode}[_{kode unit}].csv`, `neraca_{kode periode}.csv` | — |
+| Batas baris buku besar | 50.000 baris; lebih dari itu ditolak `422` dengan anjuran mempersempit rentang | Menjaga memori server; satu akun satu tahun jarang melewatinya |
+
+Butir pemisah kolom dan angka berstatus `PROPOSED` (`evidence/19` butir 14b) dan **wajib dibuktikan**
+dengan membuka berkasnya di Excel pada komputer rumah sakit saat uji. Bila komputer rumah sakit
+memakai Excel berpengaturan bahasa Inggris, yang diubah hanya dua konstanta di `AccLedgerCsv`.
+
+**Pencatatan (`ACC-DEC-155`).** `GET income-statement` dan `GET balance-sheet` mencatat setiap pembacaan dengan pola log neraca saldo yang ada (aksi `FinancialStatement.IncomeStatement` dan `FinancialStatement.BalanceSheet`, muatan tanpa nominal); `GET movements` dan `GET movements/summary` tidak mencatat. Setiap endpoint `export` memanggil `LoggerService.InfoAsync` dengan
+kategori `Corporate.Accounting.GeneralLedger`, aksi `GeneralLedger.Export`, dan muatan: jenis laporan,
+`LegalEntityId`, `PeriodCode` atau `DateFrom`/`DateTo`, `AccountId`, `CostCenterId`, jumlah baris.
+Pelaku dibaca `LoggerService` sendiri dari klaim permintaan. **Tidak ada** nominal, keterangan, atau
+isi berkas di muatan. Unduhan yang gagal dicatat `WarningAsync` dengan muatan yang sama.
+
+### 25.8 Status model dan migration
+
+| Tabel | Status | Kolom berubah | Migration |
+|---|---|---|---|
+| Seluruh tabel yang dibaca (bagian 25.1) | Sudah ada | Tidak ada | **Tidak ada** |
+
+Rencana migration: tidak ada. Langkah mundur: membuang commit — tidak ada data yang tertulis.
+
+### 25.9 Data master awal
+
+Tidak ada data master baru. Syarat agar laporan bermakna — semuanya sudah ada atau sudah menjadi
+langkah operasional yang tercatat:
+
+| Syarat | Keadaan |
+|---|---|
+| Bagan akun bersusun dengan jenis akun benar | Langkah operasional T-6 (bagan akun sah dari ekspor `gl_coa`) |
+| Periode akuntansi tahun buku dibuat | Endpoint `periods/generate` sudah ada |
+| Jenis jurnal `JT` | Sudah terisi lewat data awal Phase 2 (`erd/data-dictionary.md` bagian 19) |
+| Hak `GeneralLedger : Read` pada peran | Langkah operasional T-5 |
+
+### 25.10 Yang sengaja tidak dibuat
+
+| Hal | Alasan |
+|---|---|
+| Tabel saldo atau snapshot laporan | Sumber kebenaran kedua yang dapat menyimpang (bagian 25.1) |
+| Kolom klasifikasi laporan di `AccChartOfAccount` | Diturunkan dari `AccountType` (PRD ACC-FIN-001) |
+| Service laporan tersendiri | Menuntut registrasi `Program.cs` dan menyalin `BarisDisahkan` (bagian 25.3) |
+| Controller laporan tersendiri (`FinancialStatementController`) | Menjadi modul akses kedua di Akses Role (bagian 25.3); sempat ditulis di draft awal bagian ini lalu dikoreksi |
+| Hak `FinancialReport : Read` | `ACC-DEC-150` |
+| Pustaka Excel atau PDF | `ACC-DEC-149` |
+| Tautan ke layar modul sumber | `ACC-DEC-148` butir 3 |
+| Saringan unit biaya pada neraca | `ACC-DEC-147` butir 3 |
+| Memasukkan saldo awal ke bentuk `PagedResult` mutasi | Mematahkan konsumen yang ada; diganti endpoint ringkasan |
+
+### 25.11 Pengujian developer
+
+Skenario `F1`..`F18` pada `00-interview-decisions.md` bagian *Finishing — buku besar, laba rugi, dan
+neraca*, lewat Swagger dan layar terhadap database dev, tanpa SQL tulis. Automated test bukan
+acceptance (`ACC-DEC-081`) dan tidak ditulis (kesepakatan kerja Rizki). Bukti kesetaraan angka: laba
+rugi YTD periode terakhir tahun buku dicocokkan dengan neraca saldo periode yang sama (`F6`).

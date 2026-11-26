@@ -92,5 +92,50 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
                 Returned
             };
         }
+
+        /// <summary>
+        /// Status verifikasi dokumen legalitas vendor — <c>manajemen-vendor/contracts/state-transition-matrix.md</c>
+        /// bagian 2 (PBJ-VD-STATE 1.0). Dibaca daftar vendor sejak BE-PBJ-VD-003; ditulis BE-PBJ-VD-004.
+        /// </summary>
+        public static class VendorDocument
+        {
+            public const string Pending = "PENDING";
+            public const string Verified = "VERIFIED";
+            public const string Rejected = "REJECTED";
+            public const string Cancelled = "CANCELLED";
+        }
+
+        /// <summary>
+        /// Status penilaian vendor — <c>manajemen-vendor/contracts/state-transition-matrix.md</c> bagian 4
+        /// (PBJ-VD-STATE 1.0). Dibaca detail vendor sejak BE-PBJ-VD-003; ditulis BE-PBJ-VD-008.
+        /// </summary>
+        public static class VendorEvaluation
+        {
+            public const string Draft = "DRAFT";
+            public const string Final = "FINAL";
+            public const string Superseded = "SUPERSEDED";
+            public const string Cancelled = "CANCELLED";
+        }
+
+        /// <summary>
+        /// Status usulan blokir/buka blokir vendor — <c>manajemen-vendor/contracts/state-transition-matrix.md</c> bagian 3
+        /// (PBJ-VD-STATE 1.0; BE-PBJ-VD-007). Usulan terbuka = <c>DRAFT</c>, <c>PENDING_APPROVAL</c>, <c>RETURNED</c>.
+        /// </summary>
+        public static class VendorStatusRequest
+        {
+            public const string Draft = "DRAFT";
+            public const string PendingApproval = "PENDING_APPROVAL";
+            public const string Returned = "RETURNED";
+            public const string Approved = "APPROVED";
+            public const string Rejected = "REJECTED";
+            public const string Cancelled = "CANCELLED";
+
+            public static readonly IReadOnlySet<string> Open = new HashSet<string>(StringComparer.Ordinal)
+            {
+                Draft,
+                PendingApproval,
+                Returned
+            };
+        }
     }
 }

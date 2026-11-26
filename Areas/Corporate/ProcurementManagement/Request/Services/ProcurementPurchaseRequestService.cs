@@ -128,10 +128,9 @@ public sealed class ProcurementPurchaseRequestService
     public async Task<PagedResult<PurchaseRequestListItem>> GetPagedAsync(
         ClaimsPrincipal user, PurchaseRequestQuery request, CancellationToken cancellationToken)
     {
-        if (request.StartDate.HasValue && request.EndDate.HasValue && request.EndDate < request.StartDate)
-            throw new ProcurementRequestValidationException("PBJ-VAL-007", "Tanggal akhir tidak boleh sebelum tanggal awal.");
-
-        var query = await ScopedAsync(user, cancellationToken);
+        // Rentang tanggal dan Periode (PBJ-DEC-055); galat rentang kini PBJ-VAL-094, bukan PBJ-VAL-007.
+        var period = ProcurementPeriodFilter.Resolve(request.StartDate, request.EndDate, request.CustomPeriod);
+        var query = (await ScopedAsync(user, cancellationToken)).WhereCreatedWithin(period);
         if (!string.IsNullOrWhiteSpace(request.Status)) query = query.Where(x => x.Status == request.Status.Trim());
         if (request.DepartmentId.HasValue) query = query.Where(x => x.DepartmentId == request.DepartmentId.Value);
         if (request.FiscalYear.HasValue) query = query.Where(x => x.FiscalYear == request.FiscalYear.Value);
@@ -142,17 +141,6 @@ public sealed class ProcurementPurchaseRequestService
         {
             var userId = ProcurementDataScopeService.GetUserId(user);
             query = query.Where(x => x.RequesterUserId == userId);
-        }
-        if (request.StartDate.HasValue)
-        {
-            var start = request.StartDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            query = query.Where(x => x.CreateDateTime >= start);
-        }
-        if (request.EndDate.HasValue)
-        {
-            // Tanggal akhir inklusif: sampai sebelum awal hari berikutnya.
-            var endExclusive = request.EndDate.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            query = query.Where(x => x.CreateDateTime < endExclusive);
         }
         if (!string.IsNullOrWhiteSpace(request.Search))
         {

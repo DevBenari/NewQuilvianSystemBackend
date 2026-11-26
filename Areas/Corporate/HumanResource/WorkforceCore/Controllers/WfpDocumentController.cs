@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Services.Security;
 using System.Security.Claims;
 using System.Security.Cryptography;
 
@@ -48,16 +49,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         private readonly LoggerService _loggerService;
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _environment;
+        private readonly AccessPermissionService _accessPermissionService;
 
         public WfpDocumentController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             IConfiguration configuration,
-            IWebHostEnvironment environment)
+            IWebHostEnvironment environment,
+            AccessPermissionService accessPermissionService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _configuration = configuration;
+            _accessPermissionService = accessPermissionService;
             _environment = environment;
         }
 
@@ -203,7 +207,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 entities.SelectMany(x => new[] { x.CreateBy, x.VerifiedByUserId ?? Guid.Empty }),
                 cancellationToken);
 
-            var items = entities.Select(x => MapResponse(x, actorNames)).ToList();
+            // BE-HRD-397: dokumen rahasia tetap terlihat di daftar (jenis, nama, tanggal), tetapi nomor,
+            // keterangan, dan tautan berkasnya disamarkan bagi pemanggil tanpa hak dokumen rahasia.
+            var canViewConfidential = await CanAccessConfidentialDocumentAsync(workforceProfileId, cancellationToken);
+            var items = entities.Select(x => MapResponse(x, actorNames, canViewConfidential)).ToList();
 
             return Ok(ApiResponse<PagedResult<WfpDocumentResponse>>.Ok(
                 new PagedResult<WfpDocumentResponse>
@@ -237,12 +244,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                     "Dokumen workforce tidak ditemukan."));
             }
 
+            // Guard FIN-HRD-04-BE-011: Proteksi dokumen rahasia (confidential)
+            if (entity.IsConfidential)
+            {
+                var canAccess = await CanAccessConfidentialDocumentAsync(workforceProfileId, cancellationToken);
+                if (!canAccess)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                        StatusCodes.Status403Forbidden,
+                        "Akses ditolak. Dokumen ini bersifat rahasia (confidential) dan hanya dapat diakses oleh HR berwenang atau pemilik dokumen.",
+                        "CONFIDENTIAL_DOCUMENT_RESTRICTED"
+                    ));
+                }
+            }
+
             var actorNames = await GetActorNameMapAsync(
                 new[] { entity.CreateBy, entity.UpdateBy, entity.VerifiedByUserId ?? Guid.Empty },
                 cancellationToken);
 
             return Ok(ApiResponse<WfpDocumentDetailResponse>.Ok(
-                MapDetailResponse(entity, actorNames),
+                MapDetailResponse(entity, actorNames, canViewConfidential: true),
                 "Detail dokumen workforce berhasil diambil."));
         }
 
@@ -381,6 +402,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                     "Dokumen workforce tidak ditemukan."));
             }
 
+            // BE-HRD-397: dokumen rahasia tidak boleh diubah (termasuk melepas tanda rahasia) oleh
+            // pemanggil yang tidak berhak melihatnya.
+            if (entity.IsConfidential && !await CanAccessConfidentialDocumentAsync(workforceProfileId, cancellationToken))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Akses ditolak. Dokumen ini bersifat rahasia dan hanya dapat diubah oleh HR berwenang atau pemilik dokumen.",
+                    "CONFIDENTIAL_DOCUMENT_RESTRICTED"
+                ));
+            }
+
             var validation = ValidateRequest(request.DocumentType, request.DocumentName, request.IssueDate, request.ExpiredDate);
             if (!validation.IsValid)
             {
@@ -431,8 +463,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
 
             var oldFilePath = entity.FilePath;
 
+            // BE-HRD-398: dokumen yang sudah diverifikasi lalu diubah isinya (jenis, nomor, tanggal
+            // terbit/kedaluwarsa, penerbit) kembali menjadi belum terverifikasi, supaya verifikasi
+            // petugas lain tidak menempel pada data yang sudah berbeda.
+            var substanceChanged =
+                !string.Equals(entity.DocumentType, NormalizeDocumentType(request.DocumentType), StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(entity.DocumentNumber ?? string.Empty, NormalizeNullableText(request.DocumentNumber) ?? string.Empty, StringComparison.OrdinalIgnoreCase) ||
+                entity.IssueDate?.Date != request.IssueDate?.Date ||
+                entity.ExpiredDate?.Date != request.ExpiredDate?.Date ||
+                !string.Equals(entity.IssuingAuthority ?? string.Empty, NormalizeNullableText(request.IssuingAuthority) ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+
             try
             {
+                if (substanceChanged && entity.IsVerified)
+                {
+                    entity.IsVerified = false;
+                    entity.VerifiedAt = null;
+                    entity.VerifiedByUserId = null;
+                    entity.VerificationNote = null;
+                }
+
                 entity.RequirementCode = NormalizeNullableText(request.RequirementCode);
                 entity.DocumentType = NormalizeDocumentType(request.DocumentType);
                 entity.DocumentName = request.DocumentName.Trim();
@@ -541,6 +591,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             }
 
             var actorUserId = GetCurrentUserId();
+
+            // BE-HRD-397/398: dokumen rahasia hanya dapat diverifikasi oleh pemegang hak dokumen rahasia.
+            if (entity.IsConfidential && !await CanAccessConfidentialDocumentAsync(workforceProfileId, cancellationToken))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Akses ditolak. Dokumen rahasia hanya dapat diverifikasi oleh HR berwenang.",
+                    "CONFIDENTIAL_DOCUMENT_RESTRICTED"
+                ));
+            }
+
+            // Guard FIN-HRD-04-BE-012: Segregasi tugas verifikator dokumen
+            if (request.IsVerified && entity.CreateBy == actorUserId)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Petugas verifikasi dokumen harus berbeda dari pembuat/pengunggah data (segregasi tugas / dual-actor verification / FIN-HRD-04-BE-012).",
+                    "SELF_VERIFICATION_PROHIBITED"
+                ));
+            }
+
             entity.IsVerified = request.IsVerified;
             entity.VerifiedAt = request.IsVerified ? DateTime.UtcNow : null;
             entity.VerifiedByUserId = request.IsVerified ? actorUserId : null;
@@ -571,6 +642,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Dokumen workforce tidak ditemukan."));
+            }
+
+            // Guard FIN-HRD-04-BE-011: Proteksi unduh berkas rahasia
+            if (entity.IsConfidential)
+            {
+                var canAccess = await CanAccessConfidentialDocumentAsync(workforceProfileId, cancellationToken);
+                if (!canAccess)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                        StatusCodes.Status403Forbidden,
+                        "Akses unduh ditolak. Dokumen ini bersifat rahasia (confidential) dan dilindungi di server (FIN-HRD-04-BE-011).",
+                        "CONFIDENTIAL_FILE_ACCESS_DENIED"
+                    ));
+                }
             }
 
             var physicalPath = ResolvePhysicalPath(entity.FilePath);
@@ -752,10 +837,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             };
         }
 
-        private WfpDocumentResponse MapResponse(WfpDocument x, IReadOnlyDictionary<Guid, string> actorNames)
+        private WfpDocumentResponse MapResponse(
+            WfpDocument x,
+            IReadOnlyDictionary<Guid, string> actorNames,
+            bool canViewConfidential)
         {
             var today = DateTime.UtcNow.Date;
             var next30Days = today.AddDays(30);
+            var masked = x.IsConfidential && !canViewConfidential;
             return new WfpDocumentResponse
             {
                 Id = x.Id,
@@ -765,17 +854,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 RequirementCode = x.RequirementCode,
                 DocumentType = x.DocumentType,
                 DocumentName = x.DocumentName,
-                DocumentNumber = x.DocumentNumber,
+                DocumentNumber = masked ? null : x.DocumentNumber,
                 IssueDate = x.IssueDate,
                 ExpiredDate = x.ExpiredDate,
-                IssuingAuthority = x.IssuingAuthority,
-                FilePath = x.FilePath,
-                FileUrl = BuildPublicFileUrl(x.FilePath),
-                FileContentType = x.FileContentType,
-                OriginalFileName = x.OriginalFileName,
-                StoredFileName = x.StoredFileName,
-                FileSizeBytes = x.FileSizeBytes,
-                FileChecksum = x.FileChecksum,
+                IssuingAuthority = masked ? null : x.IssuingAuthority,
+                // BE-HRD-397: berkas hanya lewat endpoint unduh yang memeriksa hak akses; jalur statis
+                // /uploads/human-resource/workforce/** tidak lagi disajikan tanpa login.
+                FilePath = masked ? null : x.FilePath,
+                FileUrl = masked ? null : BuildProtectedFileUrl(x.WorkforceProfileId, x.Id, x.FilePath),
+                FileContentType = masked ? null : x.FileContentType,
+                OriginalFileName = masked ? null : x.OriginalFileName,
+                StoredFileName = masked ? null : x.StoredFileName,
+                FileSizeBytes = masked ? null : x.FileSizeBytes,
+                FileChecksum = masked ? null : x.FileChecksum,
                 HasFile = !string.IsNullOrWhiteSpace(x.FilePath),
                 IsExpired = x.ExpiredDate.HasValue && x.ExpiredDate.Value < today,
                 IsExpiringWithin30Days = x.ExpiredDate.HasValue && x.ExpiredDate.Value >= today && x.ExpiredDate.Value <= next30Days,
@@ -784,8 +875,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 VerifiedAt = x.VerifiedAt,
                 VerifiedByUserId = x.VerifiedByUserId,
                 VerifiedByName = GetActorName(actorNames, x.VerifiedByUserId),
-                VerificationNote = x.VerificationNote,
-                Description = x.Description,
+                VerificationNote = masked ? null : x.VerificationNote,
+                Description = masked ? null : x.Description,
                 IsActive = x.IsActive,
                 CreateDateTime = x.CreateDateTime,
                 CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
@@ -793,9 +884,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             };
         }
 
-        private WfpDocumentDetailResponse MapDetailResponse(WfpDocument x, IReadOnlyDictionary<Guid, string> actorNames)
+        private WfpDocumentDetailResponse MapDetailResponse(
+            WfpDocument x,
+            IReadOnlyDictionary<Guid, string> actorNames,
+            bool canViewConfidential)
         {
-            var baseResponse = MapResponse(x, actorNames);
+            var baseResponse = MapResponse(x, actorNames, canViewConfidential);
             return new WfpDocumentDetailResponse
             {
                 Id = baseResponse.Id,
@@ -843,7 +937,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             var actorNames = await GetActorNameMapAsync(
                 new[] { entity.CreateBy, entity.UpdateBy, entity.VerifiedByUserId ?? Guid.Empty },
                 cancellationToken);
-            return Ok(ApiResponse<WfpDocumentDetailResponse>.Ok(MapDetailResponse(entity, actorNames), message));
+            var canViewConfidential = !entity.IsConfidential
+                || await CanAccessConfidentialDocumentAsync(workforceProfileId, cancellationToken);
+            return Ok(ApiResponse<WfpDocumentDetailResponse>.Ok(MapDetailResponse(entity, actorNames, canViewConfidential), message));
         }
 
         private static (bool IsValid, string? ErrorMessage) ValidateRequest(
@@ -951,22 +1047,52 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 System.IO.File.Delete(path);
         }
 
-        private string? BuildPublicFileUrl(string? filePath)
+        /// <summary>
+        /// Tautan berkas dokumen selalu menunjuk endpoint unduh yang memeriksa hak akses dan
+        /// kerahasiaan (BE-HRD-397), mengikuti pola sertifikasi. Tautan eksternal (http/https)
+        /// dikembalikan apa adanya.
+        /// </summary>
+        private static string? BuildProtectedFileUrl(Guid workforceProfileId, Guid documentId, string? filePath)
         {
             if (string.IsNullOrWhiteSpace(filePath)) return null;
             if (filePath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || filePath.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                 return filePath;
-            var baseUrl = _configuration["FileStorage:PublicBaseUrl"];
-            return !string.IsNullOrWhiteSpace(baseUrl)
-                ? $"{baseUrl.TrimEnd('/')}/{filePath.TrimStart('/')}"
-                : $"{Request.Scheme}://{Request.Host}/{filePath.TrimStart('/')}";
+            return $"/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/documents/{documentId}/file";
         }
 
+        // BE-HRD-401: riwayat pegawai yang sudah dinonaktifkan (offboarding/purnatugas) tetap dapat dibuka; hanya profil terhapus yang dianggap tidak ada.
         private async Task<bool> WorkforceProfileExistsAsync(Guid workforceProfileId, CancellationToken cancellationToken)
         {
             return workforceProfileId != Guid.Empty && await _dbContext.MstWorkforceProfiles
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == workforceProfileId && x.IsActive && !x.IsDelete, cancellationToken);
+                .AnyAsync(x => x.Id == workforceProfileId && !x.IsDelete, cancellationToken);
+        }
+
+        /// <summary>
+        /// BE-HRD-397 / HRD-DEC-053: dokumen rahasia hanya untuk pemilik dokumen atau pemegang hak
+        /// <c>WorkforceDocument : ViewConfidential</c> yang dicentang admin di layar Akses Role.
+        /// Tidak ada pengecualian berdasarkan nama peran.
+        /// </summary>
+        private async Task<bool> CanAccessConfidentialDocumentAsync(Guid workforceProfileId, CancellationToken cancellationToken)
+        {
+            var callerUserId = GetCurrentUserId();
+            if (callerUserId == Guid.Empty) return false;
+
+            var callerProfileId = await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => x.Id == callerUserId)
+                .Select(x => x.WorkforceProfileId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (callerProfileId.HasValue && callerProfileId.Value == workforceProfileId)
+            {
+                return true;
+            }
+
+            return await _accessPermissionService.HasAccessAsync(
+                User,
+                "WorkforceDocument",
+                WorkforceDocumentPermissions.ViewConfidential);
         }
 
         private async Task<Dictionary<Guid, string>> GetActorNameMapAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken)
