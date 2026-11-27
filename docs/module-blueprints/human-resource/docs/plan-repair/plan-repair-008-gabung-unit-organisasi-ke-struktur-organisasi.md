@@ -13,7 +13,7 @@ basis_source_frontend: "fe8aebf2f (HamzahV2)"
 
 Arah perbaikan (Opsi A) dipilih pemilik pada 24-11-2026, lalu seluruh rencana disetujui pada hari
 yang sama: "oke saya setujui kerjakan semua dan selesaikan". Keputusan tercatat sebagai
-`HRD-DEC-248` s.d. `HRD-DEC-250`.
+`HRD-DEC-257` s.d. `HRD-DEC-259` (dinomori ulang dari `HRD-DEC-248` s.d. `HRD-DEC-250` saat merge `QuilvianIntegrationBackEnd` 27-11-2026).
 
 ---
 
@@ -21,14 +21,14 @@ yang sama: "oke saya setujui kerjakan semua dan selesaikan". Keputusan tercatat 
 
 | ID perbaikan | Menutup | Ringkasan | Area | Prioritas | Task ID | Status | Bukti |
 | --- | --- | --- | --- | :---: | --- | --- | --- |
-| `FIX-HRD-008-01` | `ISS-HRD-008-01`, `ISS-HRD-008-02` | Revisi dokumen desain Menu 05 dan catat keputusan Opsi A | Dokumen | 1 | dokumen (`HRD-DEC-248`) | ✅ SELESAI | `../../00-interview-decisions.md` bagian 58; `../../03-frontend-architecture.md` 34.7; roadmap bagian 32 |
-| `FIX-HRD-008-03` | `ISS-HRD-008-01`, `ISS-HRD-008-T1`, `ISS-HRD-008-T4` | Halaman unit menjadi "Struktur Organisasi" dengan mode Daftar dan Hierarki; tombol pohon membuka detail unit | FE | 1 | `FE-HRD-410` | ✅ SELESAI | `../../task/report/frontend/FE-HRD-410.md` |
-| `FIX-HRD-008-02` | `ISS-HRD-008-02`, `ISS-HRD-008-T4` | Halaman Departemen dan halaman Posisi berdiri sendiri | FE | 1 | `FE-HRD-411` | ✅ SELESAI | `../../task/report/frontend/FE-HRD-411.md` |
-| `FIX-HRD-008-04` | `ISS-HRD-008-01`, `ISS-HRD-008-02` | Sidebar baru, pengalihan alamat lama, tautan Penempatan Awal, dan uji sidebar | FE | 1 | `FE-HRD-412` | ✅ SELESAI | `../../task/report/frontend/FE-HRD-412.md` |
-| `FIX-HRD-008-05` | `ISS-HRD-008-02`, `ISS-HRD-008-T2`, `ISS-HRD-008-T4` | Form unit: level otomatis dan petunjuk memilih departemen | FE | 2 | `FE-HRD-413` | ✅ SELESAI | `../../task/report/frontend/FE-HRD-413.md` |
-| `FIX-HRD-008-06` | `ISS-HRD-008-T3` | Respons detail unit membawa nama legal entity, fasilitas, dan departemen | BE | 3 | `BE-HRD-463` | ✅ SELESAI | `../../task/report/backend/BE-HRD-463.md` |
-| `FIX-HRD-008-07` | `ISS-HRD-008-T3` | Detail unit menampilkan nama, bukan ID | FE | 3 | `FE-HRD-414` | ✅ SELESAI | `../../task/report/frontend/FE-HRD-414.md` |
-| `FIX-HRD-008-08` | `ISS-HRD-008-T5` | Server menolak Departemen Terkait yang tidak ada atau nonaktif | BE | 3 | `BE-HRD-464` | ✅ SELESAI | `../../task/report/backend/BE-HRD-464.md` |
+| `FIX-HRD-008-01` | `ISS-HRD-008-01`, `ISS-HRD-008-02` | Revisi dokumen desain Menu 05 dan catat keputusan Opsi A | Dokumen | 1 | dokumen (`HRD-DEC-257`) | ✅ SELESAI | `../../00-interview-decisions.md` bagian 59 (lama 58); `../../03-frontend-architecture.md` 34.7; roadmap bagian 33 (lama 32) |
+| `FIX-HRD-008-03` | `ISS-HRD-008-01`, `ISS-HRD-008-T1`, `ISS-HRD-008-T4` | Halaman unit menjadi "Struktur Organisasi" dengan mode Daftar dan Hierarki; tombol pohon membuka detail unit | FE | 1 | `FE-HRD-418` (lama `FE-HRD-410`) | ✅ SELESAI | `../../task/report/frontend/FE-HRD-418.md` |
+| `FIX-HRD-008-02` | `ISS-HRD-008-02`, `ISS-HRD-008-T4` | Halaman Departemen dan halaman Posisi berdiri sendiri | FE | 1 | `FE-HRD-419` (lama `FE-HRD-411`) | ✅ SELESAI | `../../task/report/frontend/FE-HRD-419.md` |
+| `FIX-HRD-008-04` | `ISS-HRD-008-01`, `ISS-HRD-008-02` | Sidebar baru, pengalihan alamat lama, tautan Penempatan Awal, dan uji sidebar | FE | 1 | `FE-HRD-420` (lama `FE-HRD-412`) | ✅ SELESAI | `../../task/report/frontend/FE-HRD-420.md` |
+| `FIX-HRD-008-05` | `ISS-HRD-008-02`, `ISS-HRD-008-T2`, `ISS-HRD-008-T4` | Form unit: level otomatis dan petunjuk memilih departemen | FE | 2 | `FE-HRD-421` (lama `FE-HRD-413`) | ✅ SELESAI | `../../task/report/frontend/FE-HRD-421.md` |
+| `FIX-HRD-008-06` | `ISS-HRD-008-T3` | Respons detail unit membawa nama legal entity, fasilitas, dan departemen | BE | 3 | `BE-HRD-469` (lama `BE-HRD-463`) | ✅ SELESAI | `../../task/report/backend/BE-HRD-469.md` |
+| `FIX-HRD-008-07` | `ISS-HRD-008-T3` | Detail unit menampilkan nama, bukan ID | FE | 3 | `FE-HRD-422` (lama `FE-HRD-414`) | ✅ SELESAI | `../../task/report/frontend/FE-HRD-422.md` |
+| `FIX-HRD-008-08` | `ISS-HRD-008-T5` | Server menolak Departemen Terkait yang tidak ada atau nonaktif | BE | 3 | `BE-HRD-470` (lama `BE-HRD-464`) | ✅ SELESAI | `../../task/report/backend/BE-HRD-470.md` |
 
 **Ringkasan: 8 dari 8 perbaikan selesai (24 November 2026).** Uji runtime dengan backend dan akun nyata belum dijalankan; backend lokal perlu di-restart agar `FIX-HRD-008-06` terkirim ke layar.
 
@@ -863,8 +863,8 @@ butir sidebar (setelah 02).
 
 | No | Keputusan | Pilihan | Rekomendasi | Menahan perbaikan |
 | ---: | --- | --- | --- | --- |
-| K-01 *(diputuskan 24-11-2026: (a), `HRD-DEC-249`)* | Label hak akses di layar Akses Role ("Organization" untuk Departemen dan Posisi, "Organization Unit" untuk Struktur Organisasi) perlu diganti? | (a) Biarkan dulu; (b) Ganti label tampilan di atribut `[AccessController]` backend | (a). Beri admin catatan pemetaan di panduan pengguna (bagian 7). Penggantian label diperiksa dalam task tersendiri karena menyentuh sinkronisasi daftar hak akses | Tidak ada. Risiko di `FIX-HRD-008-04` tetap perlu diperiksa admin |
-| K-02 *(diputuskan 24-11-2026: (a), `HRD-DEC-250`)* | Tipe unit "Departemen" di Struktur Organisasi tetap dipakai? | (a) Tetap; (b) Hapus dari pilihan | (a). Kebingungan diatasi petunjuk di `FIX-HRD-008-05` | Tidak ada |
+| K-01 *(diputuskan 24-11-2026: (a), `HRD-DEC-258`; lama `HRD-DEC-249`)* | Label hak akses di layar Akses Role ("Organization" untuk Departemen dan Posisi, "Organization Unit" untuk Struktur Organisasi) perlu diganti? | (a) Biarkan dulu; (b) Ganti label tampilan di atribut `[AccessController]` backend | (a). Beri admin catatan pemetaan di panduan pengguna (bagian 7). Penggantian label diperiksa dalam task tersendiri karena menyentuh sinkronisasi daftar hak akses | Tidak ada. Risiko di `FIX-HRD-008-04` tetap perlu diperiksa admin |
+| K-02 *(diputuskan 24-11-2026: (a), `HRD-DEC-259`; lama `HRD-DEC-250`)* | Tipe unit "Departemen" di Struktur Organisasi tetap dipakai? | (a) Tetap; (b) Hapus dari pilihan | (a). Kebingungan diatasi petunjuk di `FIX-HRD-008-05` | Tidak ada |
 
 ---
 
@@ -930,5 +930,5 @@ Tangkapan layar uji tidak boleh memuat NIK, nama pegawai asli, atau nominal gaji
 | Tanggal | Perubahan | Oleh |
 | --- | --- | --- |
 | 2026-11-24 | Rencana dibuat: 8 perbaikan (1 dokumen, 5 frontend, 2 backend), arah Opsi A dari pemilik, menunggu persetujuan per perbaikan | `diagnose-module-issue` |
-| 2026-11-24 | Pemilik menyetujui seluruh rencana ("oke saya setujui kerjakan semua dan selesaikan"), termasuk rekomendasi K-01 (a) dan K-02 (a). `status_rencana` → `DISETUJUI`. Keputusan dicatat `HRD-DEC-248` s.d. `HRD-DEC-250`; task didaftarkan: `FE-HRD-410` s.d. `FE-HRD-414` (roadmap frontend bagian 32), `BE-HRD-463`, `BE-HRD-464` (roadmap backend bagian 32) | `manage-module-blueprint` |
-| 2026-11-24 | Seluruh 8 perbaikan dikerjakan: `FIX-HRD-008-01` (dokumen) dan tujuh task `BE-HRD-463`, `BE-HRD-464`, `FE-HRD-410` s.d. `FE-HRD-414` berstatus ✅ dengan laporan tracked. `status_rencana` → `SELESAI`. Satu tambahan kecil di luar daftar teks issue T4: label periode bawaan "Period" pada halaman Departemen/Posisi diganti "Periode" (`FE-HRD-411`). Uji runtime dengan backend dan akun nyata belum dijalankan | `build-module-backend` / pengerjaan frontend langsung |
+| 2026-11-24 | Pemilik menyetujui seluruh rencana ("oke saya setujui kerjakan semua dan selesaikan"), termasuk rekomendasi K-01 (a) dan K-02 (a). `status_rencana` → `DISETUJUI`. Keputusan dicatat `HRD-DEC-257` s.d. `HRD-DEC-259` *(dinomori ulang dari `HRD-DEC-248` s.d. `250` saat merge `QuilvianIntegrationBackEnd` 27-11-2026)*; task didaftarkan: `FE-HRD-418` s.d. `FE-HRD-422` *(lama `FE-HRD-410` s.d. `414`)* (roadmap frontend bagian 33), `BE-HRD-469`, `BE-HRD-470` *(lama `BE-HRD-463`, `464`)* (roadmap backend bagian 33) | `manage-module-blueprint` |
+| 2026-11-24 | Seluruh 8 perbaikan dikerjakan: `FIX-HRD-008-01` (dokumen) dan tujuh task `BE-HRD-469`, `BE-HRD-470`, `FE-HRD-418` s.d. `FE-HRD-422` berstatus ✅ dengan laporan tracked. `status_rencana` → `SELESAI`. Satu tambahan kecil di luar daftar teks issue T4: label periode bawaan "Period" pada halaman Departemen/Posisi diganti "Periode" (`FE-HRD-419`). Uji runtime dengan backend dan akun nyata belum dijalankan | `build-module-backend` / pengerjaan frontend langsung |

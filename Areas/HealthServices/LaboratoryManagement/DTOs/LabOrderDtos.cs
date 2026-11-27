@@ -92,6 +92,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// <see cref="Examinations"/> diabaikan.
         /// </summary>
         public List<Guid> CitoExaminations { get; set; } = new();
+
+        /// <summary>
+        /// Tanggal rencana pemeriksaan (<c>yyyy-MM-dd</c>, WIB), berlaku bagi setiap pesanan hasil
+        /// pemecahan per disiplin. Opsional: kosong berarti hari ini. Tanggal sebelum hari ini
+        /// ditolak <c>422</c> tanpa satu pesanan pun dibuat (<c>VAL-166</c>).
+        /// </summary>
+        public DateOnly? PlannedDate { get; set; }
     }
 
     public class CreateLabOrderRequest
@@ -131,6 +138,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// tidak berubah perilakunya.
         /// </summary>
         public Guid? InstructingDoctorId { get; set; }
+
+        /// <summary>
+        /// Tanggal rencana pemeriksaan (<c>yyyy-MM-dd</c>, WIB). Opsional: kosong berarti hari ini,
+        /// sehingga pemanggil lama tidak berubah perilakunya. Tanggal sebelum hari ini ditolak
+        /// <c>422</c> (<c>VAL-166</c>).
+        /// </summary>
+        public DateOnly? PlannedDate { get; set; }
     }
 
     /// <summary>
@@ -440,6 +454,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public string? Discipline { get; set; }
 
         public DateTime? RequestedAt { get; set; }
+
+        /// <summary>
+        /// Tanggal rencana pemeriksaan (<c>yyyy-MM-dd</c>, tanggal kalender WIB) —
+        /// <c>LAB-API-v1</c> <c>r50</c> 45.3, <c>LAB-DEC-253</c>.
+        /// </summary>
+        public DateOnly PlannedDate { get; set; }
 
         /// <summary>
         /// Dokter atau petugas yang meminta pemeriksaan ini.

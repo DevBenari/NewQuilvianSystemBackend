@@ -7,13 +7,14 @@ using static QuilvianSystemBackend.Tests.Pharmacy.StockRequestApprovalTests.Peri
 namespace QuilvianSystemBackend.Tests.Pharmacy.StockRequestApprovalTests;
 
 /// <summary>
-/// Verifikasi administratif susulan CITO (<c>LGS-DEC-005</c>): oleh atasan unit, tidak mengubah
-/// status maupun stok, temuan penyimpangan tercatat tanpa menghapus transaksi, dan hanya sekali.
+/// Verifikasi administratif susulan CITO (<c>LGS-DEC-005</c>): oleh pemegang izin persetujuan
+/// untuk permintaan unit mana pun (<c>FIN-LGS-070</c>), tidak mengubah status maupun stok, temuan
+/// penyimpangan tercatat tanpa menghapus transaksi, dan hanya sekali.
 /// </summary>
 public class EmergencyReviewTests
 {
     [Fact]
-    public async Task Atasan_unit_membenarkan_otorisasi_CITO_tanpa_mengubah_status()
+    public async Task Penyetuju_membenarkan_otorisasi_CITO_tanpa_mengubah_status()
     {
         using var h = new StockRequestApprovalHarness();
         var (id, _, versi) = await h.CitoTerotorisasiAsync();
@@ -104,7 +105,6 @@ public class EmergencyReviewTests
                  {
                      (h.PemohonUserId, "uji-verif-pemohon"),
                      (h.PetugasCitoUserId, "uji-verif-pengotorisasi"),
-                     (h.AtasanLainUserId, "uji-verif-unit-lain"),
                      (h.AtasanTanpaIzinUserId, "uji-verif-tanpa-izin"),
                      (h.StafUserId, "uji-verif-staf"),
                      (h.SuperAdminUserId, "uji-verif-superadmin")
@@ -115,10 +115,15 @@ public class EmergencyReviewTests
         }
 
         Assert.Equal(0, await HitungRiwayatAsync(h, id, "VerifyEmergencyStockRequestConfirmed"));
+
+        // Penyetuju yang penempatan HRD-nya di unit lain kini berwenang (FIN-LGS-070).
+        var unitLain = await h.Layanan(h.CreateContext(), h.AtasanLainUserId)
+            .VerifyEmergencyAsync(id, Verifikasi("uji-verif-unit-lain", versi));
+        Assert.Equal(StockRequestEmergencyReviewState.Confirmed, unitLain.EmergencyReviewState);
     }
 
     [Fact]
-    public async Task Atasan_unit_yang_mengotorisasi_CITO_tidak_boleh_memverifikasi_otorisasinya_sendiri()
+    public async Task Penyetuju_yang_mengotorisasi_CITO_tidak_boleh_memverifikasi_otorisasinya_sendiri()
     {
         using var h = new StockRequestApprovalHarness();
         var (id, _, versi) = await h.CitoTerotorisasiAsync(pengotorisasi: h.AtasanCitoUserId);
@@ -127,7 +132,7 @@ public class EmergencyReviewTests
             h.Layanan(h.CreateContext(), h.AtasanCitoUserId).VerifyEmergencyAsync(id, Verifikasi("uji-verif-diri", versi)));
         Assert.Contains("otorisasinya sendiri", galat.Message);
 
-        // Atasan unit lain pada unit yang sama tetap dapat memverifikasi.
+        // Pemegang izin persetujuan lain tetap dapat memverifikasi.
         var hasil = await h.Layanan(h.CreateContext(), h.AtasanUserId)
             .VerifyEmergencyAsync(id, Verifikasi("uji-verif-rekan", versi));
         Assert.Equal(StockRequestEmergencyReviewState.Confirmed, hasil.EmergencyReviewState);
@@ -173,7 +178,7 @@ public class EmergencyReviewTests
     }
 
     [Fact]
-    public async Task Permintaan_yang_disetujui_atasan_biasa_tidak_memerlukan_verifikasi_susulan()
+    public async Task Permintaan_yang_disetujui_biasa_tidak_memerlukan_verifikasi_susulan()
     {
         using var h = new StockRequestApprovalHarness();
         var (id, _) = await h.PermintaanAsync(prioritas: StockRequestPriority.Emergency);

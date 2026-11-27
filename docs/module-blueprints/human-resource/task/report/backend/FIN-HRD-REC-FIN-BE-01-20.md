@@ -7,8 +7,8 @@
 | Task ID / Instruksi | `BE-HRD-FIN-REC-001` s.d. `BE-HRD-FIN-REC-020` (Amandemen Finishing Menu 03 — Rekrutmen & Seleksi) |
 | Branch & HEAD SHA | `MHamzah` @ `b1cb2333` (*uncommitted working tree*; tanpa `commit`/`push`/`merge`) |
 | Slice canonical existing | `S-D2` — Rekrutmen & Seleksi (melengkapi `BE-HRD-052..064`, `FIN-HRD-REC-WIZ-01`, `FIN-HRD-REC-JRN-01..03`) |
-| Rujukan instruksi | [`INSTRUKSI_AGENT_HRD_MENU_03_REKRUTMEN_DAN_SELEKSI.md`](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/docs/module-blueprints/human-resource/docs/instruksi/INSTRUKSI_AGENT_HRD_MENU_03_REKRUTMEN_DAN_SELEKSI.md), [`api-contract.md` §37](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/docs/module-blueprints/human-resource/contracts/api-contract.md#L3465-L3498) |
-| Target tulis | `Areas/Corporate/HumanResource/RecruitmentManagement/{Controllers,DTOs,Services}`, `Tests/QuilvianSystemBackend.HumanResourceTests/RecruitmentJourneyWorkflowTests.cs`, dokumen blueprint §36/§37/§1aj |
+| Rujukan instruksi | [`INSTRUKSI_AGENT_HRD_MENU_03_REKRUTMEN_DAN_SELEKSI.md`](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/docs/module-blueprints/human-resource/docs/instruksi/INSTRUKSI_AGENT_HRD_MENU_03_REKRUTMEN_DAN_SELEKSI.md), [`api-contract.md` §38](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/docs/module-blueprints/human-resource/contracts/api-contract.md#L3609-L3644) *(lama §37)* |
+| Target tulis | `Areas/Corporate/HumanResource/RecruitmentManagement/{Controllers,DTOs,Services}`, `Tests/QuilvianSystemBackend.HumanResourceTests/RecruitmentJourneyWorkflowTests.cs`, dokumen blueprint BE §37 / FE §37 / Traceability §1ak *(lama BE §36 / FE §36 / §1aj)* |
 | Entity / Migration baru | **Tidak ada (`NO MIGRATION`)** — item yang membutuhkan perubahan skema EF Core atau kebijakan owner yang belum dikunci tetap dipisahkan sebagai `BLOCKED_SCHEMA_AND_POLICY_GATE` |
 | Tanggal | 26 November 2026 |
 | Status | 🟡 **IMPLEMENTED (Non-Schema Scope Verified) + `BLOCKED_SCHEMA_AND_POLICY_GATE` pada item schema/policy** — `dotnet build` (`0 Error(s)`), `Invoke-QbeConformanceCheck.ps1 -Mode Strict` (`0 VIOLATION` pada 16 berkas), `8/8` SQLite xUnit (`RecruitmentJourneyWorkflowTests`), dan verifikasi HTTP live `https://localhost:7196` lulus |
@@ -43,11 +43,11 @@ Perawat *Aulia Rahma Pratama* (`CAN-20261126-0002`) mendaftar pada lowongan klin
 | `Services/TalentPoolService.cs`, `ITalentPoolService.cs`, `Controllers/TalentPoolController.cs`, `DTOs/TalentPoolDtos.cs` | Service / Controller / DTO | Endpoint `GET /talent-pool/eligible-applications`, penguatan kelayakan `EnrollAsync`, dan validasi ketat `FastTrackPromoteAsync` (retensi, target `Published`, kuota, STR klinis, anti-duplikasi) (`BE-016`, `BE-017`). |
 | `Services/HiringHandoffService.cs`, `IHiringHandoffService.cs`, `Controllers/HiringHandoffController.cs`, `DTOs/HiringHandoffDtos.cs` | Service / Controller / DTO | Endpoint `GET /handoffs/eligible-offers` dan penguatan alur serah terima & pemulihan `NeedsOnboardingRecovery` (`BE-006`, `BE-018`). |
 | `Tests/QuilvianSystemBackend.HumanResourceTests/RecruitmentJourneyWorkflowTests.cs` | Integrasi Test | Penyesuaian pemanggilan initializer screening (`screeningSvc.InitiateScreeningAsync`) dan total `8` `[Fact]` SQLite in-memory (`BE-002..020`). |
-| `docs/module-blueprints/human-resource/{contracts/api-contract.md,roadmap/backend-roadmap.md,roadmap/frontend-roadmap.md,roadmap/requirement-traceability.md}` | Blueprint & Kontrak | Sinkronisasi kontrak `v31` §37, amandemen §36 BE/FE, dan traceability Bagian 1aj (`BE-001`). |
+| `docs/module-blueprints/human-resource/{contracts/api-contract.md,roadmap/backend-roadmap.md,roadmap/frontend-roadmap.md,roadmap/requirement-traceability.md}` | Blueprint & Kontrak | Sinkronisasi kontrak `v32` Additive §38 *(lama `v31` §37)*, amandemen BE/FE §37 *(lama §36)*, dan traceability Bagian 1ak *(lama 1aj)* (`BE-001`). |
 
 ---
 
-## 3. Dokumentasi Endpoint (Bergaya Swagger — Aditif `v31`, `NO MIGRATION`)
+## 3. Dokumentasi Endpoint (Bergaya Swagger — Aditif `v32` pada `api-contract.md` §38, `NO MIGRATION`)
 
 Base path: `api/v1/corporate/human-resource/recruitment`
 

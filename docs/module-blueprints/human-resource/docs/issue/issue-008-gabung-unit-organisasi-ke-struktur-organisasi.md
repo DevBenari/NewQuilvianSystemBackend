@@ -499,8 +499,8 @@ salah.
 
 | No | Keputusan | Pilihan | Rekomendasi | Menahan perbaikan |
 | ---: | --- | --- | --- | --- |
-| K-01 *(diputuskan 24-11-2026: (a), `HRD-DEC-249`)* | Label hak akses di layar Akses Role masih "Organization" (dipakai menu Departemen dan Posisi) dan "Organization Unit" (dipakai menu Struktur Organisasi). Perlu diganti? | (a) Biarkan dulu; (b) Ganti label tampilan di atribut `[AccessController]` backend menjadi "Departemen & Posisi" dan "Struktur Organisasi" | (a). Admin cukup diberi catatan pemetaan di panduan. Mengganti label menyentuh atribut backend, dan dampaknya pada sinkronisasi daftar hak akses perlu dicek tersendiri. | Tidak ada |
-| K-02 *(diputuskan 24-11-2026: (a), `HRD-DEC-250`)* | Tipe unit "Departemen" di Struktur Organisasi tetap dipakai? | (a) Tetap, dan unit bertipe Departemen boleh dihubungkan ke master Departemen; (b) Hapus tipe Departemen dari pilihan | (a). Rumah sakit umum memang punya tingkat departemen, misalnya Departemen Keperawatan, dan data lama mungkin sudah memakainya. Kebingungan diatasi dengan petunjuk di form (`FIX-HRD-008-05`). | Tidak ada. `FIX-HRD-008-05` berlaku untuk kedua pilihan |
+| K-01 *(diputuskan 24-11-2026: (a), `HRD-DEC-258`; lama `HRD-DEC-249`)* | Label hak akses di layar Akses Role masih "Organization" (dipakai menu Departemen dan Posisi) dan "Organization Unit" (dipakai menu Struktur Organisasi). Perlu diganti? | (a) Biarkan dulu; (b) Ganti label tampilan di atribut `[AccessController]` backend menjadi "Departemen & Posisi" dan "Struktur Organisasi" | (a). Admin cukup diberi catatan pemetaan di panduan. Mengganti label menyentuh atribut backend, dan dampaknya pada sinkronisasi daftar hak akses perlu dicek tersendiri. | Tidak ada |
+| K-02 *(diputuskan 24-11-2026: (a), `HRD-DEC-259`; lama `HRD-DEC-250`)* | Tipe unit "Departemen" di Struktur Organisasi tetap dipakai? | (a) Tetap, dan unit bertipe Departemen boleh dihubungkan ke master Departemen; (b) Hapus tipe Departemen dari pilihan | (a). Rumah sakit umum memang punya tingkat departemen, misalnya Departemen Keperawatan, dan data lama mungkin sudah memakainya. Kebingungan diatasi dengan petunjuk di form (`FIX-HRD-008-05`). | Tidak ada. `FIX-HRD-008-05` berlaku untuk kedua pilihan |
 
 ---
 
@@ -529,5 +529,5 @@ salah.
 | Tanggal | Perubahan | Oleh |
 | --- | --- | --- |
 | 2026-11-24 | Issue dibuat dari masukan analis (3 kalimat) dan pilihan Opsi A pemilik: 2 butir pelapor, 5 temuan tambahan, 2 keputusan pemilik | `diagnose-module-issue` |
-| 2026-11-24 | Pemilik menyetujui seluruh rencana; K-01 dan K-02 memakai rekomendasi (a). Status → `DALAM_PERBAIKAN`. Keputusan `HRD-DEC-248` s.d. `HRD-DEC-250` | `manage-module-blueprint` |
+| 2026-11-24 | Pemilik menyetujui seluruh rencana; K-01 dan K-02 memakai rekomendasi (a). Status → `DALAM_PERBAIKAN`. Keputusan `HRD-DEC-257` s.d. `HRD-DEC-259` (dinomori ulang dari `HRD-DEC-248` s.d. `250` saat merge `QuilvianIntegrationBackEnd` 27-11-2026) | `manage-module-blueprint` |
 | 2026-11-24 | Seluruh perbaikan yang disetujui berstatus ✅ pada register plan repair (8/8). Status → `SELESAI`. Uji runtime dengan backend dan akun nyata masih tertunda; backend lokal perlu di-restart | pengerjaan task |

@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PP-TEST` · `last_changed_in: 1.1` (`PBJ-DEC-041`, `PBJ-DEC-042`, 2026-11-17) · status `approved` (`PBJ-DEC-034`) |
+| Kontrak | `PBJ-PP-TEST` · `last_changed_in: 1.2` (`PBJ-DEC-055`, `PBJ-FE-004`, 2026-11-17) · status `approved` (`PBJ-DEC-034`) |
 | Masukan | `PBJ-PP-API`, `-STATE`, `-VAL`, `-PERM` 1.0 |
 | Kebijakan bukti | Sesuai kebijakan verifikasi repository: **tidak membuat proyek test** dan tidak mensyaratkan `dotnet test`. Bukti berupa build, konformitas QBE, skema EF/basis data, uji API manual (Swagger/HTTP), bukti query basis data, dan uji browser untuk FE |
 
@@ -85,3 +85,5 @@ konformitas.
 | `AT-PP-62` | Skema | Migration menghasilkan tabel dan index sesuai kamus data | DB | `information_schema` dan `pg_indexes` cocok, termasuk index unik parsial |
 | `AT-PP-63` | Menu | Setiap layar terjangkau dari menu atau layar induk | FE | Tangkapan layar setiap butir menu `MVP-*` |
 | `AT-PP-64` | Data master | Seeder idempoten dijalankan dua kali | DB | Jumlah baris master sama |
+| `AT-PP-65` | `PBJ-DEC-055`, `PBJ-VAL-094` | Saringan `startDate`/`endDate`/`customPeriod` pada setiap daftar; rentang terbalik; periode tak dikenal | API | Hanya data yang dibuat dalam rentang; 422 `PBJ-VAL-094` untuk dua kasus salah; `filters/metadata` memuat `customPeriods` |
+| `AT-PP-66` | `PBJ-FE-004`, `PBJ-DEC-056`, `057` | Buka setiap layar daftar Pengadaan | FE | Baris filter satu baris (urutan `PBJ-FE-004`) pada lebar desktop; hero tanpa tombol di luar halaman form/detail; tombol aksi di filter bervarian primary; pengecualian `PBJ-DEC-057` sesuai |

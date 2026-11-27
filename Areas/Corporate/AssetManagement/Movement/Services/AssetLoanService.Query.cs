@@ -311,7 +311,9 @@ public sealed partial class AssetLoanService
             x.RequestedBy == userId);
     }
 
-    private static IQueryable<AstLoan> Overdue(IQueryable<AstLoan> query, DateOnly today) =>
+    internal IQueryable<AstLoan> ScopedFor(AssetActor actor) => Scoped(actor);
+
+    internal static IQueryable<AstLoan> Overdue(IQueryable<AstLoan> query, DateOnly today) =>
         query.Where(x => (x.Status == LoanStatus.Dipinjam || x.Status == LoanStatus.MenungguKonfirmasiKembali) && x.PlannedReturnDate < today);
 
     private static IQueryable<AstLoan> AwaitingMe(IQueryable<AstLoan> query, AssetActor actor)

@@ -52,7 +52,7 @@ flowchart LR
 
 ---
 
-### Menu Organisasi (berlaku sejak 24 November 2026, `HRD-DEC-248`)
+### Menu Organisasi (berlaku sejak 24 November 2026, `HRD-DEC-257`; nomor lama `HRD-DEC-248`)
 
 Grup **Organisasi & Struktur Jabatan** kini memisahkan tiga hal:
 

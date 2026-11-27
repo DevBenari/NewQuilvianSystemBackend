@@ -47,6 +47,29 @@ public class DrugUsageController : ControllerBase
             "Daftar pemakaian obat berhasil diambil."));
     }
 
+    /// <summary>
+    /// Laporan Pemakaian per Unit (FIN-LGS-024): pemakaian obat dan alat kesehatan yang sudah dicatat,
+    /// per unit layanan kunjungan × obat × satuan, menurut waktu pemakaian.
+    /// </summary>
+    /// <remarks>Periode kosong = 30 hari terakhir, paling panjang 366 hari.</remarks>
+    [HttpGet("reports/by-unit")]
+    [ProducesResponseType(typeof(ApiResponse<UsageByUnitReportResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    [AccessAction("Read", "Read Drug Usage",
+        Description = "Melihat laporan pemakaian per unit", AccessType = AccessTypes.Read, SortOrder = 7)]
+    [AccessPermission("DrugUsage", "Read")]
+    public async Task<IActionResult> GetUsageByUnitReport([FromQuery] UsageByUnitReportQuery query,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.GetUsageByUnitReportAsync(query, cancellationToken);
+            return Ok(ApiResponse<UsageByUnitReportResponse>.Ok(data,
+                "Laporan pemakaian per unit berhasil diambil."));
+        }
+        catch (LogisticsReportUnprocessableException ex) { return this.LogisticsReportUnprocessable(ex); }
+    }
+
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<DrugUsageDetailResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

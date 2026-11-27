@@ -129,6 +129,13 @@ public class DrugStockBalanceQuery
 {
     public Guid? DrugId { get; set; }
     public Guid? StorageLocationId { get; set; }
+
+    /// <summary>
+    /// Stok per unit (FIN-LGS-081): hanya lokasi milik unit layanan ini
+    /// (<c>MstDrugStorageLocation.ServiceUnitId</c>), atau lokasi tanpa unit yang induknya milik unit ini.
+    /// </summary>
+    public Guid? ServiceUnitId { get; set; }
+
     public Guid? DrugBatchId { get; set; }
     public DrugStockStatus? Status { get; set; }
 
@@ -151,6 +158,10 @@ public class DrugStockSummaryQuery
 {
     public Guid? DrugId { get; set; }
     public Guid? StorageLocationId { get; set; }
+
+    /// <summary>Stok per unit (FIN-LGS-081); aturannya sama dengan <see cref="DrugStockBalanceQuery.ServiceUnitId"/>.</summary>
+    public Guid? ServiceUnitId { get; set; }
+
     public DrugStockStatus? Status { get; set; }
     public bool OnlyInStock { get; set; }
     public string? Search { get; set; }
@@ -179,6 +190,15 @@ public class DrugStockMutationQuery
     public Guid? StorageLocationId { get; set; }
     public DrugStockMutationType? MutationType { get; set; }
     public string? SourceDocumentType { get; set; }
+
+    /// <summary>
+    /// Beberapa jenis dokumen sumber sekaligus, dipisah koma (mis. <c>StockTransfer,PrescriptionReturn</c>
+    /// untuk Riwayat Mutasi, FIN-LGS-055). Hanya nilai <c>DrugStockSourceDocumentTypes</c> yang dikenal
+    /// yang dipakai; bila semua nilai tidak dikenal, hasilnya kosong. Dapat digabung dengan
+    /// <see cref="SourceDocumentType"/> (keduanya harus terpenuhi).
+    /// </summary>
+    [MaxLength(300)] public string? SourceDocumentTypes { get; set; }
+
     public Guid? SourceDocumentId { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }

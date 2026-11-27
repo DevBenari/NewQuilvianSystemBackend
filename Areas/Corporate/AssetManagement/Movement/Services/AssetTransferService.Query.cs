@@ -75,6 +75,50 @@ public sealed partial class AssetTransferService
         ArgumentNullException.ThrowIfNull(request);
         var actor = await RequireActorAsync(cancellationToken);
         var canApproveAsset = await CanApproveAssetAsync();
+        var query = Filtered(request, actor, canApproveAsset);
+
+        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+        var pageSize = request.PageSize < 1 ? 25 : Math.Min(request.PageSize, MaxPageSize);
+        var total = await query.CountAsync(cancellationToken);
+        var items = await Project(Ordered(query, request.SortDirection).Skip((pageNumber - 1) * pageSize).Take(pageSize)).ToListAsync(cancellationToken);
+        await DescribeAsync(items, actor, canApproveAsset, cancellationToken);
+
+        return new PagedResult<AssetTransferResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            Items = items
+        };
+    }
+
+    internal async Task<(int Total, List<AssetTransferResponse> Items)> ListForExportAsync(AssetTransferPagedQuery request, int maxRows, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var actor = await RequireActorAsync(cancellationToken);
+        var canApproveAsset = await CanApproveAssetAsync();
+        var query = Filtered(request, actor, canApproveAsset);
+        var total = await query.CountAsync(cancellationToken);
+        if (total > maxRows)
+        {
+            return (total, []);
+        }
+
+        var items = await Project(Ordered(query, request.SortDirection)).ToListAsync(cancellationToken);
+        await DescribeAsync(items, actor, canApproveAsset, cancellationToken);
+        return (total, items);
+    }
+
+    internal IQueryable<AstTransfer> ScopedFor(AssetActor actor) => Scoped(actor);
+
+    private static IOrderedQueryable<AstTransfer> Ordered(IQueryable<AstTransfer> query, string? sortDirection) =>
+        string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase)
+            ? query.OrderBy(x => x.RequestedAt).ThenBy(x => x.Id)
+            : query.OrderByDescending(x => x.RequestedAt).ThenBy(x => x.Id);
+
+    private IQueryable<AstTransfer> Filtered(AssetTransferPagedQuery request, AssetActor actor, bool canApproveAsset)
+    {
         var query = Scoped(actor);
 
         if (request.Status is { } status)
@@ -124,24 +168,7 @@ public sealed partial class AssetTransferService
                     i.Asset.AssetName.ToUpper().Contains(keyword))));
         }
 
-        var ordered = string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase)
-            ? query.OrderBy(x => x.RequestedAt)
-            : query.OrderByDescending(x => x.RequestedAt);
-
-        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
-        var pageSize = request.PageSize < 1 ? 25 : Math.Min(request.PageSize, MaxPageSize);
-        var total = await query.CountAsync(cancellationToken);
-        var items = await Project(ordered.ThenBy(x => x.Id).Skip((pageNumber - 1) * pageSize).Take(pageSize)).ToListAsync(cancellationToken);
-        await DescribeAsync(items, actor, canApproveAsset, cancellationToken);
-
-        return new PagedResult<AssetTransferResponse>
-        {
-            PageNumber = pageNumber,
-            PageSize = pageSize,
-            TotalData = total,
-            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
-            Items = items
-        };
+        return query;
     }
 
     public async Task<AssetTransferResponse> GetTransferAsync(Guid id, CancellationToken cancellationToken = default)

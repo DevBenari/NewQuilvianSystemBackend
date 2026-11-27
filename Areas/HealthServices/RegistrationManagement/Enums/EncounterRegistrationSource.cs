@@ -9,6 +9,9 @@
         WalkIn = 5,
 
         /// <summary>Kunjungan hasil pelengkapan Reservasi Prioritas (RJ-PRI-DEC-009/010).</summary>
-        PriorityReservation = 6
+        PriorityReservation = 6,
+
+        /// <summary>Kunjungan hasil check-in Pendaftaran Pasien Online di kiosk (kiosk Amendment PO, KSK-DSN-PO-014).</summary>
+        OnlineRegistration = 7
     }
 }

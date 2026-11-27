@@ -17,13 +17,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string Budget = "PBJ_BUDGET";
         public const string Item = "PBJ_ITEM";
 
+        // Manajemen vendor (BE-PBJ-VD-001; kamus data manajemen-vendor bagian 7).
+        public const string Vendor = "PBJ_VENDOR";
+        public const string VendorDocument = "PBJ_VENDOR_DOCUMENT";
+        public const string VendorStatusRequest = "PBJ_VENDOR_STATUS";
+        public const string VendorEvaluation = "PBJ_VENDOR_EVALUATION";
+
         private static readonly HashSet<string> Known = new(StringComparer.Ordinal)
         {
             PurchaseRequest,
             NeedPlan,
             PackagePlan,
             Budget,
-            Item
+            Item,
+            Vendor,
+            VendorDocument,
+            VendorStatusRequest,
+            VendorEvaluation
         };
 
         /// <summary>Jenis dokumen yang dikenal sub-modul ini. Jenis lain ditolak (fail-closed).</summary>

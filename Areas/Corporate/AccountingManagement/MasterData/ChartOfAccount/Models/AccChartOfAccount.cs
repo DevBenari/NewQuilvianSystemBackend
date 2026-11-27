@@ -83,6 +83,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         /// </summary>
         public bool IsControlAccount { get; set; } = false;
 
+        public AccountReportClassification? ReportClassification { get; set; }
+
+        public CurrentAssetCategory? CurrentAssetCategory { get; set; }
+
         public DateTime? EffectiveStartDate { get; set; }
 
         [MaxLength(500)]

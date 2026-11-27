@@ -50,6 +50,100 @@ public class StockRequestController : ControllerBase
             "Riwayat permintaan obat berhasil diambil."));
     }
 
+    /// <summary>
+    /// Linimasa aktivitas permintaan ("Riwayat Permintaan"): satu baris per perubahan yang
+    /// tercatat — dibuat, diajukan, disetujui, ditolak, diotorisasi CITO, diverifikasi,
+    /// diserahkan, dibatalkan — terbaru lebih dahulu.
+    /// </summary>
+    /// <remarks>
+    /// Hanya membaca riwayat yang sudah ada. Aturan bacanya sama dengan daftar permintaan
+    /// (<c>LGS-OQ-027</c> masih terbuka); <c>scope=1</c> membatasi pada kewenangan aktual.
+    /// </remarks>
+    [HttpGet("histories")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<StockRequestHistoryEntryResponse>>), StatusCodes.Status200OK)]
+    [AccessAction("Read", "Read Stock Request",
+        Description = "Melihat linimasa aktivitas permintaan obat", AccessType = AccessTypes.Read, SortOrder = 4)]
+    [AccessPermission("StockRequest", "Read")]
+    public async Task<IActionResult> GetHistories([FromQuery] StockRequestHistoryPagedQuery query,
+        CancellationToken cancellationToken)
+    {
+        var data = await _service.GetHistoryPagedAsync(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<StockRequestHistoryEntryResponse>>.Ok(data,
+            "Linimasa aktivitas permintaan obat berhasil diambil."));
+    }
+
+    /// <summary>
+    /// Laporan Distribusi Barang (FIN-LGS-024): penyerahan permintaan unit yang berstatus Selesai,
+    /// per unit peminta × obat × satuan, menurut waktu penyerahan.
+    /// </summary>
+    /// <remarks>
+    /// Periode kosong = 30 hari terakhir, paling panjang 366 hari. Aturan baca sama dengan daftar
+    /// permintaan (<c>LGS-OQ-027</c> masih terbuka); <c>scope=1</c> membatasi pada kewenangan aktual.
+    /// </remarks>
+    [HttpGet("reports/distribution")]
+    [ProducesResponseType(typeof(ApiResponse<DistributionReportResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    [AccessAction("Read", "Read Stock Request",
+        Description = "Melihat laporan distribusi barang", AccessType = AccessTypes.Read, SortOrder = 5)]
+    [AccessPermission("StockRequest", "Read")]
+    public async Task<IActionResult> GetDistributionReport([FromQuery] DistributionReportQuery query,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.GetDistributionReportAsync(query, cancellationToken);
+            return Ok(ApiResponse<DistributionReportResponse>.Ok(data,
+                "Laporan distribusi barang berhasil diambil."));
+        }
+        catch (LogisticsReportUnprocessableException ex) { return this.LogisticsReportUnprocessable(ex); }
+    }
+
+    /// <summary>
+    /// Cakupan kewenangan pengguna yang login: izin persetujuan eksplisit dan kewenangan CITO
+    /// ("Dalam Kewenangan Saya").
+    /// </summary>
+    /// <remarks>
+    /// Dihitung dari izin aktif pengguna sendiri di Akses Role, tanpa data HRD (FIN-LGS-070); tidak
+    /// menerima masukan dari klien dan tidak memuat identitas pegawai lain.
+    /// </remarks>
+    [HttpGet("approval-scope")]
+    [ProducesResponseType(typeof(ApiResponse<StockRequestApprovalScopeResponse>), StatusCodes.Status200OK)]
+    [AccessAction("Read", "Read Stock Request",
+        Description = "Melihat cakupan kewenangan persetujuan sendiri", AccessType = AccessTypes.Read, SortOrder = 3)]
+    [AccessPermission("StockRequest", "Read")]
+    public async Task<IActionResult> GetApprovalScope(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.GetApprovalScopeAsync(cancellationToken);
+            return Ok(ApiResponse<StockRequestApprovalScopeResponse>.Ok(data,
+                "Cakupan kewenangan persetujuan berhasil diambil."));
+        }
+        catch (StockRequestForbiddenException ex) { return this.StockRequestForbidden(ex); }
+    }
+
+    /// <summary>
+    /// Kesiapan izin dan konfigurasi persetujuan (hanya membaca): kebijakan akses dan akun aktif
+    /// yang memegang izin persetujuan dan CITO, batas aktivasi, dan tenggat verifikasi susulan.
+    /// </summary>
+    /// <remarks>
+    /// Berisi jumlah, tanpa identitas pegawai. Data organisasi HRD tidak lagi dibaca (FIN-LGS-070).
+    /// Izinnya terpisah (<c>StockRequest:ViewApprovalReadiness</c>) dan tidak diberikan kepada siapa
+    /// pun secara bawaan.
+    /// </remarks>
+    [HttpGet("approval-readiness")]
+    [ProducesResponseType(typeof(ApiResponse<StockRequestApprovalReadinessResponse>), StatusCodes.Status200OK)]
+    [AccessAction("ViewApprovalReadiness", "View Stock Request Approval Readiness",
+        Description = "Melihat kesiapan izin persetujuan permintaan stok",
+        AccessType = AccessTypes.Read, SortOrder = 14)]
+    [AccessPermission("StockRequest", "ViewApprovalReadiness")]
+    public async Task<IActionResult> GetApprovalReadiness(CancellationToken cancellationToken)
+    {
+        var data = await _service.GetApprovalReadinessAsync(cancellationToken);
+        return Ok(ApiResponse<StockRequestApprovalReadinessResponse>.Ok(data,
+            "Kesiapan data persetujuan berhasil diambil."));
+    }
+
     /// <summary>Rincian satu permintaan beserta itemnya dan riwayat statusnya.</summary>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<StockRequestDetailResponse>), StatusCodes.Status200OK)]
@@ -143,7 +237,7 @@ public class StockRequestController : ControllerBase
     /// <remarks>
     /// <para>
     /// Ini satu-satunya perintah milik gudang. Gudang tidak menyetujui dan tidak menolak
-    /// permintaan; keputusan milik atasan unit atau petugas CITO berwenang. Sejak
+    /// permintaan; keputusan milik pemegang izin persetujuan atau petugas CITO berwenang. Sejak
     /// <c>LGS-DEC-002</c> gudang hanya dapat menyerahkan permintaan berstatus Disetujui;
     /// permintaan yang masih menunggu persetujuan ditolak (`409`, kode <c>PHM016</c>). Hak
     /// aksesnya dipisah dari hak akses peminta, supaya penyusun permintaan tidak dengan
@@ -207,21 +301,21 @@ public class StockRequestController : ControllerBase
     }
 
     /// <summary>
-    /// Persetujuan atasan unit atas permintaan yang menunggu persetujuan (<c>LGS-DEC-002</c>).
+    /// Persetujuan atas permintaan yang menunggu persetujuan (<c>LGS-DEC-002</c>, disederhanakan
+    /// FIN-LGS-070).
     /// </summary>
     /// <remarks>
     /// Izin <c>StockRequest:Approve</c> diperiksa filter di bawah (kebijakan platform) dan
-    /// diperiksa ulang oleh service secara eksplisit terhadap penempatan jabatan, sehingga peran
-    /// SuperAdmin maupun saklar pengembangan tidak melewatinya. Pemutus juga wajib atasan unit
-    /// dari unit peminta: penempatan manajerial aktif pada unit organisasi yang ditautkan ke unit
-    /// layanan itu (`403` bila tidak, termasuk bila unit layanan belum ditautkan). Pemohon tidak boleh
-    /// menyetujui permintaannya sendiri (`403`). Keputusan hanya sah sekali (`409`, kode
+    /// diperiksa ulang oleh service secara eksplisit terhadap Akses Role, sehingga peran SuperAdmin
+    /// maupun saklar pengembangan tidak melewatinya (`403` bila izin tidak ada). Pemegang izin dapat
+    /// memutus permintaan unit mana pun; struktur jabatan dan penempatan HRD tidak dibaca. Pemohon
+    /// tidak boleh menyetujui permintaannya sendiri (`403`). Keputusan hanya sah sekali (`409`, kode
     /// <c>PHM018</c>). Tidak ada mutasi stok pada langkah ini.
     /// </remarks>
     [HttpPost("{id:guid}/approve")]
     [ProducesResponseType(typeof(ApiResponse<StockRequestDetailResponse>), StatusCodes.Status200OK)]
     [AccessAction("Approve", "Approve Stock Request",
-        Description = "Menyetujui atau menolak permintaan stok sebagai atasan unit",
+        Description = "Menyetujui atau menolak permintaan stok unit",
         AccessType = AccessTypes.Update, SortOrder = 10)]
     [AccessPermission("StockRequest", "Approve")]
     public async Task<IActionResult> Approve(Guid id, [FromBody] ApproveStockRequestRequest request,
@@ -243,13 +337,13 @@ public class StockRequestController : ControllerBase
     }
 
     /// <summary>
-    /// Penolakan atasan unit; alasannya wajib (`422`, kode <c>PHM015</c>). Kewenangannya sama
-    /// dengan persetujuan: izin dan atasan unit dari unit peminta.
+    /// Penolakan oleh penyetuju; alasannya wajib (`422`, kode <c>PHM015</c>). Kewenangannya sama
+    /// dengan persetujuan: izin <c>StockRequest:Approve</c> dan bukan pemohon.
     /// </summary>
     [HttpPost("{id:guid}/reject")]
     [ProducesResponseType(typeof(ApiResponse<StockRequestDetailResponse>), StatusCodes.Status200OK)]
     [AccessAction("Approve", "Approve Stock Request",
-        Description = "Menyetujui atau menolak permintaan stok sebagai atasan unit",
+        Description = "Menyetujui atau menolak permintaan stok unit",
         AccessType = AccessTypes.Update, SortOrder = 11)]
     [AccessPermission("StockRequest", "Approve")]
     public async Task<IActionResult> Reject(Guid id, [FromBody] RejectStockRequestRequest request,
@@ -277,8 +371,9 @@ public class StockRequestController : ControllerBase
     /// Izin <c>StockRequest:AuthorizeEmergency</c> terpisah dari persetujuan biasa dan tidak
     /// dimiliki siapa pun sampai diberikan secara eksplisit. Filter di atas mengikuti kebijakan
     /// platform yang meloloskan SuperAdmin; service memeriksa ulang bahwa izin itu benar-benar
-    /// diberikan kepada penempatan jabatan petugas, sehingga peran SuperAdmin saja ditolak
-    /// (`403`). Alasan wajib; permintaan non-darurat ditolak (`422`, kode <c>PHM017</c>).
+    /// diberikan lewat Akses Role, sehingga peran SuperAdmin saja ditolak (`403`). Tidak ada syarat
+    /// jabatan yang ditunjuk (FIN-LGS-070). Pemohon tidak boleh mengotorisasi permintaannya sendiri.
+    /// Alasan wajib; permintaan non-darurat ditolak (`422`, kode <c>PHM017</c>).
     /// </remarks>
     [HttpPost("{id:guid}/authorize-emergency")]
     [ProducesResponseType(typeof(ApiResponse<StockRequestDetailResponse>), StatusCodes.Status200OK)]
@@ -309,9 +404,9 @@ public class StockRequestController : ControllerBase
     /// darurat (<c>LGS-DEC-005</c>).
     /// </summary>
     /// <remarks>
-    /// Memakai izin persetujuan yang sama (<c>StockRequest:Approve</c>), karena verifikatornya
-    /// atasan unit peminta. Service memeriksa ulang izin itu secara eksplisit, kewenangan atas
-    /// unit, serta melarang pemohon dan petugas pengotorisasi CITO memverifikasi (`403`). Hasil
+    /// Memakai izin persetujuan yang sama (<c>StockRequest:Approve</c>), untuk permintaan unit mana
+    /// pun. Service memeriksa ulang izin itu secara eksplisit, serta melarang pemohon dan petugas
+    /// pengotorisasi CITO memverifikasi (`403`). Hasil
     /// <c>Deviation</c> wajib disertai catatan (`422`, <c>PHM008</c>). Verifikasi hanya sah sekali
     /// (`409`, <c>PHM019</c>); permintaan yang tidak lewat jalur CITO ditolak (`409`,
     /// <c>PHM010</c>). Tidak ada perubahan status maupun mutasi stok.
@@ -319,7 +414,7 @@ public class StockRequestController : ControllerBase
     [HttpPost("{id:guid}/verify-emergency")]
     [ProducesResponseType(typeof(ApiResponse<StockRequestDetailResponse>), StatusCodes.Status200OK)]
     [AccessAction("Approve", "Approve Stock Request",
-        Description = "Menyetujui atau menolak permintaan stok sebagai atasan unit",
+        Description = "Menyetujui atau menolak permintaan stok unit",
         AccessType = AccessTypes.Update, SortOrder = 13)]
     [AccessPermission("StockRequest", "Approve")]
     public async Task<IActionResult> VerifyEmergency(Guid id,

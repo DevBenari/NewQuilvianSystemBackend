@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `13` — 2026-10-20: bagian 23 — dua laporan `S16b`: nol tabel, nol kolom, satu index usulan `LabTransitionHistory (Action, OccurredAt)`; kolom kunci yang dibaca, `MstPatient` dan `ReasonNote` bertanda sensitif. Sebelumnya `12` — 2026-10-09: putaran 28 (`LAB-CONFLICT-019`) — nol tabel, nol kolom; penjelasan `LabExamination.Urgency`, `UrgencyMarkedAt`, dan `LabOrderedProcedure.Urgency` diperjelas (`02-backend-architecture.md` 29.2). Sebelumnya `11` — bagian 22, 2026-10-08: BR-140 Beranda — nol tabel, nol kolom; kolom `LabOrder`, `LabOrderedProcedure`, `LabExamination` yang dibaca dicatat. Sebelumnya `10` — bagian 21, 2026-10-07: BR-139 — nol tabel, nol kolom; `MstDoctor` dibaca empat kolom. Sebelumnya `9` — bagian 20, 2026-10-07: BR-138 — nol tabel, nol kolom. Sebelumnya `8` — bagian 19, 2026-09-25: `S16a` — nol tabel, nol kolom, satu index `LabSpecimen.DecidedAt`. Sebelumnya `7` — bagian 18, 2026-09-25: `S4d-1` — nol tabel, nol kolom. Sebelumnya `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
+| Revision | `14` — 2026-11-25: bagian 24 — penjadwalan ulang `S20-1`: kolom `LabOrder.PlannedDate` (`date`, wajib), tabel baru `LabOrderReschedule`, dua index (`draft`). Sebelumnya `13` — 2026-10-20: bagian 23 — dua laporan `S16b`: nol tabel, nol kolom, satu index usulan `LabTransitionHistory (Action, OccurredAt)`; kolom kunci yang dibaca, `MstPatient` dan `ReasonNote` bertanda sensitif. Sebelumnya `12` — 2026-10-09: putaran 28 (`LAB-CONFLICT-019`) — nol tabel, nol kolom; penjelasan `LabExamination.Urgency`, `UrgencyMarkedAt`, dan `LabOrderedProcedure.Urgency` diperjelas (`02-backend-architecture.md` 29.2). Sebelumnya `11` — bagian 22, 2026-10-08: BR-140 Beranda — nol tabel, nol kolom; kolom `LabOrder`, `LabOrderedProcedure`, `LabExamination` yang dibaca dicatat. Sebelumnya `10` — bagian 21, 2026-10-07: BR-139 — nol tabel, nol kolom; `MstDoctor` dibaca empat kolom. Sebelumnya `9` — bagian 20, 2026-10-07: BR-138 — nol tabel, nol kolom. Sebelumnya `8` — bagian 19, 2026-09-25: `S16a` — nol tabel, nol kolom, satu index `LabSpecimen.DecidedAt`. Sebelumnya `7` — bagian 18, 2026-09-25: `S4d-1` — nol tabel, nol kolom. Sebelumnya `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 3 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 12 |
 | Backend SHA | Revision 1-2: `c87d9c0`. **Revision 3: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -1601,3 +1601,99 @@ sudah ada; yang didokumentasikan di sini hanya kolom kunci yang dipakai aturan l
 | `MstServiceUnit` (Master Data) | `Id`, `ServiceUnitName`, `IsActive` | Nama unit; pilihan penyaring | Tidak |
 | `MstPatient` (data induk pasien) | `Id`, `MedicalRecordNumber`, `FullName` | Kolom No. RM dan nama — **Laporan Pembatalan saja** | **Ya** — tidak disalin, tidak masuk log, tidak dipakai sebagai contoh berisi data asli |
 | `Users` (Platform) | `Id`, `DisplayName` (cadangan `UserName`/`Email`/`UserCode`) | Nama pembatal | Tidak |
+
+## 24. Amandemen 2026-11-25 — Penjadwalan ulang pemeriksaan (`S20-1`): satu kolom, satu tabel, dua index
+
+Menurunkan `02-backend-architecture.md` bagian 33 (`draft`). **`LabOrder` Diperbarui** (satu kolom) dan **`LabOrderReschedule`
+Baru**. Kamus bertingkat: kedua tabel itu ditulis lengkap; tabel `Sudah ada` hanya kolom kunci yang dipakai aturan jadwal
+ulang. Seluruh tabel mewarisi `IdentityModel` (kepala dokumen).
+
+### 24.1 ERD bagian ini
+
+```mermaid
+erDiagram
+    LabOrder ||--o{ LabOrderReschedule : "riwayat jadwal ulang"
+    LabOrder ||--o{ LabSpecimen : "wadah"
+    LabOrder ||--|{ LabOrderedProcedure : "permintaan"
+    LabOrder ||--o{ LabExamination : "pemeriksaan"
+    RegPatientEncounter ||--o{ LabOrder : "kunjungan (baca status)"
+    McuOrderComponent }o--o| LabOrder : "tautan MCU (baca)"
+    LabOrder {
+        uuid Id PK
+        uuid EncounterId FK
+        int OrderStatus
+        int StatusBeforeHold "nullable"
+        date PlannedDate "BARU, NOT NULL"
+        int Version "token konkurensi"
+    }
+    LabOrderReschedule {
+        uuid Id PK
+        uuid LabOrderId FK "Restrict"
+        date PreviousPlannedDate
+        date NewPlannedDate
+        varchar Reason "1000"
+        uuid ActorUserId
+        timestamptz OccurredAt
+    }
+```
+
+| Entity | Status | Owner |
+|---|---|---|
+| `LabOrder` | **Extend** (Diperbarui) | Laboratorium |
+| `LabOrderReschedule` | **New** (Baru) | Laboratorium |
+| `LabSpecimen`, `LabOrderedProcedure`, `LabExamination` | Existing | Laboratorium |
+| `RegPatientEncounter` | Existing — baca | Registrasi |
+| `McuOrderComponent` | Existing — baca | MCU |
+
+### 24.2 `public.LabOrder` — Diperbarui
+
+Model: `Areas/HealthServices/LaboratoryManagement/Models/LabOrder.cs`. Configuration:
+`Repositories/Configurations/HealthServices/LabOrderConfiguration.cs`. **Hanya kolom yang berubah:**
+
+| Kolom | Tipe | Wajib | Bawaan | Batas / validasi | Sensitif | Arti |
+|---|---|:---:|---|---|:---:|---|
+| `PlannedDate` | `date` (`DateOnly`) | **Ya** | **Tanpa** bawaan basis data — diisi aplikasi: `plannedDate` permintaan atau hari ini WIB | ≥ hari ini WIB saat pesanan lahir (`VAL-166`) dan saat jadwal ulang (`VAL-157`); **tidak** dibatasi atas | Tidak | Tanggal rencana pemeriksaan (`LAB-DC-066`). Tanggal murni — bukan waktu tengah malam UTC |
+
+| Index | Kolom | Unique | Alasan |
+|---|---|:---:|---|
+| `IX_LabOrder_PlannedDate` | `PlannedDate` | Tidak | Daftar pantau `dateCategory=PlannedDate` dan `includeOverdue` |
+
+**Isi data lama** (migration langkah 2): `PlannedDate = (COALESCE(RequestedAt, CreateDateTime) AT TIME ZONE 'Asia/Jakarta')::date`.
+*Contoh:* diminta `2026-10-08 18:30 UTC` → `2026-10-09`.
+
+### 24.3 `public.LabOrderReschedule` — Baru
+
+Model: `Areas/HealthServices/LaboratoryManagement/Models/LabOrderReschedule.cs`.
+Configuration: `Repositories/Configurations/HealthServices/LaboratoryManagement/LabOrderRescheduleConfiguration.cs`.
+Satu baris per jadwal ulang **yang berhasil**; tidak pernah diubah; tidak dihapus (penghapusan lunak `IsDelete` tidak dipakai
+alur mana pun).
+
+| Kolom | Tipe | Wajib | Bawaan | Batas / validasi | Sensitif | Arti |
+|---|---|:---:|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | PK | Tidak | Identitas peristiwa |
+| `LabOrderId` | `uuid` | Ya | — | FK → `LabOrder.Id`, `DeleteBehavior.Restrict` | Tidak | Pesanan yang dipindah |
+| `PreviousPlannedDate` | `date` | Ya | — | Sama dengan `LabOrder.PlannedDate` sebelum tulis | Tidak | Tanggal lama |
+| `NewPlannedDate` | `date` | Ya | — | ≥ hari ini WIB; ≠ `PreviousPlannedDate` | Tidak | Tanggal baru |
+| `Reason` | `varchar(1000)` | Ya | — | Tidak kosong sesudah *trim* (`VAL-159`) | **Ya** — dapat menyebut kondisi pasien; **tidak** masuk log, **tidak** dikirim ke kiosk | Alasan jadwal ulang |
+| `ActorUserId` | `uuid` | Ya | Pengguna terautentikasi | Tidak diterima dari permintaan | Tidak | Pelaku |
+| `OccurredAt` | `timestamp with time zone` | Ya | `DateTime.UtcNow` saat simpan | UTC | Tidak | Waktu jadwal ulang |
+
+| Index | Kolom | Unique | Alasan |
+|---|---|:---:|---|
+| `IX_LabOrderReschedule_LabOrderId_OccurredAt` | `LabOrderId`, `OccurredAt` | Tidak | Riwayat per pesanan terbaru di atas; `rescheduleCount` |
+
+**Contoh baris** (data samaran): `LabOrderId` = pesanan `LAB-RSMMC-900031`; `PreviousPlannedDate` `2026-12-02`;
+`NewPlannedDate` `2026-12-03`; `Reason` *pasien belum puasa*; `OccurredAt` `2026-12-02 00:40 UTC` (07.40 WIB).
+
+### 24.4 Kolom yang dibaca aturan kelayakan (tabel `Sudah ada`)
+
+| Tabel (pemilik) | Kolom | Dipakai untuk | Sensitif |
+|---|---|---|:---:|
+| `LabOrder` (Lab) | `OrderStatus`, `StatusBeforeHold`, `Version`, `EncounterId` | `VAL-160`, `VAL-165`, `VAL-162` | Tidak |
+| `LabSpecimen` (Lab) — `Models/LabSpecimen.cs` | `LabOrderId`, `SpecimenStatus`, `StatusBeforeHold`, `IsDelete` | `VAL-161` | Tidak |
+| `LabOrderedProcedure` (Lab) | `LabOrderId`, `Urgency`, `OrderedStatus` | `VAL-163` (CITO permintaan) | Tidak |
+| `LabExamination` (Lab) | `LabOrderId`, `Urgency`, `ExaminationStatus` | `VAL-163` (CITO pemeriksaan) | Tidak |
+| `RegPatientEncounter` (Registrasi) | `Id`, `EncounterStatus` | `VAL-162` | Tidak |
+| `McuOrderComponent` (MCU) — `MedicalCheckupManagement/Models/McuOrderComponent.cs` | `LabOrderId`, `IsDelete` | `VAL-164` | Tidak |
+| `Users` (Platform) | `Id`, `DisplayName` (cadangan `UserName`/`Email`/`UserCode`) | `actorName` riwayat | Tidak |
+

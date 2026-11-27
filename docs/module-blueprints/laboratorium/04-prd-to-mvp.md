@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `20` — bagian 32, 2026-10-20: `EPIC-LAB-20` Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`), gelombang `MVP-15a`..`e`; kontrak **`approved` 2026-10-20** beserta keenam butir 32.10. Sebelumnya `19` — bagian 31, pencatatan susulan kolom tabel v1 dan halaman hasil v1 (`r47`, `r48`), 2026-10-14 — `LAB-REQ-024`, `LAB-REQ-025`. Sebelumnya `18` — bagian 30.1, rencana ulang sesudah wadah dibatalkan (putaran 29), 2026-10-09 — kontrak usulan `LAB-REQ-023`. Sebelumnya `17` — bagian 30, CITO dari pemesanan sampai ke pemeriksaan (putaran 28), 2026-10-09 — kontrak usulan `LAB-REQ-022`. Sebelumnya `16` — bagian 29, `EPIC-LAB-19` Beranda Lab mengikuti susunan v1 (BR-140), 2026-10-08 — kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — bagian 28, lingkup kunci Lunas (putaran 27), 2026-10-08 — kontrak usulan `LAB-REQ-020`. Sebelumnya `14` — bagian 27, alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), 2026-10-08 — kontrak usulan `LAB-REQ-019`. Sebelumnya `13` — bagian 26, `EPIC-LAB-18` diperluas (dokter pemeriksa bagi pengonfirmasi, jejak konfirmasi), 2026-10-07 — kontrak `r41`/revision 14 masih usulan `LAB-REQ-017`. Sebelumnya `12` — bagian 25, `EPIC-LAB-18` urutan kerja v1 di daftar pasien lab, 2026-10-07 — kontrak `r40`/`r8`/`r17`/revision 13 masih usulan `LAB-REQ-016`. Sebelumnya `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
+| Revision | `21` — bagian 33, 2026-11-25: `EPIC-LAB-21` penjadwalan ulang pemeriksaan (`S20-1`), gelombang `MVP-16a`..`e`; kontrak dan enam butir 33.10 **`approved` 2026-11-25**. Sebelumnya `20` — bagian 32, 2026-10-20: `EPIC-LAB-20` Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`), gelombang `MVP-15a`..`e`; kontrak **`approved` 2026-10-20** beserta keenam butir 32.10. Sebelumnya `19` — bagian 31, pencatatan susulan kolom tabel v1 dan halaman hasil v1 (`r47`, `r48`), 2026-10-14 — `LAB-REQ-024`, `LAB-REQ-025`. Sebelumnya `18` — bagian 30.1, rencana ulang sesudah wadah dibatalkan (putaran 29), 2026-10-09 — kontrak usulan `LAB-REQ-023`. Sebelumnya `17` — bagian 30, CITO dari pemesanan sampai ke pemeriksaan (putaran 28), 2026-10-09 — kontrak usulan `LAB-REQ-022`. Sebelumnya `16` — bagian 29, `EPIC-LAB-19` Beranda Lab mengikuti susunan v1 (BR-140), 2026-10-08 — kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — bagian 28, lingkup kunci Lunas (putaran 27), 2026-10-08 — kontrak usulan `LAB-REQ-020`. Sebelumnya `14` — bagian 27, alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), 2026-10-08 — kontrak usulan `LAB-REQ-019`. Sebelumnya `13` — bagian 26, `EPIC-LAB-18` diperluas (dokter pemeriksa bagi pengonfirmasi, jejak konfirmasi), 2026-10-07 — kontrak `r41`/revision 14 masih usulan `LAB-REQ-017`. Sebelumnya `12` — bagian 25, `EPIC-LAB-18` urutan kerja v1 di daftar pasien lab, 2026-10-07 — kontrak `r40`/`r8`/`r17`/revision 13 masih usulan `LAB-REQ-016`. Sebelumnya `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
 | Status | `draft` |
 | Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
 | Scope tambahan revision 5 | **`EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan** dan gelombang `MVP-5c` — lihat bagian 17. Ditambahkan 2026-09-15 dari rekonsiliasi bukti putaran 2 |
@@ -1986,3 +1986,133 @@ pratinjau tidak terbuka.
 |---|---|---|
 | ~~Keenam butir `02-backend-architecture.md` 32.10~~ | ✅ **Disetujui 2026-10-20** — tidak lagi memblokir | Yoga Aji Pratama |
 | Izin tulis data uji devYoga | Tidak bagi desain; ya bagi `T-S16B-16` | Yoga Aji Pratama |
+
+## 33. Amandemen 2026-11-25 — `EPIC-LAB-21` Penjadwalan ulang pemeriksaan (`S20-1`)
+
+Menurunkan `02-backend-architecture.md` rev 24 bagian 33, `03-frontend-architecture.md` amandemen 2026-11-25,
+`erd/data-dictionary.md` rev 14 bagian 24, dan usulan kontrak `LAB-API-v1` `r50`, `LAB-PERM-v1` revision 18,
+`LAB-VAL-v1` `r22`, `LAB-STATE-v1` `r12` — **keempatnya `approved` 2026-11-25** oleh Yoga Aji Pratama beserta enam butir
+33.10. `LAB-INT-v1` `r6` berlaku apa adanya: nol integrasi baru (A9.11). Arsitektur domain `LAB-DA-001` rev 12 bagian A9;
+requirement `LAB-RCG-001` rev 14 bagian 0I; decisions rev 143.
+
+**Seluruh yang disebut di bawah sudah tercatat pada dokumen itu. Satu kolom (`LabOrder.PlannedDate`), satu tabel
+(`LabOrderReschedule`), nol status baru.**
+
+### 33.1 Batas epic
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Pesanan Lab lahir dengan tanggal rencana (bawaan hari ini WIB); petugas pemegang `LabOrder : Reschedule` membuka Daftar Pasien Lab atau detail pesanan |
+| **Titik akhir** | Tanggal rencana berganti beralasan dan tercatat; pesanan tampil di daftar tanggal barunya; pesanan yang tidak datang tampil *Terlewat*; kiosk menampilkan tanggal rencana. **Bukan** bagian epic: pilihan tanggal di layar dokter (`S20-2`) |
+
+**Yang dianggap selesai:** petugas meja penerimaan dapat memindahkan pemeriksaan pasien yang belum siap ke hari lain
+tanpa membatalkan pesanan, dengan jejak siapa–kapan–dari-ke–mengapa; sistem menolak memindahkan pesanan yang sampelnya
+sudah diambil, yang kunjungannya sudah selesai, yang memuat CITO, atau yang bagian MCU — dengan alasan yang sama di layar
+dan di server.
+
+### 33.2 Kemampuan `MUST HAVE`
+
+| ID kemampuan asal | Kemampuan | Disposisi |
+|---|---|---|
+| `CAP-P32-01` | Tanggal rencana pada pesanan | **`MISSING / NEW`** — `LabOrder.PlannedDate` |
+| `CAP-P32-02` | Riwayat jadwal ulang | **`MISSING / NEW`** — `LabOrderReschedule` (bukan perluasan `LabTransitionHistory`, usulan 33.10 no. 1) |
+| `CAP-P32-03` | Aksi izin + pemberian bawaan | **`EXTEND`** — pola atribut dan seeder salin-izin |
+| `CAP-P32-05` | Alasan wajib | **`EXISTING / REUSE`** — pola `VAL-74` |
+| `CAP-P32-06` | Konkurensi | **`EXISTING / REUSE`** — `LabOrder.Version` |
+| `CAP-P32-07` | Penjaga kunjungan selesai | **`EXTEND`** — pola `VAL-67` |
+| `CAP-P32-04`, `CAP-P32-08`, `CAP-P32-09` | Jendela status/wadah, CITO, tautan MCU | **`MISSING / NEW`** — `LabRescheduleEligibility` |
+| `CAP-P32-10` | Kategori periode *Tanggal Rencana* | **`EXTEND`** |
+| `CAP-P32-11` | Penanda kelayakan + *Terlewat* per baris | **`MISSING / NEW`** |
+| `CAP-P32-12` | Aksi di detail pesanan | **`EXTEND`** |
+| `CAP-P32-13` | Kiosk menampilkan tanggal rencana | **`EXTEND`** |
+| `CAP-P32-14` | Ruas opsional pembuatan pesanan | **`EXTEND`** |
+| `CAP-P32-15` | Jadwal ulang bukan pembatalan | **`EXISTING / REUSE`** — Laporan Pembatalan tidak disentuh |
+
+**Yang ditunda, beserta penggantinya selama MVP:**
+
+| Ditunda | Sebab | Pengganti selama MVP |
+|---|---|---|
+| Pilihan tanggal di layar dokter poli/IGD/Rawat Inap (`S20-2`) | `LAB-COORD-023` — layar milik modul lain | Dokter menulis *cek {hari}* di catatan; petugas Lab menjadwalkan ulang (`LAB-DEC-269`) |
+| Pencabutan CITO pada permintaan | `LAB-DEC-271` | Batal beralasan lalu pesan ulang |
+| Laporan jadwal ulang | `LAB-DEC-268` | Riwayat di detail pesanan |
+| Pemberitahuan pasien | `S17` | Petugas menghubungi pasien |
+| Tombol Tahan/Lanjutkan pesanan di layar | Di luar scope (F32-11) | Lewat API |
+
+### 33.3 Functional requirement
+
+| ID | Kebutuhan | Dapat diuji lewat | Disposisi |
+|---|---|---|---|
+| `FR-21.1` | Setiap pesanan punya tanggal rencana WIB; bawaan hari ini; pemesan boleh mengirim tanggal ke depan; lampau ditolak (`VAL-166`); pesanan lama diisi dari waktu diminta WIB | `AC-339`; `T-S20-01`, `T-S20-02` | `MISSING / NEW` |
+| `FR-21.2` | `PUT /lab-orders/{id}/reschedule` mengganti tanggal rencana dan menulis tepat satu riwayat; status, wadah, kunjungan, CITO tidak berubah | `AC-338`, `AC-343`; `T-S20-03` | `MISSING / NEW` |
+| `FR-21.3` | Jendela: `Requested`/`Confirmed`/`OnHold`-nya, wadah nihil atau `Planned` (efektif), `Rejected` menolak, `RecollectionRequired`/`Cancelled` diabaikan | `AC-341`, `AC-355`; `T-S20-04`, `T-S20-05` | `MISSING / NEW` |
+| `FR-21.4` | Penolakan kunjungan selesai, CITO aktif (termasuk permintaan), dan pesanan bertaut MCU | `AC-347`, `AC-348`, `AC-350`; `T-S20-06`..`T-S20-08` | `MISSING / NEW` |
+| `FR-21.5` | Isi: tanggal ≥ hari ini dan ≠ saat ini; alasan wajib; tanpa batas jumlah/jarak | `AC-342`, `AC-349`; `T-S20-09` | `MISSING / NEW` |
+| `FR-21.6` | Izin `LabOrder : Reschedule`; seeder salin dari `Hold`; Kepala Instalasi lewat langkah rilis | `AC-340`, `AC-354`; `T-S20-10`, `T-S20-11` | `EXTEND` |
+| `FR-21.7` | Penanda `canReschedule` + alasan per pesanan, satu rumus dengan penjaga | `AC-353`; `T-S20-12` | `MISSING / NEW` |
+| `FR-21.8` | Daftar pantau: kategori `PlannedDate`, `includeOverdue`, penanda *Terlewat*; bawaan layar daftar kerja *Tanggal Rencana*, Hasil dan Riwayat tetap *Tanggal Order*; API kosong = `OrderDate` | `AC-344`, `AC-346`, `AC-356`; `T-S20-13` | `EXTEND` |
+| `FR-21.9` | Riwayat jadwal ulang dibaca pemegang `LabOrder : Read`; tidak masuk Laporan Pembatalan | `AC-352`; `T-S20-15` | `MISSING / NEW` |
+| `FR-21.10` | Kiosk menampilkan tanggal rencana, *lebih awal*, *Terlewat*; tetap nol tulis | `AC-351`; `T-S20-16` | `EXTEND` |
+| `FR-21.11` | Tanggal rencana tidak menghalangi wadah direncanakan/diambil | `AC-345`; `T-S20-17` | `EXISTING / REUSE` — nol penjaga baru |
+| `FR-21.12` | Layar: aksi baris + tombol detail, dialog tanggal + alasan, riwayat, *Dijadwalkan ulang n kali* | `03-frontend-architecture.md` amandemen 2026-11-25; `T-S20-18` | `EXTEND` |
+| `FR-21.13` | Versi pada permintaan menolak layar basi | `T-S20-14` | `MISSING / NEW` — disetujui 33.10 no. 2 |
+
+### 33.4 Skenario UAT
+
+Seluruh data samaran. Hari uji: **Senin 2 Desember 2026**.
+
+**Jalur berhasil — pasien belum puasa.** Gula Darah Puasa `LAB-RSMMC-900031` (`Confirmed`, wadah `Planned`) tampil di Daftar
+Pasien Lab bawaan hari ini. Gilang memilih *Jadwal Ulang*, mengisi Selasa 3 Desember dan *pasien belum puasa* → pesanan hilang
+dari daftar Senin, muncul di daftar Selasa; detail menampilkan *Dijadwalkan ulang 1 kali* dan riwayatnya.
+
+**Jalur berhasil — pasien tidak datang.** Profil Lipid bertanggal Senin tidak diambil sampelnya. Rabu, daftar bawaan memuatnya
+dengan *Terlewat 2 hari*; Gilang memindahkannya ke Jumat atas permintaan pasien.
+
+**Jalur berhasil — ambil ulang.** Kalium hemolisis; Gilang meminta ambil ulang lalu memindahkan ke besok → berhasil.
+
+**Jalur berhasil — kiosk.** Pasien datang Jumat untuk rencana Senin → kiosk menampilkan *rencana 02-12-2026 (lebih awal)*;
+konfirmasi berjalan.
+
+**Jalur gagal — sampel sudah diambil.** Kolesterol berwadah `Collected` → tombol *Jadwal Ulang* nonaktif *Sampel sudah
+diambil…*; panggilan API langsung → `409` pesan yang sama.
+
+**Jalur gagal — CITO.** Troponin CITO belum berwadah → nonaktif *Pesanan memuat pemeriksaan CITO…*; dr. Arif membatalkan
+lalu memesan ulang tanpa CITO untuk besok.
+
+**Jalur gagal — MCU dan kunjungan.** HbA1c tambahan MCU → nonaktif *bagian MCU*. Pasien rawat inap sudah pulang → nonaktif
+*Kunjungan … sudah selesai*.
+
+**Jalur gagal — izin dan isi.** dr. Nabila (tanpa `Reschedule`) tidak melihat tombol; `PUT` dipaksa → `403`. Gilang memilih
+kemarin → `422`; alasan kosong → Simpan nonaktif, dipaksa lewat API → `422`.
+
+### 33.5 Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| `LAB-API-v1` `r50`, `LAB-PERM-v1` rev 18, `LAB-VAL-v1` `r22`, `LAB-STATE-v1` `r12` `approved`, beserta enam butir 33.10 | Tabel status kontrak dan `approved_by` |
+| Migration diterapkan ke devYoga atas instruksi; seluruh pesanan lama punya `PlannedDate` = tanggal diminta WIB | Kueri baca-saja hitung `PlannedDate IS NULL` = 0 dan contoh lintas tengah malam |
+| `T-S20-01`..`T-S20-18` lulus | Laporan task dengan keluaran |
+| Validator izin menerima `LabOrder : Reschedule`; seeder memberi Analis; Kepala Instalasi diberi lewat Role Access | `T-S20-10`, `T-S20-11`; kebijakan pada `SysAccessPolicies` |
+| Log jadwal ulang tanpa alasan dan identitas pasien | Kutipan log pada laporan task |
+| Laporan Pembatalan dan Beranda tidak berubah angka | Uji regresi `T-S16B-*` terpilih |
+| Data uji (pesanan lampau `Confirmed`, MCU di luar paket, CITO pra-wadah, ambil ulang) tersedia — izin tulis tersendiri | `T-S20-*` dengan data asli |
+
+### 33.6 Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `MVP-16a` | Migration + `PlannedDate` pada pembuatan pesanan (`FR-21.1`) — rilis bersama, lihat 33.7 `02-backend-architecture.md` | Kontrak `approved` |
+| `MVP-16b` | `LabRescheduleEligibility`, `PUT reschedule`, `GET reschedules`, izin + seeder (`FR-21.2`..`21.7`, `21.9`, `21.13`) | `MVP-16a` |
+| `MVP-16c` | Daftar pantau + detail + kiosk BE (`FR-21.7`, `21.8`, `21.10`) | `MVP-16b` |
+| `MVP-16d` | Frontend: daftar, dialog, detail, kiosk (`FR-21.12`) | `MVP-16c` |
+| `MVP-16e` | Rilis: Kepala Instalasi diberi izin; data uji; UAT | `MVP-16d` |
+| `POST-MVP` | `S20-2` layar dokter; `LAB-OPEN-056` | `LAB-COORD-023`; keputusan pemilik |
+
+### 33.7 Pertanyaan terbuka sebelum development lock
+
+| Pertanyaan | Memblokir | Pemilik |
+|---|---|---|
+| ~~Enam butir `02-backend-architecture.md` 33.10~~ | ✅ **Disetujui 2026-11-25** — tidak lagi memblokir | Yoga Aji Pratama |
+| ~~Persetujuan keempat kontrak~~ | ✅ **Disetujui 2026-11-25** | Yoga Aji Pratama |
+| Izin tulis data uji devYoga | Tidak bagi desain; ya bagi UAT data asli | Yoga Aji Pratama |
+| `LAB-COORD-023` | Tidak — hanya `S20-2` | Pemilik layar poli/IGD/Rawat Inap |
+

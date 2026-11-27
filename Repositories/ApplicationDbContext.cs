@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Models;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.Models;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
@@ -49,6 +50,7 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Models;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Models;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.PhysicalInventory.Models;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Models;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Valuation.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -467,8 +469,6 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PrlTaxPolicy> PrlTaxPolicies { get; set; }
         // PAY-BE-FIX-016: tabel dibuat lewat DDL pemilik (PAY-BE-FIX-015 bagian 9.1). Hanya dibaca setelah keberadaannya diperiksa (PayrollOpeningTaxBalanceStoreSource).
         public DbSet<PrlOpeningTaxBalance> PrlOpeningTaxBalances { get; set; }
-        // LEGACY_PERSISTED (PAY-BE-FIX-007): tidak ada consumer aktif; dipertahankan agar model EF tetap sinkron dengan database dan snapshot migration.
-        public DbSet<PrlBpjsPolicy> PrlBpjsPolicies { get; set; }
         public DbSet<PrlPayrollRun> PrlPayrollRuns { get; set; }
         public DbSet<PrlPayrollRunEmployee> PrlPayrollRunEmployees { get; set; }
         public DbSet<HrdPayrollSetting> HrdPayrollSettings { get; set; }
@@ -730,6 +730,11 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<AstAssetBook> AstAssetBooks { get; set; }
         public DbSet<AstAssetValueEntry> AstAssetValueEntries { get; set; }
         public DbSet<AstAccountingOutbox> AstAccountingOutboxes { get; set; }
+        public DbSet<AstDepreciationRun> AstDepreciationRuns { get; set; }
+        public DbSet<AstDepreciationRunLine> AstDepreciationRunLines { get; set; }
+        public DbSet<AstValueChangeRequest> AstValueChangeRequests { get; set; }
+        public DbSet<AstSubledgerAccountSetup> AstSubledgerAccountSetups { get; set; }
+        public DbSet<AstUnitCostCenter> AstUnitCostCenters { get; set; }
         #endregion CORPORATE - ASSET MANAGEMENT - VALUATION
 
         #region CORPORATE - ASSET MANAGEMENT - MOVEMENT
@@ -739,6 +744,15 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<AstLoanItem> AstLoanItems { get; set; }
         public DbSet<AstLoanExtension> AstLoanExtensions { get; set; }
         #endregion CORPORATE - ASSET MANAGEMENT - MOVEMENT
+
+        #region CORPORATE - ASSET MANAGEMENT - PHYSICAL INVENTORY
+        public DbSet<AstStockTakeSession> AstStockTakeSessions { get; set; }
+        public DbSet<AstStockTakeTeamMember> AstStockTakeTeamMembers { get; set; }
+        public DbSet<AstStockTakeExpectedItem> AstStockTakeExpectedItems { get; set; }
+        public DbSet<AstStockTakeScan> AstStockTakeScans { get; set; }
+        public DbSet<AstStockTakeResult> AstStockTakeResults { get; set; }
+        public DbSet<AstStockTakeFollowUp> AstStockTakeFollowUps { get; set; }
+        #endregion CORPORATE - ASSET MANAGEMENT - PHYSICAL INVENTORY
 
         #endregion CORPORATE
 
@@ -1102,6 +1116,10 @@ namespace QuilvianSystemBackend.Repositories
         // rawat-jalan Amendment RP (BE-RJP-005) — Reservasi Pasien Prioritas.
         public DbSet<RegPriorityReservation> RegPriorityReservations { get; set; }
         public DbSet<RegPriorityReservationHistory> RegPriorityReservationHistories { get; set; }
+        // kiosk Amendment PO (BE-KSK-PO-001) — Pendaftaran Pasien Online.
+        public DbSet<RegOnlineRegistration> RegOnlineRegistrations { get; set; }
+        public DbSet<RegOnlineRegistrationReferralDocument> RegOnlineRegistrationReferralDocuments { get; set; }
+        public DbSet<RegOnlineRegistrationHistory> RegOnlineRegistrationHistories { get; set; }
         // rawat-jalan Cetak Antrean Admisi v1.1 — tiket antrean admisi anonim dari kiosk.
         public DbSet<RegAdmissionTicket> RegAdmissionTickets { get; set; }
         public DbSet<RegAdmissionTicketHistory> RegAdmissionTicketHistories { get; set; }
@@ -1135,6 +1153,11 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmDrugBatch> PhmDrugBatches { get; set; }
         public DbSet<PhmDrugStockBalance> PhmDrugStockBalances { get; set; }
         public DbSet<PhmDrugStockMutation> PhmDrugStockMutations { get; set; }
+
+        // Stock Opname Logistik (FIN-LGS-091). Tabelnya menunggu migrasi oleh pihak berwenang;
+        // sebelum itu layanan menjawab BLOCKED_SCHEMA (PHM039), bukan galat basis data mentah.
+        public DbSet<PhmStockOpname> PhmStockOpnames { get; set; }
+        public DbSet<PhmStockOpnameLine> PhmStockOpnameLines { get; set; }
 
         public DbSet<PhmDrugReturn> PhmDrugReturns { get; set; }
         public DbSet<PhmDrugReturnItem> PhmDrugReturnItems { get; set; }
@@ -1208,6 +1231,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<LabOrderedProcedure> LabOrderedProcedures { get; set; }
 
         public DbSet<LabTransitionHistory> LabTransitionHistories { get; set; }
+
+        public DbSet<LabOrderReschedule> LabOrderReschedules { get; set; }
 
         public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }
 
@@ -1494,6 +1519,19 @@ namespace QuilvianSystemBackend.Repositories
         // BE-PBJ-011: rencana paket hasil konsolidasi.
         public DbSet<PrcPackagePlan> PrcPackagePlans { get; set; }
         public DbSet<PrcPackagePlanLine> PrcPackagePlanLines { get; set; }
+
+        // BE-PBJ-VD-001: manajemen vendor — master konfigurasi vendor.
+        public DbSet<MstProcurementVendorDocumentType> MstProcurementVendorDocumentTypes { get; set; }
+        public DbSet<MstProcurementCategoryDocumentRequirement> MstProcurementCategoryDocumentRequirements { get; set; }
+        public DbSet<MstProcurementEvaluationCriterion> MstProcurementEvaluationCriteria { get; set; }
+
+        // BE-PBJ-VD-001: manajemen vendor — profil, kategori, dokumen, usulan status, penilaian.
+        public DbSet<PrcVendorProfile> PrcVendorProfiles { get; set; }
+        public DbSet<PrcVendorCategory> PrcVendorCategories { get; set; }
+        public DbSet<PrcVendorDocument> PrcVendorDocuments { get; set; }
+        public DbSet<PrcVendorStatusRequest> PrcVendorStatusRequests { get; set; }
+        public DbSet<PrcVendorEvaluation> PrcVendorEvaluations { get; set; }
+        public DbSet<PrcVendorEvaluationScore> PrcVendorEvaluationScores { get; set; }
         #endregion REHABILITATION MANAGEMENT
 
         #region MEDICAL CHECKUP MANAGEMENT

@@ -15,15 +15,16 @@ public sealed record PayrollOpeningTaxBalanceCaller(
 /// Saldo awal PPh historis (PrlOpeningTaxBalance, PAY-BE-FIX-016): satu-satunya jalur sah untuk melengkapi riwayat tahun pajak yang tidak
 /// punya payroll run di Quilvian, tanpa membuat payroll run historis palsu.
 ///
-/// Siklus: DRAFT → PENDING_APPROVAL (diajukan dengan dokumen sumber) → APPROVED atau REJECTED. Penyetuju selalu pengguna yang berbeda
-/// dari pengaju dan wajib punya izin melihat nominal. Yang sudah disahkan tidak disunting: perubahan dibuat sebagai revisi (versi
+/// Siklus: DRAFT → PENDING_APPROVAL → APPROVED atau REJECTED (dokumen sumber bukan syarat; PAY-BE-FIX-035). Pengaju BOLEH sekaligus penyetuju bila ia memegang
+/// izin Approve dan ViewAmount (keputusan pemilik, 26 Nov 2026; kewenangan diatur Role Management); pengajuan dan persetujuan tetap dua
+/// peristiwa terpisah dengan aktor dan waktu masing-masing pada jejak dan audit. Penyetuju wajib punya izin melihat nominal. Yang sudah disahkan tidak disunting: perubahan dibuat sebagai revisi (versi
 /// baru); saat versi baru disahkan, versi lama menjadi SUPERSEDED. Hanya APPROVED dari SAME_EMPLOYER_PRE_CUTOVER yang dipakai mesin hitung.
 ///
 /// Dijaga di sini (tidak dapat diekspresikan sebagai constraint): bulan yang dicakup tidak boleh beririsan dengan payroll run yang sudah
 /// final maupun dengan saldo APPROVED lain pegawai itu pada tahun yang sama, sehingga penghasilan dan PPh tidak terhitung dua kali.
 /// Tidak pernah menulis ke payroll run, snapshot, maupun Finance. Nominal tidak ditulis ke log.
 /// </summary>
-public sealed class PayrollOpeningTaxBalanceService
+public sealed partial class PayrollOpeningTaxBalanceService
 {
     private const string LogCategory = "Corporate.PayrollManagement.OpeningTaxBalance";
     private const string LockKey = "PAYROLL_OPENING_TAX_BALANCE";
@@ -85,6 +86,80 @@ public sealed class PayrollOpeningTaxBalanceService
             }
         }
     };
+
+    /// <summary>
+    /// PAY-BE-FIX-035: opsi pemilik saldo awal, pegawai DAN dokter, dari MstWorkforceProfile (satu baris per profil; value = WorkforceProfileId).
+    /// Hanya profil aktif yang tidak dihapus dengan pegawai atau dokter aktif. Murni baca, satu query (tanpa N+1), tanpa data pribadi/nominal.
+    /// Saldo yang sudah tersimpan tetap dapat dibuka walau pemiliknya kini nonaktif karena nama dibaca dari saldo, bukan dari opsi ini.
+    /// </summary>
+    public async Task<PagedResult<PayrollOpeningTaxBalanceWorkforceOptionResponse>> GetWorkforceOptionsAsync(
+        PayrollOpeningTaxBalanceWorkforceQuery query, CancellationToken cancellationToken)
+    {
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
+
+        var source = _dbContext.MstWorkforceProfiles.AsNoTracking()
+            .Where(p => !p.IsDelete && p.IsActive)
+            .Where(p => (p.Employee != null && !p.Employee.IsDelete && p.Employee.IsActive)
+                || (p.Doctor != null && !p.Doctor.IsDelete && p.Doctor.IsActive));
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var keyword = query.Search.Trim().ToLower();
+            source = source.Where(p =>
+                p.DisplayName.ToLower().Contains(keyword) || p.ProfileCode.ToLower().Contains(keyword)
+                || (p.Employee != null && (p.Employee.FullName.ToLower().Contains(keyword)
+                    || p.Employee.EmployeeNumber.ToLower().Contains(keyword) || p.Employee.EmployeeCode.ToLower().Contains(keyword)))
+                || (p.Doctor != null && (p.Doctor.FullName.ToLower().Contains(keyword)
+                    || p.Doctor.DoctorNumber.ToLower().Contains(keyword) || p.Doctor.DoctorCode.ToLower().Contains(keyword))));
+        }
+
+        var total = await source.CountAsync(cancellationToken);
+        var rows = await source
+            .OrderBy(p => p.DisplayName).ThenBy(p => p.Id)
+            .Skip((pageNumber - 1) * pageSize).Take(pageSize)
+            .Select(p => new
+            {
+                p.Id,
+                p.DisplayName,
+                EmployeeActive = p.Employee != null && !p.Employee.IsDelete && p.Employee.IsActive,
+                EmployeeName = p.Employee != null ? p.Employee.FullName : null,
+                EmployeeNumber = p.Employee != null ? p.Employee.EmployeeNumber : null,
+                DoctorName = p.Doctor != null ? p.Doctor.FullName : null,
+                DoctorNumber = p.Doctor != null ? p.Doctor.DoctorNumber : null
+            })
+            .ToListAsync(cancellationToken);
+
+        var items = rows.Select(row =>
+        {
+            // Satu profil, satu opsi. Bila profil punya data pegawai aktif, jenisnya Pegawai; selain itu Dokter (bukan penggabungan nama).
+            var isEmployee = row.EmployeeActive;
+            var ownName = isEmployee ? row.EmployeeName : row.DoctorName;
+            var name = string.IsNullOrWhiteSpace(ownName) ? row.DisplayName : ownName;
+            var number = isEmployee ? row.EmployeeNumber : row.DoctorNumber;
+            var typeLabel = isEmployee ? "Pegawai" : "Dokter";
+            var numberLabel = isEmployee ? "NIP" : "Nomor Dokter";
+            return new PayrollOpeningTaxBalanceWorkforceOptionResponse
+            {
+                WorkforceProfileId = row.Id,
+                Name = name,
+                WorkforceType = isEmployee ? "Employee" : "Doctor",
+                WorkforceTypeLabel = typeLabel,
+                Number = string.IsNullOrWhiteSpace(number) ? null : number,
+                NumberLabel = numberLabel,
+                Label = string.IsNullOrWhiteSpace(number) ? $"{name} — {typeLabel}" : $"{name} — {typeLabel} ({numberLabel} {number})"
+            };
+        }).ToList();
+
+        return new PagedResult<PayrollOpeningTaxBalanceWorkforceOptionResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = total,
+            TotalPage = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize)),
+            Items = items
+        };
+    }
 
     public async Task<PagedResult<PayrollOpeningTaxBalanceResponse>> ListAsync(
         PayrollOpeningTaxBalanceQuery query, PayrollOpeningTaxBalanceCaller caller, CancellationToken cancellationToken)
@@ -245,8 +320,7 @@ public sealed class PayrollOpeningTaxBalanceService
             var entity = await LoadAsync(id, cancellationToken);
             if (entity.Status != OpeningTaxBalanceStatuses.Draft)
                 throw new PayrollInvalidTransitionException($"Hanya draf yang dapat diajukan (saat ini {entity.Status}).");
-            if (string.IsNullOrWhiteSpace(entity.SourceReference))
-                throw new PayrollRunValidationException("Dokumen sumber wajib diisi sebelum saldo awal diajukan (mis. nomor 1721-A1 atau slip gaji).");
+            // PAY-BE-FIX-035: dokumen sumber BUKAN syarat pengajuan. Kelengkapan dan kebenaran nominal menjadi tanggung jawab pemeriksa pada persetujuan.
 
             entity.Status = OpeningTaxBalanceStatuses.PendingApproval;
             entity.SubmittedAt = DateTime.UtcNow;
@@ -267,10 +341,10 @@ public sealed class PayrollOpeningTaxBalanceService
             var entity = await LoadAsync(id, cancellationToken);
             if (entity.Status != OpeningTaxBalanceStatuses.PendingApproval)
                 throw new PayrollInvalidTransitionException($"Hanya saldo yang menunggu persetujuan yang dapat disetujui (saat ini {entity.Status}).");
-            if (entity.SubmittedByUserId.HasValue && entity.SubmittedByUserId.Value == actorUserId)
-                throw new PayrollForbiddenActionException("Pengaju tidak boleh menyetujui saldo awal yang diajukannya sendiri.");
-            if (string.IsNullOrWhiteSpace(entity.SourceReference))
-                throw new PayrollRunValidationException("Dokumen sumber kosong; saldo awal tidak dapat disetujui tanpa dasar.");
+            // PAY-BE-FIX-037: pengaju yang juga memegang izin Approve + ViewAmount boleh menyetujui saldo yang diajukannya sendiri (keputusan
+            // pemilik; kewenangan ditentukan Role Management, bukan perbandingan pengguna). Aktor dan waktu pengajuan serta persetujuan
+            // tetap dicatat terpisah. PAY-BE-FIX-035: dokumen sumber BUKAN syarat persetujuan. Status
+            // PENDING_APPROVAL, ViewAmount, irisan payroll run final, dan irisan saldo lain tetap dijaga di bawah.
 
             // Bulan yang dicakup tidak boleh sudah tercakup payroll run final (akan terhitung dua kali).
             var yearStart = new DateTime(entity.TaxYear, 1, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -370,27 +444,41 @@ public sealed class PayrollOpeningTaxBalanceService
 
     private sealed record ValidInput(
         Guid WorkforceProfileId, int TaxYear, List<int> CoveredMonths, string EmployerSource,
-        decimal TaxableGross, decimal EmployerPremium, decimal PensionDeduction, decimal TaxWithheld, string? SourceReference);
+        decimal TaxableGross, decimal EmployerPremium, decimal PensionDeduction, decimal TaxWithheld, string? SourceReference,
+        bool SourceReferenceProvided);
 
     private async Task<ValidInput> ValidateAsync(SavePayrollOpeningTaxBalanceRequest request, CancellationToken cancellationToken)
     {
-        var errors = new List<string>();
+        var errors = new List<ImportIssue>();
 
-        if (request.WorkforceProfileId == Guid.Empty) errors.Add("Pegawai wajib dipilih.");
+        // Pemilik saldo adalah profil tenaga kerja (pegawai ATAU dokter): yang diperiksa hanya profilnya, bukan keberadaan MstEmployee.
+        if (request.WorkforceProfileId == Guid.Empty) errors.Add(new("WORKFORCE_REQUIRED", "Pegawai atau dokter wajib dipilih."));
         else if (!await _dbContext.MstWorkforceProfiles.AsNoTracking().AnyAsync(x => x.Id == request.WorkforceProfileId && !x.IsDelete, cancellationToken))
-            errors.Add("Pegawai tidak ditemukan.");
+            errors.Add(new("WORKFORCE_NOT_FOUND", "Data pegawai atau dokter tidak ditemukan."));
 
+        var input = ValidateFields(request, errors);
+        if (errors.Count > 0) throw new PayrollRunValidationException(string.Join(" ", errors.Select(e => e.Message)));
+        return input;
+    }
+
+    /// <summary>
+    /// PAY-BE-FIX-036: aturan bidang saldo awal, SATU sumber untuk input manual (Create/Update) dan impor massal. Menambahkan galat
+    /// terstruktur (kode + pesan) ke <paramref name="errors"/>; pesan dan urutannya sama dengan sebelum refactor. Tidak memeriksa profil.
+    /// </summary>
+    private static ValidInput ValidateFields(SavePayrollOpeningTaxBalanceRequest request, List<ImportIssue> errors)
+    {
         var currentYear = DateTime.UtcNow.Year;
         if (request.TaxYear < 2000 || request.TaxYear > currentYear)
-            errors.Add($"Tahun pajak harus antara 2000 dan {currentYear}.");
+            errors.Add(new("TAX_YEAR_OUT_OF_RANGE", $"Tahun pajak harus antara 2000 dan {currentYear}."));
 
         var months = (request.CoveredMonths ?? new List<int>()).ToList();
-        if (months.Count == 0) errors.Add("Bulan yang dicakup wajib diisi (minimal satu bulan).");
-        if (months.Any(m => m < 1 || m > 12)) errors.Add("Bulan yang dicakup harus antara 1 dan 12.");
-        if (months.Distinct().Count() != months.Count) errors.Add("Bulan yang dicakup tidak boleh berulang.");
+        if (months.Count == 0) errors.Add(new("MONTHS_REQUIRED", "Bulan yang dicakup wajib diisi (minimal satu bulan)."));
+        if (months.Any(m => m < 1 || m > 12)) errors.Add(new("MONTHS_OUT_OF_RANGE", "Bulan yang dicakup harus antara 1 dan 12."));
+        if (months.Distinct().Count() != months.Count) errors.Add(new("MONTHS_DUPLICATE", "Bulan yang dicakup tidak boleh berulang."));
 
         var source = (request.EmployerSource ?? string.Empty).Trim().ToUpperInvariant();
-        if (!EmployerSources.Contains(source)) errors.Add("Sumber saldo awal tidak valid. Gunakan SAME_EMPLOYER_PRE_CUTOVER atau PREVIOUS_EMPLOYER.");
+        if (!EmployerSources.Contains(source))
+            errors.Add(new("SOURCE_INVALID", "Sumber saldo awal tidak valid. Gunakan SAME_EMPLOYER_PRE_CUTOVER atau PREVIOUS_EMPLOYER."));
 
         foreach (var (label, value) in new[]
                  {
@@ -398,16 +486,15 @@ public sealed class PayrollOpeningTaxBalanceService
                      ("Iuran pensiun", request.PensionDeduction), ("PPh yang sudah dipotong", request.TaxWithheld)
                  })
         {
-            if (value < 0m) errors.Add($"{label} tidak boleh negatif.");
-            else if (value > MaxAmount) errors.Add($"{label} melebihi batas yang dapat disimpan.");
+            if (value < 0m) errors.Add(new("AMOUNT_NEGATIVE", $"{label} tidak boleh negatif."));
+            else if (value > MaxAmount) errors.Add(new("AMOUNT_TOO_LARGE", $"{label} melebihi batas yang dapat disimpan."));
         }
-
-        if (errors.Count > 0) throw new PayrollRunValidationException(string.Join(" ", errors));
 
         return new ValidInput(
             request.WorkforceProfileId, request.TaxYear, months.Distinct().OrderBy(m => m).ToList(), source,
             Math.Round(request.TaxableGross, 2), Math.Round(request.EmployerPremium, 2),
-            Math.Round(request.PensionDeduction, 2), Math.Round(request.TaxWithheld, 2), Clean(request.SourceReference, 500));
+            Math.Round(request.PensionDeduction, 2), Math.Round(request.TaxWithheld, 2), Clean(request.SourceReference, 500),
+            SourceReferenceProvided: request.SourceReference is not null);
     }
 
     private static void Apply(PrlOpeningTaxBalance entity, ValidInput input)
@@ -420,7 +507,9 @@ public sealed class PayrollOpeningTaxBalanceService
         entity.EmployerPremium = input.EmployerPremium;
         entity.PensionDeduction = input.PensionDeduction;
         entity.TaxWithheld = input.TaxWithheld;
-        entity.SourceReference = input.SourceReference;
+        // PAY-BE-FIX-035: form baru tidak lagi mengirim SourceReference. Nilai yang sudah tersimpan (data lama) tidak ditimpa null secara
+        // diam-diam: hanya diubah bila klien MENGIRIMNYA (eksplisit). Tidak pernah diisi teks buatan.
+        if (input.SourceReferenceProvided) entity.SourceReference = input.SourceReference;
     }
 
     /// <summary>Nominal saldo awal sensitif: menulis angka membutuhkan izin melihat nominal (pola ViewAmount Profil Pajak).</summary>
@@ -470,7 +559,8 @@ public sealed class PayrollOpeningTaxBalanceService
         {
             Id = x.Id,
             WorkforceProfileId = x.WorkforceProfileId,
-            WorkforceName = x.WorkforceProfile?.DisplayName ?? string.Empty,
+            // Nama dibaca dari profil tenaga kerja (pegawai maupun dokter); saldo lama tetap terbaca walau pemiliknya kini nonaktif.
+            WorkforceName = !string.IsNullOrWhiteSpace(x.WorkforceProfile?.DisplayName) ? x.WorkforceProfile!.DisplayName : x.WorkforceProfile?.ProfileCode ?? string.Empty,
             TaxYear = x.TaxYear,
             CoveredMonths = x.CoveredMonths.OrderBy(m => m).ToList(),
             EmployerSource = x.EmployerSource,

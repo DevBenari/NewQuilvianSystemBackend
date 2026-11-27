@@ -20,7 +20,7 @@
 | `AT-INV-10` | `AST-RCG-G10` | Proses temuan | INTEG | Draft aset dengan foto temuan |
 | `AT-INV-11` | `AST-DEC-031` | Sesi lewat tanggal belum diverifikasi | INTEG | Kartu 1.5 bertambah |
 | `AT-INV-12` | `CAP-07.6` | Cetak berita acara | INTEG | PDF memuat ringkasan per kategori dan nama/waktu verifikator |
-| `AT-INV-13` | `AST-FE-003` | Pindai dari HP lewat kamera | UI | Nomor terbaca dan tersimpan |
+| `AT-INV-13` | `AST-FE-007` | Pindai lewat kamera tablet (developer: viewport tablet + kamera tiruan berisi QR; UAT: tablet sungguhan lewat HTTPS) | UI | Nomor terbaca dan tersimpan |
 
 ## 2. Jalur gagal
 

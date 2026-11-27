@@ -96,6 +96,10 @@ public sealed class ProcurementPurchaseRequestVerificationService
             query = request.IsChecked.Value
                 ? query.Where(x => x.StockFulfilledQuantity != null)
                 : query.Where(x => x.StockFulfilledQuantity == null);
+        // Saringan tanggal (PBJ-DEC-055) memakai tanggal PR dibuat, sama dengan daftar PR.
+        var period = ProcurementPeriodFilter.Resolve(request.StartDate, request.EndDate, request.CustomPeriod);
+        if (period.FromUtc is { } fromUtc) query = query.Where(x => x.PurchaseRequest!.CreateDateTime >= fromUtc);
+        if (period.ToExclusiveUtc is { } toUtc) query = query.Where(x => x.PurchaseRequest!.CreateDateTime < toUtc);
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim().ToUpper();

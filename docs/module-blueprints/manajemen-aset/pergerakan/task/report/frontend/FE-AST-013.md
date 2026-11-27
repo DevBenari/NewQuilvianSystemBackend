@@ -18,7 +18,7 @@
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit frontend saat dikerjakan | `5d9af2ae1` (branch `RizkiV2`) |
 | Tanggal | 19 November 2026 |
-| Status | 🟡 menunggu `npm run build` — keempat kriteria terpetakan ke source dan teruji di layar pada `next dev`: Playwright **32/34 + cek ulang 6/6** (dua FAIL awal = harapan skrip peka huruf, diperiksa ulang lewat `textContent`) |
+| Status | ✅ SELESAI 20 November 2026 — keempat kriteria terpetakan ke source dan teruji di layar: Playwright **32/34 + cek ulang 6/6** (dua FAIL awal = harapan skrip peka huruf, diperiksa ulang lewat `textContent`); `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-20 11:18:04); source di commit `9e205e827` |
 
 ---
 
@@ -87,7 +87,7 @@ tampil di rincian.
 | --- | --- | --- | --- |
 | `npx eslint` (19 berkas termasuk menu dan label status) | `0 errors, 0 warnings` (satu peringatan `exhaustive-deps` diperbaiki dengan `useMemo`); ulang berkas kolom sesudah ganti kolom 0/0 | `PASS` | Keluaran perintah |
 | Grep komentar dan nilai gaya literal | 0 | `PASS` | Keluaran perintah |
-| `npm run build` | Menunggu Rizki | `PENDING` | — |
+| `npm run build` | Dijalankan Rizki dan berhasil; `BUILD_ID` 2026-11-20 11:18:04; manifest memuat `movement/loans`, `loans/create`, `loans/[slug]`, `loan-returns` | `PASS` | `.next/BUILD_ID`, `app-path-routes-manifest.json` |
 | Uji layar Playwright di `next dev` (`test-with-agy/asset-management/fe-ast-013-20261119/uji-fe-013.mjs`) | **32/34**; 0 galat halaman, 0 respons 5xx (superadmin, Siti, Dimas, LOKET) | `PASS` dengan 2 FAIL skrip | `hasil-uji.jsonl`, 10 tangkapan layar |
 | Cek ulang dua FAIL (`cek-ulang.mjs`) | **6/6** | `PASS` | `hasil-uji.jsonl` (`CEK-ULANG …`), `09-tab-terlambat.png`, `04b-rincian-perpanjangan-diminta.png` |
 
@@ -132,7 +132,6 @@ kondisi Rusak Ringan untuk `AST-MBL-000069`.
 
 | DoD | Status |
 |---|---|
-| ESLint, uji layar, laporan | Terpenuhi |
-| `npm run build` | Menunggu Rizki |
-| Roadmap, traceability | Diperbarui sesudah build |
+| ESLint, build, uji layar, laporan, roadmap, traceability | Terpenuhi |
+| Commit | Source oleh Rizki di `9e205e827` (bersama tampilan jurnal dan jurnal berulang) |
 | `UAT-MOV-04..06` | Milik tim UAT |

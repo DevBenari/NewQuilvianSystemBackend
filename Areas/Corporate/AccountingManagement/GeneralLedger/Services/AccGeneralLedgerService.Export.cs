@@ -1,0 +1,559 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
+using System.Globalization;
+
+namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.Services
+{
+    public partial class AccGeneralLedgerService
+    {
+        private const int BatasBarisUnduhan = 50000;
+
+        public async Task<AccountingServiceResult<LedgerExportFile>> BuildMovementCsvAsync(
+            LedgerMovementQuery query,
+            CancellationToken ct = default)
+        {
+            var siap = await SiapkanMutasiAsync<LedgerExportFile>(query, ct);
+            if (siap.Gagal is not null) return siap.Gagal;
+
+            var konteks = siap.Konteks!;
+
+            var jumlah = await konteks.DalamRentang.CountAsync(ct);
+
+            if (jumlah > BatasBarisUnduhan)
+                return TolakMutasiTerlaluBanyak($"{jumlah:N0} baris");
+
+            var semua = await UrutkanMutasi(konteks.DalamRentang)
+                .Take(BatasBarisUnduhan + 1)
+                .ToListAsync(ct);
+
+            if (semua.Count > BatasBarisUnduhan)
+                return TolakMutasiTerlaluBanyak($"lebih dari {BatasBarisUnduhan:N0} baris");
+            var mutasi = await PetakanMutasiAsync(semua, konteks.SaldoPembuka, ct);
+
+            var namaBadanHukum = await NamaBadanHukumAsync(query.LegalEntityId, ct);
+            var dari = query.DateFrom.HasValue ? AccLedgerCsv.Tanggal(query.DateFrom.Value.Date) : "awal data";
+            var sampai = query.DateTo.HasValue ? AccLedgerCsv.Tanggal(query.DateTo.Value.Date) : "akhir data";
+
+            var kepala = new List<IReadOnlyList<string>>
+            {
+                AccLedgerCsv.BarisKepala("Laporan", "Buku Besar"),
+                AccLedgerCsv.BarisKepala("Badan Hukum", namaBadanHukum),
+                AccLedgerCsv.BarisKepala("Akun", $"{konteks.Akun.AccountCode} - {konteks.Akun.AccountName}"),
+                AccLedgerCsv.BarisKepala("Rentang", $"{dari} s.d. {sampai}"),
+                AccLedgerCsv.BarisKepala(
+                    "Unit Biaya",
+                    konteks.UnitBiaya is null
+                        ? "Semua unit biaya"
+                        : $"{konteks.UnitBiaya.CostCenterCode} - {konteks.UnitBiaya.CostCenterName}"),
+                AccLedgerCsv.BarisKepala("Diunduh", AccLedgerCsv.WaktuUnduh())
+            };
+
+            if (konteks.UnitBiaya is not null)
+            {
+                kepala.Add(AccLedgerCsv.BarisKepala(
+                    "Catatan",
+                    "Saldo pada berkas ini hanya bagian akun yang mencatat unit biaya tersebut."));
+            }
+
+            var kolom = new[]
+            {
+                AccLedgerCsv.Teks("Tanggal"),
+                AccLedgerCsv.Teks("No. Jurnal"),
+                AccLedgerCsv.Teks("Jenis Jurnal"),
+                AccLedgerCsv.Teks("Asal"),
+                AccLedgerCsv.Teks("No. Dokumen"),
+                AccLedgerCsv.Teks("Unit Biaya"),
+                AccLedgerCsv.Teks("Keterangan"),
+                AccLedgerCsv.Teks("Debit"),
+                AccLedgerCsv.Teks("Kredit"),
+                AccLedgerCsv.Teks("Saldo")
+            };
+
+            var isi = new List<IReadOnlyList<string>>
+            {
+                BarisRingkasMutasi("Saldo awal", null, null, konteks.SaldoPembuka)
+            };
+
+            foreach (var m in mutasi)
+            {
+                isi.Add(new[]
+                {
+                    AccLedgerCsv.Tanggal(m.AccountingDate),
+                    AccLedgerCsv.Teks(m.JournalNumber),
+                    AccLedgerCsv.Teks(m.JournalTypeCode),
+                    AccLedgerCsv.Teks(m.SourceLabel),
+                    AccLedgerCsv.Teks(m.DocumentNumber),
+                    AccLedgerCsv.Teks(m.CostCenterCode is null ? null : $"{m.CostCenterCode} - {m.CostCenterName}"),
+                    AccLedgerCsv.Teks(m.Description),
+                    AccLedgerCsv.Angka(m.DebitAmount),
+                    AccLedgerCsv.Angka(m.CreditAmount),
+                    AccLedgerCsv.Angka(m.RunningBalance)
+                });
+            }
+
+            var totalDebit = mutasi.Sum(x => x.DebitAmount);
+            var totalKredit = mutasi.Sum(x => x.CreditAmount);
+
+            isi.Add(BarisRingkasMutasi(
+                "Saldo akhir",
+                totalDebit,
+                totalKredit,
+                konteks.SaldoPembuka + totalDebit - totalKredit));
+
+            var segmenDari = query.DateFrom.HasValue
+                ? query.DateFrom.Value.ToString("yyyyMMdd", CultureInfo.InvariantCulture)
+                : "awal";
+            var segmenSampai = query.DateTo.HasValue
+                ? query.DateTo.Value.ToString("yyyyMMdd", CultureInfo.InvariantCulture)
+                : "akhir";
+
+            var berkas = new LedgerExportFile
+            {
+                Content = AccLedgerCsv.Tulis(kepala, kolom, isi),
+                FileName = $"buku-besar_{SegmenNamaBerkas(konteks.Akun.AccountCode)}_{segmenDari}-{segmenSampai}.csv",
+                RowCount = mutasi.Count
+            };
+
+            return AccountingServiceResult<LedgerExportFile>.Ok(
+                berkas, $"Buku besar akun {konteks.Akun.AccountCode} berhasil diunduh.");
+        }
+
+        public async Task<AccountingServiceResult<LedgerExportFile>> BuildTrialBalanceCsvAsync(
+            TrialBalanceQuery query,
+            CancellationToken ct = default)
+        {
+            var neraca = await GetTrialBalanceAsync(query, ct);
+
+            if (!neraca.Success || neraca.Data is null)
+                return AccountingServiceResult<LedgerExportFile>.Fail(neraca.StatusCode, neraca.Message);
+
+            var data = neraca.Data;
+
+            if (data.Rows.Count > BatasBarisUnduhan)
+            {
+                return AccountingServiceResult<LedgerExportFile>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    $"Neraca saldo terlalu banyak untuk diunduh sekaligus ({data.Rows.Count:N0} baris akun).");
+            }
+
+            var namaBadanHukum = await NamaBadanHukumAsync(query.LegalEntityId, ct);
+
+            var kepala = new List<IReadOnlyList<string>>
+            {
+                AccLedgerCsv.BarisKepala("Laporan", "Neraca Saldo"),
+                AccLedgerCsv.BarisKepala("Badan Hukum", namaBadanHukum),
+                AccLedgerCsv.BarisKepala("Periode", $"{data.PeriodName} ({data.PeriodCode})"),
+                AccLedgerCsv.BarisKepala("Diunduh", AccLedgerCsv.WaktuUnduh())
+            };
+
+            var kolom = new[]
+            {
+                AccLedgerCsv.Teks("Kode Akun"),
+                AccLedgerCsv.Teks("Nama Akun"),
+                AccLedgerCsv.Teks("Saldo Awal"),
+                AccLedgerCsv.Teks("Debit"),
+                AccLedgerCsv.Teks("Kredit"),
+                AccLedgerCsv.Teks("Saldo Akhir")
+            };
+
+            var isi = new List<IReadOnlyList<string>>();
+
+            foreach (var baris in data.Rows)
+            {
+                isi.Add(new[]
+                {
+                    AccLedgerCsv.Teks(baris.AccountCode),
+                    AccLedgerCsv.Teks(baris.AccountName),
+                    AccLedgerCsv.Angka(baris.OpeningBalance),
+                    AccLedgerCsv.Angka(baris.TotalDebit),
+                    AccLedgerCsv.Angka(baris.TotalCredit),
+                    AccLedgerCsv.Angka(baris.ClosingBalance)
+                });
+            }
+
+            isi.Add(new[]
+            {
+                string.Empty,
+                AccLedgerCsv.Teks("Total"),
+                string.Empty,
+                AccLedgerCsv.Angka(data.TotalDebit),
+                AccLedgerCsv.Angka(data.TotalCredit),
+                string.Empty
+            });
+
+            isi.Add(new[]
+            {
+                string.Empty,
+                AccLedgerCsv.Teks("Status"),
+                AccLedgerCsv.Teks(data.IsBalanced
+                    ? "Seimbang"
+                    : $"Tidak seimbang, selisih {AccLedgerCsv.Angka(data.TotalDebit - data.TotalCredit)}"),
+                string.Empty,
+                string.Empty,
+                string.Empty
+            });
+
+            var berkas = new LedgerExportFile
+            {
+                Content = AccLedgerCsv.Tulis(kepala, kolom, isi),
+                FileName = $"neraca-saldo_{SegmenNamaBerkas(data.PeriodCode)}.csv",
+                RowCount = data.Rows.Count
+            };
+
+            return AccountingServiceResult<LedgerExportFile>.Ok(
+                berkas, $"Neraca saldo {data.PeriodName} berhasil diunduh.");
+        }
+
+        public async Task<AccountingServiceResult<LedgerExportFile>> BuildIncomeStatementCsvAsync(
+            IncomeStatementQuery query,
+            CancellationToken ct = default)
+        {
+            var laporan = await GetIncomeStatementAsync(query, ct);
+
+            if (!laporan.Success || laporan.Data is null)
+                return AccountingServiceResult<LedgerExportFile>.Fail(laporan.StatusCode, laporan.Message);
+
+            var data = laporan.Data;
+            var namaBadanHukum = await NamaBadanHukumAsync(query.LegalEntityId, ct);
+
+            var kepala = new List<IReadOnlyList<string>>
+            {
+                AccLedgerCsv.BarisKepala("Laporan", "Laba Rugi"),
+                AccLedgerCsv.BarisKepala("Badan Hukum", namaBadanHukum),
+                AccLedgerCsv.BarisKepala("Periode", $"{data.PeriodName} ({data.PeriodCode})"),
+                AccLedgerCsv.BarisKepala(
+                    "YTD",
+                    $"{AccLedgerCsv.Tanggal(data.YearToDateStartDate)} s.d. {AccLedgerCsv.Tanggal(data.PeriodEndDate)}"),
+                AccLedgerCsv.BarisKepala(
+                    "Pembanding",
+                    data.ComparisonAvailable
+                        ? $"{data.ComparisonPeriodName} ({data.ComparisonPeriodCode})"
+                        : data.ComparisonUnavailableReason),
+                AccLedgerCsv.BarisKepala(
+                    "Unit Biaya",
+                    data.CostCenterId is null
+                        ? "Semua unit biaya"
+                        : $"{data.CostCenterCode} - {data.CostCenterName}"),
+                AccLedgerCsv.BarisKepala(
+                    "Akun Bersaldo Nol",
+                    query.IncludeZeroAccounts ? "Ditampilkan" : "Disembunyikan"),
+                AccLedgerCsv.BarisKepala("Diunduh", AccLedgerCsv.WaktuUnduh())
+            };
+
+            if (!string.IsNullOrWhiteSpace(data.CostCenterNotice))
+                kepala.Add(AccLedgerCsv.BarisKepala("Catatan", data.CostCenterNotice));
+
+            var kolom = new[]
+            {
+                AccLedgerCsv.Teks("Kode Akun"),
+                AccLedgerCsv.Teks("Nama Akun"),
+                AccLedgerCsv.Teks("Periode"),
+                AccLedgerCsv.Teks("Pembanding"),
+                AccLedgerCsv.Teks("Selisih"),
+                AccLedgerCsv.Teks("YTD"),
+                AccLedgerCsv.Teks("YTD Pembanding"),
+                AccLedgerCsv.Teks("Selisih YTD")
+            };
+
+            var isi = new List<IReadOnlyList<string>>();
+            var jumlahBaris = 0;
+
+            foreach (var bagian in data.Sections)
+            {
+                isi.Add(BarisLaporanKeuangan(string.Empty, bagian.Title.ToUpperInvariant(), null));
+
+                foreach (var b in bagian.Rows)
+                {
+                    isi.Add(BarisLaporanKeuangan(
+                        b.AccountCode,
+                        new string(' ', b.Depth * 2) + b.AccountName,
+                        b.Amounts));
+                    jumlahBaris++;
+                }
+
+                isi.Add(BarisLaporanKeuangan(string.Empty, $"Total {bagian.Title}", bagian.Total));
+            }
+
+            isi.Add(BarisLaporanKeuangan(string.Empty, "Laba (Rugi) Bersih", data.NetIncome));
+
+            var segmenUnit = data.CostCenterCode is null ? string.Empty : $"_{SegmenNamaBerkas(data.CostCenterCode)}";
+
+            var berkas = new LedgerExportFile
+            {
+                Content = AccLedgerCsv.Tulis(kepala, kolom, isi),
+                FileName = $"laba-rugi_{SegmenNamaBerkas(data.PeriodCode)}{segmenUnit}.csv",
+                RowCount = jumlahBaris
+            };
+
+            return AccountingServiceResult<LedgerExportFile>.Ok(
+                berkas, $"Laba rugi {data.PeriodName} berhasil diunduh.");
+        }
+
+        private static IReadOnlyList<string> BarisLaporanKeuangan(
+            string kode,
+            string nama,
+            FinancialStatementAmountsResponse? nilai,
+            bool denganYtd = true)
+        {
+            static string Sel(decimal? angka) => angka.HasValue ? AccLedgerCsv.Angka(angka.Value) : string.Empty;
+
+            var sel = new List<string>
+            {
+                string.IsNullOrEmpty(kode) ? string.Empty : AccLedgerCsv.Teks(kode),
+                AccLedgerCsv.Teks(nama),
+                nilai is null ? string.Empty : AccLedgerCsv.Angka(nilai.Current),
+                Sel(nilai?.Comparison),
+                Sel(nilai?.Variance)
+            };
+
+            if (denganYtd)
+            {
+                sel.Add(Sel(nilai?.CurrentYearToDate));
+                sel.Add(Sel(nilai?.ComparisonYearToDate));
+                sel.Add(Sel(nilai?.VarianceYearToDate));
+            }
+
+            return sel;
+        }
+
+        public async Task<AccountingServiceResult<LedgerExportFile>> BuildBalanceSheetCsvAsync(
+            BalanceSheetQuery query,
+            CancellationToken ct = default)
+        {
+            var laporan = await GetBalanceSheetAsync(query, ct);
+
+            if (!laporan.Success || laporan.Data is null)
+                return AccountingServiceResult<LedgerExportFile>.Fail(laporan.StatusCode, laporan.Message);
+
+            var data = laporan.Data;
+            var namaBadanHukum = await NamaBadanHukumAsync(query.LegalEntityId, ct);
+
+            var kepala = new List<IReadOnlyList<string>>
+            {
+                AccLedgerCsv.BarisKepala("Laporan", "Neraca"),
+                AccLedgerCsv.BarisKepala("Badan Hukum", namaBadanHukum),
+                AccLedgerCsv.BarisKepala("Periode", $"{data.PeriodName} ({data.PeriodCode})"),
+                AccLedgerCsv.BarisKepala("Per Tanggal", AccLedgerCsv.Tanggal(data.AsOfDate)),
+                AccLedgerCsv.BarisKepala(
+                    "Pembanding",
+                    data.ComparisonAvailable && data.ComparisonAsOfDate.HasValue
+                        ? $"Per {AccLedgerCsv.Tanggal(data.ComparisonAsOfDate.Value)}"
+                        : data.ComparisonUnavailableReason),
+                AccLedgerCsv.BarisKepala(
+                    "Akun Bersaldo Nol",
+                    query.IncludeZeroAccounts ? "Ditampilkan" : "Disembunyikan"),
+                AccLedgerCsv.BarisKepala("Diunduh", AccLedgerCsv.WaktuUnduh())
+            };
+
+            if (data.UnclosedFiscalYears.Count > 0)
+            {
+                kepala.Add(AccLedgerCsv.BarisKepala(
+                    "Catatan",
+                    $"Tahun buku {string.Join(", ", data.UnclosedFiscalYears)} belum ditutup."));
+            }
+
+            var kolom = new[]
+            {
+                AccLedgerCsv.Teks("Kode Akun"),
+                AccLedgerCsv.Teks("Nama Akun"),
+                AccLedgerCsv.Teks("Saldo"),
+                AccLedgerCsv.Teks("Pembanding"),
+                AccLedgerCsv.Teks("Selisih")
+            };
+
+            var isi = new List<IReadOnlyList<string>>();
+            var jumlahBaris = 0;
+
+            foreach (var bagian in data.Sections)
+            {
+                isi.Add(BarisLaporanKeuangan(string.Empty, bagian.Title.ToUpperInvariant(), null, denganYtd: false));
+
+                foreach (var b in bagian.Rows)
+                {
+                    isi.Add(BarisLaporanKeuangan(
+                        b.AccountCode,
+                        new string(' ', b.Depth * 2) + b.AccountName,
+                        b.Amounts,
+                        denganYtd: false));
+                    jumlahBaris++;
+                }
+
+                isi.Add(BarisLaporanKeuangan(string.Empty, $"Total {bagian.Title}", bagian.Total, denganYtd: false));
+            }
+
+            isi.Add(BarisLaporanKeuangan(
+                string.Empty, "Total Liabilitas dan Ekuitas", data.TotalLiabilitiesAndEquity, denganYtd: false));
+
+            isi.Add(new[]
+            {
+                string.Empty,
+                AccLedgerCsv.Teks("Status"),
+                AccLedgerCsv.Teks(StatusSeimbang(data.IsBalanced, data.Difference)),
+                data.ComparisonIsBalanced.HasValue
+                    ? AccLedgerCsv.Teks(StatusSeimbang(data.ComparisonIsBalanced.Value, data.ComparisonDifference ?? 0m))
+                    : string.Empty,
+                string.Empty
+            });
+
+            var berkas = new LedgerExportFile
+            {
+                Content = AccLedgerCsv.Tulis(kepala, kolom, isi),
+                FileName = $"neraca_{SegmenNamaBerkas(data.PeriodCode)}.csv",
+                RowCount = jumlahBaris
+            };
+
+            return AccountingServiceResult<LedgerExportFile>.Ok(
+                berkas, $"Neraca {data.PeriodName} berhasil diunduh.");
+        }
+
+        public async Task<AccountingServiceResult<LedgerExportFile>> BuildFinancialRatioCsvAsync(
+            FinancialRatioQuery query,
+            CancellationToken ct = default)
+        {
+            var laporan = await GetFinancialRatiosAsync(query, ct);
+
+            if (!laporan.Success || laporan.Data is null)
+                return AccountingServiceResult<LedgerExportFile>.Fail(laporan.StatusCode, laporan.Message);
+
+            var data = laporan.Data;
+            var namaBadanHukum = await NamaBadanHukumAsync(query.LegalEntityId, ct);
+
+            var kepala = new List<IReadOnlyList<string>>
+            {
+                AccLedgerCsv.BarisKepala("Laporan", "Rasio Keuangan"),
+                AccLedgerCsv.BarisKepala("Badan Hukum", namaBadanHukum),
+                AccLedgerCsv.BarisKepala("Periode", $"{data.PeriodName} ({data.PeriodCode})"),
+                AccLedgerCsv.BarisKepala("Per Tanggal", AccLedgerCsv.Tanggal(data.AsOfDate)),
+                AccLedgerCsv.BarisKepala(
+                    "Pembanding",
+                    data.ComparisonAvailable && data.ComparisonAsOfDate.HasValue
+                        ? $"Per {AccLedgerCsv.Tanggal(data.ComparisonAsOfDate.Value)}"
+                        : data.ComparisonUnavailableReason),
+                AccLedgerCsv.BarisKepala("Diunduh", AccLedgerCsv.WaktuUnduh())
+            };
+
+            var kolom = new[]
+            {
+                "Rasio", "Rumus",
+                "Pembilang Kini", "Penyebut Kini", "Hasil Kini", "Status Kini", "Keterangan Kini",
+                "Pembilang Pembanding", "Penyebut Pembanding", "Hasil Pembanding", "Status Pembanding", "Keterangan Pembanding"
+            }.Select(AccLedgerCsv.Teks).ToArray();
+
+            var isi = new List<IReadOnlyList<string>>();
+
+            foreach (var r in data.Ratios)
+            {
+                var sel = new List<string> { AccLedgerCsv.Teks(r.Name), AccLedgerCsv.Teks(r.Formula) };
+                sel.AddRange(SelRasio(r.Current, r.Unit));
+                sel.AddRange(SelRasio(r.Comparison, r.Unit));
+                isi.Add(sel);
+            }
+
+            foreach (var celah in data.ClassificationGaps)
+            {
+                isi.Add(new[]
+                {
+                    AccLedgerCsv.Teks("Catatan"),
+                    AccLedgerCsv.Teks(
+                        $"{celah.AccountCode} {celah.AccountName}: " +
+                        (celah.GapKind == ClassificationGapKind.MissingReportClassification
+                            ? "klasifikasi laporan belum diisi"
+                            : "sub-klasifikasi aset lancar belum diisi"))
+                });
+            }
+
+            var berkas = new LedgerExportFile
+            {
+                Content = AccLedgerCsv.Tulis(kepala, kolom, isi),
+                FileName = $"rasio-keuangan_{SegmenNamaBerkas(data.PeriodCode)}.csv",
+                RowCount = data.Ratios.Count
+            };
+
+            return AccountingServiceResult<LedgerExportFile>.Ok(
+                berkas, $"Rasio keuangan {data.PeriodName} berhasil diunduh.");
+        }
+
+        private static IEnumerable<string> SelRasio(FinancialRatioValueResponse nilai, FinancialRatioUnit satuan)
+        {
+            static string Sel(decimal? angka) => angka.HasValue ? AccLedgerCsv.Angka(angka.Value) : string.Empty;
+
+            var hasil = nilai.Status == FinancialRatioStatus.Calculated && nilai.Value.HasValue
+                ? AccLedgerCsv.Teks(AccLedgerCsv.Angka(nilai.Value.Value) + (satuan == FinancialRatioUnit.Percent ? "%" : "x"))
+                : AccLedgerCsv.Teks(LabelStatusRasio(nilai.Status));
+
+            var keterangan = string.Join(" ", new[] { nilai.Reason, nilai.Note }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+            return new[]
+            {
+                Sel(nilai.Numerator),
+                Sel(nilai.Denominator),
+                hasil,
+                AccLedgerCsv.Teks(LabelStatusRasio(nilai.Status)),
+                AccLedgerCsv.Teks(keterangan)
+            };
+        }
+
+        private static string LabelStatusRasio(FinancialRatioStatus status) => status switch
+        {
+            FinancialRatioStatus.Calculated => "Dihitung",
+            FinancialRatioStatus.NotApplicable => "N/A",
+            FinancialRatioStatus.Unavailable => "Tidak dapat dihitung",
+            FinancialRatioStatus.Invalid => "Tidak sah",
+            _ => status.ToString()
+        };
+
+        private static string StatusSeimbang(bool seimbang, decimal selisih)
+            => seimbang ? "Seimbang" : $"Tidak seimbang, selisih {AccLedgerCsv.Angka(selisih)}";
+
+        private static AccountingServiceResult<LedgerExportFile> TolakMutasiTerlaluBanyak(string jumlah)
+            => AccountingServiceResult<LedgerExportFile>.Fail(
+                StatusCodes.Status422UnprocessableEntity,
+                $"Mutasi terlalu banyak untuk diunduh sekaligus ({jumlah}). Persempit rentang tanggal.");
+
+        private static IReadOnlyList<string> BarisRingkasMutasi(
+            string label,
+            decimal? debit,
+            decimal? kredit,
+            decimal saldo)
+        {
+            return new[]
+            {
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                AccLedgerCsv.Teks(label),
+                debit.HasValue ? AccLedgerCsv.Angka(debit.Value) : string.Empty,
+                kredit.HasValue ? AccLedgerCsv.Angka(kredit.Value) : string.Empty,
+                AccLedgerCsv.Angka(saldo)
+            };
+        }
+
+        private async Task<string> NamaBadanHukumAsync(Guid legalEntityId, CancellationToken ct)
+        {
+            var nama = await _db.Set<MstLegalEntity>()
+                .AsNoTracking()
+                .Where(x => x.Id == legalEntityId)
+                .Select(x => x.LegalEntityName)
+                .FirstOrDefaultAsync(ct);
+
+            return nama ?? string.Empty;
+        }
+
+        private static string SegmenNamaBerkas(string nilai)
+        {
+            var aman = new string(nilai
+                .Select(c => char.IsLetterOrDigit(c) || c == '-' || c == '_' ? c : '-')
+                .ToArray());
+
+            return string.IsNullOrWhiteSpace(aman) ? "akun" : aman;
+        }
+    }
+}

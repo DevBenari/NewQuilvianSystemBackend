@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `23` — 2026-10-20: persetujuan bagian 32 dibukukan. `22` — bagian 32, 2026-10-20: rancangan `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan (`draft`). Sebelumnya `21` — bagian 31, 2026-10-14: pencatatan susulan ruas baca v1 `r47`/`r48` (kontrak `approved` lewat `LAB-REQ-024` dan `LAB-REQ-025`). Sebelumnya `20` — bagian 30, 2026-10-09: rencana ulang sesudah wadah dibatalkan (putaran 29, temuan T1), kontrak usulan `LAB-REQ-023`. Sebelumnya `19` — bagian 29, 2026-10-09: CITO dari pemesanan sampai ke pemeriksaan (putaran 28, `LAB-CONFLICT-019`), kontrak usulan `LAB-REQ-022`. Sebelumnya `18` — bagian 28, 2026-10-08: data ringkasan Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `17` — bagian 27, 2026-10-08: lingkup kunci Lunas — rawat inap dan IGD *Ditagih Kemudian* (putaran 27), kontrak usulan `LAB-REQ-020`. Sebelumnya `16` — bagian 26, 2026-10-08: alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), kontrak usulan `LAB-REQ-019`. Sebelumnya `15` — bagian 25, 2026-10-07: daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian (BR-139), kontrak usulan `LAB-REQ-017`. Sebelumnya `14` — bagian 24, 2026-10-07: Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1 (BR-138), kontrak usulan `LAB-REQ-016`. Sebelumnya `13` — bagian 23, 2026-09-25: `S16a` tiga laporan operasional. Sebelumnya `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
+| Revision | `25` — 2026-11-25: persetujuan bagian 33 dibukukan. `24` — bagian 33, 2026-11-25: rancangan `S20-1` penjadwalan ulang pemeriksaan. Sebelumnya `23` — 2026-10-20: persetujuan bagian 32 dibukukan. `22` — bagian 32, 2026-10-20: rancangan `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan (`draft`). Sebelumnya `21` — bagian 31, 2026-10-14: pencatatan susulan ruas baca v1 `r47`/`r48` (kontrak `approved` lewat `LAB-REQ-024` dan `LAB-REQ-025`). Sebelumnya `20` — bagian 30, 2026-10-09: rencana ulang sesudah wadah dibatalkan (putaran 29, temuan T1), kontrak usulan `LAB-REQ-023`. Sebelumnya `19` — bagian 29, 2026-10-09: CITO dari pemesanan sampai ke pemeriksaan (putaran 28, `LAB-CONFLICT-019`), kontrak usulan `LAB-REQ-022`. Sebelumnya `18` — bagian 28, 2026-10-08: data ringkasan Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `17` — bagian 27, 2026-10-08: lingkup kunci Lunas — rawat inap dan IGD *Ditagih Kemudian* (putaran 27), kontrak usulan `LAB-REQ-020`. Sebelumnya `16` — bagian 26, 2026-10-08: alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), kontrak usulan `LAB-REQ-019`. Sebelumnya `15` — bagian 25, 2026-10-07: daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian (BR-139), kontrak usulan `LAB-REQ-017`. Sebelumnya `14` — bagian 24, 2026-10-07: Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1 (BR-138), kontrak usulan `LAB-REQ-016`. Sebelumnya `13` — bagian 23, 2026-09-25: `S16a` tiga laporan operasional. Sebelumnya `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -5473,10 +5473,343 @@ perubahan perilaku pada kompatibilitas kontrak (`LAB-API-v1` `r49` 44.5).
 | Izin per laporan | `LAB-DEC-231`, `239`, `245` | A8.8 | `LAB-PERM-v1` revision 17 | `AC-330` |
 | Alasan wajib | `LAB-DEC-237`, `247` | `INV-60` | `LAB-VAL-v1` `r21` `VAL-155`; `LAB-STATE-v1` `r11` | `AC-326`, `AC-327` |
 
+## 33. Rancangan 2026-11-25 — `S20-1` penjadwalan ulang pemeriksaan
+
+Bagian ini menurunkan `LAB-DA-001` **revision 12 bagian A9** ke rancangan backend. Arsitektur domain sudah menetapkan
+bahwa **pesanan Laboratorium** (`AGG-LAB-01`) memiliki tanggal rencana dan riwayat jadwal ulangnya, **tanpa status baru**,
+dengan penjaga lintas modul yang **hanya membaca**. Yang dirancang di sini adalah bentuknya: **satu kolom** pada
+`LabOrder`, **satu tabel riwayat baru**, **satu aturan kelayakan bersama**, **dua endpoint baru** dan perluasan lima
+endpoint yang sudah ada, **satu aksi izin** beserta seeder pemberian bawaannya, dan **satu migration**.
+
+*Contoh yang dipakai sepanjang bagian ini:* Gula Darah Puasa pesanan `LAB-RSMMC-900031 (nomor samaran)` (status `Confirmed`, satu wadah
+`Planned`) direncanakan **Senin 2 Desember 2026**. Senin 07.40 WIB Gilang (Analis) memindahkannya ke **Selasa 3
+Desember** dengan alasan *pasien belum puasa*.
+
+### 33.0 Identitas dan gerbang masukan
+
+| Butir | Isi |
+|---|---|
+| Status | **`draft`** — dokumen arsitektur. **Keempat kontraknya (`LAB-API-v1` `r50`, `LAB-PERM-v1` revision 18, `LAB-VAL-v1` `r22`, `LAB-STATE-v1` `r12`) dan keenam butir 33.10 disetujui 2026-11-25** |
+| Masukan | `00-interview-decisions.md` **revisi 143** (`LAB-DEC-251`..`LAB-DEC-277`, BR-157, `AC-338`..`AC-356`); `LAB-RCG-001` **revision 14** bagian 0I; `LAB-DA-001` **revision 12** bagian A9; capability map **revision 10** (`CAP-P32-01`..`15`) |
+| SHA | Backend **`4d2c0162`** (branch `yoga`), frontend **`004524f4c`** (branch `YogaV2`) — sama dengan capability map dan arsitektur domain; nol impact scan tambahan |
+| Gerbang | Requirement `READY_FOR_DOMAIN_DESIGN` (0I.6); arsitektur `DOMAIN_ARCHITECTURE_READY` (A9.15) |
+| Yang dirancang | Tanggal rencana pada pesanan; aksi jadwal ulang beserta riwayatnya; kelayakan jadwal ulang (satu rumus); penanda *Terlewat*; kategori periode *Tanggal Rencana* pada daftar pantau; tanggal rencana pada kiosk; aksi izin `LabOrder : Reschedule` dan seeder bawaannya |
+| Yang **tidak** dirancang | `S20-2` pilihan tanggal pada layar dokter poli/IGD/Rawat Inap (`LAB-COORD-023`) — hanya ruas opsional backend-nya; pencabutan CITO pada permintaan (`LAB-DEC-271`); `LAB-OPEN-056`; tata letak layar (`03-frontend-architecture.md`) |
+| Skema | **Satu kolom baru** `LabOrder.PlannedDate`; **satu tabel baru** `LabOrderReschedule`; dua index. Satu migration dengan pengisian data lama (33.7) |
+
+### 33.1 Bounded context, invariant, dan batas transaksi
+
+| Butir | Isi |
+|---|---|
+| Bounded context | `BC-LAB`. **Baca** dari `BC-REG` (status kunjungan) dan `BC-MCU` (ada/tidaknya komponen order MCU yang menautkan pesanan). `BC-PLAT` menyediakan izin, pelaku, dan pencatat |
+| Aggregate | `AGG-LAB-01` Pesanan — **diperluas**: `LabOrder.PlannedDate` (`LAB-DC-066`) dan `LabOrderReschedule` (`LAB-DC-067`) berada di dalam batasnya |
+| Invariant | `INV-61`..`INV-69` (A9.5); diwarisi `INV-01`, `INV-58`, pola satu rumus `INV-57` |
+| Transaksi | **Satu transaksi** per jadwal ulang: perbarui `LabOrder` (`PlannedDate`, `Version++`, `UpdateDateTime`, `UpdateBy`) **dan** sisipkan satu `LabOrderReschedule`, satu `SaveChangesAsync` (`INV-69`). Pembacaan penjaga `BC-REG`/`BC-MCU` terjadi sebelum tulis, di luar kunci |
+| Konkurensi | Token `LabOrder.Version` yang sudah ada (`CAP-P32-06`). Bila 33.10 no. 2 disetujui, permintaan membawa `version` dan ditolak `409` bila berbeda — menutup *layar basi* (`ARCH-GAP-LAB-18`) |
+| Rollback | Penolakan apa pun terjadi **sebelum** tulis — tidak ada yang perlu dibalik. Kegagalan simpan (`DbUpdateConcurrencyException`) membatalkan kedua tulis bersama |
+
+**Tanggal operasional WIB.** *Hari ini* = `DateOnly.FromDateTime(AppDateTimeHelper.OperationalDate())` — pola MCU
+(`McuExaminationService.cs:1574`). Tanggal rencana disimpan sebagai **tanggal murni** (`DateOnly` → kolom `date`), tidak
+pernah sebagai waktu tengah malam UTC (`INV-68`, `LAB-DEC-263`).
+
+### 33.2 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+|---|---|:---:|---|
+| Tanggal rencana pemeriksaan | **Laboratorium** (`LabOrder.PlannedDate`) — **baru** | Ya | — pemiliknya Laboratorium |
+| Riwayat jadwal ulang | **Laboratorium** (`LabOrderReschedule`) — **baru** | Ya | — pemiliknya Laboratorium |
+| Status pesanan, status sebelum ditahan, versi | Laboratorium (`LabOrder`) | Ya — penjaga | Tidak |
+| Status wadah dan status wadah sebelum ditahan | Laboratorium (`LabSpecimen`) | Ya — penjaga `INV-62` | Tidak |
+| Kesegeraan permintaan, status permintaan | Laboratorium (`LabOrderedProcedure`) | Ya — penjaga `INV-63` | Tidak |
+| Kesegeraan pemeriksaan, status pemeriksaan | Laboratorium (`LabExamination`) | Ya — penjaga `INV-63` | Tidak |
+| Riwayat perpindahan status | Laboratorium (`LabTransitionHistory`) | **Tidak** — jadwal ulang tidak ditulis ke sana (33.9) | Tidak |
+| Status kunjungan | **Registrasi** (`RegPatientEncounter.EncounterStatus`) | Ya — **baca**, penjaga `INV-64` | **Tidak** |
+| Tautan komponen MCU → pesanan Lab | **MCU** (`McuOrderComponent.LabOrderId`) | Ya — **baca** ada/tidaknya, penjaga `INV-65` | **Tidak** — tidak disalin, tidak ditulis |
+| Nama pelaku jadwal ulang | **Platform** (`Users`) | Ya — **baca** | Tidak — jalur nama pelaku `r48` |
+| Kebijakan izin per departemen–jabatan | **Platform** (`SysAccessPolicies`) | Ya — seeder **menambah** baris bagi aksi baru | Tidak |
+
+### 33.3 Class diagram
+
+**Diagram 1 — pesanan dan riwayatnya (milik `BC-LAB`).**
+
+```mermaid
+classDiagram
+    class LabOrder {
+        <<Diperbarui>>
+        +Guid Id
+        +Guid EncounterId
+        +LabOrderStatus OrderStatus
+        +LabOrderStatus? StatusBeforeHold
+        +DateTime? RequestedAt
+        +DateOnly PlannedDate «baru»
+        +Guid? CoveringMcuOrderId
+        +int Version
+    }
+    class LabOrderReschedule {
+        <<Baru>>
+        +Guid Id
+        +Guid LabOrderId
+        +DateOnly PreviousPlannedDate
+        +DateOnly NewPlannedDate
+        +string Reason
+        +Guid ActorUserId
+        +DateTime OccurredAt
+    }
+    class LabSpecimen {
+        <<Sudah ada>>
+        +LabSpecimenStatus SpecimenStatus
+        +LabSpecimenStatus? StatusBeforeHold
+    }
+    class LabOrderedProcedure {
+        <<Sudah ada>>
+        +LabExaminationUrgency Urgency
+        +LabOrderedProcedureStatus OrderedStatus
+    }
+    class LabExamination {
+        <<Sudah ada>>
+        +LabExaminationUrgency Urgency
+        +LabExaminationStatus ExaminationStatus
+    }
+    LabOrder "1" --> "0..*" LabOrderReschedule : riwayat jadwal ulang
+    LabOrder "1" --> "0..*" LabSpecimen
+    LabOrder "1" --> "1..*" LabOrderedProcedure
+    LabOrder "1" --> "0..*" LabExamination
+```
+
+**Diagram 2 — aturan, layanan, dan controller.**
+
+```mermaid
+classDiagram
+    class LabRescheduleEligibility {
+        <<Baru · static>>
+        +Evaluate(snapshot, today) LabRescheduleVerdict
+        +IsOverdue(snapshot, today) bool
+    }
+    class LabRescheduleVerdict {
+        <<Baru · record>>
+        +bool CanReschedule
+        +string? BlockReasonCode
+        +string? BlockReason
+    }
+    class LabOrderService {
+        <<Diperbarui>>
+        +CreateAsync(...) «PlannedDate»
+        +CreateByExaminationsAsync(...) «PlannedDate»
+        +RescheduleAsync(id, request) «baru»
+        +GetRescheduleHistoryAsync(id) «baru»
+        +GetKioskPendingByPatientAsync(...) «PlannedDate»
+    }
+    class LabMonitoringService {
+        <<Diperbarui>>
+        +GetByDisciplineAsync(query) «PlannedDate, includeOverdue, penanda»
+    }
+    class LabOrderController {
+        <<Diperbarui>>
+        +Reschedule(id, body) «baru»
+        +GetRescheduleHistory(id) «baru»
+    }
+    class LabOrderReschedulePermissionSeeder {
+        <<Baru · static>>
+        +SeedAsync(services)
+    }
+    LabOrderController --> LabOrderService
+    LabOrderService --> LabRescheduleEligibility
+    LabMonitoringService --> LabRescheduleEligibility
+    LabRescheduleEligibility --> LabRescheduleVerdict
+```
+
+**Diagram 3 — penjaga lintas context (hanya baca).**
+
+```mermaid
+classDiagram
+    class LabOrder {
+        <<BC-LAB · Diperbarui>>
+    }
+    class RegPatientEncounter {
+        <<BC-REG · Sudah ada · baca>>
+        +EncounterStatus EncounterStatus
+    }
+    class McuOrderComponent {
+        <<BC-MCU · Sudah ada · baca>>
+        +Guid? LabOrderId
+    }
+    LabOrder "0..*" --> "1" RegPatientEncounter : EncounterId
+    McuOrderComponent "0..*" ..> "0..1" LabOrder : LabOrderId dibaca
+```
+
+### 33.4 Penjelasan setiap class
+
+| Class | Status | Lokasi file | Tanggung jawab |
+|---|---|---|---|
+| `LabOrder` | **Diperbarui** | `Areas/HealthServices/LaboratoryManagement/Models/LabOrder.cs` | Satu properti baru `PlannedDate` (`DateOnly`, wajib). Navigasi baru `ICollection<LabOrderReschedule> Reschedules` |
+| `LabOrderReschedule` | **Baru** | `Areas/HealthServices/LaboratoryManagement/Models/LabOrderReschedule.cs` | Satu baris per jadwal ulang yang berhasil; tidak pernah diubah atau dihapus. `[Table("LabOrderReschedule", Schema = "public")]`, mewarisi `IdentityModel` |
+| `LabOrderConfiguration` | **Diperbarui** | `Repositories/Configurations/HealthServices/LabOrderConfiguration.cs` — **utang teknis:** berkas ini tinggal di akar `HealthServices/`, sedangkan konfigurasi Lab lain di `HealthServices/LaboratoryManagement/`; **jangan dipindah** di task ini | `PlannedDate` → `HasColumnType("date")`, wajib; index `IX_LabOrder_PlannedDate` |
+| `LabOrderRescheduleConfiguration` | **Baru** | `Repositories/Configurations/HealthServices/LaboratoryManagement/LabOrderRescheduleConfiguration.cs` | FK `LabOrderId` → `LabOrder` `DeleteBehavior.Restrict`; `PreviousPlannedDate`/`NewPlannedDate` `date`; `Reason` `varchar(1000)` wajib; index `(LabOrderId, OccurredAt)` |
+| `ApplicationDbContext` | **Diperbarui** | `Repositories/ApplicationDbContext.cs` | `DbSet<LabOrderReschedule> LabOrderReschedules` |
+| `LabRescheduleEligibility` | **Baru** | `Areas/HealthServices/LaboratoryManagement/Services/LabRescheduleEligibility.cs` | **Satu rumus** kelayakan (`INV-67`): menerima potret pesanan (status, status sebelum ditahan, status wadah + status wadah sebelum ditahan, CITO aktif, status kunjungan, bertaut MCU) dan *hari ini*; mengembalikan `LabRescheduleVerdict`. Statis, tanpa akses basis data — potretnya disusun pemanggil dengan proyeksi |
+| `LabRescheduleVerdict` | **Baru** | Berkas yang sama | `CanReschedule`, `BlockReasonCode`, `BlockReason` (pesan bagi pengguna) |
+| `LabOrderService` | **Diperbarui** | `Areas/HealthServices/LaboratoryManagement/Services/LabOrderService.cs` | `RescheduleAsync` (**baru**, membuka satu transaksi tulis); `GetRescheduleHistoryAsync` (**baru**, baca); `CreateAsync` dan `CreateByExaminationsCoreAsync` mengisi `PlannedDate` (bawaan hari ini, `VAL-166`); `GetByIdAsync` menambah ruas tanggal rencana dan kelayakan; `GetKioskPendingByPatientAsync` menambah tanggal rencana dan penanda |
+| `LabMonitoringService` | **Diperbarui** | `Areas/HealthServices/LaboratoryManagement/Services/LabMonitoringService.cs` | Kategori periode `PlannedDate`; `includeOverdue`; ruas baris tanggal rencana, *Terlewat*, kelayakan |
+| `LabOrderController` | **Diperbarui** | `Areas/HealthServices/LaboratoryManagement/Controllers/LabOrderController.cs` | `PUT {id}/reschedule` (`[AccessAction("Reschedule", "Reschedule Lab Order", AccessType = AccessTypes.Update)]`, `[AccessPermission("LabOrder", "Reschedule")]`); `GET {id}/reschedules` (`[AccessPermission("LabOrder", "Read")]`). Pemetaan galat sama dengan `Cancel`: `KeyNotFoundException` → `404`, `LabOrderConflictException` dan `LabConcurrencyException` → `409`, `LabOrderValidationException` → `422` |
+| `LabMonitoringController` | **Sudah ada** — tidak berubah | `Areas/HealthServices/LaboratoryManagement/Controllers/LabMonitoringController.cs` | Ruas baru mengalir lewat `LabMonitoringQuery`/`LabMonitoringItemResponse` |
+| `LabOrderDtos` | **Diperbarui** | `Areas/HealthServices/LaboratoryManagement/DTOs/LabOrderDtos.cs` | `RescheduleLabOrderRequest` (**baru**, jenis *Status*); `LabOrderRescheduleResponse` (**baru**, *Response*); `CreateLabOrderRequest` dan `CreateLabOrderByExaminationsRequest` + `PlannedDate?`; `LabOrderDetailResponse` + ruas tanggal rencana dan kelayakan; `LabKioskPendingOrderItemResponse` + `PlannedDate`, `IsEarly`, `IsOverdue` |
+| `LabMonitoringDtos` | **Diperbarui** | `Areas/HealthServices/LaboratoryManagement/DTOs/LabMonitoringDtos.cs` | `LabMonitoringQuery.IncludeOverdue`; `LabMonitoringItemResponse` + ruas tanggal rencana, *Terlewat*, kelayakan |
+| `LabDateCategory` | **Diperbarui** | `Areas/HealthServices/LaboratoryManagement/Enums/LabDateCategory.cs` | Nilai baru `PlannedDate = 4`. Nilai kosong tetap berarti `OrderDate` (`LAB-DEC-277`) |
+| `LabOrderReschedulePermissionSeeder` | **Baru** | `Areas/HealthServices/LaboratoryManagement/Seeders/LabOrderReschedulePermissionSeeder.cs` | Sekali jalan: bila `LabOrder : Reschedule` belum pernah punya baris kebijakan (termasuk yang dicabut), salin setiap kebijakan aktif `LabOrder : Hold` ke `Reschedule` pada departemen–jabatan yang sama. Pola `OperatingRoomHandoverPermissionSeeder` (`LAB-DEC-274`) |
+| `Program.cs` | **Diperbarui** | `Program.cs` | `RunStartupSeederAsync("LabOrderReschedulePermissionSeeder", …)` **sesudah** `AccessMenuSeeder` (aksi lahir di sana), di samping baris seeder Kamar Operasi (`Program.cs:2930`) |
+
+**Isi `LabRescheduleEligibility.Evaluate` — urutan penilaian dan alasannya.** Urutan ini juga urutan penjaga pada
+`RescheduleAsync`, supaya penanda dan penolakan selalu memberi alasan yang sama (`INV-67`).
+
+| Urutan | Syarat | `BlockReasonCode` | Pesan bagi pengguna | Dasar |
+|---:|---|---|---|---|
+| 1 | Pesanan bertaut MCU | `McuLinked` | *Pesanan ini bagian MCU; jadwal ulang dilakukan petugas MCU.* | `INV-65` |
+| 2 | Status pesanan bukan `Requested`/`Confirmed`, dan bukan `OnHold` ber-`StatusBeforeHold` `Requested`/`Confirmed` | `StatusNotEligible` | *Pesanan berstatus {status} tidak dapat dijadwalkan ulang.* | `INV-62` |
+| 3 | Ada wadah (selain `Cancelled`/`RecollectionRequired`) yang status efektifnya — `StatusBeforeHold` bila `OnHold` — bukan `Planned`; `Rejected` termasuk | `SampleTaken` | *Sampel sudah diambil; batalkan wadah atau ambil ulang lebih dulu.* — untuk `Rejected`: *Sampel ditolak; minta ambil ulang lebih dulu.* | `INV-62`, `LAB-DEC-275`, `276` |
+| 4 | Kunjungan `Completed`/`Cancelled`/`NoShow` | `EncounterClosed` | *Kunjungan pesanan ini sudah selesai; pesan ulang pada kunjungan baru.* | `INV-64` |
+| 5 | CITO aktif | `ActiveCito` | *Pesanan memuat pemeriksaan CITO; minta dokter mencabut tanda CITO lebih dulu, atau batalkan lalu pesan ulang.* | `INV-63` |
+
+**Contoh.** Gula Darah Puasa `LAB-RSMMC-900031 (samaran)` (`Confirmed`, wadah `Planned`, kunjungan `Registered`, tanpa CITO, tanpa
+MCU) → `CanReschedule = true`. Satu jam kemudian wadahnya `Collected` → `CanReschedule = false`, `SampleTaken`.
+
+**`IsOverdue`** = `PlannedDate < hari ini` **dan** `Evaluate(...).CanReschedule` menurut syarat 2 dan 3 saja (pesanan
+masih sebelum sampel). Syarat 1, 4, dan 5 tidak memengaruhi *Terlewat* — pesanan MCU atau CITO yang tidak datang tetap
+perlu terlihat (`LAB-DEC-260`). *Contoh:* rencana Senin, hari ini Rabu, belum ada wadah diambil → *Terlewat 2 hari*.
+
+### 33.5 Arsitektur folder
+
+```text
+NewQuilvianSystemBackend/
+├── Areas/HealthServices/LaboratoryManagement/
+│   ├── Controllers/
+│   │   ├── LabOrderController.cs                       # Diperbarui — 2 endpoint baru
+│   │   └── LabMonitoringController.cs                  # Sudah ada — tidak berubah
+│   ├── DTOs/
+│   │   ├── LabOrderDtos.cs                             # Diperbarui
+│   │   └── LabMonitoringDtos.cs                        # Diperbarui
+│   ├── Enums/
+│   │   └── LabDateCategory.cs                          # Diperbarui — PlannedDate = 4
+│   ├── Models/
+│   │   ├── LabOrder.cs                                 # Diperbarui — PlannedDate
+│   │   └── LabOrderReschedule.cs                       # Baru
+│   ├── Seeders/
+│   │   └── LabOrderReschedulePermissionSeeder.cs       # Baru
+│   └── Services/
+│       ├── LabOrderService.cs                          # Diperbarui
+│       ├── LabMonitoringService.cs                     # Diperbarui
+│       └── LabRescheduleEligibility.cs                 # Baru
+├── Repositories/
+│   ├── ApplicationDbContext.cs                         # Diperbarui — DbSet
+│   └── Configurations/HealthServices/
+│       ├── LabOrderConfiguration.cs                    # Diperbarui — di akar HealthServices/: utang teknis, jangan dipindah
+│       └── LaboratoryManagement/
+│           └── LabOrderRescheduleConfiguration.cs      # Baru
+├── Migrations/
+│   └── <timestamp>_AddLabOrderPlannedDateAndReschedule.cs  # Baru (+ Designer, snapshot)
+└── Program.cs                                          # Diperbarui — satu baris seeder
+```
+
+### 33.6 Status model dan dampak migration
+
+| Model | Status | Yang berubah | Dampak migration |
+|---|---|---|---|
+| `LabOrder` | **Diperbarui** | **Satu kolom:** `PlannedDate` `date` **NOT NULL**, tanpa nilai bawaan basis data (diisi aplikasi). **Satu index:** `IX_LabOrder_PlannedDate` | Tambah kolom nullable → isi data lama → ubah ke NOT NULL → index (33.7) |
+| `LabOrderReschedule` | **Baru** | Seluruh kolom (data dictionary bagian 24) | `CreateTable` + FK `Restrict` + index `(LabOrderId, OccurredAt)` |
+| `LabSpecimen`, `LabOrderedProcedure`, `LabExamination`, `LabTransitionHistory` | `Sudah ada` | Nol | Nol |
+| `RegPatientEncounter`, `McuOrderComponent` | `Sudah ada` — milik modul lain | Nol — hanya dibaca | Nol |
+
+### 33.7 Rencana migration dan urutan rilis
+
+**Migration tunggal `AddLabOrderPlannedDateAndReschedule`**, dibangkitkan di atas snapshot terkini; diterapkan ke devYoga
+lewat skrip per migration **hanya atas instruksi pemilik**.
+
+| Langkah dalam `Up` | Isi |
+|---:|---|
+| 1 | `AddColumn` `LabOrder.PlannedDate` `date` **nullable** |
+| 2 | Isi data lama: `UPDATE "LabOrder" SET "PlannedDate" = (COALESCE("RequestedAt", "CreateDateTime") AT TIME ZONE 'Asia/Jakarta')::date WHERE "PlannedDate" IS NULL` — tanggal diminta **WIB** (`LAB-DEC-253`). **Tidak** menulis `LabOrderReschedule` (A9.10) |
+| 3 | `AlterColumn` `PlannedDate` menjadi **NOT NULL** |
+| 4 | `CreateIndex` `IX_LabOrder_PlannedDate` |
+| 5 | `CreateTable` `LabOrderReschedule` + FK + index |
+
+| Rilis | Isi | Tanpa henti layanan? | Mundur |
+|---:|---|:---:|---|
+| 1 | Migration | Ya bila tabel `LabOrder` kecil — `UPDATE` menyentuh setiap baris dan `AlterColumn NOT NULL` memindai tabel; devYoga ±30 order. **Produksi:** jalankan di luar jam sibuk Lab | `Down`: hapus tabel `LabOrderReschedule`, index, dan kolom — **riwayat jadwal ulang ikut hilang**; lakukan hanya sebelum fitur dipakai |
+| 2 | Deploy kode: pembuatan pesanan mengisi `PlannedDate` → kelayakan, daftar pantau, kiosk → endpoint jadwal ulang → seeder izin | Ya | Kode sebelumnya; kolom tetap ada (aman — kode lama tidak membacanya, tetapi **pesanan baru dari kode lama akan gagal NOT NULL**: kembali mundur kode **harus** bersama `Down`, atau kolom diubah nullable lebih dulu) |
+| 3 | Langkah rilis: admin memberi `LabOrder : Reschedule` kepada jabatan **Kepala Instalasi Laboratorium** lewat Role Access — **baca set jabatan lebih dulu**, POST menimpa seluruh set (`LAB-DEC-274`) | — | Cabut kebijakan |
+
+**Contoh pengisian data lama.** Pesanan contoh `LAB-RSMMC-900025` (samaran) diminta `2026-10-08 18:30 UTC` (= 9 Oktober 01.30 WIB) → `PlannedDate`
+**2026-10-09**, bukan 2026-10-08.
+
+### 33.8 Rencana data master awal
+
+**Nol data induk baru.**
+
+| Data | Isi minimum | Sumber |
+|---|---|---|
+| Kebijakan `LabOrder : Reschedule` | Setiap jabatan pemegang `LabOrder : Hold` — di devYoga: *Analis Laboratorium* | Seeder sekali jalan (33.4) |
+| Kebijakan Kepala Instalasi | `LabOrder : Reschedule` bagi *Kepala Instalasi Laboratorium* | Langkah rilis 3 |
+| Data uji | Pesanan `Confirmed` berwadah `Planned` bertanggal lampau; pesanan bertaut MCU di luar paket; pesanan CITO belum berwadah; wadah `Rejected` lalu ambil ulang | Tahap uji, **izin tulis tersendiri** (`LAB-RCG-001` r14 0I.4) |
+
+### 33.9 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Menulis jadwal ulang ke `LabTransitionHistory` | `ToStatus` wajib dan bermakna perpindahan status; laporan pembatalan dan Beranda menyaring tabel itu. Tabel tersendiri menutup `ARCH-GAP-LAB-17` tanpa menyentuh `INV-58` — **usulan 33.10 no. 1** |
+| Status `Rescheduled` pada `LabOrderStatus` | `LAB-DEC-257`, A9.8 |
+| Kolom `RescheduleCount` tersimpan | Dihitung dari `LabOrderReschedule` — angka tersimpan dapat basi |
+| Kolom *Terlewat* tersimpan atau job harian | A7.5, `LAB-DEC-260` — dihitung saat dibaca |
+| Kolom jam/sesi pada tanggal rencana | `LAB-DEC-263` |
+| Endpoint pencabutan CITO permintaan | `LAB-DEC-271` |
+| Penjaga tanggal pada perencanaan/pengambilan wadah | `LAB-DEC-259` — penanda, bukan penghalang |
+| Tulis ke `McuOrderComponent` | `LAB-DEC-272` |
+| `AvailableActions` pada DTO Lab | `LAB-DEC-273` — pola Lab memakai penanda kelayakan + izin |
+| Pilihan tanggal pada layar dokter | `S20-2`, `LAB-COORD-023` |
+
+### 33.10 Keputusan yang diminta pada persetujuan kontrak
+
+> **✅ Keenam butir disetujui 2026-11-25** oleh Yoga Aji Pratama selaku pemilik modul, bersama `LAB-API-v1` `r50`,
+> `LAB-PERM-v1` revision 18, `LAB-VAL-v1` `r22`, dan `LAB-STATE-v1` `r12`, lewat pesan *"setuju semua sesuai rekomendasi,
+> lanjut plan-module-delivery"*. Yang disetujui adalah **kolom "Usulan rancangan"** di bawah.
+
+| No | Hal | Usulan rancangan | Bila tidak disetujui |
+|---:|---|---|---|
+| 1 | **Tempat riwayat jadwal ulang** (`ARCH-GAP-LAB-17`) | **Tabel baru `LabOrderReschedule`** dengan kolom tanggal lama dan baru | Memperluas `LabTransitionHistory` dengan dua kolom tanggal nullable dan aksi `Order.Reschedule` (`FromStatus` = `ToStatus`) — setiap pembaca riwayat wajib menyaring aksi itu |
+| 2 | **Versi pada permintaan jadwal ulang** (`ARCH-GAP-LAB-18`) | `version` **opsional** pada `RescheduleLabOrderRequest`; bila dikirim dan berbeda → `409` *Pesanan ini baru saja diubah petugas lain. Muat ulang lalu coba lagi.* (`VAL-165`). FE selalu mengirimnya | Tanpa versi — dua petugas dapat saling menimpa tanggal; keduanya tetap tercatat |
+| 3 | **Riwayat sebagai endpoint tersendiri** | `GET {id}/reschedules` (`LabOrder : Read`); detail pesanan hanya membawa `rescheduleCount` | Riwayat ditanam di `LabOrderDetailResponse` — respons detail membesar bagi setiap pemanggil |
+| 4 | **Pencatatan teknis** | `InfoAsync` *"Pesanan {OrderNumber} dijadwalkan ulang dari {lama} ke {baru} oleh pengguna {ActorUserId}."* — **tanpa** alasan dan identitas pasien (alasan dapat menyebut kondisi pasien); isi di teks pesan, bukan payload | Mencatat alasan juga — berisiko memuat data klinis di log |
+| 5 | **Isi awal pesanan lama bukan peristiwa** (A9.10) | Pengisian migration **tidak** menulis `LabOrderReschedule`; `rescheduleCount` pesanan lama = 0 | Menulis satu peristiwa *isi awal* per pesanan — riwayat berisi baris tanpa keputusan manusia |
+| 6 | **Daftar pantau: `includeOverdue`** | Parameter `includeOverdue` (bawaan `false`) — hanya berlaku bersama `dateCategory=PlannedDate`; layar daftar kerja mengirim `true` | Pesanan terlewat dicari dengan memperlebar periode — melanggar maksud `LAB-DEC-260` |
+
+### 33.11 Keamanan, privasi, dan pencatatan
+
+- **Izin ditegakkan di server.** `PUT {id}/reschedule` dijaga `LabOrder : Reschedule`; penanda `canReschedule` dihitung
+  **tanpa** melihat izin dan tidak pernah dipakai sebagai pengganti pemeriksaan izin (`INV-67`).
+- **Alasan jadwal ulang dapat menyebut kondisi pasien** (*belum puasa*, *hemolisis*) — ditampilkan hanya kepada pemegang
+  `LabOrder : Read`, **tidak** masuk log (33.10 no. 4).
+- **Kiosk** (`KioskReadPolicy`) menerima `plannedDate`, `isEarly`, `isOverdue` — **tanpa** alasan dan **tanpa** riwayat.
+- Penjaga lintas modul hanya membaca; nol tulis ke Registrasi atau MCU.
+
+### 33.12 Traceability bagian 33
+
+| Rancangan | Keputusan | Arsitektur domain | Kontrak | AC |
+|---|---|---|---|---|
+| `LabOrder.PlannedDate`, isi awal | `LAB-DEC-252`, `253`, `263` | `LAB-DC-066`, `INV-68` | `LAB-API-v1` `r50` 45.3, 45.4 | `AC-338`, `AC-339` |
+| `LabOrderReschedule`, `RescheduleAsync` | `LAB-DEC-252`, `256`, `264` | `LAB-DC-067`, `INV-61`, `INV-66`, `INV-69` | `r50` 45.3; `LAB-VAL-v1` `r22` | `AC-338`, `AC-342`, `AC-349` |
+| `LabRescheduleEligibility` | `LAB-DEC-261`, `270`..`273`, `275`, `276` | `LAB-DC-068`, `INV-62`..`INV-65`, `INV-67` | `r22`; `LAB-STATE-v1` `r12` | `AC-341`, `AC-347`, `AC-348`, `AC-350`, `AC-353`, `AC-355` |
+| Status tidak berubah | `LAB-DEC-257` | A9.8 | `r12` | `AC-343` |
+| Daftar pantau: kategori, *Terlewat*, penanda | `LAB-DEC-258`, `260`, `273`, `277` | `LAB-DC-069`, `INV-67` | `r50` 45.5 | `AC-344`, `AC-346`, `AC-353`, `AC-356` |
+| Penanda bukan penghalang | `LAB-DEC-259` | `INV-68` | — (nol penjaga) | `AC-345` |
+| Kiosk | `LAB-DEC-266` | A9.11 | `r50` 45.6 | `AC-351` |
+| `LabOrder : Reschedule`, seeder | `LAB-DEC-254`, `274` | A9.9 | `LAB-PERM-v1` rev 18 | `AC-340`, `AC-354` |
+| Riwayat terbaca | `LAB-DEC-268` | A9.10 | `r50` 45.3 | `AC-352` |
+| Ruas opsional pembuatan pesanan | `LAB-DEC-253`, `269` | A9.11 | `r50` 45.4 | `AC-339` |
+
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 25 | 2026-11-25 | **Persetujuan dibukukan:** keempat kontrak bagian 33 dan keenam butir 33.10 `approved` oleh Yoga Aji Pratama — tabel riwayat `LabOrderReschedule`, `version` opsional (`VAL-165`), endpoint riwayat tersendiri, log tanpa alasan/identitas pasien, isi awal bukan peristiwa, `includeOverdue` | `draft` |
+| 24 | 2026-11-25 | **Bagian 33 — rancangan `S20-1` penjadwalan ulang pemeriksaan**, dari `LAB-DA-001` rev 12 A9. Satu kolom `LabOrder.PlannedDate` (`date`, wajib, isi awal dari waktu diminta WIB); satu tabel baru `LabOrderReschedule`; satu aturan kelayakan bersama `LabRescheduleEligibility`; `PUT {id}/reschedule` dan `GET {id}/reschedules`; perluasan pembuatan pesanan, detail, daftar pantau (`PlannedDate`, `includeOverdue`), dan kiosk; `LabOrder : Reschedule` + seeder salin dari `Hold`; satu migration. Enam butir 33.10 menunggu persetujuan bersama `LAB-API-v1` `r50`, `LAB-PERM-v1` rev 18, `LAB-VAL-v1` `r22`, `LAB-STATE-v1` `r12` | `draft` |
 | 23 | 2026-10-20 | **Persetujuan dibukukan:** keempat kontrak bagian 32 dan keenam butir 32.10 `approved` oleh Yoga Aji Pratama. Butir 1 — pembukaan Laporan Pembatalan **dicatat** — menutup `ARCH-GAP-LAB-14` | `draft` |
 | 22 | 2026-10-20 | **Laporan Pembatalan dan Statistik Pesanan dirancang** (bagian 32), menurunkan `LAB-DA-001` rev 11 A8 dan `LAB-RCG-001` rev 13 0H. Dua controller dan dua service laporan (izin per laporan), `LabOrderDemandQuery` dipindah dari `LabDashboardService` (`INV-59`), `LabReportXlsxWriter` (`ClosedXML`), `LabReportOutputLogger` (unduh dan cetak), penjaga `VAL-155` pada batal pemeriksaan/wadah. Nol tabel, nol kolom; satu index usulan. Enam butir 32.10 menunggu persetujuan. BE `4d3e4f98`, FE `7fb1e1d3e` | `draft` |
 | 21 | 2026-10-14 | **Ruas baca v1 dibukukan susulan** (bagian 31): `r47` daftar pantau dan `r48` kartu halaman hasil. Kodenya sudah ada lebih dulu (BE `36422a4d`, 2026-10-13). Nol tabel/kolom/migration/endpoint/izin. Bukti HTTP 2026-10-14 dengan akun asli dr. Bima dan Gilang | `draft` |

@@ -3,7 +3,7 @@ using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 
 // Kontrak kebijakan regulasi penggajian berversi (tarif PPh). Seluruh nilai regulasi dimasukkan HRD dan disahkan Finance; tidak ada
-// angka bawaan dari Backend. Kebijakan iuran BPJS tidak lagi dikelola (PAY-BE-FIX-007); tabel PrlBpjsPolicy dipertahankan sebagai data historis.
+// angka bawaan dari Backend. Kebijakan iuran BPJS tidak lagi dikelola (PAY-BE-FIX-007); entity PrlBpjsPolicy sudah dihapus dari source (tabelnya di database tidak disentuh).
 
 /// <summary>Filter daftar kebijakan.</summary>
 public sealed class PayrollStatutoryPolicyQuery

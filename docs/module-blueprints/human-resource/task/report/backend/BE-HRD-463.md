@@ -5,137 +5,108 @@
 | Field | Nilai |
 | --- | --- |
 | Task ID | `BE-HRD-463` |
-| Judul | Respons detail unit membawa nama legal entity, fasilitas, dan departemen |
-| Slice | `S-FIN-M05` amandemen — Menu Organisasi (`PLAN-REPAIR-HRD-008`, `FIX-HRD-008-06`) |
-| Roadmap | `docs/module-blueprints/human-resource/roadmap/backend-roadmap.md` bagian 32 |
-| Trace | `HRD-DEC-248`; `ISSUE-HRD-008` temuan `ISS-HRD-008-T3`; aturan output 5.3 |
-| Contract version | `v30` tetap. Master organisasi tidak diatur `api-contract.md`; perubahan ini aditif |
-| Dependency | Tidak ada. Dipakai `FE-HRD-414` |
-| Klasifikasi | `LIGHT` — 2 berkas, perubahan aditif pada satu endpoint baca, tanpa database |
-| Task mode | `BACKEND` (disetujui pengguna 24 November 2026: "oke saya setujui kerjakan semua dan selesaikan") |
-| Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/HumanResource/MasterData/Organization/**` dan laporan ini |
+| Judul | Detail roster mengelompokkan shift per petugas yang bertugas sekarang |
+| Slice | `A52-B` / `MVP-77` gelombang 1 · `EPIC HRD-131` (`MUST HAVE`) |
+| Roadmap | `roadmap/backend-roadmap.md` bagian 32, kartu `BE-HRD-463` |
+| Trace | `FR-PK-033`; `HRD-DEC-248`; fakta `HRD-TF-092` |
+| Contract version | `v31` — API 37.2; desain `02` 39.9.1; Validation `VR-PK-37` — approved 24 November 2026 |
+| Dependency | Kontrak `v31` ✅ |
+| Klasifikasi | `STANDARD` — kueri baca service, perluasan DTO respons; tanpa perubahan skema |
+| Task mode | `BACKEND` |
 | Model | Claude Opus 5.5 |
-| Commit backend saat dikerjakan | `3ef27c96` (branch `MHamzah`), perubahan belum di-commit |
-| Tanggal | 2026-11-24 |
-| Status | ✅ Selesai — build dan QBE lulus; uji API runtime `NOT RUN` (lihat bagian 5) |
+| Source acuan | Backend `4d2c0162` (branch `yoga`). Working tree sebelum task memuat perubahan dokumen amandemen `A52-B` dan laporan frontend yang belum di-commit; tidak disentuh task ini |
+| Tanggal | 24–25 November 2026 |
+| Status | ✅ Selesai — 4/4 acceptance criteria terpenuhi di harness; bukti API data asli devYoga ada di `BE-HRD-468` |
 
-**Backend Governance Preflight**
+### Backend Governance Preflight
 
-| Butir | Nilai |
+| Field | Nilai |
 | --- | --- |
-| Area / Module / Submodule | `Corporate` / `HumanResource` / `MasterData/Organization` |
-| Pemilik / prefix registry | `Mst` (Master / Reference / MasterData) — entity `MstOrganizationUnit`, `MstLegalEntity`, `MstHospitalSite`, `MstDepartment` sudah ada |
-| Keberlakuan | `TOUCHED LEGACY` — controller lama memakai `ApplicationDbContext` langsung; tidak di-refactor (ratchet, di luar scope) |
-| Entity / migration baru | Tidak ada |
-| QBE yang berlaku | `QBE-API-001`, `QBE-DTO-001` (respons tetap DTO, bukan entity), `QBE-PERM-001` (atribut akses tidak berubah) |
+| Area / Module / Submodule | `Corporate` / `HumanResource` / `SchedulingManagement` (registry: submodule legacy pemuat entity `Wfp*`/`Trx*` lama, tanpa baris pemilik sendiri — catatan registry baris 121; task tidak menambah entity sehingga tidak butuh keputusan prefix) |
+| Keberlakuan | `TOUCHED LEGACY` — `RosterPeriodService` (`GetByIdAsync`, dua jalur respons tambah penugasan/shift), `RosterSchedulingDtos` (dua DTO respons) |
+| QBE yang berlaku | `QBE-SVC-001` (pengelompokan dan penanda pengganti berada di service; controller tidak berubah), `QBE-API-001` (respons tetap `ApiResponse`, kode status tidak berubah), `QBE-PERM-001` (hak `RosterPeriod : Read` tidak berubah). Tanpa entity/tabel baru, sehingga `QBE-NAM-001`, `QBE-ENT-001`, `QBE-CFG-001`, `QBE-MOD-002` tidak tersentuh. `<summary>` hanya pada properti DTO (schema), tidak ada pada action controller |
+| Sumber governance | `AGENTS.md`; `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`; `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; `CLAUDE.md` backend |
+| Wewenang terpisah | Implementasi source ✅; migration ✖ (tidak diperlukan); eksekusi database ✖; deployment ✖ |
 
 ---
 
-## 1. Masalah yang diperbaiki
+## 1. Cara kerja sesudah perubahan
 
-Halaman detail unit organisasi menampilkan baris "ID Legal Entity", "ID Fasilitas Rumah Sakit",
-dan "ID Departemen" berisi deretan huruf-angka acak (UUID). Sebabnya, respons
-`GET .../organization-units/{id}` hanya membawa ID ketiga relasi itu. Nama yang dikirim hanya nama
-unit induk (`ParentUnitName`).
+Contoh desain: roster ICU Februari 2027 sudah terbit. Indra memegang Pagi 16 dan 17 Feb, Budi memegang Pagi 18 Feb. Raka tidak punya penugasan di roster ini.
 
-Contoh: petugas membuka detail "Instalasi Farmasi" dan hanya melihat
-"ID Departemen: c93e1b77-…". Untuk tahu departemennya, ia harus mencari ID itu di menu lain.
-
----
-
-## 2. Proses bisnis
-
-| Langkah | Isi |
+| Langkah | Yang tampil di `GET roster-periods/{id}` |
 | --- | --- |
-| Tujuan | Petugas HR membaca keterkaitan unit dengan legal entity, fasilitas, dan departemen tanpa menerjemahkan ID |
-| Pelaku | Petugas HR dengan hak `OrganizationUnit : Read` |
-| Pemicu | Petugas membuka detail unit dari daftar atau dari pohon Struktur Organisasi |
-| Langkah | 1. Layar meminta `GET /{id}`. 2. Server memuat unit beserta relasi legal entity, fasilitas, dan departemen. 3. Server mengirim nama ketiganya bersama ruas lama. 4. Layar (`FE-HRD-414`) menampilkan nama |
-| Aturan | Nama dikirim apa pun status aktif relasinya, supaya unit yang terhubung ke departemen nonaktif tetap terbaca |
-| Jalur tidak normal | Unit tanpa fasilitas atau departemen → nama bernilai `null`, layar menampilkan "-". Unit tidak ada → `404` seperti sebelumnya |
-| Hasil akhir | Tidak ada data yang berubah. Ini hanya perubahan baca |
+| Kepala Unit menjalankan Ganti Petugas: Pagi 16 Feb Indra → Raka | Baris Indra tetap ada dan hanya memuat 17 Feb. Di akhir daftar muncul baris Raka dengan `isReplacementOnly = true`, `id = 00000000-…`, status penugasan sama dengan roster (`Published`), dan `plannedShiftCount = 1`. Shift 16 Feb ada di baris Raka dengan `isReplacement = true`, `originalWorkforceDisplayName = "Indra Setiawan"`, dan `shiftName = "Pagi"` |
+| Kepala Unit membuka sel 16 Feb di baris Raka lalu mengganti ke Tono | Frontend mengirim `expectedWorkforceProfileId` = Raka, dan permintaan diterima. Baris Raka hilang, dan baris pengganti-saja Tono muncul. Petugas awal tetap Indra, bukan Raka |
+| Klien yang masih mengirim Indra sebagai `expectedWorkforceProfileId` | `409` dengan pesan yang sudah ada (`VR-PK-37`); tidak ada perubahan |
+| Pagi 18 Feb Budi → Indra (Indra punya penugasan di roster ini) | Shift masuk ke baris Indra sendiri (16, 17, 18 Feb) dengan tanda pengganti dari Budi. Baris Budi tetap ada tanpa shift. Tidak ada baris tambahan |
+| Shift 16 Feb dikembalikan dari Raka ke Indra | Shift kembali ke baris Indra tanpa tanda pengganti, dan baris Raka hilang |
+| Shift dihapus dari roster (`IsActive = false`, status `Cancelled`) | Tidak tampil, sama seperti sebelumnya |
+| Tambah penugasan (roster draf) atau tambah shift (roster terbit) | Butir shift pada respons kini memuat `shiftName` dan identitas petugas. Sebelumnya `shiftName` kosong pada kedua jalur ini |
 
 ---
 
-## 3. Perubahan yang dikerjakan
+## 2. Perubahan
 
-### 3.1 Berkas yang diperiksa
-
-- `Areas/Corporate/HumanResource/MasterData/Organization/Controllers/OrganizationUnitController.cs` (`GetById`, `BaseQuery`)
-- `Areas/Corporate/HumanResource/MasterData/Organization/DTOs/OrganizationUnitDtos.cs`
-- `Areas/Corporate/HumanResource/MasterData/Organization/Models/MstOrganizationUnit.cs`, `MstLegalEntity.cs`, `MstHospitalSite.cs`, `MstDepartment.cs`
-- `docs/module-blueprints/human-resource/docs/plan-repair/plan-repair-008-gabung-unit-organisasi-ke-struktur-organisasi.md`
-
-### 3.2 Berkas yang berubah
-
-| Berkas | Perubahan |
+| Berkas | Isi |
 | --- | --- |
-| `Areas/Corporate/HumanResource/MasterData/Organization/DTOs/OrganizationUnitDtos.cs` | `OrganizationUnitDetailResponse` ditambah `LegalEntityName`, `HospitalSiteName`, `DepartmentName` (`string?`) |
-| `Areas/Corporate/HumanResource/MasterData/Organization/Controllers/OrganizationUnitController.cs` | `GetById` menambah `Include` untuk `LegalEntity`, `HospitalSite`, `Department`, hanya pada kueri detail. `BaseQuery` yang dipakai daftar tidak diubah. Ketiga nama diisi dari `LegalEntityName`, `SiteName`, dan `DepartmentName` |
+| `Areas/Corporate/HumanResource/SchedulingManagement/Services/RosterPeriodService.cs` | `GetByIdAsync`: shift dibaca dengan kueri terpisah (`TrxShiftAssignments` aktif milik penugasan aktif periode itu, beserta `Shift` dan `WorkforceProfile`) dan tidak lagi lewat `Include` bersarang. Setiap shift ditempatkan di baris penugasannya sendiri bila petugasnya sama. Bila tidak, shift masuk ke baris penugasan pertama milik petugas sekarang. Bila petugas sekarang tidak punya penugasan di roster ini, shift masuk ke baris pengganti-saja (`Id = Guid.Empty`, `IsReplacementOnly = true`, urut nama, di akhir daftar). Nama petugas awal diambil sekali dari `MstWorkforceProfiles`. Helper baru: `IsReplacementShift` (`OriginalEmployeeId` terisi **dan** berbeda dari petugas sekarang) dan `ToShiftItem` (satu pemetaan butir shift). Jalur respons tambah penugasan dan tambah shift mengisi `ShiftName` dari master shift yang sudah dibaca, ditambah `WorkforceProfileId/Code/DisplayName` |
+| `…/DTOs/RosterSchedulingDtos.cs` | `RosterAssignmentResponse.IsReplacementOnly`. `ShiftAssignmentItemResponse`: `WorkforceProfileId`, `WorkforceProfileCode`, `WorkforceDisplayName`, `IsReplacement`, `OriginalWorkforceProfileId`, `OriginalWorkforceDisplayName` |
+| `Tests/QuilvianSystemBackend.HumanResourceTests/RosterReplacementGridTests.cs` (baru), `AcceptanceTestIndex.md` | 7 uji (5 fakta + 1 teori 2 kasus) lewat `RosterPeriodService` dan `ShiftReplacementService` nyata; baris `AT-HRD-PK-47` dan baris kelas di indeks |
 
-### 3.3 Dampak kontrak API, database, dan keamanan
+`ShiftReplacementService` tidak diubah. Aturan `expectedWorkforceProfileId` ≠ petugas sekarang → `409` sudah ada; task ini membuktikannya untuk sel pengganti.
 
-| Aspek | Dampak |
-| --- | --- |
-| Kontrak API | Aditif: tiga ruas baru pada respons `GET /{id}`. Ruas lama tetap sama nama dan tipenya. Daftar, opsi, dan pohon tidak berubah |
-| Database | Tidak ada perubahan schema. Tanpa migration |
-| Keamanan/Auth | Tidak ada. `[AccessAction("Read", …)]` dan `[AccessPermission("OrganizationUnit", "Read")]` tidak berubah |
+### Delta terhadap kartu roadmap dan kontrak
 
----
-
-## 4. Dokumentasi endpoint
-
-#### Corporate / Human Resource / Master Data / Organization Unit
-
-Base URL: `api/v1/corporate/human-resource/master-data/organization-units`
-
-| Method | Path | Kegunaan | Hak akses | Request | Response |
-| --- | --- | --- | --- | --- | --- |
-| `GET` | `/{id}` | Detail satu unit beserta nama legal entity, fasilitas, dan departemen terkait | `OrganizationUnit : Read` | - | `OrganizationUnitDetailResponse` (+ `legalEntityName`, `hospitalSiteName`, `departmentName`) |
-
-Kode status tidak berubah. `200` berarti data ditemukan. `404` berarti unit tidak ada atau sudah
-dihapus. `403` berarti pengguna tidak punya hak melihat unit.
-
----
-
-## 5. Verifikasi
-
-| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| Hal | Kartu/kontrak | Pelaksanaan | Alasan |
 | --- | --- | --- | --- |
-| `dotnet build QuilvianSystemBackend.csproj --no-restore -p:OutDir=<scratch>` | 0 error, 610 warning (baseline lama), tidak ada warning pada berkas Organization; 6 menit 34 detik | `PASS` | Log build sesi 24 November 2026. `bin/` terkunci backend yang sedang berjalan, jadi keluaran diarahkan ke folder sementara |
-| `tooling/qbe/Invoke-QbeConformanceCheck.ps1 -Mode Strict` pada 2 berkas | VIOLATION 0, REVIEW 0, INFO 0 — `PASS` | `PASS` | Keluaran perintah |
-| Review diff | 2 berkas, +13/−1 baris, hanya scope task | `PASS` | `git diff` |
-| Uji API `GET /{id}` (AC 1–3) | Tidak dijalankan | `NOT RUN` | Backend yang sedang berjalan memakai build lama. Menjalankan backend baru di DB dev bersama butuh izin terpisah (worker latar ikut menulis) |
-
-Uji manual: `NOT FEASIBLE` pada sesi ini (alasan di atas).
-
-AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)
-
-**Tidak dijalankan:** uji API runtime. Setelah backend di-restart dengan kode ini, cukup buka
-detail satu unit yang punya departemen dan periksa ruas `departmentName`.
+| Arti `isReplacement` | API 37.2: "`true` bila shift hasil Ganti Petugas" | `true` hanya bila `OriginalEmployeeId` terisi **dan** berbeda dari petugas sekarang | Shift yang dikembalikan ke petugas awal kembali ke baris awal tanpa tanda. AC4 "tanpa penggantian `isReplacement = false`" tetap berlaku. `OriginalEmployeeId` tidak dihapus (jejak `ShiftRevisionRecorder` utuh) |
+| Pengganti yang punya penugasan di roster | Tidak disebut | Shift masuk ke baris penugasan pertama petugas itu; tanpa baris pengganti-saja | Mengikuti outcome "baris `WorkforceProfileId`"; satu petugas tidak tampil dua kali |
+| Isi baris pengganti-saja | `IsReplacementOnly`, `Id = Guid.Empty` | Ditambah `AssignmentStatus` dari penugasan asal shift, `PlannedShiftCount` = jumlah shift, `PositionId` kosong, dan urutan di akhir daftar (urut nama) | Supaya matriks `FE-HRD-411` dapat menampilkan baris tanpa data tambahan |
+| Status kontrak API 37.2 | Tabel masih "Sudah ada — perluasan **Rencana (belum tersedia)**" | Tidak disunting | Artefak kontrak terkunci hash. Penyegaran status menjadi tersedia dicatat untuk pass blueprint |
 
 ---
 
-## 6. Acceptance criteria dan Definition of Done
+## 3. Verifikasi
+
+| Pemeriksaan | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `RosterReplacementGridTests` | 7/7 lulus | `PASS` (AC1–AC4) | Keluaran `dotnet test` |
+| Kontrol negatif: 6 mutasi — (1) pengelompokan kembali ke `RosterAssignmentId` tanpa memeriksa petugas, kontrol yang diminta kartu; (2) `isReplacement` tanpa membandingkan petugas awal dan sekarang; (3) baris pengganti-saja dibuang; (4) nama petugas awal tidak dicari; (5) `ShiftName` jalur tambah shift (terbit) dihapus; (6) `ShiftName` jalur tambah penugasan (draf) dihapus | 6/6 tertangkap: (1) 3 uji gagal, termasuk AC1; (2) 1; (3) 2; (4) 3; (5) 1; (6) 1. Tanpa galat kompilasi. Source dipulihkan dengan hash SHA-256 `1aa98214…` sama dengan salinan asli | `PASS` | `mut450.cjs`, `mut450-hasil.log` di scratchpad sesi |
+| Build ulang dan uji akhir sesudah mutasi | Pemulihan dengan `copyFileSync` mempertahankan waktu ubah lama sehingga MSBuild tidak build ulang (DLL masih berisi mutasi 6). Source di-`touch`, lalu build ulang (0 galat) dan uji task + skema 14/14 lulus | `PASS` | `build450-final.log`, `test450-final.log` |
+| Regresi penuh proyek uji HR | 422/423 dari salinan scratchpad (13 menit 17 detik). Satu uji yang gagal, `WorkflowEscalationAndBulkFlagSchemaTests.Migration_hanya_menambah_dua_kolom…`, gagal karena "Root repository tidak ditemukan" (salinan di luar repo); diulang dengan env `QUILVIAN_BACKEND_ROOT` dan lulus. Total 423/423 | `PASS` | `test450-full.log`, `test450-final.log` |
+| Build proyek utama | 0 galat (`-p:RunAnalyzers=False`) | `PASS` | Keluaran `dotnet build` |
+| QBE `Strict` atas 3 berkas | 0 violation, 0 review. Probe `TrxZzzQbeProbe450` (ber-`[Table]`) terdeteksi 4 violation (`QBE-NAM-001`, `QBE-ENT-001`, `QBE-CFG-001`, `QBE-MOD-002`) lalu dihapus | `PASS` | Keluaran checker |
+| Bukti API data asli devYoga (ulang `UAT-PK-03`/`UAT-PK-16`) | Tidak dijalankan di task ini | `NOT RUN` | Kartu menempatkannya di `BE-HRD-468` |
+
+### Acceptance criteria
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| 1. Unit yang terhubung ke departemen "Farmasi" mengembalikan `departmentName: "Farmasi"` | Terpenuhi di source; runtime `NOT RUN` | `DepartmentName = entity.Department?.DepartmentName` dengan `Include(x => x.Department)` |
-| 2. Unit tanpa fasilitas mengembalikan `hospitalSiteName: null` tanpa galat | Terpenuhi di source | Operator `?.` pada `entity.HospitalSite` |
-| 3. Unit yang terhubung ke departemen nonaktif tetap mengembalikan namanya | Terpenuhi di source | `Include` tanpa saringan `IsActive`; tidak ada query filter global pada entity terkait |
-| 4. Field lama respons tetap sama nama dan tipenya | Terpenuhi | Diff hanya menambah properti |
-| DoD: laporan dan tanda roadmap | Terpenuhi | Laporan ini; roadmap backend bagian 32 |
+| 1. Pagi 16 Feb Indra → Raka: baris Raka memuat shift itu (`isReplacement = true`, `originalWorkforceDisplayName = "Indra Setiawan"`); baris Indra tanpa shift 16 Feb; baris Indra tetap ada | Terpenuhi | `Pengganti_tanpa_penugasan_tampil_di_baris_pengganti_saja_dan_baris_awal_tetap_ada`; pengganti berpenugasan: `Pengganti_yang_punya_penugasan_menerima_shift_di_barisnya_sendiri` |
+| 2. Raka tanpa penugasan roster → baris `isReplacementOnly = true`, `id` kosong | Terpenuhi | `Pengganti_tanpa_penugasan_tampil_di_baris_pengganti_saja_dan_baris_awal_tetap_ada` |
+| 3. Ganti Petugas berikutnya dengan `expectedWorkforceProfileId` = Raka diterima; dengan Indra → `409` (`VR-PK-37`) | Terpenuhi | `Ganti_berikutnya_dari_sel_pengganti_memakai_petugas_sekarang` |
+| 4. Shift `Cancelled` tidak tampil; shift tanpa penggantian `isReplacement = false` | Terpenuhi | `Shift_nonaktif_tidak_tampil`; `isReplacement = false` diperiksa di tiga uji, termasuk `Kembali_ke_petugas_awal_tidak_ditandai_pengganti`. Jalur hapus shift roster mengisi `IsActive = false` bersama `Cancelled` (`RosterPeriodService` sekitar baris 1672) |
 
 ---
 
-## 7. Catatan penutup
+## 4. Temuan
+
+| Temuan | Dampak | Tindakan |
+| --- | --- | --- |
+| As-is: detail roster mengelompokkan shift menurut `RosterAssignmentId`. Ganti Petugas hanya mengubah `WorkforceProfileId` shift (`HRD-TF-092`) | Shift pengganti tampil di baris petugas awal. Ganti berikutnya dari sel itu mengirim petugas yang salah dan ditolak `409` | Diperbaiki (inti task) |
+| As-is: respons tambah penugasan dan tambah shift tidak mengisi `ShiftName` | Sel baru di layar tidak bernama sampai halaman dimuat ulang | Diperbaiki |
+| Klien yang mengandalkan pengelompokan per penugasan | Baris pengganti-saja ber-`id` kosong tidak boleh dipakai untuk hapus/validasi penugasan | Risiko kartu; matriks roster diperbarui di `FE-HRD-411` |
+| Status kontrak API 37.2 masih "Rencana (belum tersedia)" | Dokumen kontrak tertinggal dari source | Catatan untuk pass blueprint (artefak terkunci hash) |
+
+---
+
+## 5. Catatan penutup
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | 610 warning build adalah baseline repository, tidak ada yang baru dari task ini |
-| Masalah yang diketahui | Pesan server berbahasa campur ("Detail organization unit berhasil diambil.") tidak diubah — dicatat `ISSUE-HRD-008` T4 |
-| Risiko tersisa | Kueri detail memuat tiga relasi tambahan untuk satu baris — dampak kecil |
-| Perubahan sampingan | `NONE` |
-| Interupsi | `NONE` |
-| Status Git | `M Areas/Corporate/HumanResource/MasterData/Organization/Controllers/OrganizationUnitController.cs`, `M Areas/Corporate/HumanResource/MasterData/Organization/DTOs/OrganizationUnitDtos.cs` (berkas controller juga memuat perubahan `BE-HRD-464`) |
-| Langkah berikutnya | Restart backend lokal agar `FE-HRD-414` menerima ruas nama; `BE-HRD-464` |
+| Migration / database | Tidak ada migration. Tidak ada eksekusi database |
+| Git | Tidak ada stage, commit, push, pull, merge, rebase, atau deploy. Berkas baru: `RosterReplacementGridTests.cs` (cukup `git add`) |
+| Dampak frontend | Respons detail roster diperluas tanpa menghapus ruas. Matriks dapat membaca petugas sekarang per sel, tanda pengganti, dan baris pengganti-saja (`FE-HRD-411`). Ganti Petugas dari sel memakai `workforceProfileId` sel sebagai `expectedWorkforceProfileId` |
+| Bukti data asli | `UAT-PK-03`/`UAT-PK-16` di devYoga dikerjakan di `BE-HRD-468` |
+| Task berikutnya | `BE-HRD-464` (pengecualian konversi tidak memblokir tutup periode), satu gelombang `MVP-77`; `FE-HRD-411` dapat mulai memakai respons ini |

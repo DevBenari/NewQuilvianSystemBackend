@@ -70,6 +70,15 @@ public sealed class DrugUsageService
         _logger = logger;
     }
 
+    // ============================================ laporan pemakaian per unit (FIN-LGS-024)
+
+    /// <summary>
+    /// Laporan Pemakaian per Unit: pemakaian yang sudah dicatat per unit layanan × obat dalam periode.
+    /// </summary>
+    public Task<UsageByUnitReportResponse> GetUsageByUnitReportAsync(UsageByUnitReportQuery request,
+        CancellationToken cancellationToken = default) =>
+        new LogisticsReportQueries(_dbContext).GetUsageByUnitAsync(request, cancellationToken);
+
     // ==================================================================== daftar
 
     public async Task<PagedResult<DrugUsageSummaryResponse>> GetPagedAsync(
