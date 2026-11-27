@@ -31,6 +31,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.Procuremen
                 .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
             builder.HasIndex(x => x.NeedPlanLineKey);
+            // BE-PBJ-PS-003: baris per paket (PBJ-DEC-071). Tanpa FK fisik ke PrcPackage, sama seperti NeedPlanLineKey.
+            builder.HasIndex(x => x.PackageId);
 
             builder.HasOne(x => x.Item).WithMany()
                 .HasForeignKey(x => x.ItemId).OnDelete(DeleteBehavior.Restrict);

@@ -7904,9 +7904,9 @@ Entri sidebar yang menuju layar `FE-HRD-317` s.d. `FE-HRD-320` dan `FE-HRD-322` 
 
 ### Rincian 10 task frontend
 
-#### ⬜ `FE-HRD-410` — Klien API kontrak `v31`
+#### ✅ `FE-HRD-410` — Klien API kontrak `v31`
 * **Slice / MVP**: `A52-B` / `MVP-78`
-* **Status**: ⬜ Belum dikerjakan
+* **Status**: ✅ Selesai (2026-11-26). 3/3 acceptance criteria terpenuhi: uji unit `hr-a52b-api-client.test.mjs` 8/8 bersama `hr-a52-api-client.test.mjs` (20/20; path/method per kelompok, daftar putih URL kontrak `v31` atas 26 pemanggilan, payload ESS tanpa `workforceProfileId`, nama cadangan unduhan bila `Content-Disposition` tidak terbaca), 14/14 mutasi kontrol tertangkap, `lint:errors` dan `npm run build` lulus, uji asap baca-saja 13 GET baru ke backend lokal (semua rute ada). 26 fungsi baru di `employee-self-service.js` (ESS izin 5, ESS dinas luar 7), `roster-scheduling-service.js` (Perubahan Shift dan Tukar Dinas sisi HR 6+6), `workforce-core-cross-employee-service.js` (penempatan sementara 2); helper `sanitizeHrListQuery`/`pickHrPayload` di `hr-api-utils.js` (teks spasi saja ikut dibuang). `workflow/synchronize` sengaja belum dibuat (di luar kartu dan kontrak 37.7). Suite unit penuh 152 gagal di modul lain (baseline perlu diperbarui sesudah merge `11b3aaece`). Laporan: [FE-HRD-410](../task/report/frontend/FE-HRD-410.md)
 * **Outcome**: Fungsi service untuk: Perubahan Shift dan Tukar Dinas sisi HR (metadata, ringkasan, daftar, detail, workflow, terapkan); penempatan sementara (metadata, daftar); ESS izin pulang cepat (metadata, daftar, detail, ajukan, batal); ESS dinas luar (metadata, daftar, detail, unggah, unduh, ajukan, batal). Respons detail roster dan tutup periode tidak butuh fungsi baru.
 * **Requirement / keputusan**: `FR-PK-035` s.d. `FR-PK-038`; `HRD-DEC-251` s.d. `253`, `256`
 * **Kontrak**: `v31` — API 37.4–37.7
@@ -7921,9 +7921,9 @@ Entri sidebar yang menuju layar `FE-HRD-317` s.d. `FE-HRD-320` dan `FE-HRD-322` 
 * **Risiko / pemilik**: path ESS keliru baru ketahuan saat backend tersedia — dikunci kontrak; UI Lead HR.
 * **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-410.md`.
 
-#### ⬜ `FE-HRD-411` — Matriks roster menampilkan petugas pengganti
+#### ✅ `FE-HRD-411` — Matriks roster menampilkan petugas pengganti
 * **Slice / MVP**: `A52-B` / `MVP-78` · `EPIC HRD-131` (`MUST HAVE`)
-* **Status**: ⬜ Belum dikerjakan
+* **Status**: ✅ Selesai (2026-11-27). 4/4 acceptance criteria terpenuhi. Utilitas baru `roster-matrix-utils.js` menempatkan shift menurut `shiftAssignments[].workforceProfileId` (baris asal → baris penugasan pertama petugas sekarang → baris pengganti-saja). Sel pengganti diberi glif ⇄, garis bawah putus-putus, teks tersembunyi "Pengganti", dan `title` "menggantikan {nama}". Baris `isReplacementOnly` berlabel "Pengganti saja", sel kosongnya terkunci, dan tidak menjadi sasaran Terapkan Pola. Ganti Petugas mengirim petugas sel; modal menyebut "Menggantikan". Bukti: uji unit 8 baru (12/12 bersama `FE-HRD-307`), 8/8 mutasi tertangkap; E2E API tiruan 4/4, 5/5 mutasi tertangkap, regresi roster 22/22; ulang `UAT-PK-03`/`UAT-PK-16` di layar dengan data asli devYoga `ROST-202611-0002` (Raka 16 Feb "PA · Pengganti — menggantikan Indra Setiawan", baris Arif pengganti-saja, kiriman `expectedWorkforceProfileId` = Raka, dicegat tanpa tulis); `lint:errors` dan `npm run build` lulus. Suite unit penuh 152 gagal di modul lain (sama dengan `FE-HRD-410`). Laporan: [FE-HRD-411](../task/report/frontend/FE-HRD-411.md)
 * **Outcome**: Matriks `/hr/scheduling/roster/[id]` menempatkan shift berdasarkan `shiftAssignments[].workforceProfileId`; sel pengganti bertanda "Pengganti" (teks/ikon berlabel, `title` "menggantikan {nama}"); baris `isReplacementOnly` bertanda dan tanpa aksi hapus penugasan; Ganti Petugas mengirim `expectedWorkforceProfileId` = petugas sekarang. Respons lama tanpa ruas baru tetap tampil seperti sebelumnya.
 * **Requirement / keputusan**: `FR-PK-033`; `HRD-DEC-248`
 * **Kontrak**: `v31` — API 37.2; Validation `VR-PK-37`; desain 36.3
@@ -7940,9 +7940,9 @@ Entri sidebar yang menuju layar `FE-HRD-317` s.d. `FE-HRD-320` dan `FE-HRD-322` 
 * **Risiko / pemilik**: dua baris berisi petugas sama bila backend lama — dijaga AC "respons lama"; UI Lead HR.
 * **DoD**: AC terbukti, laporan `FE-HRD-411.md`.
 
-#### ⬜ `FE-HRD-412` — Tutup periode menyebut pengecualian yang diselesaikan
+#### ✅ `FE-HRD-412` — Tutup periode menyebut pengecualian yang diselesaikan
 * **Slice / MVP**: `A52-B` / `MVP-78` · `EPIC HRD-132` (`MUST HAVE`)
-* **Status**: ⬜ Belum dikerjakan
+* **Status**: ✅ Selesai (2026-11-27). 3/3 acceptance criteria terpenuhi. Kalimat "{n} pengecualian scan akan diselesaikan oleh penutupan." masuk ke teks konfirmasi saat periode dapat ditutup, dan tampil sebagai catatan tersendiri saat terblokir. Jumlah 0 atau ruas tidak ada → tidak tampil. Pesan berhasil menambah "{m} pengecualian scan diselesaikan oleh penutupan." bila `closedConversionExceptionCount` > 0. `409` saat tutup memuat ulang pratinjau (server hanya mengirim pesan isu pertama), sehingga daftar pemblokir tampil dan tombol terkunci; alasan tetap. Bukti: uji unit 5 baru (10/10 bersama `FE-HRD-311`), 7/7 mutasi tertangkap; E2E API tiruan 4/4, 4/4 mutasi tertangkap, regresi 9/9; `lint:errors` dan `npm run build` lulus; suite unit penuh 152 gagal di modul lain (sama dengan baseline). Uji layar data asli `NOT RUN`: devYoga tanpa periode presensi Open (kedua periode `Closed`); bukti API ruas yang sama ada di `BE-HRD-468`. Laporan: [FE-HRD-412](../task/report/frontend/FE-HRD-412.md)
 * **Outcome**: Pratinjau dan konfirmasi tutup di `/hr/attendance/periods` menyebut "{n} pengecualian scan akan diselesaikan oleh penutupan" bila `conversionExceptionCount > 0`; pesan berhasil menyebut `closedConversionExceptionCount`. Isu pemblokir lain tetap tampil seperti sekarang.
 * **Requirement / keputusan**: `FR-PK-034`; `HRD-DEC-249`
 * **Kontrak**: `v31` — API 37.3; desain 36.3
@@ -7957,9 +7957,9 @@ Entri sidebar yang menuju layar `FE-HRD-317` s.d. `FE-HRD-320` dan `FE-HRD-322` 
 * **Risiko / pemilik**: rendah; UI Lead HR.
 * **DoD**: AC terbukti, laporan `FE-HRD-412.md`.
 
-#### ⬜ `FE-HRD-413` — Layar HR Perubahan Shift
+#### ✅ `FE-HRD-413` — Layar HR Perubahan Shift
 * **Slice / MVP**: `A52-B` / `MVP-78` · `EPIC HRD-135`
-* **Status**: ⬜ Belum dikerjakan
+* **Status**: ✅ Selesai (2026-11-27). 4/4 acceptance criteria terpenuhi. Rute baru `/hr/scheduling/schedule-changes`. Isinya: kartu ringkasan (kartu satu status dapat diklik sebagai filter), filter cari/status/jenis/berlaku dari–sampai dengan pilihan dari metadata server (`Approved` berlabel "Disetujui — belum diterapkan"), tabel berpaginasi, detail + riwayat workflow, dan Terapkan dengan konfirmasi serta catatan opsional. `403` → pesan server; `409` → "sudah berubah, muat ulang" + **Muat Ulang**. Alasan hanya tampil di detail (privasi). Bukti: uji unit 7/7, 13/13 mutasi tertangkap; E2E API tiruan 7/7, 8/9 mutasi tertangkap (satu setara kode asli karena `ConfirmModal` sudah mengunci tombol saat `loading`), regresi penjadwalan 19/19; data asli devYoga: metadata, filter, dan keadaan kosong (belum ada pengajuan); `lint:errors` dan `npm run build` lulus. Delta: filter unit tidak dipasang karena daftar backend tanpa parameter unit; entri sidebar menunggu `FE-HRD-324`. Laporan: [FE-HRD-413](../task/report/frontend/FE-HRD-413.md)
 * **Outcome**: `/hr/scheduling/schedule-changes`: kartu ringkasan, filter status (termasuk "Disetujui — belum diterapkan") dan tanggal/unit dari metadata, tabel, detail + riwayat workflow, tombol **Terapkan** untuk pengajuan disetujui yang belum diterapkan dengan konfirmasi.
 * **Requirement / keputusan**: `FR-PK-038`; `HRD-DEC-253`
 * **Kontrak**: `v31` — API 37.7; Validation `VR-PK-35`; desain 36.3

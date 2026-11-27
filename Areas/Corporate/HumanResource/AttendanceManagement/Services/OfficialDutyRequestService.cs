@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.D
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services
 {
@@ -141,7 +142,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     ApprovedAt = d.ApprovedAt,
                     RejectionReason = d.RejectionReason,
                     IsActive = d.IsActive,
-                    CreateDateTime = d.CreateDateTime
+                    CreateDateTime = d.CreateDateTime,
+                    CancelDateTime = d.CancelDateTime
                 })
                 .ToListAsync(cancellationToken);
 
@@ -192,7 +194,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 ApprovedAt = entity.ApprovedAt,
                 RejectionReason = entity.RejectionReason,
                 IsActive = entity.IsActive,
-                CreateDateTime = entity.CreateDateTime
+                CreateDateTime = entity.CreateDateTime,
+                CancelDateTime = entity.CancelDateTime
             };
 
             return OfficialDutyRequestServiceResult<OfficialDutyResponse>.Ok(response);
@@ -296,6 +299,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 return OfficialDutyRequestServiceResult<OfficialDutyResponse>.Fail(
                     StatusCodes.Status404NotFound,
                     "Surat penugasan dinas luar tidak ditemukan.");
+            }
+
+            if (await IsOwnRequestAsync(currentUserId, entity.WorkforceProfileId, cancellationToken))
+            {
+                return OfficialDutyRequestServiceResult<OfficialDutyResponse>.Fail(StatusCodes.Status403Forbidden, SelfDecisionMessage);
             }
 
             if (entity.Status != "Submitted" && entity.Status != "Draft")
@@ -449,6 +457,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     "Surat penugasan dinas luar tidak ditemukan.");
             }
 
+            if (await IsOwnRequestAsync(currentUserId, entity.WorkforceProfileId, cancellationToken))
+            {
+                return OfficialDutyRequestServiceResult<OfficialDutyResponse>.Fail(StatusCodes.Status403Forbidden, SelfDecisionMessage);
+            }
+
             if (entity.Status != "Submitted" && entity.Status != "Draft")
             {
                 return OfficialDutyRequestServiceResult<OfficialDutyResponse>.Fail(
@@ -502,6 +515,233 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 entity.Id, entity.AssignmentOrderNumber, request.ApproverWorkforceProfileId, request.RejectionReason);
 
             return await GetByIdAsync(entity.Id, cancellationToken);
+        }
+
+        // Layanan Mandiri surat tugas dinas luar (BE-HRD-467, HRD-DEC-252, HRD-DEC-256, kontrak v31 API 37.5). Profil pegawai
+        // selalu dari sesi (VR-PK-34); akun tanpa profil aktif dijawab 404.
+        public const string SelfAttachmentCategory = "attendance-official-duty";
+        private const string SelfProfileMissingMessage = "Akun ini belum terhubung ke profil pegawai.";
+        private const string SelfDecisionMessage = "Anda tidak dapat memutuskan pengajuan Anda sendiri.";
+        private const string NotFoundMessage = "Surat penugasan dinas luar tidak ditemukan.";
+        private const string AttachmentNotFoundMessage = "Lampiran tidak ditemukan.";
+        private const int SelfMaxPageSize = 100;
+        private const int MaxReasonLength = 500;
+
+        public async Task<OfficialDutyRequestServiceResult<OfficialDutyPagedResponse>> GetPagedForSelfAsync(
+            Guid? workforceProfileId,
+            DateOnly? fromDate,
+            DateOnly? toDate,
+            string? status,
+            int pageNumber,
+            int pageSize,
+            CancellationToken cancellationToken = default)
+        {
+            if (!await IsActiveProfileAsync(workforceProfileId, cancellationToken))
+            {
+                return OfficialDutyRequestServiceResult<OfficialDutyPagedResponse>.Fail(StatusCodes.Status404NotFound, SelfProfileMissingMessage);
+            }
+
+            var page = await GetPagedAsync(new OfficialDutyQueryRequest
+            {
+                WorkforceProfileId = workforceProfileId!.Value,
+                StartDate = fromDate,
+                EndDate = toDate,
+                Status = status,
+                PageNumber = pageNumber,
+                PageSize = Math.Clamp(pageSize, 1, SelfMaxPageSize)
+            }, cancellationToken);
+
+            return OfficialDutyRequestServiceResult<OfficialDutyPagedResponse>.Ok(page, "Daftar surat tugas dinas luar Anda berhasil diambil.");
+        }
+
+        /// <summary>Detail milik sendiri; surat tugas pegawai lain diperlakukan tidak ditemukan (404).</summary>
+        public async Task<OfficialDutyRequestServiceResult<OfficialDutyResponse>> GetByIdForSelfAsync(
+            Guid id,
+            Guid? workforceProfileId,
+            CancellationToken cancellationToken = default)
+        {
+            if (!await IsActiveProfileAsync(workforceProfileId, cancellationToken))
+            {
+                return OfficialDutyRequestServiceResult<OfficialDutyResponse>.Fail(StatusCodes.Status404NotFound, SelfProfileMissingMessage);
+            }
+
+            var result = await GetByIdAsync(id, cancellationToken);
+            return result.Success && result.Data!.WorkforceProfileId != workforceProfileId!.Value
+                ? OfficialDutyRequestServiceResult<OfficialDutyResponse>.Fail(StatusCodes.Status404NotFound, NotFoundMessage)
+                : result;
+        }
+
+        /// <summary>
+        /// Pegawai mengajukan surat tugas dinas luar untuk dirinya. <c>WorkforceProfileId</c> pada <paramref name="request"/> diabaikan
+        /// dan diganti profil sesi; kategori wajib salah satu pilihan metadata; lampiran hanya kunci hasil unggah akun ini sendiri.
+        /// Selanjutnya aturan <see cref="CreateAsync"/> yang sama dengan layar HR (rentang jam, nomor surat, tujuan, uraian, periode tertutup).
+        /// </summary>
+        public async Task<OfficialDutyRequestServiceResult<OfficialDutyResponse>> CreateForSelfAsync(
+            Guid? workforceProfileId,
+            CreateOfficialDutyRequest request,
+            Guid currentUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (!await IsActiveProfileAsync(workforceProfileId, cancellationToken))
+            {
+                return OfficialDutyRequestServiceResult<OfficialDutyResponse>.Fail(StatusCodes.Status404NotFound, SelfProfileMissingMessage);
+            }
+
+            var category = request.DutyCategory?.Trim() ?? string.Empty;
+            if (!AttendanceValueConstants.OfficialDutyCategory.All.Contains(category))
+            {
+                return OfficialDutyRequestServiceResult<OfficialDutyResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Kategori dinas luar tidak dikenal. Pilih salah satu kategori yang tersedia.");
+            }
+
+            if ((request.AssignmentOrderNumber?.Trim().Length ?? 0) > 100 || (request.Destination?.Trim().Length ?? 0) > 255)
+            {
+                return OfficialDutyRequestServiceResult<OfficialDutyResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Nomor surat tugas paling banyak 100 karakter dan tujuan dinas paling banyak 255 karakter.");
+            }
+
+            var attachment = string.IsNullOrWhiteSpace(request.AttachmentUrl) ? null : request.AttachmentUrl.Trim();
+            if (attachment != null &&
+                (HrAttachmentStorage.CategoryOf(attachment) != SelfAttachmentCategory ||
+                 currentUserId == Guid.Empty ||
+                 HrAttachmentStorage.OwnerOf(attachment) != currentUserId))
+            {
+                return OfficialDutyRequestServiceResult<OfficialDutyResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Lampiran surat tugas harus berkas yang Anda unggah sendiri.");
+            }
+
+            return await CreateAsync(new CreateOfficialDutyRequest
+            {
+                WorkforceProfileId = workforceProfileId!.Value,
+                DutyCategory = category,
+                AssignmentOrderNumber = request.AssignmentOrderNumber ?? string.Empty,
+                StartAt = request.StartAt,
+                EndAt = request.EndAt,
+                Destination = request.Destination ?? string.Empty,
+                Purpose = request.Purpose ?? string.Empty,
+                Latitude = request.Latitude,
+                Longitude = request.Longitude,
+                AttachmentUrl = attachment
+            }, currentUserId, cancellationToken);
+        }
+
+        /// <summary>
+        /// Pemohon membatalkan surat tugasnya yang masih Submitted (VR-PK-33). Alasan wajib (1–500 karakter); kontrak v31 tidak
+        /// menyediakan kolom maupun ruas log untuk alasan ini, sehingga hanya divalidasi (sama dengan izin pulang cepat).
+        /// </summary>
+        public async Task<OfficialDutyRequestServiceResult<OfficialDutyResponse>> CancelBySelfAsync(
+            Guid id,
+            Guid? workforceProfileId,
+            string? cancelReason,
+            Guid currentUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (!await IsActiveProfileAsync(workforceProfileId, cancellationToken))
+            {
+                return OfficialDutyRequestServiceResult<OfficialDutyResponse>.Fail(StatusCodes.Status404NotFound, SelfProfileMissingMessage);
+            }
+
+            var profileId = workforceProfileId!.Value;
+            var entity = await _context.Set<HrdOfficialDutyRequest>()
+                .FirstOrDefaultAsync(d => d.Id == id && d.WorkforceProfileId == profileId && !d.IsDelete, cancellationToken);
+
+            if (entity == null)
+            {
+                return OfficialDutyRequestServiceResult<OfficialDutyResponse>.Fail(StatusCodes.Status404NotFound, NotFoundMessage);
+            }
+
+            if (string.IsNullOrWhiteSpace(cancelReason) || cancelReason.Trim().Length > MaxReasonLength)
+            {
+                return OfficialDutyRequestServiceResult<OfficialDutyResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan pembatalan wajib diisi.");
+            }
+
+            if (entity.Status != "Submitted")
+            {
+                return OfficialDutyRequestServiceResult<OfficialDutyResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Pengajuan sudah diputuskan dan tidak dapat dibatalkan.");
+            }
+
+            // Hanya Submitted yang dapat dibatalkan; rekap harian baru ditautkan saat disetujui, jadi tidak ada yang perlu dilepas.
+            var now = DateTime.UtcNow;
+            entity.Status = "Cancelled";
+            entity.IsCancel = true;
+            entity.CancelBy = currentUserId;
+            entity.CancelDateTime = now;
+            entity.UpdateBy = currentUserId;
+            entity.UpdateDateTime = now;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Surat tugas dinas luar {DutyId} dibatalkan pemohon {WorkforceProfileId}.", entity.Id, entity.WorkforceProfileId);
+
+            return await GetByIdAsync(entity.Id, cancellationToken);
+        }
+
+        /// <summary>
+        /// Lampiran boleh diunduh lewat Layanan Mandiri hanya bila menjadi lampiran surat tugas milik sendiri (kontrak v31 API 37.5);
+        /// selain itu 404 agar keberadaannya tidak bocor.
+        /// </summary>
+        public async Task<OfficialDutyRequestServiceResult<bool>> EnsureOwnAttachmentForSelfAsync(
+            Guid? workforceProfileId,
+            string? attachmentKey,
+            CancellationToken cancellationToken = default)
+        {
+            if (!await IsActiveProfileAsync(workforceProfileId, cancellationToken))
+            {
+                return OfficialDutyRequestServiceResult<bool>.Fail(StatusCodes.Status404NotFound, SelfProfileMissingMessage);
+            }
+
+            var key = attachmentKey?.Trim();
+            if (string.IsNullOrEmpty(key) || HrAttachmentStorage.CategoryOf(key) != SelfAttachmentCategory)
+            {
+                return OfficialDutyRequestServiceResult<bool>.Fail(StatusCodes.Status404NotFound, AttachmentNotFoundMessage);
+            }
+
+            var profileId = workforceProfileId!.Value;
+            var isOwn = await _context.Set<HrdOfficialDutyRequest>().AsNoTracking()
+                .AnyAsync(d => d.WorkforceProfileId == profileId && d.AttachmentUrl == key && !d.IsDelete, cancellationToken);
+
+            return isOwn
+                ? OfficialDutyRequestServiceResult<bool>.Ok(true)
+                : OfficialDutyRequestServiceResult<bool>.Fail(StatusCodes.Status404NotFound, AttachmentNotFoundMessage);
+        }
+
+        /// <summary>VR-PK-34 untuk endpoint ESS tanpa data pengajuan (unggah lampiran): akun tanpa profil pegawai aktif → 404.</summary>
+        public async Task<OfficialDutyRequestServiceResult<bool>> EnsureSelfProfileAsync(
+            Guid? workforceProfileId,
+            CancellationToken cancellationToken = default)
+        {
+            return await IsActiveProfileAsync(workforceProfileId, cancellationToken)
+                ? OfficialDutyRequestServiceResult<bool>.Ok(true)
+                : OfficialDutyRequestServiceResult<bool>.Fail(StatusCodes.Status404NotFound, SelfProfileMissingMessage);
+        }
+
+        private async Task<bool> IsActiveProfileAsync(Guid? workforceProfileId, CancellationToken cancellationToken)
+        {
+            if (!workforceProfileId.HasValue)
+            {
+                return false;
+            }
+
+            var profileId = workforceProfileId.Value;
+            return await _context.Set<MstWorkforceProfile>().AsNoTracking()
+                .AnyAsync(w => w.Id == profileId && w.IsActive && !w.IsDelete, cancellationToken);
+        }
+
+        // VR-PK-36 (prinsip VR-WF-02): profil pegawai pemutus ditentukan dari akun login, bukan dari body request.
+        private async Task<bool> IsOwnRequestAsync(Guid currentUserId, Guid ownerWorkforceProfileId, CancellationToken cancellationToken)
+        {
+            var profileId = await _context.Users.AsNoTracking()
+                .Where(u => u.Id == currentUserId)
+                .Select(u => u.WorkforceProfileId)
+                .FirstOrDefaultAsync(cancellationToken);
+            return profileId.HasValue && profileId.Value == ownerWorkforceProfileId;
         }
     }
 }

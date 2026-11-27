@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Controllers;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Controllers;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Controllers;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Controllers;
 using QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Enums;
@@ -105,8 +106,94 @@ public sealed class A52PermissionRegistryTests : IDisposable
         Assert.Contains(snapshot.Actions, x => x.ModuleCode == modul && x.ResourceName == resource && x.ActionName == aksi);
     }
 
+    // BE-HRD-468 (AT-HRD-PK-57): controller amandemen A52-B (kontrak v31, Permission 35.1).
+    private static readonly Type[] ControllerA52B =
+    {
+        typeof(EarlyLeavePermissionSelfServiceController), typeof(OfficialDutySelfServiceController), typeof(TemporaryAssignmentController)
+    };
+
+    // AT-HRD-PK-57: ketiga resource A52-B memuat persis tujuh string Permission 35.1 — tidak kurang, tidak lebih.
+    [Fact]
+    public void Registri_memuat_persis_tujuh_hak_akses_A52B()
+    {
+        var snapshot = PermissionRegistryDescriptor.BuildFromAssembly(typeof(AttendanceReportController).Assembly);
+        var diharapkan = new[]
+        {
+            "HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE|MyEarlyLeavePermission|Read",
+            "HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE|MyEarlyLeavePermission|Create",
+            "HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE|MyEarlyLeavePermission|Cancel",
+            "HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE|MyOfficialDuty|Read",
+            "HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE|MyOfficialDuty|Create",
+            "HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE|MyOfficialDuty|Cancel",
+            "HUMAN_RESOURCE_WORKFORCE_CORE|TemporaryAssignment|Read",
+        }.OrderBy(x => x, StringComparer.Ordinal).ToList();
+        var resourceA52B = new[] { "MyEarlyLeavePermission", "MyOfficialDuty", "TemporaryAssignment" };
+
+        var terdaftar = snapshot.Actions
+            .Where(x => resourceA52B.Contains(x.ResourceName))
+            .Select(x => $"{x.ModuleCode}|{x.ResourceName}|{x.ActionName}")
+            .Distinct()
+            .OrderBy(x => x, StringComparer.Ordinal)
+            .ToList();
+        Assert.Equal(diharapkan, terdaftar);
+        foreach (var r in resourceA52B)
+            Assert.Single(snapshot.Resources, x => x.ResourceName == r);
+    }
+
+    // AT-HRD-PK-57: startup Development menghentikan aplikasi bila validator menemukan anotasi salah; controller A52-B harus bersih.
+    [Fact]
+    public void Controller_A52B_lolos_PermissionRegistryValidator()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton(new DiagnosticListener("uji"));
+        services.AddSingleton<DiagnosticSource>(sp => sp.GetRequiredService<DiagnosticListener>());
+        services.AddControllers().AddApplicationPart(typeof(AttendanceReportController).Assembly);
+        using var provider = services.BuildServiceProvider();
+        var actions = provider.GetRequiredService<IActionDescriptorCollectionProvider>();
+
+        var hasil = new PermissionRegistryValidator(actions, NullLogger<PermissionRegistryValidator>.Instance).ValidateAndReport(throwOnFailure: false);
+        var resource = ControllerA52B.Select(t => t.GetCustomAttribute<AccessControllerAttribute>()!.ControllerName!).ToList();
+        bool MilikA52B(string temuan) => resource.Any(r =>
+            temuan.StartsWith(r + ".", StringComparison.Ordinal) || temuan.Contains($"'{r}'", StringComparison.Ordinal));
+        var temuan = hasil.UnregisterableEndpoints
+            .Concat(hasil.DuplicateResourceIdentities)
+            .Concat(hasil.InvalidAccessTypes)
+            .Concat(hasil.UnenforcedEndpoints)
+            .Concat(hasil.NakedBusinessEndpoints)
+            .Where(MilikA52B)
+            .ToList();
+        Assert.True(temuan.Count == 0, string.Join(Environment.NewLine, temuan));
+
+        // 5 (izin pulang cepat) + 7 (dinas luar) + 2 (penempatan sementara) endpoint terlihat validator.
+        var nama = ControllerA52B.Select(t => t.FullName!).ToList();
+        var terlihat = actions.ActionDescriptors.Items.Count(x => x.DisplayName != null && nama.Any(n => x.DisplayName.Contains(n, StringComparison.Ordinal)));
+        Assert.Equal(14, terlihat);
+    }
+
+    // Permission 35.3: "daftar ini diperiksa ulang terhadap registri saat verifikasi" — setiap string daftar periksa per peran
+    // harus ada di registri, agar Admin Sistem dapat memberikannya lewat Akses Role.
+    [Theory]
+    [InlineData("Kepala Unit", "RosterPeriod:Read,Create,Update,RemoveShift|ShiftReplacement:Update|ScheduleChangeRequest:Read,Update|ShiftSwapRequest:Read,Update|EarlyLeavePermission:Read,Approve,Reject|OfficialDutyRequest:Read,Approve,Reject|TemporaryAssignment:Read|AttendanceReport:Read,Export|AttendanceDashboard:Read|MySchedule:Read")]
+    [InlineData("Kepala Bidang", "RosterPeriod:Read|TemporaryAssignment:Read|AttendanceReport:Read,Export|AttendanceDashboard:Read|MySchedule:Read")]
+    [InlineData("Admin HRD", "AttendanceSetting:Read,Update|AttendancePeriod:Read,Close,Reopen|Holiday:Read,Create,Update,Delete|AttendanceReport:Read,Export,ReadAllUnits|AttendanceDashboard:Read|ScheduleChangeRequest:Read,Update|ShiftSwapRequest:Read,Update|TemporaryAssignment:Read|MySchedule:Read")]
+    [InlineData("Petugas HR Scheduling", "RosterPeriod:ManageAllUnits")]
+    [InlineData("Petugas IT", "AttendanceDevice:Read,Create,Update,Delete")]
+    [InlineData("Pegawai", "MySchedule:Read|MyEarlyLeavePermission:Read,Create,Cancel|MyOfficialDuty:Read,Create,Cancel")]
+    public void Daftar_periksa_peran_35_3_seluruhnya_terdaftar(string peran, string daftar)
+    {
+        var snapshot = PermissionRegistryDescriptor.BuildFromAssembly(typeof(AttendanceReportController).Assembly);
+        var hilang = daftar.Split('|')
+            .SelectMany(b => b.Split(':')[1].Split(',').Select(a => (Resource: b.Split(':')[0], Aksi: a)))
+            .Where(x => !snapshot.Actions.Any(y => y.ResourceName == x.Resource && y.ActionName == x.Aksi))
+            .Select(x => $"{x.Resource} : {x.Aksi}")
+            .ToList();
+        Assert.True(hilang.Count == 0, $"{peran}: tidak terdaftar {string.Join(", ", hilang)}");
+    }
+
     public static IEnumerable<object[]> EndpointA52Baru() =>
-        new[] { typeof(AttendanceDeviceController), typeof(HolidayController), typeof(MyScheduleSelfServiceController), typeof(AttendanceReportController), typeof(OnCallAssignmentController), typeof(AttendanceDashboardController), typeof(AttendanceDispensationController), typeof(AttendanceDispensationSelfServiceController), typeof(StudyAssignmentController), typeof(AttendanceDeviceIncidentController) }
+        new[] { typeof(AttendanceDeviceController), typeof(HolidayController), typeof(MyScheduleSelfServiceController), typeof(AttendanceReportController), typeof(OnCallAssignmentController), typeof(AttendanceDashboardController), typeof(AttendanceDispensationController), typeof(AttendanceDispensationSelfServiceController), typeof(StudyAssignmentController), typeof(AttendanceDeviceIncidentController),
+                typeof(EarlyLeavePermissionSelfServiceController), typeof(OfficialDutySelfServiceController), typeof(TemporaryAssignmentController) }
             .SelectMany(t => t.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
             .Select(m => (m, izin: m.GetCustomAttribute<AccessPermissionAttribute>()))
             .Where(x => x.izin != null)

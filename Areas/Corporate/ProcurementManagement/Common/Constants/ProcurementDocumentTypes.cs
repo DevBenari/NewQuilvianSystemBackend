@@ -23,6 +23,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string VendorStatusRequest = "PBJ_VENDOR_STATUS";
         public const string VendorEvaluation = "PBJ_VENDOR_EVALUATION";
 
+        // Pemilihan penyedia (BE-PBJ-PS-001; kamus data pemilihan-penyedia bagian 7). Contoh: paket PKT-000012
+        // tercatat sebagai PBJ_PACKAGE, RFQ-000007 beserta penawarannya sebagai PBJ_RFQ, dan penetapan penyedianya
+        // sebagai PBJ_PACKAGE_AWARD (juga sumber komitmen pagu).
+        public const string Package = "PBJ_PACKAGE";
+        public const string Rfq = "PBJ_RFQ";
+        public const string PackageAward = "PBJ_PACKAGE_AWARD";
+
         private static readonly HashSet<string> Known = new(StringComparer.Ordinal)
         {
             PurchaseRequest,
@@ -33,7 +40,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
             Vendor,
             VendorDocument,
             VendorStatusRequest,
-            VendorEvaluation
+            VendorEvaluation,
+            Package,
+            Rfq,
+            PackageAward
         };
 
         /// <summary>Jenis dokumen yang dikenal sub-modul ini. Jenis lain ditolak (fail-closed).</summary>

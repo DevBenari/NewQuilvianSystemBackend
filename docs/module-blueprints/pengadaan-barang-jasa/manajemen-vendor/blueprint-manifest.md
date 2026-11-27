@@ -16,10 +16,10 @@ owners:
   frontend_authority: PBJ-FE-001, PBJ-FE-004 (approved), PBJ-FE-002 (DEV_DISCRETION)
 approved_by: Pengguna sesi (Product Owner Pengadaan)
 approved_at: 2026-11-17
-backend_commit_sha: a6df5619f4ce72c04a929ac43e7e08b7c40332e4   # branch sukmagp HEAD 2026-11-19 + BE-PBJ-VD-001..008 (termasuk D-9/D-10) belum di-commit
-frontend_commit_sha: b1b360efa8990caafa389c38d3ce0346b2cdff50  # branch sukmagpV2 HEAD 2026-11-19 + FE-PBJ-VD-001..005 belum di-commit
-last_verified_at: 2026-11-19
-readiness: READY_WITH_CONDITIONS   # testing/readiness-report.md; syarat K-1..K-3, K-5..K-7 terbuka; K-4 selesai 2026-11-19
+backend_commit_sha: 5e7778334faa85210c81513327da9a7fa6425a86   # branch sukmagp 2026-11-19: commit BE-PBJ-VD-001..008 (K-3); diperiksa ulang di HEAD c97642bb 2026-11-26, tanpa perubahan Pengadaan sesudahnya
+frontend_commit_sha: af8a430aca6ac8946dc44e0980f9d370b2e2716b  # branch sukmagpV2 2026-11-19: commit FE-PBJ-VD-001..005 (K-3); diperiksa ulang di HEAD 3e5386679 2026-11-26, menu hanya diformat ulang
+last_verified_at: 2026-11-26   # pemeriksaan ulang read-only (git, hash, SELECT dev); build/runtime tidak diulang — readiness-report bagian 9
+readiness: READY_WITH_CONDITIONS   # testing/readiness-report.md; syarat K-1, K-2, K-5..K-7 terbuka; K-3 dan K-4 selesai
 requirement_readiness: READY_FOR_DOMAIN_DESIGN    # 02-requirement-completeness-assessment.md rev 4 (S-V1..S-V6)
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN   # administratif; alasan di penilaian bagian 8.6
 contract_versions:
@@ -56,7 +56,7 @@ artifact_hashes:
   flowcharts/dokumen-legalitas.md: 4fa4569518035f5b
   flowcharts/status-vendor.md: 491f77a28ef05eaf
   flowcharts/penilaian-vendor.md: a37c96fc9fe98e13
-  testing/readiness-report.md: 615c5fd34e4a6f3d   # 2026-11-19
+  testing/readiness-report.md: 5c2d13f6a4246281   # 2026-11-26 (bagian 9 pemeriksaan ulang)
 roadmap: roadmap/backend-roadmap.md, roadmap/frontend-roadmap.md, roadmap/requirement-traceability.md (rev 1, draft, 2026-11-17; 13/13 task ✅ 2026-11-19: 8 task BE, 5 task FE)
 dependencies:
   - perencanaan-permintaan: MstProcurementItemCategory, PrcAttachment, PrcDocumentHistory, ProcurementApprovalGateway

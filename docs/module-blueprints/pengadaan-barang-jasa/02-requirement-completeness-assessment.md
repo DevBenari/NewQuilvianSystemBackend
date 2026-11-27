@@ -3,7 +3,7 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint | `PBJ-BP-001` revisi 1, `decision_revision 3` (`PBJ-DEC-001`..`026`) |
-| Revisi penilaian | `4` — revisi 4 (17 November 2026) menutup blocker `manajemen-vendor`, bagian 9; revisi 3 menambah sub-modul `manajemen-vendor`, bagian 8; revisi 2 = blocker revisi 1 ditutup `PBJ-DEC-027`..`030` |
+| Revisi penilaian | `6` — revisi 6 (26 November 2026) menutup blocker `pemilihan-penyedia`, bagian 11 (`READY_FOR_DOMAIN_DESIGN`); revisi 5 menambah sub-modul `pemilihan-penyedia`, bagian 10 (`PARTIALLY_READY`); revisi 4 (17 November 2026) menutup blocker `manajemen-vendor`, bagian 9; revisi 3 menambah sub-modul `manajemen-vendor`, bagian 8; revisi 2 = blocker revisi 1 ditutup `PBJ-DEC-027`..`030` |
 | Tanggal | 12 November 2026 |
 | Scope | Sub-modul `perencanaan-permintaan` (K-01..K-04) dan fondasi tingkat modul yang dibutuhkannya |
 | Bukti yang dipakai | (1) Jawaban pemilik pada `00-interview-decisions.md`, wewenang tertinggi; (2) BRD & PRD v1.0 DRAFT, berstatus **PROPOSAL** karena belum disahkan; (3) `01-existing-capability-map.md` revisi 1 @`100c011d`/`763d665b` untuk kemampuan yang sudah ada. SOP rumah sakit **belum diterima** (`PBJ-OQ-019`). Baseline `indonesia-hospital-domain-reference` tidak dipakai |
@@ -293,3 +293,167 @@ penyetuju blokir (`PBJ-OQ-019`). Pertanyaan terbuka yang hanya memengaruhi layar
 
 **Handoff:** `design-business-module` untuk sub-modul `manajemen-vendor`, dengan `requirement_readiness:
 READY_FOR_DOMAIN_DESIGN` dan `domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN` (alasan di bagian 8.6).
+
+---
+
+## 10. Revisi 5 — sub-modul `pemilihan-penyedia` (26 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Scope | Sub-modul `pemilihan-penyedia`: K-05 Persiapan Pengadaan dan K-07 Penawaran & Pemilihan Penyedia, termasuk persetujuan paket (bagian paket menu 11.3) dan pencatatan nomor PO BLM (`PBJ-DEC-066`) |
+| Bukti yang dipakai | (1) Jawaban pemilik di `00-interview-decisions.md`: `PBJ-DEC-066`..`082`, `PBJ-ASM-005`..`009` (semuanya disetujui 26 November 2026), ditambah keputusan modul yang berlaku (`PBJ-DEC-006`, `007`, `009`, `011`, `022`..`025`, `028`, `031`, `045`..`047`, `052`, `054`) — wewenang tertinggi; (2) BRD & PRD v1.0 DRAFT menu 4, 6, 11 — **PROPOSAL**; (3) `01-existing-capability-map.md` revisi 2 bagian 7 @`d5fdc8fa`/`3e5386679`; (4) source: tidak ada konsep pajak di `Areas/Corporate/ProcurementManagement` selain profil vendor (`rg "Tax\|PPN"`: hanya `Vendor/DTOs/VendorDtos.cs`, `Vendor/Services/ProcurementVendorProfileService.cs`), sedangkan `MstSupplier` punya penanda kena pajak dan `taxPercent` (laporan `FE-PBJ-VD-004` T-2). SOP rumah sakit **belum diterima** (`PBJ-OQ-005`, `PBJ-OQ-019`) |
+| `indonesia-hospital-domain-reference` | Tidak dipakai: aturan pemilihan penyedia RS swasta mengikuti SOP internal (`PBJ-DEC-006`), dan keputusan pemilik sudah rinci. Larangan "memecah paket untuk menghindari metode" yang dikenal di pengadaan pemerintah **tidak** dianggap berlaku; ia hanya menjadi alasan mengajukan `PBJ-OQ-040` |
+| Verdict | **`PARTIALLY_READY`** |
+
+### 10.1 Slice yang dinilai
+
+| Slice | Isi | Keputusan pendukung |
+| --- | --- | --- |
+| `S-P1` | Pembentukan paket dari baris PR yang disetujui; rencana paket sebagai rujukan; pecah paket | `PBJ-DEC-066`, `070`, `071`, `082` |
+| `S-P2` | Persiapan: spesifikasi, HPS, metode berkonfigurasi, checklist dokumen | `PBJ-DEC-068`, `069`, `073`; `PBJ-ASM-007` |
+| `S-P3` | Persetujuan persiapan dan penetapan lewat `Wfl`, termasuk jenjang bersyarat | `PBJ-DEC-007`, `072`, `073`, `068` |
+| `S-P4` | RFQ dan penawaran: undangan ke vendor layak, batas waktu, pencatatan penawaran dan lampirannya | `PBJ-DEC-067`, `081`; `PBJ-ASM-006` |
+| `S-P5` | Evaluasi teknis oleh evaluator yang ditunjuk | `PBJ-DEC-074`, `079` |
+| `S-P6` | Perbandingan harga dan negosiasi | `PBJ-DEC-073`; `PBJ-ASM-005` |
+| `S-P7` | Penetapan penyedia, cek ulang kelayakan, komitmen pagu per baris PR | `PBJ-DEC-070`, `072`, `076`, `078` |
+| `S-P8` | Nomor PO BLM dan status "Sudah dipesan" | `PBJ-DEC-011`; `PBJ-ASM-009` |
+| `S-P9` | Pemilihan gagal dan pembatalan paket | `PBJ-DEC-075`, `077` |
+| `S-P10` | Kerahasiaan harga, bundel peran, cakupan evaluator | `PBJ-DEC-079`, `080` |
+
+### 10.2 Temuan per dimensi
+
+| Dimensi | S-P1 | S-P2 | S-P3 | S-P4 | S-P5 | S-P6 | S-P7 | S-P8 | S-P9 | S-P10 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 01 Tujuan | C | C | C | C | C | C | C | C | C | C |
+| 02 Aktor | C | P (G-P05) | C | C | C | C | C | C | C | C |
+| 03 Pemicu/prasyarat | C | C | C | C | C | C | C | C | C | C |
+| 04 Alur utama | **M (G-P01)** | C | C | P (G-P06) | C | P (G-P04) | P (G-P04) | C | C | — |
+| 05 Alur alternatif | **M (G-P01)** | P (G-P11) | C | P (G-P02) | C | C | P (G-P08) | C | C | — |
+| 06 Data minimum | P (G-P11, G-P12) | **M (G-P03)** | C | **M (G-P03)** | C | **M (G-P03)** | **M (G-P03)** | C | C | C |
+| 07 Aturan/validasi | **M (G-P01)** | C | C | C | C | C | P (G-P04) | C | C | C |
+| 08 Status | P (G-P01) | C | C | C | C | — | P (G-P08, G-P09) | C | C | — |
+| 09 Peran/otorisasi | C | P (G-P05) | C | C | C | C | C | C | C | C |
+| 10 Dependency | P (G-P13) | C | C | C | C | — | C | C | C | P (G-P14) |
+| 11 Integrasi | C | — | C | P (G-P06) | — | — | C | C | C | — |
+| 12 Hasil akhir | C | C | C | C | C | C | C | C | C | C |
+| 13 Batal/koreksi | P (G-P01) | C | C | C | C | — | P (G-P09) | — | C | — |
+| 14 Audit/histori | C | C | C | C | C | P (G-P04) | C | C | C | C |
+| 15 Notifikasi | — | — | P (G-P07) | P (G-P07) | P (G-P07) | — | P (G-P07) | — | — | — |
+| 16 Billing | — | — | — | — | — | — | **M (G-P03)** | — | — | — |
+| 17 Keselamatan klinis | — | P (G-P10) | — | — | P (G-P10) | — | — | — | — | — |
+| 18 Pelaporan | C | — | — | — | — | — | C | — | — | — |
+
+C = `CONFIRMED`, P = `PROPOSED`, M = `MISSING`, — = tidak berlaku secara material untuk slice itu.
+
+**Dimensi yang tidak berlaku secara material:**
+
+- **16 Billing.** Tidak ada tagihan pasien. Satu-satunya konsekuensi uang adalah komitmen pagu (`PBJ-DEC-009`, `078`), dan makna angkanya bergantung pada `G-P03`. Utang dan pembayaran vendor tetap di Finance.
+- **17 Keselamatan klinis.** Tidak ada data pasien. Titik sentuhnya: spesifikasi alkes/obat yang salah dapat sampai ke pasien. Hal itu ditangani evaluasi teknis (`PBJ-DEC-074`) dan kelayakan legalitas vendor (`PBJ-DEC-045`), lihat `G-P10`.
+- **15 Notifikasi.** Tidak ada pemberitahuan ke vendor, karena tidak ada portal (`PBJ-DEC-067`).
+- **18 Pelaporan.** Laporan pembelian 11.4 ditunda `POST-MVP` (`02-module-map.md` bagian 3); yang wajib adalah keterlusuran "direncanakan vs dipaketkan" (`PBJ-DEC-082`) dan jumlah komitmen = nilai penetapan (`PBJ-AC-032`).
+
+### 10.3 Gap dan dampaknya
+
+| Gap | Status | Dampak | Uraian |
+| --- | --- | --- | --- |
+| `G-P01` | `MISSING` | **`BLOCKING`** | **Kapan dan bagaimana paket boleh dipecah.** `PBJ-DEC-070` meminta paket dipecah bila barang lebih menguntungkan dari vendor berbeda, dan contohnya terjadi **setelah** penawaran diketahui. Belum diputuskan: (a) apakah pecah boleh setelah RFQ dikirim dan penawaran dicatat; (b) apakah penawaran dan HPS bagian baris ikut pindah ke paket baru, atau paket baru mulai dari persiapan; (c) apakah metode paket hasil pecah dihitung ulang dari HPS barunya. **Contoh risiko:** paket HPS Rp 180 juta (metode contoh "Pembandingan Penawaran", minimal 3 penawaran) dipecah menjadi dua paket Rp 90 juta. Bila metode dihitung ulang, keduanya bisa turun ke metode yang lebih longgar. Jawabannya menentukan lifecycle paket, pemilik data penawaran, dan aturan persetujuan |
+| `G-P02` | `PROPOSED` | `NON_BLOCKING_STANDARD` | Vendor yang hanya menawar sebagian baris. Usulan: penawaran sebagian tetap boleh dicatat, tetapi vendor hanya dapat ditetapkan bila menawar **semua** baris paket (turunan `PBJ-DEC-070`). Penawaran sebagian menjadi bahan keputusan pecah paket (`G-P01`) |
+| `G-P03` | `MISSING` | **`BLOCKING`** | **Dasar pajak (PPN) untuk HPS, harga penawaran, nilai penetapan, dan komitmen pagu.** Harga perkiraan PR dan pagu di `perencanaan-permintaan` tidak punya konsep pajak, sedangkan `MstSupplier` membedakan supplier kena pajak dan persentasenya. **Contoh risiko:** HPS Rp 42.750.000 disusun tanpa PPN. PT Sehat Medika (kena PPN 11%) menawar Rp 41.250.000 belum termasuk PPN, yang berarti Rp 45.787.500 termasuk PPN. Tergantung dasarnya, penawaran itu lolos atau melebihi HPS (`PBJ-DEC-073`), dan komitmen pagu tercatat Rp 41,25 juta atau Rp 45,79 juta, padahal nilai "ditagih" dari Finance (`PBJ-DEC-009`) termasuk pajak. Menentukan makna setiap angka uang di sub-modul ini dan konsistensinya dengan pagu |
+| `G-P04` | `PROPOSED` | `NON_BLOCKING_STANDARD` | **Aturan memilih pemenang.** Usulan: pemenang bawaan adalah harga akhir terendah di antara penawaran sah, *Lulus*, dan layak. Memilih yang bukan terendah boleh dengan alasan wajib; alasan tampil bagi penyetuju penetapan. Tabel perbandingan menyimpan peringkat saat penetapan diajukan. **Dikonfirmasi bersama blocker**, karena ini aturan bisnis yang terlihat oleh auditor |
+| `G-P05` | `PROPOSED` | `NON_BLOCKING_STANDARD` | **Penyusun dan dasar HPS.** Usulan: HPS disusun Tim Pengadaan, diawali dari harga perkiraan baris PR, wajib dilampiri sekurang-kurangnya satu dasar harga (penawaran pembanding, harga kontrak lalu, atau daftar harga) |
+| `G-P06` | `PROPOSED` | `NON_BLOCKING_STANDARD` | **Pengiriman RFQ.** Usulan: sistem mencatat vendor yang diundang, tanggal kirim, dan batas waktu, serta menyediakan dokumen RFQ yang dapat diunduh; pengirimannya ke vendor tetap di luar sistem (email), konsisten dengan `PBJ-DEC-067` |
+| `G-P07` | `PROPOSED` | `NON_BLOCKING_STANDARD` | **Notifikasi internal.** Usulan: tugas persetujuan lewat notifikasi `Wfl` yang sudah ada (pola `PBJ-DEC-033` `G-11`, tanpa nominal); tanda "batas waktu RFQ < 1 hari" dan "ditugaskan sebagai evaluator" tampil di daftar dulu; notifikasi aktif mengikuti `PBJ-OQ-015` |
+| `G-P08` | `PROPOSED` | `NON_BLOCKING_STANDARD` | **Vendor menjadi tidak layak setelah persetujuan terakhir** (`PBJ-UNK-002`). Usulan fail-closed: penerap status tidak menerapkan penetapan, komitmen tidak dicatat, paket kembali ke tahap penetapan dengan keterangan "Persetujuan tidak dapat diterapkan: vendor tidak layak", dan Tim Pengadaan memilih vendor lain atau mengajukan ulang setelah dokumen vendor diverifikasi. Keputusan `Wfl` tetap tercatat |
+| `G-P09` | `PROPOSED` | `NON_BLOCKING_STANDARD` | **Koreksi penetapan yang sudah disetujui sebelum nomor PO.** Usulan: penetapan disetujui terkunci; koreksi dilakukan dengan "tarik penetapan" (alasan wajib) yang melepas komitmen dan mengembalikan paket ke tahap penetapan, lalu penetapan diajukan ulang. Pembatalan paket penuh tetap lewat `PBJ-DEC-077` |
+| `G-P10` | `PROPOSED` | `NON_BLOCKING_STANDARD` | **Kecukupan teknis alkes/obat.** Untuk metode yang tidak mewajibkan evaluasi teknis, spesifikasi hanya diperiksa Tim Pengadaan. Usulan: aturan "wajib evaluasi teknis" pada metode (`PBJ-DEC-068`) dapat juga dinyalakan per kategori barang (mis. Alat Kesehatan) sebagai pengaturan |
+| `G-P11` | `PROPOSED` | `NON_BLOCKING_STANDARD` | **Satu paket, satu jenis pengadaan.** Usulan: paket hanya berisi baris dengan jenis pengadaan yang sama, karena jenis menentukan dokumen wajib dan jalur serah terima di `kontrak-pelaksanaan` (`PBJ-DEC-024`), dan selaras dengan satu vendor satu PO (`PBJ-DEC-070`) |
+| `G-P12` | `PROPOSED` | `NON_BLOCKING_STANDARD` | **Satu paket, satu tahun anggaran.** Usulan: paket hanya berisi baris PR dengan tahun anggaran sama, supaya komitmen tidak melintasi tahun pagu |
+| `G-P13` | `PROPOSED` | `NON_BLOCKING_STANDARD` | **Perubahan di `perencanaan-permintaan`** untuk rujukan paket per baris PR dan tiga metode integrasi yang belum ada (`PBJ-CAP-019`..`021`). Bukan keputusan bisnis baru (sudah `PBJ-DEC-071`, `082`); harus dirancang sebagai amendment `PBJ-PP-INT` dan diuji regresinya |
+| `G-P14` | `PROPOSED` | `NON_BLOCKING_STANDARD` | **Visibilitas lampiran per kategori** (`PBJ-CAP-004`) dan cakupan evaluator per penugasan (`PBJ-CAP-026`). Keputusannya sudah ada (`PBJ-DEC-079`, `080`); yang kurang adalah perluasan fondasi lampiran milik `perencanaan-permintaan` |
+
+### 10.4 Log keputusan pemblokir
+
+| Decision ID | Pertanyaan | Slice terdampak | Bukti saat ini | Usulan baseline | Dampak | Pemilik | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `PBJ-OQ-040` | Kapan paket boleh dipecah, apa yang ikut pindah, dan apakah metode dihitung ulang? | `S-P1`, `S-P4`, `S-P7` | `PBJ-DEC-070` (contoh pecah setelah penawaran), `PBJ-DEC-068` (metode dari HPS) | Pecah boleh sampai sebelum penetapan diajukan, dengan alasan wajib. Baris beserta bagian HPS dan penawarannya pindah ke paket baru tanpa RFQ ulang. **Metode dan aturannya tetap mengikuti paket asal** dan tidak dihitung ulang, sehingga pecah tidak bisa dipakai untuk turun metode. Penetapan tiap paket disetujui sendiri | Lifecycle paket, kepemilikan data penawaran, aturan persetujuan, integritas kontrol metode | Pengguna sesi (Product Owner Pengadaan) | `OPEN` |
+| `PBJ-OQ-041` | Apakah HPS, harga penawaran, nilai penetapan, dan komitmen pagu termasuk PPN? | `S-P2`, `S-P4`, `S-P6`, `S-P7` (dan makna pagu `perencanaan-permintaan`) | Tidak ada konsep pajak di Pengadaan; `MstSupplier` punya penanda kena pajak dan persentase | Semua angka uang Pengadaan **termasuk PPN** (nilai yang akan dibayar), karena pagu dan nilai "ditagih" Finance juga nilai bayar. Penawaran mencatat harga sebelum pajak dan PPN-nya terpisah sebagai informasi, lalu perbandingan dan batas HPS memakai harga termasuk PPN | Makna data uang, validasi batas HPS, nilai komitmen, konsistensi dengan Finance | Pengguna sesi (Product Owner Pengadaan); Keuangan bila perlu | `OPEN` |
+
+### 10.5 Kesiapan per slice
+
+| Slice | Kesiapan | Alasan |
+| --- | --- | --- |
+| `S-P1` Pembentukan paket | `BUSINESS_DECISION_REQUIRED` | `PBJ-OQ-040` |
+| `S-P2` Persiapan | `BUSINESS_DECISION_REQUIRED` | `PBJ-OQ-041` (makna HPS) |
+| `S-P3` Persetujuan | `READY_FOR_DOMAIN_DESIGN` | Struktur dua persetujuan dan jenjang bersyarat sudah dikonfirmasi; nominalnya mengikuti `PBJ-OQ-041` tanpa mengubah struktur |
+| `S-P4` RFQ dan penawaran | `BUSINESS_DECISION_REQUIRED` | `PBJ-OQ-041` (bentuk harga penawaran), `PBJ-OQ-040` (penawaran ikut pindah) |
+| `S-P5` Evaluasi teknis | `READY_FOR_DOMAIN_DESIGN` | `G-P10` standar |
+| `S-P6` Perbandingan dan negosiasi | `BUSINESS_DECISION_REQUIRED` | `PBJ-OQ-041` |
+| `S-P7` Penetapan dan komitmen | `BUSINESS_DECISION_REQUIRED` | `PBJ-OQ-040`, `PBJ-OQ-041` |
+| `S-P8` Nomor PO | `READY_FOR_DOMAIN_DESIGN` | — |
+| `S-P9` Gagal dan batal | `READY_FOR_DOMAIN_DESIGN` | — |
+| `S-P10` Hak akses dan kerahasiaan | `READY_FOR_DOMAIN_DESIGN` | `G-P14` adalah perluasan fondasi, bukan keputusan |
+
+**Verdict sub-modul `pemilihan-penyedia`: `PARTIALLY_READY`.**
+
+- **Boleh lanjut ke desain:** `S-P3`, `S-P5`, `S-P8`, `S-P9`, `S-P10`.
+- **Harus berhenti:** `S-P1` (`PBJ-OQ-040`); `S-P2`, `S-P4`, `S-P6` (`PBJ-OQ-041`); `S-P7` (keduanya).
+- **Ketergantungan:** jalur uang paket (`S-P2` → `S-P4` → `S-P6` → `S-P7`) adalah inti sub-modul. Slice yang siap pun
+  memakai paket dan nilainya, sehingga mendesain sebagian lebih dulu berisiko merancang ulang kontrak paket.
+
+Kedua keputusan kecil dan dipegang pemilik yang sama. Sebaiknya keduanya ditutup lewat `grill-me` lebih dulu, bersama
+konfirmasi usulan `G-P04` (aturan memilih pemenang), lalu seluruh sub-modul dirancang sekaligus (pola bagian 8.5).
+
+### 10.6 Handoff
+
+| Field | Nilai |
+| --- | --- |
+| Skill berikutnya | `grill-me` (closure pass lanjutan) untuk `PBJ-OQ-040`, `PBJ-OQ-041`, dan konfirmasi `G-P04`; lalu `design-business-module` untuk `pemilihan-penyedia` |
+| `hospital-domain-architect` | Tidak dipakai (`DOMAIN_ARCHITECTURE_NOT_RUN`): kemampuan administratif tanpa data klinis maupun billing pasien; lintas konteks (`perencanaan-permintaan`, `manajemen-vendor`, `Wfl`, Finance/BLM) sudah diputuskan eksplisit (`PBJ-DEC-071`, `076`, `078`, `082`, `011`) |
+| `requirement_readiness` | `PARTIALLY_READY` |
+| Butir tetap `PROPOSED` | `G-P02`, `G-P04`..`G-P14` |
+| Nilai dapat dikonfigurasi | Metode dan batas nilai (`PBJ-OQ-005`), penyetuju persiapan dan penetapan (`PBJ-OQ-019`), wajib evaluasi teknis per kategori (`G-P10`) |
+| Pertanyaan yang hanya memengaruhi layar | `PBJ-OQ-038` (nama 11 submenu menu 4 dan 6) |
+| Standar layar | `PBJ-FE-004` berlaku untuk semua daftar sub-modul ini |
+
+---
+
+## 11. Revisi 6 — blocker `pemilihan-penyedia` ditutup (26 November 2026)
+
+| Decision ID | Ditutup oleh | Gap |
+| --- | --- | --- |
+| `PBJ-OQ-040` | `PBJ-DEC-083` | `G-P01` → `CONFIRMED` (pecah sampai sebelum penetapan diajukan; HPS dan penawaran baris ikut pindah; metode paket asal tetap) |
+| `PBJ-OQ-041` | `PBJ-DEC-084` | `G-P03` → `CONFIRMED` (semua angka uang termasuk PPN; PPN penawaran dicatat terpisah sebagai informasi) |
+| — | `PBJ-DEC-085` | `G-P04` → `CONFIRMED` (pemenang bawaan harga akhir terendah; selain itu wajib alasan) |
+
+| Slice | Kesiapan revisi 6 |
+| --- | --- |
+| `S-P1` Pembentukan paket | `READY_FOR_DOMAIN_DESIGN` |
+| `S-P2` Persiapan | `READY_FOR_DOMAIN_DESIGN` |
+| `S-P3` Persetujuan | `READY_FOR_DOMAIN_DESIGN` (tidak berubah) |
+| `S-P4` RFQ dan penawaran | `READY_FOR_DOMAIN_DESIGN` |
+| `S-P5` Evaluasi teknis | `READY_FOR_DOMAIN_DESIGN` (tidak berubah) |
+| `S-P6` Perbandingan dan negosiasi | `READY_FOR_DOMAIN_DESIGN` |
+| `S-P7` Penetapan dan komitmen | `READY_FOR_DOMAIN_DESIGN` |
+| `S-P8`, `S-P9`, `S-P10` | `READY_FOR_DOMAIN_DESIGN` (tidak berubah) |
+
+**Verdict sub-modul `pemilihan-penyedia`: `READY_FOR_DOMAIN_DESIGN`** untuk `S-P1`..`S-P10`.
+
+Butir yang tetap `PROPOSED` dan wajib tampil sebagai usulan di desain: `G-P02`, `G-P05`..`G-P14`. Nilai yang dapat
+dikonfigurasi: metode dan batas nilai (`PBJ-OQ-005`), penyetuju persiapan dan penetapan (`PBJ-OQ-019`), wajib evaluasi teknis
+per kategori (`G-P10`). Pertanyaan yang hanya memengaruhi layar: `PBJ-OQ-038`.
+
+**Usulan baru dari desain (26 November 2026):** `G-P15` `PROPOSED` `NON_BLOCKING_STANDARD` — komitmen pagu butuh garis pagu
+yang ada; bila garisnya belum ada saat penetapan disetujui, penetapan tidak diterapkan sampai pagu disusun
+(`pemilihan-penyedia/contracts/integration-contract.md` bagian 1). Dikonfirmasi saat approval desain.
+
+**Penutupan saat approval desain (26 November 2026):** seluruh gap `PROPOSED` slice ini dikonfirmasi pemilik dan berubah
+menjadi `CONFIRMED`: `G-P05` → `PBJ-DEC-086`, `G-P06` → `087`, `G-P07` → `088`, `G-P10` → `089` (dibangun `POST-MVP`),
+`G-P11` → `090`, `G-P12` → `091`, `G-P08` → `092`, `G-P09` → `093`, `G-P15` → `094`; `G-P02`, `G-P13`, `G-P14` tertutup oleh
+approval desain `PBJ-DEC-095`. Tabel di atas tetap dibiarkan sebagai catatan penilaian revisi 6.
+
+**Dampak lintas sub-modul yang wajib masuk desain:** amendment `perencanaan-permintaan` untuk rujukan paket per baris PR dan
+tiga metode integrasi (`PBJ-DEC-071`, `PBJ-CAP-019`..`021`), label "termasuk PPN" pada harga perkiraan PR dan pagu
+(`PBJ-DEC-084`), serta visibilitas lampiran per kategori (`PBJ-CAP-004`).
+
+**Handoff:** `design-business-module` untuk sub-modul `pemilihan-penyedia`, dengan `requirement_readiness:
+READY_FOR_DOMAIN_DESIGN` dan `domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN` (alasan di bagian 10.6).

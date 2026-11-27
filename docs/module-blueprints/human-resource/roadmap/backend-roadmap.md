@@ -8784,7 +8784,7 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 | Gerbang | Isi | Pemilik | Akibat |
 | --- | --- | --- | --- |
 | G1 | ~~Kontrak `v31` belum disetujui~~ **TERTUTUP 24 November 2026** | Pengguna | Tidak memblokir |
-| G2 | Izin menulis data uji bertanda `UJI-A52` di devYoga untuk bukti data asli (`AT-HRD-PK-48` bagian devYoga, ulang `UAT-PK-03`/`09`) | Pengguna | Memblokir bukti data asli di `BE-HRD-468`; uji harness tidak terpengaruh |
+| G2 | ~~Izin menulis data uji bertanda `UJI-A52` di devYoga untuk bukti data asli (`AT-HRD-PK-48` bagian devYoga, ulang `UAT-PK-03`/`09`)~~ **TERTUTUP 26 November 2026**: diberikan Pengguna ("Izinkan keduanya") dan dipakai di `BE-HRD-468` | Pengguna | Tidak lagi memblokir |
 | G3 | Pemberian hak akses permanen daftar periksa Permission 35.3 | Admin Sistem (`HRD-DEC-254`) | Tidak memblokir task; butir DoD 44.11 tetap terbuka |
 
 ### API yang direncanakan
@@ -8914,9 +8914,9 @@ Rincian request/response ada di kontrak `v31` bagian 37; ringkasan:
 * **Risiko / pemilik**: AC4 mengubah perilaku HR yang ada — disetujui bersama `v31`; Technical Owner HR.
 * **DoD**: AC terbukti, laporan `BE-HRD-466.md`.
 
-#### ⬜ `BE-HRD-467` — ESS surat tugas dinas luar
+#### ✅ `BE-HRD-467` — ESS surat tugas dinas luar
 * **Slice / MVP**: `A52-B` / `MVP-77` · `EPIC HRD-133`
-* **Status**: ⬜ Belum dikerjakan
+* **Status**: ✅ Selesai (2026-11-26). 4/4 acceptance criteria terpenuhi: harness `OfficialDutySelfServiceTests` 7/7 lewat controller ESS dan `HrAttachmentStorage` nyata (25/25 mutasi tertangkap), regresi HR 458/458, QBE Strict bersih dengan probe kontrol. Controller ESS tujuh endpoint (`MyOfficialDuty` Read/Create/Cancel), DTO ESS (`CancelSelfRequest` dipakai ulang), enam method ESS pada `OfficialDutyRequestService`; kategori wajib dari `OfficialDutyCategory` (baru di `AttendanceValueConstants`); lampiran wajib unggahan akun sendiri berkategori `attendance-official-duty` (`HrAttachmentStorage.OwnerOf`); unduh hanya kunci yang tercatat di surat tugas milik sendiri; `VR-PK-36` di `ApproveAsync`/`RejectAsync`. **Celah kontrak** sama dengan `BE-HRD-466`: alasan batal hanya divalidasi, tidak disimpan. API 37.5 merujuk kode status "36.4" (seharusnya 37.4) dan statusnya masih "Rencana"; keduanya perlu disegarkan di pass blueprint. Shim harness kini melepas CHECK `btrim(` (sejak merge `cce1dbf5` seluruh uji HR gagal membentuk skema). Hak ESS masih perlu diberikan Admin Sistem. Bukti devYoga ada di `BE-HRD-468`. Laporan: [BE-HRD-467](../task/report/backend/BE-HRD-467.md)
 * **Outcome**: `OfficialDutySelfServiceController` (tujuh endpoint, resource `MyOfficialDuty`), DTO ESS, metode service `*ForSelfAsync` dan `CancelBySelfAsync`; unggah lewat `HrAttachmentStorage` kategori `attendance-official-duty`; unduh hanya lampiran pengajuan milik sendiri; larangan memutuskan pengajuan sendiri pada `OfficialDutyRequestService`. Log `OfficialDuty.SelfCreate`/`SelfCancel`.
 * **Requirement / keputusan**: `FR-PK-036`; `HRD-DEC-252`, `HRD-DEC-256`
 * **Kontrak**: `v31` — API 37.5; Validation `VR-PK-33`, `VR-PK-34`, `VR-PK-36`; State 35.1
@@ -8932,9 +8932,9 @@ Rincian request/response ada di kontrak `v31` bagian 37; ringkasan:
 * **Risiko / pemilik**: lampiran yatim bila pengajuan batal dikirim — perilaku penyimpanan yang ada; Technical Owner HR.
 * **DoD**: AC terbukti, laporan `BE-HRD-467.md`.
 
-#### ⬜ `BE-HRD-468` — Verifikasi `A52-B`
+#### ✅ `BE-HRD-468` — Verifikasi `A52-B`
 * **Slice / MVP**: `A52-B` / Verifikasi
-* **Status**: ⬜ Belum dikerjakan
+* **Status**: ✅ Selesai (2026-11-26). 3/3 acceptance criteria terpenuhi. **AC1**: `A52PermissionRegistryTests` 108/108 dengan tiga uji baru (persis tujuh string 35.1; validator bersih untuk 14 endpoint A52-B; seluruh string daftar periksa 35.3 terdaftar), 403 non-superadmin pada 14 endpoint baru, 3/3 mutasi tertangkap; startup lokal ke devYoga "Permission registry valid" dengan tujuh aksi tersinkron. **AC2**: regresi HR 480/480. **AC3** (G2 diberikan Yoga 26 November 2026): `ROST-202611-0002` menampilkan Arif sebagai baris pengganti-saja dan shift 16 Feb di baris Raka bertanda asal Indra, `expectedWorkforceProfileId` usang `409` tanpa perubahan; periode `ATP-202611-0001` (ulang `UAT-PK-09`, rekap Gilang `IncompletePunch` + `MissingCheckOut` hasil pemrosesan sungguhan) pratinjau `canClose`, tutup `200`, rekap `Absent`, pengecualian `Closed` bercatatan `HRD-DEC-249`. QBE Strict 22 berkas bersih dengan probe kontrol. Tanpa perubahan source aplikasi. Temuan: `plannedShiftCount` baris milik sendiri tidak mengikuti Ganti Petugas (as-is, untuk `FE-HRD-411`/pass blueprint). G3 (hak diberikan Admin Sistem) tetap terbuka. Laporan: [BE-HRD-468](../task/report/backend/BE-HRD-468.md)
 * **Outcome**: Bukti kontrak `v31` terpenuhi: registri tujuh hak akses baru (`AT-HRD-PK-57`), seluruh uji `AT-HRD-PK-47` s.d. `52` hijau bersama regresi HR, QBE Strict bersih, bukti API data asli devYoga untuk `AT-HRD-PK-47`/`48` (ulang `UAT-PK-03`/`09`).
 * **Requirement / keputusan**: `FR-PK-033` s.d. `FR-PK-038`; `HRD-DEC-254`
 * **Kontrak**: `v31` — Acceptance 40; PRD 44.11
