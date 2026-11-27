@@ -341,6 +341,42 @@ namespace QuilvianSystemBackend.Services.Security
                     .ToList());
         }
 
+        /// <summary>
+        /// Apakah pengguna yang SEDANG login SuperAdmin menurut backend (peran <c>SuperAdmin</c> atau <c>UserType</c> SuperAdmin) —
+        /// logika yang sama dengan <see cref="HasAccessAsync"/> lewat <see cref="IsSuperAdminUser"/>. Dipakai untuk kewenangan yang
+        /// melekat pada data (mis. pengecualian larangan menyetujui pengajuan sendiri), BUKAN untuk menggantikan pemeriksaan izin.
+        /// Identitas dibaca dari klaim terautentikasi dan database; tidak pernah dari nama, email, atau nilai kiriman layar.
+        /// Saklar pengembangan "otorisasi dimatikan" sengaja tidak berpengaruh di sini.
+        /// </summary>
+        public async Task<bool> IsSuperAdminAsync(ClaimsPrincipal userPrincipal)
+        {
+            if (userPrincipal.Identity?.IsAuthenticated != true)
+            {
+                return false;
+            }
+
+            var userIdText =
+                userPrincipal.FindFirstValue("user_id") ??
+                userPrincipal.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!Guid.TryParse(userIdText, out var userId))
+            {
+                return false;
+            }
+
+            var user = await _dbContext.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == userId && x.IsActive);
+
+            if (user == null)
+            {
+                return false;
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            return IsSuperAdminUser(user, roles);
+        }
+
         private static bool IsSuperAdminUser(ApplicationUser user, IEnumerable<string> roles)
         {
             if (roles.Any(x => x.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)))

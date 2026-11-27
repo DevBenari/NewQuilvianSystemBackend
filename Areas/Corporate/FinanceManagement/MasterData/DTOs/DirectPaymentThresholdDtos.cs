@@ -2,7 +2,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Dtos;
 
-/// <summary>Mengubah (atau menetapkan untuk pertama kali) ambang pembayaran langsung (BE-FIN-076, FIN-DEC-134).</summary>
+/// <summary>
+/// KONTRAK LAMA (BE-FIN-076, FIN-DEC-134) — tidak lagi dipakai untuk mengubah batas. FIN-BE-DPT-001: <c>PUT</c> yang menerima
+/// bentuk ini kini dijawab 410 dan TIDAK mengubah apa pun; penetapan dan perubahan lewat
+/// <see cref="CreateDirectPaymentThresholdProposalRequest"/> (<c>POST /proposals</c>). Tipe dipertahankan agar klien lama mendapat
+/// jawaban 410 yang jelas, bukan kegagalan pengikatan body.
+/// </summary>
 public sealed class UpdateDirectPaymentThresholdRequest
 {
     public decimal Amount { get; set; }

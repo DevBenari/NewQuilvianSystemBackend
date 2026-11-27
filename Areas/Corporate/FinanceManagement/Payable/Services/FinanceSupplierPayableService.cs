@@ -310,7 +310,7 @@ public sealed class FinanceSupplierPayableService
         var threshold = await _dbContext.MstDirectPaymentThresholds.AsNoTracking()
             .SingleOrDefaultAsync(x => x.IsActive && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException(
-                "Ambang pembayaran langsung belum ditetapkan, sehingga jalur ini belum dapat dipakai.");
+                "Batas pembayaran langsung belum ditetapkan, sehingga jalur ini belum dapat dipakai.");
 
         // FIN-VAL-198: nominal melewati ambang aktif (422) — diarahkan ke jalur FinPayment berjenjang.
         if (amount > threshold.Amount)

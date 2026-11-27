@@ -25,14 +25,17 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
     private readonly FinanceGoodsReceiptService _service;
     private readonly PurchasingIdempotencyService _idempotency;
     private readonly FinancePurchasingDocumentTrailService _trail;
+    private readonly FinanceGoodsReceiptLogisticsLinkService _logisticsLink;
     public FinanceGoodsReceiptsController(
         FinanceGoodsReceiptService service,
         PurchasingIdempotencyService idempotency,
-        FinancePurchasingDocumentTrailService trail)
+        FinancePurchasingDocumentTrailService trail,
+        FinanceGoodsReceiptLogisticsLinkService logisticsLink)
     {
         _service = service;
         _idempotency = idempotency;
         _trail = trail;
+        _logisticsLink = logisticsLink;
     }
 
     [HttpGet]
@@ -42,9 +45,16 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
     public async Task<IActionResult> GetList([FromQuery] GoodsReceiptQuery query, CancellationToken cancellationToken)
     {
         var result = await _service.GetPagedAsync(query, cancellationToken);
+        // FIN-BE-LGS-LINK-001: status penghubung Logistik untuk halaman ini (satu pembacaan bukti, tanpa N+1).
+        var links = await _logisticsLink.GetLinksAsync(result.Items.Select(x => x.Id).ToList(), cancellationToken);
         var mapped = new PagedResult<GoodsReceiptResponse>
         {
-            Items = result.Items.Select(Map).ToList(),
+            Items = result.Items.Select(x =>
+            {
+                var item = Map(x);
+                item.LogisticsLink = links.GetValueOrDefault(x.Id);
+                return item;
+            }).ToList(),
             PageNumber = result.PageNumber,
             PageSize = result.PageSize,
             TotalData = result.TotalData,
@@ -62,7 +72,23 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
     {
         var goodsReceipt = await _service.GetByIdAsync(id, cancellationToken);
         if (goodsReceipt is null) return NotFound(ApiResponse<object>.Fail(404, "Tanda Terima Barang tidak ditemukan."));
-        return Ok(ApiResponse<GoodsReceiptDetailResponse>.Ok(MapDetail(goodsReceipt), "Detail Tanda Terima Barang berhasil diambil."));
+        var detail = MapDetail(goodsReceipt);
+        detail.LogisticsLink = (await _logisticsLink.GetLinksAsync([goodsReceipt.Id], cancellationToken)).GetValueOrDefault(goodsReceipt.Id);
+        return Ok(ApiResponse<GoodsReceiptDetailResponse>.Ok(detail, "Detail Tanda Terima Barang berhasil diambil."));
+    }
+
+    /// <summary>
+    /// FIN-BE-LGS-LINK-001: ringkasan GR RECEIVED menurut status penghubung Logistik (baca-saja). Kategori yang tidak dapat ditentukan
+    /// dilaporkan eksplisit di <c>undetermined</c>, bukan 0. Izin yang sama dengan daftar GR.
+    /// </summary>
+    [HttpGet("logistics-summary")]
+    [AccessAction("Read", "Read Goods Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceGoodsReceipt", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<GoodsReceiptLogisticsSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLogisticsSummary([FromQuery] GoodsReceiptLogisticsSummaryQuery query, CancellationToken cancellationToken)
+    {
+        var summary = await _logisticsLink.GetSummaryAsync(query, cancellationToken);
+        return Ok(ApiResponse<GoodsReceiptLogisticsSummaryResponse>.Ok(summary, "Ringkasan penghubung Goods Receipt ke Logistik berhasil diambil."));
     }
 
     [HttpPost]
@@ -178,6 +204,7 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
             Status = mapped.Status,
             RowVersion = mapped.RowVersion,
             SourceSystem = mapped.SourceSystem,
+            LogisticsLink = mapped.LogisticsLink,
             Items = goodsReceipt.Items.Select(x => new GoodsReceiptItemResponse
             {
                 Id = x.Id,

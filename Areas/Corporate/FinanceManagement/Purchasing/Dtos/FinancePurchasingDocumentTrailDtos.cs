@@ -67,6 +67,9 @@ public sealed class PurchasingTrailGoodsReceipt
     public string Status { get; set; } = string.Empty;
     public decimal TotalReceivedQuantity { get; set; }
     public int ItemCount { get; set; }
+
+    /// <summary>FIN-BE-LGS-LINK-001: status penghubung ke Logistik untuk GR ini (turunan, baca-saja). Aditif.</summary>
+    public GoodsReceiptLogisticsLinkResponse? LogisticsLink { get; set; }
 }
 
 public sealed class PurchasingTrailInvoiceExchange

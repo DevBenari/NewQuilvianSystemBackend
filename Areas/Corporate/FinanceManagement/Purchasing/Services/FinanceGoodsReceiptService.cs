@@ -233,6 +233,12 @@ public sealed class FinanceGoodsReceiptService
             if (linkedToInvoiceExchange)
                 throw new PurchasingValidationException("Tanda Terima Barang ini sudah menjadi Tukar Faktur dan tidak dapat dibatalkan.");
 
+            // FIN-BE-LGS-LINK-001: GR yang sudah memiliki mutasi persediaan resmi tidak dibatalkan dari Finance; koreksi fisik dilakukan lewat
+            // mekanisme koreksi/pembalikan Logistik. Penjaga ini dormant selama tidak ada mutasi yang menunjuk GR; ia mencegah Finance dan
+            // saldo gudang menjadi tidak konsisten begitu integrasi (LGS-OQ-017) ada.
+            if (await PurchasingGoodsReceiptLogisticsLink.HasPostedStockAsync(_dbContext, goodsReceiptId, cancellationToken))
+                throw new PurchasingValidationException("Tanda Terima Barang ini sudah memiliki mutasi persediaan Logistik dan tidak dapat dibatalkan dari Finance. Lakukan koreksi atau pembalikan lewat Logistik terlebih dahulu.");
+
             goodsReceipt.Status = FinGoodsReceiptStatuses.Cancelled;
             goodsReceipt.UpdateDateTime = DateTime.UtcNow;
             goodsReceipt.UpdateBy = actorUserId;
@@ -332,6 +338,10 @@ public sealed class FinanceGoodsReceiptService
                     && x.Status != FinInvoiceExchangeStatuses.Cancelled, cancellationToken);
             if (hasActiveExchange)
                 throw new PurchasingValidationException("Tanda Terima Barang ini sudah dirujuk Tukar Faktur yang masih berlaku dan tidak dapat diperbarui. Batalkan Tukar Faktur terkait lebih dulu.");
+
+            // FIN-BE-LGS-LINK-001: sama dengan CancelAsync; koreksi isi GR yang sudah memiliki mutasi persediaan harus lewat Logistik.
+            if (await PurchasingGoodsReceiptLogisticsLink.HasPostedStockAsync(_dbContext, goodsReceiptId, cancellationToken))
+                throw new PurchasingValidationException("Tanda Terima Barang ini sudah memiliki mutasi persediaan Logistik dan tidak dapat diperbarui dari Finance. Lakukan koreksi atau pembalikan lewat Logistik terlebih dahulu.");
 
             var purchaseOrder = await _dbContext.FinPurchaseOrders
                 .Include(x => x.Items)

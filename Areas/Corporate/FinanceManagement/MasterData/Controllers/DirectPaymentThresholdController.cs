@@ -6,12 +6,15 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Service
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Security;
 
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Controllers;
 
 /// <summary>
-/// Ambang nilai pembayaran langsung (BE-FIN-076, FIN-API-1.6 F.4). Resource dan atribut controller
-/// persis seperti yang sudah dicatat `permission-audit-matrix.md` G.2. Nol resource/action baru.
+/// Batas Pembayaran Langsung (BE-FIN-076, FIN-API-1.6 F.4; FIN-BE-DPT-001). Resource tetap <c>MstDirectPaymentThreshold</c>
+/// dan route tetap — yang berubah hanya istilah tampilan dan alur: nominal tidak lagi diubah langsung, melainkan lewat
+/// pengajuan → persetujuan → aktivasi. Izin: <c>Read</c>, <c>Update</c> (= mengajukan), <c>Approve</c>, <c>Reject</c>,
+/// <c>Activate</c>. Hak ditentukan admin lewat Akses Role; tidak ada nama peran yang ditulis di kode.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -19,18 +22,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Con
 [AccessController("CORPORATE_FINANCE_MANAGEMENT_MASTER_DIRECT_PAYMENT_THRESHOLD",
     "Corporate Finance Management Direct Payment Threshold", "Master Data",
     AreaName = "Corporate", ControllerName = "MstDirectPaymentThreshold",
-    Description = "Ambang nilai pembayaran langsung", SortOrder = 73)]
+    Description = "Batas pembayaran langsung beserta pengajuan, persetujuan, aktivasi, dan riwayatnya", SortOrder = 73)]
 [Tags("Corporate / Finance Management / Master Data / Direct Payment Threshold")]
 public sealed class DirectPaymentThresholdController : ControllerBase
 {
     private readonly DirectPaymentThresholdService _service;
+    private readonly DirectPaymentThresholdProposalService _proposalService;
+    private readonly AccessPermissionService _accessPermissionService;
 
-    public DirectPaymentThresholdController(DirectPaymentThresholdService service)
+    public DirectPaymentThresholdController(
+        DirectPaymentThresholdService service,
+        DirectPaymentThresholdProposalService proposalService,
+        AccessPermissionService accessPermissionService)
     {
         _service = service;
+        _proposalService = proposalService;
+        _accessPermissionService = accessPermissionService;
     }
 
-    /// <summary>Ambang aktif beserta alasan perubahan terakhir. 404 bila belum pernah ditetapkan (fail-closed, FIN-DES-086).</summary>
+    /// <summary>
+    /// Batas yang BENAR-BENAR berlaku bagi pembayaran (hanya diubah oleh aktivasi), beserta alasan dan jejak perubahan terakhir.
+    /// 404 bila belum pernah ditetapkan (fail-closed, FIN-DES-086). Pengajuan yang belum diaktifkan tidak pernah muncul di sini.
+    /// </summary>
     [HttpGet]
     [AccessAction("Read", "Read Direct Payment Threshold", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("MstDirectPaymentThreshold", "Read")]
@@ -41,7 +54,7 @@ public sealed class DirectPaymentThresholdController : ControllerBase
         try
         {
             var result = await _service.GetActiveAsync(cancellationToken);
-            return Ok(ApiResponse<DirectPaymentThresholdResponse>.Ok(result, "Ambang pembayaran langsung berhasil diambil."));
+            return Ok(ApiResponse<DirectPaymentThresholdResponse>.Ok(result, "Batas pembayaran langsung berhasil diambil."));
         }
         catch (KeyNotFoundException exception)
         {
@@ -49,20 +62,133 @@ public sealed class DirectPaymentThresholdController : ControllerBase
         }
     }
 
-    /// <summary>Mengubah (atau menetapkan pertama kali) ambang; alasan perubahan wajib (FIN-DEC-134).</summary>
+    /// <summary>
+    /// JALUR LAMA, DINONAKTIFKAN (FIN-BE-DPT-001). Dahulu menimpa nominal seketika tanpa persetujuan. Kini TIDAK mengubah apa pun dan
+    /// tidak membuat pengajuan diam-diam; klien diarahkan ke <c>POST proposals</c>. Izin <c>Update</c> tetap diperiksa.
+    /// </summary>
     [HttpPut]
-    [AccessAction("Update", "Update Direct Payment Threshold", AccessType = AccessTypes.Update, SortOrder = 2)]
     [AccessPermission("MstDirectPaymentThreshold", "Update")]
-    [ProducesResponseType(typeof(ApiResponse<DirectPaymentThresholdResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> Update([FromBody] UpdateDirectPaymentThresholdRequest request, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status410Gone)]
+    public IActionResult Update([FromBody] UpdateDirectPaymentThresholdRequest request) =>
+        StatusCode(StatusCodes.Status410Gone, ApiResponse<object>.Fail(
+            StatusCodes.Status410Gone,
+            "Perubahan langsung batas pembayaran tidak lagi didukung. Ajukan perubahan lewat pengajuan, lalu tunggu persetujuan dan aktivasi."));
+
+    /// <summary>Ringkasan pengajuan beserta versi batas yang sedang berlaku (sumber, tanggal berlaku, pengaktif).</summary>
+    [HttpGet("proposals/summary")]
+    [AccessAction("Read", "Read Direct Payment Threshold", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("MstDirectPaymentThreshold", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<DirectPaymentThresholdProposalSummaryResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> GetSummary(CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _proposalService.GetSummaryAsync(cancellationToken), "Ringkasan pengajuan batas pembayaran langsung berhasil diambil.");
+
+    [HttpGet("proposals")]
+    [AccessAction("Read", "Read Direct Payment Threshold", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("MstDirectPaymentThreshold", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<DirectPaymentThresholdProposalResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProposals(
+        [FromQuery] DirectPaymentThresholdProposalQuery request, CancellationToken cancellationToken)
+    {
+        var viewerIsSuperAdmin = await _accessPermissionService.IsSuperAdminAsync(User);
+        return await ExecuteAsync(
+            () => _proposalService.GetProposalsAsync(request, CurrentUserId(), viewerIsSuperAdmin, cancellationToken),
+            "Pengajuan batas pembayaran langsung berhasil diambil.");
+    }
+
+    [HttpGet("proposals/{id:guid}")]
+    [AccessAction("Read", "Read Direct Payment Threshold", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("MstDirectPaymentThreshold", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<DirectPaymentThresholdProposalResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetProposal(Guid id, CancellationToken cancellationToken)
+    {
+        var viewerIsSuperAdmin = await _accessPermissionService.IsSuperAdminAsync(User);
+        return await ExecuteAsync(
+            () => _proposalService.GetProposalAsync(id, CurrentUserId(), viewerIsSuperAdmin, cancellationToken),
+            "Detail pengajuan batas pembayaran langsung berhasil diambil.");
+    }
+
+    /// <summary>Riwayat kejadian (pengajuan, persetujuan, penolakan, aktivasi, penggantian), terbaru lebih dulu.</summary>
+    [HttpGet("history")]
+    [AccessAction("Read", "Read Direct Payment Threshold", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("MstDirectPaymentThreshold", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<DirectPaymentThresholdHistoryResponse>>), StatusCodes.Status200OK)]
+    public Task<IActionResult> GetHistory(
+        [FromQuery] DirectPaymentThresholdHistoryQuery request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _proposalService.GetHistoryAsync(request, cancellationToken), "Riwayat batas pembayaran langsung berhasil diambil.");
+
+    /// <summary>
+    /// Mengajukan penetapan atau perubahan batas. Tidak mengubah batas yang berlaku; status awal MENUNGGU. Izin <c>Update</c> kini
+    /// berarti "boleh mengajukan" — bukan "boleh mengubah langsung".
+    /// </summary>
+    [HttpPost("proposals")]
+    [AccessAction("Update", "Propose Direct Payment Threshold Change", Description = "Mengajukan penetapan atau perubahan batas pembayaran langsung",
+        AccessType = AccessTypes.Update, SortOrder = 2)]
+    [AccessPermission("MstDirectPaymentThreshold", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<DirectPaymentThresholdProposalResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CreateProposal(
+        [FromBody] CreateDirectPaymentThresholdProposalRequest request, CancellationToken cancellationToken)
+    {
+        var isSuperAdmin = await _accessPermissionService.IsSuperAdminAsync(User);
+        return await ExecuteAsync(
+            () => _proposalService.CreateAsync(request, CurrentUserId(), isSuperAdmin, cancellationToken),
+            "Pengajuan batas pembayaran berhasil dibuat dan sedang menunggu persetujuan.");
+    }
+
+    /// <summary>Menyetujui pengajuan MENUNGGU. Belum mengaktifkan nominal.</summary>
+    [HttpPost("proposals/{id:guid}/approve")]
+    [AccessAction("Approve", "Approve Direct Payment Threshold Change", Description = "Menyetujui pengajuan perubahan batas pembayaran langsung",
+        AccessType = AccessTypes.Update, SortOrder = 3)]
+    [AccessPermission("MstDirectPaymentThreshold", "Approve")]
+    [ProducesResponseType(typeof(ApiResponse<DirectPaymentThresholdProposalResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Approve(
+        Guid id, [FromBody] ApproveDirectPaymentThresholdProposalRequest request, CancellationToken cancellationToken)
+    {
+        var isSuperAdmin = await _accessPermissionService.IsSuperAdminAsync(User);
+        return await ExecuteAsync(
+            () => _proposalService.ApproveAsync(id, request, CurrentUserId(), isSuperAdmin, cancellationToken),
+            "Pengajuan disetujui. Batas baru belum berlaku sampai diaktifkan.");
+    }
+
+    /// <summary>Menolak pengajuan MENUNGGU; alasan penolakan wajib.</summary>
+    [HttpPost("proposals/{id:guid}/reject")]
+    [AccessAction("Reject", "Reject Direct Payment Threshold Change", Description = "Menolak pengajuan perubahan batas pembayaran langsung",
+        AccessType = AccessTypes.Update, SortOrder = 4)]
+    [AccessPermission("MstDirectPaymentThreshold", "Reject")]
+    [ProducesResponseType(typeof(ApiResponse<DirectPaymentThresholdProposalResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Reject(
+        Guid id, [FromBody] RejectDirectPaymentThresholdProposalRequest request, CancellationToken cancellationToken)
+    {
+        var isSuperAdmin = await _accessPermissionService.IsSuperAdminAsync(User);
+        return await ExecuteAsync(
+            () => _proposalService.RejectAsync(id, request, CurrentUserId(), isSuperAdmin, cancellationToken),
+            "Pengajuan ditolak.");
+    }
+
+    /// <summary>Mengaktifkan pengajuan DISETUJUI: batas lama digantikan secara atomik dan Tanggal Berlaku = waktu aktivasi.</summary>
+    [HttpPost("proposals/{id:guid}/activate")]
+    [AccessAction("Activate", "Activate Direct Payment Threshold Change", Description = "Mengaktifkan batas pembayaran langsung yang sudah disetujui",
+        AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission("MstDirectPaymentThreshold", "Activate")]
+    [ProducesResponseType(typeof(ApiResponse<DirectPaymentThresholdProposalResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Activate(
+        Guid id, [FromBody] ActivateDirectPaymentThresholdProposalRequest request, CancellationToken cancellationToken)
+    {
+        var isSuperAdmin = await _accessPermissionService.IsSuperAdminAsync(User);
+        return await ExecuteAsync(
+            () => _proposalService.ActivateAsync(id, request, CurrentUserId(), isSuperAdmin, cancellationToken),
+            "Batas pembayaran langsung baru berhasil diaktifkan dan mulai berlaku.");
+    }
+
+    private async Task<IActionResult> ExecuteAsync<T>(Func<Task<T>> command, string successMessage)
     {
         try
         {
-            var result = await _service.UpdateAsync(request, CurrentUserId(), cancellationToken);
-            return Ok(ApiResponse<DirectPaymentThresholdResponse>.Ok(result, "Ambang pembayaran langsung berhasil diperbarui."));
+            return Ok(ApiResponse<T>.Ok(await command(), successMessage));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
         }
         catch (DirectPaymentThresholdValidationException exception)
         {
@@ -72,7 +198,8 @@ public sealed class DirectPaymentThresholdController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, exception.Message));
         }
-        // FIN-VAL-228 (BE-FIN-086): penanda versi basi atau tidak dikirim sementara ambang sudah ada.
+        // FIN-VAL-228: 409 HANYA untuk benturan versi/penyimpanan (data sudah diubah pihak lain). Pelanggaran aturan bisnis
+        // (pengajuan terbuka lain, pengaju menyetujui sendiri) memakai 422, dan 403 hanya untuk izin Role Management.
         catch (DirectPaymentThresholdConflictException exception)
         {
             return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));

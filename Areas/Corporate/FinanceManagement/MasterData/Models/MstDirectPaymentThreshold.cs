@@ -10,8 +10,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Mod
 /// diubah pejabat berwenang beserta alasan dan jejak audit (<see cref="IdentityModel"/> menjawab
 /// siapa dan kapan; perubahannya dicatat logger seperti Update lain).
 ///
-/// Tabel riwayat perubahan ambang SENGAJA TIDAK dibuat — kolom audit dan logger sudah menjawab
-/// perubahan terakhir (FIN-DES-086).
+/// FIN-BE-DPT-001 mengubah keputusan lama (FIN-DES-086): baris ini tetap SATU-SATUNYA sumber nominal yang berlaku bagi
+/// AR/AP, tetapi HANYA diubah oleh aktivasi pengajuan yang sudah disetujui. Riwayat dan pengajuan tersimpan di tabel terpisah
+/// (<see cref="MstDirectPaymentThresholdProposal"/> dan <see cref="MstDirectPaymentThresholdEvent"/>). Istilah tampilan kini
+/// "Batas Pembayaran Langsung"; nama kelas, tabel, dan resource izin tidak berubah.
 ///
 /// Tanpa baris aktif, SELURUH pembayaran langsung ditolak — perilaku yang disengaja, bukan dianggap
 /// tak terbatas. Nilai awalnya belum ditetapkan desain ini (FIN-OQ-074).

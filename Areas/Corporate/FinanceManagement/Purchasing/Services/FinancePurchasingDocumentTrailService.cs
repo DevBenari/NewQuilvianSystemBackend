@@ -292,6 +292,9 @@ public sealed class FinancePurchasingDocumentTrailService
 
         if (allowed.Contains(PurchasingTrailSections.GoodsReceipts))
         {
+            // FIN-BE-LGS-LINK-001: satu pembacaan bukti untuk seluruh GR pada jejak; hanya status turunan, tanpa saldo atau data Logistik.
+            var logisticsLinks = await PurchasingGoodsReceiptLogisticsLink.GetLinksAsync(
+                _dbContext, goodsReceipts.Select(x => x.Id).ToList(), cancellationToken);
             response.GoodsReceipts = goodsReceipts
                 .Select(x =>
                 {
@@ -303,7 +306,8 @@ public sealed class FinancePurchasingDocumentTrailService
                         ReceivedDate = x.ReceivedDate,
                         Status = x.Status,
                         TotalReceivedQuantity = aggregate.Total,
-                        ItemCount = aggregate.Count
+                        ItemCount = aggregate.Count,
+                        LogisticsLink = logisticsLinks.GetValueOrDefault(x.Id)
                     };
                 })
                 .ToList();

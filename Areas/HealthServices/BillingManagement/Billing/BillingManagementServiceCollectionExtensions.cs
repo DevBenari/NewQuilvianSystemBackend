@@ -109,6 +109,7 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<CurrencyService>();
         // BE-FIN-076, FIN-DES-086: ambang nilai pembayaran langsung, master berjejak satu baris aktif.
         services.AddScoped<DirectPaymentThresholdService>();
+        services.AddScoped<DirectPaymentThresholdProposalService>();
         // BE-FIN-011, FIN-DES-017: satu-satunya penulis FinAccountingEventOutbox. Dipakai
         // FinanceReceivableService dan FinanceBillingIntakeService lewat DI (scoped, DbContext sama).
         services.AddScoped<FinanceAccountingOutboxService>();
@@ -165,6 +166,10 @@ public static class BillingManagementServiceCollectionExtensions
         // BE-FIN-032, 02-backend-architecture.md §C.1: Purchase Order dan Tanda Terima Barang.
         services.AddScoped<FinancePurchaseOrderService>();
         services.AddScoped<FinanceGoodsReceiptService>();
+        // FIN-BE-LGS-LINK-001: pembaca status penghubung GR → Logistik (baca-saja; tanpa posting stok).
+        services.AddScoped<FinanceGoodsReceiptLogisticsLinkService>();
+        // LGS-BE-REC-INSP-001: pembaca Pemeriksaan Hasil Pengadaan untuk Logistik (baca-saja; izin Logistik tersendiri).
+        services.AddScoped<QuilvianSystemBackend.Areas.Corporate.LogisticsManagement.Receiving.Services.LogisticsProcurementInspectionQueryService>();
         // BE-FIN-033, FIN-DEC-051: Tukar Faktur (checkpoint dokumen faktur supplier).
         services.AddScoped<FinanceInvoiceExchangeService>();
         // BE-FIN-034, FIN-DEC-045/046/053: Purchasing Invoice — pengakuan utang + PPN Masukan.

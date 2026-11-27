@@ -81,8 +81,21 @@ public sealed class CurrenciesController : ControllerBase
     public Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateCurrencyStatusRequest request, CancellationToken cancellationToken) =>
         ExecuteAsync(() => _service.UpdateStatusAsync(id, request, CurrentUserId(), cancellationToken));
 
-    // Tidak ada DELETE — FIN-API-1.0 (locked) sengaja tidak mengunci endpoint hapus mata uang;
-    // riwayat kurs bergantung padanya, sehingga nonaktifkan (PATCH status) adalah satu-satunya jalur.
+    // FIN-BE-CUR-RATE-001: FIN-API-1.0 tidak mengunci endpoint hapus mata uang (bukan larangan tertulis; FR-FIN-004 justru
+    // menetapkan "yang sudah dipakai ditolak dihapus"). Hapus = soft delete dengan pemeriksaan referensi menyeluruh di service:
+    // mata uang dasar, yang punya riwayat kurs, atau yang kodenya dipakai tabel lain DITOLAK (400). Nonaktifkan tetap jalur aman.
+    [HttpDelete("{id:guid}")]
+    [AccessAction("Delete", "Delete Currency", AccessType = AccessTypes.Delete, SortOrder = 5)]
+    [AccessPermission("Currency", "Delete")]
+    [ProducesResponseType(typeof(ApiResponse<CurrencyDeleteResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        try { return Ok(ApiResponse<CurrencyDeleteResponse>.Ok(await _service.DeleteAsync(id, CurrentUserId(), cancellationToken), "Mata uang berhasil dihapus.")); }
+        catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
+        catch (CurrencyInUseException exception) { return BadRequest(ApiResponse<object>.Fail(400, exception.Message)); }
+    }
 
     [HttpGet("{id:guid}/exchange-rates")]
     [AccessAction("Read", "Read Currency", AccessType = AccessTypes.Read, SortOrder = 1)]

@@ -50,6 +50,12 @@ public class GoodsReceiptResponse
     /// <summary>Sistem asal dokumen: QUILVIAN (bawaan, dokumen lama dan buatan Quilvian) atau BLM
     /// (BE-FIN-147, FIN-API-1.13 W.1).</summary>
     public string SourceSystem { get; set; } = "QUILVIAN";
+
+    /// <summary>
+    /// FIN-BE-LGS-LINK-001: status penghubung ke Logistik (READ MODEL turunan; bukan bukti penerimaan Logistik). Terisi pada daftar dan
+    /// detail; null pada respons tulis (Create/Cancel/Update). Aditif.
+    /// </summary>
+    public GoodsReceiptLogisticsLinkResponse? LogisticsLink { get; set; }
 }
 
 public sealed class GoodsReceiptDetailResponse : GoodsReceiptResponse
