@@ -107,6 +107,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public Guid Id { get; set; }
         public string CandidateCode { get; set; } = string.Empty;
         public string NationalIdNumber { get; set; } = string.Empty;
+        public string MaskedNationalIdNumber { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string Gender { get; set; } = string.Empty;
         public DateOnly BirthDate { get; set; }
@@ -131,6 +132,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public Guid Id { get; set; }
         public string CandidateCode { get; set; } = string.Empty;
         public string NationalIdNumber { get; set; } = string.Empty;
+        public string MaskedNationalIdNumber { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
@@ -138,6 +140,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public CandidateStatus Status { get; set; }
         public string StatusName => Status.ToString();
         public DateTime CreateDateTime { get; set; }
+        public int ApplicationsCount { get; set; }
+        public int ActiveApplicationsCount { get; set; }
+        public Guid? LatestApplicationId { get; set; }
+        public string? LatestApplicationNumber { get; set; }
+        public string? LatestVacancyTitle { get; set; }
+        public ApplicationStage? LatestApplicationStage { get; set; }
+        public string? LatestApplicationStageName => LatestApplicationStage?.ToString();
+        public string? LatestApplicationStageStatus { get; set; }
+        public int DocumentsCount { get; set; }
     }
 
     public sealed class CandidateApplicationResponse

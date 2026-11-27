@@ -675,10 +675,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     $"VR-ONB-35: Keputusan hanya dapat diajukan untuk kontrak yang sedang aktif bertanda tangan. Status saat ini: {contract.ContractStatus}.");
             }
 
-            // VR-ONB-37: Satu keputusan terbuka (Submitted) atau disetujui per kontrak
+            // VR-ONB-37: Satu keputusan terbuka (Diajukan/Dikembalikan) atau disetujui per kontrak
             var existingDecision = await _dbContext.HrdContractDecisions
                 .FirstOrDefaultAsync(d => d.ContractHistoryId == contractId &&
-                                         (d.DecisionStatus == ContractDecisionStatus.Submitted || d.DecisionStatus == ContractDecisionStatus.Approved) &&
+                                         (d.DecisionStatus == ContractDecisionStatus.Submitted ||
+                                          d.DecisionStatus == ContractDecisionStatus.Returned ||
+                                          d.DecisionStatus == ContractDecisionStatus.Approved) &&
                                          !d.IsDelete, cancellationToken);
 
             if (existingDecision != null)
@@ -726,13 +728,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             _dbContext.HrdContractDecisions.Add(decision);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            // Pemicu alur persetujuan T16
-            var workflowInstanceId = await _workflowIntegrationService.StartContractDecisionWorkflowAsync(
+            // Pemicu alur persetujuan T16 (B6). Gagal tertutup: bila mesin menolak (belum ada langkah/penyetuju),
+            // usulan dihapus lunak agar tidak tertinggal "Diajukan" tanpa penyetuju dan VR-ONB-37 tidak menahan pengajuan ulang.
+            var workflow = await _workflowIntegrationService.StartContractDecisionWorkflowAsync(
                 decision.Id,
                 actorId,
                 cancellationToken);
 
-            decision.WorkflowInstanceId = workflowInstanceId;
+            if (!workflow.Success)
+            {
+                decision.IsDelete = true;
+                decision.DeleteDateTime = DateTime.UtcNow;
+                decision.DeleteBy = actorId;
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                return RecruitmentResult<ContractDecisionResponse>.Fail(workflow.Message, workflow.StatusCode);
+            }
+
+            decision.WorkflowInstanceId = workflow.WorkflowInstanceId;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return RecruitmentResult<ContractDecisionResponse>.Created(MapToDecisionResponse(decision, contract, user.Identity?.Name));
@@ -749,6 +761,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 .Include(d => d.WorkforceProfile)
                 .Include(d => d.SubmittedByUser)
                 .Include(d => d.DecidedByUser)
+                .Include(d => d.FollowUpContractHistory)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(d => d.Id == decisionId && d.ContractHistoryId == contractId && !d.IsDelete, cancellationToken);
 
@@ -778,10 +791,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 return RecruitmentResult<ContractDecisionResponse>.NotFound("Keputusan kontrak tidak ditemukan.");
             }
 
-            if (decision.DecisionStatus != ContractDecisionStatus.Submitted)
+            // B6: usulan diperbaiki saat Dikembalikan (Minta Revisi), lalu instance yang sama diajukan ulang. Usulan lama
+            // berstatus Diajukan yang dibuat sebelum integrasi (GUID tanpa instance) juga boleh diperbaiki lalu dikirim.
+            var hasLiveInstance = await _workflowIntegrationService.InstanceExistsAsync(decision.WorkflowInstanceId, cancellationToken);
+            var isReturned = decision.DecisionStatus == ContractDecisionStatus.Returned;
+            var isUnsentSubmitted = decision.DecisionStatus == ContractDecisionStatus.Submitted && !hasLiveInstance;
+
+            if (!isReturned && !isUnsentSubmitted)
             {
                 return RecruitmentResult<ContractDecisionResponse>.BadRequest(
-                    $"Keputusan tidak dapat diubah karena berstatus {decision.DecisionStatus}.");
+                    decision.DecisionStatus == ContractDecisionStatus.Submitted
+                        ? "Usulan sedang menunggu persetujuan dan tidak dapat diubah. Tarik usulan bila perlu perubahan."
+                        : $"Keputusan tidak dapat diubah karena berstatus {decision.DecisionStatus}.");
+            }
+
+            if (decision.SubmittedByUserId != actorId)
+            {
+                return RecruitmentResult<ContractDecisionResponse>.Forbidden(
+                    "Hanya pengaju yang dapat memperbaiki dan mengajukan ulang usulan ini.");
             }
 
             // AUD-08-04: Validasi ulang kebijakan sesuai tipe keputusan yang dimutakhirkan
@@ -831,7 +858,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             decision.UpdateBy = actorId;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
-            return RecruitmentResult<ContractDecisionResponse>.Ok(MapToDecisionResponse(decision, decision.ContractHistory, user.Identity?.Name));
+
+            var workflow = isReturned && hasLiveInstance
+                ? await _workflowIntegrationService.ResubmitAsync(
+                    decision.WorkflowInstanceId!.Value,
+                    "Usulan diperbaiki dan diajukan ulang.",
+                    cancellationToken)
+                : await _workflowIntegrationService.StartContractDecisionWorkflowAsync(decision.Id, actorId, cancellationToken);
+
+            if (!workflow.Success)
+            {
+                // Isian perbaikan tetap tersimpan; status tidak berubah sehingga pengaju dapat mencoba lagi.
+                return RecruitmentResult<ContractDecisionResponse>.Fail(workflow.Message, workflow.StatusCode);
+            }
+
+            decision.WorkflowInstanceId = workflow.WorkflowInstanceId ?? decision.WorkflowInstanceId;
+            decision.DecisionStatus = ContractDecisionStatus.Submitted;
+            decision.SubmittedAt = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return RecruitmentResult<ContractDecisionResponse>.Ok(
+                MapToDecisionResponse(decision, decision.ContractHistory, user.Identity?.Name),
+                "Usulan diperbaiki dan diajukan ulang ke alur persetujuan.");
         }
 
         public async Task<RecruitmentResult<bool>> WithdrawDecisionAsync(
@@ -850,10 +898,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 return RecruitmentResult<bool>.NotFound("Keputusan kontrak tidak ditemukan.");
             }
 
-            if (decision.DecisionStatus != ContractDecisionStatus.Submitted)
+            if (decision.DecisionStatus != ContractDecisionStatus.Submitted &&
+                decision.DecisionStatus != ContractDecisionStatus.Returned)
             {
                 return RecruitmentResult<bool>.BadRequest(
                     $"Keputusan tidak dapat ditarik karena berstatus {decision.DecisionStatus}.");
+            }
+
+            // B6: instance ikut ditarik agar tugas tidak tertinggal di Kotak Masuk penyetuju.
+            var workflow = await _workflowIntegrationService.WithdrawAsync(
+                decision.WorkflowInstanceId,
+                actorId,
+                "Usulan keputusan kontrak ditarik oleh pengaju.",
+                cancellationToken);
+            if (!workflow.Success)
+            {
+                return RecruitmentResult<bool>.Fail(workflow.Message, workflow.StatusCode);
             }
 
             decision.DecisionStatus = ContractDecisionStatus.Withdrawn;
@@ -1219,7 +1279,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
             // Cek 1 koreksi terbuka
             var openCorrection = await _dbContext.HrdContractCorrections
-                .FirstOrDefaultAsync(c => c.ContractHistoryId == contractId && c.CorrectionStatus == ContractCorrectionStatus.Submitted && !c.IsDelete, cancellationToken);
+                .FirstOrDefaultAsync(c => c.ContractHistoryId == contractId &&
+                                         (c.CorrectionStatus == ContractCorrectionStatus.Submitted || c.CorrectionStatus == ContractCorrectionStatus.Returned) &&
+                                         !c.IsDelete, cancellationToken);
 
             if (openCorrection != null)
             {
@@ -1260,12 +1322,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             _dbContext.HrdContractCorrections.Add(correction);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            var wfId = await _workflowIntegrationService.StartContractCorrectionWorkflowAsync(
+            // Pemicu alur persetujuan T17 (B6), gagal tertutup seperti T16.
+            var workflow = await _workflowIntegrationService.StartContractCorrectionWorkflowAsync(
                 correction.Id,
                 actorId,
                 cancellationToken);
 
-            correction.WorkflowInstanceId = wfId;
+            if (!workflow.Success)
+            {
+                correction.IsDelete = true;
+                correction.DeleteDateTime = DateTime.UtcNow;
+                correction.DeleteBy = actorId;
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                return RecruitmentResult<ContractCorrectionResponse>.Fail(workflow.Message, workflow.StatusCode);
+            }
+
+            correction.WorkflowInstanceId = workflow.WorkflowInstanceId;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return RecruitmentResult<ContractCorrectionResponse>.Created(new ContractCorrectionResponse
@@ -1356,10 +1428,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 return RecruitmentResult<bool>.NotFound("Pengajuan koreksi kontrak tidak ditemukan.");
             }
 
-            if (correction.CorrectionStatus != ContractCorrectionStatus.Submitted)
+            if (correction.CorrectionStatus != ContractCorrectionStatus.Submitted &&
+                correction.CorrectionStatus != ContractCorrectionStatus.Returned)
             {
                 return RecruitmentResult<bool>.BadRequest(
                     $"Koreksi tidak dapat ditarik karena berstatus {correction.CorrectionStatus}.");
+            }
+
+            // B6: instance T17 ikut ditarik dari Kotak Masuk penyetuju.
+            var workflow = await _workflowIntegrationService.WithdrawAsync(
+                correction.WorkflowInstanceId,
+                actorId,
+                "Pengajuan koreksi kontrak ditarik oleh pengaju.",
+                cancellationToken);
+            if (!workflow.Success)
+            {
+                return RecruitmentResult<bool>.Fail(workflow.Message, workflow.StatusCode);
             }
 
             correction.CorrectionStatus = ContractCorrectionStatus.Withdrawn;
@@ -1383,6 +1467,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             if (correction == null)
             {
                 return RecruitmentResult<bool>.NotFound("Pengajuan koreksi tidak ditemukan.");
+            }
+
+            // HRD-DEC-089 butir 11: petugas HRD lain yang menyetujui (B6-5).
+            if (correction.SubmittedByUserId == deciderUserId)
+            {
+                return RecruitmentResult<bool>.BadRequest(
+                    "Pembuat pengajuan koreksi tidak dapat menyetujui atau menolak koreksinya sendiri (Prinsip Maker-Checker HRD-DEC-031).");
+            }
+
+            // Idempoten: keputusan yang sudah diterapkan tidak dijalankan ulang (B6-5).
+            if (correction.CorrectionStatus is ContractCorrectionStatus.Approved or ContractCorrectionStatus.Rejected)
+            {
+                return RecruitmentResult<bool>.Ok(true, "Keputusan koreksi kontrak sudah pernah diterapkan sebelumnya.");
+            }
+
+            if (correction.CorrectionStatus == ContractCorrectionStatus.Withdrawn)
+            {
+                return RecruitmentResult<bool>.BadRequest("Pengajuan koreksi berstatus ditarik dan tidak dapat diproses.");
             }
 
             correction.CorrectionStatus = isApproved ? ContractCorrectionStatus.Approved : ContractCorrectionStatus.Rejected;
@@ -1507,7 +1609,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 EmployeeNotifiedOn = d.EmployeeNotifiedOn,
                 EmployeeSeparationId = d.EmployeeSeparationId,
                 NotificationComplianceStatus = complianceStatus,
-                RequiredNoticeDate = reqDate
+                RequiredNoticeDate = reqDate,
+                NoticeEvidenceFileName = d.NoticeEvidenceFileName,
+                FollowUpContractNumber = d.FollowUpContractHistory?.ContractNumber
             };
         }
 
@@ -1525,7 +1629,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 .Include(d => d.WorkforceProfile)
                 .Include(d => d.SubmittedByUser)
                 .Include(d => d.DecidedByUser)
+                .Include(d => d.FollowUpContractHistory)
                 .Where(d => !d.IsDelete);
+
+            if (query.ContractHistoryId.HasValue)
+            {
+                dbQuery = dbQuery.Where(d => d.ContractHistoryId == query.ContractHistoryId.Value);
+            }
 
             if (query.DecisionType.HasValue)
             {

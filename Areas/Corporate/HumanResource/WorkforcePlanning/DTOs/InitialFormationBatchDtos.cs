@@ -94,6 +94,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
         public DateTime? SubmittedAt { get; set; }
         public string? SubmittedByUserName { get; set; }
         public DateTime? AppliedAt { get; set; }
+        public Guid? WorkflowInstanceId { get; set; }
+        public string? WorkflowNumber { get; set; }
+        public string? WorkflowStatus { get; set; }
+        public bool HasWorkflowIntegrityIssue { get; set; }
         public DateTime CreatedAt { get; set; }
         public Guid RowVersion { get; set; }
     }
@@ -117,6 +121,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
         public int InvalidRows { get; set; }
         public string? Notes { get; set; }
         public Guid? WorkflowInstanceId { get; set; }
+        public Guid? WorkflowDefinitionId { get; set; }
+        public string? WorkflowNumber { get; set; }
+        public string? WorkflowStatus { get; set; }
+        public int? CurrentStepOrder { get; set; }
+        public string? CurrentStepCode { get; set; }
+        public string? CurrentStepName { get; set; }
+        public string? CurrentStepStatus { get; set; }
+        public bool HasWorkflowIntegrityIssue { get; set; }
+        public string? WorkflowIntegrityMessage { get; set; }
         public DateTime? SubmittedAt { get; set; }
         public string? SubmittedByUserName { get; set; }
         public DateTime? ApprovedAt { get; set; }
@@ -126,6 +139,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
         public Guid RowVersion { get; set; }
 
         public List<InitialFormationBatchRowResponse> Rows { get; set; } = new();
+        public List<InitialFormationBatchWorkflowApproverDto> AssignedApprovers { get; set; } = new();
+        public List<InitialFormationBatchWorkflowHistoryDto> WorkflowHistories { get; set; } = new();
+    }
+
+    public sealed class InitialFormationBatchWorkflowApproverDto
+    {
+        public Guid AssignmentId { get; set; }
+        public int StepOrder { get; set; }
+        public string StepCode { get; set; } = string.Empty;
+        public string StepName { get; set; } = string.Empty;
+        public string StepStatus { get; set; } = string.Empty;
+        public bool IsCurrentStep { get; set; }
+        public Guid ApproverUserId { get; set; }
+        public string ApproverName { get; set; } = string.Empty;
+        public string? ApproverRoleCode { get; set; }
+        public string AssignmentStatus { get; set; } = string.Empty;
+        public bool IsCurrentAssignment { get; set; }
+        public bool IsDelegated { get; set; }
+        public string? OriginalApproverName { get; set; }
+        public DateTime? DueAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+    }
+
+    public sealed class InitialFormationBatchWorkflowHistoryDto
+    {
+        public int SequenceNumber { get; set; }
+        public string? StepName { get; set; }
+        public string ActionType { get; set; } = string.Empty;
+        public string? ActorName { get; set; }
+        public string? FromStatus { get; set; }
+        public string ToStatus { get; set; } = string.Empty;
+        public string? Comment { get; set; }
+        public DateTime ActionAt { get; set; }
+        public bool IsSystemGenerated { get; set; }
     }
 
     /// <summary>
@@ -164,6 +211,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
     public sealed class CancelInitialFormationBatchRequest
     {
         public string? Reason { get; set; }
+
+        [Required(ErrorMessage = "RowVersion wajib disertakan.")]
+        public Guid RowVersion { get; set; }
+    }
+
+    /// <summary>
+    /// Permintaan pemulihan batch Submitted yang kehilangan koneksi workflow T10 (BE-HRD-FIN-WFP-010).
+    /// </summary>
+    public sealed class RecoverInitialFormationBatchRequest
+    {
+        [Required(ErrorMessage = "Alasan pemulihan batch wajib diisi.")]
+        [MinLength(10, ErrorMessage = "Alasan pemulihan batch minimal 10 karakter.")]
+        [MaxLength(1000)]
+        public string Reason { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "RowVersion wajib disertakan.")]
         public Guid RowVersion { get; set; }

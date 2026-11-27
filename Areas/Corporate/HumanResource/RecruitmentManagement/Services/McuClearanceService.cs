@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -7,18 +9,27 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Security;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services
 {
     public class McuClearanceService : IMcuClearanceService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly AccessPermissionService? _permissionService;
+        private readonly NumberSeriesAllocator? _numberSeriesAllocator;
 
-        public McuClearanceService(ApplicationDbContext dbContext)
+        public McuClearanceService(
+            ApplicationDbContext dbContext,
+            AccessPermissionService? permissionService = null,
+            NumberSeriesAllocator? numberSeriesAllocator = null)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+            _permissionService = permissionService;
+            _numberSeriesAllocator = numberSeriesAllocator;
         }
 
         private static Guid GetUserId(ClaimsPrincipal user)
@@ -28,13 +39,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             return Guid.TryParse(sub, out var guid) ? guid : Guid.Empty;
         }
 
-        private static bool IsAuthorizedMedicalStaff(ClaimsPrincipal user)
+        private async Task<bool> IsAuthorizedMedicalStaffAsync(ClaimsPrincipal user)
         {
-            return user.IsInRole("Doctor")
-                || user.IsInRole("DokterK3RS")
-                || user.IsInRole("K3RS")
-                || user.HasClaim("Permission", "RecruitmentMcu:DoctorWrite")
-                || user.HasClaim("Permission", "RecruitmentMcu:DoctorRead");
+            if (_permissionService != null)
+            {
+                return await _permissionService.HasAccessAsync(user, "OccupationalHealthClearance", "Evaluate");
+            }
+
+            return user.HasClaim("Permission", "OccupationalHealthClearance:Evaluate");
         }
 
         public async Task<RecruitmentResult<PagedResult<McuClearanceListItemResponse>>> GetPagedAsync(
@@ -109,6 +121,51 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             return RecruitmentResult<PagedResult<McuClearanceListItemResponse>>.Ok(result, "Daftar rujukan MCU berhasil diambil.");
         }
 
+        public async Task<RecruitmentResult<List<EligibleMcuOfferResponse>>> GetEligibleOffersAsync(
+            string? search,
+            CancellationToken cancellationToken = default)
+        {
+            var dbQuery = _dbContext.HrdJobOffers
+                .AsNoTracking()
+                .Include(o => o.Application)
+                    .ThenInclude(a => a!.Candidate)
+                .Include(o => o.Application)
+                    .ThenInclude(a => a!.Vacancy)
+                .Where(o => !o.IsDelete
+                            && o.Status == JobOfferStatus.ConditionalAccepted
+                            && o.Application != null && !o.Application.IsDelete
+                            && o.Application.Candidate != null && !o.Application.Candidate.IsDelete && o.Application.Candidate.Status != CandidateStatus.Blacklisted
+                            && !_dbContext.HrdPreEmploymentMedicalChecks.Any(m => m.OfferId == o.Id && !m.IsDelete));
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                dbQuery = dbQuery.Where(o =>
+                    o.OfferNumber.ToLower().Contains(term) ||
+                    (o.Application != null && o.Application.ApplicationNumber.ToLower().Contains(term)) ||
+                    (o.Application != null && o.Application.Candidate != null && o.Application.Candidate.FullName.ToLower().Contains(term)));
+            }
+
+            var items = await dbQuery
+                .OrderByDescending(o => o.CandidateResponseDate ?? o.OfferDate)
+                .Select(o => new EligibleMcuOfferResponse
+                {
+                    OfferId = o.Id,
+                    OfferNumber = o.OfferNumber,
+                    ApplicationId = o.ApplicationId,
+                    ApplicationNumber = o.Application != null ? o.Application.ApplicationNumber : string.Empty,
+                    CandidateId = o.Application != null ? o.Application.CandidateId : Guid.Empty,
+                    CandidateCode = o.Application != null && o.Application.Candidate != null ? o.Application.Candidate.CandidateCode : string.Empty,
+                    CandidateName = o.Application != null && o.Application.Candidate != null ? o.Application.Candidate.FullName : string.Empty,
+                    VacancyTitle = o.Application != null && o.Application.Vacancy != null ? o.Application.Vacancy.Title : o.OfferedPositionTitle,
+                    ProposedJoinDate = o.ProposedJoinDate,
+                    OfferStatus = o.Status.ToString()
+                })
+                .ToListAsync(cancellationToken);
+
+            return RecruitmentResult<List<EligibleMcuOfferResponse>>.Ok(items, "Daftar penawaran bersyarat yang layak dirujuk MCU berhasil diambil.");
+        }
+
         public async Task<RecruitmentResult<McuClearanceResponse>> GetByIdAsync(
             Guid id,
             ClaimsPrincipal user,
@@ -128,7 +185,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<McuClearanceResponse>.NotFound("Data rujukan pemeriksaan kesehatan (MCU) tidak ditemukan.");
             }
 
-            var isMedical = IsAuthorizedMedicalStaff(user);
+            var isMedical = await IsAuthorizedMedicalStaffAsync(user);
 
             var response = new McuClearanceResponse
             {
@@ -137,19 +194,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 OfferNumber = mcu.Offer?.OfferNumber ?? "-",
                 CandidateId = mcu.Offer?.Application?.CandidateId ?? Guid.Empty,
                 CandidateName = mcu.Offer?.Application?.Candidate?.FullName ?? "-",
-                CandidateNik = mcu.Offer?.Application?.Candidate?.NationalIdNumber ?? "-",
+                CandidateNik = RecruitmentJourneyPolicy.MaskNationalIdNumber(mcu.Offer?.Application?.Candidate?.NationalIdNumber),
                 VacancyTitle = mcu.Offer?.Application?.Vacancy?.Title ?? "-",
                 ReferralNumber = mcu.ReferralNumber,
                 ReferralDate = mcu.ReferralDate,
                 CheckDate = mcu.CheckDate,
                 ClinicOrFacility = mcu.ClinicOrFacility,
                 ClearanceResult = mcu.ClearanceResult,
-                // Aturan Bisnis HRD-DEC-010 & AT-HRD-D2-09: Masking diagnosa medis klinis untuk non-medis
+                // Aturan Bisnis HRD-DEC-010 & AT-HRD-D2-09: Masking diagnosa medis & sertifikat untuk non-pemeriksa medis
                 DoctorNotes = isMedical
                     ? mcu.DoctorNotes
                     : "[DIAGNOSA MEDIS DIISOLASI - HANYA KESIMPULAN KELAIKAN KERJA DAPAT DIAKSES PIHAK HR/NON-MEDIS]",
                 IsDoctorNotesMasked = !isMedical,
-                CertificateFilePath = mcu.CertificateFilePath,
+                CertificateFilePath = isMedical ? mcu.CertificateFilePath : null,
                 ExaminingDoctorName = mcu.ExaminingDoctorName,
                 CreateDateTime = mcu.CreateDateTime
             };
@@ -163,9 +220,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             CancellationToken cancellationToken = default)
         {
             var userId = GetUserId(user);
+            if (userId == Guid.Empty)
+            {
+                return RecruitmentResult<McuClearanceResponse>.Fail("Identitas user pada token tidak valid.", 401);
+            }
 
             var offer = await _dbContext.HrdJobOffers
                 .Include(o => o.Application)
+                    .ThenInclude(a => a!.Candidate)
                 .FirstOrDefaultAsync(o => o.Id == request.OfferId && !o.IsDelete, cancellationToken);
 
             if (offer == null)
@@ -173,11 +235,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<McuClearanceResponse>.NotFound("Surat penawaran kerja tidak ditemukan.");
             }
 
-            // Aturan Bisnis VR-REC-17: Rujukan MCU hanya untuk kandidat yang menerima conditional offer
-            if (offer.Status != JobOfferStatus.ConditionalAccepted && offer.Status != JobOfferStatus.SentConditional)
+            if (offer.Application != null && RecruitmentJourneyPolicy.IsTerminalApplication(offer.Application, offer.Application.Candidate))
             {
                 return RecruitmentResult<McuClearanceResponse>.Unprocessable(
-                    "Rujukan MCU pra-kerja hanya dapat diterbitkan untuk kandidat yang telah berstatus menyetujui penawaran bersyarat (VR-REC-17).");
+                    "Rujukan MCU ditolak karena lamaran atau kandidat berada pada status terminal/gugur.");
+            }
+
+            // Aturan Bisnis VR-REC-17 & HRD-DEC-078: Rujukan MCU hanya untuk kandidat yang sudah ConditionalAccepted
+            if (offer.Status != JobOfferStatus.ConditionalAccepted)
+            {
+                return RecruitmentResult<McuClearanceResponse>.Unprocessable(
+                    $"Rujukan MCU pra-kerja hanya dapat diterbitkan setelah kandidat menyetujui penawaran bersyarat (ConditionalAccepted). Status penawaran saat ini: '{offer.Status}' (VR-REC-17, HRD-DEC-078).");
             }
 
             var existingCheck = await _dbContext.HrdPreEmploymentMedicalChecks
@@ -188,12 +256,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<McuClearanceResponse>.Conflict("Rujukan MCU pra-kerja sudah pernah diterbitkan untuk penawaran ini.");
             }
 
-            var today = DateTime.UtcNow;
-            var todayStr = today.ToString("yyyyMMdd");
-            var countToday = await _dbContext.HrdPreEmploymentMedicalChecks
-                .CountAsync(m => m.ReferralNumber.StartsWith($"MCU-{todayStr}-"), cancellationToken);
+            var dateCode = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, RecruitmentJourneyPolicy.JakartaTimeZone)
+                .ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+            var mcuPrefix = $"MCU-{dateCode}-";
+            var existingMcuNumbers = await _dbContext.HrdPreEmploymentMedicalChecks
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(m => m.ReferralNumber.StartsWith(mcuPrefix))
+                .Select(m => m.ReferralNumber)
+                .ToListAsync(cancellationToken);
 
-            var referralNumber = $"MCU-{todayStr}-{(countToday + 1):D4}";
+            var referralNumber = await RecruitmentJourneyPolicy.AllocateSequenceAsync(
+                _numberSeriesAllocator,
+                existingMcuNumbers,
+                "HRD_MCU_REFERRAL",
+                "MCU",
+                userId,
+                cancellationToken);
 
             var mcu = new HrdPreEmploymentMedicalCheck
             {
@@ -230,6 +309,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             CancellationToken cancellationToken = default)
         {
             var userId = GetUserId(user);
+            if (userId == Guid.Empty)
+            {
+                return RecruitmentResult<McuClearanceResponse>.Fail("Identitas user pada token tidak valid.", 401);
+            }
+
+            if (request.ClearanceResult == McuClearanceResult.Pending)
+            {
+                return RecruitmentResult<McuClearanceResponse>.Unprocessable(
+                    "Hasil MCU wajib ditetapkan sebagai Fit, FitWithRestrictions, atau Unfit.");
+            }
 
             var mcu = await _dbContext.HrdPreEmploymentMedicalChecks
                 .Include(m => m.Offer)
@@ -241,6 +330,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<McuClearanceResponse>.NotFound("Data rujukan MCU tidak ditemukan.");
             }
 
+            if (mcu.ClearanceResult == McuClearanceResult.Unfit)
+            {
+                return RecruitmentResult<McuClearanceResponse>.Conflict(
+                    "Hasil MCU berstatus UNFIT bersifat final dan tidak dapat diubah kembali.");
+            }
+
+            var hasHandoff = await _dbContext.HrdCandidateHiringHandoffs
+                .AnyAsync(h => h.OfferId == mcu.OfferId && !h.IsDelete && h.Status != HandoffStatus.Cancelled, cancellationToken);
+            if (hasHandoff)
+            {
+                return RecruitmentResult<McuClearanceResponse>.Conflict(
+                    "Hasil MCU tidak dapat diubah karena proses serah terima (Handoff) sudah dijalankan.");
+            }
+
+            var offer = mcu.Offer;
+            if (offer == null || (offer.Status != JobOfferStatus.ConditionalAccepted
+                                  && offer.Status != JobOfferStatus.FinalOfferSent
+                                  && offer.Status != JobOfferStatus.FinalAccepted))
+            {
+                return RecruitmentResult<McuClearanceResponse>.Unprocessable(
+                    "Hasil MCU tidak dapat dicatat karena status penawaran kerja tidak aktif atau belum ConditionalAccepted.");
+            }
+
             mcu.ClearanceResult = request.ClearanceResult;
             mcu.CheckDate = request.CheckDate;
             mcu.ExaminingDoctorName = request.ExaminingDoctorName.Trim();
@@ -249,19 +361,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             mcu.UpdateDateTime = DateTime.UtcNow;
             mcu.UpdateBy = userId;
 
-            var offer = mcu.Offer;
-            var app = offer?.Application;
+            var app = offer.Application;
 
             // Aturan Bisnis Kriteria 3: Jika UNFIT -> Tawaran kerja otomatis Revoked (Batal Demi Hukum)
             if (request.ClearanceResult == McuClearanceResult.Unfit)
             {
-                if (offer != null)
-                {
-                    offer.Status = JobOfferStatus.Revoked;
-                    offer.RowVersion = Guid.NewGuid();
-                    offer.UpdateDateTime = DateTime.UtcNow;
-                    offer.UpdateBy = userId;
-                }
+                offer.Status = JobOfferStatus.Revoked;
+                offer.RowVersion = Guid.NewGuid();
+                offer.UpdateDateTime = DateTime.UtcNow;
+                offer.UpdateBy = userId;
 
                 if (app != null)
                 {
@@ -272,22 +380,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     app.UpdateBy = userId;
                 }
             }
-            else if (request.ClearanceResult == McuClearanceResult.Fit || request.ClearanceResult == McuClearanceResult.FitWithRestrictions)
+            else if (request.ClearanceResult == McuClearanceResult.Fit)
             {
-                if (offer != null)
-                {
-                    offer.Status = JobOfferStatus.FinalAccepted;
-                    offer.RowVersion = Guid.NewGuid();
-                    offer.UpdateDateTime = DateTime.UtcNow;
-                    offer.UpdateBy = userId;
-                }
+                offer.Status = JobOfferStatus.FinalAccepted;
+                offer.RowVersion = Guid.NewGuid();
+                offer.UpdateDateTime = DateTime.UtcNow;
+                offer.UpdateBy = userId;
 
                 if (app != null)
                 {
+                    app.CurrentStage = ApplicationStage.Handoff;
                     app.StageStatus = "McuFitReadyForFinalOfferOrHandoff";
-                    app.Notes = request.ClearanceResult == McuClearanceResult.Fit
-                        ? "Pemeriksaan kesehatan pra-kerja lulus (FIT)."
-                        : "Pemeriksaan kesehatan pra-kerja lulus dengan catatan pembatasan kerja (FIT WITH RESTRICTIONS).";
+                    app.Notes = "Pemeriksaan kesehatan pra-kerja lulus (FIT).";
+                    app.UpdateDateTime = DateTime.UtcNow;
+                    app.UpdateBy = userId;
+                }
+            }
+            else if (request.ClearanceResult == McuClearanceResult.FitWithRestrictions)
+            {
+                // Jangan melompat ke FinalAccepted tanpa mekanisme konfirmasi penyesuaian penugasan/restriksi kerja
+                if (app != null)
+                {
+                    app.StageStatus = "MCU_FIT_WITH_RESTRICTIONS_PENDING_CONFIRMATION";
+                    app.Notes = "Pemeriksaan kesehatan pra-kerja lulus dengan catatan pembatasan kerja (FIT WITH RESTRICTIONS); membutuhkan konfirmasi penyesuaian kerja sebelum handoff.";
                     app.UpdateDateTime = DateTime.UtcNow;
                     app.UpdateBy = userId;
                 }

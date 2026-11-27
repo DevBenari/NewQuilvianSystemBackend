@@ -19,6 +19,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
             CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Mengajukan ulang instans workflow yang sebelumnya dikembalikan untuk revisi.
+        /// </summary>
+        Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> ResubmitWorkflowAsync(
+            Guid workflowInstanceId,
+            string? comment,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Menarik instans workflow atas nama pemohon ketika dokumen sumber ditarik kembali.
+        /// </summary>
+        Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> WithdrawWorkflowAsync(
+            Guid workflowInstanceId,
+            Guid requesterUserId,
+            string reason,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Menerima dan menyinkronkan keputusan akhir workflow dari WorkflowReferenceLifecycleService.
         /// </summary>
         Task<WorkflowReferenceLifecycleSynchronizationResult> SynchronizeAsync(

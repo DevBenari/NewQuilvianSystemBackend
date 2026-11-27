@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using QuilvianSystemBackend.Services.Security;
 using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 using System.Net.Mime;
@@ -44,6 +45,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public async Task<IActionResult> GetPaged([FromQuery] McuClearanceQuery query, CancellationToken cancellationToken)
         {
             var result = await _mcuService.GetPagedAsync(query, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("eligible-offers")]
+        [AccessAction("Read", "Melihat MCU Pra-Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("OccupationalHealthClearance", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<List<EligibleMcuOfferResponse>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetEligibleOffers([FromQuery] string? search, CancellationToken cancellationToken)
+        {
+            var result = await _mcuService.GetEligibleOffersAsync(search, cancellationToken);
             return ToActionResult(result);
         }
 
@@ -123,11 +134,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         /// <summary>
-        /// Unduh sertifikat hasil MCU pra-kerja (MSL-15 tahap 2). Boleh untuk pengunggah atau pemegang hak Read; selain itu 404.
+        /// Unduh sertifikat hasil MCU pra-kerja (MSL-15 tahap 2, HRD-DEC-078). Hanya pengunggah atau petugas medis
+        /// pemegang hak OccupationalHealthClearance : Evaluate; selain itu 404.
         /// </summary>
         [HttpGet("certificates/attachments/download")]
-        [AccessAction("Read", "Melihat MCU Pra-Kerja", AccessType = AccessTypes.Read, SortOrder = 41)]
-        [AccessPermission("OccupationalHealthClearance", "Read")]
+        [AccessAction("Evaluate", "Mencatat Hasil MCU Pra-Kerja", AccessType = AccessTypes.Update, SortOrder = 41)]
+        [AccessPermission("OccupationalHealthClearance", "Evaluate")]
         [Tags("Corporate / Human Resource / Recruitment Management / MCU Clearance")]
         [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -139,7 +151,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             try
             {
                 var attachment = storage.Open(key, "recruitment-mcu-certificate");
-                var allowed = attachment.OwnerUserId == User.GetUserId() || await accessPermissionService.HasAccessAsync(User, "OccupationalHealthClearance", "Read");
+                var allowed = attachment.OwnerUserId == User.GetUserId()
+                              || await accessPermissionService.HasAccessAsync(User, "OccupationalHealthClearance", "Evaluate");
                 if (!allowed)
                 {
                     return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Lampiran tidak ditemukan."));

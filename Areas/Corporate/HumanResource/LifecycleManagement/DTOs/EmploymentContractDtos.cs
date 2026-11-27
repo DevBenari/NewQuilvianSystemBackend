@@ -112,6 +112,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public ContractDecisionType? DecisionType { get; set; }
         public ContractDecisionStatus? DecisionStatus { get; set; }
         public Guid? WorkforceProfileId { get; set; }
+        /// <summary>B6: keputusan satu kontrak (panel Keputusan Terakhir di Detail Perjanjian Kerja).</summary>
+        public Guid? ContractHistoryId { get; set; }
         public string? Search { get; set; }
     }
 
@@ -153,6 +155,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public string NotificationComplianceStatus { get; set; } = "NOT_APPLICABLE"; // ON_TIME, LATE, MISSING, NOT_APPLICABLE
         public string NoticeCompliance { get => NotificationComplianceStatus; set => NotificationComplianceStatus = value; }
         public DateOnly? RequiredNoticeDate { get; set; }
+        /// <summary>B6: nama berkas bukti pemberitahuan tertulis; kosong bila belum diunggah.</summary>
+        public string? NoticeEvidenceFileName { get; set; }
+        /// <summary>B6: nomor kontrak lanjutan yang dibuat saat Perpanjang/Angkat Tetap disetujui.</summary>
+        public string? FollowUpContractNumber { get; set; }
     }
 
     public sealed class ContractSalaryDetailResponse

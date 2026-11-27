@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Constants;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services
@@ -108,6 +110,87 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
         public async Task<List<WorkflowMatrixResponseDto>> GetMatrixConfigurationsAsync(Guid? departmentId, string? requestType)
         {
+            var result = new List<WorkflowMatrixResponseDto>();
+            var normalizedRequestFilter = string.IsNullOrWhiteSpace(requestType)
+                ? null
+                : requestType.Trim();
+
+            // 1. Baca konfigurasi definisi workflow & step aktif dari database (termasuk T10 Batch Formasi Awal / Rencana Tahunan).
+            var definitions = await _context.Set<MstWorkflowDefinition>()
+                .AsNoTracking()
+                .Include(d => d.HospitalSite)
+                .Include(d => d.WorkflowSteps.Where(s => s.IsActive && !s.IsDelete))
+                    .ThenInclude(s => s.ApproverPosition)
+                .Where(d => d.IsActive &&
+                            !d.IsDelete &&
+                            d.WorkflowStatus == "Active" &&
+                            d.WorkflowSteps.Any(s => s.IsActive && !s.IsDelete))
+                .OrderBy(d => d.WorkflowCode)
+                .ThenByDescending(d => d.Version)
+                .ToListAsync();
+
+            foreach (var def in definitions)
+            {
+                var mappedSteps = def.WorkflowSteps
+                    .Where(s => s.IsActive && !s.IsDelete)
+                    .OrderBy(s => s.StepOrder)
+                    .Select(s => new WorkflowMatrixStepConfigDto
+                    {
+                        StepOrder = s.StepOrder,
+                        StepName = s.StepName,
+                        ApproverRole = !string.IsNullOrWhiteSpace(s.ApproverRoleCode)
+                            ? s.ApproverRoleCode
+                            : (s.ApproverPosition?.PositionName ?? s.ApproverSourceType),
+                        SlaHours = s.EscalationAfterHours ?? s.ReminderAfterHours ?? 48,
+                        IsRequired = s.IsRequired
+                    })
+                    .ToList();
+
+                var exposedRequestTypes = new List<string> { def.RequestType };
+                if (string.Equals(def.WorkflowCode, WorkforcePlanningValueConstants.WorkflowDefinitionCodes.ManpowerPlanAndInitialFormation, StringComparison.OrdinalIgnoreCase))
+                {
+                    exposedRequestTypes = new List<string>
+                    {
+                        WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceInitialFormationBatch,
+                        WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceManpowerPlan
+                    };
+                }
+                else if (string.Equals(def.WorkflowCode, WorkforcePlanningValueConstants.WorkflowDefinitionCodes.HeadcountWithinFormation, StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(def.WorkflowCode, WorkforcePlanningValueConstants.WorkflowDefinitionCodes.HeadcountBeyondFormation, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!exposedRequestTypes.Contains(WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceHeadcountRequest, StringComparer.OrdinalIgnoreCase))
+                    {
+                        exposedRequestTypes.Add(WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceHeadcountRequest);
+                    }
+                }
+
+                var scopeLabel = def.HospitalSite != null
+                    ? $"{def.WorkflowCode} — {def.HospitalSite.SiteName}"
+                    : $"{def.WorkflowCode} — Seluruh Unit / Global";
+
+                foreach (var exposedType in exposedRequestTypes.Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrWhiteSpace(normalizedRequestFilter) &&
+                        !string.Equals(normalizedRequestFilter, exposedType, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    result.Add(new WorkflowMatrixResponseDto
+                    {
+                        Id = def.Id,
+                        DepartmentId = def.OrganizationUnitId,
+                        DepartmentName = scopeLabel,
+                        RequestType = exposedType,
+                        MinAmount = null,
+                        MaxAmount = null,
+                        Steps = mappedSteps,
+                        IsActive = def.IsActive
+                    });
+                }
+            }
+
+            // 2. Sertakan konfigurasi per departemen untuk jenis permohonan operasional umum.
             var query = _context.MstDepartments.AsNoTracking().Where(d => d.IsActive);
             if (departmentId.HasValue)
             {
@@ -115,12 +198,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             }
 
             var departments = await query.Take(10).ToListAsync();
-            var result = new List<WorkflowMatrixResponseDto>();
 
             var defaultTypes = new[] { "Leave", "Overtime", "ShiftSwap", "MedicalClaim", "BusinessTravel", "Resignation" };
-            if (!string.IsNullOrWhiteSpace(requestType))
+            if (!string.IsNullOrWhiteSpace(normalizedRequestFilter))
             {
-                defaultTypes = new[] { requestType.Trim() };
+                var isWorkforcePlanningFilter =
+                    string.Equals(normalizedRequestFilter, WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceInitialFormationBatch, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(normalizedRequestFilter, WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceManpowerPlan, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(normalizedRequestFilter, WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceStaffingStandard, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(normalizedRequestFilter, WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceHeadcountRequest, StringComparison.OrdinalIgnoreCase);
+
+                defaultTypes = isWorkforcePlanningFilter ? Array.Empty<string>() : new[] { normalizedRequestFilter };
             }
 
             foreach (var dept in departments)

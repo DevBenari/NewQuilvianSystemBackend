@@ -355,7 +355,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         [AccessPermission("OrganizationUnit", "Read")]
         public async Task<IActionResult> GetById(Guid id)
         {
+            // Relasi nama dimuat hanya untuk detail; BaseQuery dipakai daftar dan tidak ikut berubah.
             var entity = await BaseQuery()
+                .Include(x => x.LegalEntity)
+                .Include(x => x.HospitalSite)
+                .Include(x => x.Department)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
             if (entity == null)
@@ -392,7 +396,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 CreateByName = GetActorName(actorNames, entity.CreateBy),
                 UpdateDateTime = entity.UpdateDateTime,
                 UpdateBy = entity.UpdateBy == Guid.Empty ? null : entity.UpdateBy,
-                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy),
+                LegalEntityName = entity.LegalEntity?.LegalEntityName,
+                HospitalSiteName = entity.HospitalSite?.SiteName,
+                DepartmentName = entity.Department?.DepartmentName
             };
 
             return Ok(ApiResponse<OrganizationUnitDetailResponse>.Ok(
@@ -767,6 +774,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
 
                 if (!hospitalValid)
                     return (false, "Hospital site tidak valid untuk legal entity tersebut.");
+            }
+
+            // Departemen Terkait wajib berasal dari master Departemen yang masih aktif (BE-HRD-464,
+            // HRD-DEC-248). Tanpa pemeriksaan ini, ID yang tidak ada baru ditolak foreign key database.
+            if (request.DepartmentId.HasValue &&
+                request.DepartmentId.Value != Guid.Empty)
+            {
+                var departmentValid = await _dbContext.Set<MstDepartment>()
+                    .AnyAsync(x =>
+                        x.Id == request.DepartmentId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
+
+                if (!departmentValid)
+                    return (false, "Departemen tidak ditemukan atau tidak aktif.");
             }
 
             if (request.ParentOrganizationUnitId.HasValue &&

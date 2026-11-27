@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,6 +12,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     {
         Task<RecruitmentResult<PagedResult<McuClearanceListItemResponse>>> GetPagedAsync(
             McuClearanceQuery query,
+            CancellationToken cancellationToken = default);
+
+        Task<RecruitmentResult<List<EligibleMcuOfferResponse>>> GetEligibleOffersAsync(
+            string? search,
             CancellationToken cancellationToken = default);
 
         Task<RecruitmentResult<McuClearanceResponse>> GetByIdAsync(

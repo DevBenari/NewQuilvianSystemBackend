@@ -309,6 +309,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     AllowBulkApproval = a.WorkflowInstance.WorkflowDefinition != null && a.WorkflowInstance.WorkflowDefinition.AllowBulkApproval,
                     RequestNumber = a.WorkflowInstance.RequestNumber,
                     ReferenceType = a.WorkflowInstance.ReferenceType,
+                    ReferenceId = a.WorkflowInstance.ReferenceId,
                     ExternalReferenceNumber = a.WorkflowInstance.ExternalReferenceNumber,
                     RequestedByUserId = a.WorkflowInstance.RequestedByUserId,
                     RequestedByEmployeeId = a.WorkflowInstance.RequestedByEmployeeId,
@@ -325,7 +326,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     PriorityLevel = a.WorkflowInstance.PriorityLevel,
                     Amount = a.WorkflowInstance.Amount,
                     CurrentStepOrder = a.WorkflowInstance.CurrentStepOrder,
-                    TotalSteps = a.WorkflowInstance.TotalSteps
+                    TotalSteps = Math.Max(
+                        a.WorkflowInstance.TotalSteps,
+                        a.WorkflowInstance.StepInstances.Count(s => !s.IsDelete && !s.IsCancel))
                 })
                 .ToListAsync(cancellationToken);
 
@@ -392,6 +395,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 StepInstanceId = row.StepInstanceId,
                 WorkflowNumber = row.RequestNumber,
                 ReferenceNumber = row.ExternalReferenceNumber,
+                ReferenceId = row.ReferenceId,
                 RequestType = row.ReferenceType,
                 ApplicantEmployeeId = row.RequestedByEmployeeId ?? Guid.Empty,
                 ApplicantName = FirstFilled(
@@ -482,6 +486,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             public bool AllowBulkApproval { get; set; }
             public string RequestNumber { get; set; } = string.Empty;
             public string ReferenceType { get; set; } = string.Empty;
+            public Guid ReferenceId { get; set; }
             public string? ExternalReferenceNumber { get; set; }
             public Guid RequestedByUserId { get; set; }
             public Guid? RequestedByEmployeeId { get; set; }

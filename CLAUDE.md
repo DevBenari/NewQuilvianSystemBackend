@@ -1,44 +1,29 @@
-# CLAUDE.md — Backend Skill Routing Enforcement
+# CLAUDE.md — Panduan Agent Backend
 
-Dokumen ini adalah lapisan enforcement runtime untuk agent Claude Code di repository ini.
-`AGENTS.md` tetap **otoritatif** untuk seluruh governance level-repository (task mode,
-wewenang tulis, branch, klasifikasi task, kontrak backend, aturan lintas repository).
-Dokumen ini hanya mengatur bagaimana permintaan dirutekan ke registered runtime Skill Quilvian
-dan tidak menggantikan atau menduplikasi isi `AGENTS.md`.
+`AGENTS.md` tetap menjadi acuan governance repository ini (konvensi kode, kontrak backend,
+`docs/engineering/`, aturan lintas repository). Dokumen ini hanya mengatur pemakaian Skill
+Quilvian.
 
-## Wajib memakai runtime Skill
+## Skill Quilvian bersifat opsional
 
-Setiap permintaan yang membuat, mengubah, memperbaiki, atau refactor source backend **WAJIB**
-dijalankan lewat registered runtime Skill:
+Skill Quilvian (`quilvian-engineering-skills:*`) **tidak wajib**. Prompter yang menentukan:
 
-    quilvian-engineering-skills:build-module-backend
+- Bila prompter meminta skill tertentu (misalnya `grill-me` atau `build-module-backend`),
+  jalankan skill itu.
+- Bila prompter tidak menyebut skill, kerjakan permintaannya langsung: baca kode yang relevan,
+  ikuti pola controller/service/DTO yang sudah ada, lalu ubah source seperlunya.
+- Agent boleh **menyarankan** skill bila jelas membantu, misalnya `grill-me` untuk modul baru
+  yang requirement-nya belum jelas, tetapi tidak memaksakannya dan tidak menahan pekerjaan yang
+  permintaannya sudah jelas.
 
-Dilarang mengimplementasikan backend secara langsung (menulis/mengubah kode backend tanpa
-memanggil Skill di atas terlebih dahulu), termasuk saat agent merasa yakin dengan solusinya.
+Tidak ada chain wajib (`grill-me` → … → `plan-module-delivery`) sebelum implementasi, dan tidak
+ada status `BLOCKED` hanya karena sebuah skill tidak dipanggil atau tidak tersedia.
 
-Jika Skill tidak tersedia di runtime (invoke gagal dengan "Unknown skill" atau error registry
-setara), agent **WAJIB berhenti** dan melaporkan persis:
+## Target tulis
 
-    BLOCKED — Quilvian runtime skill unavailable
-
-Dilarang melakukan fallback dengan membaca file `SKILL.md` secara manual sebagai pengganti
-pemanggilan runtime Skill.
-
-## Requirement/desain yang belum terkunci
-
-Bila requirement, kontrak, atau arsitektur untuk permintaan ini belum disetujui/terkunci,
-rutekan lebih dulu lewat chain berikut sebelum implementasi apa pun dimulai:
-
-1. `quilvian-engineering-skills:grill-me`
-2. `quilvian-engineering-skills:trace-existing-capabilities`
-3. `quilvian-engineering-skills:requirement-completeness-gate`
-4. `quilvian-engineering-skills:hospital-domain-architect` — bila relevan (melintasi bounded
-   context, master data bersama, dampak billing, atau keselamatan klinis)
-5. `quilvian-engineering-skills:design-business-module`
-6. `quilvian-engineering-skills:plan-module-delivery`
-
-Implementasi backend baru baru dijalankan lewat `quilvian-engineering-skills:build-module-backend`
-setelah task disetujui dari roadmap hasil chain di atas.
+Permintaan prompter yang jelas meminta perubahan pada repository ini sudah dihitung sebagai
+target tulis eksplisit. Prompter tidak perlu menulis `TASK MODE: BACKEND` secara formal.
+Perubahan ke repository frontend tetap hanya dilakukan bila prompter memintanya.
 
 ## Larangan otomatisasi
 
@@ -49,9 +34,3 @@ dari user untuk masing-masing aksi:
 - deploy
 - migration (pembuatan maupun eksekusi)
 - eksekusi database langsung
-
-## Presedensi
-
-Urutan berlaku: `AGENTS.md` (governance level-repository) → chain requirement/desain di atas
-(bila belum terkunci) → `quilvian-engineering-skills:build-module-backend` (implementasi).
-Dokumen ini adalah lapisan routing tambahan di atas governance yang sudah ada, bukan pengganti.

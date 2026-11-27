@@ -10,16 +10,64 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.En
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Security;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services
 {
     public class HrdLifecycleWorklistService : IHrdLifecycleWorklistService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly AccessPermissionService? _permissionService;
 
-        public HrdLifecycleWorklistService(ApplicationDbContext dbContext)
+        public HrdLifecycleWorklistService(
+            ApplicationDbContext dbContext,
+            AccessPermissionService? permissionService = null)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+            _permissionService = permissionService;
+        }
+
+        private async Task<HashSet<Guid>?> ResolveAllowedUnitScopeAsync(ClaimsPrincipal user, CancellationToken cancellationToken)
+        {
+            var canViewAll = _permissionService != null
+                ? await _permissionService.HasAccessAsync(user, "WorkforceEmploymentContract", EmploymentContractPermissions.ReadAllUnits)
+                  || await _permissionService.HasAccessAsync(user, "WorkforceOnboardingCase", OnboardingCasePermissions.ReadAllUnits)
+                  || await _permissionService.HasAccessAsync(user, "WorkforceOnboardingCase", "DeclareReady")
+                : user.HasClaim("Permission", $"WorkforceEmploymentContract:{EmploymentContractPermissions.ReadAllUnits}")
+                  || user.HasClaim("Permission", "WorkforceOnboardingCase:DeclareReady");
+
+            if (canViewAll) return null; // all units
+
+            var sub = user.FindFirst("user_id")?.Value
+                   ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                   ?? user.FindFirst("sub")?.Value;
+            if (!Guid.TryParse(sub, out var userId) || userId == Guid.Empty) return new HashSet<Guid>();
+
+            var wfpId = await _dbContext.Users.AsNoTracking().Where(u => u.Id == userId && u.IsActive).Select(u => u.WorkforceProfileId).FirstOrDefaultAsync(cancellationToken);
+            if (!wfpId.HasValue) return new HashSet<Guid>();
+
+            var today = OnboardingCasePolicy.OperationalToday().ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var roots = await _dbContext.WfpOrganizationAssignments
+                .AsNoTracking()
+                .Where(x => x.WorkforceProfileId == wfpId.Value && x.IsManagerialAssignment && x.IsActive && !x.IsDelete && !x.IsCancel &&
+                            x.OrganizationUnitId.HasValue && x.EffectiveStartDate <= today && (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= today))
+                .Select(x => x.OrganizationUnitId!.Value)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            if (roots.Count == 0) return new HashSet<Guid>();
+
+            var units = await _dbContext.MstOrganizationUnits.AsNoTracking().Where(u => !u.IsDelete).Select(u => new { u.Id, u.ParentOrganizationUnitId }).ToListAsync(cancellationToken);
+            var childrenByParent = units.Where(u => u.ParentOrganizationUnitId.HasValue).GroupBy(u => u.ParentOrganizationUnitId!.Value).ToDictionary(g => g.Key, g => g.Select(c => c.Id).ToList());
+            var scope = new HashSet<Guid>(roots);
+            var q = new Queue<Guid>(roots);
+            while (q.Count > 0)
+            {
+                var p = q.Dequeue();
+                if (!childrenByParent.TryGetValue(p, out var chs)) continue;
+                foreach (var ch in chs) if (scope.Add(ch)) q.Enqueue(ch);
+            }
+            return scope;
         }
 
         public async Task<RecruitmentResult<PagedResult<LifecycleWorklistItemResponse>>> GetWorklistAsync(
@@ -31,7 +79,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             var pageNumber = query.PageNumber <= 0 ? 1 : query.PageNumber;
             var pageSize = query.PageSize <= 0 ? 10 : (query.PageSize > 100 ? 100 : query.PageSize);
 
-            var allItems = await BuildWorklistItemsAsync(cancellationToken);
+            var unitScope = await ResolveAllowedUnitScopeAsync(user, cancellationToken);
+            var allItems = await BuildWorklistItemsAsync(unitScope, cancellationToken);
 
             var filtered = allItems.AsEnumerable();
 
@@ -71,7 +120,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             ClaimsPrincipal user,
             CancellationToken cancellationToken = default)
         {
-            var allItems = await BuildWorklistItemsAsync(cancellationToken);
+            var unitScope = await ResolveAllowedUnitScopeAsync(user, cancellationToken);
+            var allItems = await BuildWorklistItemsAsync(unitScope, cancellationToken);
 
             var categoryCounts = allItems
                 .GroupBy(x => x.Category)
@@ -86,8 +136,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             return RecruitmentResult<LifecycleWorklistCountResponse>.Ok(response);
         }
 
-        private async Task<List<LifecycleWorklistItemResponse>> BuildWorklistItemsAsync(CancellationToken cancellationToken)
+        private async Task<List<LifecycleWorklistItemResponse>> BuildWorklistItemsAsync(HashSet<Guid>? unitScope, CancellationToken cancellationToken)
         {
+            HashSet<Guid>? allowedProfiles = null;
+            if (unitScope != null)
+            {
+                if (unitScope.Count == 0) return new List<LifecycleWorklistItemResponse>();
+
+                var unitIds = unitScope.ToList();
+                var todayDt = DateTime.UtcNow.Date;
+                var orgProfiles = await _dbContext.WfpOrganizationAssignments
+                    .AsNoTracking()
+                    .Where(a => a.OrganizationUnitId.HasValue && unitIds.Contains(a.OrganizationUnitId.Value) &&
+                                a.IsActive && !a.IsDelete && a.EffectiveStartDate <= todayDt &&
+                                (a.EffectiveEndDate == null || a.EffectiveEndDate >= todayDt))
+                    .Select(a => a.WorkforceProfileId)
+                    .ToListAsync(cancellationToken);
+
+                var caseProfiles = await _dbContext.HrdOnboardingCases
+                    .AsNoTracking()
+                    .Where(c => !c.IsDelete && unitIds.Contains(c.OrganizationUnitId))
+                    .Select(c => c.WorkforceProfileId)
+                    .ToListAsync(cancellationToken);
+
+                allowedProfiles = new HashSet<Guid>(orgProfiles.Concat(caseProfiles));
+            }
             var now = DateTime.UtcNow;
             var today = DateOnly.FromDateTime(now);
             var todayDateTime = today.ToDateTime(TimeOnly.MinValue);
@@ -295,7 +368,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 });
             }
 
-            return result;
+            return allowedProfiles == null
+                ? result
+                : result.Where(item => allowedProfiles.Contains(item.WorkforceProfileId)).ToList();
         }
     }
 }

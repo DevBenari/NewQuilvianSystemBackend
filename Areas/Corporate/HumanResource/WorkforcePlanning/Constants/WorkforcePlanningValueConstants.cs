@@ -11,6 +11,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
             public const string WorkforceHeadcountCancellation = "WorkforceHeadcountCancellation";
         }
 
+        /// <summary>
+        /// Kode definisi workflow resmi S-D1 Perencanaan Tenaga Kerja pada MstWorkflowDefinition (BE-HRD-FIN-WFP-008).
+        /// Batch Formasi Awal dan Rencana Tahunan sama-sama memakai definisi T10 existing.
+        /// </summary>
+        public static class WorkflowDefinitionCodes
+        {
+            public const string StaffingStandard = "T9";
+            public const string ManpowerPlanAndInitialFormation = "T10";
+            public const string HeadcountWithinFormation = "T11";
+            public const string HeadcountBeyondFormation = "T12";
+            public const string HeadcountCancellation = "T13";
+        }
+
         public static class NumberSeriesKeys
         {
             public const string StaffingStandard = "HRD_STAFFING_STANDARD";

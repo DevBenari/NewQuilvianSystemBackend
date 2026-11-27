@@ -35,12 +35,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
             var targetDateTime = targetDate.ToDateTime(TimeOnly.MinValue);
 
-            // 1. Cek kasus onboarding yang aktif
-            var onboardingCase = await _dbContext.HrdOnboardingCases
+            // 1. Cek kasus onboarding yang sedang aktif (termasuk skenario rehire yang punya riwayat lama Completed)
+            var hasActiveOnboarding = await _dbContext.HrdOnboardingCases
                 .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.WorkforceProfileId == workforceProfileId && !c.IsDelete, cancellationToken);
+                .AnyAsync(c => c.WorkforceProfileId == workforceProfileId &&
+                               !c.IsDelete &&
+                               c.CaseStatus == OnboardingCaseStatus.InProgress, cancellationToken);
 
-            if (onboardingCase != null && onboardingCase.CaseStatus != OnboardingCaseStatus.Completed)
+            if (hasActiveOnboarding)
             {
                 return RecruitmentResult<SchedulingEligibilityResponse>.Ok(new SchedulingEligibilityResponse
                 {
@@ -53,12 +55,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 });
             }
 
-            // 2. Cek kontrak kerja aktif
+            // 2. Cek kontrak kerja aktif/sah (abaikan draf/batal agar riwayat kontrak lama rehire tidak mengganggu)
             var currentContract = await _dbContext.WfpContractHistories
                 .Include(c => c.ContractType)
                 .AsNoTracking()
-                .Where(c => c.WorkforceProfileId == workforceProfileId && !c.IsDelete)
-                .OrderByDescending(c => c.StartDate)
+                .Where(c => c.WorkforceProfileId == workforceProfileId &&
+                            !c.IsDelete &&
+                            (c.ContractStatus == "Active" || c.ContractStatus == "Signed" || c.ContractStatus == "LapsedWithoutDecision"))
+                .OrderByDescending(c => c.IsCurrent)
+                .ThenByDescending(c => c.StartDate)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (currentContract != null && currentContract.EndDate.HasValue)

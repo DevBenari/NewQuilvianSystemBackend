@@ -81,11 +81,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var offer = await _dbContext.HrdJobOffers
                 .Include(o => o.Approvals)
                 .Include(o => o.Application)
+                    .ThenInclude(a => a!.Candidate)
                 .FirstOrDefaultAsync(o => o.Id == offerId && !o.IsDelete, cancellationToken);
 
             if (offer == null)
             {
                 return RecruitmentResult<JobOfferApprovalResponse>.NotFound("Surat penawaran kerja tidak ditemukan.");
+            }
+
+            if (offer.Application != null && RecruitmentJourneyPolicy.IsTerminalApplication(offer.Application, offer.Application.Candidate))
+            {
+                return RecruitmentResult<JobOfferApprovalResponse>.Unprocessable(
+                    "Penawaran kerja tidak dapat disetujui karena lamaran atau kandidat berstatus terminal/gugur.");
+            }
+
+            if (offer.Status != JobOfferStatus.Draft && offer.Status != JobOfferStatus.PendingApproval)
+            {
+                return RecruitmentResult<JobOfferApprovalResponse>.Unprocessable(
+                    $"Persetujuan penawaran hanya dapat diproses pada status Draft atau PendingApproval. Status saat ini: '{offer.Status}'.");
             }
 
             // Aturan Bisnis VR-REC-16: Self-Approval Forbidden
@@ -163,11 +176,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var offer = await _dbContext.HrdJobOffers
                 .Include(o => o.Approvals)
                 .Include(o => o.Application)
+                    .ThenInclude(a => a!.Candidate)
                 .FirstOrDefaultAsync(o => o.Id == offerId && !o.IsDelete, cancellationToken);
 
             if (offer == null)
             {
                 return RecruitmentResult<JobOfferApprovalResponse>.NotFound("Surat penawaran kerja tidak ditemukan.");
+            }
+
+            if (offer.Application != null && RecruitmentJourneyPolicy.IsTerminalApplication(offer.Application, offer.Application.Candidate))
+            {
+                return RecruitmentResult<JobOfferApprovalResponse>.Unprocessable(
+                    "Penawaran kerja tidak dapat disetujui karena lamaran atau kandidat berstatus terminal/gugur.");
+            }
+
+            if (offer.Status != JobOfferStatus.Draft && offer.Status != JobOfferStatus.PendingApproval)
+            {
+                return RecruitmentResult<JobOfferApprovalResponse>.Unprocessable(
+                    $"Persetujuan penawaran hanya dapat diproses pada status Draft atau PendingApproval. Status saat ini: '{offer.Status}'.");
             }
 
             // Aturan Bisnis VR-REC-16: Self-Approval Forbidden

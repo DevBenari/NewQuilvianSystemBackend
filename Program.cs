@@ -1300,6 +1300,8 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.TalentPoolService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IHiringHandoffService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.HiringHandoffService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.HiringHandoffService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IRecruitmentJourneyService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.RecruitmentJourneyService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.RecruitmentJourneyService>();
 
     // Slice S-C4-ONB: Onboarding & Manajemen Siklus Kontrak Pegawai (MVP-14)
     // BE-HRD-065: Sinkronisasi 5 Isian Kepegawaian & Penulisan Kontrak Satu Pintu
@@ -1772,6 +1774,9 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowReferenceLifecycleHandler>(sp => sp.GetRequiredService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelWorkflowLifecycleHandler>());
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IBusinessTravelWorkflowReconciliationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelWorkflowReconciliationService>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelWorkflowReconciliationWorker>();
+    // B6 (INT-HR-30, PLANNING_PERSETUJUAN_T15_T18_KONTRAK_DAN_MASA_KERJA.md): penangan workflow T15–T18 sub-modul 05.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleWorkflowLifecycleHandler>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowReferenceLifecycleHandler>(sp => sp.GetRequiredService<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleWorkflowLifecycleHandler>());
 
 
     //billing - master data
