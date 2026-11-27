@@ -82,8 +82,17 @@ public class PayrollCompensationListItemResponse
     /// <summary>Lengkap | Belum lengkap | Tidak aktif di HRD (hanya pada detail orang yang sudah tidak aktif).</summary>
     public string HrdDataStatus { get; set; } = string.Empty;
 
-    /// <summary>Sudah ditetapkan | Belum ditetapkan (PPh dan iuran pada profil sama-sama nol) | Menunggu profil.</summary>
+    /// <summary>
+    /// Sudah ditetapkan (konfigurasi PPh HRD sah dan berlaku) | Belum ditetapkan. Nama historis: sejak PAY-BE-FIX-007 hanya PPh yang
+    /// dinilai; asuransi swasta dan iuran BPJS bukan syarat. Diturunkan dari status konfigurasi eksplisit, bukan dari nominal nol.
+    /// </summary>
     public string TaxInsuranceStatus { get; set; } = string.Empty;
+
+    /// <summary>NOT_CONFIGURED | CONFIGURED | NOT_EFFECTIVE | ERROR untuk konfigurasi PPh (Profil Pajak HRD).</summary>
+    public string TaxConfigurationStatus { get; set; } = string.Empty;
+
+    /// <summary>Kekurangan konfigurasi PPh yang sebenarnya; kosong bila lengkap.</summary>
+    public List<string> TaxConfigurationIssues { get; set; } = new();
 
     public Guid? SalaryAssignmentId { get; set; }
     public DateTime? SalaryEffectiveStartDate { get; set; }
@@ -99,7 +108,6 @@ public class PayrollCompensationListItemResponse
     /// <summary>Terverifikasi | Belum terverifikasi | Belum ada.</summary>
     public string BankStatus { get; set; } = string.Empty;
     public bool HasTaxProfile { get; set; }
-    public bool HasInsuranceProfile { get; set; }
 
     /// <summary>
     /// Siap diproses: sumber HRD lengkap, profil payroll operasional (aktif, eligible, Active), profil pajak ada, dan tetapan PPh dan
@@ -150,7 +158,39 @@ public sealed class PayrollCompensationSalaryHistoryResponse
     public bool IsPrimary { get; set; }
     public bool IsActive { get; set; }
     public bool IsApproved { get; set; }
+
+    /// <summary>Approved | PendingApproval (WfpSalaryAssignmentRules). Penetapan aktif yang belum disetujui adalah PendingApproval.</summary>
+    public string ApprovalStatus { get; set; } = string.Empty;
+
+    /// <summary>
+    /// True bila Payroll saat ini mensyaratkan penetapan disetujui (Payroll:Policy:RequireApprovedSalaryAssignment). False (bawaan): penetapan
+    /// aktif dipakai payroll walaupun belum disetujui, sehingga PendingApproval di sini bersifat informasi. Aditif.
+    /// </summary>
+    public bool ApprovalRequired { get; set; }
+
     public DateTime? ApprovedAt { get; set; }
+
+    /// <summary>Nama pengesah bila persetujuan manual tercatat; null bila belum ada persetujuan manual atau nama tidak dapat ditentukan. Aditif (PAY-BE-FIX-010).</summary>
+    public string? ApprovedByUserName { get; set; }
+
+    /// <summary>
+    /// Asal wewenang untuk Payroll: ManualApproved | AutoByPolicy | PendingApproval (WfpSalaryAuthorizationStatuses). AutoByPolicy berarti sah
+    /// menurut kebijakan Payroll tanpa persetujuan manual; ia bukan persetujuan oleh seseorang, jadi ApprovedAt/ApprovedByUserName tetap
+    /// kosong dan IsApproved tetap false. Aditif (PAY-BE-FIX-010).
+    /// </summary>
+    public string AuthorizationStatus { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Keadaan operasional pada tanggal acuan, terpisah dari asal persetujuan: Current | Scheduled | Expired | Inactive | NotPrimary
+    /// (WfpSalaryOperationalStatuses). Aditif (PAY-BE-FIX-010).
+    /// </summary>
+    public string OperationalStatusCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// True bila penetapan ini sedang berlaku sebagai penetapan utama dan boleh dipakai Payroll menurut kebijakan (Current dan bukan
+    /// PendingApproval). Aturan yang sama dengan pembaca Payroll. Aditif (PAY-BE-FIX-010).
+    /// </summary>
+    public bool IsPayrollUsable { get; set; }
 
     /// <summary>Null bila pemanggil tidak memiliki izin ViewAmount.</summary>
     public decimal? BaseSalary { get; set; }

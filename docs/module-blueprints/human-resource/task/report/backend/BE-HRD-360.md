@@ -103,3 +103,7 @@ Tidak ada delta perilaku terhadap kontrak.
 | Interupsi | `NONE` |
 | Status Git | 1 berkas source diubah (urutan action), 1 berkas uji baru, laporan ini (baru), dokumen roadmap/traceability/indeks uji. Tidak ada commit |
 | Task berikutnya | `BE-HRD-363` — verifikasi slice S-A8 (kontrak v27, hak akses di Akses Role, build, QBE). Termasuk catatan `BE-HRD-362`: action `Save` belum mendeklarasikan `[ProducesResponseType]` `403` (Swagger memastikan keempat endpoint tanpa respons `403`) |
+
+## Pembaruan 18 November 2026 — pemeliharaan uji AC4
+
+Merge `origin/QuilvianIntegrationBackend` (`d7d4eb3b`) mengganti konstruktor `PayrollDataReadinessService` (kini menerima `PayrollHrdSourceReader`, bukan `LoggerService`). Uji `AC4_penetapan_dan_rekening_yang_dinilai_sama_dengan_payroll` masih mengirim `null` sehingga gagal `NullReferenceException`. Uji disesuaikan memakai `new PayrollHrdSourceReader(ctx)`; perilaku yang dibandingkan tidak berubah dan uji lulus lagi (kelas 4/4; proyek uji HR 287/287). Tidak ada perubahan source aplikasi. Dikerjakan bersama `BE-HRD-298`.

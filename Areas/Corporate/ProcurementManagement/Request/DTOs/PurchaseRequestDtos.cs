@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.DTOs;
 
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.DTOs;
 
@@ -23,6 +24,7 @@ public sealed class PurchaseRequestQuery
 
     public DateOnly? StartDate { get; set; }
     public DateOnly? EndDate { get; set; }
+    [MaxLength(20)] public string? CustomPeriod { get; set; }
     public string SortBy { get; set; } = "createdAt";
     public string SortDirection { get; set; } = "desc";
     [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
@@ -84,6 +86,9 @@ public sealed class PurchaseRequestLineResponse
     public DateTimeOffset? StockCheckedAt { get; set; }
     public decimal PurchaseQuantity { get; set; }
     public decimal PurchaseAmount { get; set; }
+
+    /// <summary>Paket yang memuat baris ini; <c>null</c> = belum dipaketkan (BE-PBJ-PS-003, aditif). Nomor dan status paket dibaca dari <c>/procurement-packages/request-summary</c>.</summary>
+    public Guid? PackageId { get; set; }
 }
 
 public sealed class PurchaseRequestResponse
@@ -193,6 +198,7 @@ public sealed class PurchaseRequestOptionValue
 
 public sealed class PurchaseRequestFilterMetadataResponse
 {
+    public List<ProcurementPeriodOptionResponse> CustomPeriods { get; set; } = ProcurementPeriodOptionResponse.Defaults();
     public PurchaseRequestQuery DefaultFilter { get; set; } = new();
     public List<PurchaseRequestOptionValue> StatusOptions { get; set; } = new();
     public List<PurchaseRequestOptionValue> UrgencyOptions { get; set; } = new();

@@ -1,13 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Enums;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Enums;
@@ -94,11 +98,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                 dbQuery = dbQuery.Where(r => r.RequestType == query.RequestType.Value);
             }
 
+            if (query.EligibleForRequisitionOnly == true)
+            {
+                dbQuery = dbQuery.Where(r =>
+                    (r.RequestStatus == HeadcountRequestStatus.ReadyForRecruitment ||
+                     r.RequestStatus == HeadcountRequestStatus.PartiallyFulfilled) &&
+                    r.Seats.Any(s => !s.IsDelete &&
+                                     s.FulfilmentSource == HeadcountFulfilmentSource.External &&
+                                     s.SeatStatus == HeadcountSeatStatus.Open) &&
+                    r.Seats.Count(s => !s.IsDelete &&
+                                       s.FulfilmentSource == HeadcountFulfilmentSource.External &&
+                                       s.SeatStatus != HeadcountSeatStatus.Cancelled) >
+                    (_dbContext.HrdJobRequisitions
+                        .Where(req => req.HeadcountRequestId == r.Id &&
+                                      !req.IsDelete &&
+                                      req.Status != JobRequisitionStatus.Cancelled)
+                        .Sum(req => (int?)req.RequestedSeats) ?? 0));
+            }
+
             if (!string.IsNullOrWhiteSpace(query.Search))
             {
                 var term = query.Search.Trim().ToLower();
                 dbQuery = dbQuery.Where(r => r.RequestNumber.ToLower().Contains(term) ||
-                                             (r.Justification != null && r.Justification.ToLower().Contains(term)));
+                                             (r.Justification != null && r.Justification.ToLower().Contains(term)) ||
+                                             (r.Position != null && r.Position.PositionName.ToLower().Contains(term)) ||
+                                             (r.OrganizationUnit != null && r.OrganizationUnit.UnitName.ToLower().Contains(term)));
             }
 
             var totalCount = await dbQuery.CountAsync(cancellationToken);
@@ -124,6 +148,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                     RequiredStartDate = r.RequiredStartDate,
                     RequestedQuantity = r.RequestedQuantity,
                     TotalSeats = r.Seats.Count(s => !s.IsDelete),
+                    ExternalSeatCount = r.Seats.Count(s => !s.IsDelete && s.FulfilmentSource == HeadcountFulfilmentSource.External && s.SeatStatus != HeadcountSeatStatus.Cancelled),
+                    InternalSeatCount = r.Seats.Count(s => !s.IsDelete && s.FulfilmentSource == HeadcountFulfilmentSource.Internal && s.SeatStatus != HeadcountSeatStatus.Cancelled),
                     EstimatedCost = isCostVisible ? r.EstimatedCost : null,
                     FinanceAdjustedCost = isCostVisible ? r.FinanceAdjustedCost : null,
                     CostVisible = isCostVisible,
@@ -131,6 +157,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                     RowVersion = r.RowVersion
                 })
                 .ToListAsync(cancellationToken);
+
+            if (items.Count > 0)
+            {
+                var headcountIds = items.Select(i => i.Id).ToList();
+                var allocatedMap = await _dbContext.HrdJobRequisitions
+                    .AsNoTracking()
+                    .Where(req => headcountIds.Contains(req.HeadcountRequestId) &&
+                                  !req.IsDelete &&
+                                  req.Status != JobRequisitionStatus.Cancelled)
+                    .GroupBy(req => req.HeadcountRequestId)
+                    .Select(g => new { HeadcountRequestId = g.Key, Total = g.Sum(x => x.RequestedSeats) })
+                    .ToDictionaryAsync(x => x.HeadcountRequestId, x => x.Total, cancellationToken);
+
+                var openExternalMap = await _dbContext.HrdHeadcountRequestSeats
+                    .AsNoTracking()
+                    .Where(s => headcountIds.Contains(s.HeadcountRequestId) &&
+                                !s.IsDelete &&
+                                s.FulfilmentSource == HeadcountFulfilmentSource.External &&
+                                s.SeatStatus == HeadcountSeatStatus.Open)
+                    .GroupBy(s => s.HeadcountRequestId)
+                    .Select(g => new { HeadcountRequestId = g.Key, OpenCount = g.Count() })
+                    .ToDictionaryAsync(x => x.HeadcountRequestId, x => x.OpenCount, cancellationToken);
+
+                foreach (var item in items)
+                {
+                    var allocated = allocatedMap.GetValueOrDefault(item.Id, 0);
+                    var openExt = openExternalMap.GetValueOrDefault(item.Id, 0);
+                    item.RemainingExternalSeats = Math.Max(0, Math.Min(openExt, item.ExternalSeatCount - allocated));
+                }
+            }
 
             return WorkforcePlanningResult<PagedResult<HeadcountRequestListItemResponse>>.Ok(
                 new PagedResult<HeadcountRequestListItemResponse>
@@ -469,111 +525,228 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
         {
             var userId = GetCurrentUserId(user);
 
-            using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-            try
+            HrdHeadcountRequest? entity;
+            HeadcountRequestStatus previousStatus;
+            Guid? previousSubmittedByUserId;
+            DateTime? previousSubmittedAt;
+            decimal? previousRemainingSeatsAtSubmission;
+            Guid snapshotId;
+
+            await using (var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken))
             {
-                var entity = await _dbContext.HrdHeadcountRequests
-                    .Include(r => r.Seats.Where(s => !s.IsDelete))
-                    .FirstOrDefaultAsync(r => !r.IsDelete && r.Id == id, cancellationToken);
-
-                if (entity == null)
+                try
                 {
-                    return WorkforcePlanningResult<HeadcountRequestResponse>.Fail("Data tidak ditemukan.", 404);
-                }
+                    entity = await _dbContext.HrdHeadcountRequests
+                        .Include(r => r.HospitalSite)
+                        .Include(r => r.OrganizationUnit)
+                        .Include(r => r.Position)
+                        .Include(r => r.Seats.Where(s => !s.IsDelete))
+                        .FirstOrDefaultAsync(r => !r.IsDelete && r.Id == id, cancellationToken);
 
-                if (entity.RequestStatus != HeadcountRequestStatus.Draft &&
-                    entity.RequestStatus != HeadcountRequestStatus.Returned)
-                {
-                    return WorkforcePlanningResult<HeadcountRequestResponse>.Fail("Hanya draf atau permintaan yang dikembalikan yang dapat diajukan.", 400);
-                }
-
-                if (entity.RequestType == HeadcountRequestType.Replacement)
-                {
-                    if (entity.Seats.Any(s => !s.ReplacedWorkforceProfileId.HasValue))
+                    if (entity == null)
                     {
-                        return WorkforcePlanningResult<HeadcountRequestResponse>.Fail("Setiap kursi pengganti wajib menentukan pegawai yang digantikan.", 422);
+                        return WorkforcePlanningResult<HeadcountRequestResponse>.Fail("Data tidak ditemukan.", 404);
                     }
-                }
 
-                if (entity.RequestType == HeadcountRequestType.Temporary)
-                {
-                    if (!entity.TemporaryEndDate.HasValue || !entity.TemporaryReasonWorkforceProfileId.HasValue)
+                    if (entity.RequestStatus != HeadcountRequestStatus.Draft &&
+                        entity.RequestStatus != HeadcountRequestStatus.Returned)
                     {
-                        return WorkforcePlanningResult<HeadcountRequestResponse>.Fail("Permintaan sementara wajib menentukan tanggal selesai dan pegawai yang digantikan sementara.", 422);
+                        return WorkforcePlanningResult<HeadcountRequestResponse>.Fail("Hanya draf atau permintaan yang dikembalikan yang dapat diajukan.", 400);
                     }
-                }
 
-                if (entity.RequestType == HeadcountRequestType.AdditionalBeyondFormation)
-                {
-                    if (string.IsNullOrWhiteSpace(entity.Justification))
+                    if (string.Equals(_dbContext.Database.ProviderName, "Npgsql.EntityFrameworkCore.PostgreSQL", StringComparison.OrdinalIgnoreCase))
                     {
-                        return WorkforcePlanningResult<HeadcountRequestResponse>.Fail("Permintaan di luar formasi wajib mencantumkan alasan pengajuan.", 422);
+                        var lockKey = $"hrd_headcount_submit:{entity.OrganizationUnitId}:{entity.PositionId}";
+                        await _dbContext.Database.ExecuteSqlRawAsync(
+                            "SELECT pg_advisory_xact_lock(hashtext({0}));",
+                            new object[] { lockKey },
+                            cancellationToken);
                     }
-                }
 
-                var remainingInfo = await GetRemainingSeatsAsync(
-                    entity.HospitalSiteId,
-                    entity.OrganizationUnitId,
-                    entity.PositionId,
-                    entity.RequiredStartDate,
-                    cancellationToken);
-
-                if (entity.RequestType == HeadcountRequestType.AdditionalWithinFormation || entity.RequestType == HeadcountRequestType.Replacement)
-                {
-                    if (entity.RequestedQuantity > remainingInfo.RemainingSeats)
+                    if (entity.RequestType == HeadcountRequestType.Replacement)
                     {
-                        return WorkforcePlanningResult<HeadcountRequestResponse>.Fail(
-                            $"Permintaan sebesar {entity.RequestedQuantity:N2} FTE melebihi sisa kursi yang tersedia ({remainingInfo.RemainingSeats:N2} FTE).", 422);
+                        if (entity.Seats.Any(s => !s.ReplacedWorkforceProfileId.HasValue))
+                        {
+                            return WorkforcePlanningResult<HeadcountRequestResponse>.Fail("Setiap kursi pengganti wajib menentukan pegawai yang digantikan.", 422);
+                        }
                     }
+
+                    if (entity.RequestType == HeadcountRequestType.Temporary)
+                    {
+                        if (!entity.TemporaryEndDate.HasValue || !entity.TemporaryReasonWorkforceProfileId.HasValue)
+                        {
+                            return WorkforcePlanningResult<HeadcountRequestResponse>.Fail("Permintaan sementara wajib menentukan tanggal selesai dan pegawai yang digantikan sementara.", 422);
+                        }
+                    }
+
+                    if (entity.RequestType == HeadcountRequestType.AdditionalBeyondFormation)
+                    {
+                        if (string.IsNullOrWhiteSpace(entity.Justification))
+                        {
+                            return WorkforcePlanningResult<HeadcountRequestResponse>.Fail("Permintaan di luar formasi wajib mencantumkan alasan pengajuan.", 422);
+                        }
+                    }
+
+                    var remainingInfo = await GetRemainingSeatsAsync(
+                        entity.HospitalSiteId,
+                        entity.OrganizationUnitId,
+                        entity.PositionId,
+                        entity.RequiredStartDate,
+                        cancellationToken);
+
+                    if (entity.RequestType == HeadcountRequestType.AdditionalWithinFormation || entity.RequestType == HeadcountRequestType.Replacement)
+                    {
+                        if (entity.RequestedQuantity > remainingInfo.RemainingSeats)
+                        {
+                            return WorkforcePlanningResult<HeadcountRequestResponse>.Fail(
+                                $"Permintaan sebesar {entity.RequestedQuantity:N2} FTE melebihi sisa kursi yang tersedia ({remainingInfo.RemainingSeats:N2} FTE).", 422);
+                        }
+                    }
+
+                    previousStatus = entity.RequestStatus;
+                    previousSubmittedByUserId = entity.SubmittedByUserId;
+                    previousSubmittedAt = entity.SubmittedAt;
+                    previousRemainingSeatsAtSubmission = entity.RemainingSeatsAtSubmission;
+
+                    entity.RemainingSeatsAtSubmission = remainingInfo.RemainingSeats;
+
+                    snapshotId = await _snapshotService.CaptureSubmissionSnapshotAsync(
+                        entity.HospitalSiteId,
+                        entity.OrganizationUnitId,
+                        PositionFormationSourceType.HeadcountRequest,
+                        entity.Id,
+                        entity.RequiredStartDate,
+                        userId,
+                        cancellationToken);
+
+                    entity.RequestStatus = HeadcountRequestStatus.Submitted;
+                    entity.SubmittedByUserId = userId;
+                    entity.SubmittedAt = DateTime.UtcNow;
+                    entity.UpdateDateTime = DateTime.UtcNow;
+                    entity.UpdateBy = userId;
+                    entity.RowVersion = Guid.NewGuid();
+
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
                 }
-
-                entity.RemainingSeatsAtSubmission = remainingInfo.RemainingSeats;
-
-                await _snapshotService.CaptureSubmissionSnapshotAsync(
-                    entity.HospitalSiteId,
-                    entity.OrganizationUnitId,
-                    PositionFormationSourceType.HeadcountRequest,
-                    entity.Id,
-                    entity.RequiredStartDate,
-                    userId,
-                    cancellationToken);
-
-                var workflowCode = entity.RequestType == HeadcountRequestType.AdditionalBeyondFormation ? "T12" : "T11";
-
-                var workflowResult = await _workflowService.StartWorkflowAsync(new StartWorkforcePlanningWorkflowRequest
+                catch (Exception)
                 {
-                    WorkflowDefinitionCode = workflowCode,
-                    ReferenceType = WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceHeadcountRequest,
-                    ReferenceId = entity.Id,
-                    DocumentNumber = entity.RequestNumber,
-                    SubmitComment = "Pengajuan Permintaan Penambahan Tenaga Kerja",
-                    AutoSubmit = true
-                }, cancellationToken);
-
-                if (!workflowResult.Success)
-                {
-                    return WorkforcePlanningResult<HeadcountRequestResponse>.Fail(
-                        $"Gagal mendaftarkan alur persetujuan: {workflowResult.Message}", workflowResult.StatusCode);
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
                 }
+            }
 
-                entity.WorkflowInstanceId = workflowResult.Data?.Id;
-                entity.RequestStatus = HeadcountRequestStatus.Submitted;
-                entity.SubmittedByUserId = userId;
-                entity.SubmittedAt = DateTime.UtcNow;
+            // WorkflowService membuka transaksinya sendiri; panggil di luar transaksi lokal lalu gagal-tertutup bila ditolak.
+            WorkflowServiceResult<WorkflowManagement.DTOs.WorkflowInstanceDetailResponse> workflowResult;
+
+            if (previousStatus == HeadcountRequestStatus.Returned && entity.WorkflowInstanceId.HasValue)
+            {
+                var existingInstance = await _dbContext.TrxWorkflowInstances
+                    .AsNoTracking()
+                    .Where(w => w.Id == entity.WorkflowInstanceId.Value && !w.IsDelete)
+                    .Select(w => new { w.Id, w.WorkflowStatus })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (existingInstance != null &&
+                    (string.Equals(existingInstance.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.RevisionRequested, StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(existingInstance.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Returned, StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(existingInstance.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Draft, StringComparison.OrdinalIgnoreCase)))
+                {
+                    workflowResult = await _workflowService.ResubmitWorkflowAsync(
+                        existingInstance.Id,
+                        request?.Note,
+                        cancellationToken);
+                }
+                else
+                {
+                    workflowResult = await StartNewWorkflowForHeadcountAsync(entity, request?.Note, cancellationToken);
+                }
+            }
+            else
+            {
+                workflowResult = await StartNewWorkflowForHeadcountAsync(entity, request?.Note, cancellationToken);
+            }
+
+            if (!workflowResult.Success || workflowResult.Data == null)
+            {
+                entity.RequestStatus = previousStatus;
+                entity.SubmittedByUserId = previousSubmittedByUserId;
+                entity.SubmittedAt = previousSubmittedAt;
+                entity.RemainingSeatsAtSubmission = previousRemainingSeatsAtSubmission;
                 entity.UpdateDateTime = DateTime.UtcNow;
                 entity.UpdateBy = userId;
                 entity.RowVersion = Guid.NewGuid();
 
-                await _dbContext.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
+                var snapshot = await _dbContext.HrdStaffingGapSnapshots
+                    .FirstOrDefaultAsync(s => s.Id == snapshotId && !s.IsDelete, cancellationToken);
+                if (snapshot != null)
+                {
+                    snapshot.IsDelete = true;
+                    snapshot.DeleteDateTime = DateTime.UtcNow;
+                    snapshot.DeleteBy = userId;
+                }
 
-                return await GetByIdAsync(entity.Id, user, cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                return WorkforcePlanningResult<HeadcountRequestResponse>.Fail(
+                    $"Gagal mendaftarkan alur persetujuan: {workflowResult.Message}",
+                    workflowResult.StatusCode);
             }
-            catch (Exception)
+
+            entity.WorkflowInstanceId = workflowResult.Data.Id;
+            entity.WorkflowDefinitionId = workflowResult.Data.WorkflowDefinitionId;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = userId;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return await GetByIdAsync(entity.Id, user, cancellationToken);
+        }
+
+        private Task<WorkflowServiceResult<WorkflowManagement.DTOs.WorkflowInstanceDetailResponse>> StartNewWorkflowForHeadcountAsync(
+            HrdHeadcountRequest entity,
+            string? note,
+            CancellationToken cancellationToken)
+        {
+            var workflowCode = entity.RequestType == HeadcountRequestType.AdditionalBeyondFormation ? "T12" : "T11";
+            var indonesian = CultureInfo.GetCultureInfo("id-ID");
+            var typeLabel = entity.RequestType switch
             {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
-            }
+                HeadcountRequestType.Replacement => "Pengganti",
+                HeadcountRequestType.AdditionalWithinFormation => "Tambahan dalam Formasi",
+                HeadcountRequestType.AdditionalBeyondFormation => "Tambahan di Luar Formasi",
+                HeadcountRequestType.Temporary => "Sementara",
+                _ => entity.RequestType.ToString()
+            };
+
+            var summary = new List<object>
+            {
+                new { label = "Nomor Permintaan", value = entity.RequestNumber },
+                new { label = "Rumah Sakit", value = entity.HospitalSite?.SiteName ?? "-" },
+                new { label = "Unit", value = entity.OrganizationUnit?.UnitName ?? "-" },
+                new { label = "Jabatan", value = entity.Position?.PositionName ?? "-" },
+                new { label = "Jenis Permintaan", value = typeLabel },
+                new { label = "Kebutuhan", value = $"{entity.Seats.Count} kursi · {entity.RequestedQuantity.ToString("0.##", indonesian)} FTE (Rekrut Luar: {entity.ExternalSeatCount}, Internal: {entity.InternalSeatCount})" },
+                new { label = "Tanggal Dibutuhkan", value = entity.RequiredStartDate.ToString("dd MMM yyyy", indonesian) },
+                new { label = "Alasan", value = string.IsNullOrWhiteSpace(entity.Justification) ? "-" : entity.Justification.Trim() }
+            };
+
+            var requestContext = JsonSerializer.SerializeToElement(new
+            {
+                summary,
+                source = new { headcountRequestId = entity.Id }
+            });
+
+            return _workflowService.StartWorkflowAsync(new StartWorkforcePlanningWorkflowRequest
+            {
+                WorkflowDefinitionCode = workflowCode,
+                ReferenceType = WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceHeadcountRequest,
+                ReferenceId = entity.Id,
+                DocumentNumber = entity.RequestNumber,
+                IdempotencyKey = $"hrd-headcount:{entity.Id:N}:{entity.RowVersion:N}",
+                RequestContext = requestContext,
+                SubmitComment = string.IsNullOrWhiteSpace(note) ? "Pengajuan Permintaan Penambahan Tenaga Kerja" : note.Trim(),
+                AutoSubmit = true
+            }, cancellationToken);
         }
 
         public async Task<WorkforcePlanningResult<HeadcountRequestResponse>> WithdrawAsync(
@@ -599,10 +772,39 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                 return WorkforcePlanningResult<HeadcountRequestResponse>.Fail("Permintaan yang sudah disetujui untuk rekrutmen tidak dapat ditarik kembali.", 409);
             }
 
+            if (entity.WorkflowInstanceId.HasValue && entity.WorkflowInstanceId.Value != Guid.Empty)
+            {
+                var wfInstance = await _dbContext.TrxWorkflowInstances
+                    .AsNoTracking()
+                    .Where(w => w.Id == entity.WorkflowInstanceId.Value && !w.IsDelete)
+                    .Select(w => new { w.Id, w.WorkflowStatus, w.RequestedByUserId })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (wfInstance != null &&
+                    !string.Equals(wfInstance.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Completed, StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(wfInstance.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Approved, StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(wfInstance.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Rejected, StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(wfInstance.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Withdrawn, StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(wfInstance.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Cancelled, StringComparison.OrdinalIgnoreCase))
+                {
+                    var wfWithdrawResult = await _workflowService.WithdrawWorkflowAsync(
+                        wfInstance.Id,
+                        wfInstance.RequestedByUserId,
+                        request?.Reason ?? "Permintaan headcount ditarik kembali.",
+                        cancellationToken);
+
+                    if (!wfWithdrawResult.Success)
+                    {
+                        return WorkforcePlanningResult<HeadcountRequestResponse>.Fail(
+                            $"Gagal menarik alur persetujuan: {wfWithdrawResult.Message}",
+                            wfWithdrawResult.StatusCode);
+                    }
+                }
+            }
+
             entity.RequestStatus = HeadcountRequestStatus.Withdrawn;
-            entity.WithdrawnAt = DateTime.UtcNow;
+            entity.WithdrawnAt ??= DateTime.UtcNow;
             entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = userId;
             entity.UpdateBy = userId;
             entity.RowVersion = Guid.NewGuid();
 

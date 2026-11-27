@@ -156,8 +156,24 @@ public sealed class PayrollRunsController : ControllerBase
     [AccessAction("Submit", "Submit Payroll Run", AccessType = AccessTypes.Update, SortOrder = 5)]
     [AccessPermission("PayrollRun", "Submit")]
     public Task<IActionResult> Submit(
-        Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] PayrollRunActionRequest? request, CancellationToken cancellationToken) =>
-        Run(() => _service.SubmitAsync(id, request?.ExpectedRowVersion, CurrentUserId(), cancellationToken), "Payroll run berhasil diajukan.");
+        Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] PayrollRunSubmitRequest? request, CancellationToken cancellationToken)
+    {
+        // PAY-BE-FIX-030: mode pengajuan eksplisit pada izin Submit yang sama. Tanpa badan/mode = pengajuan normal (perilaku lama).
+        var mode = string.IsNullOrWhiteSpace(request?.SubmissionMode) ? PayrollRunSubmissionModes.Normal : request!.SubmissionMode!.Trim();
+        if (string.Equals(mode, PayrollRunSubmissionModes.ReviewOnly, StringComparison.OrdinalIgnoreCase))
+        {
+            return Run(
+                () => _service.SubmitForReviewAsync(
+                    id, request?.ExpectedRowVersion, request?.Reason, request?.AcknowledgeProvisionalTax ?? false, CurrentUserId(), cancellationToken),
+                "Payroll run berhasil diajukan untuk review dengan PPh sementara. PPh belum final dan run belum dapat disahkan.");
+        }
+
+        if (!string.Equals(mode, PayrollRunSubmissionModes.Normal, StringComparison.OrdinalIgnoreCase))
+            return Task.FromResult<IActionResult>(BadRequest(
+                ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Mode pengajuan tidak dikenali. Gunakan Normal atau ReviewOnly.")));
+
+        return Run(() => _service.SubmitAsync(id, request?.ExpectedRowVersion, CurrentUserId(), cancellationToken), "Payroll run berhasil diajukan.");
+    }
 
     [HttpPost("{id:guid}/return")]
     [AccessAction("Return", "Return Payroll Run", AccessType = AccessTypes.Update, SortOrder = 6)]
@@ -170,9 +186,32 @@ public sealed class PayrollRunsController : ControllerBase
     [AccessAction("Approve", "Approve Payroll Run", AccessType = AccessTypes.Update, SortOrder = 7)]
     [AccessPermission("PayrollRun", "Approve")]
     public Task<IActionResult> Approve(
-        Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] PayrollRunActionRequest? request, CancellationToken cancellationToken) =>
-        Run(() => _service.ApproveAsync(id, request?.ExpectedRowVersion, CurrentUserId(), cancellationToken),
+        Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] PayrollRunApproveRequest? request, CancellationToken cancellationToken)
+    {
+        // PAY-BE-FIX-032: mode pengesahan eksplisit pada izin Approve yang sama. Tanpa badan/mode = pengesahan normal (perilaku lama).
+        var mode = string.IsNullOrWhiteSpace(request?.ApprovalMode) ? PayrollRunApprovalModes.Normal : request!.ApprovalMode!.Trim();
+        if (string.Equals(mode, PayrollRunApprovalModes.Conditional, StringComparison.OrdinalIgnoreCase))
+        {
+            return Run(
+                () => _service.ApproveConditionallyAsync(
+                    id, request?.ExpectedRowVersion, request?.Reason, request?.AcknowledgeProvisionalTax ?? false, CurrentUserId(), cancellationToken),
+                "Payroll run disahkan bersyarat (administratif). PPh belum final; tidak ada konfirmasi Finance atau pembayaran.");
+        }
+
+        if (!string.Equals(mode, PayrollRunApprovalModes.Normal, StringComparison.OrdinalIgnoreCase))
+            return Task.FromResult<IActionResult>(BadRequest(
+                ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Mode pengesahan tidak dikenali. Gunakan Normal atau Conditional.")));
+
+        return Run(() => _service.ApproveAsync(id, request?.ExpectedRowVersion, CurrentUserId(), cancellationToken),
             "Payroll run disahkan dan hasil potongan dikonfirmasi ke Finance.");
+    }
+
+    /// <summary>PAY-BE-FIX-032: ringkasan PPh run untuk Finance (baca-saja, informatif; bukan posting).</summary>
+    [HttpGet("{id:guid}/tax-summary")]
+    [AccessAction("ReadTaxSummary", "Read Payroll Run Tax Summary", AccessType = AccessTypes.Read, SortOrder = 56)]
+    [AccessPermission("PayrollRun", "ReadTaxSummary")]
+    public Task<IActionResult> GetTaxSummary(Guid id, CancellationToken cancellationToken) =>
+        Run(() => _service.GetTaxSummaryAsync(id, cancellationToken), "Ringkasan PPh payroll run berhasil dimuat.");
 
     [HttpPost("{id:guid}/cancel")]
     [AccessAction("Cancel", "Cancel Payroll Run", AccessType = AccessTypes.Update, SortOrder = 8)]

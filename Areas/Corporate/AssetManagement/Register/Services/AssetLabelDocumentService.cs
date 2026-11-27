@@ -13,7 +13,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Service
 
 public sealed record AssetLabelDocument(byte[] Content, string FileName, int LabelCount);
 
-public sealed class AssetLabelDocumentService
+public sealed partial class AssetLabelDocumentService
 {
     private const int MaxLabels = 200;
     private const int Columns = 3;

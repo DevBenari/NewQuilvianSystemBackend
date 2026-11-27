@@ -109,6 +109,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             public const string AutoApprove = "AutoApprove";
             public const string AutoReject = "AutoReject";
             public const string RevokeDelegation = "RevokeDelegation";
+            // BE-HRD-440 (kontrak v29, state 33.2): eskalasi SLA menambahkan penugasan atasan.
+            public const string Escalate = "Escalate";
         }
 
         public static class DelegationStatus

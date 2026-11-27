@@ -35,5 +35,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         Task<List<SpkRkkDetailDto>> GetSpkRkkByEmployeeAsync(
             Guid workforceProfileId,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Mengambil file fisik dokumen SPK atau RKK dalam format PDF
+        /// </summary>
+        Task<(byte[] FileBytes, string FileName, string ContentType)> GetSpkRkkFileAsync(
+            Guid spkRkkId,
+            string fileType,
+            CancellationToken cancellationToken = default);
     }
 }

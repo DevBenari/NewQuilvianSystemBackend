@@ -104,6 +104,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
         public DateOnly RequiredStartDate { get; set; }
         public decimal RequestedQuantity { get; set; }
         public int TotalSeats { get; set; }
+        public int ExternalSeatCount { get; set; }
+        public int InternalSeatCount { get; set; }
+        public int RemainingExternalSeats { get; set; }
         public decimal? EstimatedCost { get; set; }
         public decimal? FinanceAdjustedCost { get; set; }
         public bool CostVisible { get; set; } = true;
@@ -161,6 +164,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
         public HeadcountRequestStatus? Status { get; set; }
         public HeadcountRequestType? RequestType { get; set; }
         public string? Search { get; set; }
+        public bool? EligibleForRequisitionOnly { get; set; }
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
     }

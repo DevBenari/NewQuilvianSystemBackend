@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -117,7 +118,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _cycleService.CreateKpiCatalogAsync(dto, Guid.Empty, cancellationToken);
                 return StatusCode(201, ApiResponse<KpiMetricCatalogDto>.Ok(result, "Indikator kinerja berhasil didaftarkan ke katalog master."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
@@ -158,7 +159,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 var result = await _goalService.CascadeGoalsAsync(dto, Guid.Empty, cancellationToken);
                 return StatusCode(201, ApiResponse<List<PerformanceGoalDto>>.Ok(result, "Penurunan sasaran mutu individu berhasil ditetapkan dan dikunci 100%."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }

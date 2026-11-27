@@ -10,9 +10,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
     public class ApprovalInboxItemV2ResponseDto
     {
+        // BE-HRD-443 (kontrak v29 §35.6): penugasan engine yang ditampilkan.
+        public Guid AssignmentId { get; set; }
         public Guid WorkflowInstanceId { get; set; }
         public Guid StepInstanceId { get; set; }
         public string WorkflowNumber { get; set; } = string.Empty;
+        // BE-HRD-443: nomor dokumen modul (ExternalReferenceNumber), mis. SPPD/RSQ/2026/11/0013.
+        public string? ReferenceNumber { get; set; }
+        public Guid ReferenceId { get; set; }
+        // BE-HRD-443: butir layak Setujui Massal (VR-WF-32) agar layar dapat menonaktifkan pilihan.
+        public bool CanBulkApprove { get; set; }
         public string RequestType { get; set; } = string.Empty;
         public Guid ApplicantEmployeeId { get; set; }
         public string ApplicantName { get; set; } = string.Empty;
@@ -101,6 +108,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         public DateTime? CompletedAt { get; set; }
         public DateTime? CancelledAt { get; set; }
         public string? CancellationReason { get; set; }
+
+        // BE-HRD-447 (kontrak v29 §35.6): true untuk permohonan milik modul (engine WorkflowService); perbaikan, pembatalan,
+        // dan pengajuan ulang dilakukan dari layar modulnya (HRD-DEC-235).
+        public bool IsModuleManaged { get; set; }
     }
 
     public class WorkflowInstanceDetailV2ResponseDto : WorkflowInstanceV2ResponseDto
@@ -110,6 +121,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         public List<WorkflowRiskIndicatorDto> RiskIndicators { get; set; } = new();
         public List<WorkflowCommentV2ResponseDto> Comments { get; set; } = new();
         public List<WorkflowAttachmentV2ResponseDto> Attachments { get; set; } = new();
+
+        // BE-HRD-443 (kontrak v29 §35.6): terisi bila pengguna login (atau Plh-nya) memegang penugasan terbuka pada tahap aktif.
+        public WorkflowMyActionDto? MyAction { get; set; }
+    }
+
+    /// <summary>BE-HRD-443 (kontrak v29 §35.6): penugasan yang akan dipakai aksi pengguna login pada instance ini.</summary>
+    public class WorkflowMyActionDto
+    {
+        public Guid AssignmentId { get; set; }
+        public Guid StepInstanceId { get; set; }
+        public bool IsDelegated { get; set; }
+        public string? OnBehalfOfName { get; set; }
+        public List<string> AvailableActions { get; set; } = new();
+        public List<ApprovalInboxRejectionReasonOptionResponse> RejectionReasons { get; set; } = new();
     }
 
     public class WorkflowStepInstanceV2ResponseDto
@@ -159,33 +184,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
     // DTOs untuk Tag 2: Corporate - HRD Workflow Approval Actions
     // =========================================================================
 
+    // BE-HRD-444 (kontrak v29 §35.2, HRD-DEC-230): PIN tidak lagi diminta. Ruas pinSignature yang masih dikirim klien lama diabaikan.
     public class ApproveActionRequestDto
     {
+        /// <summary>Catatan persetujuan (opsional).</summary>
         [MaxLength(1000)]
         public string? Note { get; set; }
-
-        [Required(ErrorMessage = "PIN otorisasi atau digital signature wajib disertakan")]
-        [MinLength(6, ErrorMessage = "PIN otorisasi minimal 6 digit")]
-        public string PinSignature { get; set; } = string.Empty;
     }
 
+    // BE-HRD-444 (kontrak v29 §35.2, VR-WF-26, VR-WF-27): Tolak memakai alasan berkode engine; catatan wajib bila alasan menuntutnya.
     public class RejectActionRequestDto
     {
-        [Required(ErrorMessage = "Alasan penolakan wajib diisi (VR-WF-05)")]
-        [MinLength(15, ErrorMessage = "Alasan penolakan wajib minimal 15 karakter")]
-        [MaxLength(2000)]
-        public string RejectReason { get; set; } = string.Empty;
+        /// <summary>Alasan penolakan aktif untuk jenis permohonan dan tahap ini (daftar dari <c>myAction.rejectionReasons</c>).</summary>
+        public Guid? RejectionReasonId { get; set; }
 
-        [Required(ErrorMessage = "PIN otorisasi wajib disertakan")]
-        public string PinSignature { get; set; } = string.Empty;
+        /// <summary>Catatan penolakan; wajib bila alasan bertanda <c>isCommentRequired</c>.</summary>
+        [MaxLength(1000)]
+        public string? Comment { get; set; }
     }
 
+    // BE-HRD-444 (kontrak v29 §35.2, VR-WF-28): catatan revisi wajib, diteruskan ke engine sebagai komentar.
     public class ReturnForRevisionRequestDto
     {
-        [Required(ErrorMessage = "Catatan revisi wajib diisi (HRD-DEC-186)")]
-        [MinLength(10, ErrorMessage = "Catatan revisi minimal 10 karakter")]
-        [MaxLength(2000)]
-        public string RevisionNotes { get; set; } = string.Empty;
+        /// <summary>Catatan revisi untuk pemohon (wajib).</summary>
+        [MaxLength(1000)]
+        public string? RevisionNotes { get; set; }
     }
 
     public class BulkApproveRequestDto

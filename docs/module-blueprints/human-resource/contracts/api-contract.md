@@ -3134,3 +3134,511 @@ Base URL: `api/v1/corporate/human-resource/workforce-core/payroll-data`. Control
 | --- | --- | --- | --- |
 | `GET` | `api/v1/corporate/human-resource/master-data/salary-structures/options` | Pilihan struktur gaji pada formulir (`HRD-DEC-221`) | `SalaryStructure : Read` |
 | `GET` | `api/v1/administrator/master-data/banks/options` | Pilihan bank pada formulir (`HRD-DEC-221`) | `Bank : Read` |
+
+---
+
+## 34. Amandemen Slice `S-D5`: Persetujuan SPPD lewat Workflow Persetujuan Umum (Kontrak `v28`)
+
+| Field | Nilai |
+| --- | --- |
+| Slice | `S-D5` — Perjalanan Dinas & Manajemen Biaya Operasional (amandemen bagian 31) |
+| `contract_version` | `v28` |
+| `last_changed_in` | `v28` — bagian 34 ditambahkan 18 November 2026 |
+| Status | `approved` — pengguna, 19 November 2026 ("setujui kontrak v28, lanjut plan") |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna (`HRD-DEC-015`) / 19 November 2026 |
+| `input_revision` | `00-interview-decisions.md` revision `39` bagian 55 (`HRD-DEC-224` s.d. `HRD-DEC-228`, `HRD-TF-072` s.d. `HRD-TF-079`) |
+| `input_hash` — decision log | `97de77558d030cb183f8f30974ae4b7d6cf79d27b3dcf548c6d9bb6a69d7e25b` |
+| Backend SHA | `d7d4eb3b` (branch `yoga`) |
+| Frontend SHA | `e01411158` (branch `YogaV2`) |
+| Dampak kompatibilitas | **Mengubah perilaku**: membuat SPPD kini menghasilkan `Draft` (sebelumnya langsung `Submitted`); ubah SPPD hanya pada `Draft`/`NeedRevision`; pengajuan uang muka dan settlement ditolak `409` untuk SPPD yang belum disetujui. **Menambah**: endpoint ajukan, nilai status `NeedRevision`, dan ruas status persetujuan pada respons detail. Bagian 31 tetap berlaku untuk yang tidak disebut di sini |
+| Bukti as-is | `HRD-TF-072` s.d. `HRD-TF-079` (decision log bagian 55.2; `HRD-TF-077` s.d. `HRD-TF-079` ditambahkan saat desain); verifikasi `BE-HRD-333` 18 November 2026 |
+
+Bagian ini mengatur cara SPPD disetujui. Persetujuannya **tidak** memakai endpoint modul: atasan menyetujui, mengembalikan, atau menolak SPPD dari kotak masuk persetujuan Workflow V2 yang sudah ada (`HRD-DEC-224`). Modul perjalanan dinas hanya menyediakan aksi **Ajukan** dan menyelaraskan status SPPD setiap kali workflow berubah (`INT-HR-109`).
+
+Contoh alur: Perawat Sari membuat SPPD seminar ke Surabaya (status `Draft`), lalu menekan Ajukan (`Submitted`, menunggu persetujuan). Kepala Ruang menyetujuinya dari kotak masuk persetujuan. Status SPPD menjadi `Approved`, anggaran disetujui sama dengan estimasi Rp 5.000.000, presensi "Hadir Dinas Luar" dan gembok roster terpasang, dan Sari kini dapat mengajukan uang muka paling banyak Rp 4.000.000.
+
+### 34.1 Grup Tag Swagger `[Tags("Corporate - HRD Business Travel Requests")]` — perubahan
+
+Base URL: `api/v1/hrd/travel/requests`. Controller `BusinessTravelRequestsController`, `ControllerName = "BusinessTravelRequest"`.
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | **Diubah** | Membuat SPPD sebagai `Draft`; belum memulai workflow; `ApprovedBudgetAmount` = 0 sampai disetujui | `BusinessTravelRequest : Create` | `CreateBusinessTravelRequestDto` (tidak berubah) | `201 Created`, `ApiResponse<BusinessTravelDetailResponseDto>` |
+| `PUT` | `/{id}` | **Diubah** | Mengubah SPPD; hanya bila `Draft`, `NeedRevision`, atau `Submitted` lama tanpa workflow (`HRD-DEC-227`) | `BusinessTravelRequest : Update` | `UpdateBusinessTravelRequestDto` (tidak berubah) | `200 OK`; `409` bila status lain |
+| `POST` | `/{id}/submit` | **Rencana (belum tersedia)** | **Ajukan**: membuat atau memakai ulang instance workflow `BUSINESS_TRAVEL_REQUEST`, lalu mengirimkannya ke penyetuju | `BusinessTravelRequest : Create` | Tanpa body | `200 OK`, `ApiResponse<BusinessTravelDetailResponseDto>`; `400`, `404`, `409` |
+| `PUT` | `/{id}/cancel` | **Diubah** | Bila SPPD sedang menunggu persetujuan, workflow-nya ditarik (`Withdraw`) sebelum SPPD menjadi `Cancelled`; bila SPPD sudah disetujui, gembok roster dan presensi Dinas Luar dilepas (`INT-HR-110`) | `BusinessTravelRequest : Cancel` | `CancelTravelRequestDto` (tidak berubah) | `200 OK`; `409` bila penarikan workflow gagal |
+| `GET` | `/`, `/{id}`, `/{id}/document-pdf` | Tetap | Daftar, detail, dan dokumen SPPD | `BusinessTravelRequest : Read` | — | Respons detail ditambah ruas 34.4 |
+
+Persetujuan, pengembalian untuk revisi, dan penolakan dikerjakan lewat endpoint kotak masuk persetujuan Workflow V2 yang **sudah ada** (slice `S-A7-V2`). Penyetujunya ditentukan definisi workflow di Master Workflow; hak `Hrd.BusinessTravel.Request.Approve` diwujudkan sebagai penugasan approver workflow, bukan endpoint modul.
+
+### 34.2 Grup Tag Swagger `[Tags("Corporate - HRD Business Travel Advances")]` — perubahan
+
+| Method | Path | Status | Perubahan |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/hrd/travel/advances` | **Diubah** | Ditolak `409` bila SPPD belum disetujui (`VR-TRV-30`). Plafon 80% dihitung dari anggaran disetujui yang diisi saat persetujuan (`HRD-DEC-226`). Uang muka yang sudah ada sebelum v28 tidak terpengaruh (`HRD-DEC-227`) |
+
+### 34.3 Grup Tag Swagger `[Tags("Corporate - HRD Business Travel Settlements")]` — perubahan
+
+| Method | Path | Status | Perubahan |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/hrd/travel/settlements` | **Diubah** | Ditolak `409` bila SPPD belum disetujui dan tidak punya uang muka yang sudah dicairkan (`VR-TRV-31`); SPPD lama dengan uang muka `Paid` tetap dapat di-settle (`HRD-DEC-227`) |
+
+### 34.4 DTO response — tambahan pada `BusinessTravelDetailResponseDto`
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `travelStatus` | string | Nilai: `Draft`, `Submitted` (menunggu persetujuan), `NeedRevision` (**baru**, dikembalikan untuk revisi), `Approved`, `Rejected`, `Cancelled`, lalu status lanjutan yang sudah ada (`AdvancePaid`, `SettlementSubmitted`, `SettlementVerified`, `Completed`) |
+| `workflowInstanceId` | GUID? | Instance workflow persetujuan; `null` sebelum diajukan dan untuk SPPD lama |
+| `currentApprovalStep` | int | Tahap persetujuan saat ini |
+| `submittedAt`, `approvedAt`, `rejectedAt` | datetime? | Waktu diajukan, disetujui, ditolak (UTC) |
+| `isApproved` | bool | `true` bila `approvedAt` terisi dan status bukan `Cancelled`/`Rejected` — syarat gerbang `HRD-DEC-226` |
+| `canSubmit` | bool | Tombol Ajukan boleh tampil (status `Draft`, `NeedRevision`, atau `Submitted` lama tanpa workflow) |
+
+### 34.5 Kode status dan pesan
+
+| Kode | Kapan | Pesan |
+| --- | --- | --- |
+| `409` | Ajukan pada status yang tidak boleh diajukan (`VR-TRV-26`) | "SPPD hanya dapat diajukan dari status Draft atau Dikembalikan untuk revisi." |
+| `409` | Ubah SPPD saat menunggu persetujuan atau sesudahnya (`VR-TRV-27`) | "SPPD yang sedang menunggu persetujuan atau sudah diputuskan tidak dapat diubah." |
+| `409` | Ajukan ulang SPPD yang ditolak (`VR-TRV-28`) | "SPPD yang ditolak tidak dapat diajukan ulang. Buat SPPD baru." |
+| `400` | Workflow tidak dapat menentukan penyetuju, misalnya pemohon tidak punya atasan langsung (`VR-TRV-29`) | Pesan dari Workflow V2 diteruskan apa adanya |
+| `409` | Uang muka untuk SPPD belum disetujui (`VR-TRV-30`) | "SPPD belum disetujui. Ajukan SPPD dan tunggu persetujuan sebelum mengajukan uang muka." |
+| `409` | Penarikan workflow ditolak saat membatalkan SPPD yang menunggu (`VR-TRV-33`) | Pesan dari Workflow V2 diteruskan apa adanya |
+| `409` | Settlement untuk SPPD belum disetujui (`VR-TRV-31`) | "SPPD belum disetujui sehingga belum dapat dipertanggungjawabkan." |
+
+---
+
+## 35. Amandemen Slice `S-A7-V2`: Kotak Masuk Persetujuan Terpadu di atas Engine Workflow (Kontrak `v29`)
+
+| Field | Nilai |
+| --- | --- |
+| Slice | `S-A7-V2` — Employee Self-Service & Kotak Masuk Persetujuan Terpadu (amandemen bagian 30) |
+| `contract_version` | `v29` |
+| `last_changed_in` | `v29` — bagian 35 ditambahkan 20 November 2026 |
+| Status | `approved` — pengguna, 20 November 2026 ("setujui kontrak v29, lanjut plan") |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna (`HRD-DEC-015`) / 20 November 2026 |
+| `input_revision` | `00-interview-decisions.md` revision `40` bagian 56 (`HRD-DEC-229` s.d. `HRD-DEC-236`, `HRD-TF-080` s.d. `HRD-TF-087`, `HRD-ASM-88` s.d. `HRD-ASM-90`) |
+| `input_hash` — decision log | dicatat di `blueprint-manifest.md` (`artifact_hashes.00-interview-decisions.md`, revisi 66) |
+| Backend SHA | `815ce085` (branch `yoga`) |
+| Frontend SHA | `564365595` (branch `YogaV2`) + working tree `FE-HRD-338`/`339`/`393` |
+| Dampak kompatibilitas | **Mengubah perilaku**: antrean, ringkasan, dan aksi kotak terpadu bekerja di atas penugasan engine `WorkflowService` (bukan engine V2 lama); Tolak wajib alasan berkode; PIN tidak lagi diminta; membuat instance generik, membatalkan, dan mengirim ulang permohonan milik modul lewat endpoint generik ditolak `409`. **Menambah**: ruas penugasan, kelayakan massal, dan blok aksi saya pada respons. Path endpoint **tidak** berubah, sehingga layar lama tetap memanggil alamat yang sama. Bagian 30 tetap berlaku untuk yang tidak disebut di sini |
+| Bukti as-is | `HRD-TF-080` s.d. `HRD-TF-087`; impact scan `815ce085` (20 November 2026): layanan delegasi V2 sudah mengisi `DelegatorUserId`/`DelegateUserId` dan status `Active` untuk delegasi baru, sehingga `HRD-TF-085` hanya tersisa untuk delegasi lama |
+
+Bagian ini mengatur cara Kotak Masuk Persetujuan Terpadu bekerja sesudah penyatuan. Inti aturannya satu: **semua keputusan persetujuan dijalankan engine `WorkflowService`** (`HRD-DEC-229`). Kotak terpadu hanya menampilkan tugas dari engine dan meneruskan keputusan atasan kepadanya. Dengan begitu penangan modul (`IWorkflowReferenceLifecycleHandler`) selalu berjalan. Contohnya, SPPD menjadi Disetujui beserta presensi Dinas Luar, persis seperti saat diputuskan dari kotak masuk lama.
+
+Contoh alur: Ns. Rina (Kepala Ruang) membuka Kotak Masuk Persetujuan Terpadu. Isinya SPPD perawat Sari, dua cuti tahunan, dan satu lembur. Rina menyetujui SPPD satu per satu, lalu mencentang cuti dan lembur untuk Setujui Massal. Rina sedang cuti minggu depan, jadi ia mendaftarkan Wakil Karu sebagai Plh. Selama periode itu tugas Rina juga tampil di kotak Wakil Karu, dan Wakil Karu dapat memutuskannya atas nama Rina.
+
+### 35.1 Grup Tag Swagger `[Tags("Corporate - HRD Workflow Inbox & Instances")]` — perubahan
+
+Base URL: `api/v1/hrd/workflow`. Controller `WorkflowInboxAndInstancesController`.
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/inbox` | **Diubah** | Daftar tugas persetujuan engine yang menunggu keputusan pengguna login: penugasan berstatus terbuka (`Pending`, `Available`, `InProgress`, `Delegated`) milik pengguna, ditambah penugasan milik pejabat yang mendelegasikan kepadanya secara aktif (`HRD-DEC-234`). Penugasan engine V2 lama (`ApproverEmployeeId` terisi) **tidak** ditampilkan | `WorkflowInboxInstance : ViewInbox` | Query `requestType` (kode `ReferenceType`, cocok persis tanpa membedakan huruf besar), `isUrgent`, `isDelegated`, `pageNumber`, `pageSize` | `200 OK`, `ApiResponse<PagedResult<ApprovalInboxItemV2ResponseDto>>` (ruas 35.6) |
+| `GET` | `/inbox/summary` | **Diubah** | Ringkasan dari himpunan yang sama dengan `/inbox`: total menunggu, mendesak (SLA kurang dari 4 jam), sebagai Plh, lewat SLA, dan jumlah per jenis (`ReferenceType`) | `WorkflowInboxInstance : ViewInbox` | — | `200 OK`, `ApiResponse<ApprovalInboxSummaryV2ResponseDto>` (bentuk tetap) |
+| `GET` | `/instances/{id}` | **Diubah** | Detail instance; ditambah blok `myAction` bila pengguna login (atau Plh-nya) memegang penugasan terbuka pada tahap aktif | `WorkflowInboxInstance : ViewInstanceDetail` | — | `200 OK`, `ApiResponse<WorkflowInstanceDetailV2ResponseDto>` + `myAction` (35.6); `404` |
+| `POST` | `/instances` | **Dihentikan** | Membuat permohonan generik tidak lagi didukung: permohonan dibuat dari layar modul pemiliknya | `WorkflowInboxInstance : CreateInstance` | — | `409 Conflict` "Permohonan dibuat dari layar modul (Cuti, Lembur, SPPD, dan seterusnya)." |
+| `PUT` | `/instances/{id}/cancel` | **Diubah** | Membatalkan instance engine V2 lama tetap seperti bagian 30. Untuk instance engine (`WorkflowService`), ditolak dan pemohon diarahkan ke layar modul, karena pembatalan modul ikut menarik workflow (contoh SPPD `INT-HR-110`) | `WorkflowInboxInstance : CancelMyInstance` | `CancelWorkflowRequestDto` (tetap) | `200 OK` (engine lama); `409` "Batalkan permohonan dari layar modulnya." (engine) |
+| `GET` | `/my-requests` | **Diubah** | Riwayat permohonan pengguna login: instance dengan `RequestedByUserId` = pengguna **atau** `RequestedByEmployeeId` = pegawai pengguna (permohonan engine sering tanpa id pegawai). Setiap baris membawa `isModuleManaged` | `WorkflowInboxInstance : ViewOwn` | Query tetap | `200 OK`, `ApiResponse<PagedResult<WorkflowInstanceV2ResponseDto>>` + `isModuleManaged` |
+
+### 35.2 Grup Tag Swagger `[Tags("Corporate - HRD Workflow Approval Actions")]` — perubahan
+
+Base URL: `api/v1/hrd/workflow`. Controller `WorkflowApprovalActionsController`.
+
+Path tetap memakai `stepInstanceId`. Server mencari penugasan terbuka pada tahap itu yang boleh dijalankan pengguna login, dengan urutan: (1) penugasan atas namanya sendiri; (2) penugasan pejabat yang mendelegasikan kepadanya secara aktif. Bila tidak ada, server menjawab `403`. Aksi lalu diteruskan ke `WorkflowService` dengan `workflowInstanceId` dan `assignmentId` tersebut.
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/approvals/{stepInstanceId}/approve` | **Diubah** | Menyetujui lewat `WorkflowService.ApproveAsync` | `WorkflowApprovalAction : ApproveRequest` | `ApproveActionRequestDto` (`note` opsional, maks 1000). `pinSignature` **dihapus**; bila masih dikirim, diabaikan | `200 OK`, `ApiResponse<WorkflowActionV2ResponseDto>`; `400`, `403`, `404`, `409` |
+| `POST` | `/approvals/{stepInstanceId}/reject` | **Diubah** | Menolak lewat `WorkflowService.RejectAsync` dengan alasan berkode | `WorkflowApprovalAction : RejectRequest` | `RejectActionRequestDto` (`rejectionReasonId` wajib; `comment` wajib bila alasan bertanda `isCommentRequired`, maks 1000). `rejectReason` (teks minimal 15 karakter) dan `pinSignature` **dihapus** | `200 OK`; `400` bila alasan kosong, tidak aktif, atau bukan untuk jenis ini; `403`, `404`, `409` |
+| `POST` | `/approvals/{stepInstanceId}/return` | **Diubah** | Mengembalikan untuk revisi lewat `WorkflowService.RequestRevisionAsync` | `WorkflowApprovalAction : ReturnForRevision` | `ReturnForRevisionRequestDto` (`revisionNotes` wajib, maks 1000; diteruskan sebagai `comment`) | `200 OK`; `400`, `403`, `404`, `409` |
+| `POST` | `/approvals/bulk-approve` | **Diubah** | Persetujuan massal: setiap butir diputuskan lewat `WorkflowService.ApproveAsync` satu per satu, dalam transaksi masing-masing; butir yang tidak layak (35.5) atau gagal dilewati dan dilaporkan | `WorkflowApprovalAction : BulkApprove` | `BulkApproveRequestDto` (`stepInstanceIds` 1–50, `batchNote` opsional). `pinSignature` **dihapus** | `200 OK`, `ApiResponse<BulkApproveResultDto>` (bentuk tetap) |
+| `POST` | `/instances/{id}/resubmit` | **Diubah** | Kirim ulang generik hanya untuk instance engine V2 lama. Instance engine ditolak: pemohon memperbaiki dan mengajukan ulang dari layar modul (`HRD-DEC-235`) | `WorkflowApprovalAction : ResubmitRevision` | `ResubmitWorkflowRequestDto` (tetap) | `200 OK` (engine lama); `409` "Perbaiki dan ajukan ulang dari layar modulnya." (engine) |
+
+### 35.3 Grup Tag Swagger `[Tags("Corporate - HRD Workflow Delegations")]` — perubahan
+
+| Method | Path | Status | Perubahan |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/hrd/workflow/delegations` | **Diubah (kecil)** | Tetap menyimpan kedua kunci (`DelegatorUserId`/`DelegateUserId` dan `PrincipalEmployeeId`/`DelegateEmployeeId`) dan status `Active` (sudah benar sejak `815ce085`). Delegasi ini **berlaku juga untuk penugasan engine yang sudah ada** (35.2 dan 35.1), bukan hanya penugasan yang dibuat sesudahnya |
+| `GET` | `/api/v1/hrd/workflow/delegations`, `/my-acting-roles` | **Diubah (kecil)** | Membaca delegasi lama yang belum punya kunci pegawai, sesudah kuncinya dilengkapi (rencana data 37.7 arsitektur backend) |
+
+Endpoint delegasi lama `api/v1/corporate/human-resource/approval-delegations` tetap ada sampai dipensiunkan bersama kotak masuk lama (`HRD-DEC-231`, `HRD-DEC-234`).
+
+### 35.4 Grup Tag Swagger `[Tags("Corporate - HRD Workflow SLA & Matrix Management")]` — perubahan
+
+| Method | Path | Status | Perubahan |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/hrd/workflow/sla/overdue` | **Diubah** | Membaca penugasan engine terbuka yang `DueAt` sudah lewat, bukan instance engine V2 lama |
+| `POST` | `/api/v1/hrd/workflow/sla/escalate/{id}` | **Diubah** | Eskalasi manual oleh HR Admin menambahkan penugasan baru untuk pejabat tujuan pada tahap aktif dengan aturan yang sama seperti eskalasi otomatis (`HRD-DEC-232`): penyetuju awal tetap boleh memutuskan. `ManualEscalationRequestDto` tetap (`targetApproverEmployeeId`, `escalationReason`); pejabat tujuan wajib berakun aktif dan bukan pemohon |
+| `GET` | `/api/v1/hrd/workflow/sla/compliance-report` | **Diubah** | Dihitung dari penugasan dan aksi engine |
+| `GET`/`POST` | `/api/v1/hrd/workflow/matrix` | Tetap | — |
+
+### 35.5 Kelayakan persetujuan massal (`HRD-DEC-233`)
+
+Sebuah butir hanya disetujui dalam batch bila **seluruh** syarat berikut terpenuhi. Butir yang gagal syarat masuk `skippedItems` beserta alasannya.
+
+| Syarat | Alasan dilewati (teks) |
+| --- | --- |
+| Definisi workflow butir bertanda `AllowBulkApproval = true` | "Jenis permohonan ini harus disetujui satu per satu." |
+| Bukan permohonan milik pengguna login (`VR-WF-02`) | "Pejabat tidak boleh menyetujui permohonan sendiri." |
+| Tidak mendesak dan belum lewat SLA | "Permohonan mendesak atau lewat SLA wajib ditinjau satu per satu." |
+| Pengguna memegang penugasan terbuka pada tahap itu (35.2) | "Anda bukan penyetuju tahap ini." |
+| Engine berhasil memprosesnya | Pesan galat engine diteruskan apa adanya |
+
+### 35.6 DTO response — tambahan dan perubahan
+
+`ApprovalInboxItemV2ResponseDto` (butir antrean):
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `assignmentId` | GUID | **Baru**. Penugasan engine yang ditampilkan |
+| `stepInstanceId` | GUID | Tetap; dipakai path aksi |
+| `workflowInstanceId` | GUID | Tetap |
+| `workflowNumber` | string | Nomor instance engine (`RequestNumber`) |
+| `requestType` | string | Kode `ReferenceType` engine, misalnya `HRD_TRV_REQUEST`, `LEAVE_REQUEST`, `OVERTIME_REQUEST` |
+| `referenceNumber` | string? | **Baru**. Nomor dokumen modul (`ExternalReferenceNumber`), misalnya `SPPD/RSQ/2026/11/0013` |
+| `applicantName`, `departmentName` | string | Dari pemohon instance; bila pemohon tanpa data pegawai, dari nama akun |
+| `summaryText` | string | Nomor dokumen modul dan nama workflow |
+| `submittedAt`, `slaDeadline`, `isOverdue`, `isUrgent` | — | `slaDeadline` = `DueAt` penugasan; `isUrgent` = sisa kurang dari 4 jam |
+| `isDelegated`, `delegatedFromEmployeeName` | — | `true` bila tampil karena delegasi aktif atau penugasan engine sudah dialihkan ke Plh |
+| `canBulkApprove` | bool | **Baru**. Hasil syarat 35.5 untuk butir ini, agar layar dapat menonaktifkan pilihan massal |
+| `currentStepNumber`, `totalSteps`, `riskIndicator`, `amount`, `priorityLevel` | — | Tetap |
+
+`WorkflowInstanceDetailV2ResponseDto` — blok baru `myAction` (`null` bila pengguna tidak memegang penugasan terbuka):
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `assignmentId`, `stepInstanceId` | GUID | Penugasan yang akan dipakai aksi |
+| `isDelegated` | bool | Pengguna bertindak sebagai Plh |
+| `onBehalfOfName` | string? | Nama pejabat definitif bila sebagai Plh |
+| `availableActions` | string[] | `Approve`, `Reject`, `RequestRevision` sesuai jenis tahap |
+| `rejectionReasons` | `ApprovalInboxRejectionReasonOptionResponse[]` | Alasan aktif untuk jenis dan tahap ini (sama dengan kotak masuk lama) |
+
+`WorkflowInstanceV2ResponseDto` — tambahan `isModuleManaged` (bool): `true` untuk instance engine (`WorkflowService`), sehingga layar ESS mengarahkan perbaikan, pembatalan, dan pengajuan ulang ke layar modul.
+
+### 35.7 Kode status dan pesan
+
+| Kode | Kapan | Pesan |
+| --- | --- | --- |
+| `403` | Pengguna tidak memegang penugasan terbuka pada tahap itu, langsung maupun sebagai Plh aktif | "Anda bukan penyetuju tahap ini." |
+| `403` | Penyetuju (atau Plh) adalah pemohon (`VR-WF-02`) | "Pejabat tidak boleh menyetujui permohonan sendiri." |
+| `400` | Tolak tanpa alasan, alasan tidak aktif, atau alasan bukan untuk jenis permohonan ini (`VR-WF-26`) | "Pilih alasan penolakan yang berlaku untuk permohonan ini." |
+| `400` | Alasan mewajibkan catatan tetapi `comment` kosong (`VR-WF-27`) | "Alasan ini mewajibkan catatan." |
+| `400` | Kembalikan tanpa catatan revisi (`VR-WF-28`) | "Isi catatan revisi untuk pemohon." |
+| `409` | Penugasan sudah diputuskan pihak lain (penyetuju awal atau atasan hasil eskalasi), atau instance tidak lagi menunggu | Pesan engine diteruskan apa adanya |
+| `409` | Membuat instance generik; membatalkan atau mengirim ulang instance milik modul lewat endpoint generik (`VR-WF-29`) | Lihat 35.1 dan 35.2 |
+
+---
+
+## 36. Amandemen Paket B: Lima Entry Point Menu SDM (Kontrak `v30`)
+
+| Field | Nilai |
+| --- | --- |
+| Lingkup | Dashboard SDM, Seleksi Administrasi, Tes/Wawancara, Riwayat Penyelesaian, Tindak Disiplin (navigasi SDM Paket B) |
+| `contract_version` | `v30` |
+| `last_changed_in` | `v30` — bagian 36 ditambahkan 22 November 2026 |
+| Status | `approved` — pengguna, 23 November 2026 ("1. ya setujui 2. A"; `HRD-DEC-247`) |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna (`HRD-DEC-015`) / 23 November 2026 |
+| `input_revision` | `00-interview-decisions.md` revision `42` bagian 57 (`HRD-DEC-237` s.d. `HRD-DEC-246`); capability map revisi `1.5` bagian 17 |
+| Backend SHA | `b164edc1` (branch `MHamzah`) |
+| Frontend SHA | `573b7429c` (branch `HamzahV2`) |
+| Dampak kompatibilitas | **Menambah** dua endpoint baca-saja dan satu parameter query. **Mengubah perilaku**: (1) daftar dan detail evaluasi kandidat dibatasi menurut penilai bagi pengguna tanpa `CandidateEvaluation : ViewAll`; (2) kirim nilai uji klinis ditolak `403` bila pengirim bukan penilai yang ditugaskan; (3) bagian disiplin Employee 360 kosong bagi pengguna tanpa `EmployeeDisciplinary : ViewSanctions`. Field lama tidak dihapus |
+| Bukti as-is | Capability map 17.1–17.3 |
+
+Bagian ini menyediakan data untuk lima pintu masuk menu SDM. Dua pintu (Seleksi Administrasi, Tindak Disiplin) memakai endpoint yang sudah ada apa adanya; tiga lainnya butuh perubahan kecil.
+
+Contoh alur: Rina (Manajer SDM) membuka Dashboard SDM. Frontend memanggil `GET /workforce-dashboard/summary` dan menampilkan "8 dokumen kedaluwarsa, 2 SIP sudah habis". Rina mengklik angka 2; frontend memanggil `GET /workforce-dashboard/drilldown?panel=DOCUMENT_EXPIRY&bucket=EXPIRED&documentType=SIP` dan menampilkan nama dr. Dodi dan perawat Sari.
+
+### 36.1 Grup Tag Swagger `[Tags("Corporate / Human Resource / Workforce Core / Workforce Dashboard")]` — baru
+
+Base URL: `api/v1/corporate/human-resource/workforce-dashboard`. Controller `HrdWorkforceDashboardController`, `ControllerName = "HrdWorkforceDashboard"`.
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/summary` | **Rencana (belum tersedia)** | Lima panel Dashboard SDM, dihitung saat dipanggil | `HrdWorkforceDashboard : Read` | Tanpa parameter | `200 OK`, `ApiResponse<WorkforceDashboardSummaryResponse>` |
+| `GET` | `/drilldown` | **Rencana (belum tersedia)** | Daftar nama di balik satu angka panel | `HrdWorkforceDashboard : Read` | `WorkforceDashboardDrilldownQuery` | `200 OK`, `ApiResponse<PagedResult<WorkforceDashboardDrilldownItem>>`; `400` bila kombinasi panel/kelompok tidak sah (`VR-PKB-01`, `VR-PKB-02`) |
+
+**`WorkforceDashboardSummaryResponse`**
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `operationalDate` | date | Tanggal operasional rumah sakit yang dipakai menghitung (`AppDateTimeHelper.OperationalDate()`) |
+| `generatedAt` | datetime | Waktu perhitungan (UTC) |
+| `employeeOverview.activeCount` | int | `MstEmployee.IsActive = true`, tidak terhapus |
+| `employeeOverview.newThisMonthCount` | int | `JoinDate` pada bulan operasional berjalan |
+| `employeeOverview.leftThisMonthCount` | int | `ResignDate` pada bulan operasional berjalan |
+| `professionDistribution[]` | list | `{ professionId: GUID?, professionName: string, activeCount: int }`, hanya pegawai aktif; `professionId = null` → `professionName = "Belum diisi"`; urut jumlah terbanyak |
+| `activeStatus.activeCount` / `inactiveCount` | int | Menurut `MstEmployee.IsActive`; pegawai skorsing tetap aktif karena skorsing hanya menonaktifkan akun login (`HRD-ASM-93`) |
+| `contractExpiry.totalWithin60Days` | int | Sama dengan `ExpiringSoonCount` pada `GET employment-contracts/summary` |
+| `contractExpiry.h60Count`, `h14Count`, `h7Count`, `pendingDecisionCount`, `overdueCount` | int | Sama persis dengan `ReminderH60Count`, `EscalationH14Count`, `NoticeDueH7Count`, `PendingDecisionCount`, `OverdueCount` pada `GET employment-contracts/renewal-summary` (`HRD-DEC-245`) |
+| `documentExpiry.expiredCount`, `within30Count`, `days31To60Count`, `days61To90Count` | int | Total semua jenis dokumen per kelompok (pemetaan kamus data 31.2) |
+| `documentExpiry.byType[]` | list | `{ documentType, expiredCount, within30Count, days31To60Count, days61To90Count }`; `documentType` ∈ `SIP_STR`, `SPK_RKK`, `MANDATORY_CERTIFICATE` |
+
+**`WorkforceDashboardDrilldownQuery`**
+
+| Parameter | Tipe | Wajib | Keterangan |
+| --- | --- | --- | --- |
+| `panel` | string | Ya | `EMPLOYEE_OVERVIEW`, `PROFESSION`, `ACTIVE_STATUS`, `CONTRACT_EXPIRY`, `DOCUMENT_EXPIRY` |
+| `bucket` | string | Ya | Kelompok sah per panel (state-transition 34.1) |
+| `professionId` | GUID | Hanya `PROFESSION` | Kosong berarti "Belum diisi" |
+| `documentType` | string | Tidak | Hanya `DOCUMENT_EXPIRY`; kosong = semua jenis |
+| `search` | string | Tidak | Nama atau nomor pegawai, maks. 100 karakter |
+| `pageNumber`, `pageSize` | int | Tidak | Bawaan 1 dan 20; `pageSize` maks. 100 |
+
+**`WorkforceDashboardDrilldownItem`**
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `workforceProfileId` | GUID | Untuk membuka Employee 360 |
+| `employeeCode`, `employeeName` | string | Nomor dan nama pegawai |
+| `professionName` | string? | Nama profesi |
+| `detailLabel` | string | Keterangan baris, mis. "SIP …0123", "PKWT berakhir", "BTCLS"; nomor lisensi hanya 4 karakter terakhir (permission-audit 34.2) |
+| `referenceDate` | date? | Tanggal acuan: tanggal masuk, keluar, akhir kontrak, atau kedaluwarsa dokumen |
+| `daysRemaining` | int? | Sisa hari (negatif bila sudah lewat); kosong untuk panel 1–3 |
+
+Response tidak memuat gaji, nomor identitas, data disiplin, atau data kesehatan.
+
+### 36.2 Grup Tag Swagger `[Tags("Corporate - HRD Employee Disciplinary & Just Culture")]` — perubahan
+
+Base URL: `api/v1/hrd/disciplinary`.
+
+Controller `EmployeeDisciplinaryController`, `ControllerName = "EmployeeDisciplinary"`.
+
+| Method | Path | Status | Perubahan / kegunaan | Hak akses | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/sanctions` | **Diubah — parameter baru Rencana (belum tersedia)** | Tambah parameter `statuses` (boleh berulang: `?statuses=Expired&statuses=RevokedOnAppeal`) untuk Riwayat Penyelesaian; nilai sah `Active`, `Expired`, `RevokedOnAppeal`. `status` lama tetap; keduanya tidak boleh dikirim bersamaan | `EmployeeDisciplinary : ViewSanctions` | `200 OK`, `ApiResponse<PagedResult<SanctionListItemDto>>`; `400` (`VR-PKB-04`, `VR-PKB-05`) |
+| `GET` | `/incidents?status=ResolvedNoSanction` | Tetap | Bagian "Insiden ditutup tanpa sanksi" pada Riwayat Penyelesaian | `EmployeeDisciplinary : ViewIncidents` | `200 OK` |
+| `GET` | `/sanctions/employee/{employeeId}` | Tetap | Tidak dipakai layar Paket B | `EmployeeDisciplinary : ViewSanctions` | — |
+
+Menu **Tindak Disiplin** memakai `GET /sanctions` tanpa perubahan (`HRD-DEC-238`).
+
+### 36.3 Grup Tag Swagger `[Tags("Corporate / Human Resource / Workforce Core / Employee 360")]` — perubahan
+
+| Method | Path | Status | Perubahan | Hak akses |
+| --- | --- | --- | --- | --- |
+| `GET` | `/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/employee-360` | **Diubah — Rencana (belum tersedia)** | Bagian `confidentialPersonalAndDiscipline` diisi menurut hak pemanggil (`HRD-DEC-246` butir 4). Tambahan field di bawah | `HrdEmployee360 : Read` (tetap); isi disiplin bergantung `EmployeeDisciplinary : ViewSanctions` |
+
+| Field baru | Tipe | Keterangan |
+| --- | --- | --- |
+| `confidentialPersonalAndDiscipline.disciplineHidden` | bool | `true` bila pemanggil tidak memegang `ViewSanctions`; `disciplinaryRecords` dan `disciplinarySanctions` kosong |
+| `confidentialPersonalAndDiscipline.disciplinaryRecords[]` | list | `{ source: "OFFICIAL"\|"LEGACY", referenceNumber, level, title, issuedDate, validUntil, status, isActive }`; urut `issuedDate` terbaru. `OFFICIAL` dari sanksi alur resmi; `LEGACY` dari catatan profil lama, selalu `isActive = false` dan baca-saja |
+| `confidentialPersonalAndDiscipline.disciplinarySanctions` | list string | **Usang** — tetap diisi dari sumber yang sama untuk kompatibilitas; layar baru memakai `disciplinaryRecords` |
+
+### 36.4 Grup Tag Swagger `[Tags("Corporate / Human Resource / Recruitment Management / Candidate Evaluation")]` — perubahan
+
+Base URL: `api/v1/corporate/human-resource/recruitment/evaluations`.
+
+| Method | Path | Status | Perubahan / kegunaan | Hak akses | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | **Diubah — Rencana (belum tersedia)** | Daftar Tes/Wawancara. Parameter baru `track` (`HR` atau `CLINICAL`) dan `pendingOnly` (bool). Tanpa `CandidateEvaluation : ViewAll`, hasil hanya evaluasi dengan `EvaluatorUserId` = pengguna yang login | `CandidateEvaluation : Read`; cakupan penuh dengan `CandidateEvaluation : ViewAll` | `200 OK`, `ApiResponse<PagedResult<CandidateEvaluationListItemResponse>>`; `400` (`VR-PKB-06`) |
+| `GET` | `/{id}` | **Diubah — Rencana (belum tersedia)** | Tanpa `ViewAll`, detail milik penilai lain ditolak | `CandidateEvaluation : Read` | `200 OK`; `403` (`VR-PKB-07`) |
+| `POST` | `/{id}/submit-clinical` | **Diubah — Rencana (belum tersedia)** | Ditolak bila pengirim bukan `EvaluatorUserId` evaluasi tersebut; veto klinis `HRD-DEC-077` tetap berlaku | `CandidateEvaluation : EvaluateClinical` | `200 OK`; `403` (`VR-PKB-08`) |
+| `POST` | `/schedule`, `/{id}/submit-hr` | Tetap | — | Tetap | — |
+
+### 36.5 Grup Tag Swagger `[Tags("Corporate / Human Resource / Recruitment Management / Candidate Screening")]` — tetap, konsumen baru
+
+| Method | Path | Status | Kegunaan bagi Paket B | Hak akses |
+| --- | --- | --- | --- | --- |
+| `GET` | `/api/v1/corporate/human-resource/recruitment/screenings` | Tetap | Daftar Seleksi Administrasi per lamaran; filter `status` (`Pending`, `Passed`, `Rejected`; bawaan layar `Pending`), `vacancyId`, `clinicalResult`, `search`, halaman (`HRD-DEC-244`) | `CandidateScreening : Read` |
+| `GET` | `/screenings/{id}`, `/screenings/candidates/{candidateId}/documents` | Tetap | Detail dan berkas | `CandidateScreening : Read` |
+| `POST` | `/screenings`, `/screenings/evaluate` | Tetap | Menandai Lolos/Gugur | `CandidateScreening : Evaluate` |
+
+### 36.6 Kode status dan pesan
+
+| Kode | Kapan | Pesan (Bahasa Indonesia) |
+| --- | --- | --- |
+| `400` | Panel atau kelompok drill-down tidak dikenal (`VR-PKB-01`, `VR-PKB-02`) | "Panel atau kelompok dashboard tidak dikenal." |
+| `400` | `pageSize` > 100 atau `search` > 100 karakter (`VR-PKB-03`) | "Parameter halaman atau pencarian melebihi batas." |
+| `400` | Nilai `statuses` tidak sah (`VR-PKB-04`) | "Status sanksi tidak dikenal." |
+| `400` | `status` dan `statuses` dikirim bersamaan (`VR-PKB-05`) | "Gunakan salah satu: status atau statuses." |
+| `400` | `track` bukan `HR`/`CLINICAL` (`VR-PKB-06`) | "Jalur evaluasi tidak dikenal." |
+| `403` | Detail evaluasi milik penilai lain (`VR-PKB-07`) | "Evaluasi ini ditugaskan kepada penilai lain." |
+| `403` | Kirim nilai uji klinis oleh bukan penilai yang ditugaskan (`VR-PKB-08`) | "Hanya penilai yang ditugaskan yang dapat mengirim nilai uji ini." |
+| `403` | Tanpa hak endpoint | Pesan standar hak akses |
+
+## 37. Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v31`)
+
+| Field | Nilai |
+| --- | --- |
+| `contract_version` | `v31` |
+| Status | `approved` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna / 24 November 2026 ("setujui kontrak v30, lanjut plan") |
+| `input_revision` | `00-interview-decisions.md` revision `44` (bagian 58, `HRD-DEC-248` s.d. `HRD-DEC-256`); `02-backend-architecture.md` bagian 39 |
+| `input_hash` — decision log | `49932d6b90674815f78600a006b2f5118cde3e2795b2d811e592f38f8033f1a9` |
+| Backend SHA | `4d2c0162` (branch `yoga`) |
+| Dampak kompatibilitas | **Tidak memutus klien.** Penambahan field respons (detail roster, tutup periode), endpoint baru (ESS, penempatan sementara), dan perubahan perilaku tutup periode (lebih sedikit pemblokir) serta cakupan daftar Perubahan Shift/Tukar Dinas (lebih sedikit baris untuk pengguna tanpa `ManageAllUnits`) |
+
+### 37.1 Catatan kontrak lama
+
+| Butir | Isi |
+| --- | --- |
+| Kontrak `v10` — string hak akses `HrdScheduling`, `HrdOnCall` | **`superseded` oleh `v26`** (`HRD-DEC-255`). String itu tidak dipakai kode; acuan hak akses penjadwalan dan siaga adalah bagian 32 dan matriks hak akses bagian 30.1 |
+| `VR-PK-28` batas rentang laporan/ekspor 92 hari | **Diterima** (`HRD-DEC-255`); tidak berubah |
+| `GET /api/v1/corporate/human-resource/master-data/attendance-devices/filters/metadata` | Sudah ada di kode dan dipakai layar Mesin Absen (`FE-HRD-312`); kini dicantumkan di kontrak: `AttendanceDevice : Read`, respons `deviceTypeOptions` (`value`, `label`) |
+
+### 37.2 HR Scheduling - Roster Period
+
+Base URL: `api/v1/corporate/human-resource/scheduling-management/roster-periods`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{id}` | Detail roster; **respons diperluas** (`HRD-DEC-248`) | `RosterPeriod : Read` | — | `RosterPeriodDetailResponse` | Sudah ada — perluasan **Rencana (belum tersedia)** |
+
+Perluasan respons:
+
+| DTO | Field baru | Tipe | Keterangan |
+| --- | --- | --- | --- |
+| `RosterAssignmentResponse` | `isReplacementOnly` | `bool` | `true` = baris tampilan untuk petugas yang hanya memegang shift sebagai pengganti; `id` = `00000000-…` |
+| `ShiftAssignmentItemResponse` | `workforceProfileId` | `Guid` | Petugas yang bertugas sekarang |
+| | `workforceProfileCode` | `string` | |
+| | `workforceDisplayName` | `string` | |
+| | `isReplacement` | `bool` | `true` bila shift hasil Ganti Petugas |
+| | `originalWorkforceProfileId` | `Guid?` | Petugas awal (dari `OriginalEmployeeId`) |
+| | `originalWorkforceDisplayName` | `string?` | |
+
+Contoh potongan respons (Pagi 16 Feb Indra → Raka):
+
+```json
+{
+  "workforceDisplayName": "Raka Firmansyah",
+  "isReplacementOnly": false,
+  "shiftAssignments": [
+    { "shiftDate": "2027-02-16", "shiftName": "Pagi", "workforceDisplayName": "Raka Firmansyah",
+      "isReplacement": true, "originalWorkforceDisplayName": "Indra Setiawan" }
+  ]
+}
+```
+
+### 37.3 HR Attendance - Period Management
+
+Base URL: `api/v1/corporate/human-resource/attendance/periods`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{id}/close-preview` | Pratinjau tutup; isu `PAYROLL_BLOCKING_EXCEPTION` tidak menghitung pengecualian konversi; field baru `conversionExceptionCount` (`int`) | `AttendancePeriod : Read` | — | `AttendancePeriodClosePreviewResponse` | Sudah ada — perubahan **Rencana (belum tersedia)** |
+| `POST` | `/{id}/close` | Tutup; pengecualian konversi ditutup bersama konversi; field baru `closedConversionExceptionCount` (`int`) | `AttendancePeriod : Close` | `CloseAttendancePeriodRequest` (tidak berubah) | `AttendancePeriodActionResponse` | Sudah ada — perubahan **Rencana (belum tersedia)** |
+
+Kode status tidak berubah (`200`, `400`, `401`, `403`, `404`, `409`). `409` kini hanya muncul untuk pemblokir lain (`VR-PK-31`).
+
+### 37.4 Self Services / Human Resource / Early Leave Permission
+
+Base URL: `api/v1/self-services/human-resource/early-leave-permissions`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Pilihan status (`Submitted`, `Approved`, `Rejected`, `Cancelled` beserta label) | `MyEarlyLeavePermission : Read` | — | `EarlyLeaveSelfFilterMetadataResponse` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar izin milik sendiri | `MyEarlyLeavePermission : Read` | Query `fromDate`, `toDate`, `status`, `pageNumber`, `pageSize` (maks. 100) | `PagedResult<EarlyLeaveSelfResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail milik sendiri | `MyEarlyLeavePermission : Read` | — | `EarlyLeaveSelfResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mengajukan izin pulang cepat | `MyEarlyLeavePermission : Create` | `CreateEarlyLeaveSelfRequest` | `EarlyLeaveSelfResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Membatalkan pengajuan `Submitted` | `MyEarlyLeavePermission : Cancel` | `CancelSelfRequest` | `EarlyLeaveSelfResponse` | **Rencana (belum tersedia)** |
+
+| DTO | Field | Tipe | Wajib | Validasi |
+| --- | --- | --- | --- | --- |
+| `CreateEarlyLeaveSelfRequest` | `attendanceDate` | `DateOnly` | Ya | Rekap harian milik sendiri pada tanggal itu ada dan belum terkunci (`VR-PK-32`) |
+| | `requestedEarlyLeaveAt` | `DateTime` | Ya | Di dalam jam shift (aturan yang ada) |
+| | `reason` | `string` | Ya | 1–500 karakter (sama dengan `CreateEarlyLeavePermissionRequest`) |
+| `CancelSelfRequest` | `reason` | `string` | Ya | 1–500 karakter |
+| `EarlyLeaveSelfResponse` | `id`, `attendanceDate`, `requestedEarlyLeaveAt`, `reason`, `status`, `statusLabel`, `rejectionReason`, `createDateTime`, `cancelDateTime` | | | Tanpa data pegawai lain |
+
+Kode status: `200`, `400` (validasi), `401`, `403`, `404` (akun tanpa profil pegawai; data bukan milik sendiri), `409` (batal pada status selain `Submitted`; izin ganda).
+
+### 37.5 Self Services / Human Resource / Official Duty
+
+Base URL: `api/v1/self-services/human-resource/official-duties`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Pilihan kategori dinas dan status | `MyOfficialDuty : Read` | — | `OfficialDutySelfFilterMetadataResponse` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar surat tugas milik sendiri | `MyOfficialDuty : Read` | Query `fromDate`, `toDate`, `status`, paginasi | `PagedResult<OfficialDutySelfResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail milik sendiri | `MyOfficialDuty : Read` | — | `OfficialDutySelfResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/attachments` | Unggah lampiran surat tugas; jenis dan ukuran berkas mengikuti `HrAttachmentStorage` yang dipakai unggahan HR (kategori `attendance-official-duty`) | `MyOfficialDuty : Create` | `multipart/form-data` `file` | `201` `HrStoredAttachment` | **Rencana (belum tersedia)** |
+| `GET` | `/attachments/download` | Unduh lampiran milik pengajuan sendiri; selain itu `404` | `MyOfficialDuty : Read` | Query `url` | Berkas | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mengajukan surat tugas dinas luar | `MyOfficialDuty : Create` | `CreateOfficialDutySelfRequest` | `OfficialDutySelfResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Membatalkan pengajuan `Submitted` | `MyOfficialDuty : Cancel` | `CancelSelfRequest` | `OfficialDutySelfResponse` | **Rencana (belum tersedia)** |
+
+| DTO | Field | Tipe | Wajib | Validasi |
+| --- | --- | --- | --- | --- |
+| `CreateOfficialDutySelfRequest` | `dutyCategory` | `string` | Ya | Maks. 50; salah satu pilihan metadata |
+| | `assignmentOrderNumber` | `string` | Ya | Maks. 100 |
+| | `startAt`, `endAt` | `DateTime` | Ya | `endAt` > `startAt` (aturan yang ada) |
+| | `destination` | `string` | Ya | Maks. 255 |
+| | `purpose` | `string` | Ya | Tidak kosong (aturan yang ada) |
+| | `latitude`, `longitude` | `decimal?` | Tidak | Opsional, sama dengan HR |
+| | `attachmentUrl` | `string?` | Tidak | Maks. 500; hasil unggah `/attachments` milik sendiri |
+
+`OfficialDutySelfResponse` memuat `id`, `dutyCategory`, `assignmentOrderNumber`, `startAt`, `endAt`, `destination`, `purpose`, `attachmentUrl`, `status`, `statusLabel`, `rejectionReason`, `createDateTime`, `cancelDateTime` — tanpa data pegawai lain.
+
+Kode status sama dengan 36.4.
+
+### 37.6 Corporate / Human Resource / Workforce Core / Temporary Assignment
+
+Base URL: `api/v1/corporate/human-resource/workforce-core/temporary-assignments`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Pilihan status waktu (`Upcoming`, `Ongoing`, `Ended` + label) | `TemporaryAssignment : Read` | — | `TemporaryAssignmentFilterMetadataResponse` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar penempatan sementara lintas pegawai dalam cakupan | `TemporaryAssignment : Read` | Query `organizationUnitId`, `fromDate`, `toDate`, `timeStatus`, `search`, `pageNumber`, `pageSize` (maks. 100) | `PagedResult<TemporaryAssignmentResponse>` | **Rencana (belum tersedia)** |
+
+| `TemporaryAssignmentResponse` | Tipe | Keterangan |
+| --- | --- | --- |
+| `id` | `Guid` | Id penempatan |
+| `workforceProfileId`, `profileCode`, `employeeName` | | Pegawai |
+| `originUnitName` | `string?` | Unit penempatan utama pada tanggal mulai |
+| `destinationUnitId`, `destinationUnitName` | | Unit tujuan |
+| `effectiveStartDate`, `effectiveEndDate` | `DateOnly`, `DateOnly?` | |
+| `timeStatus`, `timeStatusLabel` | `string` | `Upcoming`/`Ongoing`/`Ended` |
+| `assignmentNumber`, `description` | `string?` | |
+
+Kode status: `200`, `401`, `403` (izin; filter unit di luar cakupan `VR-PK-27`).
+
+### 37.7 Perubahan Shift dan Tukar Dinas sisi HR (cakupan unit)
+
+| Tag | Base URL | Perubahan |
+| --- | --- | --- |
+| `Corporate / Human Resource / Scheduling Management / Schedule Change Administration` | `api/v1/corporate/human-resource/scheduling-management/schedule-change-requests` | `GET /`, `GET /{id}`, `GET /{id}/workflow`, `GET /summary` hanya memuat pengajuan dalam cakupan baca; `POST /{id}/apply` mensyaratkan cakupan kelola (`403` "Anda tidak berwenang mengubah roster unit ini"). **Rencana (belum tersedia)** |
+| `Corporate / Human Resource / Scheduling Management / Shift Swap Administration` | `api/v1/corporate/human-resource/scheduling-management/shift-swap-requests` | Sama; tukar dinas tampil bila shift pemohon atau tujuan dalam cakupan baca; Terapkan mensyaratkan kedua unit dalam cakupan kelola. **Rencana (belum tersedia)** |
+
+Hak akses tidak berubah (`ScheduleChangeRequest : Read/Update`, `ShiftSwapRequest : Read/Update`).
+
+---
+
+## 38. Kontrak Tambahan Penyempurnaan Menu 03 Rekrutmen & Seleksi (`BE-HRD-FIN-REC`, `v32` Additive — 26 November 2026)
+
+> **Penomoran ulang saat merge `origin/QuilvianIntegrationBackEnd` (27 November 2026):** Bagian ini semula bagian 37 (`v31` Additive). Nomor bagian 37 dan versi `v31` sudah dipakai amandemen `A52-B` (`QuilvianIntegrationBackEnd`), sehingga bagian ini dinomori ulang menjadi bagian 38 (`v32` Additive). Seluruh endpoint, DTO, hak akses, dan gate schema tidak berubah.
+>
+> **Catatan status kontrak & schema gate:** Endpoint pada bagian 38.1 bersifat aditif murni pada tabel database existing (`NO MIGRATION`). Rancangan konseptual yang membutuhkan tabel/kolom atau enum baru (`VacancyRequirementTemplate`, `ApplicationRequirementSnapshot`, `ScreeningChecklistItem`, `EvaluationRubricTemplate`, `EvaluationSessionScoreDetail`, `McuClearanceResult` 4-nilai, dan konfirmasi restriksi MCU) dicatat terpisah pada bagian 38.2 sebagai **`Rencana (terblokir gate schema & kebijakan owner)`**.
+
+### 38.1 Endpoint Aditif Berlaku (`NO MIGRATION`, Kompatibel Backward)
+
+Base URL: `api/v1/corporate/human-resource/recruitment`
+
+| Tag Swagger / Controller | Method | Path | Kegunaan | Hak Akses | Response / Kode Error |
+| --- | --- | --- | --- | --- | --- |
+| `Candidate Screening` | `GET` | `/screenings/application/{applicationId:guid}` | Mengambil detail penapisan berkas beserta ringkasan dokumen pelamar langsung berdasarkan `ApplicationId` tanpa cari berdasarkan nama/`pageSize=50` (`BE-006`) | `CandidateScreening : Read` | `200 ApiResponse<CandidateScreeningResponse>`, `404` bila lamaran belum memiliki screening |
+| `Candidate Screening` | `GET` | `/screenings/summary` | Angka agregat worklist penapisan (`pendingCount`, `passedCount`, `rejectedCount`, `clinicalPendingCount`, `missingScreeningEligibleCount`) | `CandidateScreening : Read` | `200 ApiResponse<ScreeningSummaryResponse>` |
+| `Candidate Screening` | `GET` | `/screenings/reconcile-preview` | Dry-run read-only melihat lamaran `Screening`/`Submitted` aktif yang belum memiliki baris screening dan daftar yang dilewati beserta alasannya (`BE-004`) | `CandidateScreening : Read` | `200 ApiResponse<ScreeningReconcilePreviewResponse>` |
+| `Candidate Screening` | `POST` | `/screenings/reconcile` | Rekonsiliasi idempoten berizin untuk membuat screening `Pending` pada lamaran aktif yang belum punya screening tanpa menyentuh data lulus/gugur (`BE-004`) | `CandidateScreening : Evaluate` | `200 ApiResponse<ScreeningReconcileResultResponse>`, `409` |
+| `Candidate Evaluation` | `GET` | `/evaluations/eligible-applications` | Antrean lamaran yang sudah lulus administrasi (`Passed`) beserta status kesiapan/sesi HR dan Klinis meski sesi belum dijadwalkan (`BE-006`, `AC-03`) | `CandidateEvaluation : Read` | `200 ApiResponse<PagedResult<EvaluationEligibleApplicationResponse>>` |
+| `Job Offer` | `GET` | `/offers/eligible-applications` | Daftar lamaran layak dibuatkan draf penawaran (lolos screening, lulus evaluasi wajib tanpa veto, tanpa offer aktif) (`BE-006`, `BE-014`) | `JobOffer : Read` | `200 ApiResponse<List<EligibleOfferApplicationResponse>>` |
+| `MCU Clearance` | `GET` | `/mcu-clearance/eligible-offers` | Daftar penawaran `ConditionalAccepted` yang belum memiliki rujukan MCU (`BE-006`, `BE-015`) | `OccupationalHealthClearance : Read` | `200 ApiResponse<List<EligibleMcuOfferResponse>>` |
+| `Talent Pool` | `GET` | `/talent-pool/eligible-applications` | Daftar lamaran yang memenuhi syarat masuk Talent Pool cadangan (lolos screening/evaluasi tanpa veto, tidak terminal, kuota lowongan asal penuh) (`BE-016`) | `TalentPool : Read` | `200 ApiResponse<List<EligibleTalentPoolApplicationResponse>>` |
+| `Hiring Handoff` | `GET` | `/handoffs/eligible-offers` | Daftar penawaran `FinalAccepted` dengan hasil MCU `Fit` yang belum memiliki handoff aktif atau butuh pemulihan onboarding (`BE-018`) | `HiringHandoff : Read` | `200 ApiResponse<List<EligibleHandoffOfferResponse>>` |
+| `MCU Clearance` | `GET` | `/mcu-clearance/certificates/attachments/download` | Diperketat dari `Read` ke `OccupationalHealthClearance : Evaluate` (atau pengunggah asli) agar peran HR umum tidak dapat mengunduh berkas sertifikat medis (`BE-015`, `BE-019`) | `OccupationalHealthClearance : Evaluate` | `200 FileStreamResult`, `404` bila tidak berizin/tidak ada |
+
+Perubahan aditif pada kontrak respons existing:
+1. `CandidateListItemResponse`: ditambah properti read-only opsional `applicationsCount`, `activeApplicationsCount`, `latestApplicationId`, `latestApplicationNumber`, `latestVacancyTitle`, `latestApplicationStage`, `latestApplicationStageName`, `latestApplicationStageStatus`, `documentsCount`, `maskedNationalIdNumber`.
+2. `CandidateScreeningListItemResponse` & `CandidateScreeningResponse`: ditambah `clinicalScreeningResultLabel` (mengembalikan `"Menunggu Pemeriksaan STR"` bila `IsStrRequired && Status == Pending && ClinicalScreeningResult == NotApplicable`), `candidateCode`, `documentsCount`, `hasStrDocument`, `hasExpiredStr`.
+3. `CandidateEvaluationListItemResponse` & `CandidateEvaluationResponse`: ditambah `isSubmitted`, `sessionStatus` (`"Scheduled"` / `"Submitted"`), `candidateCode`, `vacancyTitle`, `isClinicalVacancy`.
+
+### 38.2 Rancangan Tertahan Gate Schema & Kebijakan Owner (`BLOCKED_SCHEMA_AND_POLICY_GATE`)
+
+| Area | Usulan Perubahan | Alasan Tertahan |
+| --- | --- | --- |
+| `BE-007`, `BE-008`, `BE-009` | Master `VacancyRequirementTemplate/Item`, `ApplicationRequirementSnapshot`, `ScreeningChecklistItem`, serta `ScreeningStatus.InProgress`/`NeedsCompletion` & `EvaluatedByUserId` nullable | Membutuhkan migration EF Core baru + persetujuan kebijakan pengecualian dokumen perpanjangan/khusus |
+| `BE-011`, `BE-012` | Master `EvaluationRubricTemplate/Indicator`, `EvaluationSessionScoreDetail`, dan kolom eksplisit `IsSubmitted` | Membutuhkan migration EF Core baru + pengesahan bobot, ambang lulus, skala/rounding dari Owner HRD |
+| `BE-015` (Lanjutan) | Enum `McuClearanceResult.TemporarilyUnfit` / `PermanentlyUnfit`, konfirmasi `FitWithRestrictions`, serta pemetaan data lama `Unfit` | Membutuhkan migration EF Core baru + keputusan workflow konfirmasi restriksi dari Owner K3RS & HRD |
+| `BE-016` (Formula Skor) | Rumus skor gabungan & aturan *tie-break* peringkat Talent Pool | Kebijakan formula peringkat menunggu pengesahan Owner HRD |

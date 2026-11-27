@@ -71,6 +71,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public bool IsClinicalVetoApplied { get; set; }
         public string? VetoReason { get; set; }
         public string? Notes { get; set; }
+        public bool IsSubmitted { get; set; }
+        public string SessionStatus => IsSubmitted ? "Submitted" : "Scheduled";
+        public string CandidateCode { get; set; } = string.Empty;
+        public string VacancyTitle { get; set; } = string.Empty;
+        public bool IsClinicalVacancy { get; set; }
         public DateTime CreateDateTime { get; set; }
     }
 
@@ -79,7 +84,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public Guid Id { get; set; }
         public Guid ApplicationId { get; set; }
         public string ApplicationNumber { get; set; } = string.Empty;
+        public Guid CandidateId { get; set; }
+        public string CandidateCode { get; set; } = string.Empty;
         public string CandidateName { get; set; } = string.Empty;
+        public string VacancyTitle { get; set; } = string.Empty;
+        public bool IsClinicalVacancy { get; set; }
         public EvaluationType EvaluationType { get; set; }
         public string EvaluationTypeName => EvaluationType.ToString();
         public string EvaluatorName { get; set; } = string.Empty;
@@ -88,6 +97,34 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public EvaluationRecommendation Recommendation { get; set; }
         public string RecommendationName => Recommendation.ToString();
         public bool IsClinicalVetoApplied { get; set; }
+        public bool IsSubmitted { get; set; }
+        public string SessionStatus => IsSubmitted ? "Submitted" : "Scheduled";
+    }
+
+    public sealed class EvaluationEligibleApplicationResponse
+    {
+        public Guid ApplicationId { get; set; }
+        public string ApplicationNumber { get; set; } = string.Empty;
+        public Guid CandidateId { get; set; }
+        public string CandidateCode { get; set; } = string.Empty;
+        public string CandidateName { get; set; } = string.Empty;
+        public Guid VacancyId { get; set; }
+        public string VacancyTitle { get; set; } = string.Empty;
+        public bool IsClinicalVacancy { get; set; }
+        public string CurrentStageName { get; set; } = string.Empty;
+        public string StageStatus { get; set; } = string.Empty;
+        public bool HasHrSession { get; set; }
+        public Guid? HrEvaluationId { get; set; }
+        public bool HrIsSubmitted { get; set; }
+        public decimal? HrScore { get; set; }
+        public string? HrRecommendation { get; set; }
+        public bool HasClinicalSession { get; set; }
+        public Guid? ClinicalEvaluationId { get; set; }
+        public bool ClinicalIsSubmitted { get; set; }
+        public decimal? ClinicalScore { get; set; }
+        public string? ClinicalRecommendation { get; set; }
+        public bool HasClinicalVeto { get; set; }
+        public bool CanCreateOffer { get; set; }
     }
 
     public sealed class CandidateEvaluationQuery
@@ -99,5 +136,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public EvaluationRecommendation? Recommendation { get; set; }
         public bool? IsClinicalVetoApplied { get; set; }
         public string? Search { get; set; }
+
+        /// <summary>
+        /// Jalur Tes/Wawancara (kontrak v30 bagian 36.4, state 34.3): <c>HR</c> = <c>HrInterview</c>;
+        /// <c>CLINICAL</c> = <c>ClinicalAssessment</c> dan <c>UserInterview</c> (<c>HRD-ASM-96</c>). Kosong = semua jalur.
+        /// </summary>
+        public string? Track { get; set; }
+
+        /// <summary><c>true</c> = hanya evaluasi yang belum dinilai (belum pernah dikirim nilainya).</summary>
+        public bool? PendingOnly { get; set; }
+    }
+
+    public sealed class EvaluationEligibleQuery
+    {
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+        public string? Track { get; set; }
+        public bool? PendingOnly { get; set; }
+        public string? Search { get; set; }
+    }
+
+    /// <summary>Nilai sah parameter <see cref="CandidateEvaluationQuery.Track"/>.</summary>
+    public static class CandidateEvaluationTracks
+    {
+        public const string Hr = "HR";
+        public const string Clinical = "CLINICAL";
     }
 }

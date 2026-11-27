@@ -22,6 +22,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public Guid? OrganizationUnitId { get; set; }
         public Guid? EmployeeCategoryId { get; set; }
         public Guid? EmploymentTypeId { get; set; }
+        public Guid? EmployeeGradeId { get; set; }
+        public string? EmployeeGradeName { get; set; }
+        public Guid? SalaryGradeId { get; set; }
+        public string? SalaryGradeName { get; set; }
+        public Guid? SalaryStructureId { get; set; }
+        public string? SalaryStructureName { get; set; }
 
         public string ShiftAllowancePolicyCode { get; set; } = string.Empty;
         public string ShiftAllowancePolicyName { get; set; } = string.Empty;
@@ -115,6 +121,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public Guid? OrganizationUnitId { get; set; }
         public Guid? EmployeeCategoryId { get; set; }
         public Guid? EmploymentTypeId { get; set; }
+        public Guid? EmployeeGradeId { get; set; }
+        public Guid? SalaryGradeId { get; set; }
+        public Guid? SalaryStructureId { get; set; }
 
         [Required]
         [MaxLength(150)]

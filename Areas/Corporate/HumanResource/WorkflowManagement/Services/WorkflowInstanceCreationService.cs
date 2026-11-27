@@ -19,7 +19,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         Task<WorkflowInstanceDetailV2ResponseDto?> GetInstanceDetailAsync(Guid id);
         Task<WorkflowInstanceV2ResponseDto> CancelInstanceAsync(Guid id, CancelWorkflowRequestDto request, Guid currentUserId);
         Task<QuilvianSystemBackend.Responses.PagedResult<WorkflowInstanceV2ResponseDto>> GetMyRequestsAsync(
-            Guid employeeId, string? status, string? requestType, DateTime? startDate, DateTime? endDate, int pageNumber, int pageSize);
+            Guid userId, Guid employeeId, string? status, string? requestType, DateTime? startDate, DateTime? endDate, int pageNumber, int pageSize);
     }
 
     public class WorkflowInstanceCreationService : IWorkflowInstanceCreationService
@@ -44,9 +44,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             _notificationGateway = notificationGateway;
         }
 
+        // BE-HRD-447: pembuatan instance generik (engine V2 lama) dihentikan.
+        private static readonly bool GenericCreationEnabled = false;
+
         public async Task<WorkflowInstanceV2ResponseDto> CreateInstanceAsync(CreateWorkflowInstanceRequestDto request, Guid currentUserId)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
+
+            // BE-HRD-447 (kontrak v29 §35.1, VR-WF-29, HRD-DEC-229): permohonan generik tidak lagi dibuat di sini; permohonan
+            // dibuat dari layar modul lewat engine WorkflowService. Implementasi lama dipertahankan sampai endpoint dihapus.
+            if (!GenericCreationEnabled)
+            {
+                throw new WorkflowModuleManagedException(WorkflowInstanceOwnership.CreateFromModuleMessage);
+            }
             if (string.IsNullOrWhiteSpace(request.RequestType))
                 throw new InvalidOperationException("Tipe permohonan alur kerja wajib diisi (VR-WF-01)");
             if (request.ReferenceId == Guid.Empty)
@@ -224,7 +234,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 PriorityLevel = instance.PriorityLevel,
                 Amount = instance.Amount,
                 CurrentStepOrder = instance.CurrentStepOrder,
-                TotalSteps = instance.TotalSteps,
+                TotalSteps = Math.Max(instance.TotalSteps, instance.StepInstances.Count(s => !s.IsDelete)),
                 StartedAt = instance.StartedAt,
                 SubmittedAt = instance.SubmittedAt,
                 SlaDeadline = instance.SlaDeadline,
@@ -235,43 +245,113 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         public async Task<WorkflowInstanceDetailV2ResponseDto?> GetInstanceDetailAsync(Guid id)
         {
             var instance = await _context.TrxWorkflowInstances
+                .Include(w => w.WorkflowDefinition)
+                .Include(w => w.RequestedByWorkforceProfile)
+                .Include(w => w.RequestedByUser)
+                .Include(w => w.Department)
+                .Include(w => w.HospitalSite)
                 .Include(w => w.RequestedByEmployee)
                     .ThenInclude(e => e!.PrimaryDepartment)
                 .Include(w => w.StepInstances)
                     .ThenInclude(s => s.ApproverAssignments)
+                        .ThenInclude(a => a.AssignedApproverUser)
+                .Include(w => w.StepInstances)
+                    .ThenInclude(s => s.ApproverAssignments)
+                        .ThenInclude(a => a.AssignedApproverWorkforceProfile)
+                .Include(w => w.StepInstances)
+                    .ThenInclude(s => s.ApproverAssignments)
+                        .ThenInclude(a => a.OriginalApproverUser)
+                .Include(w => w.StepInstances)
+                    .ThenInclude(s => s.ApproverAssignments)
+                        .ThenInclude(a => a.OriginalApproverWorkforceProfile)
                 .FirstOrDefaultAsync(w => w.Id == id);
 
             if (instance == null) return null;
 
             var actions = await _context.TrxApprovalActions
-                .Where(a => a.WorkflowInstanceId == id)
+                .Include(a => a.ActualActionByUser)
+                .Include(a => a.ActualActionByWorkforceProfile)
+                .Include(a => a.DelegatedFromUser)
+                .Include(a => a.DelegatedFromWorkforceProfile)
+                .Where(a => a.WorkflowInstanceId == id && !a.IsDelete)
                 .OrderBy(a => a.ActionAt)
                 .ToListAsync();
 
             var comments = await _context.TrxWorkflowComments
-                .Where(c => c.WorkflowInstanceId == id)
+                .Include(c => c.CommentByUser)
+                .Include(c => c.CommentByWorkforceProfile)
+                .Where(c => c.WorkflowInstanceId == id && !c.IsDelete)
                 .OrderBy(c => c.CommentedAt)
                 .ToListAsync();
 
             var attachments = await _context.TrxWorkflowAttachments
-                .Where(a => a.WorkflowInstanceId == id)
+                .Include(a => a.UploadedByUser)
+                .Include(a => a.UploadedByWorkforceProfile)
+                .Where(a => a.WorkflowInstanceId == id && !a.IsDelete)
                 .ToListAsync();
+
+            var resolvedDepartmentName = instance.RequestedByEmployee?.PrimaryDepartment?.DepartmentName
+                ?? instance.Department?.DepartmentName;
+
+            if (string.IsNullOrWhiteSpace(resolvedDepartmentName) &&
+                instance.RequestedByWorkforceProfile?.PrimaryDepartmentId is Guid primaryDeptId &&
+                primaryDeptId != Guid.Empty)
+            {
+                resolvedDepartmentName = await _context.MstDepartments
+                    .AsNoTracking()
+                    .Where(d => d.Id == primaryDeptId)
+                    .Select(d => d.DepartmentName)
+                    .FirstOrDefaultAsync();
+            }
+
+            if (string.IsNullOrWhiteSpace(resolvedDepartmentName))
+            {
+                resolvedDepartmentName = instance.HospitalSite?.SiteName ?? "-";
+            }
+
+            var applicantName = ResolveDisplayName(
+                instance.RequestedByEmployee?.FullName,
+                instance.RequestedByWorkforceProfile?.DisplayName,
+                instance.RequestedByUser?.DisplayName,
+                instance.RequestedByUser?.UserName) ?? "Pemohon";
+
+            var approverWorkforceIds = instance.StepInstances
+                .SelectMany(s => s.ApproverAssignments)
+                .SelectMany(a => new[] { a.AssignedApproverWorkforceProfileId, a.OriginalApproverWorkforceProfileId })
+                .Where(x => x.HasValue && x.Value != Guid.Empty)
+                .Select(x => x!.Value)
+                .Distinct()
+                .ToList();
+
+            var positionNamesByProfileId = approverWorkforceIds.Count > 0
+                ? await _context.MstWorkforceProfiles
+                    .AsNoTracking()
+                    .Where(wp => approverWorkforceIds.Contains(wp.Id) && wp.PrimaryPositionId.HasValue)
+                    .Join(
+                        _context.MstPositions.AsNoTracking(),
+                        wp => wp.PrimaryPositionId!.Value,
+                        p => p.Id,
+                        (wp, p) => new { wp.Id, p.PositionName })
+                    .ToDictionaryAsync(x => x.Id, x => x.PositionName)
+                : new Dictionary<Guid, string>();
 
             var result = new WorkflowInstanceDetailV2ResponseDto
             {
                 Id = instance.Id,
+                IsModuleManaged = instance.WorkflowDefinitionId != Guid.Empty &&
+                    !instance.StepInstances.Any(s => s.ApproverAssignments.Any(a => a.ApproverEmployeeId != null)),
                 WorkflowNumber = instance.RequestNumber,
                 RequestType = instance.ReferenceType,
                 ReferenceType = instance.ReferenceType,
                 ReferenceId = instance.ReferenceId,
                 ApplicantEmployeeId = instance.RequestedByEmployeeId,
-                ApplicantName = instance.RequestedByEmployee?.FullName ?? "Pegawai Pemohon",
-                DepartmentName = instance.RequestedByEmployee?.PrimaryDepartment?.DepartmentName ?? "Departemen",
+                ApplicantName = applicantName,
+                DepartmentName = resolvedDepartmentName,
                 WorkflowStatus = instance.WorkflowStatus,
                 PriorityLevel = instance.PriorityLevel,
                 Amount = instance.Amount,
                 CurrentStepOrder = instance.CurrentStepOrder,
-                TotalSteps = instance.TotalSteps,
+                TotalSteps = Math.Max(instance.TotalSteps, instance.StepInstances.Count(s => !s.IsDelete)),
                 StartedAt = instance.StartedAt,
                 SubmittedAt = instance.SubmittedAt,
                 SlaDeadline = instance.SlaDeadline,
@@ -282,7 +362,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 RequestContextJson = instance.RequestContextJson
             };
 
-            foreach (var step in instance.StepInstances.OrderBy(s => s.StepOrder))
+            foreach (var step in instance.StepInstances.Where(s => !s.IsDelete).OrderBy(s => s.StepOrder))
             {
                 var stepDto = new WorkflowStepInstanceV2ResponseDto
                 {
@@ -295,26 +375,64 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     CompletedAt = step.CompletedAt
                 };
 
-                foreach (var assign in step.ApproverAssignments)
+                foreach (var assign in step.ApproverAssignments.Where(a => !a.IsDelete).OrderBy(a => a.AssignmentOrder))
                 {
+                    var baseApproverName = ResolveDisplayName(
+                        assign.AssignedApproverWorkforceProfile?.DisplayName,
+                        assign.AssignedApproverUser?.DisplayName,
+                        assign.AssignedApproverUser?.UserName,
+                        assign.AssignedApproverRoleCode);
+
+                    var positionLabel = assign.AssignedApproverWorkforceProfileId.HasValue &&
+                        positionNamesByProfileId.TryGetValue(assign.AssignedApproverWorkforceProfileId.Value, out var posName)
+                        ? posName
+                        : null;
+
+                    var formattedApproverName = !string.IsNullOrWhiteSpace(baseApproverName) &&
+                        !string.IsNullOrWhiteSpace(positionLabel) &&
+                        !baseApproverName.Contains(positionLabel, StringComparison.OrdinalIgnoreCase)
+                        ? $"{baseApproverName} ({positionLabel})"
+                        : (baseApproverName ?? (!string.IsNullOrWhiteSpace(positionLabel) ? positionLabel : step.StepNameSnapshot));
+
+                    var delegatedOriginName = assign.IsDelegated
+                        ? ResolveDisplayName(
+                            assign.OriginalApproverWorkforceProfile?.DisplayName,
+                            assign.OriginalApproverUser?.DisplayName,
+                            assign.OriginalApproverUser?.UserName)
+                        : null;
+
                     stepDto.Approvers.Add(new WorkflowApproverAssignmentV2Dto
                     {
                         AssignmentId = assign.Id,
                         ApproverUserId = assign.AssignedApproverUserId,
                         ApproverEmployeeId = assign.ApproverEmployeeId,
-                        ApproverName = "Pejabat Penyetuju",
+                        ApproverName = formattedApproverName,
                         AssignmentStatus = assign.AssignmentStatus,
-                        IsDelegated = assign.IsDelegated
+                        IsDelegated = assign.IsDelegated,
+                        DelegatedToName = delegatedOriginName
                     });
                 }
 
                 foreach (var act in actions.Where(a => a.WorkflowStepInstanceId == step.Id))
                 {
+                    var actorName = ResolveDisplayName(
+                        act.ActualActionByWorkforceProfile?.DisplayName,
+                        act.ActualActionByUser?.DisplayName,
+                        act.ActualActionByUser?.UserName) ?? (act.IsSystemAction ? "Sistem Workflow" : "Approver");
+
+                    var onBehalfName = act.IsDelegated
+                        ? ResolveDisplayName(
+                            act.DelegatedFromWorkforceProfile?.DisplayName,
+                            act.DelegatedFromUser?.DisplayName,
+                            act.DelegatedFromUser?.UserName)
+                        : null;
+
                     stepDto.Actions.Add(new WorkflowActionRecordV2Dto
                     {
                         ActionId = act.Id,
                         ActionType = act.ActionType,
-                        ActorName = "Pejabat Otorisasi",
+                        ActorName = actorName,
+                        OnBehalfOfName = onBehalfName,
                         Comment = act.Comment ?? act.ReasonComment,
                         ActionTimestamp = act.ActionAt,
                         DigitalSignatureHash = act.DigitalSignatureHash
@@ -378,6 +496,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             var instance = await _context.TrxWorkflowInstances.FindAsync(id);
             if (instance == null) throw new KeyNotFoundException("Tiket alur kerja tidak ditemukan");
 
+            // BE-HRD-447 (VR-WF-29): pembatalan permohonan modul ikut menarik workflow lewat layar modulnya (mis. SPPD INT-HR-110).
+            if (await WorkflowInstanceOwnership.IsModuleManagedAsync(_context, id))
+            {
+                throw new WorkflowModuleManagedException(WorkflowInstanceOwnership.CancelFromModuleMessage);
+            }
+
             if (instance.WorkflowStatus == "Approved" || instance.WorkflowStatus == "Completed")
             {
                 throw new InvalidOperationException("Tiket alur kerja yang sudah disetujui final tidak dapat dibatalkan (HRD-DEC-186)");
@@ -414,17 +538,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         }
 
         public async Task<QuilvianSystemBackend.Responses.PagedResult<WorkflowInstanceV2ResponseDto>> GetMyRequestsAsync(
-            Guid employeeId, string? status, string? requestType, DateTime? startDate, DateTime? endDate, int pageNumber, int pageSize)
+            Guid userId, Guid employeeId, string? status, string? requestType, DateTime? startDate, DateTime? endDate, int pageNumber, int pageSize)
         {
             var query = _context.TrxWorkflowInstances
                 .Include(w => w.RequestedByEmployee)
                     .ThenInclude(e => e!.PrimaryDepartment)
                 .AsNoTracking();
 
-            if (employeeId != Guid.Empty)
+            // BE-HRD-447 (kontrak v29 §35.1): permohonan engine sering tanpa id pegawai, jadi dicocokkan juga lewat akun pemohon.
+            // Tanpa akun maupun pegawai, tidak ada yang ditampilkan (sebelumnya seluruh tiket ikut tampil).
+            if (userId == Guid.Empty && employeeId == Guid.Empty)
             {
-                query = query.Where(w => w.RequestedByEmployeeId == employeeId);
+                return new QuilvianSystemBackend.Responses.PagedResult<WorkflowInstanceV2ResponseDto>
+                {
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalData = 0,
+                    TotalPage = 0,
+                    Items = new List<WorkflowInstanceV2ResponseDto>()
+                };
             }
+
+            query = query.Where(w =>
+                (userId != Guid.Empty && w.RequestedByUserId == userId) ||
+                (employeeId != Guid.Empty && w.RequestedByEmployeeId == employeeId));
 
             if (!string.IsNullOrWhiteSpace(status))
             {
@@ -461,21 +598,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     ReferenceType = w.ReferenceType,
                     ReferenceId = w.ReferenceId,
                     ApplicantEmployeeId = w.RequestedByEmployeeId,
-                    ApplicantName = w.RequestedByEmployee != null ? w.RequestedByEmployee.FullName : "Pegawai Mandiri",
-                    DepartmentName = w.RequestedByEmployee != null && w.RequestedByEmployee.PrimaryDepartment != null 
-                        ? w.RequestedByEmployee.PrimaryDepartment.DepartmentName : "Departemen",
+                    ApplicantName = w.RequestedByEmployee != null
+                        ? w.RequestedByEmployee.FullName
+                        : (w.RequestedByWorkforceProfile != null
+                            ? w.RequestedByWorkforceProfile.DisplayName
+                            : (w.RequestedByUser != null ? (w.RequestedByUser.DisplayName ?? w.RequestedByUser.UserName ?? "Pemohon") : "Pemohon")),
+                    DepartmentName = w.RequestedByEmployee != null && w.RequestedByEmployee.PrimaryDepartment != null
+                        ? w.RequestedByEmployee.PrimaryDepartment.DepartmentName
+                        : (w.Department != null ? w.Department.DepartmentName : (w.HospitalSite != null ? w.HospitalSite.SiteName : "-")),
                     WorkflowStatus = w.WorkflowStatus,
                     PriorityLevel = w.PriorityLevel,
                     Amount = w.Amount,
                     CurrentStepOrder = w.CurrentStepOrder,
-                    TotalSteps = w.TotalSteps,
+                    TotalSteps = Math.Max(w.TotalSteps, w.StepInstances.Count(s => !s.IsDelete)),
                     StartedAt = w.StartedAt,
                     SubmittedAt = w.SubmittedAt,
                     SlaDeadline = w.SlaDeadline,
                     IsOverdue = w.IsOverdue,
                     CompletedAt = w.CompletedAt,
                     CancelledAt = w.CancelledAt,
-                    CancellationReason = w.CancellationReason
+                    CancellationReason = w.CancellationReason,
+                    IsModuleManaged = w.WorkflowDefinitionId != Guid.Empty &&
+                        !w.StepInstances.Any(s => s.ApproverAssignments.Any(a => a.ApproverEmployeeId != null))
                 })
                 .ToListAsync();
 
@@ -487,6 +631,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 TotalPage = totalPage,
                 Items = items
             };
+        }
+
+        private static string? ResolveDisplayName(params string?[] candidates)
+        {
+            return candidates.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))?.Trim();
         }
     }
 }

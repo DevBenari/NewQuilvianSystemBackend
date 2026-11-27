@@ -42,7 +42,47 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmploymentContractResponse>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPaged([FromQuery] EmploymentContractQuery query, CancellationToken cancellationToken)
         {
-            var result = await _contractService.GetPagedAsync(query, cancellationToken);
+            var result = await _contractService.GetPagedAsync(query, cancellationToken, User);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("summary")]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<EmploymentContractSummaryResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetSummary([FromQuery] Guid? hospitalSiteId, CancellationToken cancellationToken)
+        {
+            var result = await _contractService.GetContractSummaryAsync(hospitalSiteId, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("renewal-summary")]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<ContractRenewalSummaryResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetRenewalSummary([FromQuery] Guid? hospitalSiteId, CancellationToken cancellationToken)
+        {
+            var result = await _contractService.GetRenewalSummaryAsync(hospitalSiteId, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("conversion-summary")]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<EmploymentStatusChangeSummaryResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetConversionSummary([FromQuery] Guid? hospitalSiteId, CancellationToken cancellationToken)
+        {
+            var result = await _contractService.GetConversionSummaryAsync(hospitalSiteId, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("decisions")]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<ContractDecisionResponse>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetDecisionsPaged([FromQuery] ContractDecisionQuery query, CancellationToken cancellationToken)
+        {
+            var result = await _contractService.GetDecisionsPagedAsync(query, User, cancellationToken);
             return ToActionResult(result);
         }
 
@@ -53,7 +93,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
         {
-            var result = await _contractService.GetByIdAsync(id, cancellationToken);
+            var result = await _contractService.GetByIdAsync(id, cancellationToken, User);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("{id:guid}/salary-detail")]
+        [AccessAction("ViewAmount", "Melihat Nominal Gaji Kontrak", AccessType = AccessTypes.Read, SortOrder = 7)]
+        [AccessPermission("WorkforceEmploymentContract", "ViewAmount")]
+        [ProducesResponseType(typeof(ApiResponse<ContractSalaryDetailResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetSalaryDetail(Guid id, CancellationToken cancellationToken)
+        {
+            var result = await _contractService.GetSalaryDetailAsync(id, User, cancellationToken);
             return ToActionResult(result);
         }
 
@@ -91,7 +141,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DownloadScan(Guid id, CancellationToken cancellationToken)
         {
-            var download = await _contractService.DownloadScanAsync(id, cancellationToken);
+            var download = await _contractService.DownloadScanAsync(id, cancellationToken, User);
             if (!download.Exists || download.Stream == null)
             {
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Berkas scan kontrak tidak ditemukan."));
@@ -176,6 +226,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             CancellationToken cancellationToken)
         {
             var result = await _contractService.RecordEmployeeNotifiedAsync(id, decisionId, request, User, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        /// <summary>BE-HRD-419: unggah artefak bukti pemberitahuan tertulis H-7 (sekali, tidak dapat diganti).</summary>
+        [HttpPost("{id:guid}/decisions/{decisionId:guid}/notice-evidence")]
+        [AccessAction("RecordNotification", "Mencatat Pemberitahuan ke Pegawai", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("WorkforceEmploymentContract", "RecordNotification")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(ApiResponse<ContractDecisionResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> UploadNoticeEvidence(
+            Guid id,
+            Guid decisionId,
+            IFormFile? file,
+            CancellationToken cancellationToken)
+        {
+            var result = await _contractService.UploadNoticeEvidenceAsync(id, decisionId, file, User, cancellationToken);
             return ToActionResult(result);
         }
 

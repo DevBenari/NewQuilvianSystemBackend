@@ -112,5 +112,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
             var result = await _vaccinationService.GetBoosterRecallListAsync(vaccineType, departmentId, page, pageSize, cancellationToken);
             return Ok(ApiResponse<PagedResult<NakesVaccinationRecallDto>>.Ok(result, "Daftar pemanggilan booster vaksinasi nakes berhasil diambil."));
         }
+
+        /// <summary>
+        /// Daftar vaksinasi seluruh pegawai (MSL-14, DEC-FER-05 opsi A, 18 Nov 2026). Filter: search, status, activeOnly, pageNumber, pageSize.
+        /// </summary>
+        [HttpGet("vaccinations")]
+        [AccessAction("Read", "Melihat Daftar Vaksinasi Seluruh Pegawai", AccessType = AccessTypes.Read, SortOrder = 20)]
+        [AccessPermission("StaffVaccination", "Read")]
+        [Authorize]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<VaccinationListItemDto>>), 200)]
+        public async Task<IActionResult> GetVaccinationList(
+            [FromQuery] OccupationalHealthListQuery query,
+            [FromServices] IOccupationalHealthListQueryService listService,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await listService.GetVaccinationsAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<VaccinationListItemDto>>.Ok(result, "Daftar berhasil diambil."));
+        }
     }
 }

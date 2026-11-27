@@ -83,6 +83,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return KioskPatientLookupServiceResult.Success(response);
         }
 
+        /// <summary>
+        /// Id pasien yang memakai NIK 16 digit ini, dari kolom pasien maupun dokumen identitas aktif.
+        /// Dipakai ulang pencocokan halaman publik Pendaftaran Pasien Online (<c>BE-KSK-PO-004</c>)
+        /// supaya sumber pencarian NIK sama dengan Cek No. RM Kiosk.
+        /// </summary>
+        public Task<List<Guid>> FindPatientIdsByIdentityNumberAsync(
+            string identityNumber,
+            CancellationToken cancellationToken = default) =>
+            FindMatchedPatientIdsAsync(
+                KioskPatientLookupSearchType.IdentityNumber,
+                identityNumber.Trim().ToLowerInvariant(),
+                cancellationToken);
+
+        /// <summary>
+        /// Satu pasien akhir yang layak dilayani dari daftar kandidat, memakai aturan yang sama dengan
+        /// Cek No. RM Kiosk: rantai gabung diikuti, lebih dari satu pasien akhir atau pasien non-aktif,
+        /// meninggal, maupun rantai yang putus menghasilkan <c>null</c> (<c>KSK-INV-009</c>,
+        /// <c>KSK-AC-014</c>, <c>015</c>). Dipakai <c>BE-KSK-PO-004</c>.
+        /// </summary>
+        public async Task<Guid?> ResolveSingleEligiblePatientIdAsync(
+            IEnumerable<Guid> candidatePatientIds,
+            CancellationToken cancellationToken = default)
+        {
+            var resolved = new Dictionary<Guid, PatientSnapshot?>();
+
+            foreach (var patientId in candidatePatientIds.Distinct())
+            {
+                var final = await FollowMergeChainAsync(patientId, cancellationToken);
+                resolved.TryAdd(final?.Id ?? patientId, final);
+            }
+
+            if (resolved.Count != 1)
+            {
+                return null;
+            }
+
+            var patient = resolved.Values.Single();
+            return patient != null && IsEligible(patient) ? patient.Id : null;
+        }
+
         private static NormalizationResult Normalize(KioskPatientLookupRequest? request)
         {
             if (request?.SearchType == null || !Enum.IsDefined(request.SearchType.Value))

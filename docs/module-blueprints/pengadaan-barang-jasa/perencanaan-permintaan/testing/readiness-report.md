@@ -175,3 +175,45 @@ Catatan koreksi: versi pertama laporan ini menulis "kontrak menulis 409" untuk G
 hanya `validation-matrix.md` dan `AT-PP-51` yang menulis 409. Pengguna memutuskan ulang setelah koreksi itu.
 
 K-1 sampai K-4 masih terbuka. Verdict tetap `READY_WITH_CONDITIONS` sampai audit ulang.
+
+---
+
+## 9. Pemeriksaan ulang 26 November 2026
+
+| Field | Nilai |
+| --- | --- |
+| Source yang diperiksa | Backend `c97642bb` (branch `sukmagp`), frontend `3e5386679` (branch `sukmagpV2`); keduanya bersih. Kode Pengadaan terakhir berubah di backend `5e777833` dan frontend `af8a430ac` (19 November 2026, sub-modul `manajemen-vendor`) |
+| Cara | Read-only: riwayat Git, hash dokumen, dan query `SELECT` di `QuilvianNewDevSukma` dalam transaksi `READ ONLY`. Build dan uji runtime **tidak** dijalankan ulang, karena kode sub-modul ini tidak berubah perilakunya (lihat tabel dampak) |
+| Verdict sub-modul | **Tetap `READY_WITH_CONDITIONS`** |
+| Verdict modul | **Tetap `NOT_READY`** — `pemilihan-penyedia` dan `kontrak-pelaksanaan` masih `NOT_STARTED` |
+
+### 9.1 Dampak perubahan source sejak `9f396063` / `608e46ba4`
+
+| Perubahan | Isi | Dampak pada sub-modul ini |
+| --- | --- | --- |
+| `a6df5619` / `b1b360efa` | `BE-PBJ-012` dan `FE-PBJ-009` milik roadmap revisi 2 sub-modul ini; laporannya ada | Tidak basi |
+| `5e777833` (manajemen vendor) | 8 berkas di `Common`: konstanta baru (jenis dokumen `PBJ_VENDOR_*`, status, izin, kode alur), dua definisi alur `PBJ-VND-*` di seeder, 3 baris di layanan linimasa persetujuan. 126 baris ditambah, 3 baris dihapus: `Item` menjadi `Item,` dan dua baris komentar | Hanya penambahan. Perilaku PR, rencana, pagu, dan rencana paket tidak berubah |
+| `af8a430ac` (manajemen vendor) | `ProcurementStatusBadge`, `procurement-document-tabs`, dan `procurement-history-panel` diperluas | Jenis status lama tidak disentuh (laporan `FE-PBJ-VD-002`) |
+| Merge modul lain | `menu-items.jsx` diformat ulang; snapshot model berubah karena migration modul lain | 25 rute Pengadaan dan himpunan izin menu identik dengan `af8a430ac`; 9 migration Pengadaan tercatat di `__EFMigrationsHistory` |
+
+Hash 4 masukan dan 15 artefak desain cocok dengan manifest sub-modul, sehingga desain tidak basi.
+
+### 9.2 Keadaan syarat
+
+| No | Status | Bukti 26 November 2026 |
+| ---: | --- | --- |
+| K-1 | Terbuka | 5/5 definisi (`PBJ-PR`, `PBJ-PR-MENDESAK`, `PBJ-RKB`, `PBJ-RPK`, `PBJ-PAGU`) masih `Draft` dan tidak aktif. Dari 22 baris matriks, 0 yang aktif. Baris yang ada adalah sisa matriks uji yang sudah dinonaktifkan |
+| K-2 | Terbuka | 17 akses controller `Procurement*` terdaftar di `SysControllerAccess`, tetapi 0 baris `SysAccessPolicy` memberi izin atas controller itu. Sebagai pembanding, 28 jabatan sudah punya izin modul lain |
+| K-3 | Terbuka | `owners.security` di manifest sub-modul masih "belum ditetapkan" |
+| K-4 | Terbuka | Tidak ada catatan UAT baru; tetap 0/16 |
+| K-5, K-6 | Selesai | 17 November 2026 (bagian 8) |
+
+**Contoh dampak K-2 hari ini:** Kepala Instalasi Radiologi masuk dengan jabatan nyatanya. Menu "Pengadaan Barang & Jasa"
+tidak tampil, karena jabatannya belum diberi `ProcurementRequest : Read`. Hanya SuperAdmin yang melihat menu itu.
+
+### 9.3 Langkah berikutnya (tidak berubah)
+
+1. Product Owner + admin `Wfl`: isi matriks `PBJ-*` dari SOP lalu aktifkan definisinya (K-1, `PBJ-OQ-019`).
+2. Admin Akses Role: terapkan bundel `PBJ-DEC-039` (K-2).
+3. Product Owner: tunjuk pemilik keamanan (K-3).
+4. UAT bersama pengguna (K-4), lalu `verify-module-readiness` ulang untuk sign-off.

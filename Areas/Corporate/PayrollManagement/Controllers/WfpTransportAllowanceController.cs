@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -199,79 +201,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                 "Detail transport allowance workforce berhasil diambil."));
         }
 
+        /// <summary>
+        /// PAY-BE-FIX-022: penetapan transportasi BARU tidak lagi dibuat dari jalur ini. Transportasi ditetapkan lewat Tambah Tunjangan
+        /// (POST allowance-assignments/from-policy) sehingga masuk ke satu sumber data dan satu jalur hitung. Jalur ini hanya mengelola
+        /// penetapan lama yang sudah ada (baca, ubah, nonaktifkan); data historis tidak dihapus. Endpoint dan izin Create dipertahankan
+        /// agar pemetaan Akses Role tidak berubah.
+        /// </summary>
         [HttpPost]
-        [AccessAction("Create", "Create Workforce Transport Allowance", Description = "Membuat transport allowance workforce", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessAction("Create", "Create Workforce Transport Allowance", Description = "Membuat transport allowance workforce (dinonaktifkan; gunakan Tambah Tunjangan)", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("WorkforceTransportAllowance", "Create")]
-        public async Task<IActionResult> Create(
-            Guid workforceProfileId,
-            [FromBody] CreateWfpTransportAllowanceRequest request,
-            CancellationToken cancellationToken)
+        public IActionResult Create(Guid workforceProfileId, [FromBody] CreateWfpTransportAllowanceRequest? request)
         {
-            if (!await WorkforceProfileExistsAsync(workforceProfileId, cancellationToken))
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Profil tenaga kerja tidak ditemukan."));
-            }
-
-            if (await _dbContext.Set<PrlTransportAllowance>().AnyAsync(x =>
-                    x.WorkforceProfileId == workforceProfileId && !x.IsDelete,
-                    cancellationToken))
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Transport allowance untuk workforce ini sudah tersedia."));
-            }
-
-            var validation = await ValidateRequestAsync(
-                workforceProfileId,
-                request,
-                cancellationToken);
-
-            if (!validation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data transport allowance workforce tidak valid."));
-            }
-
-            var entity = new PrlTransportAllowance
-            {
-                Id = Guid.NewGuid(),
-                WorkforceProfileId = workforceProfileId,
-                EmployeeId = NormalizeGuid(request.EmployeeId),
-                OrganizationAssignmentId = NormalizeGuid(request.OrganizationAssignmentId),
-                TransportAllowancePolicyId = NormalizeGuid(request.TransportAllowancePolicyId),
-                PayrollComponentId = NormalizeGuid(request.PayrollComponentId),
-                AllowanceStatus = NormalizeStatus(request.AllowanceStatus),
-                CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant(),
-                MonthlyAmount = request.MonthlyAmount,
-                PerAttendanceAmount = request.PerAttendanceAmount,
-                MaximumMonthlyAmount = request.MaximumMonthlyAmount,
-                AccruedAmount = request.AccruedAmount,
-                UsedAmount = request.UsedAmount,
-                PaidAmount = request.PaidAmount,
-                RemainingAmount = request.RemainingAmount,
-                EffectiveStartDate = request.EffectiveStartDate,
-                EffectiveEndDate = request.EffectiveEndDate,
-                Description = NormalizeText(request.Description),
-                IsActive = true,
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = GetCurrentUserId(),
-                IsDelete = false,
-                IsCancel = false
-            };
-
-            _dbContext.Set<PrlTransportAllowance>().Add(entity);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "WorkforceTransportAllowance.Create",
-                "Membuat transport allowance workforce.",
-                new { entity.Id, entity.WorkforceProfileId });
-
-            return await GetById(workforceProfileId, entity.Id, cancellationToken);
+            return Conflict(ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict,
+                "Penetapan transportasi baru dibuat lewat Tambah Tunjangan pada Detail Profil Penggajian. Jalur ini hanya untuk mengelola penetapan lama."));
         }
 
         [HttpPut("{id:guid}")]
@@ -280,9 +223,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
         public async Task<IActionResult> Update(
             Guid workforceProfileId,
             Guid id,
-            [FromBody] UpdateWfpTransportAllowanceRequest request,
+            [FromBody] UpdateWfpTransportAllowanceRequest? request,
             CancellationToken cancellationToken)
         {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Data transport allowance workforce wajib diisi."));
+            }
+
             var entity = await _dbContext.Set<PrlTransportAllowance>()
                 .FirstOrDefaultAsync(x =>
                     x.Id == id &&
@@ -309,12 +259,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     validation.ErrorMessage ?? "Data transport allowance workforce tidak valid."));
             }
 
+            var unifiedConflict = await CheckUnifiedTransportConflictAsync(workforceProfileId, request, request.IsActive, cancellationToken);
+            if (unifiedConflict != null) return unifiedConflict;
+
             entity.EmployeeId = NormalizeGuid(request.EmployeeId);
             entity.OrganizationAssignmentId = NormalizeGuid(request.OrganizationAssignmentId);
             entity.TransportAllowancePolicyId = NormalizeGuid(request.TransportAllowancePolicyId);
             entity.PayrollComponentId = NormalizeGuid(request.PayrollComponentId);
             entity.AllowanceStatus = NormalizeStatus(request.AllowanceStatus);
-            entity.CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant();
+            entity.CurrencyCode = NormalizeCurrencyCode(request.CurrencyCode);
             entity.MonthlyAmount = request.MonthlyAmount;
             entity.PerAttendanceAmount = request.PerAttendanceAmount;
             entity.MaximumMonthlyAmount = request.MaximumMonthlyAmount;
@@ -322,16 +275,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             entity.UsedAmount = request.UsedAmount;
             entity.PaidAmount = request.PaidAmount;
             entity.RemainingAmount = request.RemainingAmount;
-            entity.EffectiveStartDate = request.EffectiveStartDate;
-            entity.EffectiveEndDate = request.EffectiveEndDate;
+            entity.EffectiveStartDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveStartDate);
+            entity.EffectiveEndDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate);
             entity.Description = NormalizeText(request.Description);
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex)
+            {
+                await TryLogErrorAsync("WorkforceTransportAllowance.Update", "Gagal memperbarui transport allowance workforce.", ex, new { entity.Id, entity.WorkforceProfileId });
+                var mapped = TryMapDatabaseException(ex);
+                if (mapped != null) return mapped;
+                throw;
+            }
 
-            return await GetById(workforceProfileId, entity.Id, cancellationToken);
+            await TryLogInfoAsync(
+                "WorkforceTransportAllowance.Update",
+                "Memperbarui transport allowance workforce.",
+                new { entity.Id, entity.WorkforceProfileId });
+
+            return await BuildPersistedDetailResultAsync(workforceProfileId, entity, cancellationToken);
         }
 
         [HttpPatch("{id:guid}/status")]
@@ -340,9 +308,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
         public async Task<IActionResult> UpdateStatus(
             Guid workforceProfileId,
             Guid id,
-            [FromBody] UpdateWfpTransportAllowanceStatusRequest request,
+            [FromBody] UpdateWfpTransportAllowanceStatusRequest? request,
             CancellationToken cancellationToken)
         {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Data status transport allowance workforce wajib diisi."));
+            }
+
             var entity = await _dbContext.Set<PrlTransportAllowance>()
                 .FirstOrDefaultAsync(x =>
                     x.Id == id &&
@@ -357,21 +332,41 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
                     "Transport allowance workforce tidak ditemukan."));
             }
 
-            if (!AllowedStatuses.Contains(request.AllowanceStatus.Trim()))
+            if (string.IsNullOrWhiteSpace(request.AllowanceStatus) || !AllowedStatuses.Contains(request.AllowanceStatus.Trim()))
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     "AllowanceStatus tidak valid."));
             }
 
+            var normalizedEndDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate);
+            if (entity.EffectiveStartDate.HasValue &&
+                normalizedEndDate.HasValue &&
+                normalizedEndDate.Value < PayrollDateNormalizer.ToUtcDate(entity.EffectiveStartDate.Value))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "EffectiveEndDate tidak boleh sebelum EffectiveStartDate."));
+            }
+
             entity.AllowanceStatus = NormalizeStatus(request.AllowanceStatus);
             entity.IsActive = request.IsActive;
-            entity.EffectiveEndDate = request.EffectiveEndDate;
+            entity.EffectiveEndDate = normalizedEndDate;
             entity.Description = NormalizeText(request.Description) ?? entity.Description;
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex)
+            {
+                await TryLogErrorAsync("WorkforceTransportAllowance.UpdateStatus", "Gagal memperbarui status transport allowance workforce.", ex, new { entity.Id, entity.WorkforceProfileId });
+                var mapped = TryMapDatabaseException(ex);
+                if (mapped != null) return mapped;
+                throw;
+            }
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -583,20 +578,61 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
             };
         }
 
+        /// <summary>
+        /// PAY-BE-FIX-022: transportasi bulanan dibayar dari SATU sumber. Penetapan transportasi lama yang aktif dan bermetode FixedMonthly
+        /// ditolak bila pegawai sudah punya penetapan Transportasi berbasis Kebijakan Tunjangan umum yang beririsan (mesin hitung akan
+        /// membayarnya dua kali). Menonaktifkan penetapan lama tidak pernah diblokir oleh pemeriksaan ini.
+        /// </summary>
+        private async Task<IActionResult?> CheckUnifiedTransportConflictAsync(
+            Guid workforceProfileId,
+            CreateWfpTransportAllowanceRequest request,
+            bool isActive,
+            CancellationToken cancellationToken)
+        {
+            if (!isActive || !string.Equals(request.AllowanceStatus?.Trim(), "Active", StringComparison.OrdinalIgnoreCase))
+                return null;
+            if (!await TransportAllowanceSourceGuard.IsPaidMonthlyPolicyAsync(_dbContext, request.TransportAllowancePolicyId, cancellationToken))
+                return null;
+
+            var start = PayrollDateNormalizer.ToUtcDate(request.EffectiveStartDate);
+            var end = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate);
+            if (!await TransportAllowanceSourceGuard.HasUnifiedTransportAsync(_dbContext, workforceProfileId, start, end, cancellationToken))
+                return null;
+
+            return Conflict(ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict,
+                "Pegawai sudah memiliki tunjangan Transportasi lewat Tambah Tunjangan (berbasis kebijakan) pada periode yang beririsan. Nonaktifkan salah satunya agar tidak terbayar dua kali."));
+        }
+
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             Guid workforceProfileId,
             CreateWfpTransportAllowanceRequest request,
             CancellationToken cancellationToken)
         {
-            if (!AllowedStatuses.Contains(request.AllowanceStatus.Trim()))
+            if (string.IsNullOrWhiteSpace(request.AllowanceStatus) || !AllowedStatuses.Contains(request.AllowanceStatus.Trim()))
                 return (false, "AllowanceStatus tidak valid.");
 
-            if (string.IsNullOrWhiteSpace(request.CurrencyCode) || request.CurrencyCode.Trim().Length != 3)
+            var currencyCode = NormalizeCurrencyCode(request.CurrencyCode);
+            if (currencyCode.Length != 3)
                 return (false, "CurrencyCode harus terdiri dari tiga karakter.");
 
-            if (request.EffectiveStartDate.HasValue &&
-                request.EffectiveEndDate.HasValue &&
-                request.EffectiveEndDate.Value < request.EffectiveStartDate.Value)
+            if (request.MonthlyAmount < 0 ||
+                request.PerAttendanceAmount < 0 ||
+                request.MaximumMonthlyAmount < 0 ||
+                request.AccruedAmount < 0 ||
+                request.UsedAmount < 0 ||
+                request.PaidAmount < 0 ||
+                request.RemainingAmount < 0)
+            {
+                return (false, "Nilai nominal tunjangan transportasi tidak boleh bernilai negatif.");
+            }
+
+            var startDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveStartDate);
+            var endDate = PayrollDateNormalizer.ToUtcDate(request.EffectiveEndDate);
+
+            if (startDate.HasValue &&
+                endDate.HasValue &&
+                endDate.Value < startDate.Value)
             {
                 return (false, "EffectiveEndDate tidak boleh sebelum EffectiveStartDate.");
             }
@@ -648,6 +684,136 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers
 
             return (true, null);
         }
+
+        private IActionResult? TryMapDatabaseException(DbUpdateException exception)
+        {
+            var pgException = exception.InnerException as PostgresException
+                ?? exception.GetBaseException() as PostgresException;
+
+            if (pgException == null)
+                return null;
+
+            return pgException.SqlState switch
+            {
+                PostgresErrorCodes.UniqueViolation => Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Data transport allowance workforce bentrok dengan data yang sudah ada.")),
+                "23503" => BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Referensi data terkait pada transport allowance workforce tidak valid atau tidak ditemukan.")),
+                "22001" or "22003" or "22007" or "23502" => BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Format atau batas nilai pada data transport allowance workforce tidak memenuhi ketentuan.")),
+                _ => null
+            };
+        }
+
+        private async Task<IActionResult> BuildPersistedDetailResultAsync(
+            Guid workforceProfileId,
+            PrlTransportAllowance entity,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var saved = await BuildBaseQuery(workforceProfileId)
+                    .FirstOrDefaultAsync(x => x.Id == entity.Id, cancellationToken);
+
+                if (saved != null)
+                {
+                    return Ok(ApiResponse<WfpTransportAllowanceDetailResponse>.Ok(
+                        MapDetailResponse(saved),
+                        "Detail transport allowance workforce berhasil diambil."));
+                }
+            }
+            catch (Exception ex)
+            {
+                await TryLogErrorAsync(
+                    "WorkforceTransportAllowance.PostCommitRead",
+                    "Data tersimpan tetapi pembacaan detail ulang gagal; mengembalikan ringkasan entitas tersimpan.",
+                    ex,
+                    new { entity.Id, entity.WorkforceProfileId });
+            }
+
+            return Ok(ApiResponse<WfpTransportAllowanceDetailResponse>.Ok(
+                MapDetailResponseFallback(entity),
+                "Detail transport allowance workforce berhasil diambil."));
+        }
+
+        private WfpTransportAllowanceDetailResponse MapDetailResponseFallback(PrlTransportAllowance entity)
+        {
+            return new WfpTransportAllowanceDetailResponse
+            {
+                Id = entity.Id,
+                WorkforceProfileId = entity.WorkforceProfileId,
+                EmployeeId = entity.EmployeeId,
+                OrganizationAssignmentId = entity.OrganizationAssignmentId,
+                TransportAllowancePolicyId = entity.TransportAllowancePolicyId,
+                TransportAllowancePolicyCode = entity.TransportAllowancePolicy?.PolicyCode,
+                TransportAllowancePolicyName = entity.TransportAllowancePolicy?.PolicyName,
+                PayrollComponentId = entity.PayrollComponentId,
+                PayrollComponentCode = entity.PayrollComponent?.PayrollComponentCode,
+                PayrollComponentName = entity.PayrollComponent?.PayrollComponentName,
+                AllowanceStatus = entity.AllowanceStatus,
+                CurrencyCode = entity.CurrencyCode,
+                MonthlyAmount = entity.MonthlyAmount,
+                PerAttendanceAmount = entity.PerAttendanceAmount,
+                MaximumMonthlyAmount = entity.MaximumMonthlyAmount,
+                AccruedAmount = entity.AccruedAmount,
+                UsedAmount = entity.UsedAmount,
+                PaidAmount = entity.PaidAmount,
+                RemainingAmount = entity.RemainingAmount,
+                EffectiveStartDate = entity.EffectiveStartDate,
+                EffectiveEndDate = entity.EffectiveEndDate,
+                Description = entity.Description,
+                IsActive = entity.IsActive,
+                TransactionCount = entity.Transactions?.Count(x => !x.IsDelete) ?? 0,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : entity.CreateBy,
+                CreateByName = TryGetUserDisplayName(entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : entity.UpdateBy,
+                UpdateByName = TryGetUserDisplayName(entity.UpdateBy)
+            };
+        }
+
+        private async Task TryLogInfoAsync(string action, string message, object? data = null)
+        {
+            try
+            {
+                await _loggerService.InfoAsync(LogCategory, action, message, data);
+            }
+            catch
+            {
+                // Logging pasca-commit tidak boleh membatalkan respons sukses.
+            }
+        }
+
+        private async Task TryLogErrorAsync(string action, string message, Exception exception, object? data = null)
+        {
+            try
+            {
+                await _loggerService.ErrorAsync(LogCategory, action, message, exception, data);
+            }
+            catch
+            {
+                // Jangan biarkan kegagalan logger menutupi exception utama.
+            }
+        }
+
+        private string? TryGetUserDisplayName(Guid userId)
+        {
+            try
+            {
+                return GetUserDisplayName(userId);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string NormalizeCurrencyCode(string? value) =>
+            string.IsNullOrWhiteSpace(value) ? "IDR" : value.Trim().ToUpperInvariant();
 
         private async Task<bool> WorkforceProfileExistsAsync(
             Guid workforceProfileId,

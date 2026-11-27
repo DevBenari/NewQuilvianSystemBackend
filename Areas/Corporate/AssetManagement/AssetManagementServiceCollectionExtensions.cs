@@ -2,6 +2,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Movement.Services;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.PhysicalInventory.Services;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Services;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Valuation.Services;
 
@@ -30,11 +32,35 @@ public static class AssetManagementServiceCollectionExtensions
         services.Configure<AssetAccountingDispatchOptions>(configuration.GetSection(AssetAccountingDispatchOptions.SectionName));
         services.AddScoped<AssetValuationParameterQueryService>();
         services.AddScoped<AssetValuationParameterService>();
+        services.AddScoped<AssetSubledgerSetupService>();
+        services.AddScoped<AssetDepreciationRunService>();
         services.AddScoped<AssetAccountingEventService>();
         services.AddScoped<AssetBookService>();
 
         services.AddScoped<AssetRecordService>();
         services.AddScoped<AssetLabelDocumentService>();
+        services.AddScoped<AssetStockTakeGate>();
+        services.AddScoped<AssetPlacementService>();
+        services.AddScoped<AssetConditionService>();
+        services.AddScoped<AssetDocumentService>();
+        services.AddScoped<AssetUtilizationService>();
+        services.AddScoped<AssetAttachmentAccessService>();
+        services.Configure<AssetImportOptions>(configuration.GetSection(AssetImportOptions.SectionName));
+        services.AddScoped<AssetImportService>();
+        services.AddScoped<AssetDashboardQueryService>();
+        services.AddScoped<AssetReportQueryService>();
+        services.AddScoped<AssetMovementDocumentService>();
+        services.AddScoped<AssetTransferService>();
+        services.AddScoped<AssetLoanService>();
+        services.AddScoped<MovementQueryService>();
+        services.AddScoped<StockTakeMatchingService>();
+        services.AddScoped<StockTakeFollowUpService>();
+        services.AddScoped<StockTakeDocumentService>();
+        services.AddScoped<StockTakeSessionService>();
+        services.AddScoped<StockTakeScanService>();
+        services.AddScoped<StockTakeQueryService>();
+        services.Configure<AssetDailyStatusWorkerOptions>(configuration.GetSection(AssetDailyStatusWorkerOptions.SectionName));
+        services.AddHostedService<AssetDailyStatusWorker>();
 
         return services;
     }

@@ -357,18 +357,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     $"VR-ONB-66: Batch memiliki {batch.InvalidRows} baris yang tidak valid. Perbaiki atau hapus baris yang bermasalah terlebih dahulu.");
             }
 
+            // B6: batch Dikembalikan diajukan ulang lewat instance yang sama (pengaju yang sama); selain itu instance baru.
+            var isResubmit = batch.BatchStatus == InitialContractBatchStatus.Returned &&
+                             await _workflowIntegrationService.InstanceExistsAsync(batch.WorkflowInstanceId, cancellationToken);
+            if (isResubmit && batch.SubmittedByUserId.HasValue && batch.SubmittedByUserId.Value != actorId)
+            {
+                return RecruitmentResult<InitialContractBatchDetailResponse>.Forbidden(
+                    "Hanya pengaju yang dapat memperbaiki dan mengajukan ulang batch ini.");
+            }
+
+            batch.UpdateDateTime = DateTime.UtcNow;
+            batch.UpdateBy = actorId;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            var workflow = isResubmit
+                ? await _workflowIntegrationService.ResubmitAsync(
+                    batch.WorkflowInstanceId!.Value,
+                    "Batch diperbaiki dan diajukan ulang.",
+                    cancellationToken)
+                : await _workflowIntegrationService.StartInitialContractBatchWorkflowAsync(batch.Id, actorId, cancellationToken);
+
+            if (!workflow.Success)
+            {
+                // Gagal tertutup: batch tetap Draf/Dikembalikan dan dapat diajukan lagi sesudah alur diperbaiki.
+                return RecruitmentResult<InitialContractBatchDetailResponse>.Fail(workflow.Message, workflow.StatusCode);
+            }
+
             batch.BatchStatus = InitialContractBatchStatus.Submitted;
             batch.SubmittedByUserId = actorId;
             batch.SubmittedAt = DateTime.UtcNow;
-            batch.UpdateDateTime = DateTime.UtcNow;
-            batch.UpdateBy = actorId;
-
-            var wfId = await _workflowIntegrationService.StartInitialContractBatchWorkflowAsync(
-                batch.Id,
-                actorId,
-                cancellationToken);
-
-            batch.WorkflowInstanceId = wfId;
+            batch.WorkflowInstanceId = workflow.WorkflowInstanceId ?? batch.WorkflowInstanceId;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return RecruitmentResult<InitialContractBatchDetailResponse>.Ok(MapToDetailResponse(batch));
@@ -398,6 +416,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     $"Batch tidak dapat dibatalkan karena berstatus {batch.BatchStatus}.");
             }
 
+            // B6: batch Dikembalikan masih memegang instance T18; instance ikut ditarik.
+            if (batch.BatchStatus == InitialContractBatchStatus.Returned)
+            {
+                var workflow = await _workflowIntegrationService.WithdrawAsync(
+                    batch.WorkflowInstanceId,
+                    actorId,
+                    "Batch data awal kontrak dibatalkan oleh pengaju.",
+                    cancellationToken);
+                if (!workflow.Success)
+                {
+                    return RecruitmentResult<InitialContractBatchDetailResponse>.Fail(workflow.Message, workflow.StatusCode);
+                }
+            }
+
             batch.BatchStatus = InitialContractBatchStatus.Cancelled;
             batch.UpdateDateTime = DateTime.UtcNow;
             batch.UpdateBy = actorId;
@@ -420,6 +452,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             if (batch == null)
             {
                 return RecruitmentResult<bool>.NotFound("Batch data awal kontrak tidak ditemukan.");
+            }
+
+            // B6-5: pembuat ≠ penyetuju dan tidak menerapkan dua kali (baris kontrak tidak boleh ganda).
+            if (batch.SubmittedByUserId.HasValue && batch.SubmittedByUserId.Value == deciderUserId)
+            {
+                return RecruitmentResult<bool>.BadRequest(
+                    "Pengaju batch tidak dapat menyetujui atau menolak batchnya sendiri (Prinsip Maker-Checker HRD-DEC-031).");
+            }
+
+            if (batch.BatchStatus is InitialContractBatchStatus.Applied or InitialContractBatchStatus.Rejected)
+            {
+                return RecruitmentResult<bool>.Ok(true, "Keputusan batch data awal sudah pernah diterapkan sebelumnya.");
+            }
+
+            if (batch.BatchStatus == InitialContractBatchStatus.Cancelled)
+            {
+                return RecruitmentResult<bool>.BadRequest("Batch data awal berstatus dibatalkan dan tidak dapat diproses.");
             }
 
             batch.BatchStatus = isApproved ? InitialContractBatchStatus.Applied : InitialContractBatchStatus.Rejected;

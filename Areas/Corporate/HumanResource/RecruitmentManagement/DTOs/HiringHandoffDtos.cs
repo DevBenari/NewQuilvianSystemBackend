@@ -62,4 +62,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 20;
     }
+
+    public sealed class EligibleHandoffOfferResponse
+    {
+        public Guid OfferId { get; set; }
+        public string OfferNumber { get; set; } = string.Empty;
+        public Guid ApplicationId { get; set; }
+        public string ApplicationNumber { get; set; } = string.Empty;
+        public Guid CandidateId { get; set; }
+        public string CandidateCode { get; set; } = string.Empty;
+        public string CandidateName { get; set; } = string.Empty;
+        public Guid VacancyId { get; set; }
+        public string VacancyTitle { get; set; } = string.Empty;
+        public bool IsRehire { get; set; }
+        public Guid? PreviousWorkforceProfileId { get; set; }
+        public Guid McuClearanceId { get; set; }
+        public string McuReferralNumber { get; set; } = string.Empty;
+        public string McuClearanceResult { get; set; } = string.Empty;
+        public bool NeedsOnboardingRecovery { get; set; }
+        public Guid? ExistingHandoffId { get; set; }
+    }
 }

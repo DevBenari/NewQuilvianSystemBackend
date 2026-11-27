@@ -11,6 +11,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         public int BiometricDiscrepancyTolerance { get; set; } = 30;
         public int PostClaimCitoGraceDays { get; set; } = 1;
         public bool IsActive { get; set; } = true;
+        /// <summary>False bila nilai masih bawaan karena tabel HrdOvertimeSetting belum ada atau belum berisi (MSL-10).</summary>
+        public bool IsPersisted { get; set; }
         public DateTime? LastUpdatedAt { get; set; }
         public Guid? LastUpdatedByUserId { get; set; }
     }

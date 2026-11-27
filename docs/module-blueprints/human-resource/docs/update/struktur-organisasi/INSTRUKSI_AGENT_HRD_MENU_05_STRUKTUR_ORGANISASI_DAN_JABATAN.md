@@ -1,5 +1,8 @@
 # MASTER PROMPT - IMPLEMENTASI LANGSUNG HRD MENU 05: STRUKTUR ORGANISASI & JABATAN
 
+> **AMANDEMEN 24 November 2026 — `HRD-DEC-257` (`ISSUE-HRD-008`, `PLAN-REPAIR-HRD-008`; nomor lama `HRD-DEC-248`).** Atas masukan analis bisnis, pengguna memutuskan: (1) submenu **Unit Kerja** (menu "Unit Organisasi") digabung ke **Struktur Organisasi** — halaman `/hr/master-data/organization-unit` kini menjadi menu Struktur Organisasi berisi daftar unit, tambah/ubah unit, dan mode `Daftar | Hierarki`; (2) **Department** dan **Position** keluar dari tab Struktur Organisasi menjadi menu sendiri di `/hr/master-data/organization/departments` dan `/hr/master-data/organization/positions`; (3) `/hr/master-data/organization` menjadi halaman pengalih. Bagian dokumen ini yang bertentangan dengan amandemen ditandai *(Diamandemen `HRD-DEC-257`)* dan tidak lagi mengikat; teks aslinya dipertahankan untuk jejak sejarah. Skema layar yang berlaku: `PLAN-REPAIR-HRD-008` bagian 3; arsitektur: `03-frontend-architecture.md` bagian 34.7.
+
+
 **Jenis:** Instruksi eksekusi Agent Fullstack Quilvian V2, bukan laporan implementasi dan bukan prompt audit-only.  
 **Target Menu:** Kepegawaian > Menu 05 - Struktur Organisasi & Jabatan.  
 **Scope:** 6 Submenu target: Unit Kerja, Struktur Organisasi, Jabatan, Rumpun Jabatan, Uraian Tugas, Atasan Langsung.  
@@ -77,18 +80,18 @@ Keputusan berikut **APPROVED oleh user pada percakapan 16 November 2026**, tetap
 - **Reuse wajib:** `MstOrganizationUnit` dan `OrganizationUnitController`; jangan membuat entity Unit Kerja baru.
 - **Status source:** `IMPLEMENTED, NOT VERIFIED` secara runtime. Source model memiliki `ParentOrganizationUnitId`, `UnitType`, `LevelNumber`, effective dates dan child navigation. Controller sudah mempunyai summary/list/options dengan permission `OrganizationUnit : Read`.
 - **Perbaikan yang harus dikerjakan:** harden invariants hierarchy pada create/update bila belum ada; sediakan read model hierarchy yang dapat dipakai UI tree tanpa mengambil data dummy atau memaksa frontend melakukan pagination sweep tidak aman.
-- **Frontend:** pertahankan route `/hr/master-data/organization-unit`, layout Hero + SummaryCards + filters + DataTable + pagination. Pastikan kolom/context parent terlihat dan tambah navigasi ke hierarki bila relevan.
+- **Frontend:** pertahankan route `/hr/master-data/organization-unit`, layout Hero + SummaryCards + filters + DataTable + pagination. Pastikan kolom/context parent terlihat dan tambah navigasi ke hierarki bila relevan. *(Diamandemen `HRD-DEC-257`: lihat catatan amandemen di awal dokumen.)*
 - **FIN terkait:** `FIN-HRD-05-BE-001`, `FIN-HRD-05-FE-001`, `FIN-HRD-05-FE-002`, `FIN-HRD-05-FE-006`.
 - **Selesai bila:** hierarchy aman dari cycle, data real ter-render, perubahan persisten, permission benar, error tidak berubah menjadi success toast, dan UAT-05-01 s.d. UAT-05-04 lulus ketika environment tersedia.
 
 ### Submenu 2 - Struktur Organisasi
 
 - **Tujuan RS dan aktor:** memberikan gambaran struktur formal organisasi rumah sakit tanpa mengganti master Department/Position yang sudah ada. HR dapat melihat relasi unit dan posisi; pengguna read-only dapat melihat struktur sesuai permission.
-- **Existing behavior yang dipertahankan:** `/hr/master-data/organization` sekarang adalah halaman “Manajemen Organization” dengan tab Department dan Position serta summary/filter/table. Ini **tidak boleh dihapus atau didesain ulang total**.
-- **Enhancement yang disetujui:** tambahkan mode visual `Daftar | Hierarki` atau kontrol setara. Mode Daftar mempertahankan tab Department/Position existing. Mode Hierarki memakai tree `MstOrganizationUnit` dari endpoint/read model real, bukan data hardcoded.
+- **Existing behavior yang dipertahankan:** `/hr/master-data/organization` sekarang adalah halaman “Manajemen Organization” dengan tab Department dan Position serta summary/filter/table. Ini **tidak boleh dihapus atau didesain ulang total**. *(Diamandemen `HRD-DEC-257`: lihat catatan amandemen di awal dokumen.)*
+- **Enhancement yang disetujui:** tambahkan mode visual `Daftar | Hierarki` atau kontrol setara. Mode Daftar mempertahankan tab Department/Position existing. Mode Hierarki memakai tree `MstOrganizationUnit` dari endpoint/read model real, bukan data hardcoded. *(Diamandemen `HRD-DEC-257`: lihat catatan amandemen di awal dokumen.)*
 - **Hierarki target:** root hospital/legal entity -> Directorate -> Division/Installation/Department -> Section/Team/Unit sesuai `UnitType` yang benar-benar tersedia. Jangan memaksakan level yang tidak ada di database.
 - **Interaksi:** klik node menampilkan ringkasan unit (nama, kode, tipe, parent, status, child count, periode efektif) dan tombol `Lihat Detail Unit` yang membawa pengguna ke detail Unit Kerja existing; bukan modal edit baru yang menggandakan form.
-- **Keamanan:** mode hierarki adalah read-only kecuali pengguna masuk ke capability Unit Kerja yang memang memiliki permission update. Tidak ada drag-and-drop pindah organisasi pada finishing ini.
+- **Keamanan:** mode hierarki adalah read-only kecuali pengguna masuk ke capability Unit Kerja yang memang memiliki permission update. Tidak ada drag-and-drop pindah organisasi pada finishing ini. *(Diamandemen `HRD-DEC-257`: lihat catatan amandemen di awal dokumen.)*
 - **Backend:** endpoint/read model hierarchy harus cycle-safe, dapat difilter tanggal efektif, legal entity/hospital site bila source mendukung, serta mengembalikan DTO minimum yang diperlukan UI.
 - **FIN terkait:** `FIN-HRD-05-BE-001`, `FIN-HRD-05-FE-002`, `FIN-HRD-05-FE-006`.
 - **Prioritas:** P2. Jika P0/P1 belum stabil, selesaikan P0/P1 dahulu. P2 tidak boleh menghalangi Uraian Tugas.
@@ -99,7 +102,7 @@ Keputusan berikut **APPROVED oleh user pada percakapan 16 November 2026**, tetap
 - **Tujuan RS dan aktor:** HR Master Data mengelola definisi jabatan yang dapat digunakan oleh penempatan pegawai. Jabatan adalah role/slot organisasi, bukan identitas pegawai.
 - **Source-of-truth:** `MstPosition` existing dengan `PositionCode`, `PositionName`, `DepartmentId`, `Description`, `IsActive`, serta relasi competency requirement. Gunakan `OrganizationController` existing untuk list/detail/create/update Position.
 - **Batas penting:** jangan menambahkan nama pegawai/occupant ke master Position sebagai state permanen. Occupant aktual dibaca dari assignment; perubahan occupant bukan pekerjaan master Jabatan.
-- **Perbaikan UI:** pertahankan tab Position pada `/hr/master-data/organization`; tambahkan affordance yang jelas untuk membuka Uraian Tugas posisi. Pada detail Position tampilkan ringkasan kode, nama, department, status, deskripsi dan status Uraian Tugas (ada aktif/belum ada) dari API real.
+- **Perbaikan UI:** pertahankan tab Position pada `/hr/master-data/organization`; tambahkan affordance yang jelas untuk membuka Uraian Tugas posisi. Pada detail Position tampilkan ringkasan kode, nama, department, status, deskripsi dan status Uraian Tugas (ada aktif/belum ada) dari API real. *(Diamandemen `HRD-DEC-257`: lihat catatan amandemen di awal dokumen.)*
 - **Rumpun/level/grade:** jangan membuat relasi schema baru hanya karena `WfpPositionAssignment` memiliki `JobFamilyId`, `JobLevelId`, atau grade. Bila canonical memutuskan klasifikasi itu milik assignment, pertahankan demikian. UI tidak boleh menampilkan label rumpun/level palsu pada master Position.
 - **Integrasi Uraian Tugas:** satu Position dapat mempunyai beberapa versi historis Uraian Tugas, tetapi pada satu tanggal acuan maksimal satu versi efektif.
 - **FIN terkait:** `FIN-HRD-05-BE-002`, `FIN-HRD-05-BE-003`, `FIN-HRD-05-FE-003`, `FIN-HRD-05-FE-004`, `FIN-HRD-05-FE-006`.
@@ -212,8 +215,8 @@ Keputusan berikut **APPROVED oleh user pada percakapan 16 November 2026**, tetap
 
 | Submenu | Halaman/route | Status | FIN FE owner | Aktor | Area utama | Aksi utama | API/source | UAT |
 |---|---|---|---|---|---|---|---|---|
-| Unit Kerja | `/hr/master-data/organization-unit` | `EXISTING_REUSE/EXTEND` | `FIN-HRD-05-FE-001` | HR Master Data / read role | Hero, summary, filter, table, detail/form | cari, filter, detail, tambah/edit sesuai permission | `organization-units` existing + hierarchy read model | UAT-05-01..03 |
-| Struktur Organisasi | `/hr/master-data/organization` | `EXISTING_REUSE + NEW_P2_VIEW_MODE` | `FIN-HRD-05-FE-002` | HR/read role | existing Department/Position list + tree mode | switch daftar/hierarki, klik node, lihat detail unit | Organization existing + hierarchy API | UAT-05-04 |
+| Unit Kerja | `/hr/master-data/organization-unit` | `EXISTING_REUSE/EXTEND` *(Diamandemen `HRD-DEC-257`)* | `FIN-HRD-05-FE-001` | HR Master Data / read role | Hero, summary, filter, table, detail/form | cari, filter, detail, tambah/edit sesuai permission | `organization-units` existing + hierarchy read model | UAT-05-01..03 |
+| Struktur Organisasi | `/hr/master-data/organization` | `EXISTING_REUSE + NEW_P2_VIEW_MODE` *(Diamandemen `HRD-DEC-257`)* | `FIN-HRD-05-FE-002` | HR/read role | existing Department/Position list + tree mode | switch daftar/hierarki, klik node, lihat detail unit | Organization existing + hierarchy API | UAT-05-04 |
 | Jabatan | `/hr/master-data/organization` tab Position | `EXISTING_EXTEND` | `FIN-HRD-05-FE-003` | HR Master Data | position table/detail | create/edit existing, buka Uraian Tugas | Organization Position API + Job Description API | UAT-05-05 |
 | Rumpun Jabatan | `/hr/master-data/job-family` | `EXISTING_REUSE/FINISH` | `FIN-HRD-05-FE-003` | HR Master Data | Hero, summary, filter, table, detail/form | CRUD/status existing sesuai permission | `job-families` existing | UAT-05-06 |
 | Uraian Tugas | `/hr/master-data/job-description` | `NEW_PROPOSED` | `FIN-HRD-05-FE-004` | HR Master Data/read role | summary, list, detail editor, version history | buat draft, edit, aktifkan versi, lihat histori | Job Description API dari `FIN-HRD-05-BE-003` | UAT-05-07..10,13,15,16 |
@@ -270,7 +273,7 @@ DETAIL / FORM
 
 #### Skema Tampilan - FIN-HRD-05-FE-002
 
-- **Route/halaman:** `EXISTING_REUSE + NEW_P2_VIEW_MODE` pada `/hr/master-data/organization`. Jangan buat route baru untuk “tree” jika view mode dapat ditempatkan aman pada halaman existing. Mode list Department/Position harus tetap default/accessible.
+- **Route/halaman:** `EXISTING_REUSE + NEW_P2_VIEW_MODE` pada `/hr/master-data/organization`. Jangan buat route baru untuk “tree” jika view mode dapat ditempatkan aman pada halaman existing. Mode list Department/Position harus tetap default/accessible. *(Diamandemen `HRD-DEC-257`: lihat catatan amandemen di awal dokumen.)*
 - **Aktor & akses:** role dengan `Organization : Read` dan/atau `OrganizationUnit : Read` dapat melihat hierarchy sesuai kontrak. Tidak ada drag-drop/edit hierarchy pada mode ini. Mutasi unit tetap melalui Unit Kerja sesuai permission.
 - **Layout / wireframe:** tambahkan switch mode di area Hero/header, lalu tree read-only dan panel node detail.
 

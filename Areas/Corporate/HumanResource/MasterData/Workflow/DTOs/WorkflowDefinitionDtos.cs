@@ -33,6 +33,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflo
         public bool AllowRequesterWithdraw { get; set; }
         public bool AllowParallelApproval { get; set; }
         public bool AllowStepSkip { get; set; }
+        public bool AllowBulkApproval { get; set; }
         public bool StopOnRejection { get; set; }
         public bool IsDefault { get; set; }
         public string? Description { get; set; }
@@ -134,6 +135,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflo
         public bool AllowRequesterWithdraw { get; set; } = true;
         public bool AllowParallelApproval { get; set; }
         public bool AllowStepSkip { get; set; }
+        public bool AllowBulkApproval { get; set; }
         public bool StopOnRejection { get; set; } = true;
         public bool IsDefault { get; set; }
 

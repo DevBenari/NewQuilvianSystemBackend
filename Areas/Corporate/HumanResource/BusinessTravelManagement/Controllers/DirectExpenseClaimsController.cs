@@ -82,7 +82,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _claimService.CreateExpenseClaimAsync(dto, userId, empId);
                 return StatusCode(StatusCodes.Status201Created, ApiResponse<ExpenseClaimResponseDto>.Ok(result, "Klaim operasional non-trip berhasil diajukan"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<ExpenseClaimResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -130,7 +130,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             {
                 return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<ExpenseClaimResponseDto>.Fail(StatusCodes.Status403Forbidden, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<ExpenseClaimResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -152,7 +152,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _claimService.ApproveExpenseClaimAsync(id, dto, userId, profileId);
                 return Ok(ApiResponse<ExpenseClaimResponseDto>.Ok(result, "Klaim non-trip berhasil disetujui atasan"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<ExpenseClaimResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -174,7 +174,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _paymentService.VerifyExpenseClaimAsync(id, dto, userId);
                 return Ok(ApiResponse<ExpenseClaimResponseDto>.Ok(result, "Verifikasi klaim non-trip berhasil disimpan"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<ExpenseClaimResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
@@ -196,7 +196,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _paymentService.PayExpenseClaimAsync(id, dto, userId);
                 return Ok(ApiResponse<ExpenseClaimResponseDto>.Ok(result, "Pembayaran klaim operasional non-trip berhasil dicairkan"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<ExpenseClaimResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }

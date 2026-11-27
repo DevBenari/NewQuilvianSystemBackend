@@ -1,9 +1,10 @@
 using System;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
 using QuilvianSystemBackend.Repositories;
@@ -12,463 +13,363 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 {
     public interface IWorkflowApprovalActionService
     {
-        Task<WorkflowActionV2ResponseDto> ApproveAsync(Guid stepInstanceId, ApproveActionRequestDto request, Guid currentEmployeeId);
-        Task<WorkflowActionV2ResponseDto> RejectAsync(Guid stepInstanceId, RejectActionRequestDto request, Guid currentEmployeeId);
-        Task<WorkflowActionV2ResponseDto> ReturnForRevisionAsync(Guid stepInstanceId, ReturnForRevisionRequestDto request, Guid currentEmployeeId);
+        Task<WorkflowServiceResult<WorkflowActionV2ResponseDto>> ApproveAsync(Guid stepInstanceId, ApproveActionRequestDto request, Guid currentUserId, CancellationToken cancellationToken = default);
+        Task<WorkflowServiceResult<WorkflowActionV2ResponseDto>> RejectAsync(Guid stepInstanceId, RejectActionRequestDto request, Guid currentUserId, CancellationToken cancellationToken = default);
+        Task<WorkflowServiceResult<WorkflowActionV2ResponseDto>> ReturnForRevisionAsync(Guid stepInstanceId, ReturnForRevisionRequestDto request, Guid currentUserId, CancellationToken cancellationToken = default);
     }
 
+    /// <summary>
+    /// BE-HRD-444 (kontrak v29 §35.2, §35.7; HRD-DEC-229, HRD-DEC-230; VR-WF-26 s.d. VR-WF-28, VR-WF-30): adapter Kotak Masuk
+    /// Terpadu. Penugasan engine terbuka pada tahap <c>stepInstanceId</c> yang boleh dijalankan pengguna dipilih dengan aturan
+    /// yang sama dengan antrean dan <c>myAction</c> (<see cref="IApprovalInboxQueryService.FindActionableAssignmentAsync"/>),
+    /// lalu keputusan diteruskan ke <see cref="WorkflowService"/>. Engine yang mengubah status, mencatat jejak (termasuk Plh),
+    /// dan menjalankan penangan modul (<see cref="IWorkflowReferenceLifecycleHandler"/>). Adapter tidak mengubah status
+    /// sendiri, tidak meminta PIN, dan tidak menghitung tanda tangan.
+    /// </summary>
     public class WorkflowApprovalActionService : IWorkflowApprovalActionService
     {
+        public const string NotApproverMessage = "Anda bukan penyetuju tahap ini.";
+        public const string OwnRequestMessage = "Pejabat tidak boleh menyetujui permohonan sendiri.";
+        public const string InvalidReasonMessage = "Pilih alasan penolakan yang berlaku untuk permohonan ini.";
+        public const string CommentRequiredMessage = "Alasan ini mewajibkan catatan.";
+        public const string RevisionNotesRequiredMessage = "Isi catatan revisi untuk pemohon.";
+        public const string StepNotFoundMessage = "Tahapan persetujuan tidak ditemukan.";
+        public const string NotWaitingMessage = "Permohonan tidak lagi menunggu keputusan pada tahap ini.";
+        public const string AlreadyProcessedMessage = "Penugasan Anda pada tahap ini sudah diproses.";
+
         private readonly ApplicationDbContext _context;
-        private readonly IAntiSelfApprovalGuardService _antiSelfApprovalGuard;
-        private readonly IIdempotentDownstreamExecutionService _downstreamService;
+        private readonly WorkflowService _workflowService;
+        private readonly IApprovalInboxQueryService _inboxQueryService;
         private readonly IUnifiedNotificationGatewayService _notificationGateway;
+        private readonly ILogger<WorkflowApprovalActionService> _logger;
 
         public WorkflowApprovalActionService(
             ApplicationDbContext context,
-            IAntiSelfApprovalGuardService antiSelfApprovalGuard,
-            IIdempotentDownstreamExecutionService downstreamService,
-            IUnifiedNotificationGatewayService notificationGateway)
+            WorkflowService workflowService,
+            IApprovalInboxQueryService inboxQueryService,
+            IUnifiedNotificationGatewayService notificationGateway,
+            ILogger<WorkflowApprovalActionService> logger)
         {
             _context = context;
-            _antiSelfApprovalGuard = antiSelfApprovalGuard;
-            _downstreamService = downstreamService;
+            _workflowService = workflowService;
+            _inboxQueryService = inboxQueryService;
             _notificationGateway = notificationGateway;
+            _logger = logger;
         }
 
-        public async Task<WorkflowActionV2ResponseDto> ApproveAsync(Guid stepInstanceId, ApproveActionRequestDto request, Guid currentEmployeeId)
+        public async Task<WorkflowServiceResult<WorkflowActionV2ResponseDto>> ApproveAsync(
+            Guid stepInstanceId,
+            ApproveActionRequestDto request,
+            Guid currentUserId,
+            CancellationToken cancellationToken = default)
         {
-            if (request == null) throw new ArgumentNullException(nameof(request));
-
-            var step = await _context.TrxWorkflowStepInstances
-                .Include(s => s.WorkflowInstance)
-                .Include(s => s.ApproverAssignments)
-                .FirstOrDefaultAsync(s => s.Id == stepInstanceId);
-
-            if (step == null) throw new KeyNotFoundException("Tahapan persetujuan alur kerja tidak ditemukan");
-            var instance = step.WorkflowInstance;
-            if (instance == null) throw new InvalidOperationException("Instansi workflow tidak valid");
-
-            EnsureStepIsActionable(step, instance);
-
-            // Validasi Anti Self-Approval (HRD-DEC-183 / VR-WF-02)
-            _antiSelfApprovalGuard.ValidateAntiSelfApproval(instance.RequestedByEmployeeId ?? Guid.Empty, currentEmployeeId);
-
-            // Validasi hak otorisasi (apakah approver langsung atau Plh aktif)
-            var assignment = FindActionableAssignment(step);
-            var onBehalfOf = await EnsureActorIsAssignedApproverAsync(assignment, currentEmployeeId);
-
-            // Hitung hash tanda tangan digital
-            var sigHash = ComputeSignatureHash(currentEmployeeId, stepInstanceId, "APPROVE", request.PinSignature);
-
-            var now = DateTime.UtcNow;
-
-            // Catat log aksi otorisasi
-            var actionLog = new TrxApprovalAction
+            var target = await ResolveTargetAsync(stepInstanceId, currentUserId, cancellationToken);
+            if (target.Failure != null)
             {
-                Id = Guid.NewGuid(),
-                WorkflowInstanceId = instance.Id,
-                WorkflowStepInstanceId = step.Id,
-                WorkflowApproverAssignmentId = assignment?.Id,
-                ActionType = "Approve",
-                ActionEmployeeId = currentEmployeeId,
-                OnBehalfOfEmployeeId = onBehalfOf,
-                Comment = request.Note,
-                ReasonComment = request.Note,
-                DigitalSignatureHash = sigHash,
-                ActionAt = now,
-                ActionSource = "WebPortal"
-            };
-            _context.TrxApprovalActions.Add(actionLog);
-
-            // Perbarui status assignment dan step
-            if (assignment != null)
-            {
-                assignment.AssignmentStatus = "Approved";
-                assignment.CompletedAt = now;
+                return target.Failure;
             }
 
-            step.StepStatus = "Approved";
-            step.CompletedAt = now;
-            step.IsCurrentStep = false;
-            step.ApprovedActionCount += 1;
+            var assignment = target.Assignment!;
+            var result = await _workflowService.ApproveAsync(
+                assignment.WorkflowInstanceId,
+                assignment.AssignmentId,
+                new WorkflowApproveRequest { Comment = NormalizeText(request?.Note) },
+                cancellationToken);
 
-            // Periksa apakah ini step terakhir
-            var allSteps = await _context.TrxWorkflowStepInstances
-                .Where(s => s.WorkflowInstanceId == instance.Id)
-                .OrderBy(s => s.StepOrder)
-                .ToListAsync();
+            return await CompleteAsync(
+                result,
+                assignment,
+                WorkflowService.ResolveApprovalActionType(assignment.StepType),
+                "Permohonan berhasil disetujui.",
+                cancellationToken);
+        }
 
-            var nextStep = allSteps.FirstOrDefault(s => s.StepOrder > step.StepOrder && s.StepStatus == "NotStarted");
-
-            string finalWorkflowStatus = "Approved";
-
-            if (nextStep != null)
+        public async Task<WorkflowServiceResult<WorkflowActionV2ResponseDto>> RejectAsync(
+            Guid stepInstanceId,
+            RejectActionRequestDto request,
+            Guid currentUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var target = await ResolveTargetAsync(stepInstanceId, currentUserId, cancellationToken);
+            if (target.Failure != null)
             {
-                // Masih ada tahapan berikutnya
-                nextStep.StepStatus = "Pending";
-                nextStep.IsCurrentStep = true;
-                nextStep.StartedAt = now;
-                nextStep.DueAt = now.AddHours(48);
+                return target.Failure;
+            }
 
-                instance.CurrentStepOrder = nextStep.StepOrder;
-                instance.CurrentStepCode = nextStep.StepCodeSnapshot;
-                instance.WorkflowStatus = "InProgress";
-                finalWorkflowStatus = "InProgress";
+            var assignment = target.Assignment!;
+            var comment = NormalizeText(request?.Comment);
+            var reasonId = request?.RejectionReasonId ?? Guid.Empty;
 
-                // Resolve approver for next step if not assigned
-                var existingAssign = await _context.TrxWorkflowApproverAssignments
-                    .FirstOrDefaultAsync(a => a.WorkflowStepInstanceId == nextStep.Id);
+            // VR-WF-26 / VR-WF-27: alasan dinilai dari daftar yang sama dengan myAction.rejectionReasons.
+            var reasons = await WorkflowRejectionReasonOptions.QueryAsync(
+                _context,
+                assignment.DefinitionRequestType,
+                assignment.WorkflowDefinitionId,
+                assignment.WorkflowStepId,
+                DateTime.UtcNow.Date,
+                cancellationToken);
+            var reason = reasonId == Guid.Empty ? null : reasons.FirstOrDefault(x => x.Id == reasonId);
 
-                if (existingAssign == null)
+            if (reason == null)
+            {
+                return Fail(StatusCodes.Status400BadRequest, InvalidReasonMessage);
+            }
+
+            if (reason.IsCommentRequired && comment == null)
+            {
+                return Fail(StatusCodes.Status400BadRequest, CommentRequiredMessage);
+            }
+
+            var result = await _workflowService.RejectAsync(
+                assignment.WorkflowInstanceId,
+                assignment.AssignmentId,
+                new WorkflowRejectRequest { RejectionReasonId = reason.Id, Comment = comment },
+                cancellationToken);
+
+            return await CompleteAsync(
+                result,
+                assignment,
+                WorkflowValueConstants.ActionType.Reject,
+                $"Permohonan ditolak. Alasan: {ComposeReasonText(reason.ReasonName, comment)}",
+                cancellationToken);
+        }
+
+        public async Task<WorkflowServiceResult<WorkflowActionV2ResponseDto>> ReturnForRevisionAsync(
+            Guid stepInstanceId,
+            ReturnForRevisionRequestDto request,
+            Guid currentUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var target = await ResolveTargetAsync(stepInstanceId, currentUserId, cancellationToken);
+            if (target.Failure != null)
+            {
+                return target.Failure;
+            }
+
+            var notes = NormalizeText(request?.RevisionNotes);
+            if (notes == null)
+            {
+                return Fail(StatusCodes.Status400BadRequest, RevisionNotesRequiredMessage);
+            }
+
+            var assignment = target.Assignment!;
+            var result = await _workflowService.RequestRevisionAsync(
+                assignment.WorkflowInstanceId,
+                assignment.AssignmentId,
+                new WorkflowRequestRevisionRequest { Comment = notes },
+                cancellationToken);
+
+            return await CompleteAsync(
+                result,
+                assignment,
+                WorkflowValueConstants.ActionType.RequestRevision,
+                $"Permohonan dikembalikan untuk revisi. Catatan: {notes}",
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// Kontrak v29 §35.2: penugasan terbuka atas nama pengguna, atau milik pejabat yang mendelegasikan kepadanya secara
+        /// aktif. Bila tidak ada, jawaban dibedakan: tahap tidak ada (<c>404</c>), permohonan tidak lagi menunggu atau
+        /// penugasan pengguna sudah diproses (<c>409</c>), pengguna adalah pemohon atau bukan penyetuju (<c>403</c>).
+        /// </summary>
+        private async Task<ActionTarget> ResolveTargetAsync(Guid stepInstanceId, Guid currentUserId, CancellationToken cancellationToken)
+        {
+            if (currentUserId == Guid.Empty)
+            {
+                return ActionTarget.Fail(Fail(StatusCodes.Status401Unauthorized, "Sesi login tidak valid."));
+            }
+
+            var assignment = await _inboxQueryService.FindActionableAssignmentAsync(stepInstanceId, currentUserId, cancellationToken);
+            if (assignment != null)
+            {
+                return ActionTarget.Ok(assignment);
+            }
+
+            var step = await _context.TrxWorkflowStepInstances
+                .AsNoTracking()
+                .Where(s => s.Id == stepInstanceId && !s.IsDelete && s.WorkflowInstance != null && !s.WorkflowInstance.IsDelete)
+                .Select(s => new
                 {
-                    var approverId = await _antiSelfApprovalGuard.ResolveSkipLevelApproverAsync(
-                        instance.RequestedByEmployeeId ?? Guid.Empty, instance.DepartmentId ?? Guid.Empty);
+                    s.IsCurrentStep,
+                    s.StepStatus,
+                    s.WorkflowInstance!.WorkflowStatus,
+                    s.WorkflowInstance.RequestedByUserId
+                })
+                .FirstOrDefaultAsync(cancellationToken);
 
-                    _context.TrxWorkflowApproverAssignments.Add(new TrxWorkflowApproverAssignment
-                    {
-                        Id = Guid.NewGuid(),
-                        WorkflowInstanceId = instance.Id,
-                        WorkflowStepInstanceId = nextStep.Id,
-                        ApproverEmployeeId = approverId,
-                        AssignmentStatus = "Pending",
-                        IsCurrentAssignment = true,
-                        AssignedAt = now,
-                        DueAt = nextStep.DueAt
-                    });
+            if (step == null)
+            {
+                return ActionTarget.Fail(Fail(StatusCodes.Status404NotFound, StepNotFoundMessage));
+            }
+
+            if (step.RequestedByUserId == currentUserId)
+            {
+                return ActionTarget.Fail(Fail(StatusCodes.Status403Forbidden, OwnRequestMessage));
+            }
+
+            var isWaiting = step.IsCurrentStep &&
+                            step.StepStatus == WorkflowValueConstants.StepStatus.InProgress &&
+                            step.WorkflowStatus == WorkflowValueConstants.WorkflowStatus.InProgress;
+
+            var heldAssignmentOnStep = await _context.TrxWorkflowApproverAssignments
+                .AsNoTracking()
+                .AnyAsync(a =>
+                    a.WorkflowStepInstanceId == stepInstanceId &&
+                    a.ApproverEmployeeId == null &&
+                    a.AssignedApproverUserId == currentUserId &&
+                    !a.IsDelete,
+                    cancellationToken);
+
+            if (heldAssignmentOnStep)
+            {
+                return ActionTarget.Fail(Fail(StatusCodes.Status409Conflict, isWaiting ? AlreadyProcessedMessage : NotWaitingMessage));
+            }
+
+            return ActionTarget.Fail(Fail(StatusCodes.Status403Forbidden, NotApproverMessage));
+        }
+
+        private async Task<WorkflowServiceResult<WorkflowActionV2ResponseDto>> CompleteAsync(
+            WorkflowServiceResult<WorkflowInstanceDetailResponse> engineResult,
+            WorkflowActionableAssignment assignment,
+            string actionType,
+            string requesterMessage,
+            CancellationToken cancellationToken)
+        {
+            if (!engineResult.Success || engineResult.Data == null)
+            {
+                return Fail(engineResult.StatusCode, NormalizeEngineMessage(engineResult));
+            }
+
+            var detail = engineResult.Data;
+            var stepStatus = await _context.TrxWorkflowStepInstances
+                .AsNoTracking()
+                .Where(s => s.Id == assignment.StepInstanceId)
+                .Select(s => s.StepStatus)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            await NotifyAsync(assignment, detail, actionType, requesterMessage, cancellationToken);
+
+            return WorkflowServiceResult<WorkflowActionV2ResponseDto>.Ok(
+                new WorkflowActionV2ResponseDto
+                {
+                    Success = true,
+                    ActionType = actionType,
+                    Message = engineResult.Message,
+                    WorkflowInstanceId = detail.Id,
+                    ResultingWorkflowStatus = detail.WorkflowStatus,
+                    ResultingStepStatus = stepStatus ?? string.Empty,
+                    ActionTimestamp = detail.LastActionAt ?? DateTime.UtcNow
+                },
+                engineResult.Message);
+        }
+
+        // Kontrak v29 §35.7: penolakan otorisasi engine memakai pesan kontrak; pesan lain diteruskan apa adanya.
+        private static string NormalizeEngineMessage(WorkflowServiceResult<WorkflowInstanceDetailResponse> engineResult)
+        {
+            if (engineResult.StatusCode == StatusCodes.Status403Forbidden &&
+                !string.Equals(engineResult.Message, OwnRequestMessage, StringComparison.Ordinal))
+            {
+                return NotApproverMessage;
+            }
+
+            return engineResult.Message;
+        }
+
+        /// <summary>
+        /// WF-B7 / BE-HRD-314: pemohon diberi tahu hasil keputusan, dan penyetuju tahap berikutnya diberi tahu ada tugas baru.
+        /// Keputusan sudah tersimpan di engine, sehingga kegagalan pemberitahuan hanya dicatat.
+        /// </summary>
+        private async Task NotifyAsync(
+            WorkflowActionableAssignment assignment,
+            WorkflowInstanceDetailResponse detail,
+            string actionType,
+            string requesterMessage,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var title = actionType switch
+                {
+                    WorkflowValueConstants.ActionType.Reject => "Permohonan ditolak",
+                    WorkflowValueConstants.ActionType.RequestRevision => "Permohonan dikembalikan untuk revisi",
+                    _ => "Permohonan disetujui"
+                };
+
+                if (assignment.RequestedByUserId != Guid.Empty)
+                {
+                    await _notificationGateway.SendInstantNotificationToUserAsync(
+                        assignment.RequestedByUserId,
+                        title,
+                        $"{assignment.RequestNumber}: {requesterMessage}",
+                        $"/hrd/workflow/my-requests/{assignment.WorkflowInstanceId}",
+                        assignment.WorkflowInstanceId);
+                }
+
+                if (actionType == WorkflowValueConstants.ActionType.Reject ||
+                    actionType == WorkflowValueConstants.ActionType.RequestRevision ||
+                    detail.WorkflowStatus != WorkflowValueConstants.WorkflowStatus.InProgress)
+                {
+                    return;
+                }
+
+                var nextApprovers = await _context.TrxWorkflowApproverAssignments
+                    .AsNoTracking()
+                    .Where(a =>
+                        a.WorkflowInstanceId == assignment.WorkflowInstanceId &&
+                        a.WorkflowStepInstanceId != assignment.StepInstanceId &&
+                        a.IsCurrentAssignment &&
+                        a.ApproverEmployeeId == null &&
+                        a.AssignedApproverUserId != Guid.Empty &&
+                        a.AssignmentStatus == WorkflowValueConstants.AssignmentStatus.Available &&
+                        !a.IsDelete &&
+                        a.WorkflowStepInstance != null &&
+                        a.WorkflowStepInstance.IsCurrentStep)
+                    .Select(a => new { a.AssignedApproverUserId, a.DueAt })
+                    .ToListAsync(cancellationToken);
+
+                foreach (var next in nextApprovers)
+                {
+                    await _notificationGateway.SendInstantNotificationToUserAsync(
+                        next.AssignedApproverUserId,
+                        "Permohonan baru menunggu persetujuan Anda",
+                        $"Permohonan {assignment.RequestNumber} ({assignment.ReferenceType}) masuk ke kotak persetujuan Anda." +
+                        (next.DueAt.HasValue ? $" Batas SLA: {next.DueAt.Value:dd MMM yyyy HH:mm} UTC." : string.Empty),
+                        null,
+                        assignment.WorkflowInstanceId);
                 }
             }
-            else
+            catch (Exception ex)
             {
-                // Tahapan final disetujui
-                instance.WorkflowStatus = "Approved";
-                instance.CompletedAt = now;
-                instance.FinalizedAt = now;
-            }
-
-            // Audit Trail
-            _context.TrxWorkflowStatusHistories.Add(new TrxWorkflowStatusHistory
-            {
-                Id = Guid.NewGuid(),
-                WorkflowInstanceId = instance.Id,
-                FromWorkflowStatus = "Pending",
-                ToWorkflowStatus = finalWorkflowStatus,
-                ChangedAt = now,
-                Comment = $"Disetujui pada tahapan {step.StepNameSnapshot}"
-            });
-
-            await _context.SaveChangesAsync();
-
-            // WF-B8 / INT-HR-93: eksekusi hilir sesudah keputusan tersimpan, karena handler membaca
-            // instance dari database. Dijalankan juga pada tahapan antara, sama seperti mesin utama,
-            // supaya transaksi sumber mengikuti tahapan yang sedang berjalan.
-            await _downstreamService.ExecuteDownstreamActionsAsync(instance.Id);
-
-            // WF-B7 / BE-HRD-314: pemohon diberi tahu hasil tahapan; approver tahapan berikutnya diberi tahu ada tiket baru
-            await NotifyRequesterAsync(instance, nextStep != null
-                ? $"Permohonan {instance.RequestNumber} disetujui pada tahapan {step.StepNameSnapshot} dan diteruskan ke pejabat berikutnya."
-                : $"Permohonan {instance.RequestNumber} telah disetujui penuh.", "Permohonan disetujui");
-            if (nextStep != null)
-            {
-                await NotifyStepApproverAsync(instance, nextStep.Id);
-            }
-
-            return new WorkflowActionV2ResponseDto
-            {
-                Success = true,
-                ActionType = "Approve",
-                Message = nextStep != null ? "Tahapan berhasil disetujui, diteruskan ke pejabat berikutnya" : "Permohonan berhasil disetujui penuh (Final)",
-                WorkflowInstanceId = instance.Id,
-                ResultingWorkflowStatus = instance.WorkflowStatus,
-                ResultingStepStatus = step.StepStatus,
-                ActionTimestamp = now
-            };
-        }
-
-        public async Task<WorkflowActionV2ResponseDto> RejectAsync(Guid stepInstanceId, RejectActionRequestDto request, Guid currentEmployeeId)
-        {
-            if (request == null) throw new ArgumentNullException(nameof(request));
-
-            // Validasi VR-WF-05: Alasan penolakan minimal 15 karakter
-            if (string.IsNullOrWhiteSpace(request.RejectReason) || request.RejectReason.Trim().Length < 15)
-            {
-                throw new InvalidOperationException("Alasan penolakan wajib diisi minimal 15 karakter untuk transparansi audit staf (VR-WF-05)");
-            }
-
-            var step = await _context.TrxWorkflowStepInstances
-                .Include(s => s.WorkflowInstance)
-                .Include(s => s.ApproverAssignments)
-                .FirstOrDefaultAsync(s => s.Id == stepInstanceId);
-
-            if (step == null) throw new KeyNotFoundException("Tahapan persetujuan alur kerja tidak ditemukan");
-            var instance = step.WorkflowInstance;
-            if (instance == null) throw new InvalidOperationException("Instansi workflow tidak valid");
-
-            EnsureStepIsActionable(step, instance);
-
-            _antiSelfApprovalGuard.ValidateAntiSelfApproval(instance.RequestedByEmployeeId ?? Guid.Empty, currentEmployeeId);
-            await EnsureActorIsAssignedApproverAsync(FindActionableAssignment(step), currentEmployeeId);
-
-            var now = DateTime.UtcNow;
-            var sigHash = ComputeSignatureHash(currentEmployeeId, stepInstanceId, "REJECT", request.PinSignature);
-
-            var actionLog = new TrxApprovalAction
-            {
-                Id = Guid.NewGuid(),
-                WorkflowInstanceId = instance.Id,
-                WorkflowStepInstanceId = step.Id,
-                ActionType = "Reject",
-                ActionEmployeeId = currentEmployeeId,
-                Comment = request.RejectReason,
-                ReasonComment = request.RejectReason,
-                DigitalSignatureHash = sigHash,
-                ActionAt = now,
-                ActionSource = "WebPortal"
-            };
-            _context.TrxApprovalActions.Add(actionLog);
-
-            step.StepStatus = "Rejected";
-            step.CompletedAt = now;
-            step.IsCurrentStep = false;
-            step.RejectedActionCount += 1;
-
-            var assignment = FindActionableAssignment(step);
-            if (assignment != null)
-            {
-                assignment.AssignmentStatus = "Rejected";
-                assignment.CompletedAt = now;
-            }
-
-            instance.WorkflowStatus = "Rejected";
-            instance.CompletedAt = now;
-            instance.CompletionNote = request.RejectReason;
-
-            _context.TrxWorkflowStatusHistories.Add(new TrxWorkflowStatusHistory
-            {
-                Id = Guid.NewGuid(),
-                WorkflowInstanceId = instance.Id,
-                FromWorkflowStatus = "Pending",
-                ToWorkflowStatus = "Rejected",
-                ChangedAt = now,
-                Comment = $"Ditolak: {request.RejectReason}"
-            });
-
-            await _context.SaveChangesAsync();
-
-            // WF-B8: penolakan juga diteruskan, supaya transaksi sumber (misalnya permohonan cuti)
-            // ikut berstatus ditolak dan tidak tertahan sebagai menunggu persetujuan.
-            await _downstreamService.ExecuteDownstreamActionsAsync(instance.Id);
-
-            await NotifyRequesterAsync(instance, $"Permohonan {instance.RequestNumber} ditolak. Alasan: {request.RejectReason}", "Permohonan ditolak");
-
-            return new WorkflowActionV2ResponseDto
-            {
-                Success = true,
-                ActionType = "Reject",
-                Message = "Permohonan resmi ditolak dengan alasan tercatat di audit log",
-                WorkflowInstanceId = instance.Id,
-                ResultingWorkflowStatus = "Rejected",
-                ResultingStepStatus = "Rejected",
-                ActionTimestamp = now
-            };
-        }
-
-        public async Task<WorkflowActionV2ResponseDto> ReturnForRevisionAsync(Guid stepInstanceId, ReturnForRevisionRequestDto request, Guid currentEmployeeId)
-        {
-            if (request == null) throw new ArgumentNullException(nameof(request));
-
-            // Validasi HRD-DEC-186: Catatan revisi minimal 10 karakter
-            if (string.IsNullOrWhiteSpace(request.RevisionNotes) || request.RevisionNotes.Trim().Length < 10)
-            {
-                throw new InvalidOperationException("Catatan perbaikan revisi wajib minimal 10 karakter (HRD-DEC-186)");
-            }
-
-            var step = await _context.TrxWorkflowStepInstances
-                .Include(s => s.WorkflowInstance)
-                .Include(s => s.ApproverAssignments)
-                .FirstOrDefaultAsync(s => s.Id == stepInstanceId);
-
-            if (step == null) throw new KeyNotFoundException("Tahapan persetujuan alur kerja tidak ditemukan");
-            var instance = step.WorkflowInstance;
-            if (instance == null) throw new InvalidOperationException("Instansi workflow tidak valid");
-
-            EnsureStepIsActionable(step, instance);
-            await EnsureActorIsAssignedApproverAsync(FindActionableAssignment(step), currentEmployeeId);
-
-            var now = DateTime.UtcNow;
-
-            var actionLog = new TrxApprovalAction
-            {
-                Id = Guid.NewGuid(),
-                WorkflowInstanceId = instance.Id,
-                WorkflowStepInstanceId = step.Id,
-                ActionType = "ReturnForRevision",
-                ActionEmployeeId = currentEmployeeId,
-                Comment = request.RevisionNotes,
-                ReasonComment = request.RevisionNotes,
-                ActionAt = now,
-                ActionSource = "WebPortal"
-            };
-            _context.TrxApprovalActions.Add(actionLog);
-
-            step.StepStatus = "ReturnedForRevision";
-            instance.WorkflowStatus = "ReturnedForRevision";
-            instance.CompletionNote = request.RevisionNotes;
-
-            // Catat komentar perbaikan ke thread diskusi
-            _context.TrxWorkflowComments.Add(new TrxWorkflowComment
-            {
-                Id = Guid.NewGuid(),
-                WorkflowInstanceId = instance.Id,
-                CommentByUserId = currentEmployeeId,
-                CommentText = $"[PERMINTAAN REVISI DRAF]: {request.RevisionNotes}",
-                IsInternalComment = false,
-                CommentedAt = now
-            });
-
-            _context.TrxWorkflowStatusHistories.Add(new TrxWorkflowStatusHistory
-            {
-                Id = Guid.NewGuid(),
-                WorkflowInstanceId = instance.Id,
-                FromWorkflowStatus = "Pending",
-                ToWorkflowStatus = "ReturnedForRevision",
-                ChangedAt = now,
-                Comment = request.RevisionNotes
-            });
-
-            await _context.SaveChangesAsync();
-
-            await NotifyRequesterAsync(instance, $"Permohonan {instance.RequestNumber} dikembalikan untuk perbaikan draf (batas 7 hari). Catatan: {request.RevisionNotes}", "Permohonan dikembalikan untuk revisi");
-
-            return new WorkflowActionV2ResponseDto
-            {
-                Success = true,
-                ActionType = "ReturnForRevision",
-                Message = "Permohonan dikembalikan ke staf pemohon untuk perbaikan draf (Batas waktu 7 hari)",
-                WorkflowInstanceId = instance.Id,
-                ResultingWorkflowStatus = "ReturnedForRevision",
-                ResultingStepStatus = "ReturnedForRevision",
-                ActionTimestamp = now
-            };
-        }
-
-        private static TrxWorkflowApproverAssignment? FindActionableAssignment(TrxWorkflowStepInstance step)
-        {
-            return step.ApproverAssignments.FirstOrDefault(a => ActionableStepStatuses.Contains(a.AssignmentStatus, StringComparer.OrdinalIgnoreCase));
-        }
-
-        /// <summary>
-        /// Hanya approver yang ditugaskan pada tahapan atau Plh aktifnya yang boleh memutus. Mengembalikan pejabat asal bila aktor adalah Plh.
-        /// </summary>
-        /// <remarks>
-        /// Penugasan dicocokkan lewat ID karyawan. Penugasan dari mesin workflow utama hanya mengisi akun approver,
-        /// sehingga pada keadaan itu yang dicocokkan akun pengguna.
-        /// </remarks>
-        private async Task<Guid?> EnsureActorIsAssignedApproverAsync(TrxWorkflowApproverAssignment? assignment, Guid currentEmployeeId)
-        {
-            if (assignment == null)
-            {
-                throw new UnauthorizedAccessException("Tahapan ini tidak memiliki penugasan approver yang aktif.");
-            }
-
-            if (assignment.ApproverEmployeeId.HasValue && assignment.ApproverEmployeeId.Value != Guid.Empty)
-            {
-                if (assignment.ApproverEmployeeId.Value == currentEmployeeId) return null;
-
-                var isDelegate = await _context.TrxApprovalDelegations
-                    .AnyAsync(d => d.DelegateEmployeeId == currentEmployeeId &&
-                                   d.PrincipalEmployeeId == assignment.ApproverEmployeeId &&
-                                   d.IsActive);
-                if (isDelegate) return assignment.ApproverEmployeeId;
-            }
-            else
-            {
-                var isAssignedAccount = await _context.Users.AsNoTracking()
-                    .AnyAsync(u => u.Id == assignment.AssignedApproverUserId && (u.Id == currentEmployeeId || u.EmployeeId == currentEmployeeId));
-                if (isAssignedAccount) return null;
-            }
-
-            throw new UnauthorizedAccessException("Anda bukan approver yang ditugaskan pada tahapan ini dan tidak memegang delegasi Plh yang aktif.");
-        }
-
-        private static readonly string[] ActionableStepStatuses =
-        {
-            WorkflowValueConstants.StepStatus.Pending,
-            WorkflowValueConstants.StepStatus.Available,
-            WorkflowValueConstants.StepStatus.InProgress
-        };
-
-        private static readonly string[] TerminalWorkflowStatuses =
-        {
-            WorkflowValueConstants.WorkflowStatus.Approved,
-            WorkflowValueConstants.WorkflowStatus.Rejected,
-            WorkflowValueConstants.WorkflowStatus.Cancelled,
-            WorkflowValueConstants.WorkflowStatus.Withdrawn,
-            WorkflowValueConstants.WorkflowStatus.Completed
-        };
-
-        /// <summary>
-        /// WF-B8: satu tahapan hanya boleh diputus sekali.
-        /// </summary>
-        /// <remarks>
-        /// Tanpa penjaga ini, tahapan terakhir yang sudah disetujui dapat disetujui lagi — misalnya
-        /// karena tombol ditekan dua kali — sehingga jejak aksi, riwayat status, dan eksekusi hilir
-        /// tercatat ganda. Permohonan yang sudah ditolak juga dapat "disetujui" sesudahnya.
-        /// <c>InProgress</c> diterima karena itulah status tahapan aktif pada instance yang dibuat
-        /// mesin workflow utama.
-        /// </remarks>
-        private static void EnsureStepIsActionable(TrxWorkflowStepInstance step, TrxWorkflowInstance instance)
-        {
-            var isTerminal = TerminalWorkflowStatuses.Contains(instance.WorkflowStatus, StringComparer.OrdinalIgnoreCase);
-            var isActiveStep = step.IsCurrentStep &&
-                               ActionableStepStatuses.Contains(step.StepStatus, StringComparer.OrdinalIgnoreCase);
-
-            if (isTerminal || !isActiveStep)
-            {
-                throw new InvalidOperationException("Tahapan persetujuan belum aktif atau sudah diproses.");
+                _logger.LogWarning(
+                    ex,
+                    "Pemberitahuan keputusan workflow {WorkflowInstanceId} gagal dikirim; keputusan tetap tersimpan.",
+                    assignment.WorkflowInstanceId);
             }
         }
 
-        /// <summary>WF-B7: pemberitahuan instan ke pemohon. Akun pemohon selalu tercatat pada instance (RequestedByUserId).</summary>
-        private async Task NotifyRequesterAsync(TrxWorkflowInstance instance, string message, string title)
+        private static string ComposeReasonText(string reasonName, string? comment)
         {
-            if (instance.RequestedByUserId != Guid.Empty)
-            {
-                await _notificationGateway.SendInstantNotificationToUserAsync(
-                    instance.RequestedByUserId, title, message, $"/hrd/workflow/my-requests/{instance.Id}", instance.Id);
-            }
-            else if (instance.RequestedByEmployeeId.HasValue)
-            {
-                await _notificationGateway.SendInstantNotificationAsync(instance.RequestedByEmployeeId.Value, title, message);
-            }
+            return comment == null ? reasonName : $"{reasonName} — {comment}";
         }
 
-        /// <summary>WF-B7: pemberitahuan instan ke approver tahapan yang baru aktif.</summary>
-        private async Task NotifyStepApproverAsync(TrxWorkflowInstance instance, Guid stepInstanceId)
+        private static string? NormalizeText(string? value)
         {
-            var assignment = await _context.TrxWorkflowApproverAssignments
-                .AsNoTracking()
-                .FirstOrDefaultAsync(a => a.WorkflowStepInstanceId == stepInstanceId && a.AssignmentStatus == "Pending");
-            if (assignment == null) return;
-
-            var title = "Permohonan baru menunggu persetujuan Anda";
-            var message = $"Permohonan {instance.RequestNumber} ({instance.ReferenceType}) masuk ke kotak persetujuan Anda. Batas SLA: {assignment.DueAt:dd MMM yyyy HH:mm} UTC.";
-            if (assignment.ApproverEmployeeId.HasValue && assignment.ApproverEmployeeId.Value != Guid.Empty)
-            {
-                await _notificationGateway.SendInstantNotificationAsync(assignment.ApproverEmployeeId.Value, title, message);
-            }
-            else if (assignment.AssignedApproverUserId != Guid.Empty)
-            {
-                await _notificationGateway.SendInstantNotificationToUserAsync(assignment.AssignedApproverUserId, title, message, null, instance.Id);
-            }
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
-        private static string ComputeSignatureHash(Guid employeeId, Guid stepId, string action, string pin)
+        private static WorkflowServiceResult<WorkflowActionV2ResponseDto> Fail(int statusCode, string message)
         {
-            var raw = $"{employeeId}:{stepId}:{action}:{pin}:{DateTime.UtcNow:yyyyMMdd}";
-            using var sha = SHA256.Create();
-            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(raw));
-            return Convert.ToHexString(bytes);
+            return WorkflowServiceResult<WorkflowActionV2ResponseDto>.Fail(statusCode, message);
+        }
+
+        private sealed class ActionTarget
+        {
+            public WorkflowActionableAssignment? Assignment { get; private init; }
+            public WorkflowServiceResult<WorkflowActionV2ResponseDto>? Failure { get; private init; }
+
+            public static ActionTarget Ok(WorkflowActionableAssignment assignment) => new() { Assignment = assignment };
+
+            public static ActionTarget Fail(WorkflowServiceResult<WorkflowActionV2ResponseDto> failure) => new() { Failure = failure };
         }
     }
 }

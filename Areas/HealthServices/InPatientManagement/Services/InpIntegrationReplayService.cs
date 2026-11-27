@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Model
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
@@ -15,10 +16,19 @@ public sealed class InpIntegrationReplayService(ApplicationDbContext db, IInpInt
 {
     public async Task<OutboxMonitorResponse> GetMonitorAsync(OutboxMonitorQuery request, CancellationToken ct)
     {
-        if (request.From > request.To) throw new ArgumentException("Awal periode melewati akhir periode.");
+        var fromUtc = request.From.HasValue ? InpDateRangeHelper.NormalizeStartUtc(request.From.Value) : (DateTime?)null;
+        var toComparisonUtc = request.To.HasValue ? InpDateRangeHelper.NormalizeToUtc(request.To.Value) : (DateTime?)null;
+        if (fromUtc.HasValue && toComparisonUtc.HasValue && fromUtc.Value > toComparisonUtc.Value)
+            throw new ArgumentException("Awal periode melewati akhir periode.");
         var query = db.InpIntegrationOutboxes.AsNoTracking().Where(x => !x.IsDelete);
-        if (request.From.HasValue) query = query.Where(x => x.CreatedAtUtc >= request.From.Value);
-        if (request.To.HasValue) query = query.Where(x => x.CreatedAtUtc <= request.To.Value);
+        if (fromUtc.HasValue) query = query.Where(x => x.CreatedAtUtc >= fromUtc.Value);
+        if (request.To.HasValue)
+        {
+            var (toUtc, isExclusive) = InpDateRangeHelper.ResolveEndUtc(request.To.Value);
+            query = isExclusive
+                ? query.Where(x => x.CreatedAtUtc < toUtc)
+                : query.Where(x => x.CreatedAtUtc <= toUtc);
+        }
         if (!string.IsNullOrWhiteSpace(request.EventType))
         {
             if (!InpIntegrationOutboxPayload.EventTypes.Contains(request.EventType)) throw new ArgumentException("Jenis pesan tidak dikenal.");

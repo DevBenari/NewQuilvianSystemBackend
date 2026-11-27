@@ -101,3 +101,7 @@ Aturan baca: requirement tanpa task berarti tidak akan terwujud; task tanpa requ
 | Uji perangkat Kiosk fisik | Tidak tersedia di dev | UAT oleh pemilik |
 | `KSK-RISK-001` sesi ganda saat retry setelah timeout `scan-result` | Perilaku existing | Dicatat; tidak ditutup revisi ini |
 | `KSK-RISK-003` `PATCH …/primary` masih bisa dipanggil akun Kiosk | `KSK-GAP-011` | POST-MVP |
+
+## 2d. Amendment PO — Pendaftaran Pasien Online dan Check-in Kiosk
+
+Traceability Amendment PO dipelihara terpisah di [online-registration-traceability.md](online-registration-traceability.md) (`KSK-PO-TRACE-001`), bersama [online-registration-backend-roadmap.md](online-registration-backend-roadmap.md) dan [online-registration-frontend-roadmap.md](online-registration-frontend-roadmap.md).

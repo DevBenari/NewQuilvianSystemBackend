@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
@@ -535,19 +536,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
-        private static string MaskPatientName(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
-            var parts = value.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            return string.Join(" ", parts.Select(MaskWord));
-        }
-
-        private static string MaskWord(string word)
-        {
-            if (word.Length <= 1) return word;
-            if (word.Length == 2) return word[0] + "*";
-            return word[0] + new string('*', Math.Min(word.Length - 1, 5));
-        }
+        // BE-KSK-PO-004: aturan penyamaran dipindah ke helper bersama, perilaku sama persis.
+        private static string MaskPatientName(string value) => PatientNameMasker.Mask(value);
 
         private IActionResult DisplayDeviceNotFound()
         {

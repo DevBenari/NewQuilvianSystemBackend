@@ -270,3 +270,168 @@ layar Akses Role, karena hak yang dicari tidak pernah ada untuk diberikan.
 
 **Nilai uang dan keterangan jurnal tetap tidak boleh masuk catatan `LoggerService`.** Aturan
 `02-backend-architecture.md` bagian 11 berlaku penuh di Phase 2.
+
+
+---
+
+## `ACC-PERMISSION-0.8` — buku besar, laba rugi, dan neraca *(**`approved`** Rizki 24 November 2026, `GATE-DESAIN-1124`)*
+
+Dasar: `ACC-DEC-150`, `155`; kontrak `ACC-API-0.17`. **Nol Resource baru, nol Action baru**, nol
+pemberian hak baru di Akses Role.
+
+### Hak akses per endpoint
+
+| Endpoint | Resource | Action | Atribut | Pembacaan dicatat? |
+|---|---|---|---|---|
+| `GET /general-ledger/movements` *(diperluas)* | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | Tidak |
+| `GET /general-ledger/movements/summary` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | Tidak |
+| `GET /general-ledger/movements/export` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — unduhan |
+| `GET /general-ledger/trial-balance/export` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — unduhan |
+| `GET /general-ledger/income-statement` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — `ACC-DEC-032` |
+| `GET /general-ledger/income-statement/export` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — unduhan |
+| `GET /general-ledger/balance-sheet` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — `ACC-DEC-032` |
+| `GET /general-ledger/balance-sheet/export` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — unduhan |
+
+Kedelapan endpoint berada di `GeneralLedgerController` yang sudah ada, di bawah atribut kelas
+`[AccessController(moduleCode: "ACCOUNTING_GENERAL_LEDGER", ...)]`. Tidak ada controller baru, sehingga
+Akses Role tetap menampilkan satu modul akses, bukan dua. Setiap action baru diberi
+`[AccessAction("Read", "Read General Ledger", ...)]` dengan keterangan masing-masing, mengikuti pola
+tiga action yang ada.
+
+Peran yang memegang `GeneralLedger : Read` tidak berubah: keenam peran Phase 1 dan `Accounting
+Director` sesuai matriks bagian 2 dan Phase 2.
+
+### Isi catatan
+
+| Aksi logger | Kapan | Muatan | Dilarang masuk |
+|---|---|---|---|
+| `FinancialStatement.IncomeStatement` | Laba rugi dibuka | `LegalEntityId`, `PeriodCode`, `CostCenterId`, `IncludeZeroAccounts`, `StatusCode`, jumlah baris | Seluruh nominal, nama akun |
+| `FinancialStatement.BalanceSheet` | Neraca dibuka | `LegalEntityId`, `PeriodCode`, `IncludeZeroAccounts`, `StatusCode`, jumlah baris, `IsBalanced` | Seluruh nominal, termasuk `Difference` |
+| `GeneralLedger.Export` | Salah satu dari empat CSV diunduh | Jenis laporan, `LegalEntityId`, `PeriodCode` atau `DateFrom`/`DateTo`, `AccountId`, `CostCenterId`, jumlah baris | Seluruh nominal, keterangan baris, isi berkas |
+
+Pelaku dibaca `LoggerService` dari klaim permintaan, seperti log neraca saldo yang ada. Permintaan
+yang gagal dicatat `WarningAsync` dengan muatan yang sama.
+
+### Aturan yang tidak dapat diwakili matriks
+
+1. Tombol **Unduh CSV** dan **Cetak** hanya tampil bagi pemegang `GeneralLedger : Read`, tetapi
+   penolakan sesungguhnya di backend: memanggil alamat unduhan langsung tanpa hak → `403`.
+2. Kolom **Asal** buku besar hanya menyebut modul dan nomor transaksi sumber, **tidak pernah**
+   pengenal pasien (`ACC-DEC-056`).
+3. Tautan Asal ke Kotak Masuk Kejadian tunduk pada hak `AccountingEvent : Read` di layar itu sendiri;
+   pengguna tanpa hak itu tetap melihat label Asal, tetapi membuka tautannya ditolak layar tujuan.
+
+---
+
+## `ACC-PERMISSION-0.9` — Master COA: kode otomatis dan klasifikasi *(**`approved`** Rizki 25 November 2026, `GATE-DESAIN-1125`)*
+
+Dasar: `ACC-DEC-169`, `173` butir 4; kontrak `ACC-API-0.18`. **Nol Resource baru, nol Action baru**,
+nol pemberian hak baru di Akses Role. Action baru berada di `ChartOfAccountController` yang
+sudah ada, di bawah `[AccessController(moduleCode: "ACCOUNTING_MASTER_DATA", ...)]`, dan diberi
+`[AccessAction(...)]` dengan Action yang sudah dipakai controller itu.
+
+### Hak akses per endpoint
+
+| Endpoint | Resource | Action | Atribut | Tindakan dicatat? |
+|---|---|---|---|---|
+| `GET /chart-of-accounts` *(diperluas)* | `ChartOfAccount` | `Read` | `[AccessPermission("ChartOfAccount", "Read")]` | Tidak (lama) |
+| `GET /chart-of-accounts/{id}` *(diperluas)* | `ChartOfAccount` | `Read` | `[AccessPermission("ChartOfAccount", "Read")]` | Tidak (lama) |
+| `GET /chart-of-accounts/tree` *(diperluas)* | `ChartOfAccount` | `Read` | `[AccessPermission("ChartOfAccount", "Read")]` | Tidak (lama) |
+| `GET /chart-of-accounts/next-code` *(baru)* | `ChartOfAccount` | `Create` | `[AccessPermission("ChartOfAccount", "Create")]` + `[AccessAction("Create", "Create Chart of Account", Description = "Melihat usulan kode akun baru", AccessType = AccessTypes.Create, SortOrder = 2)]` | Tidak — pratinjau, tidak menulis |
+| `POST /chart-of-accounts` *(diperluas)* | `ChartOfAccount` | `Create` | `[AccessPermission("ChartOfAccount", "Create")]` | Ya — `ChartOfAccount.Create` (lama) |
+| `PUT /chart-of-accounts/{id}` *(diperluas)* | `ChartOfAccount` | `Update` | `[AccessPermission("ChartOfAccount", "Update")]` (lama) | Ya — `ChartOfAccount.Update` (lama), + `ChartOfAccount.Classification` (**baru**) bila nilai klasifikasi berubah |
+| `GET /general-ledger/balance-sheet` *(diperluas)* | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | Ya — `FinancialStatement.BalanceSheet` (lama), + `UnclassifiedAccountCount` |
+
+**Mengapa pratinjau kode memakai `Create`, bukan `Read`.** Pratinjau hanya berguna bagi yang boleh
+menambah akun; memberinya ke `Read` membuat setiap peran pembaca dapat memetakan nomor yang akan
+terbit tanpa alasan. Peran yang memegangnya tidak berubah: Accounting Administrator (matriks
+bagian 2).
+
+**Peran yang mengubah klasifikasi** = pemegang `ChartOfAccount : Update`, yaitu Accounting
+Administrator (matriks bagian 2). Bila pemilik proses akuntansi bukan Administrator, pemberian haknya
+adalah langkah operasional di Akses Role, bukan perubahan kontrak.
+
+### Isi catatan
+
+| Aksi logger | Kapan | Muatan | Dilarang masuk |
+|---|---|---|---|
+| `ChartOfAccount.Classification` | `PUT` atau `POST` yang mengubah nilai klasifikasi milik akun, berhasil atau ditolak | `AccountId`, `AccountCode`, `Before { ReportClassification, CurrentAssetCategory }`, `After { ReportClassification, CurrentAssetCategory }`, `StatusCode` | — |
+| `FinancialStatement.BalanceSheet` (lama) | Neraca dibuka | Muatan lama + `UnclassifiedAccountCount` | Seluruh nominal; daftar akun belum lengkap tidak dicatat, cukup jumlahnya |
+
+Pelaku dan waktu dibaca `LoggerService` dari klaim permintaan. Permintaan yang ditolak dicatat
+`WarningAsync` dengan muatan yang sama; `Before` diisi dari nilai tersimpan, `After` dari request.
+
+### Aturan yang tidak dapat diwakili matriks
+
+1. Isian klasifikasi berada di form Tambah Akun dan Perbarui Akun, yang memang hanya terbuka bagi
+   pemegang `ChartOfAccount : Create` / `Update` (lama); penolakan sesungguhnya di backend.
+2. Layar Tambah Akun memanggil pratinjau kode; pengguna tanpa `ChartOfAccount : Create` memang tidak
+   dapat membuka layar itu (lama), sehingga pratinjau tidak perlu jalan cadangan.
+3. Tautan "Lengkapi di Bagan Akun" pada peringatan neraca tunduk pada `ChartOfAccount : Read` di layar
+   tujuan; pemegang `GeneralLedger : Read` tanpa hak itu tetap melihat peringatannya.
+
+
+---
+
+## `ACC-PERMISSION-0.10` — rasio keuangan *(**`approved`** Rizki 26 November 2026, `GATE-DESAIN-1126`)*
+
+Dasar: `ACC-DEC-182`, `183`; kontrak `ACC-API-0.19`. **Nol Resource baru, nol Action baru**, nol
+pemberian hak baru di Akses Role.
+
+### Hak akses per endpoint
+
+| Endpoint | Resource | Action | Atribut | Pembacaan dicatat? |
+|---|---|---|---|---|
+| `GET /general-ledger/financial-ratios` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — `FinancialStatement.Ratio` |
+| `GET /general-ledger/financial-ratios/export` | `GeneralLedger` | `Read` | `[AccessPermission("GeneralLedger", "Read")]` | **Ya** — `GeneralLedger.Export` |
+
+Keduanya di `GeneralLedgerController` yang ada, dengan
+`[AccessAction("Read", "Read General Ledger", Description = "...", AccessType = AccessTypes.Read, SortOrder = 1)]`
+mengikuti pola action laporan yang ada. Akses Role tetap menampilkan satu modul akses
+`ACCOUNTING_GENERAL_LEDGER`.
+
+### Isi catatan
+
+| Aksi logger | Kapan | Isi (di teks pesan) | Dilarang masuk |
+|---|---|---|---|
+| `FinancialStatement.Ratio` | Rasio dibuka | Periode, jumlah rasio per status kolom kini | Seluruh nominal, hasil rasio, nama akun |
+| `GeneralLedger.Export` | CSV rasio diunduh | Jenis laporan `RasioKeuangan`, periode, jumlah baris | Seluruh nominal dan isi berkas |
+
+Isi wajib ditulis di teks pesan karena `LoggerService` tidak menyimpan objek muatan. Permintaan gagal
+dicatat `WarningAsync`.
+
+### Aturan yang tidak dapat diwakili matriks
+
+1. Tombol Unduh CSV dan Cetak hanya tampil bagi pemegang `GeneralLedger : Read`; penolakan
+   sesungguhnya di backend (`403`).
+2. Tautan **Lengkapi di Bagan Akun** tunduk pada `ChartOfAccount : Read` di layar tujuan.
+
+
+---
+
+## `ACC-PERMISSION-0.11` — anggaran Accounting *(**`draft`**, menunggu gerbang desain Rizki)*
+
+Dasar: `ACC-DEC-190`, `193`, `196`; kontrak `ACC-API-0.20`. **Satu Resource baru `Budget`** di modul akses baru
+`ACCOUNTING_BUDGET`; muncul di Akses Role dari `[AccessController]`. Belum ada peran yang memegangnya sampai
+admin mencentang.
+
+### Hak akses per endpoint
+
+| Endpoint | Resource | Action (`[AccessAction]` arg 1) | `AccessType` | Atribut |
+|---|---|---|---|---|
+| `GET /budgets`, `GET /budgets/{id}`, `GET /budgets/{id}/lines/export` | `Budget` | `Read` | `Read` | `[AccessPermission("Budget", "Read")]` |
+| `POST /budgets`, `POST /budgets/{id}/revise` | `Budget` | `Create` | `Create` | `[AccessPermission("Budget", "Create")]` |
+| `PUT /budgets/{id}`, `PUT /budgets/{id}/lines`, `POST /budgets/{id}/lines/import`, `POST /budgets/{id}/submit`, `POST /budgets/{id}/withdraw` | `Budget` | `Update` | `Update` | `[AccessPermission("Budget", "Update")]` |
+| `POST /budgets/{id}/approve`, `POST /budgets/{id}/reject` | `Budget` | `Approve` | `Update` | `[AccessPermission("Budget", "Approve")]` |
+| `DELETE /budgets/{id}` | `Budget` | `Delete` | `Delete` | `[AccessPermission("Budget", "Delete")]` |
+
+Kewenangan yang melekat pada data — pengaju tidak boleh menyetujui versinya sendiri, hanya pengaju yang
+boleh menarik — diperiksa service, bukan lewat nama peran.
+
+### Isi catatan
+
+| Aksi logger | Kapan | Isi (teks pesan) | Dilarang masuk |
+|---|---|---|---|
+| `Budget.Create`, `Budget.Revise`, `Budget.Update`, `Budget.Lines`, `Budget.Submit`, `Budget.Withdraw`, `Budget.Approve`, `Budget.Reject`, `Budget.Delete` | Setiap aksi tulis | Tahun, nomor versi, status, jumlah baris, sumber (layar/CSV), alasan tolak | Seluruh nominal |
+
+Membaca dan mengunduh anggaran tidak dicatat. Penolakan dicatat `WarningAsync`.

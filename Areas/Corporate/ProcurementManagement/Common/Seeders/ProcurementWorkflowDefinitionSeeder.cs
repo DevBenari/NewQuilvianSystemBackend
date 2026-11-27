@@ -7,8 +7,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Seeders
 {
     /// <summary>
-    /// Kerangka lima definisi approval Pengadaan pada mesin workflow bersama (BE-PBJ-005;
-    /// <c>02-backend-architecture.md</c> bagian 8 dan 10).
+    /// Kerangka definisi approval Pengadaan pada mesin workflow bersama (BE-PBJ-005;
+    /// <c>02-backend-architecture.md</c> bagian 8 dan 10). BE-PBJ-VD-001 menambah dua definisi usulan
+    /// blokir/buka blokir vendor (<c>PBJ-VND-BLOKIR</c>, <c>PBJ-VND-BUKA</c>; PBJ-DEC-021, PBJ-ASM-003).
+    /// BE-PBJ-PS-001 menambah persetujuan persiapan paket (<c>PBJ-PKT-PERSIAPAN</c>) dan penetapan penyedia
+    /// (<c>PBJ-PKT-PENETAPAN</c>; PBJ-DEC-072), sehingga totalnya sembilan definisi.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -22,7 +25,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.See
     /// <para>
     /// Seluruh langkah <c>AllowSelfApproval = false</c>. Langkah bersyarat memakai
     /// <c>ActivationConditionCode</c>: contoh langkah "Direktur Keuangan (melebihi pagu)" hanya dibuat
-    /// bila PR membawa kode <c>PBJ_OVER_BUDGET</c> (PBJ-DEC-030).
+    /// bila PR membawa kode <c>PBJ_OVER_BUDGET</c> (PBJ-DEC-030). Pada paket, langkah tambahan dibuat bila metode
+    /// dipilih di luar rentang HPS (<c>PBJ_METHOD_OUT_OF_RANGE</c>) atau nilai penetapan melebihi HPS
+    /// (<c>PBJ_OVER_HPS</c>).
     /// </para>
     /// <para>
     /// <b>Idempoten.</b> Definisi dicari menurut kode dan versi 1, langkah menurut kode langkahnya,
@@ -76,6 +81,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.See
                 "Pagu dan revisinya",
                 [
                     new("PBJ-PAGU-01", "Direktur Keuangan", 1, Position, null)
+                ]),
+            new(Guid.Parse("7c2e4a10-0006-4b6d-8e21-3f9a0c5d7e06"), ProcurementWorkflowCodes.VendorBlockDefinition,
+                "Persetujuan Blokir Vendor", ProcurementDocumentTypes.VendorStatusRequest,
+                "Usulan blokir vendor; hanya usulan yang disetujui yang memblokir vendor (PBJ-DEC-060)",
+                [
+                    new("PBJ-VND-BLOKIR-01", "Penyetuju status vendor", 1, Position, null)
+                ]),
+            new(Guid.Parse("7c2e4a10-0007-4b6d-8e21-3f9a0c5d7e07"), ProcurementWorkflowCodes.VendorUnblockDefinition,
+                "Persetujuan Buka Blokir Vendor", ProcurementDocumentTypes.VendorStatusRequest,
+                "Usulan buka blokir vendor (PBJ-ASM-003)",
+                [
+                    new("PBJ-VND-BUKA-01", "Penyetuju status vendor", 1, Position, null)
+                ]),
+            new(Guid.Parse("7c2e4a10-0008-4b6d-8e21-3f9a0c5d7e08"), ProcurementWorkflowCodes.PackagePreparationDefinition,
+                "Persetujuan Persiapan Paket Pengadaan", ProcurementDocumentTypes.Package,
+                "Spesifikasi, HPS, metode, dan checklist paket; nominal = HPS paket termasuk PPN (PBJ-DEC-072, PBJ-DEC-073)",
+                [
+                    new("PBJ-PKT-PERSIAPAN-01", "Penyetuju persiapan paket", 1, Position, null),
+                    new("PBJ-PKT-PERSIAPAN-02", "Persetujuan metode di luar rentang HPS", 2, Position, ProcurementWorkflowCodes.MethodOutOfRangeCondition)
+                ]),
+            new(Guid.Parse("7c2e4a10-0009-4b6d-8e21-3f9a0c5d7e09"), ProcurementWorkflowCodes.PackageAwardDefinition,
+                "Persetujuan Penetapan Penyedia", ProcurementDocumentTypes.PackageAward,
+                "Vendor terpilih dan nilai penetapan; nominal = nilai penetapan termasuk PPN (PBJ-DEC-072, PBJ-DEC-085)",
+                [
+                    new("PBJ-PKT-PENETAPAN-01", "Penyetuju penetapan penyedia", 1, Position, null),
+                    new("PBJ-PKT-PENETAPAN-02", "Persetujuan nilai melebihi HPS", 2, Position, ProcurementWorkflowCodes.OverHpsCondition)
                 ])
         };
 

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
@@ -20,9 +21,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 ///   Potongan (sebelum cicilan) = pajak + iuran karyawan (nilai tetapan profil) + potongan kehadiran/cuti tanpa gaji + potongan variabel/manual
 ///   Bersih = Bruto - Potongan. Cicilan piutang dipotong SESUDAH ini oleh PayrollInstallmentDeductionService (urutan prioritas).
 ///
-/// Yang SENGAJA tidak dihitung otomatis karena belum disahkan pemilik kebijakan (NEEDS CONFIRMATION): rumus PPh 21 dan tarif/batas
-/// BPJS. Nilai pajak dan iuran diambil dari tetapan profil payroll (PrlPayroll.TaxAmount/InsuranceAmount), tidak ada persentase
-/// yang ditanam di kode.
+/// PPh dan asuransi swasta: sumbernya konfigurasi HRD (PrlTax dan PrlInsurance), dinilai per periode oleh PayrollTaxInsuranceRules. Tarif
+/// PPh (TER, PTKP, lapisan Pasal 17) HANYA dari kebijakan berversi berstatus APPROVED yang berlaku pada periode (PrlTaxPolicy); nilai
+/// bawaan Pengaturan Penggajian tidak dipakai. Tanpa kebijakan yang disahkan, atau untuk kombinasi tanpa formula yang sah, hasilnya
+/// penahan, bukan Rp0. PPh juga mendukung nominal manual yang sudah disetujui pengguna lain dan pengecualian berdasar. Versi kebijakan,
+/// dasar hitung, dan akumulasi tahun berjalan disimpan pada snapshot penerima. Tidak ada persentase atau tarif yang ditanam di kode.
+/// Tetapan lama PrlPayroll.TaxAmount hanya cadangan bertanda bila HRD belum mengonfigurasi. Iuran BPJS Kesehatan dan BPJS
+/// Ketenagakerjaan TIDAK dihitung (PAY-BE-FIX-007): tidak ada kebijakan tarif BPJS, dasar upah iuran, atau potongan/beban BPJS baru.
+/// Asuransi swasta (opsional) tetap dihitung dari profil HRD. Kontribusi pemberi kerja dipisahkan dan tidak mengurangi gaji bersih.
 ///
 /// Berjalan di dalam transaksi pemanggil (PayrollRunService.CalculateAsync); tidak membuka transaksi dan tidak menyimpan perubahan.
 /// Baris komponen milik mesin (awalan PAY_) di-upsert per kode; baris yang tidak lagi dihasilkan di-soft-delete, sehingga hitung
@@ -51,13 +57,191 @@ public sealed class PayrollCalculationService
         PayrollManualInputStatuses.Approved, PayrollManualInputStatuses.Applied
     };
 
+    /// <summary>Status payroll run yang hasilnya final dan dihitung sebagai akumulasi PPh tahun berjalan (tanpa Reversed dan Cancelled).</summary>
+    internal static readonly string[] AccumulatedRunStatuses =
+    {
+        PayrollRunStatuses.Approved, PayrollRunStatuses.SentToFinance, PayrollRunStatuses.PartiallyPaid,
+        PayrollRunStatuses.Paid, PayrollRunStatuses.Posted, PayrollRunStatuses.Closed
+    };
+
+    private static readonly JsonSerializerOptions SnapshotJsonOptions = new() { PropertyNameCaseInsensitive = true };
+
     private readonly ApplicationDbContext _dbContext;
     private readonly PayrollPolicyOptions _policy;
+    private readonly PayrollStatutoryPolicyResolver _policyResolver;
+    private readonly IPayrollOpeningTaxBalanceSource _openingBalanceSource;
 
-    public PayrollCalculationService(ApplicationDbContext dbContext, IOptions<PayrollPolicyOptions> options)
+    /// <summary>
+    /// Keterbatasan dasar PPh yang dicatat pada rincian pajak otomatis: iuran BPJS tidak dihitung di Payroll sehingga premi BPJS pemberi kerja
+    /// dan iuran pensiun BPJS pegawai tidak ikut dalam dasar PPh. Status kesiapan BPJS pada payroll produksi menunggu keputusan pemilik.
+    /// </summary>
+    private const string BpjsTaxBasisLimitation =
+        "Dasar PPh tidak memuat premi BPJS pemberi kerja dan tidak mengurangi iuran pensiun BPJS pegawai karena iuran BPJS tidak dihitung di Payroll; "
+        + "keputusan perlakuan premi/iuran pada payroll produksi masih menunggu pemilik proses.";
+
+    public PayrollCalculationService(
+        ApplicationDbContext dbContext, IOptions<PayrollPolicyOptions> options, PayrollStatutoryPolicyResolver policyResolver,
+        IPayrollOpeningTaxBalanceSource openingBalanceSource)
     {
         _dbContext = dbContext;
         _policy = options.Value;
+        _policyResolver = policyResolver;
+        _openingBalanceSource = openingBalanceSource;
+    }
+
+    /// <summary>Hasil snapshot satu penerima pada payroll run final sebelumnya di tahun pajak yang sama.</summary>
+    private sealed record PriorTaxRow(DateTime PeriodEnd, PayrollTaxSnapshot? Tax, PayrollInsuranceSnapshot? Insurance);
+
+    /// <summary>Kebijakan regulasi berversi yang berlaku pada periode run dan akumulasi tahun berjalan seluruh penerima run.</summary>
+    private sealed record StatutoryContext(
+        PayrollTaxPolicy? TaxPolicy,
+        IReadOnlyDictionary<Guid, List<PriorTaxRow>> PriorRows,
+        IReadOnlyDictionary<Guid, IReadOnlyList<PayrollOpeningTaxBalanceFacts>> OpeningBalances,
+        bool OpeningBalanceAvailable);
+
+    private static T? ReadSnapshot<T>(string? json) where T : class
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize<T>(json, SnapshotJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Snapshot PPh dan iuran penerima pada payroll run final sebelum periode ini di tahun pajak yang sama. Dasar akumulasi penghasilan
+    /// dan PPh yang sudah dipotong; hanya run yang disahkan (bukan draf) yang dihitung, dan run ini sendiri tidak pernah ikut.
+    /// </summary>
+    private async Task<Dictionary<Guid, List<PriorTaxRow>>> LoadPriorTaxRowsAsync(
+        Guid runId, List<Guid> workforceIds, DateTime periodStart, DateTime periodEnd, CancellationToken cancellationToken)
+    {
+        var yearStart = new DateTime(periodEnd.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var rows = await _dbContext.PrlPayrollRunEmployees.AsNoTracking()
+            .Where(x => !x.IsDelete && workforceIds.Contains(x.WorkforceProfileId) && x.PayrollRunId != runId
+                && x.PayrollRun != null && !x.PayrollRun.IsDelete
+                && x.PayrollRun.PeriodEndDateSnapshot >= yearStart && x.PayrollRun.PeriodEndDateSnapshot < periodStart
+                && AccumulatedRunStatuses.Contains(x.PayrollRun.RunStatus))
+            .Select(x => new
+            {
+                x.WorkforceProfileId,
+                PeriodEnd = x.PayrollRun!.PeriodEndDateSnapshot,
+                x.TaxSnapshotJson,
+                x.InsuranceSnapshotJson
+            })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(x => x.WorkforceProfileId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(x => new PriorTaxRow(
+                    x.PeriodEnd, ReadSnapshot<PayrollTaxSnapshot>(x.TaxSnapshotJson), ReadSnapshot<PayrollInsuranceSnapshot>(x.InsuranceSnapshotJson))).ToList());
+    }
+
+    /// <summary>
+    /// Konsolidasi akumulasi penghasilan, iuran, dan PPh tahun berjalan sebelum masa pajak ini:
+    ///   saldo awal (Opening Tax Balance) yang DISETUJUI + snapshot payroll run yang disahkan untuk masa yang belum dicakup saldo awal.
+    /// Premi pemberi kerja yang termasuk bruto dan iuran pensiun pengurang dihitung ulang dari baris iuran snapshot dengan daftar program
+    /// kebijakan yang berlaku sekarang. Tidak lengkap (IsComplete false) bila: ada payroll run sebelumnya tanpa rincian akumulasi; masa pajak
+    /// yang seharusnya ada (sejak mulai bekerja) belum tercakup run disahkan maupun saldo awal; atau cakupan saldo awal beririsan dengan run
+    /// disahkan (akan menghitung ganda). Ketiadaan histori TIDAK pernah dianggap saldo nol yang terverifikasi, dan hasil ini hanya dipakai
+    /// pada masa pajak terakhir; TER bulanan tidak bergantung padanya.
+    /// </summary>
+    private static PayrollTaxYtd BuildYtd(
+        IReadOnlyList<PriorTaxRow> rows, IReadOnlyList<PayrollOpeningTaxBalanceFacts> openingBalances, bool openingFeatureAvailable,
+        PayrollTaxPolicy? policy, string? category, DateTime? joinDate, int taxYear, int taxMonth, bool isLastTaxPeriod = false)
+    {
+        var issues = new List<string>();
+        decimal gross = 0m, premium = 0m, pension = 0m, withheld = 0m;
+        var months = new HashSet<int>();
+        var openingMonths = new HashSet<int>();
+        var missingBreakdown = false;
+
+        foreach (var row in rows)
+        {
+            months.Add(row.PeriodEnd.Month);
+            if (row.Tax is null || row.Tax.TaxableGross is null)
+            {
+                missingBreakdown = true;
+                continue;
+            }
+
+            gross += row.Tax.TaxableGross.Value;
+            withheld += row.Tax.EmployeeAmount + row.Tax.EmployerBorneAmount;
+            if (policy is null || row.Insurance is null) continue;
+            foreach (var line in row.Insurance.Lines)
+            {
+                if (line.PaidBy == "Employer" && policy.EmployerPremiumPrograms.Contains(line.Program)) premium += line.Amount;
+                if (line.PaidBy == "Employee" && policy.PensionDeductionPrograms.Contains(line.Program)) pension += line.Amount;
+            }
+        }
+
+        if (missingBreakdown)
+            issues.Add("Akumulasi PPh tahun berjalan tidak lengkap: ada payroll run sebelumnya yang sudah disahkan tanpa rincian akumulasi (dihitung sebelum kebijakan tarif berversi). Gunakan Nominal Manual Disetujui dengan dasar yang sah untuk masa pajak ini.");
+
+        // Saldo awal: hanya yang DISETUJUI, tahun pajak yang sama, dan berasal dari pemberi kerja yang sama sebelum cutover. Saldo dari
+        // pemberi kerja sebelumnya tidak dicampur (perlakuannya terpisah dan belum didukung mesin).
+        foreach (var opening in openingBalances.Where(o =>
+                     o.Status == OpeningTaxBalanceStatuses.Approved && o.TaxYear == taxYear
+                     && o.EmployerSource == OpeningTaxBalanceEmployerSources.SameEmployerPreCutover))
+        {
+            foreach (var month in opening.CoveredMonths.Distinct()) openingMonths.Add(month);
+            gross += opening.TaxableGross;
+            premium += opening.EmployerPremium;
+            pension += opening.PensionDeduction;
+            withheld += opening.TaxWithheld;
+        }
+
+        var invalidOpeningMonths = openingMonths.Where(m => m < 1 || m > 12 || m >= taxMonth).OrderBy(m => m).ToList();
+        if (invalidOpeningMonths.Count > 0)
+            issues.Add($"Saldo awal mencakup masa pajak {string.Join(", ", invalidOpeningMonths)} yang di luar rentang sebelum masa pajak {taxMonth} tahun {taxYear}; koreksi saldo awal (versi baru).");
+
+        // Cakupan yang beririsan akan menghitung penghasilan dan PPh dua kali: tidak boleh dipakai sebagai data rekonsiliasi.
+        var overlap = openingMonths.Intersect(months).OrderBy(m => m).ToList();
+        if (overlap.Count > 0)
+            issues.Add($"Cakupan saldo awal beririsan dengan payroll run yang sudah disahkan pada masa pajak {string.Join(", ", overlap)} tahun {taxYear}; penghasilan dan PPh akan terhitung dua kali. Koreksi cakupan saldo awal (versi baru) atau batalkan run yang tidak sah.");
+
+        var covered = new HashSet<int>(months);
+        covered.UnionWith(openingMonths);
+        var missingMonthsList = new List<int>();
+        var missingHistoryIssueAdded = false;
+
+        if (category == TaxRecipientCategories.PermanentEmployee)
+        {
+            // Bulan sebelum mulai bekerja bukan bulan payroll yang hilang.
+            var firstMonth = joinDate.HasValue && joinDate.Value.Year == taxYear ? joinDate.Value.Month : 1;
+            missingMonthsList = Enumerable.Range(firstMonth, Math.Max(0, taxMonth - firstMonth)).Where(m => !covered.Contains(m)).ToList();
+            if (missingMonthsList.Count > 0)
+            {
+                var listed = string.Join(", ", missingMonthsList);
+                var issueMessage = openingFeatureAvailable
+                    ? $"Belum ada payroll run yang disahkan maupun saldo awal (Opening Tax Balance) yang disetujui untuk masa pajak {listed} tahun {taxYear}; akumulasi penghasilan dan PPh tidak lengkap. Lengkapi saldo awal yang telah diverifikasi untuk bulan tersebut."
+                    : $"Belum ada payroll run yang disahkan untuk masa pajak {listed} tahun {taxYear}; akumulasi penghasilan dan PPh tidak lengkap. Fitur saldo awal PPh historis belum tersedia (menunggu skema database); gunakan Nominal Manual Disetujui dengan dasar perhitungan dan persetujuan yang sah sebagai jalur pengecualian terkontrol.";
+
+                // Pada masa pajak terakhir, ketiadaan histori adalah penahan rekonsiliasi tahunan Pasal 17.
+                // Pada masa pajak biasa (TER bulanan), ketiadaan histori bukan penahan karena TER bulanan hanya memakai penghasilan bulan berjalan,
+                // namun daftar bulan hilang tetap disimpan pada MissingMonths untuk transparansi audit dan peringatan.
+                if (isLastTaxPeriod)
+                {
+                    issues.Add(issueMessage);
+                    missingHistoryIssueAdded = true;
+                }
+            }
+        }
+
+        return new PayrollTaxYtd(covered.Count, gross, premium, pension, withheld, issues.Count == 0, issues)
+        {
+            CoveredMonths = covered.OrderBy(m => m).ToList(),
+            OpeningBalanceMonths = openingMonths.OrderBy(m => m).ToList(),
+            MissingMonths = missingMonthsList,
+            OpeningBalanceFeatureAvailable = openingFeatureAvailable,
+            // PAY-BE-FIX-030: klasifikasi terstruktur, bukan pencocokan teks: satu-satunya masalah adalah bulan histori yang belum tercakup.
+            HistoryGapOnly = missingHistoryIssueAdded && issues.Count == 1
+        };
     }
 
     public sealed class CalculationResult
@@ -70,25 +254,55 @@ public sealed class PayrollCalculationService
         /// <summary>Peringatan dan galat per baris pegawai (PrlPayrollRunEmployee.Id), tanpa awalan nama. Dipakai simulasi (PAY-BE-21).</summary>
         public Dictionary<Guid, List<string>> EmployeeWarnings { get; } = new();
         public Dictionary<Guid, List<string>> EmployeeErrors { get; } = new();
+
+        /// <summary>
+        /// Penahan konfigurasi PPh/iuran per penerima: konfigurasi HRD belum lengkap atau tidak sah. Penerima tetap terhitung (angka
+        /// ditandai), tetapi run tidak dapat diajukan sebelum HRD melengkapinya. Tanpa awalan nama.
+        /// </summary>
+        public Dictionary<Guid, List<string>> EmployeeBlockers { get; } = new();
+
+        /// <summary>
+        /// PAY-BE-FIX-031: jumlah entri <see cref="Blockers"/> yang berasal dari penahan PPh terklasifikasi TAX_YTD_HISTORY_INCOMPLETE
+        /// (kode terstruktur dari mesin pajak, bukan teks). Selisihnya dengan jumlah seluruh penahan = penahan lain yang tetap menahan review.
+        /// </summary>
+        public int TaxHistoryBlockerCount { get; set; }
     }
 
     private sealed record IdentityInfo(Guid WorkforceProfileId, bool IsActive, DateTime? JoinDate, DateTime? ResignDate);
+
+    /// <summary>SK Promosi/Demosi (HrdPersonnelActionOrder) yang berlaku di periode; hanya identitas dan tanggal, tanpa nominal.</summary>
+    private sealed record CompensationActionHint(
+        Guid Id, Guid WorkforceProfileId, string OrderNumber, string Category, DateTime EffectiveDate, Guid? LinkedSalaryAssignmentId);
 
     /// <summary>Snapshot kebijakan yang disalin ke run agar hasil dapat ditelusuri ke versi kebijakan yang dipakai.</summary>
     public string BuildPolicySnapshotJson() => JsonSerializer.Serialize(new
     {
         engine = EngineVersion,
         policyVersion = _policy.PolicyVersion,
+        // Penahan Finance Handoff produksi dipertahankan sebagai aturan tersendiri (bukan lagi mode pengujian BPJS): run yang dihitung
+        // mesin ini tidak dapat dikirim ke Finance Handoff produksi sampai pemilik proses menetapkan aturan penggantinya.
+        financeHandoffHeld = true,
+        financeHandoffHoldReason = PayrollFinanceHandoffGuard.HoldReasonPendingOwnerDecision,
         needsConfirmation = true,
         proration = "CalendarDays",
+        salaryAssignmentSource = _policy.RequireApprovedSalaryAssignment
+            ? "WfpSalaryAssignment utama, aktif, berlaku di periode, dan DISETUJUI (ApprovedAt dan ApprovedByUserId terisi); aktif saja tidak cukup; penetapan belum disetujui menjadi penahan"
+            : "WfpSalaryAssignment utama, aktif, dan berlaku di periode (approval tidak disyaratkan; keputusan peniadaan approval 19 Nov 2026)",
+        requireApprovedSalaryAssignment = _policy.RequireApprovedSalaryAssignment,
         allowProfileSalaryFallback = _policy.AllowProfileSalaryFallback,
         prorateFixedAllowances = _policy.ProrateFixedAllowances,
         fixedAllowanceSource = "MstSalaryStructureAllowance (PGJ-C1); cadangan PrlPayroll.TotalAllowance bila struktur kosong",
+        workforceAllowanceSource = "PrlWorkforceAllowance (Approved, aktif, berlaku di periode; tidak dihitung ganda dengan tunjangan struktur)",
         allowProfileAllowanceFallback = _policy.AllowProfileAllowanceFallback,
         unpaidLeaveDeductionEnabled = _policy.UnpaidLeaveDeductionEnabled,
         requireDifferentApprover = _policy.RequireDifferentApprover,
         installmentDefaultMaxNetSalaryPercentage = _policy.InstallmentDefaultMaxNetSalaryPercentage,
-        taxAndInsuranceSource = "PrlPayroll.TaxAmount/InsuranceAmount (tetapan profil; rumus PPh/BPJS belum disahkan)"
+        taxAndInsuranceSource = "Konfigurasi HRD: PrlTax (PPh) dan PrlInsurance (asuransi swasta saja); PrlPayroll.TaxAmount hanya cadangan bertanda; PrlPayroll.InsuranceAmount tidak dipakai",
+        taxAutoRegulatory = "Dihitung dari kebijakan tarif PPh berversi berstatus APPROVED yang berlaku pada periode (PrlTaxPolicy); tanpa kebijakan atau tanpa formula yang sah menghasilkan penahan, bukan Rp0",
+        taxSupportedModes = new[] { TaxCalculationModes.AutoRegulatory, TaxCalculationModes.ApprovedManualAmount, TaxCalculationModes.ExemptOrNotApplicable },
+        taxManualAmountApproval = "Nominal manual dipakai hanya bila sudah disetujui pengguna lain (ManualAmountApprovalStatus = APPROVED)",
+        insuranceSource = "Asuransi swasta (opsional) dari profil HRD: peserta ACTIVE, program swasta aktif, berlaku pada periode. Iuran BPJS Kesehatan dan BPJS Ketenagakerjaan tidak dihitung",
+        taxableGrossBasis = "komponen penghasilan IsTaxable dikurangi potongan cuti tanpa gaji/mangkir dan potongan kehadiran (penghasilan yang tidak dibayarkan), ditambah premi pemberi kerja menurut kebijakan PPh (NEEDS CONFIRMATION)"
     });
 
     public async Task<CalculationResult> CalculateRunAsync(
@@ -96,8 +310,10 @@ public sealed class PayrollCalculationService
     {
         var result = new CalculationResult();
 
-        var periodStart = period.StartDate.Date;
-        var periodEnd = period.EndDate.Date;
+        // Tanggal kalender periode dicap UTC: dipakai juga sebagai pembanding kolom timestamptz (tunjangan transportasi), dan Npgsql
+        // menolak Kind=Unspecified yang dibawa kolom date periode.
+        var periodStart = PayrollDateNormalizer.ToUtcDate(period.StartDate);
+        var periodEnd = PayrollDateNormalizer.ToUtcDate(period.EndDate);
         var totalDays = (periodEnd - periodStart).Days + 1;
         if (totalDays <= 0) throw new PayrollRunValidationException("Rentang tanggal periode payroll tidak valid.");
 
@@ -118,10 +334,35 @@ public sealed class PayrollCalculationService
             .Where(x => !x.IsDelete && profileIds.Contains(x.Id))
             .ToDictionaryAsync(x => x.Id, cancellationToken);
 
-        var assignments = (await _dbContext.WfpSalaryAssignments.AsNoTracking()
-                .Where(x => !x.IsDelete && x.IsActive && workforceIds.Contains(x.WorkforceProfileId)
-                    && x.EffectiveStartDate <= period.EndDate
-                    && (x.EffectiveEndDate == null || x.EffectiveEndDate >= period.StartDate))
+        // Sakelar Payroll:Policy:RequireApprovedSalaryAssignment (PAY-BE-FIX-008, P0-04; NEEDS CONFIRMATION, bawaan mati). Menyala: hanya
+        // penetapan gaji yang DISETUJUI (ApprovedAt dan ApprovedByUserId terisi) yang dipakai menghitung gaji pokok dan menurunkan tunjangan
+        // Struktur Gaji; penetapan aktif yang belum disetujui dipisahkan, tidak pernah dibayarkan, dan menjadi penahan (atau sebab gagal
+        // bila tidak ada penetapan sah) pada penerima yang bersangkutan. Mati (bawaan): keputusan "peniadaan approval" 19 Nov 2026 berlaku,
+        // semua penetapan aktif yang efektif dipakai dan tidak ada yang berstatus menunggu.
+        var requireApproval = _policy.RequireApprovedSalaryAssignment;
+        bool IsPayable(WfpSalaryAssignment x) => !requireApproval || WfpSalaryAssignmentRules.IsApproved(x.ApprovedAt, x.ApprovedByUserId);
+        var periodAssignments = await _dbContext.WfpSalaryAssignments.AsNoTracking()
+            .Where(x => !x.IsDelete && x.IsActive && workforceIds.Contains(x.WorkforceProfileId)
+                && x.EffectiveStartDate <= periodEnd
+                && (x.EffectiveEndDate == null || x.EffectiveEndDate >= periodStart))
+            .ToListAsync(cancellationToken);
+        var assignments = periodAssignments
+            .Where(IsPayable)
+            .GroupBy(x => x.WorkforceProfileId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+        var pendingAssignments = periodAssignments
+            .Where(x => !IsPayable(x))
+            .GroupBy(x => x.WorkforceProfileId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        // SK Promosi/Demosi yang berlaku di periode: perubahan kompensasinya tidak pernah otomatis (HRD-DEC-036/054), tetapi penetapan gaji
+        // barunya harus ada. Dipakai hanya untuk peringatan kesiapan; tidak mengubah angka apa pun.
+        var compensationActions = (await _dbContext.HrdPersonnelActionOrders.AsNoTracking()
+                .Where(o => !o.IsDelete && workforceIds.Contains(o.WorkforceProfileId)
+                    && (o.OrderStatus == "Scheduled" || o.OrderStatus == "Applied")
+                    && (o.ActionCategory == "Promotion" || o.ActionCategory == "Demotion")
+                    && o.EffectiveDate >= periodStart && o.EffectiveDate <= periodEnd)
+                .Select(o => new CompensationActionHint(o.Id, o.WorkforceProfileId, o.ActionOrderNumber, o.ActionCategory, o.EffectiveDate, o.LinkedSalaryAssignmentId))
                 .ToListAsync(cancellationToken))
             .GroupBy(x => x.WorkforceProfileId)
             .ToDictionary(g => g.Key, g => g.ToList());
@@ -141,11 +382,24 @@ public sealed class PayrollCalculationService
                 .Include(x => x.TransportAllowancePolicy)
                 .Where(x => !x.IsDelete && x.IsActive && workforceIds.Contains(x.WorkforceProfileId)
                     && x.AllowanceStatus == "Active"
-                    && (x.EffectiveStartDate == null || x.EffectiveStartDate <= period.EndDate)
-                    && (x.EffectiveEndDate == null || x.EffectiveEndDate >= period.StartDate))
+                    && (x.EffectiveStartDate == null || x.EffectiveStartDate <= periodEnd)
+                    && (x.EffectiveEndDate == null || x.EffectiveEndDate >= periodStart))
                 .ToListAsync(cancellationToken))
             .GroupBy(x => x.WorkforceProfileId)
             .ToDictionary(g => g.Key, g => g.OrderBy(t => t.EffectiveStartDate).ThenBy(t => t.Id).ToList());
+
+        // Tunjangan khusus pegawai (Tunjangan Pegawai): hanya penetapan Approved yang aktif dan berlaku di periode. Penetapan yang belum
+        // disetujui (Draft/PendingApproval), ditolak, atau dinonaktifkan tidak pernah dibayarkan. Jenis tunjangannya ikut dimuat untuk
+        // memastikan masih aktif.
+        var workforceAllowances = (await _dbContext.PrlWorkforceAllowances.AsNoTracking()
+                .Include(x => x.AllowanceType)
+                .Where(x => !x.IsDelete && x.IsActive && x.AllowanceStatus == WorkforceAllowanceStatuses.Approved
+                    && workforceIds.Contains(x.WorkforceProfileId)
+                    && x.EffectiveStartDate <= periodEnd
+                    && (x.EffectiveEndDate == null || x.EffectiveEndDate >= periodStart))
+                .ToListAsync(cancellationToken))
+            .GroupBy(x => x.WorkforceProfileId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(a => a.EffectiveStartDate).ThenBy(a => a.Id).ToList());
 
         var bankAccounts = (await _dbContext.WfpBankAccounts.AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive && workforceIds.Contains(x.WorkforceProfileId))
@@ -165,6 +419,15 @@ public sealed class PayrollCalculationService
             .GroupBy(x => x.WorkforceProfileId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(t => t.EffectiveStartDate).First());
 
+        // Kebijakan regulasi berversi yang disahkan dan berlaku pada akhir periode: tarif PPh. Nilai bawaan Pengaturan Penggajian tidak
+        // pernah dipakai; tanpa kebijakan yang disahkan hasilnya penahan (Menunggu Verifikasi Kebijakan).
+        // Versi yang dipakai disimpan pada snapshot setiap penerima sehingga perubahan kebijakan tidak mengubah payroll historis.
+        var statutory = new StatutoryContext(
+            await _policyResolver.GetTaxPolicyAsync(periodEnd, cancellationToken),
+            await LoadPriorTaxRowsAsync(run.Id, workforceIds, periodStart, periodEnd, cancellationToken),
+            await _openingBalanceSource.LoadApprovedAsync(workforceIds, periodEnd.Year, cancellationToken),
+            _openingBalanceSource.IsAvailable);
+
         var identities = new Dictionary<Guid, IdentityInfo>();
         var employeeIdentities = await _dbContext.MstEmployees.AsNoTracking()
             .Where(x => !x.IsDelete && workforceIds.Contains(x.WorkforceProfileId))
@@ -181,6 +444,7 @@ public sealed class PayrollCalculationService
         {
             var errors = new List<string>();
             var warnings = new List<string>();
+            var blockers = new List<string>();
 
             profiles.TryGetValue(employee.PayrollProfileId ?? Guid.Empty, out var profile);
             identities.TryGetValue(employee.WorkforceProfileId, out var identity);
@@ -189,21 +453,48 @@ public sealed class PayrollCalculationService
             taxProfiles.TryGetValue(employee.WorkforceProfileId, out var taxProfile);
             insuranceProfiles.TryGetValue(employee.WorkforceProfileId, out var insuranceProfile);
             transportAllowances.TryGetValue(employee.WorkforceProfileId, out var transportList);
+            workforceAllowances.TryGetValue(employee.WorkforceProfileId, out var workforceAllowanceList);
+            pendingAssignments.TryGetValue(employee.WorkforceProfileId, out var pendingAssignmentList);
+            compensationActions.TryGetValue(employee.WorkforceProfileId, out var compensationActionList);
 
             CalculateEmployee(employee, profile, identity, assignmentList ?? new List<WfpSalaryAssignment>(),
+                pendingAssignmentList ?? new List<WfpSalaryAssignment>(),
+                compensationActionList ?? new List<CompensationActionHint>(),
                 bankList ?? new List<WfpBankAccount>(), taxProfile, insuranceProfile, structureAllowances,
                 transportList ?? new List<PrlTransportAllowance>(),
-                periodStart, periodEnd, totalDays, actorUserId, errors, warnings);
+                workforceAllowanceList ?? new List<PrlWorkforceAllowance>(),
+                statutory, periodStart, periodEnd, totalDays, actorUserId, errors, warnings, blockers);
 
             var label = employee.EmployeeNameSnapshot;
+
+            // Semua Issues snapshot pajak ditambahkan apa adanya ke daftar penahan penerima (taxAssessment.IsBlocking), jadi jumlahnya sama.
+            var classifiedTax = ReadSnapshot<PayrollTaxSnapshot>(employee.TaxSnapshotJson);
+            if (classifiedTax is { IsBlocking: true, BlockCode: PayrollTaxBlockCodes.YtdHistoryIncomplete })
+                result.TaxHistoryBlockerCount += classifiedTax.Issues.Count;
+
             foreach (var warning in warnings) result.Warnings.Add($"{label}: {warning}");
             if (warnings.Count > 0) result.EmployeeWarnings[employee.Id] = warnings;
             if (errors.Count > 0) result.EmployeeErrors[employee.Id] = errors;
+
+            // Konfigurasi PPh/iuran yang belum lengkap atau tidak sah menahan pengajuan run (penerima tetap terhitung dan ditandai).
+            // Bila penerima sudah gagal karena sebab lain, penahan konfigurasi tetap dilaporkan supaya HRD melihat semuanya sekaligus.
+            foreach (var blocker in blockers) result.Blockers.Add($"{label}: {blocker}");
+            if (blockers.Count > 0) result.EmployeeBlockers[employee.Id] = blockers;
 
             if (errors.Count > 0)
             {
                 employee.EmployeePayrollStatus = EmployeeError;
                 employee.ValidationResultJson = string.Join(" ", errors);
+                // Hasil gagal dicatat apa adanya (alasan dan peringatan sebagai daftar); angka tidak sah dan tidak pernah dianggap hasil.
+                employee.CalculationResultJson = JsonSerializer.Serialize(new
+                {
+                    engine = EngineVersion,
+                    policyVersion = _policy.PolicyVersion,
+                    calculatedAt = DateTime.UtcNow,
+                    failed = true,
+                    errors = errors.ToList(),
+                    warnings = warnings.ToList()
+                });
                 employee.UpdateDateTime = DateTime.UtcNow;
                 employee.UpdateBy = actorUserId;
                 foreach (var error in errors) result.Blockers.Add($"{label}: {error}");
@@ -224,18 +515,27 @@ public sealed class PayrollCalculationService
         PrlPayroll? profile,
         IdentityInfo? identity,
         List<WfpSalaryAssignment> assignmentList,
+        List<WfpSalaryAssignment> pendingAssignmentList,
+        List<CompensationActionHint> compensationActions,
         List<WfpBankAccount> bankList,
         PrlTax? taxProfile,
         PrlInsurance? insuranceProfile,
         IReadOnlyDictionary<Guid, List<MstSalaryStructureAllowance>> structureAllowances,
         List<PrlTransportAllowance> transportAllowances,
+        List<PrlWorkforceAllowance> workforceAllowances,
+        StatutoryContext statutory,
         DateTime periodStart,
         DateTime periodEnd,
         int totalDays,
         Guid actorUserId,
         List<string> errors,
-        List<string> warnings)
+        List<string> warnings,
+        List<string> blockers)
     {
+        // Snapshot PPh/iuran hasil hitung sebelumnya tidak boleh bertahan bila penerima ini gagal sebelum sampai ke penilaian pajak.
+        employee.TaxSnapshotJson = null;
+        employee.InsuranceSnapshotJson = null;
+
         if (profile is null || !profile.IsPayrollEligible || !string.Equals(profile.PayrollStatus, "Active", StringComparison.OrdinalIgnoreCase))
         {
             errors.Add("Profil payroll tidak ditemukan, tidak eligible, atau tidak berstatus Active.");
@@ -258,24 +558,34 @@ public sealed class PayrollCalculationService
             return;
         }
 
-        // ---- Gaji pokok dari penetapan gaji yang DISETUJUI, primer, dan efektif (prorata per segmen) ----
-        var approved = assignmentList.Where(a => a.ApprovedAt.HasValue && a.IsPrimary).OrderBy(a => a.EffectiveStartDate).ToList();
-        var pendingApproval = assignmentList.Count(a => !a.ApprovedAt.HasValue);
+        // ---- Gaji pokok dari penetapan gaji utama dan efektif (prorata per segmen) ----
+        var activeAssignments = assignmentList.Where(a => a.IsPrimary).OrderBy(a => a.EffectiveStartDate).ToList();
         var overlap = false;
-        for (var i = 0; i < approved.Count && !overlap; i++)
-            for (var j = i + 1; j < approved.Count; j++)
-                if (RangesOverlap(approved[i], approved[j])) { overlap = true; break; }
+        for (var i = 0; i < activeAssignments.Count && !overlap; i++)
+            for (var j = i + 1; j < activeAssignments.Count; j++)
+                if (RangesOverlap(activeAssignments[i], activeAssignments[j])) { overlap = true; break; }
         if (overlap)
             errors.Add("Terdapat lebih dari satu penetapan gaji utama yang berlaku bersamaan. Perbaiki di Penetapan Gaji.");
+
+        // Penetapan gaji utama yang aktif tetapi belum disetujui tidak pernah dibayarkan. Bila penerima masih punya penetapan sah, penetapan
+        // yang menunggu itu menjadi penahan (run tidak boleh diajukan/disahkan sampai HRD memutuskan); bila tidak, ia sebab gagal di bawah.
+        var pendingPrimary = pendingAssignmentList.Where(a => a.IsPrimary).OrderBy(a => a.EffectiveStartDate).ToList();
+        if (pendingPrimary.Count > 0 && activeAssignments.Count > 0)
+        {
+            var pendingStart = pendingPrimary[0].EffectiveStartDate.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+            blockers.Add(
+                $"Ada penetapan gaji utama yang belum disetujui HRD (mulai {pendingStart}) dan tidak dipakai menghitung. "
+                + "Setujui atau nonaktifkan di Penetapan Gaji, lalu hitung ulang.");
+        }
 
         decimal baseAmount = 0m;
         WfpSalaryAssignment? coveringAssignment = null;
         var segments = new List<object>();
-        // Segmen penetapan yang disetujui beserta jumlah harinya; dipakai juga untuk tunjangan dari struktur (PAY-BE-17).
+        // Segmen penetapan utama beserta jumlah harinya; dipakai juga untuk tunjangan dari struktur (PAY-BE-17).
         var salarySegments = new List<(WfpSalaryAssignment Assignment, int Days)>();
         if (!overlap)
         {
-            foreach (var assignment in approved)
+            foreach (var assignment in activeAssignments)
             {
                 var segmentStart = MaxDate(windowStart, assignment.EffectiveStartDate);
                 var segmentEnd = MinDate(windowEnd, assignment.EffectiveEndDate);
@@ -292,19 +602,47 @@ public sealed class PayrollCalculationService
                 if (_policy.AllowProfileSalaryFallback && profile.BaseSalary > 0m)
                 {
                     baseAmount = profile.BaseSalary * payableDays / totalDays;
-                    warnings.Add("Gaji pokok memakai kolom kompatibilitas profil payroll karena belum ada penetapan gaji yang disetujui.");
+                    warnings.Add("Gaji pokok memakai kolom kompatibilitas profil payroll karena belum ada penetapan gaji yang aktif.");
                     segments.Add(new { assignmentId = (Guid?)null, baseSalary = profile.BaseSalary, startDate = windowStart, endDate = windowEnd, days = payableDays, source = "PrlPayroll" });
                 }
                 else
                 {
-                    errors.Add(pendingApproval > 0
-                        ? "Penetapan gaji belum disetujui. Setujui penetapan gaji sebelum payroll dihitung."
-                        : "Belum ada penetapan gaji yang disetujui dan berlaku pada periode ini.");
+                    errors.Add(pendingPrimary.Count > 0
+                        ? "Penetapan gaji utama pada periode ini belum disetujui HRD, jadi gaji belum dapat dihitung. Setujui di Penetapan Gaji."
+                        : "Belum ada penetapan gaji utama yang berlaku pada periode ini.");
                 }
             }
-            else if (pendingApproval > 0)
+            else
             {
-                warnings.Add($"{pendingApproval} penetapan gaji belum disetujui diabaikan.");
+                // Penetapan utama yang disetujui harus menutup seluruh hari dibayarkan. Hari yang tidak tertutup tidak dihitung (angka tidak
+                // berubah); aturan prorata dan cut-off perubahan kompensasi belum disahkan, jadi ini peringatan yang dapat ditindaklanjuti.
+                var coveredDays = salarySegments.Sum(s => s.Days);
+                if (coveredDays < payableDays)
+                {
+                    var nonPrimaryApproved = assignmentList.Any(a => !a.IsPrimary);
+                    warnings.Add(
+                        $"Penetapan gaji utama yang disetujui hanya mencakup {coveredDays} dari {payableDays} hari dibayarkan; {payableDays - coveredDays} hari tidak dihitung."
+                        + (nonPrimaryApproved
+                            ? " Ada penetapan non-utama yang disetujui pada periode ini (mis. penetapan sebelumnya yang diturunkan dari Utama); periksa Penetapan Gaji."
+                            : " Periksa tanggal efektif di Penetapan Gaji."));
+                }
+            }
+        }
+
+        // SK Promosi/Demosi di periode ini harus diikuti penetapan gaji baru (disetujui atau sedang menunggu). Hanya peringatan: wajib atau
+        // tidaknya penetapan baru untuk tiap jenis SK adalah keputusan HRD yang belum disahkan.
+        foreach (var action in compensationActions)
+        {
+            var resolved = assignmentList.Concat(pendingAssignmentList).Any(a =>
+                a.PersonnelActionOrderId == action.Id
+                || (action.LinkedSalaryAssignmentId.HasValue && a.Id == action.LinkedSalaryAssignmentId.Value)
+                || a.EffectiveStartDate.Date >= action.EffectiveDate.Date);
+            if (!resolved)
+            {
+                var actionDate = action.EffectiveDate.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+                warnings.Add(
+                    $"SK {action.Category} {action.OrderNumber} berlaku {actionDate} tetapi belum ada penetapan gaji baru yang menyertainya. "
+                    + "Tinjau apakah gaji dan tunjangan perlu ditetapkan ulang di Penetapan Gaji.");
             }
         }
         baseAmount = Round(baseAmount);
@@ -339,6 +677,24 @@ public sealed class PayrollCalculationService
         var transportLines = BuildTransportAllowanceLines(transportAllowances, windowStart, windowEnd, totalDays, errors, warnings);
         if (errors.Count > 0) return;
         var transportAmount = transportLines.Sum(l => l.Amount);
+
+        // ---- Tunjangan khusus pegawai (Tunjangan Pegawai): penetapan Approved yang berlaku di periode. Jenis yang sudah dihitung dari
+        // Struktur Gaji dilewati dengan peringatan sehingga tidak pernah dihitung dua kali. ----
+        var structureTypeIds = structureAllowanceLines.Select(l => l.AllowanceTypeId).ToHashSet();
+        var workforceLines = BuildWorkforceAllowanceLines(
+            workforceAllowances, salarySegments, coveringAssignment, structureTypeIds, employee.CurrencyCode,
+            windowStart, windowEnd, totalDays, errors, warnings);
+        if (errors.Count > 0) return;
+
+        // Pagar pembayaran ganda (PAY-BE-FIX-022): Transportasi dibayar dari SATU sumber. Bila pegawai punya tunjangan transport bulanan
+        // di jalur lama (PrlTransportAllowance) sekaligus penetapan Transportasi berbasis kebijakan umum, hitungan pegawai ini digagalkan
+        // dengan pesan yang jelas; tidak ada yang dipilih diam-diam dan tidak ada yang dibayar dua kali.
+        if (transportLines.Count > 0 && workforceLines.Any(l => l.IsTransportFromPolicy))
+        {
+            errors.Add("Pegawai punya tunjangan transportasi dari dua sumber (Kelola Transportasi lama dan Tunjangan Pegawai berbasis kebijakan) pada periode yang sama. Nonaktifkan salah satunya.");
+            return;
+        }
+        var workforceAmount = workforceLines.Sum(l => l.Amount);
 
         // ---- Kehadiran dan lembur (snapshot HRD) ----
         var attendance = employee.AttendanceInputs.Where(a => !a.IsDelete && a.IsActive).ToList();
@@ -395,13 +751,117 @@ public sealed class PayrollCalculationService
         if (pendingManualInputs > 0)
             warnings.Add($"{pendingManualInputs} penghasilan variabel manual masih menunggu keputusan dan tidak ikut dihitung.");
 
-        // ---- Pajak dan iuran karyawan: nilai tetapan profil (rumus belum disahkan -> tidak dihitung otomatis) ----
-        var taxAmount = Round(profile.TaxAmount);
-        var insuranceAmount = Round(profile.InsuranceAmount);
-        // Nol pada keduanya belum berdasar kebijakan (profil yang disiapkan otomatis dari HRD memulai dari nol). Hanya peringatan: nilai
-        // dan hasil hitung tidak berubah, dan peringatan tidak menahan pengajuan run.
-        if (PayrollProfileRules.IsTaxInsuranceUnset(taxAmount, insuranceAmount))
-            warnings.Add("Tetapan PPh dan iuran pada profil payroll masih nol (belum ditetapkan). Nilai nol belum berdasar kebijakan; tetapkan di profil payroll sebelum run disahkan.");
+        // ---- PPh dan asuransi swasta: konfigurasi HRD (PrlTax, PrlInsurance) adalah sumber, dinilai pada periode run oleh
+        // PayrollTaxInsuranceRules. Nol bukan penentu: NOT_CONFIGURED (belum ada keputusan HRD) menahan pengajuan run, sedangkan
+        // VALID_ZERO/EXEMPT/NOT_APPLICABLE adalah nol yang sah. Skema otomatis PPh dihitung dari kebijakan tarif berversi yang disahkan;
+        // tanpa kebijakan atau tanpa formula yang sah hasilnya penahan, bukan Rp0 dan bukan formula kategori lain. PrlPayroll.TaxAmount
+        // hanya cadangan bertanda bila HRD belum mengonfigurasi. ----
+        // Asuransi swasta (opsional): dinilai dari profil asuransi HRD yang berlaku pada periode. Tidak ada iuran BPJS, kebijakan tarif BPJS,
+        // atau dasar upah iuran, dan konfigurasi asuransi tidak pernah menahan pengajuan run (PAY-BE-FIX-007).
+        var insuranceAssessment = PayrollTaxInsuranceRules.AssessInsurance(
+            insuranceProfile is null ? null : PayrollInsuranceConfigFacts.From(insuranceProfile), periodStart, periodEnd);
+
+        // PPh: bruto kena pajak dari komponen IsTaxable dikurangi penghasilan yang tidak dibayarkan (cuti tanpa gaji, mangkir, potongan
+        // kehadiran), ditambah premi pemberi kerja dan dikurangi iuran pensiun menurut kebijakan PPh, dengan akumulasi tahun berjalan dari
+        // snapshot payroll run final sebelumnya. Komponen jalur lama bertipe Deduction/Contribution sehingga tidak ikut sebagai penghasilan.
+        var taxPolicy = statutory.TaxPolicy;
+        var manualTaxableEarning = employee.Components
+            .Where(c => !c.IsDelete
+                && !c.ComponentCodeSnapshot.StartsWith(PayrollEngineComponentCodes.Prefix, StringComparison.Ordinal)
+                && !LegacyEarningComponentCodes.All.Contains(c.ComponentCodeSnapshot)
+                && string.Equals(c.ComponentTypeSnapshot, TypeEarning, StringComparison.OrdinalIgnoreCase)
+                && c.IsTaxable)
+            .Sum(c => c.Amount);
+        var taxableGross = Math.Max(0m, Round(
+            baseAmount
+            + structureAllowanceLines.Where(l => l.Taxable).Sum(l => l.Amount)
+            + (useProfileAllowanceFallback ? fixedAllowance : 0m)
+            + transportLines.Where(l => l.Taxable).Sum(l => l.Amount)
+            + workforceLines.Where(l => l.Taxable).Sum(l => l.Amount)
+            + overtimeAmount + attendanceAllowance
+            + variableEarningLines.Where(l => l.Taxable).Sum(l => l.Amount)
+            + manualTaxableEarning
+            - unpaidLeaveDeduction - attendanceDeduction));
+
+        decimal employerPremium = 0m;
+        decimal employeePension = 0m;
+        if (taxPolicy is not null)
+        {
+            foreach (var insuranceLine in insuranceAssessment.Lines)
+            {
+                if (!insuranceLine.EmployeePaid && taxPolicy.EmployerPremiumPrograms.Contains(insuranceLine.Program)) employerPremium += insuranceLine.Amount;
+                if (insuranceLine.EmployeePaid && taxPolicy.PensionDeductionPrograms.Contains(insuranceLine.Program)) employeePension += insuranceLine.Amount;
+            }
+        }
+
+        var taxYear = periodEnd.Year;
+        var taxMonth = periodEnd.Month;
+        var isLastTaxPeriod = taxMonth == 12
+            || (identity?.ResignDate is DateTime resignDate && resignDate.Date >= periodStart.Date && resignDate.Date <= periodEnd.Date);
+        var taxCategory = PayrollTaxInsuranceRules.NormalizeCode(taxProfile?.RecipientTaxCategory);
+        statutory.PriorRows.TryGetValue(employee.WorkforceProfileId, out var priorRows);
+        statutory.OpeningBalances.TryGetValue(employee.WorkforceProfileId, out var openingRows);
+        var ytd = BuildYtd(
+            priorRows ?? new List<PriorTaxRow>(), openingRows ?? Array.Empty<PayrollOpeningTaxBalanceFacts>(), statutory.OpeningBalanceAvailable,
+            taxPolicy, taxCategory, identity?.JoinDate, taxYear, taxMonth, isLastTaxPeriod);
+
+        var taxAssessment = PayrollTaxInsuranceRules.AssessTax(
+            taxProfile is null ? null : PayrollTaxConfigFacts.From(taxProfile), profile.TaxAmount, periodStart, periodEnd,
+            new PayrollTaxRunContext(taxPolicy, taxYear, taxMonth, isLastTaxPeriod, taxableGross, employerPremium, employeePension, ytd));
+        // Keterbatasan dasar PPh (tanpa iuran BPJS) dicatat pada rincian hitung otomatis supaya tidak ada yang menganggap hasilnya lengkap.
+        if (taxAssessment.CalculationMode == TaxCalculationModes.AutoRegulatory && taxAssessment.Detail is not null)
+        {
+            var detailWithLimitations = new Dictionary<string, object?>(taxAssessment.Detail) { ["limitations"] = new[] { BpjsTaxBasisLimitation } };
+            taxAssessment = taxAssessment with { Detail = detailWithLimitations };
+        }
+
+        // Dasar hitung dicatat pada SEMUA hasil (otomatis, manual, pengecualian): ia menjadi sumber akumulasi masa pajak berikutnya.
+        taxAssessment = taxAssessment with
+        {
+            TaxYear = taxYear,
+            TaxMonth = taxMonth,
+            IsLastTaxPeriod = isLastTaxPeriod,
+            TaxableGross = taxableGross,
+            EmployerPremium = employerPremium,
+            EmployeePension = employeePension
+        };
+
+        // Alasan yang tidak menahan (mis. cadangan tetapan lama dipakai) tetap terlihat sebagai peringatan.
+        if (taxAssessment.IsBlocking) blockers.AddRange(taxAssessment.Issues);
+        else warnings.AddRange(taxAssessment.Issues);
+        warnings.AddRange(taxAssessment.Warnings);
+        warnings.AddRange(insuranceAssessment.Warnings);
+
+        var taxAmount = taxAssessment.EmployeeAmount;
+        var insuranceAmount = insuranceAssessment.EmployeeTotal;
+        var employerInsuranceAmount = insuranceAssessment.EmployerTotal;
+
+        // Komponen penghasilan dari jalur perhitungan lama (GP01, TJ01, TF01, TR01, OT01, OT02, SH01) dibuang: mesin ini menghitung gaji
+        // pokok, tunjangan, dan lembur sendiri, sehingga komponen lama akan terhitung sebagai penghasilan manual dan menggandakannya.
+        var legacyEarnings = employee.Components
+            .Where(c => !c.IsDelete && LegacyEarningComponentCodes.All.Contains(c.ComponentCodeSnapshot))
+            .ToList();
+        foreach (var legacy in legacyEarnings)
+        {
+            legacy.IsDelete = true;
+            legacy.DeleteDateTime = DateTime.UtcNow;
+            legacy.DeleteBy = actorUserId;
+        }
+        if (legacyEarnings.Count > 0)
+            warnings.Add("Komponen penghasilan dari jalur perhitungan lama dibuang; penghasilan dihitung hanya oleh mesin Payroll Run.");
+
+        // Komponen pajak/iuran dari jalur perhitungan lama (modul "Modern") dibuang agar tidak terpotong dua kali; mesin ini satu-satunya.
+        var legacyTaxInsurance = employee.Components
+            .Where(c => !c.IsDelete && LegacyTaxInsuranceComponentCodes.All.Contains(c.ComponentCodeSnapshot))
+            .ToList();
+        foreach (var legacy in legacyTaxInsurance)
+        {
+            legacy.IsDelete = true;
+            legacy.DeleteDateTime = DateTime.UtcNow;
+            legacy.DeleteBy = actorUserId;
+        }
+        if (legacyTaxInsurance.Count > 0)
+            warnings.Add("Komponen pajak/iuran dari jalur perhitungan lama dibuang; pajak dan iuran dihitung hanya oleh mesin Payroll Run.");
 
         // ---- Bangun/upsert komponen milik mesin ----
         var produced = new HashSet<(string Code, Guid? SourceId)>();
@@ -439,6 +899,12 @@ public sealed class PayrollCalculationService
                 PayrollEngineComponentSources.TransportAllowance, line.SourceId, line.Amount, line.Taxable, line.Prorated,
                 line.MonthlyAmount, 1m, line.Formula, line.Detail);
         }
+        foreach (var line in workforceLines)
+        {
+            Add(PayrollEngineComponentCodes.WorkforceAllowance, line.Name, TypeEarning, line.Prorated ? "Prorated" : "Fixed",
+                PayrollEngineComponentSources.WorkforceAllowance, line.SourceId, line.Amount, line.Taxable, line.Prorated,
+                line.MonthlyAmount, 1m, line.Formula, line.Detail);
+        }
         Add(PayrollEngineComponentCodes.Overtime, "Lembur", TypeEarning, "Computed", "Overtime", null, overtimeAmount, true, false,
             overtimeAmount, overtime.Count, "jumlah nominal lembur terverifikasi HRD", new { items = overtime.Count, minutes = employee.OvertimeMinutes });
         Add(PayrollEngineComponentCodes.AttendanceAllowance, "Tunjangan Kehadiran", TypeEarning, "Computed", "Attendance", null,
@@ -464,11 +930,68 @@ public sealed class PayrollCalculationService
 
         // Pajak dan iuran memakai tipe "Tax"/"Insurance" (bukan "Deduction") supaya tidak terhitung ganda oleh layanan potongan cicilan,
         // yang menjumlahkan TotalTax + TotalEmployeeInsuranceContribution secara terpisah dari komponen bertipe Deduction.
-        Add(PayrollEngineComponentCodes.Tax, "Pajak Penghasilan (PPh 21)", "Tax", "Fixed", "Tax", taxProfile?.Id, taxAmount, false, false,
-            taxAmount, 1m, "tetapan profil payroll", new { source = "PrlPayroll.TaxAmount", needsConfirmation = true });
-        Add(PayrollEngineComponentCodes.InsuranceEmployee, "Iuran Karyawan (BPJS/Asuransi)", "Insurance", "Fixed", "Insurance",
-            insuranceProfile?.Id, insuranceAmount, false, false, insuranceAmount, 1m, "tetapan profil payroll",
-            new { source = "PrlPayroll.InsuranceAmount", needsConfirmation = true });
+        // PPh: hanya bagian yang menjadi beban pegawai (metode Gross). PPh yang ditanggung pemberi kerja (Net) tidak menjadi komponen
+        // potongan dan tidak mengurangi gaji bersih; nominalnya ada pada snapshot pajak.
+        // Label pajak pada slip diturunkan dari jenis, skema, cara hitung, dan versi kebijakan yang benar-benar dipakai.
+        var taxName = PayrollTaxLabels.Build(
+            taxAssessment.Article, taxAssessment.CalculationMode, taxAssessment.Source, taxAssessment.PolicyVersion, taxAssessment.Detail);
+        var taxSourceLabel = taxAssessment.Source == PayrollTaxInsuranceSources.LegacyProfileAmount
+            ? "tetapan lama profil payroll (cadangan; konfigurasi HRD belum lengkap)"
+            : taxAssessment.CalculationMode == TaxCalculationModes.AutoRegulatory
+                ? $"dihitung otomatis dari kebijakan tarif PPh {taxAssessment.PolicyVersion ?? "-"}"
+                : "nominal manual disetujui HRD";
+        Add(PayrollEngineComponentCodes.Tax, taxName, "Tax",
+            taxAssessment.CalculationMode switch
+            {
+                TaxCalculationModes.ApprovedManualAmount => "ApprovedManualAmount",
+                TaxCalculationModes.AutoRegulatory => "AutoRegulatory",
+                _ => "Fixed"
+            },
+            "Tax", taxProfile?.Id, taxAmount, false, false, taxAmount, 1m, taxSourceLabel,
+            new
+            {
+                source = taxAssessment.Source,
+                taxAssessment.ResultStatus,
+                taxAssessment.Article,
+                taxAssessment.RecipientCategory,
+                taxAssessment.CalculationMode,
+                taxAssessment.TaxMethod,
+                taxAssessment.PolicyVersion,
+                taxAssessment.PolicyId,
+                taxAssessment.Treatment,
+                taxAssessment.TaxableGross
+            });
+
+        // Asuransi swasta: satu komponen per sisi pembayar. Sisi pegawai bertipe Insurance (mengurangi gaji bersih); sisi pemberi kerja
+        // bertipe EmployerContribution dengan nominal di EmployerAmount (Amount 0) dan tidak tampil sebagai potongan di slip. Nominalnya
+        // tetap (kontribusi pada profil asuransi HRD), bukan persentase dari dasar upah.
+        foreach (var line in insuranceAssessment.Lines)
+        {
+            const string method = "Fixed";
+            const string formula = "nominal kontribusi asuransi swasta pada profil asuransi HRD";
+            var detail = new
+            {
+                source = insuranceAssessment.Source,
+                line.Program,
+                paidBy = line.EmployeePaid ? "Employee" : "Employer",
+                line.Rate,
+                baseAmount = line.BaseAmount
+            };
+
+            if (line.EmployeePaid)
+            {
+                Add(line.Code, line.Name, PayrollInsuranceComponentCodes.TypeInsurance, method, "Insurance", insuranceProfile?.Id, line.Amount,
+                    false, false, line.BaseAmount, 1m, formula, detail);
+            }
+            else if (line.Amount != 0m)
+            {
+                UpsertComponent(employee, actorUserId, line.Code, line.Name, PayrollInsuranceComponentCodes.TypeEmployerContribution, method,
+                    "Insurance", insuranceProfile?.Id, 0m, false, false, line.BaseAmount, 1m, formula, JsonSerializer.Serialize(detail), sort,
+                    employerAmount: line.Amount, displayOnPayslip: false);
+                produced.Add((line.Code, insuranceProfile?.Id));
+                sort += 10;
+            }
+        }
 
         foreach (var stale in employee.Components.Where(c => !c.IsDelete
                      && c.ComponentCodeSnapshot.StartsWith(PayrollEngineComponentCodes.Prefix, StringComparison.Ordinal)
@@ -496,14 +1019,15 @@ public sealed class PayrollCalculationService
         var otherDeductions = Round(attendanceDeduction + unpaidLeaveDeduction + variableDeductionLines.Sum(l => l.Amount) + manualDeduction);
 
         employee.BaseSalary = baseAmount;
-        employee.TotalRecurringEarning = Round(fixedAllowance + transportAmount);
+        employee.TotalRecurringEarning = Round(fixedAllowance + transportAmount + workforceAmount);
         employee.TotalVariableEarning = variableEarning;
         employee.TotalOvertimeAmount = overtimeAmount;
         employee.TotalAttendanceAllowance = attendanceAllowance;
-        employee.GrossPay = Round(baseAmount + fixedAllowance + transportAmount + overtimeAmount + attendanceAllowance + variableEarning);
+        employee.GrossPay = Round(baseAmount + fixedAllowance + transportAmount + workforceAmount + overtimeAmount + attendanceAllowance + variableEarning);
         employee.TotalTax = taxAmount;
         employee.TotalEmployeeInsuranceContribution = insuranceAmount;
-        employee.TotalEmployerInsuranceContribution = 0m;
+        // Kontribusi pemberi kerja: informasi, disimpan terpisah, dan TIDAK masuk potongan maupun gaji bersih pegawai.
+        employee.TotalEmployerInsuranceContribution = employerInsuranceAmount;
         employee.TotalDeduction = Round(taxAmount + insuranceAmount + otherDeductions);
         employee.NetPay = Round(employee.GrossPay - employee.TotalDeduction);
 
@@ -543,9 +1067,17 @@ public sealed class PayrollCalculationService
             isProrated,
             gross = employee.GrossPay,
             deductionBeforeInstallment = employee.TotalDeduction,
-            netBeforeInstallment = employee.NetPay
+            netBeforeInstallment = employee.NetPay,
+            taxResultStatus = taxAssessment.ResultStatus,
+            insuranceResultStatus = insuranceAssessment.ResultStatus,
+            // Peringatan per penerima disimpan di hasil hitung supaya rincian penerima membacanya tanpa menghitung ulang.
+            warnings = warnings.ToList()
         });
         employee.SalarySnapshotJson = JsonSerializer.Serialize(new { segments, coveringAssignmentId = coveringAssignment?.Id });
+        // Snapshot PPh dan iuran: konfigurasi HRD yang dipakai, status, perlakuan, dan nominal pada saat hitung. Dibekukan bersama run
+        // saat disahkan; perubahan profil HRD sesudahnya tidak mengubahnya (DEC-PRL-TAX-007). Tanpa NPWP atau data pribadi lain.
+        employee.TaxSnapshotJson = JsonSerializer.Serialize(taxAssessment.ToSnapshot());
+        employee.InsuranceSnapshotJson = JsonSerializer.Serialize(insuranceAssessment.ToSnapshot());
         employee.UpdateDateTime = DateTime.UtcNow;
         employee.UpdateBy = actorUserId;
     }
@@ -553,7 +1085,7 @@ public sealed class PayrollCalculationService
     private void UpsertComponent(
         PrlPayrollRunEmployee employee, Guid actorUserId, string code, string name, string type, string method, string sourceType,
         Guid? sourceId, decimal amount, bool taxable, bool prorated, decimal baseValue, decimal quantity, string? formula,
-        string? detailJson, int sortOrder)
+        string? detailJson, int sortOrder, decimal employerAmount = 0m, bool displayOnPayslip = true)
     {
         var existing = employee.Components.FirstOrDefault(c => !c.IsDelete && c.ComponentCodeSnapshot == code && c.SourceId == sourceId);
         if (existing is null)
@@ -583,11 +1115,12 @@ public sealed class PayrollCalculationService
         existing.Rate = quantity > 0m ? Round(amount / quantity) : amount;
         existing.BaseAmount = baseValue;
         existing.Amount = amount;
+        existing.EmployerAmount = employerAmount;
         existing.TaxableAmount = taxable ? amount : 0m;
         existing.IsTaxable = taxable;
         existing.IsProrated = prorated;
         existing.IsManual = false;
-        existing.IsDisplayedOnPayslip = true;
+        existing.IsDisplayedOnPayslip = displayOnPayslip;
         existing.FormulaSnapshot = formula;
         existing.CalculationDetailJson = detailJson;
         existing.SortOrder = sortOrder;
@@ -595,7 +1128,7 @@ public sealed class PayrollCalculationService
 
     /// <summary>Satu baris hasil tunjangan struktur sebelum di-upsert sebagai komponen PAY_STRUCTURE_ALLOWANCE.</summary>
     private sealed record StructureAllowanceLine(
-        Guid SourceId, string Name, string Method, decimal Amount, decimal MonthlyAmount, bool Taxable, bool Prorated,
+        Guid SourceId, Guid AllowanceTypeId, string Name, string Method, decimal Amount, decimal MonthlyAmount, bool Taxable, bool Prorated,
         string Formula, object Detail);
 
     /// <summary>
@@ -659,6 +1192,7 @@ public sealed class PayrollCalculationService
             var isPercentage = line.CalculationMethod == SalaryStructureAllowanceCalculationMethods.PercentageOfBaseSalary;
             result.Add(new StructureAllowanceLine(
                 SourceId: line.Id,
+                AllowanceTypeId: line.AllowanceTypeId,
                 Name: line.AllowanceType?.AllowanceTypeName ?? "Tunjangan Struktur",
                 Method: line.CalculationMethod,
                 Amount: rounded,
@@ -678,6 +1212,176 @@ public sealed class PayrollCalculationService
                     totalDays,
                     segments = segmentDetails[lineId]
                 }));
+        }
+
+        return result.OrderBy(l => l.Name, StringComparer.Ordinal).ThenBy(l => l.SourceId).ToList();
+    }
+
+    /// <summary>Satu baris hasil tunjangan khusus pegawai sebelum di-upsert sebagai komponen PAY_WORKFORCE_ALLOWANCE.</summary>
+    private sealed record WorkforceAllowanceLine(
+        Guid SourceId, Guid AllowanceTypeId, string Name, decimal Amount, decimal MonthlyAmount, bool Taxable, bool Prorated,
+        string Formula, object Detail, bool IsTransportFromPolicy = false);
+
+    /// <summary>
+    /// Tunjangan khusus pegawai (PrlWorkforceAllowance, Approved dan berlaku di periode). Nilai sebulan = nominal tetap, atau gaji pokok
+    /// penetapan gaji yang DISETUJUI x persen / 100; dibatasi batas maksimum snapshot penetapan; diprorata hari berlaku di jendela
+    /// dibayarkan / hari periode bila IsProrated (snapshot) dan kebijakan ProrateFixedAllowances. Persentase dihitung per segmen
+    /// penetapan gaji yang beririsan (gaji pokok bisa berganti di tengah periode); tanpa penetapan gaji yang disetujui, tunjangan
+    /// berbasis persentase tidak dihitung (peringatan), bukan memakai angka kompatibilitas profil.
+    /// Tanpa prorata, per jenis hanya penetapan yang berakhir paling akhir di jendela yang dibayar penuh (tidak bayar ganda bila dua
+    /// penetapan berurutan jatuh dalam satu bulan). Dua penetapan jenis yang sama yang beririsan di periode ini adalah data
+    /// tidak konsisten dan menggagalkan pegawai (bukan dibayar dua kali). Jenis yang sudah berasal dari Struktur Gaji, yang tidak aktif
+    /// lagi di master, atau yang bermata uang berbeda dilewati dengan peringatan.
+    /// </summary>
+    private List<WorkforceAllowanceLine> BuildWorkforceAllowanceLines(
+        List<PrlWorkforceAllowance> allowances,
+        List<(WfpSalaryAssignment Assignment, int Days)> salarySegments,
+        WfpSalaryAssignment? coveringAssignment,
+        ISet<Guid> structureTypeIds,
+        string currencyCode,
+        DateTime windowStart,
+        DateTime windowEnd,
+        int totalDays,
+        List<string> errors,
+        List<string> warnings)
+    {
+        var candidates = new List<(PrlWorkforceAllowance Allowance, string Name, DateTime Start, DateTime End)>();
+        foreach (var allowance in allowances)
+        {
+            var type = allowance.AllowanceType;
+            var name = type?.AllowanceTypeName ?? "Tunjangan Pegawai";
+
+            if (type is null || type.IsDelete || !type.IsActive)
+            {
+                warnings.Add($"Tunjangan {name} dilewati karena jenis tunjangannya sudah tidak aktif di Master Tunjangan.");
+                continue;
+            }
+            if (structureTypeIds.Contains(allowance.AllowanceTypeId))
+            {
+                warnings.Add($"Tunjangan {name} sudah dihitung dari Struktur Gaji, jadi penetapan khusus pegawai tidak dihitung dua kali.");
+                continue;
+            }
+            // Transportasi dari penetapan berbasis Kebijakan Tunjangan umum (PAY-BE-FIX-022) dibayar di sini. Penetapan Transport dari sumber
+            // lain tetap dilewati: jalur lamanya (PrlTransportAllowance) yang membayarnya, sehingga tidak terjadi perhitungan ganda.
+            if (string.Equals(type.AllowanceCategory, "Transport", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(allowance.AssignmentSource, WorkforceAllowanceAssignmentSources.Policy, StringComparison.Ordinal))
+            {
+                warnings.Add($"Tunjangan {name} dilewati dari Tunjangan Pegawai karena dikelola melalui Kebijakan Transportasi agar tidak terjadi perhitungan ganda.");
+                continue;
+            }
+            if (!string.Equals(allowance.CurrencyCode, currencyCode, StringComparison.OrdinalIgnoreCase))
+            {
+                warnings.Add($"Tunjangan {name} dilewati karena mata uangnya ({allowance.CurrencyCode}) berbeda dari mata uang payroll ({currencyCode}).");
+                continue;
+            }
+
+            var start = MaxDate(windowStart, allowance.EffectiveStartDate);
+            var end = MinDate(windowEnd, allowance.EffectiveEndDate);
+            if (end < start) continue;
+            candidates.Add((allowance, name, start, end));
+        }
+
+        foreach (var group in candidates.GroupBy(c => c.Allowance.AllowanceTypeId))
+        {
+            var ordered = group.OrderBy(c => c.Start).ToList();
+            for (var i = 0; i < ordered.Count; i++)
+            {
+                for (var j = i + 1; j < ordered.Count; j++)
+                {
+                    if (ordered[i].Start <= ordered[j].End && ordered[j].Start <= ordered[i].End)
+                    {
+                        errors.Add($"Pegawai punya lebih dari satu penetapan tunjangan {ordered[i].Name} yang berlaku bersamaan. Perbaiki di Tunjangan Pegawai.");
+                        return new List<WorkforceAllowanceLine>();
+                    }
+                }
+            }
+        }
+
+        bool IsProrated(PrlWorkforceAllowance allowance) => allowance.IsProrated && _policy.ProrateFixedAllowances;
+        var lastFullEnd = candidates
+            .Where(c => !IsProrated(c.Allowance))
+            .GroupBy(c => c.Allowance.AllowanceTypeId)
+            .ToDictionary(g => g.Key, g => g.Max(c => c.End));
+
+        static decimal Capped(decimal value, decimal? maximum) =>
+            maximum.HasValue && maximum.Value > 0m && value > maximum.Value ? maximum.Value : value;
+
+        var result = new List<WorkforceAllowanceLine>();
+        foreach (var (allowance, name, start, end) in candidates)
+        {
+            var prorated = IsProrated(allowance);
+            if (!prorated && end != lastFullEnd[allowance.AllowanceTypeId]) continue;
+
+            var days = (end - start).Days + 1;
+            var isPercentage = allowance.CalculationMethod == SalaryStructureAllowanceCalculationMethods.PercentageOfBaseSalary;
+            decimal monthlyDisplay;
+            decimal amount;
+
+            if (!isPercentage)
+            {
+                monthlyDisplay = Capped(allowance.Amount, allowance.MaximumAmount);
+                amount = prorated ? monthlyDisplay * days / totalDays : monthlyDisplay;
+            }
+            else if (salarySegments.Count == 0 || coveringAssignment is null)
+            {
+                warnings.Add($"Tunjangan {name} berbasis persentase dilewati karena belum ada penetapan gaji yang disetujui sebagai dasar perhitungan.");
+                continue;
+            }
+            else if (prorated)
+            {
+                amount = 0m;
+                foreach (var (assignment, _) in salarySegments)
+                {
+                    var segmentStart = MaxDate(windowStart, assignment.EffectiveStartDate);
+                    var segmentEnd = MinDate(windowEnd, assignment.EffectiveEndDate);
+                    var overlapStart = start > segmentStart ? start : segmentStart;
+                    var overlapEnd = end < segmentEnd ? end : segmentEnd;
+                    if (overlapEnd < overlapStart) continue;
+
+                    var overlapDays = (overlapEnd - overlapStart).Days + 1;
+                    amount += Capped(assignment.BaseSalary * allowance.Percentage / 100m, allowance.MaximumAmount) * overlapDays / totalDays;
+                }
+                monthlyDisplay = Capped(coveringAssignment.BaseSalary * allowance.Percentage / 100m, allowance.MaximumAmount);
+            }
+            else
+            {
+                monthlyDisplay = Capped(coveringAssignment.BaseSalary * allowance.Percentage / 100m, allowance.MaximumAmount);
+                amount = monthlyDisplay;
+            }
+
+            var rounded = Round(amount);
+            if (rounded == 0m) continue;
+
+            result.Add(new WorkforceAllowanceLine(
+                SourceId: allowance.Id,
+                AllowanceTypeId: allowance.AllowanceTypeId,
+                Name: name,
+                Amount: rounded,
+                MonthlyAmount: Round(monthlyDisplay),
+                Taxable: allowance.IsTaxable,
+                Prorated: prorated,
+                Formula: (isPercentage ? "gaji pokok penetapan x persen / 100" : "nominal tetap sebulan")
+                    + (allowance.MaximumAmount is > 0m ? ", dibatasi maksimum penetapan" : string.Empty)
+                    + (prorated ? ", x hari berlaku / hari periode" : ", penuh (tidak diprorata)"),
+                Detail: new
+                {
+                    source = "PrlWorkforceAllowance",
+                    // Provenance (PAY-BE-FIX-022): dari mana nilai ini berasal. Kosong untuk penetapan langsung (Direct).
+                    assignmentSource = allowance.AssignmentSource,
+                    allowancePolicyId = allowance.AllowancePolicyId,
+                    allowancePolicyGradeRateId = allowance.AllowancePolicyGradeRateId,
+                    salaryGradeId = allowance.SalaryGradeId,
+                    allowanceTypeId = allowance.AllowanceTypeId,
+                    calculationMethod = allowance.CalculationMethod,
+                    percentage = isPercentage ? allowance.Percentage : (decimal?)null,
+                    maximumAmount = allowance.MaximumAmount,
+                    decidedAt = allowance.DecidedAt,
+                    startDate = start,
+                    endDate = end,
+                    days,
+                    totalDays
+                },
+                IsTransportFromPolicy: string.Equals(allowance.AllowanceType?.AllowanceCategory, "Transport", StringComparison.OrdinalIgnoreCase)));
         }
 
         return result.OrderBy(l => l.Name, StringComparer.Ordinal).ThenBy(l => l.SourceId).ToList();

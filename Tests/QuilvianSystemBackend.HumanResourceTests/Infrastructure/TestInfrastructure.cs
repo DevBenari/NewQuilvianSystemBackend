@@ -51,7 +51,8 @@ public sealed class TestDatabase : IDisposable
 
 public sealed class ModelUjiSqlite(ModelCustomizerDependencies dependencies) : RelationalModelCustomizer(dependencies)
 {
-    private static readonly string[] Khusus = ["num_nonnulls", "::", " ~ ", " ~* ", " !~ ", " !~* "];
+    // btrim: CHECK Payroll/Pengadaan dari merge cce1dbf5; SQLite tidak mengenalnya sehingga seluruh skema uji gagal dibentuk.
+    private static readonly string[] Khusus = ["num_nonnulls", "::", " ~ ", " ~* ", " !~ ", " !~* ", "btrim("];
 
     public override void Customize(ModelBuilder modelBuilder, DbContext context)
     {

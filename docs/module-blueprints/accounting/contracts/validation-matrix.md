@@ -352,3 +352,120 @@ hanya mengubah keterangan → `409` dengan pesan baris pertama. `DELETE` atas ju
 | Akun laba ditahan harus berjenis Ekuitas | Simpan pengaturan | Akun bukan `Equity` | `422` | "Akun laba ditahan harus akun berjenis Ekuitas." |
 | Jurnal penutup tahun tidak boleh ganda | Susun | Tahun itu sudah punya jurnal `JT` | `409` | "Jurnal penutup tahun ini sudah pernah disusun." |
 | Tidak menyusun bila tidak ada saldo | Susun | Seluruh akun pendapatan dan beban bersaldo nol | `422` | "Tidak ada saldo pendapatan maupun beban yang perlu ditutup." |
+
+
+---
+
+## 6. Buku besar, laba rugi, dan neraca *(`ACC-VALIDATION-0.12`, **`approved`** Rizki 24 November 2026, `GATE-DESAIN-1124`)*
+
+Dasar: `ACC-DEC-141`..`155`; kontrak `ACC-API-0.17`. Seluruh aturan di bawah berlaku pada endpoint
+baca dan unduhan yang sama. Tidak ada aturan yang menulis data.
+
+| ID | Aturan | Kode | Pesan untuk pengguna | Contoh |
+|---|---|---|---|---|
+| `VAL-GL-01` | `CostCenterId` pada mutasi atau laba rugi harus menunjuk unit biaya yang ada, belum dihapus, dan milik `LegalEntityId` yang sama. Unit biaya nonaktif **diterima**, karena baris lama boleh mencatatnya | `400` | "Unit biaya tidak ditemukan pada badan hukum ini." | Unit Radiologi milik badan hukum B dikirim untuk laporan badan hukum A → ditolak |
+| `VAL-GL-02` | `DateTo` tidak boleh mendahului `DateFrom` — aturan lama, berlaku juga pada `summary` dan `export` | `400` | "Tanggal akhir tidak boleh mendahului tanggal mulai." | 30 November s.d. 1 November → ditolak |
+| `VAL-GL-03` | Akun pada mutasi harus ada — aturan lama | `404` | "Akun tidak ditemukan." | — |
+| `VAL-GL-04` | `PeriodCode` wajib, berbentuk `YYYY-MM` | `400` | "Periode wajib dipilih dengan bentuk tahun-bulan, contoh 2026-11." | `2026/11` → ditolak |
+| `VAL-GL-05` | Periode harus ada pada badan hukum itu — pesan sama dengan neraca saldo | `404` | "Periode akuntansi tidak ditemukan." | `2019-11` padahal tahun buku 2019 belum dibuat → ditolak |
+| `VAL-GL-06` | Unduhan buku besar paling banyak 50.000 baris | `422` | "Mutasi terlalu banyak untuk diunduh sekaligus ({n} baris). Persempit rentang tanggal." | 64.120 baris → ditolak; layar tetap dapat menampilkannya per halaman |
+| `VAL-GL-07` | `CostCenterId` pada neraca **diabaikan**, tidak ditolak | — | — | Layar lama yang terlanjur mengirimnya tetap menerima neraca utuh |
+| `VAL-GL-08` | Periode pembanding yang tidak ada **bukan** galat | `200` | `ComparisonUnavailableReason`: "Periode {nama} belum ada di sistem." | Tahun buku pertama 2026 → pembanding `null` |
+| `VAL-GL-09` | Neraca tidak seimbang **bukan** galat (`ACC-DEC-154`) | `200` | `IsBalanced = false`, `Difference` terisi | Selisih Rp 100 → laporan tetap tampil |
+| `VAL-GL-10` *(delta `ACC-DEC-157`, approved Rizki 25 November 2026)* | Unduhan neraca saldo paling banyak 50.000 baris akun — batas yang sama dengan buku besar | `422` | "Neraca saldo terlalu banyak untuk diunduh sekaligus ({n} baris akun)." | Dalam praktik tidak tercapai: jumlah baris = jumlah akun yang bergerak, misalnya 112 |
+
+**Yang sengaja tidak divalidasi:** status periode. Periode `Open`, `Closing`, `Closed` maupun yang
+dibuka kembali boleh dilaporkan (`ACC-DEC-144` butir 5), karena yang dihitung tetap hanya jurnal
+`Posted`.
+
+
+---
+
+## 7. Master COA — kode otomatis, jenis warisan, klasifikasi *(`ACC-VALIDATION-0.13`, **`approved`** Rizki 25 November 2026, `GATE-DESAIN-1125`)*
+
+Dasar: `ACC-DEC-163`..`170`, `172`, `173`; kontrak `ACC-API-0.18`; `02-backend-architecture.md`
+bagian 26. Aturan bagian 1 yang lama (tingkat, lingkaran, induk bertransaksi, kode terkunci sesudah
+`Posted`, saldo nol saat nonaktif) **tetap berlaku** dan tidak diulang di sini; pratinjau
+`GET next-code` memakai aturan induk lama dengan kode status dan pesan yang sama.
+
+| ID | Aturan | Titik | Kode | Pesan untuk pengguna | Contoh |
+|---|---|---|---|---|---|
+| `VAL-COA-01` | Kode yang diisi manual paling panjang 20 karakter. Kode kosong **bukan** galat pada tambah — berarti otomatis | `POST` | `400` | "Kode akun maksimal 20 karakter." | 21 karakter → ditolak |
+| `VAL-COA-02` | Kode unik per badan hukum — aturan lama, kini juga untuk kode impor | `POST`, `PUT` | `409` | "Kode akun 1-1005 sudah dipakai pada badan hukum ini." (lama) | — |
+| `VAL-COA-03` | Akun tanpa induk wajib menyebut jenis 1–5 | `POST`, `next-code` | `400` | "Jenis akun wajib dipilih untuk akun tingkat 1." / "Jenis akun tidak dikenal." | Jenis `0` → ditolak |
+| `VAL-COA-04` | Jenis yang dikirim untuk akun berinduk harus sama dengan jenis induk; kosong = diwarisi | `POST`, `next-code` | `409` | "Jenis akun harus sama dengan akun induk 1-1000 (Aset)." | Induk 1-1000 + jenis Liabilitas → ditolak |
+| `VAL-COA-05` | Induk baru saat Ubah Akun harus berjenis sama dengan akun itu | `PUT` | `409` | sama dengan `VAL-COA-04` | 2-1001 Utang Pemasok dipindah ke 1-1000 → ditolak |
+| `VAL-COA-06` | Satu akar `{jenis}-0000` per jenis per badan hukum, bila kode disusun otomatis | `POST`, `next-code` | `409` | "Akun tingkat 1 untuk jenis Aset sudah ada (1-0000). Tambahkan akun di bawahnya." | Akar Aset kedua → ditolak |
+| `VAL-COA-07` | Nilai klasifikasi dan sub-klasifikasi harus ada di daftar enum | `POST`, `PUT` | `400` | "Klasifikasi laporan tidak dikenal." | `reportClassification: 3` → ditolak |
+| `VAL-COA-08` | Klasifikasi hanya untuk akun Aset dan Liabilitas | `POST`, `PUT` | `400` | "Klasifikasi Lancar/Tidak Lancar hanya untuk akun Aset dan Liabilitas." | 4-1002 Pendapatan Rawat Inap diisi Lancar → ditolak |
+| `VAL-COA-09` | Sub-klasifikasi hanya untuk akun Aset | `POST`, `PUT` | `400` | "Sub-klasifikasi aset lancar hanya untuk akun Aset." | 2-1001 diisi Piutang → ditolak |
+| `VAL-COA-10` | Sub-klasifikasi hanya bila klasifikasi efektif akun itu sesudah perubahan adalah Lancar | `POST`, `PUT` | `400` | "Sub-klasifikasi aset lancar hanya untuk akun berklasifikasi Lancar. Klasifikasi akun ini: {Tidak Lancar \| belum diisi}." | 1-4001 (warisan Tidak Lancar) diisi Persediaan → ditolak |
+| `VAL-COA-11` | Perubahan klasifikasi atau pindah induk tidak boleh membuat turunan yang menyimpan sub-klasifikasi sendiri kehilangan klasifikasi Lancar | `PUT`, `POST` | `409` | "Klasifikasi tidak dapat diubah karena turunan 1-1004 memakai sub-klasifikasi aset lancar. Ubah atau kosongkan sub-klasifikasi turunan lebih dahulu." (paling banyak lima kode, lalu "dan {n} akun lain") | 1-1004 menyimpan Kas; 1-1000 diubah Tidak Lancar → ditolak |
+| `VAL-COA-12` | Saringan `UnclassifiedOnly` wajib bersama badan hukum | `GET /` | `400` | "Pilih badan hukum untuk menyaring akun yang klasifikasinya belum lengkap." | — |
+| `VAL-COA-13` | Nomor otomatis tidak boleh melewati batas pola (9 grup tingkat 2 per jenis; 999 akun tingkat 3 per grup; 99 per induk di tingkat 4–5) | `POST`, `next-code` | `409` | "Nomor akun di bawah 1-1000 sudah penuh (1-1999). Gunakan induk lain." | Dibuktikan dari source, bukan runtime |
+| `VAL-COA-14` | Kode otomatis bentuk `{kode induk}.NN` tidak boleh melewati 20 karakter | `POST`, `next-code` | `409` | "Kode induk {kode} terlalu panjang untuk diberi turunan otomatis." | Induk berkode manual 20 karakter → ditolak |
+| `VAL-COA-15` | Kode otomatis yang bentrok indeks unik pada detik simpan (pengaman terakhir `ACC-DEC-164` butir 3) | `POST` | `409` | "Kode 1-1005 baru saja dipakai penyimpanan lain. Simpan ulang untuk mendapat kode berikutnya." | Kode impor manual sama dengan kode otomatis yang sedang disusun |
+
+**Yang sengaja tidak divalidasi:**
+
+| Hal | Alasan |
+|---|---|
+| Pola kode yang diisi manual | Jalur impor mempertahankan kode berkas (`ACC-DEC-170` butir 2) |
+| Jurnal ke akun yang klasifikasinya belum lengkap | `ACC-DEC-168` — tetap boleh |
+| Kecocokan klasifikasi dengan nama akun atau awalan kode | `ACC-DEC-168` |
+| `NormalBalance` bernilai `0` | Catatan impor 30 September 2026; di luar keputusan pass ini |
+| Klasifikasi pada akun nonaktif atau yang sudah bertransaksi | Diizinkan (`ACC-DEC-169`) |
+
+
+---
+
+## 8. Rasio keuangan *(`ACC-VALIDATION-0.14`, **`approved`** Rizki 26 November 2026, `GATE-DESAIN-1126`)*
+
+Dasar: `ACC-DEC-161`, `174`..`184`; kontrak `ACC-API-0.19`. Tidak ada aturan yang menulis data. Hanya
+`VAL-RAT-01`..`03` yang menolak permintaan; sisanya **bukan galat** — rasio tetap dikirim `200` dengan
+status dan alasannya.
+
+| ID | Aturan | Kode | Pesan untuk pengguna | Contoh |
+|---|---|---|---|---|
+| `VAL-RAT-01` | Penjaga badan hukum yang ada | `400`/`403` | Pesan penjaga yang ada | — |
+| `VAL-RAT-02` | `PeriodCode` wajib, berbentuk `YYYY-MM` — sama dengan `VAL-GL-04` | `400` | "Periode wajib dipilih dengan bentuk tahun-bulan, contoh 2026-11." | `2026/09` → ditolak |
+| `VAL-RAT-03` | Periode harus ada pada badan hukum itu — sama dengan `VAL-GL-05` | `404` | "Periode akuntansi tidak ditemukan." | `2099-01` → ditolak |
+| `VAL-RAT-04` | Tahun buku lalu tidak ada → seluruh kolom pembanding Tidak dapat dihitung | `200` | "Tahun buku {t} belum ada di sistem." | 2026-09, tahun 2025 tidak ada |
+| `VAL-RAT-05` | Saldo awal tahun tidak tersedia → ROA/ROE Tidak dapat dihitung | `200` | "Saldo awal tahun buku {t} tidak tersedia: tahun buku {t-1} belum ada di sistem." | sama |
+| `VAL-RAT-06` | Akun Aset/Liabilitas bersaldo tanpa klasifikasi → Current, Quick, Cash Tidak dapat dihitung | `200` | "Klasifikasi laporan belum lengkap pada {n} akun bersaldo: {daftar, maks. lima}." | 1-3002 tanpa klasifikasi |
+| `VAL-RAT-07` | Akun Aset Lancar bersaldo tanpa sub-klasifikasi → Quick, Cash Tidak dapat dihitung; Current tetap | `200` | "Sub-klasifikasi aset lancar belum diisi pada {n} akun bersaldo: …" | 1-2001 Lancar tanpa sub-klasifikasi |
+| `VAL-RAT-08` | Posisi neraca kolom (atau posisi awal tahun untuk ROA/ROE) tidak seimbang → tujuh rasio Tidak sah; Net Profit Margin tetap | `200` | "Neraca per {tanggal} tidak seimbang, selisih Rp {x}. Rasio ini tidak dapat dipakai." | Selisih Rp 100 |
+| `VAL-RAT-09` | Penyebut nol → N/A, bukan 0 | `200` | "Penyebut bernilai nol." | Liabilitas lancar Rp 0 |
+| `VAL-RAT-10` | Ekuitas (atau rata-ratanya) negatif → tetap dihitung + catatan | `200` | `Note`: "Ekuitas negatif; tafsirkan dengan hati-hati." | Ekuitas −Rp 50.000 |
+
+**Urutan bila beberapa berlaku:** `04` → `05` → `06` → `07` → `08` → `09`.
+
+**Yang sengaja tidak divalidasi:** status periode (`Open`, `Closing`, `Closed`, dibuka kembali) — sama
+dengan laporan keuangan lain (`ACC-DEC-144` butir 5).
+
+
+---
+
+## 9. Anggaran Accounting *(`ACC-VALIDATION-0.15`, **`draft`**, menunggu gerbang desain Rizki)*
+
+Dasar: `ACC-DEC-185`..`199`; kontrak `ACC-API-0.20`.
+
+| ID | Aturan | Kode | Pesan untuk pengguna | Contoh |
+|---|---|---|---|---|
+| `VAL-BGT-01` | Penjaga badan hukum yang ada; versi harus milik badan hukum yang sedang dipakai | `400`/`403`/`404` | Pesan penjaga yang ada / "Anggaran tidak ditemukan." | — |
+| `VAL-BGT-02` | Tahun buku harus sudah punya dua belas periode | `422` | "Tahun buku {t} belum dibangkitkan. Bangkitkan periodenya di layar Periode Akuntansi lebih dahulu." | 2028 belum dibangkitkan |
+| `VAL-BGT-03` | Buat hanya bila tahun itu belum punya versi | `409` | "Anggaran {t} sudah punya versi. Buka versi yang ada atau buat revisi dari versi yang disetujui." | Buat 2027 kedua kali |
+| `VAL-BGT-04` | Revisi hanya dari versi Disetujui yang berlaku, dan tidak ada versi lain dalam proses | `409` | "Revisi hanya dapat dibuat dari versi yang disetujui." / "Anggaran {t} versi {n} masih dalam proses. Selesaikan atau hapus dulu." | — |
+| `VAL-BGT-05` | Akun: milik badan hukum, belum dihapus, aktif, penerima transaksi, berjenis Pendapatan/Beban | `400` | "Baris {i}: akun {kode} bukan akun Pendapatan atau Beban penerima transaksi yang aktif." | 1-1003, 4-0000 |
+| `VAL-BGT-06` | Akun Beban wajib unit biaya; unit biaya milik badan hukum, belum dihapus, aktif | `400` | "Baris {i}: akun beban {kode} wajib memiliki unit biaya." / "Baris {i}: unit biaya tidak ditemukan atau tidak aktif pada badan hukum ini." | 5-1001 tanpa unit |
+| `VAL-BGT-07` | Tepat dua belas nilai; masing-masing ≥ 0, ≤ 2 desimal, ≤ 999.999.999.999.999,99 | `400` | "Baris {i}: nilai {bulan} tidak boleh negatif." | −5.000 |
+| `VAL-BGT-08` | Akun × unit biaya tidak boleh berulang dalam satu versi | `400` | "Baris {i}: akun {kode} dengan unit {unit} sudah ada di baris {j}." | — |
+| `VAL-BGT-09` | Ubah keterangan/baris hanya pada Draft atau Ditolak | `409` | "Anggaran berstatus {status} tidak dapat diubah." | Ubah versi Diajukan |
+| `VAL-BGT-10` | Versi revisi: nilai bulan berperiode bukan Terbuka harus sama dengan versi Disetujui yang berlaku — diperiksa saat simpan dan saat ajukan | `422` | "Nilai bulan {bulan tahun} tidak boleh berubah karena periodenya sudah tidak Terbuka: {kode akun · unit, maks. lima}." | Maret 2027 berubah |
+| `VAL-BGT-11` | Ajukan butuh ≥ 1 baris; hanya dari Draft/Ditolak | `422` / `409` | "Anggaran tanpa baris tidak dapat diajukan." | — |
+| `VAL-BGT-12` | Tarik hanya oleh pengaju, hanya dari Diajukan | `403` / `409` | "Hanya pengaju yang dapat menarik pengajuan ini." | — |
+| `VAL-BGT-13` | Setujui/Tolak hanya dari Diajukan, oleh pengguna selain pengaju | `409` / `403` | "Anggaran tidak dapat disetujui oleh pengajunya sendiri." | — |
+| `VAL-BGT-14` | Alasan tolak wajib 1–500 karakter | `400` | "Alasan penolakan wajib diisi." | — |
+| `VAL-BGT-15` | Hapus hanya Draft/Ditolak | `409` | "Anggaran berstatus {status} tidak dapat dihapus." | Hapus versi Disetujui |
+| `VAL-BGT-16` | Impor CSV: ≤ 2 MB, ≤ 10.000 baris, kepala kolom sesuai templat; satu baris galat menggagalkan seluruh impor (maks. 50 galat disebut) | `400` | "Baris {r} kolom {k}: {pesan}." | Kode akun tidak dikenal |
+| `VAL-BGT-17` | Dua persetujuan serentak untuk badan hukum × tahun yang sama: hanya satu berhasil | `409` | "Anggaran {t} baru saja disetujui oleh pengguna lain. Muat ulang." | — |

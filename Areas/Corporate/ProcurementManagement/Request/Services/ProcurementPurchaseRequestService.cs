@@ -128,10 +128,9 @@ public sealed class ProcurementPurchaseRequestService
     public async Task<PagedResult<PurchaseRequestListItem>> GetPagedAsync(
         ClaimsPrincipal user, PurchaseRequestQuery request, CancellationToken cancellationToken)
     {
-        if (request.StartDate.HasValue && request.EndDate.HasValue && request.EndDate < request.StartDate)
-            throw new ProcurementRequestValidationException("PBJ-VAL-007", "Tanggal akhir tidak boleh sebelum tanggal awal.");
-
-        var query = await ScopedAsync(user, cancellationToken);
+        // Rentang tanggal dan Periode (PBJ-DEC-055); galat rentang kini PBJ-VAL-094, bukan PBJ-VAL-007.
+        var period = ProcurementPeriodFilter.Resolve(request.StartDate, request.EndDate, request.CustomPeriod);
+        var query = (await ScopedAsync(user, cancellationToken)).WhereCreatedWithin(period);
         if (!string.IsNullOrWhiteSpace(request.Status)) query = query.Where(x => x.Status == request.Status.Trim());
         if (request.DepartmentId.HasValue) query = query.Where(x => x.DepartmentId == request.DepartmentId.Value);
         if (request.FiscalYear.HasValue) query = query.Where(x => x.FiscalYear == request.FiscalYear.Value);
@@ -142,17 +141,6 @@ public sealed class ProcurementPurchaseRequestService
         {
             var userId = ProcurementDataScopeService.GetUserId(user);
             query = query.Where(x => x.RequesterUserId == userId);
-        }
-        if (request.StartDate.HasValue)
-        {
-            var start = request.StartDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            query = query.Where(x => x.CreateDateTime >= start);
-        }
-        if (request.EndDate.HasValue)
-        {
-            // Tanggal akhir inklusif: sampai sebelum awal hari berikutnya.
-            var endExclusive = request.EndDate.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            query = query.Where(x => x.CreateDateTime < endExclusive);
         }
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -252,7 +240,8 @@ public sealed class ProcurementPurchaseRequestService
                 StockSourceNote = x.StockSourceNote,
                 StockCheckedAt = x.StockCheckedAt,
                 PurchaseQuantity = x.PurchaseQuantity,
-                PurchaseAmount = x.PurchaseAmount
+                PurchaseAmount = x.PurchaseAmount,
+                PackageId = x.PackageId
             })
             .ToListAsync(cancellationToken);
 
@@ -899,6 +888,177 @@ public sealed class ProcurementPurchaseRequestService
             CreateDateTime = x.CreateDateTime,
             UpdateDateTime = x.UpdateDateTime
         });
+
+    // ------------------------------------------------------------------ baris per paket (PBJ-PP-INT 1.2 §2)
+
+    /// <summary>
+    /// Baris PR yang siap dipaketkan (BE-PBJ-PS-005; PBJ-DEC-071): PR <c>APPROVED</c>, jumlah beli &gt; 0, belum punya
+    /// paket, dalam <paramref name="scope"/> pemanggil. PR yang sebagian barisnya sudah dipaketkan tetap <c>APPROVED</c>,
+    /// sehingga sisa barisnya tetap muncul di sini. Harga perkiraan dikosongkan bila <paramref name="canViewPrice"/> false.
+    /// </summary>
+    public async Task<PagedResult<PackageableRequestLineResponse>> GetPackageableLinesAsync(
+        ProcurementDataScope scope, PackageableRequestLineQuery request, bool canViewPrice, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.PrcPurchaseRequestLines.AsNoTracking()
+            .Where(x => !x.IsDelete && x.PackageId == null && x.PurchaseQuantity > 0
+                && !x.PurchaseRequest!.IsDelete && x.PurchaseRequest.Status == ProcurementStatuses.PurchaseRequest.Approved);
+        if (!scope.IsAllUnits)
+        {
+            var departments = scope.DepartmentIds.ToList();
+            query = query.Where(x => departments.Contains(x.PurchaseRequest!.DepartmentId));
+        }
+        if (request.FiscalYear.HasValue) query = query.Where(x => x.PurchaseRequest!.FiscalYear == request.FiscalYear.Value);
+        if (request.ProcurementTypeId.HasValue) query = query.Where(x => x.Item!.ProcurementTypeId == request.ProcurementTypeId.Value);
+        if (request.ItemCategoryId.HasValue) query = query.Where(x => x.Item!.ItemCategoryId == request.ItemCategoryId.Value);
+        if (request.DepartmentId.HasValue) query = query.Where(x => x.PurchaseRequest!.DepartmentId == request.DepartmentId.Value);
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim().ToUpper();
+            query = query.Where(x => (x.PurchaseRequest!.RequestNumber ?? string.Empty).ToUpper().Contains(search)
+                || x.Item!.ItemCode.ToUpper().Contains(search) || x.Item.ItemName.ToUpper().Contains(search));
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderBy(x => x.PurchaseRequest!.ApprovedAt).ThenBy(x => x.PurchaseRequest!.RequestNumber).ThenBy(x => x.LineNo)
+            .Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize)
+            .Select(x => new PackageableRequestLineResponse
+            {
+                PurchaseRequestLineId = x.Id,
+                LineNo = x.LineNo,
+                PurchaseRequestId = x.PurchaseRequestId,
+                RequestNumber = x.PurchaseRequest!.RequestNumber,
+                DepartmentId = x.PurchaseRequest.DepartmentId,
+                DepartmentName = x.PurchaseRequest.Department!.DepartmentName,
+                FiscalYear = x.PurchaseRequest.FiscalYear,
+                FundSourceId = x.PurchaseRequest.FundSourceId,
+                FundSourceName = x.PurchaseRequest.FundSource!.FundSourceName,
+                ItemId = x.ItemId,
+                ItemCode = x.Item!.ItemCode,
+                ItemName = x.Item.ItemName,
+                ProcurementTypeId = x.Item.ProcurementTypeId,
+                ProcurementTypeCode = x.Item.ProcurementType!.TypeCode,
+                ProcurementTypeName = x.Item.ProcurementType.TypeName,
+                ItemCategoryId = x.Item.ItemCategoryId,
+                ItemCategoryName = x.Item.ItemCategory!.CategoryName,
+                MeasurementName = x.Item.Measurement!.MeasurementName,
+                Specification = x.Specification,
+                PurchaseQuantity = x.PurchaseQuantity,
+                EstimatedUnitPrice = canViewPrice ? x.EstimatedUnitPrice : null,
+                NeedPlanLineKey = x.NeedPlanLineKey,
+                ApprovedAt = x.PurchaseRequest.ApprovedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<PackageableRequestLineResponse>
+        {
+            PageNumber = request.PageNumber, PageSize = request.PageSize, TotalData = total,
+            TotalPage = request.PageSize <= 0 ? 0 : (int)Math.Ceiling(total / (double)request.PageSize), Items = items
+        };
+    }
+
+    /// <summary>
+    /// Menandai baris PR masuk paket (BE-PBJ-PS-005; PBJ-PP-INT 1.2 §2, PBJ-DEC-071). <b>Ikut transaksi pemanggil</b>:
+    /// metode ini hanya mengubah entity yang dilacak dan tidak memanggil <c>SaveChanges</c>.
+    /// </summary>
+    /// <remarks>
+    /// Idempoten untuk <paramref name="packageId"/> yang sama. Baris yang sudah punya paket lain → 409 <c>PBJ-VAL-121</c>;
+    /// baris yang tidak ada, PR-nya belum <c>APPROVED</c>, atau jumlah belinya 0 → 409 <c>PBJ-VAL-120</c>. PR menjadi
+    /// <c>CONVERTED_TO_PACKAGE</c> bila semua baris belinya sudah berpaket. Contoh: PR-000031 berisi kursi roda dan tongkat;
+    /// kursi roda dipaketkan → PR tetap <c>APPROVED</c>; tongkat ikut dipaketkan → <c>CONVERTED_TO_PACKAGE</c>.
+    /// </remarks>
+    public async Task MarkLinesPackagedAsync(
+        IReadOnlyCollection<Guid> lineIds, Guid packageId, Guid actorUserId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var ids = lineIds.Distinct().ToList();
+        var prIds = await _dbContext.PrcPurchaseRequestLines.AsNoTracking()
+            .Where(x => ids.Contains(x.Id) && !x.IsDelete)
+            .Select(x => x.PurchaseRequestId).Distinct().ToListAsync(cancellationToken);
+        var requests = await _dbContext.PrcPurchaseRequests
+            .Where(x => prIds.Contains(x.Id) && !x.IsDelete)
+            .ToListAsync(cancellationToken);
+        var lines = await _dbContext.PrcPurchaseRequestLines
+            .Where(x => prIds.Contains(x.PurchaseRequestId) && !x.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        var touchedRequestIds = new HashSet<Guid>();
+        foreach (var lineId in ids)
+        {
+            var line = lines.FirstOrDefault(x => x.Id == lineId);
+            var owner = line == null ? null : requests.FirstOrDefault(x => x.Id == line.PurchaseRequestId);
+            if (line?.PackageId == packageId) continue;
+            if (line == null || owner == null || owner.Status != ProcurementStatuses.PurchaseRequest.Approved || line.PurchaseQuantity <= 0)
+                throw new ProcurementRequestConflictException("PBJ-VAL-120",
+                    "Baris permintaan ini belum disetujui atau tidak perlu dibeli.");
+            if (line.PackageId.HasValue)
+                throw new ProcurementRequestConflictException("PBJ-VAL-121",
+                    $"Baris {line.LineNo} permintaan {owner.RequestNumber} sudah masuk paket lain. Muat ulang daftar baris.");
+            line.PackageId = packageId;
+            line.PackagedAt = now;
+            line.UpdateDateTime = now.UtcDateTime;
+            line.UpdateBy = actorUserId;
+            touchedRequestIds.Add(owner.Id);
+        }
+
+        // RowVersion PR ikut diganti agar pembatalan PR yang berjalan bersamaan tertahan kunci optimistis (409 PBJ-VAL-090),
+        // bukan lolos dengan baris yang sudah berpaket.
+        foreach (var owner in requests.Where(x => touchedRequestIds.Contains(x.Id)))
+        {
+            owner.RowVersion = Guid.NewGuid();
+            owner.UpdateDateTime = now.UtcDateTime;
+            owner.UpdateBy = actorUserId;
+        }
+
+        foreach (var owner in requests.Where(x => x.Status == ProcurementStatuses.PurchaseRequest.Approved && touchedRequestIds.Contains(x.Id)))
+        {
+            var buyLines = lines.Where(x => x.PurchaseRequestId == owner.Id && x.PurchaseQuantity > 0).ToList();
+            if (buyLines.Count == 0 || buyLines.Any(x => !x.PackageId.HasValue)) continue;
+            owner.Status = ProcurementStatuses.PurchaseRequest.ConvertedToPackage;
+            _historyWriter.Record(
+                ProcurementDocumentTypes.PurchaseRequest, owner.Id, owner.RequestNumber, ProcurementDocumentHistoryActions.ConvertToPackage,
+                ProcurementStatuses.PurchaseRequest.Approved, owner.Status, null,
+                new { PackageIds = buyLines.Select(x => x.PackageId).Distinct().ToList() }, actorUserId, now);
+        }
+    }
+
+    /// <summary>
+    /// Melepas baris PR dari paket (BE-PBJ-PS-005; PBJ-PP-INT 1.2 §2, PBJ-DEC-077). <b>Ikut transaksi pemanggil</b>.
+    /// Hanya baris yang <c>PackageId</c>-nya sama dengan <paramref name="packageId"/> yang dilepas; PR
+    /// <c>CONVERTED_TO_PACKAGE</c> kembali <c>APPROVED</c> sehingga barisnya dapat dipaketkan lagi.
+    /// </summary>
+    public async Task ReleaseLinesAsync(
+        IReadOnlyCollection<Guid> lineIds, Guid packageId, Guid actorUserId, DateTimeOffset now, string? reason, CancellationToken cancellationToken)
+    {
+        var ids = lineIds.Distinct().ToList();
+        var lines = await _dbContext.PrcPurchaseRequestLines
+            .Where(x => ids.Contains(x.Id) && !x.IsDelete && x.PackageId == packageId)
+            .ToListAsync(cancellationToken);
+        if (lines.Count == 0) return;
+
+        foreach (var line in lines)
+        {
+            line.PackageId = null;
+            line.PackagedAt = null;
+            line.UpdateDateTime = now.UtcDateTime;
+            line.UpdateBy = actorUserId;
+        }
+
+        var prIds = lines.Select(x => x.PurchaseRequestId).Distinct().ToList();
+        var requests = await _dbContext.PrcPurchaseRequests
+            .Where(x => prIds.Contains(x.Id) && !x.IsDelete)
+            .ToListAsync(cancellationToken);
+        foreach (var owner in requests)
+        {
+            owner.RowVersion = Guid.NewGuid();
+            owner.UpdateDateTime = now.UtcDateTime;
+            owner.UpdateBy = actorUserId;
+            if (owner.Status != ProcurementStatuses.PurchaseRequest.ConvertedToPackage) continue;
+            owner.Status = ProcurementStatuses.PurchaseRequest.Approved;
+            _historyWriter.Record(
+                ProcurementDocumentTypes.PurchaseRequest, owner.Id, owner.RequestNumber, ProcurementDocumentHistoryActions.ReleaseFromPackage,
+                ProcurementStatuses.PurchaseRequest.ConvertedToPackage, owner.Status, reason, new { PackageId = packageId }, actorUserId, now);
+        }
+    }
 
     private Task AuditAsync(string action, PrcPurchaseRequest entity, Guid actorUserId) =>
         _loggerService.AuditAsync(LogCategory, action, "Perubahan permintaan pengadaan.", new

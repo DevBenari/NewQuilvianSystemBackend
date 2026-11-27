@@ -1137,3 +1137,637 @@ Aturan yang mengikat:
 
 Status dan tempat simpan saldo dirinci di `02-backend-architecture.md` bagian 22.6; pemakaiannya
 untuk rekonsiliasi di bagian 23.
+
+---
+
+## `ACC-API-0.17` — buku besar, laba rugi, dan neraca (ACC-FIN-005 + 008)
+
+| Field | Nilai |
+|---|---|
+| Versi | `ACC-API-0.17` — status **`approved`** (`GATE-DESAIN-1124`) |
+| Owner | Rizki |
+| `approved_by` / `approved_at` | Rizki, 24 November 2026 |
+| `input_revision` | `00-interview-decisions.md@19`, `02-backend-architecture.md` bagian 25 |
+| Traceability | `ACC-DEC-141`..`154`; PRD `ACC-FIN-PRD-001` ACC-FIN-005, ACC-FIN-008 |
+| Dampak kompatibilitas | **Tidak mematahkan.** Satu endpoint lama mendapat satu parameter opsional dan sebelas field respons tambahan; tujuh endpoint baru. Konsumen lama yang mengabaikan field baru tetap berjalan |
+
+Seluruh endpoint di bagian ini **hanya menghitung jurnal `Posted`**, dan dijaga
+`[AccessPermission("GeneralLedger", "Read")]` (`ACC-DEC-150`). Pengguna tanpa hak itu menerima `403`
+pada semuanya, termasuk unduhan.
+
+### `[Tags("Corporate / Accounting / General Ledger")]`
+
+Base URL: `api/v1/corporate/accounting/general-ledger`
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|---|
+| `GET` | `/movements` | **Diperluas** — Rencana (belum tersedia) | Mutasi buku besar, kini dapat disaring unit biaya dan membawa asal jurnal | `GeneralLedger : Read` | `LedgerMovementQuery` | `ApiResponse<PagedResult<LedgerMovementResponse>>` |
+| `GET` | `/movements/summary` | **Baru** — Rencana (belum tersedia) | Saldo awal, total debit, total kredit, saldo akhir untuk seluruh rentang | `GeneralLedger : Read` | `LedgerMovementQuery` tanpa `PageNumber`/`PageSize` | `ApiResponse<LedgerMovementSummaryResponse>` |
+| `GET` | `/movements/export` | **Baru** — Rencana (belum tersedia) | Unduh CSV seluruh mutasi sesuai saringan | `GeneralLedger : Read` | sama dengan `summary` | Berkas `text/csv` |
+| `GET` | `/trial-balance/export` | **Baru** — Rencana (belum tersedia) | Unduh CSV neraca saldo | `GeneralLedger : Read` | `TrialBalanceQuery` | Berkas `text/csv` |
+
+### `[Tags("Corporate / Accounting / General Ledger")]` — laporan keuangan
+
+Base URL: `api/v1/corporate/accounting/general-ledger` — sama dengan grup di atas. Keempat endpoint laporan
+sengaja ditaruh di controller buku besar yang sudah ada, supaya Akses Role tetap menampilkan satu
+modul akses `ACCOUNTING_GENERAL_LEDGER` (`ACC-DEC-150`).
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|---|
+| `GET` | `/income-statement` | **Baru** — Rencana (belum tersedia) | Laba rugi satu periode beserta YTD dan pembanding | `GeneralLedger : Read` | `IncomeStatementQuery` | `ApiResponse<IncomeStatementResponse>` |
+| `GET` | `/income-statement/export` | **Baru** — Rencana (belum tersedia) | Unduh CSV laba rugi | `GeneralLedger : Read` | `IncomeStatementQuery` | Berkas `text/csv` |
+| `GET` | `/balance-sheet` | **Baru** — Rencana (belum tersedia) | Neraca per akhir periode beserta pembanding | `GeneralLedger : Read` | `BalanceSheetQuery` | `ApiResponse<BalanceSheetResponse>` |
+| `GET` | `/balance-sheet/export` | **Baru** — Rencana (belum tersedia) | Unduh CSV neraca | `GeneralLedger : Read` | `BalanceSheetQuery` | Berkas `text/csv` |
+
+### Request
+
+**`LedgerMovementQuery`** — diperluas
+
+| Field | Tipe | Wajib | Bawaan | Validasi |
+|---|---|:---:|---|---|
+| `PageNumber` | `int` | Tidak | `1` | < 1 dianggap 1 (perilaku lama) |
+| `PageSize` | `int` | Tidak | `25` | di luar 1–200 dianggap 25 (perilaku lama) |
+| `LegalEntityId` | `Guid` | Ya | — | Penjaga badan hukum yang ada |
+| `AccountId` | `Guid` | Ya | — | Akun harus ada → `404` |
+| `DateFrom`, `DateTo` | `DateTime?` | Tidak | — | `DateTo` < `DateFrom` → `400` (perilaku lama) |
+| **`CostCenterId`** | `Guid?` | Tidak | kosong = seluruh baris | Harus ada dan milik `LegalEntityId` → `400` |
+
+**`IncomeStatementQuery`**
+
+| Field | Tipe | Wajib | Bawaan | Validasi |
+|---|---|:---:|---|---|
+| `LegalEntityId` | `Guid` | Ya | — | Penjaga badan hukum |
+| `PeriodCode` | `string`, maks 7 | Ya | — | Bentuk `YYYY-MM`; tidak ditemukan → `404` |
+| `CostCenterId` | `Guid?` | Tidak | kosong = seluruh baris | Harus ada dan milik `LegalEntityId` → `400` |
+| `IncludeZeroAccounts` | `bool` | Tidak | `false` | — |
+
+**`BalanceSheetQuery`** — sama dengan `IncomeStatementQuery` **tanpa** `CostCenterId`
+(`ACC-DEC-147` butir 3). Parameter `CostCenterId` yang tetap dikirim diabaikan.
+
+### Response
+
+**`LedgerMovementResponse`** — sebelas field tambahan, field lama tetap:
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `AccountingDate`, `JournalNumber`, `LineNumber`, `Description`, `DebitAmount`, `CreditAmount`, `RunningBalance` | — | Tidak berubah |
+| `JournalId` | `Guid` | Baru |
+| `JournalTypeCode` | `string` | Baru |
+| `DocumentNumber` | `string?` | Baru |
+| `CostCenterId`, `CostCenterCode`, `CostCenterName` | `Guid?`, `string?`, `string?` | Baru |
+| `SourceKind` | `int` (`LedgerSourceKind`: `1` Manual, `2` Kejadian, `3` Jurnal Berulang, `4` Tutup Tahun, `5` Koreksi) | Baru |
+| `SourceLabel` | `string` | Baru. Contoh `Finance · RCPT-2026-1102`, `Manual · INV-778`, `Tutup Tahun` |
+| `AccountingEventId`, `RecurringTemplateId`, `ReversalOfJournalId` | `Guid?` | Baru; hanya satu yang terisi sesuai `SourceKind` |
+
+Bila `CostCenterId` disaring, `RunningBalance` adalah saldo bagian unit itu saja.
+
+**`LedgerMovementSummaryResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `AccountId`, `AccountCode`, `AccountName` | — | Akun yang diminta |
+| `CostCenterId`, `CostCenterCode`, `CostCenterName` | nullable | Saringan yang dipakai |
+| `OpeningBalance` | `decimal` | Saldo sebelum `DateFrom`; `0` bila `DateFrom` kosong. Positif = condong debit |
+| `TotalDebit`, `TotalCredit` | `decimal` | Dalam rentang |
+| `ClosingBalance` | `decimal` | `OpeningBalance + TotalDebit − TotalCredit` |
+| `LineCount` | `int` | Jumlah baris dalam rentang |
+
+**`IncomeStatementResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `LegalEntityId`, `PeriodCode`, `PeriodName`, `FiscalYear` | — | Periode terpilih |
+| `PeriodStartDate`, `PeriodEndDate`, `YearToDateStartDate` | `DateTime` | Rentang kolom berjalan |
+| `ComparisonAvailable` | `bool` | `false` bila periode pembanding tidak ada |
+| `ComparisonPeriodCode`, `ComparisonPeriodName` | `string?` | Kosong bila tidak ada |
+| `ComparisonUnavailableReason` | `string?` | Contoh "Periode November 2025 belum ada di sistem." |
+| `CostCenterId`, `CostCenterCode`, `CostCenterName` | nullable | Saringan |
+| `CostCenterNotice` | `string?` | Bunyi tetap bila saringan unit biaya dipakai (`02-backend-architecture.md` bagian 25.6) |
+| `Sections` | `List<FinancialStatementSectionResponse>` | Tepat dua, urutan Pendapatan lalu Beban |
+| `NetIncome` | `FinancialStatementAmountsResponse` | Pendapatan − Beban |
+
+**`BalanceSheetResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `LegalEntityId`, `PeriodCode`, `PeriodName`, `FiscalYear` | — | Periode terpilih |
+| `AsOfDate` | `DateTime` | `EndDate` periode terpilih |
+| `ComparisonAvailable`, `ComparisonAsOfDate`, `ComparisonUnavailableReason` | — | Pembanding akhir tahun buku lalu |
+| `Sections` | `List<FinancialStatementSectionResponse>` | Tepat tiga: Aset, Liabilitas, Ekuitas. Ekuitas memuat baris `Computed` laba |
+| `TotalLiabilitiesAndEquity` | `FinancialStatementAmountsResponse` | — |
+| `IsBalanced`, `ComparisonIsBalanced` | `bool`, `bool?` | Aset = Liabilitas + Ekuitas, apa adanya, tanpa pembulatan (`ACC-DEC-154`) |
+| `Difference`, `ComparisonDifference` | `decimal`, `decimal?` | Aset − (Liabilitas + Ekuitas) |
+| `UnclosedFiscalYears` | `List<int>` | Tahun buku lalu yang belum ditutup; kosong bila tidak ada |
+
+**`FinancialStatementSectionResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `AccountType` | `int` | `1`..`5` |
+| `Title` | `string` | `Pendapatan`, `Beban`, `Aset`, `Liabilitas`, `Ekuitas` |
+| `Rows` | `List<FinancialStatementRowResponse>` | Urutan pra-order |
+| `Total` | `FinancialStatementAmountsResponse` | — |
+
+**`FinancialStatementRowResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `RowKind` | `int` | `1` akun transaksi, `2` akun induk (subtotal), `3` baris laba hitungan |
+| `AccountId` | `Guid?` | Kosong pada `RowKind = 3` |
+| `ParentAccountId` | `Guid?` | Induk tampilan menurut aturan bagian 25.6 |
+| `AccountCode`, `AccountName` | `string` | Baris laba: kode kosong, nama `Laba (Rugi) Tahun Berjalan` atau `Laba (Rugi) Tahun Lalu Belum Ditutup` |
+| `Depth` | `int` | 0 = akar kelompok |
+| `IsActive` | `bool` | Akun nonaktif yang masih bernilai tetap tampil |
+| `Amounts` | `FinancialStatementAmountsResponse` | — |
+
+**`FinancialStatementAmountsResponse`**
+
+| Field | Tipe | Laba rugi | Neraca |
+|---|---|---|---|
+| `Current` | `decimal` | Periode terpilih | Per `AsOfDate` |
+| `Comparison` | `decimal?` | Periode yang sama tahun lalu | Per akhir tahun buku lalu |
+| `Variance` | `decimal?` | `Current − Comparison` | sama |
+| `CurrentYearToDate` | `decimal?` | YTD | Kosong |
+| `ComparisonYearToDate` | `decimal?` | YTD tahun lalu | Kosong |
+| `VarianceYearToDate` | `decimal?` | Selisih YTD | Kosong |
+
+`Comparison` dan selisihnya `null` — bukan `0` — bila `ComparisonAvailable = false` (`ACC-DEC-144`
+butir 4).
+
+**Contoh respons laba rugi (dipendekkan):**
+
+```json
+{
+  "periodCode": "2026-11",
+  "periodName": "November 2026",
+  "fiscalYear": 2026,
+  "comparisonAvailable": true,
+  "comparisonPeriodCode": "2025-11",
+  "costCenterNotice": null,
+  "sections": [
+    {
+      "accountType": 4,
+      "title": "Pendapatan",
+      "rows": [
+        { "rowKind": 2, "accountCode": "4-1000", "accountName": "Pendapatan Layanan", "depth": 0,
+          "amounts": { "current": 95000000.00, "comparison": 80000000.00, "variance": 15000000.00,
+                       "currentYearToDate": 900000000.00, "comparisonYearToDate": 810000000.00,
+                       "varianceYearToDate": 90000000.00 } },
+        { "rowKind": 1, "accountCode": "4-1001", "accountName": "Pendapatan Rawat Jalan", "depth": 1,
+          "amounts": { "current": 100000000.00, "comparison": 82000000.00, "variance": 18000000.00,
+                       "currentYearToDate": 940000000.00, "comparisonYearToDate": 830000000.00,
+                       "varianceYearToDate": 110000000.00 } },
+        { "rowKind": 1, "accountCode": "4-1009", "accountName": "Potongan Pendapatan", "depth": 1,
+          "amounts": { "current": -5000000.00, "comparison": -2000000.00, "variance": -3000000.00,
+                       "currentYearToDate": -40000000.00, "comparisonYearToDate": -20000000.00,
+                       "varianceYearToDate": -20000000.00 } }
+      ],
+      "total": { "current": 95000000.00, "comparison": 80000000.00, "variance": 15000000.00 }
+    }
+  ]
+}
+```
+
+Potongan Pendapatan bersaldo debit sehingga bernilai negatif dan mengurangi subtotal (`ACC-DEC-145`).
+
+### Respons unduhan
+
+`200` dengan `Content-Type: text/csv; charset=utf-8` dan `Content-Disposition: attachment;
+filename="..."`. Bentuk isi dan nama berkas: `02-backend-architecture.md` bagian 25.7. Galat
+dikembalikan sebagai `ApiResponse` JSON biasa, bukan berkas.
+
+### Arti kode status
+
+| Kode | Kapan | Contoh pesan |
+|---|---|---|
+| `200` | Berhasil | — |
+| `400` | Rentang tanggal terbalik; unit biaya tidak ditemukan atau milik badan hukum lain; `PeriodCode` bukan bentuk `YYYY-MM` | "Unit biaya tidak ditemukan pada badan hukum ini." |
+| `401` | Belum masuk | — |
+| `403` | Tanpa `GeneralLedger : Read`, atau badan hukum bukan hak pengguna | — |
+| `404` | Akun atau periode tidak ditemukan | "Periode akuntansi tidak ditemukan." (pesan lama) |
+| `409` | Penjaga badan hukum `IsDefault` tidak lolos (perilaku lama) | — |
+| `422` | Unduhan buku besar melebihi 50.000 baris | "Mutasi terlalu banyak untuk diunduh sekaligus (64.120 baris). Persempit rentang tanggal." |
+| `422` *(delta `ACC-DEC-157`, 25 November 2026)* | Unduhan neraca saldo melebihi 50.000 baris akun (`VAL-GL-10`) | "Neraca saldo terlalu banyak untuk diunduh sekaligus (50.120 baris akun)." |
+
+---
+
+## `ACC-API-0.18` — Master COA: kode otomatis, jenis warisan, klasifikasi laporan (ACC-FIN-001)
+
+| Field | Nilai |
+|---|---|
+| Versi | `ACC-API-0.18` — status **`approved`** (`GATE-DESAIN-1125`) |
+| Owner | Rizki |
+| `approved_by` / `approved_at` | Rizki, 25 November 2026 |
+| `input_revision` | `00-interview-decisions.md@20` (pass 25 November 2026), `02-backend-architecture.md` bagian 26 |
+| `input_hash` | Tidak dihitung — mengikuti kebiasaan amendment sebelumnya; acuan source `rizkiG` `0f67c5c2` |
+| Traceability | `ACC-DEC-162`..`170`, `172`, `173`; PRD `ACC-FIN-PRD-001` ACC-FIN-001; `04-prd-to-mvp.md` bagian 31 |
+| Dampak kompatibilitas | **Tidak mematahkan.** Field respons hanya bertambah; `PUT` mendapat satu kelompok opsional yang, bila tidak dikirim, membiarkan klasifikasi apa adanya. `POST` melonggarkan dua field yang semula wajib (`AccountCode`, `AccountType`), sehingga permintaan lama yang mengirim keduanya tetap diterima — kecuali `AccountType` berbeda dari jenis induk, yang kini ditolak `409` (`ACC-DEC-166`). Di DB dev, 0 dari 39 akun terkena |
+
+### `[Tags("Corporate / Accounting / Master Data / Chart of Account")]`
+
+Base URL: `api/v1/corporate/accounting/master-data/chart-of-accounts`
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | **Diperluas** — Rencana (belum tersedia) | Daftar akun; + saringan `UnclassifiedOnly`, + field klasifikasi | `ChartOfAccount : Read` | `ChartOfAccountPagedQuery` | `ApiResponse<PagedResult<ChartOfAccountListResponse>>` |
+| `GET` | `/{id}` | **Diperluas** — Rencana (belum tersedia) | Rincian akun; + field klasifikasi beserta akun sumbernya | `ChartOfAccount : Read` | — | `ApiResponse<ChartOfAccountDetailResponse>` |
+| `GET` | `/tree` | **Diperluas** — Rencana (belum tersedia) | Susunan akun; + field klasifikasi | `ChartOfAccount : Read` | `legalEntityId` | `ApiResponse<List<ChartOfAccountTreeResponse>>` |
+| `GET` | `/next-code` | **Baru** — Rencana (belum tersedia) | Pratinjau kode, tingkat, jenis, dan klasifikasi warisan untuk akun yang akan dibuat | `ChartOfAccount : Create` | `ChartOfAccountNextCodeQuery` | `ApiResponse<ChartOfAccountNextCodeResponse>` |
+| `POST` | `/` | **Diperluas** — Rencana (belum tersedia) | Menambah akun; kode disusun backend bila kosong, jenis diwarisi induk, klasifikasi boleh langsung diisi | `ChartOfAccount : Create` | `CreateChartOfAccountRequest` | `ApiResponse<ChartOfAccountDetailResponse>` — `201` |
+| `PUT` | `/{id}` | **Diperluas** — Rencana (belum tersedia) | Mengubah akun; + kelompok klasifikasi opsional (ganti penuh); induk berjenis lain ditolak; pindah induk tidak boleh mematahkan sub-klasifikasi turunan | `ChartOfAccount : Update` | `UpdateChartOfAccountRequest` | `ApiResponse<ChartOfAccountDetailResponse>` |
+
+`/options`, `/{id}/deactivate`, dan `/{id}/activate` tidak berubah.
+
+### `[Tags("Corporate / Accounting / General Ledger")]` — neraca
+
+Base URL: `api/v1/corporate/accounting/general-ledger`
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|---|
+| `GET` | `/balance-sheet` | **Diperluas** — Rencana (belum tersedia) | Neraca; + daftar akun bersaldo yang klasifikasinya belum lengkap | `GeneralLedger : Read` | `BalanceSheetQuery` (tidak berubah) | `ApiResponse<BalanceSheetResponse>` |
+
+`/balance-sheet/export` **tidak** berubah: CSV tetap memuat angka saja (`ACC-DEC-173` butir 6).
+
+### Enum baru
+
+| Enum | Nilai | Bawaan |
+|---|---|---|
+| `AccountReportClassification` | `1` `Current` (Lancar), `2` `NonCurrent` (Tidak Lancar) | Tidak ada — `null` = ikut leluhur |
+| `CurrentAssetCategory` | `1` `CashAndCashEquivalents` (Kas dan Setara Kas), `2` `ShortTermInvestment` (Investasi Jangka Pendek), `3` `Receivable` (Piutang), `4` `Inventory` (Persediaan), `5` `OtherCurrentAsset` (Aset Lancar Lainnya) | Tidak ada |
+| `ClassificationGapKind` | `1` `MissingReportClassification`, `2` `MissingCurrentAssetCategory` | — (hanya di respons) |
+
+Dikirim sebagai angka, seperti `AccountType` dan `NormalBalance` yang ada.
+
+### Request
+
+**`ChartOfAccountPagedQuery`** — diperluas
+
+| Field | Tipe | Wajib | Bawaan | Validasi |
+|---|---|:---:|---|---|
+| *(field lama)* | — | — | — | Tidak berubah |
+| **`UnclassifiedOnly`** | `bool?` | Tidak | kosong = tidak menyaring | `true` tanpa `LegalEntityId` → `400` (`VAL-COA-12`) |
+
+**`ChartOfAccountNextCodeQuery`** — baru
+
+| Field | Tipe | Wajib | Bawaan | Validasi |
+|---|---|:---:|---|---|
+| `LegalEntityId` | `Guid` | Ya | — | Penjaga badan hukum; badan hukum ada → `400` |
+| `ParentAccountId` | `Guid?` | Tidak | kosong = akun tingkat 1 | Induk ada → `400`; badan hukum sama → `409`; belum bertransaksi → `409`; di bawah tingkat 5 → `400` |
+| `AccountType` | `AccountType?` | Hanya tanpa induk | — | 1–5 (`VAL-COA-03`); bila induk ada dan berbeda → `409` (`VAL-COA-04`) |
+
+**`CreateChartOfAccountRequest`** — diperluas
+
+| Field | Tipe | Wajib | Bawaan | Panjang | Validasi | Sensitif |
+|---|---|:---:|---|---|---|:---:|
+| `LegalEntityId` | `Guid` | Ya | — | — | Lama | Tidak |
+| `AccountCode` | `string?` | **Tidak** (semula Ya) | kosong = disusun backend | ≤ 20 | Diisi → unik per badan hukum, tanpa pemeriksaan pola (jalur impor `ACC-DEC-170`) | Tidak |
+| `AccountName` | `string` | Ya | — | ≤ 200 | Lama | Tidak |
+| `AccountType` | `AccountType?` | **Hanya tanpa induk** (semula Ya) | kosong = jenis induk | — | `VAL-COA-03`, `04` | Tidak |
+| `NormalBalance` | `NormalBalance` | Ya | — | — | Lama | Tidak |
+| `ParentAccountId` | `Guid?` | Tidak | — | — | Lama | Tidak |
+| `AccountLevel` | `int` | Ya | `1` | — | Lama: tingkat induk + 1 | Tidak |
+| `IsPostable`, `IsControlAccount`, `Description`, `EffectiveStartDate` | — | — | — | — | Lama | Tidak |
+| **`Classification`** | `ChartOfAccountClassificationRequest?` | Tidak | kosong = kedua nilai ikut leluhur | — | Lihat di bawah | Tidak |
+
+**`UpdateChartOfAccountRequest`** — + satu field. Aturan baru: `VAL-COA-05` (induk berjenis lain) dan
+`VAL-COA-11` (pindah induk mematahkan sub-klasifikasi turunan). Kode tidak disusun ulang.
+
+| Field | Tipe | Wajib | Bawaan | Validasi |
+|---|---|:---:|---|---|
+| *(field lama)* | — | — | — | Tidak berubah |
+| **`Classification`** | `ChartOfAccountClassificationRequest?` | Tidak | **tidak dikirim = klasifikasi tidak berubah** | Dikirim = ganti penuh kedua nilai |
+
+**`ChartOfAccountClassificationRequest`** — baru, dipakai `POST` dan `PUT`. Kedua field selalu dibaca
+bila kelompoknya dikirim.
+
+| Field | Tipe | Wajib | Bawaan | Validasi |
+|---|---|:---:|---|---|
+| `ReportClassification` | `AccountReportClassification?` | Tidak | `null` = kosongkan, ikut leluhur | `VAL-COA-07`, `08`, `11` |
+| `CurrentAssetCategory` | `CurrentAssetCategory?` | Tidak | `null` = kosongkan, ikut leluhur | `VAL-COA-07`, `09`, `10`, `11` |
+
+Contoh `PUT` 1-1000 — mengisi Lancar + Kas dan Setara Kas tanpa mengubah field lain (field lama tetap dikirim seperti biasa):
+
+```json
+{
+  "accountCode": "1-1000",
+  "accountName": "Kas dan Setara Kas",
+  "parentAccountId": "…",
+  "accountLevel": 2,
+  "isPostable": false,
+  "classification": { "reportClassification": 1, "currentAssetCategory": 1 }
+}
+```
+
+Mengosongkan kembali (ikut leluhur): `"classification": { "reportClassification": null, "currentAssetCategory": null }`.
+Tidak menyentuh klasifikasi: field `classification` tidak dikirim.
+
+### Response
+
+**Field klasifikasi** — ditambahkan pada `ChartOfAccountListResponse` (sehingga juga pada
+`ChartOfAccountDetailResponse` yang mewarisinya) dan pada `ChartOfAccountTreeResponse`:
+
+| Field | Tipe | Isi |
+|---|---|---|
+| `ReportClassification` | `AccountReportClassification?` | Nilai milik akun ini |
+| `CurrentAssetCategory` | `CurrentAssetCategory?` | Nilai milik akun ini |
+| `EffectiveReportClassification` | `AccountReportClassification?` | Nilai yang berlaku sesudah pewarisan; `null` untuk Ekuitas, Pendapatan, Beban, dan untuk yang belum lengkap |
+| `EffectiveCurrentAssetCategory` | `CurrentAssetCategory?` | Sesudah pewarisan; hanya terisi untuk Aset Lancar |
+| `ClassificationGap` | `ClassificationGapKind?` | Terisi bila akun penerima transaksi Aset/Liabilitas belum lengkap |
+
+Tambahan khusus **`ChartOfAccountDetailResponse`**:
+
+| Field | Tipe | Isi |
+|---|---|---|
+| `ReportClassificationSourceAccountId`, `ReportClassificationSourceAccountCode` | `Guid?`, `string?` | Akun asal klasifikasi efektif; sama dengan akun ini bila miliknya sendiri |
+| `CurrentAssetCategorySourceAccountId`, `CurrentAssetCategorySourceAccountCode` | `Guid?`, `string?` | Akun asal sub-klasifikasi efektif |
+
+Contoh rincian 1-1004 Bank Operasional sesudah 1-1000 diklasifikasi:
+
+```json
+{
+  "accountCode": "1-1004",
+  "accountName": "Bank Operasional",
+  "accountType": 1,
+  "reportClassification": null,
+  "currentAssetCategory": null,
+  "effectiveReportClassification": 1,
+  "effectiveCurrentAssetCategory": 1,
+  "classificationGap": null,
+  "reportClassificationSourceAccountCode": "1-1000",
+  "currentAssetCategorySourceAccountCode": "1-1000"
+}
+```
+
+**`ChartOfAccountNextCodeResponse`** — baru
+
+| Field | Tipe | Isi |
+|---|---|---|
+| `AccountCode` | `string` | Usulan kode; final ditetapkan saat simpan |
+| `AccountLevel` | `int` | Tingkat akun baru |
+| `AccountType` | `AccountType` | Jenis akun baru (warisan induk, atau dari query) |
+| `ParentAccountId`, `ParentAccountCode`, `ParentAccountName` | `Guid?`, `string?`, `string?` | Induk |
+| `SuggestedNormalBalance` | `NormalBalance?` | Saldo normal induk sebagai usulan; `null` tanpa induk |
+| `InheritedReportClassification`, `InheritedCurrentAssetCategory` | enum `?` | Klasifikasi efektif induk, yang akan berlaku bila isian klasifikasi dikosongkan |
+| `InheritedFromAccountCode` | `string?` | Kode akun asal klasifikasi warisan |
+
+Contoh — induk 1-1000 di DB dev:
+
+```json
+{
+  "accountCode": "1-1005",
+  "accountLevel": 3,
+  "accountType": 1,
+  "parentAccountCode": "1-1000",
+  "parentAccountName": "Kas dan Setara Kas",
+  "suggestedNormalBalance": 1,
+  "inheritedReportClassification": null,
+  "inheritedCurrentAssetCategory": null,
+  "inheritedFromAccountCode": null
+}
+```
+
+**`BalanceSheetResponse`** — dua field tambahan, field lama tetap
+
+| Field | Tipe | Isi |
+|---|---|---|
+| `UnclassifiedAccountCount` | `int` | Jumlah butir `ClassificationGaps` |
+| `ClassificationGaps` | `List<FinancialStatementClassificationGapResponse>` | Akun penerima transaksi Aset/Liabilitas yang belum lengkap **dan** bernilai tidak nol pada kolom berjalan atau pembanding, urut kode |
+
+`FinancialStatementClassificationGapResponse`: `AccountId` (`Guid`), `AccountCode` (`string`),
+`AccountName` (`string`), `AccountType` (`AccountType`), `GapKind` (`ClassificationGapKind`). Tanpa
+nominal.
+
+### Arti kode status
+
+| Kode | Kapan | Contoh pesan |
+|---|---|---|
+| `200` | Berhasil | "Akun berhasil diperbarui." (lama) |
+| `201` | Akun ditambahkan | "Akun berhasil ditambahkan dengan kode 1-1005." |
+| `400` | Jenis kosong untuk akun tingkat 1 atau di luar 1–5; klasifikasi pada jenis yang tidak berlaku; sub-klasifikasi pada akun yang tidak Lancar; `UnclassifiedOnly` tanpa badan hukum; ditambah aturan lama | "Sub-klasifikasi aset lancar hanya untuk akun berklasifikasi Lancar." |
+| `401` | Belum masuk | — |
+| `403` | Tanpa `ChartOfAccount : Create` (pratinjau, tambah) atau `ChartOfAccount : Update` (ubah, klasifikasi) | — |
+| `404` | Akun tidak ditemukan (lama) | "Akun tidak ditemukan." |
+| `409` | Jenis berbeda dari induk; akar jenis itu sudah ada; nomor penuh; kode hasil > 20 karakter; kode baru saja dipakai penyimpanan lain; perubahan mematahkan sub-klasifikasi turunan; ditambah aturan lama | "Jenis akun harus sama dengan akun induk 1-1000 (Aset)." |
+
+Daftar lengkap aturan dan bunyinya: `contracts/validation-matrix.md` bagian 7 (`ACC-VALIDATION-0.13`).
+
+
+---
+
+## `ACC-API-0.19` — rasio keuangan (ACC-FIN-008-04)
+
+| Field | Nilai |
+|---|---|
+| Versi | `ACC-API-0.19` — status **`approved`** (`GATE-DESAIN-1126`) |
+| Owner | Rizki |
+| `approved_by` / `approved_at` | Rizki, 26 November 2026 |
+| `input_revision` | `00-interview-decisions.md@21` (pass 26 November 2026), `02-backend-architecture.md` bagian 27 |
+| `input_hash` | Tidak dihitung — mengikuti kebiasaan amendment sebelumnya; acuan source `rizkiG` `26229ec7` + `BE-ACC-FIN-001-03` |
+| Traceability | `ACC-DEC-161`, `167`, `169`, `174`..`184`; PRD `ACC-FIN-PRD-001` ACC-FIN-008; `04-prd-to-mvp.md` bagian 32 |
+| Dampak kompatibilitas | **Tidak mematahkan.** Dua endpoint baru; tidak ada endpoint lama yang berubah |
+
+### `[Tags("Corporate / Accounting / General Ledger")]` — rasio keuangan
+
+Base URL: `api/v1/corporate/accounting/general-ledger` — controller buku besar yang ada (`ACC-DEC-183`).
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|---|
+| `GET` | `/financial-ratios` | **Baru** — Rencana (belum tersedia) | Delapan rasio keuangan per akhir periode beserta pembanding akhir tahun buku lalu | `GeneralLedger : Read` | `FinancialRatioQuery` | `ApiResponse<FinancialRatioResponse>` |
+| `GET` | `/financial-ratios/export` | **Baru** — Rencana (belum tersedia) | Unduh CSV rasio keuangan | `GeneralLedger : Read` | `FinancialRatioQuery` | Berkas `text/csv`, nama `rasio-keuangan_{periode}.csv` |
+
+### Request
+
+**`FinancialRatioQuery`**
+
+| Field | Tipe | Wajib | Bawaan | Validasi |
+|---|---|:---:|---|---|
+| `LegalEntityId` | `Guid` | Ya | — | Penjaga badan hukum yang ada |
+| `PeriodCode` | `string`, maks 7 | Ya | — | Bentuk `YYYY-MM` → `400`; tidak ditemukan → `404` (`VAL-GL-04`, `05`) |
+
+Parameter lain (`CostCenterId`, `IncludeZeroAccounts`) yang terkirim diabaikan.
+
+### Response
+
+**`FinancialRatioResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `LegalEntityId`, `PeriodCode`, `PeriodName`, `FiscalYear` | — | Periode terpilih |
+| `AsOfDate` | `DateTime` | Akhir periode terpilih |
+| `YearToDateStartDate` | `DateTime` | Awal tahun buku periode itu |
+| `ComparisonAvailable` | `bool` | `false` bila tahun buku lalu tidak ada |
+| `ComparisonAsOfDate` | `DateTime?` | Akhir tahun buku lalu |
+| `ComparisonUnavailableReason` | `string?` | Contoh "Tahun buku 2025 belum ada di sistem." |
+| `IsBalanced`, `ComparisonIsBalanced` | `bool`, `bool?` | Status seimbang posisi neraca per kolom |
+| `ClassificationGaps` | `List<FinancialStatementClassificationGapResponse>` | Akun penyebab rasio likuiditas kolom kini tidak dapat dihitung, urut kode (bentuk sama dengan neraca) |
+| `ComparisonClassificationGaps` | `List<FinancialStatementClassificationGapResponse>` | Sama, untuk kolom pembanding; kosong bila pembanding tidak ada |
+| `Ratios` | `List<FinancialRatioRowResponse>` | Tepat delapan baris, urutan `FinancialRatioCode` |
+
+**`FinancialRatioRowResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `Code` | `int` (`FinancialRatioCode`) | 1..8 |
+| `Name` | `string` | Contoh "Current Ratio" |
+| `Formula` | `string` | Rumus dalam kata-kata, contoh "Aset Lancar ÷ Liabilitas Lancar" |
+| `Unit` | `int` (`FinancialRatioUnit`) | `1` kali, `2` persen |
+| `Current`, `Comparison` | `FinancialRatioValueResponse` | Kolom kini dan pembanding |
+
+**`FinancialRatioValueResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `Status` | `int` (`FinancialRatioStatus`) | `1` Dihitung, `2` N/A, `3` Tidak dapat dihitung, `4` Tidak sah |
+| `Value` | `decimal?` | Hasil dalam satuan tampil, dua desimal. Terisi **hanya** bila `Status = 1`. Contoh `1.25` (kali) atau `12.50` (persen) |
+| `Numerator`, `Denominator` | `decimal?` | Rupiah tanpa pembulatan. Untuk ROA/ROE, `Denominator` = rata-rata. `null` bila besaran tidak dapat disusun |
+| `DenominatorOpening`, `DenominatorClosing` | `decimal?` | Hanya ROA/ROE: posisi awal tahun dan akhir periode |
+| `Reason` | `string?` | Alasan bila `Status` ≠ 1 (bunyi di `02-backend-architecture.md` bagian 27.7) |
+| `Note` | `string?` | Contoh "Ekuitas negatif; tafsirkan dengan hati-hati." |
+
+### Contoh respons (DB dev, September 2026, dipotong)
+
+```json
+{
+  "periodCode": "2026-09",
+  "asOfDate": "2026-09-30T00:00:00",
+  "comparisonAvailable": false,
+  "comparisonUnavailableReason": "Tahun buku 2025 belum ada di sistem.",
+  "isBalanced": true,
+  "classificationGaps": [
+    { "accountCode": "1-1003", "accountName": "Kas Kecil", "accountType": 1, "gapKind": 1 }
+  ],
+  "ratios": [
+    {
+      "code": 1, "name": "Current Ratio", "formula": "Aset Lancar ÷ Liabilitas Lancar", "unit": 1,
+      "current": { "status": 3, "value": null, "numerator": null, "denominator": null,
+        "reason": "Klasifikasi laporan belum lengkap pada 4 akun bersaldo: 1-1003 Kas Kecil, 1-1004 Bank Operasional, 1-3002 Persediaan Alat Kesehatan, 1002 Kas Besar." },
+      "comparison": { "status": 3, "reason": "Tahun buku 2025 belum ada di sistem." }
+    },
+    {
+      "code": 7, "name": "Debt to Asset Ratio", "formula": "Total Liabilitas ÷ Total Aset", "unit": 2,
+      "current": { "status": 1, "value": 0.00, "numerator": 0, "denominator": 3230000 },
+      "comparison": { "status": 3, "reason": "Tahun buku 2025 belum ada di sistem." }
+    }
+  ]
+}
+```
+
+### Arti kode status
+
+| Kode | Kapan | Contoh pesan |
+|---|---|---|
+| `200` | Berhasil — termasuk bila sebagian atau seluruh rasio tidak dapat dihitung (bukan galat) | "Rasio keuangan September 2026 berhasil diambil." |
+| `400` | Bentuk periode salah; penjaga badan hukum | "Periode wajib dipilih dengan bentuk tahun-bulan, contoh 2026-11." |
+| `403` | Tanpa `GeneralLedger : Read` | Dari filter platform |
+| `404` | Periode tidak ada pada badan hukum itu | "Periode akuntansi tidak ditemukan." |
+
+### Enum baru
+
+| Enum | Nilai | Bawaan |
+|---|---|---|
+| `FinancialRatioCode` | `1` `CurrentRatio`, `2` `QuickRatio`, `3` `CashRatio`, `4` `NetProfitMargin`, `5` `ReturnOnAssets`, `6` `ReturnOnEquity`, `7` `DebtToAssetRatio`, `8` `DebtToEquityRatio` | — (hanya di respons) |
+| `FinancialRatioUnit` | `1` `Times` (kali), `2` `Percent` (persen) | — |
+| `FinancialRatioStatus` | `1` `Calculated`, `2` `NotApplicable`, `3` `Unavailable`, `4` `Invalid` | — |
+
+
+---
+
+## `ACC-API-0.20` — anggaran Accounting (ACC-FIN-013)
+
+| Field | Nilai |
+|---|---|
+| Versi | `ACC-API-0.20` — status **`draft`**, menunggu gerbang desain Rizki |
+| Owner | Rizki |
+| `approved_by` / `approved_at` | — |
+| `input_revision` | `00-interview-decisions.md@22`, `02-backend-architecture.md` bagian 28 |
+| `input_hash` | Tidak dihitung — mengikuti kebiasaan amendment sebelumnya |
+| Traceability | `ACC-DEC-159`, `185`..`199`; PRD `ACC-FIN-PRD-001` ACC-FIN-013; `04-prd-to-mvp.md` bagian 33 |
+| Dampak kompatibilitas | **Tidak mematahkan.** Controller, endpoint, dan tabel baru seluruhnya; tidak ada endpoint lama yang berubah |
+
+### `[Tags("Corporate / Accounting / Budget")]`
+
+Base URL: `api/v1/corporate/accounting/budgets`. Controller `BudgetController`,
+`[AccessController(moduleCode: "ACCOUNTING_BUDGET", moduleName: "Accounting Budget", displayName: "Budget", ControllerName = "Budget")]`.
+
+| Method | Path | Status | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | **Baru** — Rencana (belum tersedia) | Daftar versi anggaran | `Budget : Read` | `BudgetPagedQuery` | `ApiResponse<PagedResult<BudgetListResponse>>` |
+| `GET` | `/{id}` | **Baru** — Rencana (belum tersedia) | Rincian versi | `Budget : Read` | — | `ApiResponse<BudgetDetailResponse>` |
+| `POST` | `/` | **Baru** — Rencana (belum tersedia) | Buat versi 1 | `Budget : Create` | `CreateBudgetRequest` | `ApiResponse<BudgetDetailResponse>` — `201` |
+| `POST` | `/{id}/revise` | **Baru** — Rencana (belum tersedia) | Buat versi N+1 dari versi Disetujui | `Budget : Create` | — | `ApiResponse<BudgetDetailResponse>` — `201` |
+| `PUT` | `/{id}` | **Baru** — Rencana (belum tersedia) | Ubah keterangan | `Budget : Update` | `UpdateBudgetHeaderRequest` | `ApiResponse<BudgetDetailResponse>` |
+| `PUT` | `/{id}/lines` | **Baru** — Rencana (belum tersedia) | Ganti seluruh baris | `Budget : Update` | `ReplaceBudgetLinesRequest` | `ApiResponse<BudgetDetailResponse>` |
+| `POST` | `/{id}/lines/import` | **Baru** — Rencana (belum tersedia) | Unggah CSV, ganti seluruh baris | `Budget : Update` | `multipart/form-data` `file` | `ApiResponse<BudgetImportResultResponse>`; galat `400` membawa daftar `BudgetImportErrorResponse` |
+| `GET` | `/{id}/lines/export` | **Baru** — Rencana (belum tersedia) | Unduh CSV baris / templat | `Budget : Read` | — | `text/csv` `anggaran_{tahun}_v{versi}.csv` |
+| `POST` | `/{id}/submit` | **Baru** — Rencana (belum tersedia) | Ajukan | `Budget : Update` | — | `ApiResponse<BudgetDetailResponse>` |
+| `POST` | `/{id}/withdraw` | **Baru** — Rencana (belum tersedia) | Tarik pengajuan | `Budget : Update` | — | `ApiResponse<BudgetDetailResponse>` |
+| `POST` | `/{id}/approve` | **Baru** — Rencana (belum tersedia) | Setujui | `Budget : Approve` | — | `ApiResponse<BudgetDetailResponse>` |
+| `POST` | `/{id}/reject` | **Baru** — Rencana (belum tersedia) | Tolak | `Budget : Approve` | `RejectBudgetRequest` | `ApiResponse<BudgetDetailResponse>` |
+| `DELETE` | `/{id}` | **Baru** — Rencana (belum tersedia) | Hapus lunak Draft/Ditolak | `Budget : Delete` | — | `ApiResponse<object>` |
+
+### Request
+
+**`BudgetPagedQuery`**: `LegalEntityId` (`Guid`, wajib), `FiscalYear` (`int?`), `Status` (`BudgetStatus?`),
+`PageNumber` (bawaan 1), `PageSize` (bawaan 25, 1–100). Urutan: tahun turun, versi turun.
+
+**`CreateBudgetRequest`**
+
+| Field | Tipe | Wajib | Validasi |
+|---|---|:---:|---|
+| `LegalEntityId` | `Guid` | Ya | Penjaga badan hukum |
+| `FiscalYear` | `int` | Ya | Tahun buku dengan dua belas periode → selain itu `422` |
+| `Description` | `string?`, maks 500 | Tidak | — |
+
+**`UpdateBudgetHeaderRequest`**: `Description` (`string?`, maks 500).
+
+**`ReplaceBudgetLinesRequest`**: `Lines` (`List<BudgetLineRequest>`, 0–10.000).
+
+**`BudgetLineRequest`**
+
+| Field | Tipe | Wajib | Validasi |
+|---|---|:---:|---|
+| `AccountId` | `Guid` | Ya | `VAL-BGT-05` |
+| `CostCenterId` | `Guid?` | Wajib untuk akun Beban | `VAL-BGT-06` |
+| `Amounts` | `decimal[12]` | Ya | Tepat dua belas nilai Januari..Desember; `VAL-BGT-07` |
+
+**`RejectBudgetRequest`**: `Reason` (`string`, 1–500, wajib).
+
+### Response
+
+**`BudgetListResponse`**: `Id`, `LegalEntityId`, `FiscalYear`, `VersionNo`, `BudgetStatus`, `Description`,
+`TotalRevenue`, `TotalExpense`, `LineCount`, `SubmittedByName`, `SubmittedAt`, `ApprovedByName`, `ApprovedAt`.
+
+**`BudgetDetailResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| Field `BudgetListResponse` | — | — |
+| `SourceBudgetId`, `SourceVersionNo` | `Guid?`, `int?` | Versi asal revisi |
+| `RejectedByName`, `RejectedAt`, `RejectionReason` | — | Bila Ditolak |
+| `SupersededAt` | `DateTime?` | Bila Digantikan |
+| `LockedMonths` | `List<int>` | Bulan (1–12) yang periodenya bukan Terbuka — hanya bermakna pada versi revisi |
+| `MonthTotals` | `List<BudgetMonthTotalResponse>` | Dua belas butir: `Month`, `Revenue`, `Expense`, `Difference` |
+| `Lines` | `List<BudgetLineResponse>` | `Id`, `AccountId`, `AccountCode`, `AccountName`, `AccountType`, `CostCenterId`, `CostCenterCode`, `CostCenterName`, `Amounts` (12), `Total` |
+| `Approvals` | `List<BudgetApprovalResponse>` | `ApprovalAction`, `ActionByName`, `ActionAt`, `Reason` |
+| `AvailableActions` | `List<string>` | Pola rincian jurnal: `update`, `lines`, `submit`, `withdraw`, `approve`, `reject`, `revise`, `delete`, `export` — menurut status dan pelaku; hak akses tetap dijaga atribut |
+
+**`BudgetImportResultResponse`**: `LineCount`, `Detail` (`BudgetDetailResponse`).
+**`BudgetImportErrorResponse`**: `RowNumber`, `Column`, `Message`.
+
+### Arti kode status
+
+| Kode | Kapan | Contoh pesan |
+|---|---|---|
+| `200` / `201` | Berhasil | "Anggaran 2027 versi 1 dibuat." |
+| `400` | Isian tidak sah; baris/CSV tidak sah; alasan tolak kosong | "Baris 12: akun 1-1003 bukan akun Pendapatan atau Beban." |
+| `403` | Tanpa hak; menyetujui/menolak versi sendiri; menarik versi yang diajukan orang lain | "Anggaran tidak dapat disetujui oleh pengajunya sendiri." |
+| `404` | Versi tidak ada | "Anggaran tidak ditemukan." |
+| `409` | Status tidak sah untuk aksi; versi tahun itu sudah ada; masih ada versi dalam proses | "Anggaran 2027 sudah punya versi. Buka versi yang ada atau buat revisi dari versi yang disetujui." |
+| `422` | Tahun buku belum dibangkitkan; tanpa baris saat diajukan; bulan terkunci berubah | "Nilai bulan Maret 2027 tidak boleh berubah karena periodenya sudah tidak Terbuka: 5-1001 IGD, …" |
+
+### Enum baru
+
+| Enum | Nilai | Bawaan |
+|---|---|---|
+| `BudgetStatus` | `1` `Draft`, `2` `Submitted` (Diajukan), `3` `Approved` (Disetujui), `4` `Rejected` (Ditolak), `5` `Superseded` (Digantikan) | `Draft` |
+| `BudgetApprovalAction` | `1` `Submitted`, `2` `Withdrawn`, `3` `Approved`, `4` `Rejected` | — |

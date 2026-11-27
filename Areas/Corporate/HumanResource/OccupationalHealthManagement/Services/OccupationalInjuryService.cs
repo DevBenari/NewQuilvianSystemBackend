@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Models;
+using QuilvianSystemBackend.Services.Features;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services
 {
@@ -15,10 +16,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
     public class OccupationalInjuryService : IOccupationalInjuryService
     {
         private readonly IOccupationalHealthUnitOfWork _uow;
+        private readonly IBpjsFeatureGate _bpjsGate;
 
-        public OccupationalInjuryService(IOccupationalHealthUnitOfWork uow)
+        public OccupationalInjuryService(IOccupationalHealthUnitOfWork uow, IBpjsFeatureGate bpjsGate)
         {
             _uow = uow ?? throw new ArgumentNullException(nameof(uow));
+            _bpjsGate = bpjsGate ?? throw new ArgumentNullException(nameof(bpjsGate));
         }
 
         public async Task<EmployeeInjuryResponseDto> ReportInjuryAsync(ReportEmployeeInjuryRequestDto request, Guid reportedByUserId, CancellationToken cancellationToken = default)
@@ -35,7 +38,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
             }
 
             var injuryNumber = $"KAK-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}";
-            var bpjsDeadline = request.Timestamp.AddHours(48); // Batas regulasi 2x24 jam (VR-OHS-18, INT-HR-90)
+            // Pencatatan KAK/PAK dan investigasi tetap berjalan. Nomor klaim, batas waktu pelaporan, dan status pelaporan BPJS JKK
+            // (regulasi 2x24 jam, VR-OHS-18, INT-HR-90) hanya dibuat saat fitur BPJS aktif; saat nonaktif tidak ada nomor klaim atau
+            // tenggat BPJS yang dibangkitkan.
+            var bpjsEnabled = _bpjsGate.IsEnabled;
+            var bpjsDeadline = request.Timestamp.AddHours(48);
             var reportedWithin48h = DateTime.UtcNow <= bpjsDeadline;
 
             var clinicalDetails = $"RCA: {request.RootCauseAnalysis}. CAPA: {request.CapaRecommendation}. Tim Investigator: {string.Join(", ", request.InvestigatorNames)}";
@@ -56,8 +63,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 IsLostTimeInjury = request.IsLostTimeInjury,
                 LostWorkDays = request.EstimatedLostWorkDays,
                 IsReportableIncident = true,
-                InsuranceClaimNumber = $"BPJS-JKK-T1-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}",
-                WorkCompensationClaimNumber = $"JKK-{DateTime.UtcNow:yyyyMM}",
+                InsuranceClaimNumber = bpjsEnabled
+                    ? $"BPJS-JKK-T1-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}"
+                    : null,
+                WorkCompensationClaimNumber = bpjsEnabled ? $"JKK-{DateTime.UtcNow:yyyyMM}" : null,
                 InjuryStatus = "Reported",
                 IsActive = true,
                 CreateBy = reportedByUserId,
@@ -82,13 +91,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 IsLostTimeInjury = injury.IsLostTimeInjury,
                 LostWorkDays = injury.LostWorkDays,
                 BpjsStage1ClaimNumber = injury.InsuranceClaimNumber,
-                BpjsStage1ReportDeadline = bpjsDeadline,
-                BpjsReportedWithin48Hours = reportedWithin48h
+                BpjsStage1ReportDeadline = bpjsEnabled ? bpjsDeadline : null,
+                BpjsReportedWithin48Hours = bpjsEnabled ? reportedWithin48h : null
             };
         }
 
         public async Task<BpjsJkkClaimFormDto> GenerateBpjsFormAsync(Guid injuryId, int stage, CancellationToken cancellationToken = default)
         {
+            // Pertahanan berlapis (controller sudah menolak 409): tidak ada formulir BPJS JKK yang dibuat saat fitur BPJS nonaktif.
+            _bpjsGate.EnsureEnabled();
+
             var injury = await _uow.EmployeeInjuries
                 .FirstOrDefaultAsync(x => x.Id == injuryId, cancellationToken);
             if (injury == null)

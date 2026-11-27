@@ -9,6 +9,37 @@ using QuilvianSystemBackend.Responses;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services
 {
+    public static class InitialPlacementDiagnosticCodes
+    {
+        // Kategori Kelayakan (Diagnostic Categories)
+        public const string SiapDiproses = "SIAP_DIPROSES";
+        public const string DilewatiSudahDitempatkan = "DILEWATI_SUDAH_DITEMPATKAN";
+        public const string PerluPerbaikan = "PERLU_PERBAIKAN";
+        public const string PerluRekonsiliasi = "PERLU_REKONSILIASI";
+
+        // Kode Alasan (Reason Codes)
+        public const string EligibleInitialPlacement = "ELIGIBLE_INITIAL_PLACEMENT";
+        public const string AlreadyHasActivePrimaryPosition = "ALREADY_HAS_ACTIVE_PRIMARY_POSITION";
+        public const string AlreadyInApprovedInitialBatch = "ALREADY_IN_APPROVED_INITIAL_BATCH";
+        public const string PositionNotAssigned = "POSITION_NOT_ASSIGNED";
+        public const string PositionDepartmentMismatch = "POSITION_DEPARTMENT_MISMATCH";
+        public const string OrganizationUnitDepartmentMismatch = "ORGANIZATION_UNIT_DEPARTMENT_MISMATCH";
+        public const string EmployeeInactiveOrMissing = "EMPLOYEE_INACTIVE_OR_MISSING";
+        public const string ManagerInvalidOrSelf = "MANAGER_INVALID_OR_SELF";
+        public const string EffectiveDateUnverified = "EFFECTIVE_DATE_UNVERIFIED";
+        public const string DuplicateInSelectionOrConcurrentChange = "DUPLICATE_IN_SELECTION_OR_CONCURRENT_CHANGE";
+
+        // Kunci Entitas Tujuan Navigasi Aman
+        public const string MasterPosition = "MASTER_POSITION";
+        public const string MasterDepartment = "MASTER_DEPARTMENT";
+        public const string MasterOrganizationUnit = "MASTER_ORGANIZATION_UNIT";
+        public const string OrganizationAssignment = "ORGANIZATION_ASSIGNMENT";
+        public const string EmployeeProfile = "EMPLOYEE_PROFILE";
+        public const string PositionAssignment = "POSITION_ASSIGNMENT";
+        public const string EmployeeManager = "EMPLOYEE_MANAGER";
+        public const string PersonnelActionOrder = "PERSONNEL_ACTION_ORDER";
+    }
+
     public class HrdInitialPlacementBatchService : IHrdInitialPlacementBatchService
     {
         private readonly ApplicationDbContext _dbContext;
@@ -16,6 +47,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
         public HrdInitialPlacementBatchService(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
+        }
+
+        /// <summary>
+        /// Nomor batch Approved/Executed per pegawai (HRD-DEC-054). Satu pegawai dapat tercatat pada lebih dari satu
+        /// baris batch tersebut (index unik baris hanya per BatchId + WorkforceProfileId), sehingga baris dikelompokkan
+        /// per pegawai dan diambil batch paling awal; ToDictionaryAsync langsung gagal karena kunci ganda (BE-HRD-FIX-005).
+        /// </summary>
+        private async Task<Dictionary<Guid, string>> GetApprovedBatchNumberByProfileAsync(List<Guid> profileIds, CancellationToken ct)
+        {
+            var batchRows = await _dbContext.HrdInitialPlacementBatchRows
+                .AsNoTracking()
+                .Where(r => profileIds.Contains(r.WorkforceProfileId) &&
+                            (r.Batch!.BatchStatus == "Approved" || r.Batch.BatchStatus == "Executed") &&
+                            !r.Batch.IsDelete)
+                .Select(r => new { r.WorkforceProfileId, r.Batch!.BatchNumber, BatchCreateDateTime = r.Batch.CreateDateTime })
+                .ToListAsync(ct);
+
+            return batchRows
+                .GroupBy(r => r.WorkforceProfileId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderBy(r => r.BatchCreateDateTime).ThenBy(r => r.BatchNumber).First().BatchNumber);
         }
 
         public async Task<List<InitialBatchRowResponse>> GetTemplateRowsAsync(CancellationToken ct = default)
@@ -36,18 +89,39 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 .OrderBy(x => x.WorkforceProfile != null ? x.WorkforceProfile.ProfileCode : string.Empty)
                 .ToListAsync(ct);
 
+            var profileIds = orgAssignments.Select(x => x.WorkforceProfileId).Distinct().ToList();
+
+            // Bulk fetch active primary position assignments (eliminates N+1)
+            var activePositions = await _dbContext.WfpPositionAssignments
+                .AsNoTracking()
+                .Where(x => profileIds.Contains(x.WorkforceProfileId) &&
+                            x.IsPrimary && x.IsActive && !x.IsDelete &&
+                            (x.EffectiveEndDate == null || x.EffectiveEndDate >= today))
+                .ToDictionaryAsync(x => x.WorkforceProfileId, ct);
+
+            // Bulk fetch check if already in an approved/executed initial batch (HRD-DEC-054)
+            var approvedBatchRows = await GetApprovedBatchNumberByProfileAsync(profileIds, ct);
+
+            // Collect position IDs for validation & department checking
+            var positionIds = orgAssignments
+                .Select(x => x.PositionId != Guid.Empty ? x.PositionId : (x.WorkforceProfile?.PrimaryPositionId ?? Guid.Empty))
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            var masterPositions = await _dbContext.MstPositions
+                .Include(p => p.Department)
+                .AsNoTracking()
+                .Where(p => positionIds.Contains(p.Id) && !p.IsDelete && p.IsActive)
+                .ToDictionaryAsync(p => p.Id, ct);
+
             var result = new List<InitialBatchRowResponse>();
 
             foreach (var org in orgAssignments)
             {
                 if (org.WorkforceProfile == null) continue;
 
-                // Check if already has an active primary position assignment
-                var hasPosition = await _dbContext.WfpPositionAssignments
-                    .AsNoTracking()
-                    .AnyAsync(x => x.WorkforceProfileId == org.WorkforceProfileId &&
-                                   x.IsPrimary && x.IsActive && !x.IsDelete &&
-                                   (x.EffectiveEndDate == null || x.EffectiveEndDate >= today), ct);
+                var profile = org.WorkforceProfile;
 
                 // Resolve prefilled position if available from org assignment or profile
                 Guid? positionId = null;
@@ -58,24 +132,89 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     positionId = org.PositionId;
                     positionName = org.Position?.PositionName;
                 }
-                else if (org.WorkforceProfile.PrimaryPositionId.HasValue && org.WorkforceProfile.PrimaryPositionId.Value != Guid.Empty)
+                else if (profile.PrimaryPositionId.HasValue && profile.PrimaryPositionId.Value != Guid.Empty)
                 {
-                    positionId = org.WorkforceProfile.PrimaryPositionId.Value;
-                    positionName = org.WorkforceProfile.PrimaryPosition?.PositionName;
+                    positionId = profile.PrimaryPositionId.Value;
+                    positionName = profile.PrimaryPosition?.PositionName;
                 }
 
+                // Unified evaluation conforming to diagnostic categories & rules
                 bool isValid = true;
                 string? validationMessage = null;
+                string eligibilityStatus = InitialPlacementDiagnosticCodes.SiapDiproses;
+                string reasonCode = InitialPlacementDiagnosticCodes.EligibleInitialPlacement;
+                string? targetResourceKey = null;
+                Guid? targetRecordId = null;
 
-                if (hasPosition)
+                if (approvedBatchRows.TryGetValue(org.WorkforceProfileId, out var existingBatchNo))
                 {
                     isValid = false;
+                    eligibilityStatus = InitialPlacementDiagnosticCodes.DilewatiSudahDitempatkan;
+                    reasonCode = InitialPlacementDiagnosticCodes.AlreadyInApprovedInitialBatch;
+                    validationMessage = $"Pegawai sudah tercatat dalam batch '{existingBatchNo}' yang telah disetujui atau dieksekusi sebelumnya.";
+                    targetResourceKey = InitialPlacementDiagnosticCodes.PositionAssignment;
+                }
+                else if (activePositions.TryGetValue(org.WorkforceProfileId, out var activePos))
+                {
+                    isValid = false;
+                    eligibilityStatus = InitialPlacementDiagnosticCodes.DilewatiSudahDitempatkan;
+                    reasonCode = InitialPlacementDiagnosticCodes.AlreadyHasActivePrimaryPosition;
                     validationMessage = "Sudah memiliki jabatan aktif. Tidak dapat diproses melalui batch inisialisasi awal.";
+                    targetResourceKey = InitialPlacementDiagnosticCodes.PositionAssignment;
+                    targetRecordId = activePos.Id;
+                }
+                else if (!profile.IsActive)
+                {
+                    isValid = false;
+                    eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                    reasonCode = InitialPlacementDiagnosticCodes.EmployeeInactiveOrMissing;
+                    validationMessage = $"Pegawai {profile.DisplayName} dalam status non-aktif.";
+                    targetResourceKey = InitialPlacementDiagnosticCodes.EmployeeProfile;
+                    targetRecordId = profile.Id;
                 }
                 else if (!positionId.HasValue || positionId.Value == Guid.Empty)
                 {
                     isValid = false;
+                    eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                    reasonCode = InitialPlacementDiagnosticCodes.PositionNotAssigned;
                     validationMessage = "Jabatan belum ditentukan pada data baseline organisasi.";
+                    targetResourceKey = InitialPlacementDiagnosticCodes.MasterPosition;
+                }
+                else if (!masterPositions.TryGetValue(positionId.Value, out var positionRecord))
+                {
+                    isValid = false;
+                    eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                    reasonCode = InitialPlacementDiagnosticCodes.PositionNotAssigned;
+                    validationMessage = $"Jabatan dengan ID {positionId.Value} tidak ditemukan atau tidak aktif.";
+                    targetResourceKey = InitialPlacementDiagnosticCodes.MasterPosition;
+                    targetRecordId = positionId.Value;
+                }
+                else if (org.DepartmentId != Guid.Empty && positionRecord.DepartmentId != Guid.Empty && positionRecord.DepartmentId != org.DepartmentId)
+                {
+                    isValid = false;
+                    eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                    reasonCode = InitialPlacementDiagnosticCodes.PositionDepartmentMismatch;
+                    validationMessage = $"Jabatan '{positionRecord.PositionName}' tidak sesuai dengan departemen '{org.Department?.DepartmentName}'.";
+                    targetResourceKey = InitialPlacementDiagnosticCodes.MasterPosition;
+                    targetRecordId = positionRecord.Id;
+                }
+                else if (org.OrganizationUnitId != Guid.Empty && org.OrganizationUnit?.DepartmentId.HasValue == true &&
+                         org.OrganizationUnit.DepartmentId.Value != Guid.Empty &&
+                         org.DepartmentId != Guid.Empty && org.OrganizationUnit.DepartmentId.Value != org.DepartmentId)
+                {
+                    isValid = false;
+                    eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                    reasonCode = InitialPlacementDiagnosticCodes.OrganizationUnitDepartmentMismatch;
+                    validationMessage = "Departemen tidak selaras dengan unit organisasi yang dipilih.";
+                    targetResourceKey = InitialPlacementDiagnosticCodes.MasterOrganizationUnit;
+                    targetRecordId = org.OrganizationUnitId;
+                }
+                else
+                {
+                    isValid = true;
+                    eligibilityStatus = InitialPlacementDiagnosticCodes.SiapDiproses;
+                    reasonCode = InitialPlacementDiagnosticCodes.EligibleInitialPlacement;
+                    validationMessage = null;
                 }
 
                 // Default suggested effective date: join date or today
@@ -85,8 +224,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 {
                     Id = Guid.NewGuid(),
                     WorkforceProfileId = org.WorkforceProfileId,
-                    ProfileCode = org.WorkforceProfile.ProfileCode,
-                    EmployeeName = org.WorkforceProfile.DisplayName,
+                    ProfileCode = profile.ProfileCode,
+                    EmployeeName = profile.DisplayName,
                     OrganizationUnitId = org.OrganizationUnitId,
                     OrganizationUnitName = org.OrganizationUnit?.UnitName,
                     DepartmentId = org.DepartmentId,
@@ -98,7 +237,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     BaseSalary = null,
                     EffectiveStartDate = effectiveDate,
                     IsValid = isValid,
-                    ValidationMessage = validationMessage
+                    ValidationMessage = validationMessage,
+                    EligibilityStatus = eligibilityStatus,
+                    ReasonCode = reasonCode,
+                    ReasonMessage = validationMessage ?? "Kandidat memenuhi syarat integritas penempatan awal.",
+                    TargetResourceKey = targetResourceKey,
+                    TargetRecordId = targetRecordId
                 });
             }
 
@@ -165,15 +309,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 .ToDictionaryAsync(x => x.Id, ct);
 
             // Check existing active primary position assignments (prevent illegal overwrite)
-            var existingPositionProfileIds = await _dbContext.WfpPositionAssignments
+            var existingPositions = await _dbContext.WfpPositionAssignments
                 .AsNoTracking()
                 .Where(x => profileIds.Contains(x.WorkforceProfileId) &&
                             x.IsPrimary && x.IsActive && !x.IsDelete &&
                             (x.EffectiveEndDate == null || x.EffectiveEndDate >= today))
-                .Select(x => x.WorkforceProfileId)
-                .Distinct()
-                .ToListAsync(ct);
-            var existingPositionSet = existingPositionProfileIds.ToHashSet();
+                .ToDictionaryAsync(x => x.WorkforceProfileId, ct);
+
+            // Check approved/executed initial placement batch rows (AUD-HRD07-15 / HRD-DEC-054)
+            var approvedBatchRows = await GetApprovedBatchNumberByProfileAsync(profileIds, ct);
 
             for (int i = 0; i < rows.Count; i++)
             {
@@ -181,55 +325,119 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 var rowNum = i + 1;
                 var rowErrors = new List<string>();
 
+                string eligibilityStatus = InitialPlacementDiagnosticCodes.SiapDiproses;
+                string reasonCode = InitialPlacementDiagnosticCodes.EligibleInitialPlacement;
+                string? targetResourceKey = null;
+                Guid? targetRecordId = null;
+
                 // 1. Duplicate check in batch
                 if (profileGroupCounts.TryGetValue(row.WorkforceProfileId, out var count) && count > 1)
                 {
                     rowErrors.Add("Pegawai tercantum lebih dari satu kali dalam batch yang sama.");
+                    eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                    reasonCode = InitialPlacementDiagnosticCodes.DuplicateInSelectionOrConcurrentChange;
+                    targetResourceKey = InitialPlacementDiagnosticCodes.EmployeeProfile;
+                    targetRecordId = row.WorkforceProfileId;
                 }
 
                 // 2. Profile existence & active check
                 if (!activeProfiles.TryGetValue(row.WorkforceProfileId, out var profile))
                 {
                     rowErrors.Add($"Pegawai dengan ID {row.WorkforceProfileId} tidak ditemukan atau sudah dihapus.");
+                    eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                    reasonCode = InitialPlacementDiagnosticCodes.EmployeeInactiveOrMissing;
+                    targetResourceKey = InitialPlacementDiagnosticCodes.EmployeeProfile;
+                    targetRecordId = row.WorkforceProfileId;
                 }
                 else if (!profile.IsActive)
                 {
                     rowErrors.Add($"Pegawai {profile.DisplayName} dalam status non-aktif.");
+                    eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                    reasonCode = InitialPlacementDiagnosticCodes.EmployeeInactiveOrMissing;
+                    targetResourceKey = InitialPlacementDiagnosticCodes.EmployeeProfile;
+                    targetRecordId = profile.Id;
                 }
 
-                // 3. Conflict with existing placement check
-                if (existingPositionSet.Contains(row.WorkforceProfileId))
+                // 3. Already in approved/executed batch
+                if (approvedBatchRows.TryGetValue(row.WorkforceProfileId, out var existingBatchNo))
+                {
+                    rowErrors.Add($"Pegawai sudah tercatat dalam batch '{existingBatchNo}' yang telah disetujui atau dieksekusi sebelumnya (HRD-DEC-054).");
+                    eligibilityStatus = InitialPlacementDiagnosticCodes.DilewatiSudahDitempatkan;
+                    reasonCode = InitialPlacementDiagnosticCodes.AlreadyInApprovedInitialBatch;
+                    targetResourceKey = InitialPlacementDiagnosticCodes.PositionAssignment;
+                }
+
+                // 4. Conflict with existing placement check
+                if (existingPositions.TryGetValue(row.WorkforceProfileId, out var existingPos))
                 {
                     rowErrors.Add("Pegawai sudah memiliki penempatan jabatan primer aktif di sistem.");
+                    eligibilityStatus = InitialPlacementDiagnosticCodes.DilewatiSudahDitempatkan;
+                    reasonCode = InitialPlacementDiagnosticCodes.AlreadyHasActivePrimaryPosition;
+                    targetResourceKey = InitialPlacementDiagnosticCodes.PositionAssignment;
+                    targetRecordId = existingPos.Id;
                 }
 
-                // 4. Position validation & department consistency
+                // 5. Position validation & department consistency
                 if (row.PositionId == Guid.Empty)
                 {
                     rowErrors.Add("Jabatan wajib dipilih.");
+                    if (eligibilityStatus == InitialPlacementDiagnosticCodes.SiapDiproses)
+                    {
+                        eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                        reasonCode = InitialPlacementDiagnosticCodes.PositionNotAssigned;
+                        targetResourceKey = InitialPlacementDiagnosticCodes.MasterPosition;
+                    }
                 }
                 else if (!activePositions.TryGetValue(row.PositionId, out var position))
                 {
                     rowErrors.Add($"Jabatan dengan ID {row.PositionId} tidak ditemukan atau tidak aktif.");
+                    if (eligibilityStatus == InitialPlacementDiagnosticCodes.SiapDiproses)
+                    {
+                        eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                        reasonCode = InitialPlacementDiagnosticCodes.PositionNotAssigned;
+                        targetResourceKey = InitialPlacementDiagnosticCodes.MasterPosition;
+                        targetRecordId = row.PositionId;
+                    }
                 }
                 else
                 {
                     if (row.DepartmentId != Guid.Empty && position.DepartmentId != Guid.Empty && position.DepartmentId != row.DepartmentId)
                     {
                         rowErrors.Add($"Jabatan '{position.PositionName}' tidak sesuai dengan departemen yang dipilih.");
+                        if (eligibilityStatus == InitialPlacementDiagnosticCodes.SiapDiproses)
+                        {
+                            eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                            reasonCode = InitialPlacementDiagnosticCodes.PositionDepartmentMismatch;
+                            targetResourceKey = InitialPlacementDiagnosticCodes.MasterPosition;
+                            targetRecordId = position.Id;
+                        }
                     }
                 }
 
-                // 5. Department validation
+                // 6. Department validation
                 if (row.DepartmentId != Guid.Empty && !activeDepartments.ContainsKey(row.DepartmentId))
                 {
                     rowErrors.Add($"Departemen dengan ID {row.DepartmentId} tidak ditemukan atau tidak aktif.");
+                    if (eligibilityStatus == InitialPlacementDiagnosticCodes.SiapDiproses)
+                    {
+                        eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                        reasonCode = InitialPlacementDiagnosticCodes.PositionDepartmentMismatch;
+                        targetResourceKey = InitialPlacementDiagnosticCodes.MasterDepartment;
+                        targetRecordId = row.DepartmentId;
+                    }
                 }
 
-                // 6. Organization unit validation
+                // 7. Organization unit validation
                 if (row.OrganizationUnitId != Guid.Empty && !activeOrgUnits.ContainsKey(row.OrganizationUnitId))
                 {
                     rowErrors.Add($"Unit organisasi dengan ID {row.OrganizationUnitId} tidak ditemukan atau tidak aktif.");
+                    if (eligibilityStatus == InitialPlacementDiagnosticCodes.SiapDiproses)
+                    {
+                        eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                        reasonCode = InitialPlacementDiagnosticCodes.OrganizationUnitDepartmentMismatch;
+                        targetResourceKey = InitialPlacementDiagnosticCodes.MasterOrganizationUnit;
+                        targetRecordId = row.OrganizationUnitId;
+                    }
                 }
                 else if (row.OrganizationUnitId != Guid.Empty &&
                          activeOrgUnits.TryGetValue(row.OrganizationUnitId, out var orgUnit) &&
@@ -237,28 +445,54 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                          row.DepartmentId != Guid.Empty && orgUnit.DepartmentId.Value != row.DepartmentId)
                 {
                     rowErrors.Add("Departemen tidak selaras dengan unit organisasi yang dipilih.");
+                    if (eligibilityStatus == InitialPlacementDiagnosticCodes.SiapDiproses)
+                    {
+                        eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                        reasonCode = InitialPlacementDiagnosticCodes.OrganizationUnitDepartmentMismatch;
+                        targetResourceKey = InitialPlacementDiagnosticCodes.MasterOrganizationUnit;
+                        targetRecordId = row.OrganizationUnitId;
+                    }
                 }
 
-                // 7. Manager validation
+                // 8. Manager validation
                 if (row.ManagerWorkforceProfileId.HasValue && row.ManagerWorkforceProfileId.Value != Guid.Empty)
                 {
                     if (row.ManagerWorkforceProfileId.Value == row.WorkforceProfileId)
                     {
                         rowErrors.Add("Pegawai tidak dapat menjadi atasan bagi dirinya sendiri.");
+                        if (eligibilityStatus == InitialPlacementDiagnosticCodes.SiapDiproses)
+                        {
+                            eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                            reasonCode = InitialPlacementDiagnosticCodes.ManagerInvalidOrSelf;
+                            targetResourceKey = InitialPlacementDiagnosticCodes.EmployeeManager;
+                        }
                     }
                     else if (!activeManagers.ContainsKey(row.ManagerWorkforceProfileId.Value))
                     {
                         rowErrors.Add($"Atasan langsung dengan ID {row.ManagerWorkforceProfileId.Value} tidak ditemukan atau tidak aktif.");
+                        if (eligibilityStatus == InitialPlacementDiagnosticCodes.SiapDiproses)
+                        {
+                            eligibilityStatus = InitialPlacementDiagnosticCodes.PerluPerbaikan;
+                            reasonCode = InitialPlacementDiagnosticCodes.ManagerInvalidOrSelf;
+                            targetResourceKey = InitialPlacementDiagnosticCodes.EmployeeManager;
+                            targetRecordId = row.ManagerWorkforceProfileId.Value;
+                        }
                     }
                 }
 
-                // 8. Effective date validation
+                // 9. Effective date validation
                 if (row.EffectiveStartDate == default)
                 {
                     rowErrors.Add("Tanggal mulai berlaku penempatan wajib diisi.");
+                    if (eligibilityStatus == InitialPlacementDiagnosticCodes.SiapDiproses)
+                    {
+                        eligibilityStatus = InitialPlacementDiagnosticCodes.PerluRekonsiliasi;
+                        reasonCode = InitialPlacementDiagnosticCodes.EffectiveDateUnverified;
+                        targetResourceKey = InitialPlacementDiagnosticCodes.PersonnelActionOrder;
+                    }
                 }
 
-                // 9. Base salary validation (if provided)
+                // 10. Base salary validation (if provided)
                 if (row.BaseSalary.HasValue && row.BaseSalary.Value < 0)
                 {
                     rowErrors.Add("Besaran gaji pokok tidak boleh bernilai negatif.");
@@ -268,6 +502,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 if (rowValid)
                 {
                     validCount++;
+                    eligibilityStatus = InitialPlacementDiagnosticCodes.SiapDiproses;
+                    reasonCode = InitialPlacementDiagnosticCodes.EligibleInitialPlacement;
                 }
                 else
                 {
@@ -278,12 +514,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     }
                 }
 
+                var combinedError = rowValid ? null : string.Join("; ", rowErrors);
+
                 rowResults.Add(new RowValidationItemResponse
                 {
                     RowIndex = i,
                     WorkforceProfileId = row.WorkforceProfileId,
                     IsValid = rowValid,
-                    ErrorMessage = rowValid ? null : string.Join("; ", rowErrors)
+                    ErrorMessage = combinedError,
+                    EligibilityStatus = eligibilityStatus,
+                    ReasonCode = reasonCode,
+                    ReasonMessage = combinedError ?? "Kandidat memenuhi syarat integritas penempatan awal.",
+                    TargetResourceKey = targetResourceKey,
+                    TargetRecordId = targetRecordId
                 });
             }
 
@@ -307,6 +550,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
             var validation = await ValidateRowsAsync(request.Rows, ct);
 
+            // Proteksi ketat: Tolak pembentukan batch jika memuat kandidat invalid (AUD-HRD07-06 / HRD-DEC-054)
+            if (!validation.IsAllValid)
+            {
+                var sampleError = validation.ValidationErrors.FirstOrDefault() ?? "Kandidat terpilih tidak memenuhi syarat.";
+                throw new InvalidOperationException($"Pembuatan draft batch ditolak: Terdapat {validation.InvalidCount} baris pegawai yang tidak valid ({sampleError}). Harap pastikan hanya kandidat yang valid dan memenuhi syarat yang diajukan.");
+            }
+
+            // Guard once-per-employee across approved/executed batches (AUD-HRD07-15 / HRD-DEC-054)
+            var profileIds = request.Rows.Select(r => r.WorkforceProfileId).Distinct().ToList();
+            var conflictingEmployee = await _dbContext.HrdInitialPlacementBatchRows
+                .Include(r => r.Batch)
+                .AsNoTracking()
+                .Where(r => profileIds.Contains(r.WorkforceProfileId) &&
+                            (r.Batch.BatchStatus == "Approved" || r.Batch.BatchStatus == "Executed") &&
+                            !r.Batch.IsDelete)
+                .Select(r => new { r.WorkforceProfileId, r.Batch.BatchNumber, r.Batch.BatchStatus })
+                .FirstOrDefaultAsync(ct);
+
+            if (conflictingEmployee != null)
+            {
+                throw new InvalidOperationException($"Pembuatan draft batch ditolak: Pegawai dengan ID '{conflictingEmployee.WorkforceProfileId}' telah tercatat dalam batch '{conflictingEmployee.BatchNumber}' yang berstatus '{conflictingEmployee.BatchStatus}'. Satu pegawai dilarang berada di dua batch penempatan yang sama-sama diproses (AUD-HRD07-15 / HRD-DEC-054).");
+            }
+
             // Generate Batch Number
             var today = DateTime.UtcNow.Date;
             var prefix = $"BATCH-INIT-{today:yyyyMMdd}-";
@@ -318,10 +584,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             {
                 BatchNumber = batchNumber,
                 BatchName = string.IsNullOrWhiteSpace(request.BatchName) ? "Initial Placement Baseline Batch" : request.BatchName.Trim(),
-                BatchStatus = validation.IsAllValid ? "Validated" : "Draft",
+                BatchStatus = "Validated",
                 TotalRows = request.Rows.Count,
                 ValidatedRows = validation.ValidCount,
-                FailedRows = validation.InvalidCount,
+                FailedRows = 0,
                 SubmittedByUserId = userId,
                 SubmittedAt = DateTime.UtcNow,
                 CreateBy = userId,
@@ -444,11 +710,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     PositionName = r.Position?.PositionName,
                     ManagerWorkforceProfileId = r.ManagerWorkforceProfileId,
                     ManagerName = r.ManagerWorkforceProfile?.DisplayName,
-                    BaseSalary = r.BaseSalary,
+                    BaseSalary = null, // Confidential: disembunyikan demi kepatuhan privasi data gaji HR non-payroll (AUD-HRD07-12 / HRD-DEC-033)
                     EffectiveStartDate = r.EffectiveStartDate,
                     IsValid = r.IsValid,
                     ValidationMessage = r.ValidationMessage,
-                    ProcessedAt = r.ProcessedAt
+                    ProcessedAt = r.ProcessedAt,
+                    EligibilityStatus = r.IsValid ? InitialPlacementDiagnosticCodes.SiapDiproses : InitialPlacementDiagnosticCodes.PerluPerbaikan,
+                    ReasonCode = r.IsValid ? InitialPlacementDiagnosticCodes.EligibleInitialPlacement : InitialPlacementDiagnosticCodes.PositionDepartmentMismatch,
+                    ReasonMessage = r.ValidationMessage ?? (r.IsValid ? "Kandidat memenuhi syarat penempatan awal." : null)
                 }).ToList()
             };
         }
@@ -461,9 +730,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
             if (batch == null) return null;
 
-            if (batch.BatchStatus == "Executed")
+            if (batch.BatchStatus == "Executed" || batch.BatchStatus == "PendingApproval" || batch.BatchStatus == "Approved")
             {
-                throw new InvalidOperationException("Batch penempatan awal ini sudah dieksekusi sebelumnya dan tidak dapat divalidasi ulang.");
+                throw new InvalidOperationException($"Batch penempatan awal dalam status '{batch.BatchStatus}' tidak dapat divalidasi ulang atau diubah statusnya (AUD-HRD07-02 / HRD-DEC-054).");
             }
 
             var rowsDto = batch.Rows.Select(r => new CreateInitialBatchRowDto
@@ -500,6 +769,113 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             return await GetBatchByIdAsync(id, ct);
         }
 
+        public async Task<InitialBatchDetailResponse> SubmitBatchAsync(Guid id, Guid userId, CancellationToken ct = default)
+        {
+            var batch = await _dbContext.HrdInitialPlacementBatches
+                .Include(x => x.Rows)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, ct);
+
+            if (batch == null)
+                throw new InvalidOperationException("Batch penempatan awal tidak ditemukan.");
+
+            if (batch.BatchStatus != "Validated")
+                throw new InvalidOperationException($"Hanya batch berstatus 'Validated' yang dapat diajukan (Status saat ini: '{batch.BatchStatus}').");
+
+            if (batch.FailedRows > 0 || batch.Rows.Any(r => !r.IsValid))
+                throw new InvalidOperationException($"Batch memuat baris yang tidak valid. Semua baris harus valid sebelum pengajuan persetujuan.");
+
+            var now = DateTime.UtcNow;
+            batch.BatchStatus = "PendingApproval";
+            batch.SubmittedByUserId = userId;
+            batch.SubmittedAt = now;
+            batch.UpdateDateTime = now;
+            batch.UpdateBy = userId;
+
+            await _dbContext.SaveChangesAsync(ct);
+            return (await GetBatchByIdAsync(id, ct))!;
+        }
+
+        private const string BatchApprovalLockKey = "HRD_INITIAL_PLACEMENT_BATCH_APPROVAL";
+
+        /// <summary>Kunci penasihat PostgreSQL di dalam transaksi aktif; dilewati di luar PostgreSQL.</summary>
+        private async Task AcquireTransactionLockAsync(string lockKey, CancellationToken ct)
+        {
+            if (!_dbContext.Database.IsNpgsql())
+                return;
+
+            await _dbContext.Database.ExecuteSqlRawAsync(
+                "SELECT pg_advisory_xact_lock(hashtext({0}));",
+                [lockKey],
+                ct);
+        }
+
+        public async Task<InitialBatchDetailResponse> ApproveBatchAsync(Guid id, Guid userId, CancellationToken ct = default)
+        {
+            var batch = await _dbContext.HrdInitialPlacementBatches
+                .Include(x => x.Rows)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, ct);
+
+            if (batch == null)
+                throw new InvalidOperationException("Batch penempatan awal tidak ditemukan.");
+
+            if (batch.BatchStatus != "PendingApproval")
+                throw new InvalidOperationException($"Hanya batch berstatus 'PendingApproval' yang dapat disetujui (Status saat ini: '{batch.BatchStatus}').");
+
+            // Anti self-approval guard (Segregation of Duties - HRD-DEC-054)
+            if (batch.CreateBy == userId || (batch.SubmittedByUserId.HasValue && batch.SubmittedByUserId.Value == userId))
+            {
+                throw new InvalidOperationException("Persetujuan batch penempatan awal ditolak: Pembuat draf maupun pengaju batch dilarang menyetujui batch yang diajukannya sendiri (Segregation of Duties / HRD-DEC-054).");
+            }
+
+            // Guard once-per-employee approved (AUD-HRD07-15 / HRD-DEC-054)
+            var profileIds = batch.Rows.Select(r => r.WorkforceProfileId).Distinct().ToList();
+            var conflictingEmployee = await _dbContext.HrdInitialPlacementBatchRows
+                .Include(r => r.Batch)
+                .Where(r => r.BatchId != batch.Id && profileIds.Contains(r.WorkforceProfileId) && (r.Batch.BatchStatus == "Approved" || r.Batch.BatchStatus == "Executed") && !r.Batch.IsDelete)
+                .Select(r => new { r.WorkforceProfileId, r.Batch.BatchNumber, r.Batch.BatchStatus })
+                .FirstOrDefaultAsync(ct);
+
+            if (conflictingEmployee != null)
+            {
+                throw new InvalidOperationException($"Persetujuan batch ditolak: Pegawai dengan ID '{conflictingEmployee.WorkforceProfileId}' telah tercatat dalam batch '{conflictingEmployee.BatchNumber}' yang berstatus '{conflictingEmployee.BatchStatus}'. Satu pegawai dilarang berada di dua batch penempatan yang sama-sama disetujui (AUD-HRD07-15 / HRD-DEC-054).");
+            }
+
+            // BE-HRD-412: persetujuan batch diantrekan (kunci global persetujuan batch) dan status dibaca ulang,
+            // sehingga dua approver serentak tidak sama-sama menyetujui, dan dua batch berisi pegawai yang sama
+            // tidak lolos pemeriksaan sekali-per-pegawai secara bersamaan.
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
+            await AcquireTransactionLockAsync(BatchApprovalLockKey, ct);
+
+            var liveStatus = await _dbContext.HrdInitialPlacementBatches
+                .AsNoTracking()
+                .Where(x => x.Id == batch.Id)
+                .Select(x => x.BatchStatus)
+                .FirstOrDefaultAsync(ct);
+            if (liveStatus != "PendingApproval")
+            {
+                throw new InvalidOperationException($"Batch sudah diproses oleh petugas lain (status saat ini: '{liveStatus}'). Muat ulang data.");
+            }
+
+            var conflictAfterLock = await _dbContext.HrdInitialPlacementBatchRows
+                .Where(r => r.BatchId != batch.Id && profileIds.Contains(r.WorkforceProfileId) && (r.Batch!.BatchStatus == "Approved" || r.Batch.BatchStatus == "Executed") && !r.Batch.IsDelete)
+                .Select(r => r.Batch!.BatchNumber)
+                .FirstOrDefaultAsync(ct);
+            if (conflictAfterLock != null)
+            {
+                throw new InvalidOperationException($"Persetujuan batch ditolak: sebagian pegawai baru saja disetujui pada batch '{conflictAfterLock}' (HRD-DEC-054).");
+            }
+
+            var now = DateTime.UtcNow;
+            batch.BatchStatus = "Approved";
+            batch.ApprovedByUserId = userId;
+            batch.ApprovedAt = now;
+            batch.UpdateDateTime = now;
+            batch.UpdateBy = userId;
+            await _dbContext.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+            return (await GetBatchByIdAsync(id, ct))!;
+        }
+
         public async Task<InitialBatchDetailResponse> ExecuteBatchAsync(Guid id, Guid userId, CancellationToken ct = default)
         {
             var batch = await _dbContext.HrdInitialPlacementBatches
@@ -516,9 +892,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 throw new InvalidOperationException("Batch penempatan awal ini sudah dieksekusi sebelumnya.");
             }
 
-            if (batch.BatchStatus != "Validated")
+            if (batch.BatchStatus != "Approved")
             {
-                throw new InvalidOperationException($"Batch dengan status '{batch.BatchStatus}' tidak dapat dieksekusi. Hanya batch berstatus 'Validated' yang dapat dieksekusi.");
+                throw new InvalidOperationException($"Batch dengan status '{batch.BatchStatus}' tidak dapat dieksekusi. Hanya batch berstatus 'Approved' yang dapat dieksekusi (HRD-DEC-054).");
             }
 
             if (batch.Rows == null || batch.Rows.Count == 0)
@@ -529,6 +905,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             if (batch.FailedRows > 0 || batch.Rows.Any(r => !r.IsValid))
             {
                 throw new InvalidOperationException($"Batch memuat {batch.FailedRows} baris tidak valid. Seluruh baris harus berstatus valid sebelum eksekusi.");
+            }
+
+            // Once-per-employee approved validation (HRD-DEC-054)
+            var profileIds = batch.Rows.Select(r => r.WorkforceProfileId).Distinct().ToList();
+            var alreadyExecutedEmployeeId = await _dbContext.HrdInitialPlacementBatchRows
+                .Include(r => r.Batch)
+                .Where(r => r.BatchId != batch.Id && profileIds.Contains(r.WorkforceProfileId) && r.Batch.BatchStatus == "Executed" && !r.Batch.IsDelete)
+                .Select(r => r.WorkforceProfileId)
+                .FirstOrDefaultAsync(ct);
+
+            if (alreadyExecutedEmployeeId != Guid.Empty)
+            {
+                throw new InvalidOperationException($"Pegawai dengan ID '{alreadyExecutedEmployeeId}' telah pernah diproses dalam batch inisialisasi awal yang sudah dieksekusi sebelumnya. Satu pegawai hanya boleh diproses satu kali melalui batch penempatan awal (HRD-DEC-054).");
             }
 
             // Re-validate against live master data right before transaction
@@ -553,17 +942,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
             try
             {
+                // BE-HRD-412: eksekusi tepat sekali walau dua permintaan datang bersamaan.
+                await AcquireTransactionLockAsync($"HRD_INITIAL_PLACEMENT_EXECUTE_{batch.Id}", ct);
+                var liveStatus = await _dbContext.HrdInitialPlacementBatches
+                    .AsNoTracking()
+                    .Where(x => x.Id == batch.Id)
+                    .Select(x => x.BatchStatus)
+                    .FirstOrDefaultAsync(ct);
+                if (liveStatus != "Approved")
+                {
+                    throw new InvalidOperationException($"Batch sudah diproses oleh petugas lain (status saat ini: '{liveStatus}').");
+                }
+
                 var now = DateTime.UtcNow;
 
-                var profileIds = batch.Rows.Select(r => r.WorkforceProfileId).Distinct().ToList();
                 var profiles = await _dbContext.MstWorkforceProfiles
                     .Where(p => profileIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, ct);
-
-                // Default salary structure if salary assignments are processed
-                var defaultSalaryStructure = await _dbContext.MstSalaryStructures
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.IsActive && !x.IsDelete, ct);
 
                 foreach (var row in batch.Rows)
                 {
@@ -595,15 +990,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                         EffectiveStartDate = row.EffectiveStartDate,
                         IsPrimary = true,
                         IsActive = true,
-                        ApprovedByUserId = userId,
+                        ApprovedByUserId = batch.ApprovedByUserId ?? userId,
                         ApprovedAt = now,
                         CreateBy = userId,
                         CreateDateTime = now
                     };
                     _dbContext.WfpPositionAssignments.Add(newPos);
 
-                    // Update primary position & department on profile
-                    if (profiles.TryGetValue(row.WorkforceProfileId, out var profile))
+                    // Update primary position & department on profile HANYA jika tanggal mulai sudah efektif hari ini (AUD-HRD07-10 / HRD-DEC-047)
+                    if (profiles.TryGetValue(row.WorkforceProfileId, out var profile) && row.EffectiveStartDate.Date <= now.Date)
                     {
                         profile.PrimaryPositionId = row.PositionId.Value;
                         if (row.DepartmentId.HasValue && row.DepartmentId.Value != Guid.Empty)
@@ -630,7 +1025,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                             IsPrimaryManager = true,
                             CanApproveRequests = true,
                             IsActive = true,
-                            ApprovedByUserId = userId,
+                            ApprovedByUserId = batch.ApprovedByUserId ?? userId,
                             ApprovedAt = now,
                             CreateBy = userId,
                             CreateDateTime = now
@@ -638,35 +1033,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                         _dbContext.WfpManagerAssignments.Add(newMgr);
                     }
 
-                    // 3. Salary Assignment (only if valid salary specified)
-                    if (row.BaseSalary.HasValue && row.BaseSalary.Value > 0 &&
-                        row.SalaryGradeId.HasValue && row.SalaryGradeId.Value != Guid.Empty &&
-                        defaultSalaryStructure != null)
-                    {
-                        var salaryGrade = await _dbContext.MstSalaryGrades
-                            .AsNoTracking()
-                            .FirstOrDefaultAsync(x => x.Id == row.SalaryGradeId.Value && x.IsActive && !x.IsDelete, ct);
-
-                        if (salaryGrade != null)
-                        {
-                            var newSalary = new WfpSalaryAssignment
-                            {
-                                WorkforceProfileId = row.WorkforceProfileId,
-                                SalaryStructureId = defaultSalaryStructure.Id,
-                                SalaryGradeId = salaryGrade.Id,
-                                BaseSalary = row.BaseSalary.Value,
-                                CurrencyCode = "IDR",
-                                PaymentFrequency = "Monthly",
-                                EffectiveStartDate = row.EffectiveStartDate,
-                                IsPrimary = true,
-                                IsConfidential = true,
-                                IsActive = true,
-                                CreateBy = userId,
-                                CreateDateTime = now
-                            };
-                            _dbContext.WfpSalaryAssignments.Add(newSalary);
-                        }
-                    }
+                    // 3. Salary Assignment - STOPPED per HRD-DEC-036 & HRD-DEC-054
+                    // Batch data awal penempatan pegawai tidak boleh langsung menetapkan gaji tanpa workflow approval payroll terpisah.
 
                     row.IsValid = true;
                     row.ProcessedAt = now;
@@ -675,8 +1043,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 }
 
                 batch.BatchStatus = "Executed";
-                batch.ApprovedByUserId = userId;
-                batch.ApprovedAt = now;
                 batch.ExecutionSummary = $"Sukses menerapkan penempatan awal untuk {batch.Rows.Count} pegawai baseline.";
                 batch.UpdateDateTime = now;
                 batch.UpdateBy = userId;

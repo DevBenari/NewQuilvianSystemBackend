@@ -1,6 +1,9 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -24,7 +27,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 /// nomor rekening dan NPWP selalu disamarkan.
 ///
 /// Kesiapan memproses (<see cref="PayrollCompensationListItemResponse.IsReady"/>) lebih ketat daripada "Lengkap" pada Kelengkapan Data:
-/// profil payroll harus sudah ada dan operasional, profil pajak harus ada, dan tetapan PPh dan iuran tidak boleh sekadar nol bawaan.
+/// profil payroll harus sudah ada dan operasional, serta konfigurasi PPh dan iuran yang ditetapkan HRD harus sah dan berlaku (dinilai
+/// eksplisit oleh PayrollTaxInsuranceRules; nominal nol pada profil payroll bukan penentu).
 /// </summary>
 public sealed class PayrollCompensationService
 {
@@ -36,7 +40,7 @@ public sealed class PayrollCompensationService
     private const string HrdInactiveLabel = "Tidak aktif di HRD";
     private const string SalaryNone = "Belum Ada Penetapan Gaji";
     private const string SalaryPendingApproval = "Menunggu Persetujuan HRD";
-    private const string SalaryApprovedLabel = "Disetujui";
+    private const string SalaryApprovedLabel = "Berlaku";
     private const string SalaryNotYetEffective = "Belum Berlaku";
     private const string SalaryEnded = "Sudah Berakhir";
     private const string SalaryConflict = "Konflik Penetapan Gaji";
@@ -44,11 +48,19 @@ public sealed class PayrollCompensationService
 
     private readonly ApplicationDbContext _dbContext;
     private readonly PayrollHrdSourceReader _hrdSource;
+    private readonly PayrollStatutoryPolicyResolver _policyResolver;
+    private readonly bool _requireApprovedSalary;
 
-    public PayrollCompensationService(ApplicationDbContext dbContext, PayrollHrdSourceReader hrdSource)
+    public PayrollCompensationService(
+        ApplicationDbContext dbContext,
+        PayrollHrdSourceReader hrdSource,
+        PayrollStatutoryPolicyResolver policyResolver,
+        IOptions<PayrollPolicyOptions> policyOptions)
     {
         _dbContext = dbContext;
         _hrdSource = hrdSource;
+        _policyResolver = policyResolver;
+        _requireApprovedSalary = policyOptions.Value.RequireApprovedSalaryAssignment;
     }
 
     private sealed record ProfileRow(
@@ -78,6 +90,7 @@ public sealed class PayrollCompensationService
         bool IsPrimary,
         bool IsActive,
         DateTime? ApprovedAt,
+        Guid? ApprovedByUserId,
         decimal BaseSalary,
         string? SalaryStructureName,
         string? SalaryGradeName);
@@ -128,15 +141,14 @@ public sealed class PayrollCompensationService
         var pageIds = pageRows.Select(r => r.Person.WorkforceProfileId).ToList();
 
         var assignments = await LoadAssignmentsAsync(pageIds, primaryActiveOnly: true, cancellationToken);
-        var insuranceIds = await LoadInsuranceIdsAsync(pageIds, cancellationToken);
 
         var items = pageRows.Select(r => BuildItem(
                 new PayrollCompensationListItemResponse(),
                 r,
                 assignments.GetValueOrDefault(r.Person.WorkforceProfileId) ?? new List<AssignmentRow>(),
-                insuranceIds.Contains(r.Person.WorkforceProfileId),
                 includeAmounts,
-                today))
+                today,
+                _requireApprovedSalary))
             .ToList();
 
         return new PagedResult<PayrollCompensationListItemResponse>
@@ -204,7 +216,7 @@ public sealed class PayrollCompensationService
             .OrderByDescending(t => t.EffectiveStartDate)
             .Select(t => new { t.TaxStatus, t.IsNpwpRegistered, t.NpwpNumber })
             .FirstOrDefaultAsync(cancellationToken);
-        var hasInsurance = (await LoadInsuranceIdsAsync(scope, cancellationToken)).Contains(workforceProfileId);
+        var taxConfig = (await LoadTaxConfigsAsync(scope, cancellationToken)).GetValueOrDefault(workforceProfileId);
         // Penempatan organisasi primer yang berlaku hari ini (hanya dibaca; kosong bila HRD belum mengisinya).
         var organization = await _dbContext.WfpOrganizationAssignments.AsNoTracking()
             .Where(x => !x.IsDelete && x.IsActive && x.IsPrimary && x.WorkforceProfileId == workforceProfileId
@@ -222,10 +234,11 @@ public sealed class PayrollCompensationService
         banks.TryGetValue(workforceProfileId, out var bank);
         profiles.TryGetValue(workforceProfileId, out var profile);
 
-        var evaluated = Evaluate(person, isActiveInHrd, profile, salary, bank, tax is not null, today);
+        var availability = await _policyResolver.GetAvailabilityAsync(today, cancellationToken);
+        var evaluated = Evaluate(person, isActiveInHrd, profile, salary, bank, taxConfig, today, availability);
 
         var detail = new PayrollCompensationDetailResponse();
-        BuildItem(detail, evaluated, assignments, hasInsurance, includeAmounts, today);
+        BuildItem(detail, evaluated, assignments, includeAmounts, today, _requireApprovedSalary);
         // Informasi operasional hanya dari profil yang benar-benar ada; null (bukan nilai bawaan) bila profil belum dibuat.
         detail.PayrollNumber = profile?.PayrollNumber;
         detail.PaymentFrequency = profile?.PaymentFrequency;
@@ -237,18 +250,48 @@ public sealed class PayrollCompensationService
         detail.TaxStatus = tax?.TaxStatus;
         detail.IsNpwpRegistered = tax?.IsNpwpRegistered ?? false;
         detail.NpwpMasked = MaskTail(tax?.NpwpNumber, 5);
-        detail.SalaryHistory = assignments.Select(a => new PayrollCompensationSalaryHistoryResponse
+        // Nama pengesah hanya untuk persetujuan yang benar-benar tercatat; sah otomatis menurut kebijakan tidak punya pengesah.
+        var approverIds = assignments
+            .Where(a => WfpSalaryAssignmentRules.IsApproved(a.ApprovedAt, a.ApprovedByUserId))
+            .Select(a => a.ApprovedByUserId!.Value)
+            .Distinct()
+            .ToList();
+        var approverNames = approverIds.Count == 0
+            ? new Dictionary<Guid, string?>()
+            : await _dbContext.Users.AsNoTracking()
+                .Where(u => approverIds.Contains(u.Id))
+                .Select(u => new { u.Id, Name = u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode })
+                .ToDictionaryAsync(u => u.Id, u => (string?)u.Name, cancellationToken);
+
+        detail.SalaryHistory = assignments.Select(a =>
         {
-            Id = a.Id,
-            SalaryStructureName = a.SalaryStructureName,
-            SalaryGradeName = a.SalaryGradeName,
-            EffectiveStartDate = a.EffectiveStartDate,
-            EffectiveEndDate = a.EffectiveEndDate,
-            IsPrimary = a.IsPrimary,
-            IsActive = a.IsActive,
-            IsApproved = a.ApprovedAt.HasValue,
-            ApprovedAt = a.ApprovedAt,
-            BaseSalary = includeAmounts ? (decimal?)a.BaseSalary : null
+            // Satu aturan untuk semua pembaca (PAY-BE-FIX-010): asal wewenang, keadaan operasional, dan kelayakan Payroll diturunkan dari
+            // kebijakan, status aktif, penetapan utama, dan masa berlaku. ApprovedAt/ApprovedByUserId TIDAK pernah diisi atau ditebak.
+            var standing = WfpSalaryAssignmentRules.StandingOf(
+                a.IsActive, a.IsPrimary, a.EffectiveStartDate, a.EffectiveEndDate, a.ApprovedAt, a.ApprovedByUserId, _requireApprovedSalary, today);
+            return new PayrollCompensationSalaryHistoryResponse
+            {
+                Id = a.Id,
+                SalaryStructureName = a.SalaryStructureName,
+                SalaryGradeName = a.SalaryGradeName,
+                EffectiveStartDate = a.EffectiveStartDate,
+                EffectiveEndDate = a.EffectiveEndDate,
+                IsPrimary = a.IsPrimary,
+                IsActive = a.IsActive,
+                // IsActive tidak pernah berarti disetujui (PAY-BE-FIX-008); satu aturan: ApprovedAt dan ApprovedByUserId terisi.
+                IsApproved = WfpSalaryAssignmentRules.IsApproved(a.ApprovedAt, a.ApprovedByUserId),
+                ApprovalStatus = WfpSalaryAssignmentRules.StatusOf(a.ApprovedAt, a.ApprovedByUserId),
+                ApprovalRequired = _requireApprovedSalary,
+                ApprovedAt = a.ApprovedAt,
+                ApprovedByUserName = a.ApprovedByUserId.HasValue && approverNames.TryGetValue(a.ApprovedByUserId.Value, out var approverName)
+                    && WfpSalaryAssignmentRules.IsApproved(a.ApprovedAt, a.ApprovedByUserId)
+                    ? approverName
+                    : null,
+                AuthorizationStatus = standing.AuthorizationStatus,
+                OperationalStatusCode = standing.OperationalStatus,
+                IsPayrollUsable = standing.IsPayrollUsable,
+                BaseSalary = includeAmounts ? (decimal?)a.BaseSalary : null
+            };
         }).ToList();
         detail.BankAccounts = bankRows.Select(b => new PayrollCompensationBankResponse
         {
@@ -285,15 +328,17 @@ public sealed class PayrollCompensationService
         var salaries = await _hrdSource.LoadSalariesAsync(today, today, cancellationToken, scope);
         var banks = await _hrdSource.LoadBanksAsync(today, cancellationToken, scope);
         var profiles = await LoadProfilesAsync(scope, today, cancellationToken);
-        var taxIds = await LoadTaxIdsAsync(scope, cancellationToken);
+        var taxConfigs = await LoadTaxConfigsAsync(scope, cancellationToken);
 
+        var availability = await _policyResolver.GetAvailabilityAsync(today, cancellationToken);
         var result = new List<Evaluated>(people.Count);
         foreach (var person in people)
         {
             salaries.TryGetValue(person.WorkforceProfileId, out var salary);
             banks.TryGetValue(person.WorkforceProfileId, out var bank);
             profiles.TryGetValue(person.WorkforceProfileId, out var profile);
-            result.Add(Evaluate(person, true, profile, salary, bank, taxIds.Contains(person.WorkforceProfileId), today));
+            taxConfigs.TryGetValue(person.WorkforceProfileId, out var taxConfig);
+            result.Add(Evaluate(person, true, profile, salary, bank, taxConfig, today, availability));
         }
 
         return result;
@@ -305,28 +350,48 @@ public sealed class PayrollCompensationService
         ProfileRow? profile,
         PayrollHrdSalary? salary,
         PayrollHrdBank? bank,
-        bool hasTaxProfile,
-        DateTime today)
+        PayrollTaxConfigFacts? taxConfig,
+        DateTime today,
+        PayrollPolicyAvailability? availability)
     {
         var hrd = PayrollReadinessEvaluator.AssessHrd(salary, bank);
+        // Konfigurasi PPh milik HRD dinilai eksplisit (jenis PPh, kategori, skema, masa berlaku); nominal nol pada profil payroll bukan
+        // penentu. Tetapan lama pada profil hanya cadangan bertanda. Asuransi swasta dan iuran BPJS bukan syarat kelengkapan.
+        var taxInsurance = PayrollTaxInsuranceRules.AssessReadiness(
+            taxConfig, profile?.TaxAmount ?? 0m, today, availability);
         // Profil dinilai pada tanggal hari ini: profil masa depan atau yang sudah berakhir bukan profil yang sedang berlaku, dan
         // beberapa profil aktif yang berlaku bersamaan dilaporkan sebagai masalah integritas data.
         var assessment = PayrollReadinessEvaluator.AssessProfile(
             profile is null ? null : ToFacts(profile),
             PayrollProfileRules.CanAutoPrepare(salary is not null, bank is not null),
+            taxInsurance,
             today,
             profile?.ActiveConflict ?? false);
+        var hasTaxProfile = taxConfig is { IsActive: true };
 
         var issues = new List<string>();
+        var notes = new List<string>(assessment.Notes);
         if (!isActiveInHrd) issues.Add("Pegawai atau dokter ini tidak aktif di HRD.");
         issues.AddRange(hrd.Issues);
-        if (profile is null) issues.Add("Profil Payroll belum disiapkan secara otomatis.");
-        else issues.AddRange(assessment.Issues);
-        if (!hasTaxProfile) issues.Add("Profil pajak belum diisi.");
-        // Nol bawaan bukan data sah: tidak boleh membuat orang tampil siap hanya karena tetapan PPh dan iuran bernilai nol.
-        if (assessment.TaxInsuranceUnset) issues.Add("Tetapan PPh dan iuran pada profil payroll belum ditetapkan (keduanya nol).");
 
-        return new Evaluated(person, isActiveInHrd, profile, salary, hrd, assessment, hasTaxProfile, issues, assessment.Notes);
+        // Profil payroll yang belum disiapkan secara fisik bukan blocking issue jika data HRD sudah lengkap dan eligible untuk auto-provisioning
+        if (profile is not null)
+        {
+            issues.AddRange(assessment.Issues);
+        }
+        else if (hrd.HrdComplete && isActiveInHrd)
+        {
+            const string autoProvisionNote = "Profil operasional payroll akan disiapkan secara otomatis saat Payroll Run dipersiapkan.";
+            if (!notes.Contains(autoProvisionNote))
+            {
+                notes.Add(autoProvisionNote);
+            }
+        }
+
+        // Kekurangan konfigurasi PPh yang sebenarnya, bukan pesan generik "keduanya nol".
+        issues.AddRange(taxInsurance.TaxIssues);
+
+        return new Evaluated(person, isActiveInHrd, profile, salary, hrd, assessment, hasTaxProfile, issues.Distinct().ToList(), notes.Distinct().ToList());
     }
 
     private static IEnumerable<Evaluated> ApplyStatusFilter(IEnumerable<Evaluated> rows, string? status)
@@ -349,9 +414,9 @@ public sealed class PayrollCompensationService
         T target,
         Evaluated ev,
         List<AssignmentRow> assignments,
-        bool hasInsurance,
         bool includeAmounts,
-        DateTime today) where T : PayrollCompensationListItemResponse
+        DateTime today,
+        bool requireApprovedSalary) where T : PayrollCompensationListItemResponse
     {
         // Penetapan yang BERLAKU hari ini (dipilih pembaca HRD yang sama dengan kelengkapan data). Bila tidak ada, penetapan aktif
         // terbaru hanya ditampilkan tanggalnya sebagai informasi; nominalnya tidak dipakai sebagai gaji saat ini.
@@ -375,11 +440,16 @@ public sealed class PayrollCompensationService
         target.HrdComplete = hrdComplete;
         target.HrdDataStatus = !ev.IsActiveInHrd ? HrdInactiveLabel : hrdComplete ? HrdCompleteLabel : HrdIncompleteLabel;
         target.TaxInsuranceStatus = ev.ProfileAssessment.TaxInsuranceStatus;
+        target.TaxConfigurationStatus = ev.ProfileAssessment.TaxConfigurationStatus;
+        target.TaxConfigurationIssues = ev.ProfileAssessment.TaxIssues ?? new List<string>();
 
         target.SalaryAssignmentId = display?.Id;
         target.SalaryEffectiveStartDate = display?.EffectiveStartDate;
         target.SalaryEffectiveEndDate = display?.EffectiveEndDate;
-        target.SalaryApproved = display?.ApprovedAt.HasValue ?? false;
+        // Sakelar RequireApprovedSalaryAssignment menyala: "disetujui" hanya bila kedua penanda persetujuan HRD terisi ("aktif" bukan
+        // disetujui). Mati (bawaan, keputusan peniadaan approval 19 Nov 2026): penetapan aktif sah dipakai payroll, jadi tetap berlaku.
+        target.SalaryApproved = display != null
+            && (requireApprovedSalary ? WfpSalaryAssignmentRules.IsApproved(display.ApprovedAt, display.ApprovedByUserId) : display.IsActive);
         target.SalaryApprovedAt = display?.ApprovedAt;
 
         target.AmountsVisible = includeAmounts;
@@ -395,7 +465,6 @@ public sealed class PayrollCompensationService
 
         target.BankStatus = ev.Hrd.BankStatus;
         target.HasTaxProfile = ev.HasTaxProfile;
-        target.HasInsuranceProfile = hasInsurance;
 
         target.OperationalProfileReady = ev.ProfileAssessment.IsOperational;
 
@@ -409,13 +478,9 @@ public sealed class PayrollCompensationService
             var index = issues.IndexOf(PayrollReadinessEvaluator.NoSalaryMessage);
             if (missing.Message is not null && index >= 0) issues[index] = missing.Message;
         }
-        else if (!ev.Hrd.SalaryApproved)
-        {
-            salaryStatus = SalaryPendingApproval;
-        }
         else
         {
-            salaryStatus = ev.Hrd.SalaryConflict ? SalaryConflict : SalaryApprovedLabel;
+            salaryStatus = ev.Hrd.SalaryConflict ? SalaryConflict : ev.Hrd.SalaryApproved ? SalaryApprovedLabel : SalaryPendingApproval;
         }
 
         target.SalaryStatus = salaryStatus;
@@ -510,22 +575,20 @@ public sealed class PayrollCompensationService
                 });
     }
 
-    private async Task<HashSet<Guid>> LoadTaxIdsAsync(IReadOnlyCollection<Guid>? scope, CancellationToken cancellationToken)
+    /// <summary>
+    /// Konfigurasi PPh HRD per orang (proyeksi ramping tanpa NPWP). Profil nonaktif ikut dimuat supaya statusnya dinilai eksplisit,
+    /// bukan dianggap tidak ada. Yang aktif dan terbaru dipilih bila tetap ada beberapa.
+    /// </summary>
+    private async Task<Dictionary<Guid, PayrollTaxConfigFacts>> LoadTaxConfigsAsync(
+        IReadOnlyCollection<Guid>? scope, CancellationToken cancellationToken)
     {
-        var query = _dbContext.PrlTaxes.AsNoTracking().Where(t => !t.IsDelete && t.IsActive);
+        var query = _dbContext.PrlTaxes.AsNoTracking().Where(t => !t.IsDelete);
         if (scope is not null) query = query.Where(t => scope.Contains(t.WorkforceProfileId));
-        return (await query.Select(t => t.WorkforceProfileId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
-    }
-
-    private async Task<HashSet<Guid>> LoadInsuranceIdsAsync(IReadOnlyCollection<Guid> scope, CancellationToken cancellationToken)
-    {
-        if (scope.Count == 0) return new HashSet<Guid>();
-        return (await _dbContext.PrlInsurances.AsNoTracking()
-                .Where(t => !t.IsDelete && t.IsActive && scope.Contains(t.WorkforceProfileId))
-                .Select(t => t.WorkforceProfileId)
-                .Distinct()
-                .ToListAsync(cancellationToken))
-            .ToHashSet();
+        return (await query.ToListAsync(cancellationToken))
+            .GroupBy(t => t.WorkforceProfileId)
+            .ToDictionary(
+                g => g.Key,
+                g => PayrollTaxConfigFacts.From(g.OrderByDescending(t => t.IsActive).ThenByDescending(t => t.EffectiveStartDate).First()));
     }
 
     private async Task<Dictionary<Guid, List<AssignmentRow>>> LoadAssignmentsAsync(
@@ -548,6 +611,7 @@ public sealed class PayrollCompensationService
                 a.IsPrimary,
                 a.IsActive,
                 a.ApprovedAt,
+                a.ApprovedByUserId,
                 a.BaseSalary,
                 SalaryStructureName = a.SalaryStructure != null ? a.SalaryStructure.SalaryStructureName : null,
                 SalaryGradeName = a.SalaryGrade != null ? a.SalaryGrade.SalaryGradeName : null
@@ -559,7 +623,7 @@ public sealed class PayrollCompensationService
             .ToDictionary(
                 g => g.Key,
                 g => g.Select(a => new AssignmentRow(
-                        a.Id, a.EffectiveStartDate, a.EffectiveEndDate, a.IsPrimary, a.IsActive, a.ApprovedAt,
+                        a.Id, a.EffectiveStartDate, a.EffectiveEndDate, a.IsPrimary, a.IsActive, a.ApprovedAt, a.ApprovedByUserId,
                         a.BaseSalary, a.SalaryStructureName, a.SalaryGradeName))
                     .ToList());
     }

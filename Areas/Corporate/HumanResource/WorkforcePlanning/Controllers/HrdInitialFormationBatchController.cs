@@ -221,6 +221,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
             return ToActionResult(result);
         }
 
+        /// <summary>
+        /// Memulihkan batch formasi awal berstatus Submitted yang kehilangan koneksi workflow (BE-HRD-FIN-WFP-010).
+        /// Memeriksa workflow existing, memastikan belum ada formasi atau keputusan akhir, lalu merekonsiliasi atau mengembalikan ke Draft secara teraudit.
+        /// </summary>
+        [HttpPost("{id:guid}/recover")]
+        [AccessAction("Recover", "Recover Batch Formasi Awal", AccessType = AccessTypes.Update, SortOrder = 11)]
+        [AccessPermission("WorkforceInitialFormationBatch", "Update")]
+        [ProducesResponseType(typeof(ApiResponse<InitialFormationBatchResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> Recover(
+            [FromRoute] Guid id,
+            [FromBody] RecoverInitialFormationBatchRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await _service.RecoverAsync(id, request, GetCurrentUserId(), cancellationToken);
+            return ToActionResult(result);
+        }
+
         private IActionResult ToActionResult<T>(WorkforcePlanningResult<T> result)
         {
             return result.Success

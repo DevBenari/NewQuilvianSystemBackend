@@ -168,17 +168,20 @@ public sealed class PayrollTaxContributionRowResponse
     /// <summary>Komponen PAY_TAX run.</summary>
     public decimal TaxAmount { get; set; }
 
-    /// <summary>Komponen PAY_INSURANCE_EMPLOYEE run.</summary>
+    /// <summary>Total komponen iuran/asuransi pegawai run (PAY_INS_PRIVATE_EE / PAY_INSURANCE_EMPLOYEE; run lama juga PAY_INS_BPJS_* historis).</summary>
     public decimal InsuranceEmployeeAmount { get; set; }
 
-    /// <summary>Selalu TETAPAN_PROFIL selama rumus PPh/BPJS belum disahkan (PRL-DEC-33).</summary>
+    /// <summary>AUTO_REGULATORY | APPROVED_MANUAL_AMOUNT | EXEMPT_OR_NOT_APPLICABLE | TETAPAN_PROFIL.</summary>
     public string Source { get; set; } = PayrollTaxContributionSources.ProfileFixed;
 
-    /// <summary>Versi kebijakan dari snapshot kebijakan run.</summary>
+    /// <summary>Versi kebijakan dari snapshot pajak atau snapshot kebijakan run.</summary>
     public string PolicyVersion { get; set; } = string.Empty;
+
+    /// <summary>Versi kebijakan tarif PPh resmi yang dipakai pada snapshot pajak (kosong pada run lama/manual).</summary>
+    public string? TaxPolicyVersion { get; set; }
 }
 
-/// <summary>PagedResult baku ditambah keterangan, supaya RPT-01 dapat disampaikan bersama daftar kosong.</summary>
+/// <summary>PagedResult baku ditambah keterangan, supaya RPT-01 tersampaikan bersama daftar.</summary>
 public sealed class PayrollTaxContributionPagedResult : QuilvianSystemBackend.Responses.PagedResult<PayrollTaxContributionRowResponse>
 {
     public string PeriodCode { get; set; } = string.Empty;
@@ -189,5 +192,8 @@ public sealed class PayrollTaxContributionPagedResult : QuilvianSystemBackend.Re
 
 public static class PayrollTaxContributionSources
 {
+    public const string AutoRegulatory = "AUTO_REGULATORY";
+    public const string ApprovedManualAmount = "APPROVED_MANUAL_AMOUNT";
+    public const string Exempt = "EXEMPT_OR_NOT_APPLICABLE";
     public const string ProfileFixed = "TETAPAN_PROFIL";
 }

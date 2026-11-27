@@ -64,6 +64,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
         public bool IsDelegated { get; set; } = false;
 
+        // BE-HRD-440 (kontrak v29, HRD-DEC-232): penugasan hasil eskalasi SLA menunjuk penugasan asal pada tahap yang sama.
+        public Guid? EscalatedFromAssignmentId { get; set; }
+
         public string? ResolutionSnapshotJson { get; set; }
 
         public bool IsActive { get; set; } = true;
@@ -83,6 +86,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         public ApplicationUser? OriginalApproverUser { get; set; }
 
         public MstWorkforceProfile? OriginalApproverWorkforceProfile { get; set; }
+
+        public TrxWorkflowApproverAssignment? EscalatedFromAssignment { get; set; }
 
         public ICollection<TrxApprovalAction> ApprovalActions { get; set; }
             = new List<TrxApprovalAction>();

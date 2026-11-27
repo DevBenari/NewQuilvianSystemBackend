@@ -286,16 +286,36 @@ public sealed class PayrollPayslipService
     public async Task<PagedResult<PayslipSummaryResponse>> GetMineAsync(Guid userId, PayrollPayslipQuery query, CancellationToken cancellationToken)
     {
         var workforceProfileId = await ResolveWorkforceProfileIdAsync(userId, cancellationToken);
-        var pageNumber = Math.Max(1, query.PageNumber);
-        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+        // PAY-BE-FIX-039: akun tanpa profil tenaga kerja TIDAK pernah memakai fallback identitas lain dan tidak diam-diam dianggap "tanpa slip".
+        // Pesan jelas (422); tidak ada data orang lain yang terbuka, dan relasi master tidak dibuat atau diperbaiki dari sini.
         if (workforceProfileId is null)
-            return new PagedResult<PayslipSummaryResponse> { PageNumber = pageNumber, PageSize = pageSize };
+            throw new PayrollRunValidationException("Akun Anda belum terhubung dengan profil pegawai/dokter. Hubungi administrator HRD.");
 
+        // Batas kepemilikan dan penerbitan SELALU yang pertama; semua filter di bawahnya hanya mempersempit.
         var rows = _dbContext.PrlPayrollPayslips.AsNoTracking()
             .Where(x => !x.IsDelete && x.IsEmployeeVisible
                 && (x.PayslipStatus == PayrollPayslipStatuses.Published || x.PayslipStatus == PayrollPayslipStatuses.Downloaded)
                 && x.PayrollRunEmployee!.WorkforceProfileId == workforceProfileId.Value);
         if (!string.IsNullOrWhiteSpace(query.Status)) rows = rows.Where(x => x.PayslipStatus == query.Status);
+
+        // PAY-BE-FIX-039: pencarian di server atas nomor slip, nomor run, dan kode/nama periode (satu query, tanpa N+1). Karakter pola LIKE
+        // dari pengguna di-escape supaya "%" atau "_" dibaca apa adanya.
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var term = "%" + query.Search.Trim().Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
+            rows = rows.Where(x => EF.Functions.ILike(x.PayslipNumber, term, "\\")
+                || EF.Functions.ILike(x.PayrollRun!.RunNumber, term, "\\")
+                || EF.Functions.ILike(x.PayrollRun!.PayrollPeriod!.PayrollPeriodCode, term, "\\")
+                || EF.Functions.ILike(x.PayrollRun!.PayrollPeriod!.PayrollPeriodName, term, "\\"));
+        }
+
+        if (query.Year is >= 2000 and <= 2100)
+        {
+            var yearStart = new DateTime(query.Year.Value, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var yearEnd = yearStart.AddYears(1);
+            rows = rows.Where(x => x.PeriodEndDateSnapshot >= yearStart && x.PeriodEndDateSnapshot < yearEnd);
+        }
+
         return await PageAsync(rows, query, includeAmounts: true, cancellationToken);
     }
 
@@ -403,6 +423,7 @@ public sealed class PayrollPayslipService
         target.PayrollRunId = p.PayrollRunId;
         target.RunNumber = p.PayrollRun?.RunNumber ?? string.Empty;
         target.PeriodCode = p.PayrollRun?.PayrollPeriod?.PayrollPeriodCode ?? string.Empty;
+        target.PeriodName = p.PayrollRun?.PayrollPeriod?.PayrollPeriodName ?? string.Empty;
         target.PayslipNumber = p.PayslipNumber;
         target.VersionNumber = p.VersionNumber;
         target.PayslipStatus = p.PayslipStatus;

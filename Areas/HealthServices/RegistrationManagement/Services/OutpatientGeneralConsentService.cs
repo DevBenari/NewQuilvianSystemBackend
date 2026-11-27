@@ -185,7 +185,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return null;
         }
 
-        private static bool IsPngDataUrl(string? value)
+        internal static bool IsPngDataUrl(string? value)
         {
             var dataUrl = value?.Trim();
 

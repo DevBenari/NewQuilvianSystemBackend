@@ -3,10 +3,10 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint | `PBJ-BP-001` revisi 2 · sub-modul `perencanaan-permintaan` (`approved`, `PBJ-DEC-034`) |
-| Revisi roadmap | `1` · status `draft` (rencana; tiap task tetap butuh perintah eksekusi tersendiri) |
-| Tanggal | 12 November 2026 |
+| Revisi roadmap | `2` · status `draft` (rencana; tiap task tetap butuh perintah eksekusi tersendiri). Rev 2 menambah `BE-PBJ-012` (`PBJ-DEC-055`) |
+| Tanggal | 12 November 2026; rev 2 17 November 2026 (BE `c6b86a6e`, FE `059b6c612`) |
 | Kontrak | set `1.0`: `PBJ-PP-API`, `-STATE`, `-VAL`, `-INT`, `-PERM`, `-TEST`, `-MVP` (semua `approved`) |
-| Keputusan | `PBJ-DEC-001`..`034` (`decision_revision 5`) |
+| Keputusan | `PBJ-DEC-001`..`034` (`decision_revision 5`); rev 2: `PBJ-DEC-055`, `PBJ-FE-004` (`decision_revision 13`); kontrak `PBJ-PP-API` 1.4, `-VAL` 1.2, `-TEST` 1.2 |
 | SHA | BE `100c011d` (branch `sukmagp`), FE `763d665b` (branch `sukmagpV2`) |
 | Hash masukan | Lihat `../blueprint-manifest.md` (`input_hashes`, `artifact_hashes`) |
 | Repository target | `NewQuilvianSystemBackend` |
@@ -35,8 +35,8 @@ QBE preflight/conformance, review diff dan cakupan, `dotnet restore` + `dotnet b
 
 ## Grafik Urutan Dependency
 
-Grafik dipotong menjadi dua blok karena lebar baris. `BE-PBJ-005` dan `BE-PBJ-006` pada blok 2 adalah node
-yang sama dengan blok 1 (sambungan), bukan task baru.
+Grafik dipotong menjadi tiga blok karena lebar baris. `BE-PBJ-005` dan `BE-PBJ-006` pada blok 2, serta `BE-PBJ-008`
+dan `BE-PBJ-011` pada blok 3, adalah node yang sama dengan blok sebelumnya (sambungan), bukan task baru.
 
 ```text
 {PBJ-OQ-002 ✅} ─> BE-PBJ-002 ✅ ─┬─> BE-PBJ-004 ✅
@@ -56,10 +56,16 @@ BE-PBJ-005 ✅ ─┬─> BE-PBJ-009 ✅ ─┬─> BE-PBJ-011 ✅
                └─> BE-PBJ-010 ✅ ──────────────────────────┘
 ```
 
+```text
+BE-PBJ-008 ✅ ─┬─> BE-PBJ-012 ✅
+               │
+BE-PBJ-011 ✅ ─┘
+```
+
 `{PBJ-OQ-002}` = gerbang registry prefix `Prc` dan Area `Corporate / ProcurementManagement`
 (`docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`), di luar wewenang blueprint.
 
-Jumlah pasangan prasyarat → task: **13**, sama dengan isi kolom `Dependency`.
+Jumlah pasangan prasyarat → task: **15**, sama dengan isi kolom `Dependency`.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
@@ -70,6 +76,7 @@ Jumlah pasangan prasyarat → task: **13**, sama dengan isi kolom `Dependency`.
 | 4 | `BE-PBJ-005` | `BE-PBJ-009` ✅, `BE-PBJ-010` ✅ — 16 November 2026 |
 | 5 | `BE-PBJ-009` (+ `BE-PBJ-006` untuk 007) | `BE-PBJ-007` ✅, `BE-PBJ-011` ✅ — 16 November 2026 |
 | 6 | `BE-PBJ-007`, `BE-PBJ-010` | `BE-PBJ-008` ✅ — 16 November 2026 |
+| 7 | `BE-PBJ-008`, `BE-PBJ-011` | `BE-PBJ-012` ✅ — 17 November 2026 |
 
 Gerbang `PBJ-OQ-002` ditutup 12 November 2026: registry `Prc` disetujui (`PBJ-DEC-035`), sehingga `BE-PBJ-002` dapat dimulai.
 
@@ -99,6 +106,7 @@ MVP-2" pada PRD tidak terjadi.
 | `BE-PBJ-009` | Rencana kebutuhan berversi, revisi, banding versi | `PBJ-DEC-014`, `033` (`G-05`); FR-PBJ-050..053 | API §Need Plan; STATE §2; VAL-040..044 | — | 2 tabel, 1 controller | `BE-PBJ-005` | ✅ 16 November 2026 ([laporan](../task/report/backend/BE-PBJ-009.md)) |
 | `BE-PBJ-010` | Pagu berversi, sisa pagu, layanan komitmen | `PBJ-DEC-009`, `030`, `033`; FR-PBJ-060..062 | API §Budget; STATE §4; VAL-060..062; INT §2 | — | 2 tabel, 1 controller | `BE-PBJ-005` | ✅ 16 November 2026 ([laporan](../task/report/backend/BE-PBJ-010.md)) |
 | `BE-PBJ-011` | Konsolidasi dan rencana paket | `PBJ-DEC-028`, `033`; FR-PBJ-070..072 | API §Consolidation, §Package Plan; STATE §3; VAL-050, 051 | — | 2 tabel, 2 controller | `BE-PBJ-009` | ✅ 16 November 2026 ([laporan](../task/report/backend/BE-PBJ-011.md)) |
+| `BE-PBJ-012` | Saringan Tanggal awal/akhir dan Periode pada semua daftar Pengadaan | `PBJ-DEC-055`, `PBJ-FE-004` | API 1.4 konvensi "Saringan tanggal daftar"; VAL-094 | `AppDateTimeHelper.OperationalDate`; pola periode Master Data Supplier | 1 helper `Common`, 7 query DTO, 7 respons metadata, 9 service daftar | `BE-PBJ-008`, `BE-PBJ-011` | ✅ 17 November 2026 ([laporan](../task/report/backend/BE-PBJ-012.md)) |
 
 ## Kartu task
 
@@ -216,6 +224,23 @@ MVP-2" pada PRD tidak terjadi.
 | Acceptance criteria | `AT-PP-43`, `44`; revisi rencana di bawah alokasi paket ditolak |
 | Delta `PBJ-DEC-036` | Daftarkan `[assembly: AccessExplicitPermission]` `ProcurementPackagePlan : ReadAllUnits` bersama controller task ini, dan pakai `ProcurementDataScopeService` dengan resource `ProcurementPackagePlan` |
 | DoD | Kriteria + laporan |
+
+### ✅ `BE-PBJ-012` — Saringan tanggal dan periode daftar
+
+| Aspek | Isi |
+| --- | --- |
+| Outcome | Setiap daftar Pengadaan dapat disaring menurut tanggal data dibuat, lewat rentang tanggal atau periode cepat, sehingga baris filter standar `PBJ-FE-004` punya data yang benar dari server |
+| Jejak | `PBJ-DEC-055`, `PBJ-FE-004`; `PBJ-PP-API` 1.4 (konvensi "Saringan tanggal daftar"); `PBJ-PP-VAL` 1.2 (`PBJ-VAL-094`) |
+| Cakupan | Helper `Common` penentu rentang (`startDate`, `endDate`, `customPeriod` → batas UTC dari tanggal operasional) dan daftar pilihan periode; tambahan `StartDate`/`EndDate`/`CustomPeriod` pada `ProcurementReferenceQuery`, `ProcurementItemQuery`, `BudgetQuery`, `NeedPlanQuery`, `PackagePlanQuery`, `StockCheckQuery`, dan `CustomPeriod` pada `PurchaseRequestQuery`; penerapan di service daftar PR, antrean verifikasi, cek stok, rencana kebutuhan, pagu, rencana paket, katalog, kategori, sumber dana, jenis pengadaan; `customPeriods` pada respons `filters/metadata`; galat rentang PR berpindah dari `PBJ-VAL-007` ke `PBJ-VAL-094` |
+| Di luar cakupan | Kotak masuk `Wfl` dan konsolidasi (`PBJ-DEC-057`); perubahan skema (tidak ada migration) |
+| Acceptance criteria | `AT-PP-65`: setiap daftar hanya mengembalikan data yang dibuat dalam rentang; `customPeriod=thismonth` sama dengan rentang bulan berjalan; rentang terbalik dan periode tak dikenal → 422 `PBJ-VAL-094`; `filters/metadata` memuat `customPeriods` |
+| Verifikasi | QBE preflight/Strict, build Release, uji API manual per endpoint di `QuilvianNewDevSukma` |
+| Risiko / pemilik | Zona waktu "Hari ini" mengikuti tanggal operasional aplikasi, bukan UTC mentah — pemilik: builder backend |
+| DoD | Kriteria + laporan `task/report/backend/BE-PBJ-012.md` |
+| **Status** | ✅ **SELESAI 17 November 2026.** Build 0 error (0 warning Pengadaan), QBE Strict `PASS` 27 berkas, runtime `AT-PP-65` 13/13 `PASS` (10 daftar × 6 periode, `PBJ-VAL-094`, metadata, isi saringan pada data master). Tanpa migration. Laporan: [laporan](../task/report/backend/BE-PBJ-012.md) |
+
+**Untuk task ini:** QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend dan dokumen
+engineering canonical.
 
 ## Tidak masuk roadmap ini
 

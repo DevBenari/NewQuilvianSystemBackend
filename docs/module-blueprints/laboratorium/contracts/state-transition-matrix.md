@@ -4,7 +4,7 @@
 |---|---|
 | Contract version | `LAB-STATE-v1` |
 | `r11` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-20** — bagian 13: syarat alasan pada transisi batal pemeriksaan dan wadah; nol status, nol transisi baru |
-| Revision | **`10` — `approved`** 2026-10-08, bagian 12 (syarat Proses dilonggarkan bagi rawat inap/IGD) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`9` — `approved`** 2026-10-08, bagian 11 (Proses wajib lolos pembayaran) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`8` — `approved`** 2026-10-07, bagian 10 (Konfirmasi juga sah pada `Accepted`; Proses wajib terkonfirmasi) — disetujui Yoga Aji Pratama. Sebelumnya: **`7` — `approved`** 2026-09-25, bagian 9 (penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`6` — `approved`** 2026-09-25, bagian 8 (`S4d-1` Mikrobiologi) — disetujui Yoga Aji Pratama. Sebelumnya: **`5` — `approved`** 2026-09-25, bagian 7 (`S4`: Tervalidasi dan Dirilis sebagai keadaan turunan). Terakhir `approved`: `4` — **`approved`** 2026-09-24, bagian 6 |
+| Revision | **`r12` — `approved`** 2026-11-25, bagian 14 (tindakan *Jadwal Ulang* tanpa perpindahan status). Sebelumnya: **`r11` `approved`** 2026-10-20 bagian 13; **`10` — `approved`** 2026-10-08, bagian 12 (syarat Proses dilonggarkan bagi rawat inap/IGD) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`9` — `approved`** 2026-10-08, bagian 11 (Proses wajib lolos pembayaran) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`8` — `approved`** 2026-10-07, bagian 10 (Konfirmasi juga sah pada `Accepted`; Proses wajib terkonfirmasi) — disetujui Yoga Aji Pratama. Sebelumnya: **`7` — `approved`** 2026-09-25, bagian 9 (penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`6` — `approved`** 2026-09-25, bagian 8 (`S4d-1` Mikrobiologi) — disetujui Yoga Aji Pratama. Sebelumnya: **`5` — `approved`** 2026-09-25, bagian 7 (`S4`: Tervalidasi dan Dirilis sebagai keadaan turunan). Terakhir `approved`: `4` — **`approved`** 2026-09-24, bagian 6 |
 | `r10` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"setuju keenam butir"* atas `LAB-REQ-020`, keenam butir |
 | `r9` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju ketujuh butir"* atas `LAB-REQ-019`, ketujuh butir |
 | Status | `approved` — `r2` dikunci 2026-09-02; **amandemen `r3` disetujui pemilik modul 2026-09-15** lewat `LAB-DEC-061` dan `LAB-DEC-063` |
@@ -620,3 +620,48 @@ maupun permintaan di dalamnya ke `Cancelled`. Pembacanya — Beranda, Statistik 
 | Butir | Keputusan | Arsitektur domain | AC |
 |---|---|---|---|
 | Syarat alasan pada dua transisi | `LAB-DEC-237`, `LAB-DEC-247` | A8.7, `INV-60` | `AC-326`, `AC-327` |
+
+## 14. Amandemen `r12` — Penjadwalan ulang pemeriksaan (`S20-1`), 2026-11-25
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-STATE-v1` |
+| Revision | `r12` |
+| Status | **`approved`** 2026-11-25 |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-11-25 — *"setuju semua sesuai rekomendasi, lanjut plan-module-delivery"* — atas keempat kontrak `S20-1` dan keenam butir `02-backend-architecture.md` 33.10 |
+| `input_revision` | decisions rev 143 (`LAB-DEC-257`, `260`, `270`, `275`, `276`); `LAB-DA-001` rev 12 A9.8; `LAB-VAL-v1` `r22` usulan |
+| Sifat | **Nol status baru, nol transisi baru.** Satu **tindakan tanpa perpindahan status** ditambahkan pada pesanan |
+
+### 14.1 Tindakan *Jadwal Ulang* — di dalam status, bukan perpindahan
+
+| Status pesanan sebelum | Tindakan | Status pesanan sesudah | Status wadah sesudah | Syarat | Ditolak bila |
+|---|---|---|---|---|---|
+| `Requested` | Jadwal Ulang | **`Requested`** | Tidak berubah | `VAL-157`..`VAL-159`, `VAL-161`..`VAL-165` | `409` / `422` |
+| `Confirmed` | Jadwal Ulang | **`Confirmed`** | Tidak berubah | Sama | Sama |
+| `OnHold` ber-`StatusBeforeHold` `Requested`/`Confirmed` | Jadwal Ulang | **`OnHold`**, `StatusBeforeHold` utuh | Tidak berubah | Sama | Sama |
+| `OnHold` dari status lain; `Draft`, `Accepted`, `InProcess`, `Completed`, `CancelRequested`, `Cancelled` | Jadwal Ulang | — | — | — | **`409`** (`VAL-160`) |
+
+**Syarat wadah** (`VAL-161`) dinilai atas status **efektif**: wadah `Cancelled` dan `RecollectionRequired` tidak dinilai;
+wadah `OnHold` dinilai menurut `StatusBeforeHold`; selain `Planned` — termasuk `Rejected` — menolak.
+
+**Contoh.** Pesanan `Confirmed` dengan wadah A `RecollectionRequired` dan pengganti B `Planned` → Jadwal Ulang sah; status
+pesanan tetap `Confirmed`, A tetap `RecollectionRequired`, B tetap `Planned`.
+
+### 14.2 Yang sengaja tidak berubah
+
+| Hal | Alasan |
+|---|---|
+| Tidak ada status *Dijadwalkan Ulang* | `LAB-DEC-257` |
+| Jadwal ulang tidak melepas `OnHold` | `LAB-DEC-257` — *Lanjutkan* tetap tindakan tersendiri |
+| *Terlewat* bukan status | `LAB-DEC-260` — penanda dihitung saat dibaca |
+| Transisi wadah, pemeriksaan, dan permintaan | Nol perubahan; tanggal rencana **tidak** menghalangi perencanaan, pengambilan, penerimaan, atau pengerjaan (`LAB-DEC-259`) |
+
+### 14.3 Traceability `r12`
+
+| Butir | Keputusan | Arsitektur domain | AC |
+|---|---|---|---|
+| Tindakan tanpa perpindahan status | `LAB-DEC-257` | A9.8, `INV-61` | `AC-343` |
+| Jendela status | `LAB-DEC-270` | `INV-62` | `AC-341` |
+| Syarat wadah efektif | `LAB-DEC-275`, `276` | `INV-62` | `AC-355` |
+| Nol penghalang pada transisi wadah | `LAB-DEC-259` | `INV-68` | `AC-345` |
+

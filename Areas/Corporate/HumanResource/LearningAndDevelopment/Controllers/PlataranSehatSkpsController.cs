@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Controllers
 {
@@ -49,7 +50,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             {
                 return BadRequest(ApiResponse<string>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -69,7 +70,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             {
                 return NotFound(ApiResponse<string>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -90,7 +91,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             {
                 return NotFound(ApiResponse<string>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -111,7 +112,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             {
                 return NotFound(ApiResponse<string>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }

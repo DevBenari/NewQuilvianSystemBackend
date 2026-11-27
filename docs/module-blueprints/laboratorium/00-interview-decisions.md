@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `laboratorium` |
-| Revision | `116` |
+| Revision | `144` |
 | Status | `draft` |
-| Pass | `Scope pass` selesai; `Closure pass` selesai (tiga putaran); `Amendment pass` putaran 1 selesai; **putaran 2 selesai** (Penerimaan Sampling/Specimen, 2026-09-14); **putaran 3 selesai** (metode pembayaran, 2026-09-14); **putaran 4 selesai** (pendaftaran lewat kiosk dan pemecahan pesanan per disiplin, 2026-09-15); **putaran 5 selesai sebagian** (Menu Hasil, pencetakan, dan pengiriman hasil ke pasien, 2026-09-16 — sepuluh klarifikasi diadopsi `LAB-DEC-064`..`LAB-DEC-073`; **empat dari tujuh hal yang dibuka ditutup pada hari yang sama**; sisanya `LAB-OPEN-029`, `LAB-OPEN-030`, `LAB-OPEN-032`); **putaran 9 selesai** (halaman Hasil Pemeriksaan Mikrobiologi, 2026-09-21 — enam belas keputusan `LAB-DEC-095`..`LAB-DEC-110`; **enam pertentangan dengan keputusan terkunci diselesaikan seluruhnya ke arah blueprint**; `LAB-OPEN-017` dan `LAB-OPEN-030` ditutup); **putaran 10 selesai** (penutupan closure question impact scan capability map revision 4, 2026-09-21 — `LAB-DEC-111`..`LAB-DEC-113`; `LAB-CONFLICT-010` dan ketiga `LAB-CLOSE-010/011/012` ditutup; `LAB-COORD-014` dibuka dan **tidak memblokir**); **putaran 11 selesai** (bukti cetak tiga disiplin `LAB-EVD-005`, 2026-09-21 — `LAB-DEC-114`..`LAB-DEC-121`; **empat keputusan berumur beberapa jam diperbaiki**; `LAB-OPEN-039` sebagian ditutup; `LAB-OPEN-029` **sengaja tetap terbuka**); **putaran 12 selesai** (cetakan Mikrobiologi varian bakteri `LAB-EVD-006`, 2026-09-21 — `LAB-DEC-122`..`LAB-DEC-128`; **`LAB-DEC-116` yang berumur kurang dari satu jam dikoreksi**; interpretasi `S`/`I`/`R` menjadi terhitung); **putaran 13 selesai** (dataset specimen SNOMED CT `LAB-EVD-007`, 2026-09-21 — `LAB-DEC-129`..`LAB-DEC-132`; **`LAB-OPEN-040` DITUTUP**; `LAB-DEC-098` dikoreksi pada pilihan kolomnya); **putaran 14 selesai** (PRD Hasil Pemeriksaan PK & Mikrobiologi `LAB-EVD-008`, 2026-09-24 — `LAB-DEC-133` menetapkan PRD sebagai bukti untuk direkonsiliasi; `LAB-DEC-134`..`LAB-DEC-145` beserta `LAB-FE-015`/`LAB-FE-016` menutup **keempat belas pertentangan dan keenam butir baru**, nol keputusan terkunci dicabut; 45 koreksi PRD dicatat; `PRD1-CLIN-01` terbuka bagi pihak klinis, `LAB-COORD-015` bagi pemilik keamanan/platform, `PRD1-OPEN-01` tidak memblokir); **closure pass putaran 15 selesai** (closure question capability map revision 5, 2026-09-24 — `LAB-DEC-146`..`LAB-DEC-149` serta `LAB-FE-017` menutup `LAB-CLOSE-013`..`LAB-CLOSE-016` dan `LAB-CONFLICT-012`/`LAB-CONFLICT-013`, nol keputusan terkunci dicabut; `LAB-COORD-016` dibuka); **putaran 16 selesai** (jawaban dr. Bima `LAB-EVD-009`, 2026-09-24 — `LAB-DEC-150` menjawab sebagian `DEC-LAB-011` dan **menggantikan butir 2 `LAB-DEC-022`**; `LAB-DEC-151` menutup `PRD1-CLIN-01`; sisa `DEC-LAB-011` diajukan `LAB-REQ-014`); **putaran 17 selesai** (jawaban tertulis dr. Bima `LAB-EVD-010`, 2026-09-25 — `LAB-DEC-152` menutup sisa `DEC-LAB-011` dan `LAB-OPEN-034`, `LAB-DEC-153` menutup `DEC-LAB-018`; `LAB-OPEN-044` dibuka); **putaran 18 selesai** (keputusan pemilik modul `LAB-EVD-011`, 2026-09-25 — `LAB-DEC-154` menutup `LAB-CONFLICT-014`, `LAB-DEC-155` menjawab sebagian pertanyaan pemakaian sebelum `S6`, `LAB-DEC-156` mengamandemen label BR-88; `LAB-OPEN-045` dibuka); **putaran 19 selesai** (enam penahan gerbang `LAB-RCG-001-r10`, 2026-09-25 — `LAB-DEC-157`..`LAB-DEC-164` menutup `DEC-LAB-023`, `DEC-LAB-024`, `DEC-LAB-026`, `DEC-LAB-027` dan mempersempit `DEC-LAB-022`, `DEC-LAB-025`; `LAB-COORD-018` dibuka; satu pertentangan dengan bukti lapangan diselesaikan ke arah blueprint); **putaran 21 selesai** (keputusan tertulis pemilik modul `LAB-EVD-012`, 2026-10-06 — `LAB-DEC-168`..`LAB-DEC-187` menutup dua belas penahan dan menunda `S16b` ke Phase 2; enam klarifikasi, seluruhnya pilihan yang direkomendasikan; `LAB-SIGN-002` dibuka bagi ratifikasi klinis sebelum go-live); **putaran 22 selesai** (menu dan aksi alur kerja FE v1 pada daftar pasien lab, 2026-10-06 — `LAB-DEC-188`..`LAB-DEC-192` beserta `LAB-FE-030`/`LAB-FE-031`; lima pertanyaan, seluruhnya pilihan yang direkomendasikan; `LAB-DEC-048`, `LAB-DEC-060`, dan `LAB-DEC-062` diamandemen; nol kontrak backend berubah; `LAB-OPEN-051` dibuka); **putaran 23 selesai** (urutan Terima Sampling dan Konfirmasi mengikuti FE v1, 2026-10-07 — `LAB-DEC-193`..`LAB-DEC-197` beserta BR-138; pencatatan `Q-P22-01`/`02` sebagai `LAB-DEC-198`/`199`; `LAB-FE-032`/`033`; lima pertanyaan, seluruhnya pilihan yang direkomendasikan; `LAB-DEC-061`, `188`, `189`, `190` diamandemen; `LAB-OPEN-027` dan `LAB-CONFLICT-017` ditutup; `LAB-OPEN-052` dibuka; **menuntut amandemen empat kontrak**); **putaran 24 selesai** (dokter pemeriksa bagi pengonfirmasi dan jawaban detail konfirmasi, 2026-10-07 — dua temuan verifikasi `FE-LAB-50`; `LAB-DEC-200`..`LAB-DEC-203` beserta BR-139; `LAB-FE-034`; `AC-289`..`AC-293`; empat pertanyaan, seluruhnya pilihan yang direkomendasikan; **menuntut amandemen `LAB-API-v1`** dan urutan rilis `MVP-12c`); **putaran 25 selesai** (Beranda Lab mengikuti FE v1, 2026-10-07 — `LAB-DEC-204`..`LAB-DEC-211` beserta BR-140; `LAB-FE-035`; `AC-294`..`AC-301`; sebelas pertanyaan, seluruhnya pilihan yang direkomendasikan; butir *grafik Beranda versi v1* `LAB-DEC-188` diputuskan; **menuntut amandemen `LAB-API-v1`**); **putaran 26 selesai** (alur Lab dari kiosk sampai hasil mengikuti FE v1, 2026-10-08 — mencatat `LAB-EVD-013`; `LAB-DEC-212`..`LAB-DEC-221` beserta BR-141; `LAB-FE-036`; `AC-302`..`AC-313`; batas scope dan tiga pertanyaan, seluruhnya pilihan yang direkomendasikan; `LAB-DEC-191` digantikan; `AC-45` tetap berlaku; **menuntut amandemen `LAB-API-v1`**); **putaran 27 selesai** (lingkup kunci Lunas Proses Pemeriksaan, 2026-10-08 — `LAB-DEC-222`..`LAB-DEC-224`; `AC-314`..`AC-317`; batas scope dan tiga pertanyaan, seluruhnya pilihan yang direkomendasikan; `LAB-DEC-218` diamandemen; `LAB-CONFLICT-018` diselesaikan sisi Laboratorium; `LAB-COORD-020` dibuka; **menuntut amandemen `LAB-API-v1` dan `LAB-VAL-v1`**); **putaran 28 selesai** (CITO dari pemesanan hilang saat wadah direncanakan, 2026-10-09 — `LAB-DEC-225`..`LAB-DEC-228`; `AC-318`..`AC-322`; batas scope dan lima pertanyaan, seluruhnya pilihan yang direkomendasikan; `LAB-CONFLICT-019` dibuka dan ditutup; **menuntut amandemen `02-backend-architecture.md` 28.8**); **putaran 29 selesai** (rencana ulang sesudah wadah dibatalkan, temuan T1 `BE-LAB-94`, 2026-10-09 — `LAB-DEC-229`; `AC-323`..`AC-325`; satu pertanyaan, pilihan yang direkomendasikan); **putaran 30 selesai** (katalog Menu Laporan v2 `LAB-EVD-014`, 2026-10-20 — `LAB-DEC-230`..`LAB-DEC-245`; Laporan Pembatalan dan Statistik Pesanan lengkap; `LAB-OPEN-055` dibuka; `LAB-CONFLICT-020`..`024` dibuka dan ditutup; `AC-326`..`AC-335`; `LAB-OPEN-054` dan `LAB-COORD-021` dibuka; batas scope tidak dikonfirmasi eksplisit; berikutnya impact scan); **closure pass putaran 31 selesai** (pertanyaan penutup capability map revision 9 — `LAB-DEC-246`..`LAB-DEC-249`; `LAB-COORD-021` dipersempit; BR-152 butir 8 dan BR-148 butir 5 diamandemen; `AC-336`, `AC-337`) |
+| Pass | `Scope pass` selesai; `Closure pass` selesai (tiga putaran); `Amendment pass` putaran 1 selesai; **putaran 2 selesai** (Penerimaan Sampling/Specimen, 2026-09-14); **putaran 3 selesai** (metode pembayaran, 2026-09-14); **putaran 4 selesai** (pendaftaran lewat kiosk dan pemecahan pesanan per disiplin, 2026-09-15); **putaran 5 selesai sebagian** (Menu Hasil, pencetakan, dan pengiriman hasil ke pasien, 2026-09-16 — sepuluh klarifikasi diadopsi `LAB-DEC-064`..`LAB-DEC-073`; **empat dari tujuh hal yang dibuka ditutup pada hari yang sama**; sisanya `LAB-OPEN-029`, `LAB-OPEN-030`, `LAB-OPEN-032`); **putaran 9 selesai** (halaman Hasil Pemeriksaan Mikrobiologi, 2026-09-21 — enam belas keputusan `LAB-DEC-095`..`LAB-DEC-110`; **enam pertentangan dengan keputusan terkunci diselesaikan seluruhnya ke arah blueprint**; `LAB-OPEN-017` dan `LAB-OPEN-030` ditutup); **putaran 10 selesai** (penutupan closure question impact scan capability map revision 4, 2026-09-21 — `LAB-DEC-111`..`LAB-DEC-113`; `LAB-CONFLICT-010` dan ketiga `LAB-CLOSE-010/011/012` ditutup; `LAB-COORD-014` dibuka dan **tidak memblokir**); **putaran 11 selesai** (bukti cetak tiga disiplin `LAB-EVD-005`, 2026-09-21 — `LAB-DEC-114`..`LAB-DEC-121`; **empat keputusan berumur beberapa jam diperbaiki**; `LAB-OPEN-039` sebagian ditutup; `LAB-OPEN-029` **sengaja tetap terbuka**); **putaran 12 selesai** (cetakan Mikrobiologi varian bakteri `LAB-EVD-006`, 2026-09-21 — `LAB-DEC-122`..`LAB-DEC-128`; **`LAB-DEC-116` yang berumur kurang dari satu jam dikoreksi**; interpretasi `S`/`I`/`R` menjadi terhitung); **putaran 13 selesai** (dataset specimen SNOMED CT `LAB-EVD-007`, 2026-09-21 — `LAB-DEC-129`..`LAB-DEC-132`; **`LAB-OPEN-040` DITUTUP**; `LAB-DEC-098` dikoreksi pada pilihan kolomnya); **putaran 14 selesai** (PRD Hasil Pemeriksaan PK & Mikrobiologi `LAB-EVD-008`, 2026-09-24 — `LAB-DEC-133` menetapkan PRD sebagai bukti untuk direkonsiliasi; `LAB-DEC-134`..`LAB-DEC-145` beserta `LAB-FE-015`/`LAB-FE-016` menutup **keempat belas pertentangan dan keenam butir baru**, nol keputusan terkunci dicabut; 45 koreksi PRD dicatat; `PRD1-CLIN-01` terbuka bagi pihak klinis, `LAB-COORD-015` bagi pemilik keamanan/platform, `PRD1-OPEN-01` tidak memblokir); **closure pass putaran 15 selesai** (closure question capability map revision 5, 2026-09-24 — `LAB-DEC-146`..`LAB-DEC-149` serta `LAB-FE-017` menutup `LAB-CLOSE-013`..`LAB-CLOSE-016` dan `LAB-CONFLICT-012`/`LAB-CONFLICT-013`, nol keputusan terkunci dicabut; `LAB-COORD-016` dibuka); **putaran 16 selesai** (jawaban dr. Bima `LAB-EVD-009`, 2026-09-24 — `LAB-DEC-150` menjawab sebagian `DEC-LAB-011` dan **menggantikan butir 2 `LAB-DEC-022`**; `LAB-DEC-151` menutup `PRD1-CLIN-01`; sisa `DEC-LAB-011` diajukan `LAB-REQ-014`); **putaran 17 selesai** (jawaban tertulis dr. Bima `LAB-EVD-010`, 2026-09-25 — `LAB-DEC-152` menutup sisa `DEC-LAB-011` dan `LAB-OPEN-034`, `LAB-DEC-153` menutup `DEC-LAB-018`; `LAB-OPEN-044` dibuka); **putaran 18 selesai** (keputusan pemilik modul `LAB-EVD-011`, 2026-09-25 — `LAB-DEC-154` menutup `LAB-CONFLICT-014`, `LAB-DEC-155` menjawab sebagian pertanyaan pemakaian sebelum `S6`, `LAB-DEC-156` mengamandemen label BR-88; `LAB-OPEN-045` dibuka); **putaran 19 selesai** (enam penahan gerbang `LAB-RCG-001-r10`, 2026-09-25 — `LAB-DEC-157`..`LAB-DEC-164` menutup `DEC-LAB-023`, `DEC-LAB-024`, `DEC-LAB-026`, `DEC-LAB-027` dan mempersempit `DEC-LAB-022`, `DEC-LAB-025`; `LAB-COORD-018` dibuka; satu pertentangan dengan bukti lapangan diselesaikan ke arah blueprint); **putaran 21 selesai** (keputusan tertulis pemilik modul `LAB-EVD-012`, 2026-10-06 — `LAB-DEC-168`..`LAB-DEC-187` menutup dua belas penahan dan menunda `S16b` ke Phase 2; enam klarifikasi, seluruhnya pilihan yang direkomendasikan; `LAB-SIGN-002` dibuka bagi ratifikasi klinis sebelum go-live); **putaran 22 selesai** (menu dan aksi alur kerja FE v1 pada daftar pasien lab, 2026-10-06 — `LAB-DEC-188`..`LAB-DEC-192` beserta `LAB-FE-030`/`LAB-FE-031`; lima pertanyaan, seluruhnya pilihan yang direkomendasikan; `LAB-DEC-048`, `LAB-DEC-060`, dan `LAB-DEC-062` diamandemen; nol kontrak backend berubah; `LAB-OPEN-051` dibuka); **putaran 23 selesai** (urutan Terima Sampling dan Konfirmasi mengikuti FE v1, 2026-10-07 — `LAB-DEC-193`..`LAB-DEC-197` beserta BR-138; pencatatan `Q-P22-01`/`02` sebagai `LAB-DEC-198`/`199`; `LAB-FE-032`/`033`; lima pertanyaan, seluruhnya pilihan yang direkomendasikan; `LAB-DEC-061`, `188`, `189`, `190` diamandemen; `LAB-OPEN-027` dan `LAB-CONFLICT-017` ditutup; `LAB-OPEN-052` dibuka; **menuntut amandemen empat kontrak**); **putaran 24 selesai** (dokter pemeriksa bagi pengonfirmasi dan jawaban detail konfirmasi, 2026-10-07 — dua temuan verifikasi `FE-LAB-50`; `LAB-DEC-200`..`LAB-DEC-203` beserta BR-139; `LAB-FE-034`; `AC-289`..`AC-293`; empat pertanyaan, seluruhnya pilihan yang direkomendasikan; **menuntut amandemen `LAB-API-v1`** dan urutan rilis `MVP-12c`); **putaran 25 selesai** (Beranda Lab mengikuti FE v1, 2026-10-07 — `LAB-DEC-204`..`LAB-DEC-211` beserta BR-140; `LAB-FE-035`; `AC-294`..`AC-301`; sebelas pertanyaan, seluruhnya pilihan yang direkomendasikan; butir *grafik Beranda versi v1* `LAB-DEC-188` diputuskan; **menuntut amandemen `LAB-API-v1`**); **putaran 26 selesai** (alur Lab dari kiosk sampai hasil mengikuti FE v1, 2026-10-08 — mencatat `LAB-EVD-013`; `LAB-DEC-212`..`LAB-DEC-221` beserta BR-141; `LAB-FE-036`; `AC-302`..`AC-313`; batas scope dan tiga pertanyaan, seluruhnya pilihan yang direkomendasikan; `LAB-DEC-191` digantikan; `AC-45` tetap berlaku; **menuntut amandemen `LAB-API-v1`**); **putaran 27 selesai** (lingkup kunci Lunas Proses Pemeriksaan, 2026-10-08 — `LAB-DEC-222`..`LAB-DEC-224`; `AC-314`..`AC-317`; batas scope dan tiga pertanyaan, seluruhnya pilihan yang direkomendasikan; `LAB-DEC-218` diamandemen; `LAB-CONFLICT-018` diselesaikan sisi Laboratorium; `LAB-COORD-020` dibuka; **menuntut amandemen `LAB-API-v1` dan `LAB-VAL-v1`**); **putaran 28 selesai** (CITO dari pemesanan hilang saat wadah direncanakan, 2026-10-09 — `LAB-DEC-225`..`LAB-DEC-228`; `AC-318`..`AC-322`; batas scope dan lima pertanyaan, seluruhnya pilihan yang direkomendasikan; `LAB-CONFLICT-019` dibuka dan ditutup; **menuntut amandemen `02-backend-architecture.md` 28.8**); **putaran 29 selesai** (rencana ulang sesudah wadah dibatalkan, temuan T1 `BE-LAB-94`, 2026-10-09 — `LAB-DEC-229`; `AC-323`..`AC-325`; satu pertanyaan, pilihan yang direkomendasikan); **putaran 30 selesai** (katalog Menu Laporan v2 `LAB-EVD-014`, 2026-10-20 — `LAB-DEC-230`..`LAB-DEC-245`; Laporan Pembatalan dan Statistik Pesanan lengkap; `LAB-OPEN-055` dibuka; `LAB-CONFLICT-020`..`024` dibuka dan ditutup; `AC-326`..`AC-335`; `LAB-OPEN-054` dan `LAB-COORD-021` dibuka; batas scope tidak dikonfirmasi eksplisit; berikutnya impact scan); **closure pass putaran 31 selesai** (pertanyaan penutup capability map revision 9 — `LAB-DEC-246`..`LAB-DEC-249`; `LAB-COORD-021` dipersempit; BR-152 butir 8 dan BR-148 butir 5 diamandemen; `AC-336`, `AC-337`); **amendment pass putaran 32 selesai** (reschedule pemeriksaan Laboratorium, 2026-11-25 — `LAB-DEC-251`..`LAB-DEC-269`, BR-157; `AC-338`..`AC-352`; `LAB-COORD-022`/`023` dibuka; batas scope dikonfirmasi; 18 pertanyaan, seluruhnya pilihan yang direkomendasikan; fakta F32-1..F32-12 dibaca pada BE `4d2c0162` / FE `004524f4c`; berikutnya impact scan); **closure pass putaran 33 selesai** (pertanyaan penutup capability map revision 10, Q-P32-01..06, 2026-11-25 — `LAB-DEC-270`..`LAB-DEC-277`; `LAB-DEC-255` superseded; `LAB-COORD-022` ditutup; `LAB-OPEN-056` dibuka; `AC-353`..`AC-356`; berikutnya `/design-business-module`); **amendment pass putaran 34 selesai** (membuka penahan `BE-LAB-41` — pengiriman hasil ke pasien, 2026-11-27 — `LAB-DEC-278`..`LAB-DEC-288`; `LAB-DEC-183` diamandemen; `LAB-CONFLICT-025`..`027` ditutup; `LAB-OPEN-057`, `058` dibuka; `AC-357`..`AC-365`; berikutnya impact scan lalu `/design-business-module`) |
 | Product/domain owner | **Yoga Aji Pratama** (`yogaaji452@gmail.com`), ditetapkan 2026-09-01 |
 | Backend SHA | Dipindai pada `466a7127` (298 commit sejak `c87d9c0`). **`HEAD` bergeser ke `9067fa73` pada 2026-09-14 saat sesi berjalan** — diperiksa: source Laboratorium dan seluruh berkas yang menjadi dasar temuan **tidak berubah**, sehingga scan tetap sahih. **Putaran 4 dipindai pada `9067fa73`; `HEAD` kembali bergeser ke `e2152709` pada 2026-09-15 saat sesi berjalan** karena pekerjaan `BE-LAB-20`..`BE-LAB-25` di-commit (`7cd82c26`) lalu di-merge dari `origin/QuilvianIntegrationBackend` — diperiksa: merge itu **tidak menyentuh satu pun berkas Laboratorium** di luar commit tersebut, dan seluruh perubahan `BE-LAB-21`, `BE-LAB-22`, serta `BE-LAB-25` terverifikasi utuh sesudahnya |
 | Frontend SHA | `9cd4cd03f`, dipindai 2026-09-14 (155 commit sejak `688daff90`). **Putaran 14 dibaca pada BE `ddeb5ed8` (branch `yoga`) + FE `72607a087`, 2026-09-24** |
@@ -6516,6 +6516,425 @@ dan paket butir sisa Q16.
 > Sesudah disetujui, Laporan Pemeriksaan menampilkan *Mikrobiologi → Kultur Mikrobiologi → nama pemeriksaannya*,
 > dan tidak ada lagi kategori yang sama dengan nama disiplinnya.
 
+## Amendment Pass Putaran 32 — Reschedule (penjadwalan ulang) pemeriksaan Laboratorium (dibuka 2026-11-25)
+
+**Sumber:** permintaan pemilik modul pada 2026-11-25: *"cek modul laboratorium untuk fitur reschedule pemeriksaan
+lab apakah sudah ada atau belum"*, lalu *"lanjut qv-grill untuk fitur reschedule lab"*. Pemeriksaan awal menunjukkan
+fitur itu **belum ada** di backend, frontend V2, FE v1 (sebagai tombol khusus), maupun di blueprint. Dibaca pada
+backend `4d2c0162` (branch `yoga`), frontend `004524f4c` (branch `YogaV2`), dan FE v1 `C:\Users\Admin\QuilvianSystemFrontendDev`.
+
+*Reschedule* di sini berarti **memindahkan rencana pemeriksaan ke tanggal lain**, misalnya pasien yang diminta cek
+gula darah puasa hari Senin ternyata belum puasa, lalu pemeriksaannya dipindah ke Selasa pagi.
+
+**Capability map berpotensi basi.** Revision 9 dipindai pada BE `4d3e4f98` / FE `7fb1e1d3e`; `HEAD` kini
+`4d2c0162` / `004524f4c`. Fakta putaran ini dibaca langsung dari source, bukan dari peta. Impact scan
+`/trace-existing-capabilities` dianjurkan sebelum desain.
+
+### Batas scope putaran ini (dikonfirmasi pemilik modul 2026-11-25 — `LAB-DEC-251`)
+
+| Di dalam scope | Di luar scope — untuk pemilik lain |
+|---|---|
+| Arti *reschedule* pada pesanan Laboratorium | Reschedule pesanan MCU — modul `mcu` (sudah punya fitur sendiri); cukup titik sentuh bila pesanan Lab ditanggung MCU (`CoveringMcuOrderId`) |
+| Tanggal rencana pemeriksaan pada pesanan: perlu ada atau tidak, siapa yang mengisi | Reschedule pemeriksaan Radiologi — modul Radiologi |
+| Siapa yang boleh menjadwalkan ulang, dan pada status pesanan/wadah apa | Pemindahan kunjungan dan antrean — Registrasi; cukup titik sentuh |
+| Dampak ke wadah/sampel yang sudah direncanakan atau diambil, CITO, dan kunjungan | Nilai dan status tagihan — Billing; cukup titik sentuh |
+| Alasan dan jejak audit penjadwalan ulang | Jadwal jaga dokter — SDM |
+| Batas berapa kali boleh dijadwalkan ulang | Pemberitahuan ke pasien lewat WhatsApp — `S17` |
+| Tampilan di Daftar Pasien Lab dan kiosk *Konfirmasi Kehadiran* | |
+
+### Fakta dari source (bukti, bukan keputusan)
+
+| ID | Fakta | Bukti |
+|---|---|---|
+| F32-1 | Pesanan Laboratorium **wajib terikat ke satu kunjungan** (`EncounterId` wajib diisi, ditolak bila kosong) dan **tidak punya kolom tanggal rencana pemeriksaan**. Kolom waktunya hanya mencatat kejadian yang sudah terjadi: `RequestedAt`, `ConfirmedAt`, `CompletedAt`, `InstructionVerifiedAt` | `Areas/HealthServices/LaboratoryManagement/Models/LabOrder.cs`; `LabOrderService.CreateAsync` |
+| F32-2 | Tindakan yang ada hanya **Tahan / Lanjutkan / Batal** pada pesanan (`PUT {id}/hold`, `/resume`, `/cancel`) dan wadah (`POST {id}/hold`, `/resume`, `/cancel`), serta batal per pemeriksaan. Tidak satu pun memindahkan tanggal. Tahan menyimpan status sebelumnya (`StatusBeforeHold`) agar bisa dilanjutkan | `LabOrderController.cs` baris 541–580; `LabSpecimenController.cs` baris 256–288; `LabExaminationController.cs` baris 108 |
+| F32-3 | Status pesanan: `Draft`, `Requested`, `Accepted`, `InProcess`, `Completed`, `OnHold`, `CancelRequested`, `Cancelled`, `Confirmed`. Status wadah: `Planned`, `Collected`, `Received`, `Accepted`, `Rejected`, `RecollectionRequired`, `Cancelled`, `OnHold`. Tidak ada status untuk penjadwalan ulang | `Enums/LaboratoryEnums.cs` (`LabOrderStatus`, `LabSpecimenStatus`) |
+| F32-4 | Kata *reschedule* / *jadwal ulang* **nol kemunculan** pada source Laboratorium backend, frontend V2 (folder Lab), dan dokumen blueprint Laboratorium | Pencarian teks 2026-11-25 |
+| F32-5 | FE v1: form permintaan Lab dokter memuat *Tanggal Pemesanan* (`tglBooking`) dan *Tanggal Penyerahan Sampling*; *Tanggal Pemeriksaan* diisi sama dengan tanggal pemesanan bila kosong. Dokter dapat **Edit Permintaan** (`updateLabBooking`), dan tanggal ikut berubah lewat edit itu. **Tidak ada tombol Reschedule khusus** | v1 `components/view/dokter/dokter-pasien/penunjang-medis/laboratorium/components/add-laboratorium-dokter.jsx` baris 389–390, 603–604, 828–830, 862–870, 1005–1015 |
+| F32-6 | Kiosk V2 jalur Laboratorium memakai **pesanan Lab aktif** sebagai *booking* untuk *Konfirmasi Kehadiran* — tanpa tanggal rencana | `LAB-DEC-213` |
+| F32-8 | Daftar pantau Laboratorium menyaring periode menurut `DateCategory`: `OrderDate` (bawaan bila kosong), `SamplingDate`, `ExaminationDate`. Belum ada pilihan tanggal rencana | `DTOs/LabMonitoringDtos.cs` baris 44–58; `Enums/LabDateCategory.cs` |
+| F32-9 | Pesanan Lab baru **ditolak** bila kunjungannya `Completed`, `Cancelled`, atau `NoShow` (`VAL-67`, pesan *Kunjungan ini sudah selesai, pemeriksaan baru tidak dapat dipesankan*). Apakah pengerjaan pesanan **yang sudah ada** ikut terhalang sesudah kunjungannya selesai **belum diperiksa** — bahan `/trace-existing-capabilities` | `LabOrderService.cs` baris 1233–1240 |
+| F32-10 | MCU menjadwalkan ulang **per komponen** paketnya (`McuOrderComponentStatus.Rescheduled` + `ScheduledDate`; kembali `Pending` saat tanggal susulan tiba). Pesanan Lab yang ditanggung paket MCU membawa `CoveringMcuOrderId`. Kaitan otomatis antara jadwal ulang komponen MCU dan pesanan Lab-nya **belum diperiksa** — bahan trace | `MedicalCheckupManagement/Services/McuExaminationService.cs` baris 253–254, 554; `LabOrder.cs` baris 169; `LabOrderService.cs` baris 1160, 1330 |
+| F32-11 | Layar Laboratorium V2 hanya memanggil **Batal pesanan** (dialog beralasan dari daftar pantau, `submitLabOrderCancellation`). **Tahan/Lanjutkan pesanan tidak punya tombol di layar V2** — hanya tersedia lewat API (di luar scope putaran 26, `LAB-DEC-212`). *Koreksi:* pertanyaan Q16 semula menyebut Tahan/Lanjutkan sudah memakai dialog — keliru; yang benar hanya Batal | FE `lib/state/slice/health-services/laboratory-management/lab-monitoring-slice.jsx` baris 9, 169–171; nol pemanggil `hold`/`resume` pesanan di `src` |
+| F32-12 | Pesanan Lab dipesan dokter dari **layar milik modul lain**: antrean dokter poli (`registration-management/doctor-queue`), IGD (`emergency-installation-management`), dan Rawat Inap (`inpatient-management`). Pilihan tanggal rencana oleh dokter (`LAB-DEC-253`) karenanya butuh perubahan pada layar-layar itu | FE `lib/hooks/health-services/registration-management/doctor-queue/use-doctor-supporting-orders.js`; `lib/hooks/health-services/emergency-installation-management/emergency-physician/use-emergency-physician-supporting-service.jsx`; `lib/hooks/health-services/inpatient-management/use-inpatient-supporting-service.jsx` |
+| F32-7 | Fitur reschedule yang sudah ada di V2 seluruhnya milik modul lain: MCU (pesanan dan pemeriksaan MCU), Reservasi Prioritas (Registrasi), dan Hemodialisis | Pencarian teks frontend V2 2026-11-25 |
+
+| Urutan | Pertanyaan | Jawaban | Keputusan |
+|---|---|---|---|
+| Q0 | Batas scope putaran 32 | *Setuju* | `LAB-DEC-251` |
+| Q1 | Arti *reschedule* bagi pesanan Lab | *Ubah tanggal rencana pada pesanan yang sama* | `LAB-DEC-252` |
+| Q2 | Pengisian dan nilai bawaan tanggal rencana | *Bawaan hari ini, pemesan boleh memilih tanggal ke depan* | `LAB-DEC-253` |
+| Q3 | Siapa yang boleh menjadwalkan ulang | *Izin baru `LabOrder : Reschedule`* | `LAB-DEC-254` |
+| Q4 | Pada keadaan apa boleh dijadwalkan ulang | *Hanya sebelum sampel diambil* | `LAB-DEC-255` |
+| Q5 | Alasan penjadwalan ulang | *Wajib, teks bebas* | `LAB-DEC-256` |
+| Q6 | Status pesanan sesudah dijadwalkan ulang | *Status tidak berubah* | `LAB-DEC-257` |
+| Q7 | Tampilan tanggal rencana di Daftar Pasien Lab | *Kolom + periode Tanggal Rencana sebagai bawaan* | `LAB-DEC-258` |
+| Q8 | Tanggal rencana: penanda atau penghalang | *Penanda, tidak menghalangi* | `LAB-DEC-259` |
+| Q9 | Pesanan yang tanggal rencananya sudah lewat | *Tampil sebagai Terlewat* | `LAB-DEC-260` |
+| Q10 | Jadwal ulang ketika kunjungan asal sudah selesai | *Tolak* | `LAB-DEC-261` |
+| Q11 | Pesanan dengan pemeriksaan CITO | *Tolak selama ada CITO aktif* | `LAB-DEC-262` |
+| Q12 | Ketelitian tanggal rencana | *Tanggal saja* | `LAB-DEC-263` |
+| Q13 | Batas jumlah dan jarak penjadwalan ulang | *Tanpa batas, riwayat terlihat* | `LAB-DEC-264` |
+| Q14 | Pesanan Lab yang ditanggung paket MCU | *Tolak, jadwal milik MCU* | `LAB-DEC-265` |
+| Q15 | Kiosk *Konfirmasi Kehadiran* | *Tampilkan tanggal rencana, tetap terima* | `LAB-DEC-266` |
+| Q16 | Letak aksi jadwal ulang di layar | *Daftar Pasien Lab + detail pesanan, lewat dialog* | `LAB-DEC-267` |
+| Q17 | Pembaca riwayat dan laporan jadwal ulang | *Pemegang `LabOrder : Read`, tanpa laporan* | `LAB-DEC-268` |
+| Q18 | Urutan rilis terhadap layar pemesan dokter | *Lab dulu, layar dokter menyusul* | `LAB-DEC-269` |
+
+**Contoh `LAB-DEC-252`.** dr. Arif meminta Gula Darah Puasa untuk Senin 2 Desember. Senin pagi pasien mengaku sudah
+sarapan. Petugas memindahkan rencana ke Selasa 3 Desember dengan alasan *pasien belum puasa*. Nomor order, kunjungan,
+dan tanda CITO tetap sama; riwayat mencatat *Senin 2 Des → Selasa 3 Des, belum puasa, oleh <petugas>, pukul 07.40*.
+
+**Contoh `LAB-DEC-253`.** dr. Arif memesan Profil Lipid saat kontrol Kamis 28 November dan memilih Senin 2 Desember;
+tanggal rencana tersimpan 2 Desember. Pesanan Darah Lengkap di IGD tidak mengisi apa pun, jadi tanggal rencananya
+hari itu juga. Memilih Rabu 27 November (sudah lewat) ditolak dengan pesan *Tanggal rencana tidak boleh sebelum hari
+ini*. Pesanan lama yang dibuat sebelum fitur ini tampil dengan tanggal rencana = tanggal diminta.
+
+**Contoh `LAB-DEC-254`.** Gilang (Analis, meja penerimaan) memegang `LabOrder : Reschedule` sejak izin itu diberikan
+kepada posisinya, jadi tombol jadwal ulang tampil dan berhasil. dr. Nabila (dokter poli) tidak memegangnya: tombol tidak
+tampil, dan panggilan langsung ke server ditolak dengan kode 403 (*tidak punya hak akses untuk tindakan ini*). Bila
+admin kemudian memberikan izin itu kepada posisi dokter poli, dr. Nabila dapat menjadwalkan ulang.
+
+**Contoh `LAB-DEC-255`.**
+
+| Keadaan pesanan Gula Darah Puasa | Jadwal ulang? | Alasan |
+|---|---|---|
+| `Requested`, belum ada wadah | Boleh | Sampel belum ada |
+| `Accepted`, satu wadah `Planned` | Boleh | Wadah baru rencana, belum diambil |
+| `OnHold` (ditahan karena belum puasa), wadah `Planned` | Boleh | Kasus paling umum |
+| `Accepted`, wadah `Collected` pukul 07.15 | **Ditolak** — *Sampel sudah diambil; batalkan wadah atau ambil ulang lebih dulu* | Sampel tidak boleh menggantung sampai besok |
+| `InProcess`, `Completed`, `Confirmed`, `CancelRequested`, `Cancelled` | **Ditolak** | Pemeriksaan sudah berjalan atau pesanan tidak aktif |
+
+**Contoh `LAB-DEC-256`.** Gilang memindahkan pesanan ke Selasa dengan alasan kosong atau hanya spasi: ditolak dengan pesan
+yang sama seperti pembatalan, *Alasan wajib diisi*. Dengan alasan *pasien belum puasa sejak malam*: tersimpan, dan riwayat
+menampilkan teks itu apa adanya.
+
+**Contoh `LAB-DEC-257`.** Senin 07.30 pesanan Gula Darah Puasa ditahan (*belum puasa*), lalu dijadwalkan ulang ke Selasa.
+Selasa pagi pesanan tampil **Ditahan** bertanggal rencana Selasa. Petugas menekan *Lanjutkan*, sehingga pesanan kembali ke
+status sebelum ditahan (`Accepted`), lalu dikerjakan. Pesanan `Requested` yang dijadwalkan ulang tetap `Requested`.
+
+**Contoh `LAB-DEC-258`.** Kamis 28 November dr. Arif memesan Profil Lipid untuk Senin 2 Desember. Senin pagi Gilang membuka
+Daftar Pasien Lab: periode bawaan *Tanggal Rencana = hari ini*, sehingga Profil Lipid itu tampil dengan kolom *Tanggal
+Rencana 02-12-2026*. Pada daftar Kamis pesanan itu tidak tampil, kecuali petugas memilih periode *Tanggal Order*.
+
+**Contoh `LAB-DEC-259`.** Profil Lipid direncanakan Senin, tetapi pasien datang Jumat. Gilang langsung merencanakan wadah dan
+mengambil sampel; sistem tidak menolak. Tanggal rencana tetap Senin kecuali Gilang menjadwalkan ulang ke Jumat (alasan wajib).
+Pasien yang datang Rabu, terlambat dua hari, juga langsung dilayani.
+
+**Contoh `LAB-DEC-260`.** Profil Lipid direncanakan Senin; pasien tidak datang. Rabu pagi daftar bawaan memuat pesanan
+Rabu **dan** Profil Lipid itu bertanda *Terlewat 2 hari*. Gilang menelepon pasien lalu menjadwalkan ulang ke Jumat (alasan:
+*pasien minta Jumat*), sehingga penanda hilang. Bila sampelnya diambil Rabu itu juga, pesanan tidak lagi dianggap terlewat.
+Sistem tidak pernah membatalkannya sendiri.
+
+**Contoh `LAB-DEC-261`.** Pasien rawat inap pulang Selasa; kunjungannya `Completed`. Rabu Gilang mencoba memindah Profil Lipid
+yang direncanakan Kamis ke Jumat: ditolak dengan pesan *Kunjungan pesanan ini sudah selesai; pesan ulang pada kunjungan baru*.
+Bila pasien kembali Jumat lewat poli, dokter poli memesan Profil Lipid baru pada kunjungan Jumat itu.
+
+**Contoh `LAB-DEC-262`.** Troponin bertanda CITO oleh dr. Arif pukul 13.20. Alat rusak; Gilang mencoba memindah ke besok:
+ditolak dengan pesan *Pesanan memuat pemeriksaan CITO; minta dokter mencabut tanda CITO lebih dulu*. Sesudah dr. Arif mencabut
+CITO pukul 14.05 (tercatat), Gilang dapat menjadwalkan ulang dengan alasan *alat troponin rusak*.
+
+**Contoh `LAB-DEC-263`.** Gula Darah 2 Jam PP direncanakan *Senin 2 Desember*; jam 09.30 ditulis pada catatan pemeriksaan seperti
+sekarang. Senin pukul 00.30 WIB pesanan itu sudah masuk daftar *hari ini*; Selasa pukul 00.01 WIB ia menjadi *Terlewat 1 hari*
+bila sampelnya belum diambil.
+
+**Contoh `LAB-DEC-264`.** Profil Lipid dipindah Senin → Rabu → Jumat → Senin depan: keempatnya diterima, dan detail pesanan
+menampilkan *Dijadwalkan ulang 3 kali* beserta ketiga baris riwayat. Memindah ke 2 Maret 2027 untuk kontrol tiga bulan juga
+diterima. Memindah dari Rabu ke Rabu yang sama ditolak (*Tanggal baru sama dengan tanggal rencana saat ini*); memindah ke
+kemarin ditolak (*Tanggal rencana tidak boleh sebelum hari ini*).
+
+**Contoh `LAB-DEC-265`.** Pesanan Lab dari paket MCU PT PLN (bertanda paket MCU-RSMMC-000002). Gilang mencoba memindahnya ke
+Jumat: ditolak dengan pesan *Pesanan ini bagian paket MCU; jadwal ulang dilakukan petugas MCU*. Tombol jadwal ulang tidak
+tampil pada pesanan itu. Penyelarasan tanggal rencana Lab dengan komponen MCU yang dijadwal ulang diajukan sebagai `LAB-COORD-022`.
+
+**Contoh `LAB-DEC-266`.** Pasien datang Jumat dan memilih Laboratorium di kiosk. Data booking menampilkan *Profil Lipid —
+rencana Senin 02-12-2026 (lebih awal)*. Pasien menekan *Konfirmasi Kehadiran*; kiosk tidak menolak dan tidak menulis apa pun
+selain sesi kiosk. Di meja penerimaan Gilang memutuskan: langsung diambil, atau dijadwalkan ulang bila pasien belum puasa.
+
+**Catatan F32-11 terhadap `LAB-DEC-255`/`LAB-DEC-257`.** Karena Tahan/Lanjutkan pesanan belum punya tombol di layar V2,
+pesanan `OnHold` hanya muncul bila ditahan lewat API. Kedua keputusan tetap berlaku apa adanya: jadwal ulang tetap boleh pada
+`OnHold` dan tidak melepasnya. Contoh *petugas menekan Lanjutkan* pada `LAB-DEC-257` menggambarkan perilaku API; layar
+Lanjutkan pesanan tetap di luar scope.
+
+**Contoh `LAB-DEC-267`.** Senin pagi Gilang membuka Daftar Pasien Lab, memilih aksi *Jadwal Ulang* pada baris Gula Darah
+Puasa, lalu dialog meminta *Tanggal baru* dan *Alasan*. Sesudah disimpan, daftar memuat ulang dan pesanan itu pindah ke daftar
+Selasa. Di detail pesanan tampil tanggal rencana, *Dijadwalkan ulang 1 kali*, dan riwayatnya.
+
+**Contoh `LAB-DEC-268`.** dr. Arif memegang `LabOrder : Read` tetapi tidak memegang `LabOrder : Reschedule`. Saat membuka detail
+Gula Darah Puasa pasiennya, ia melihat *Senin 02-12 → Selasa 03-12 · pasien belum puasa · Gilang · 02-12-2026 07.40*, tanpa
+tombol jadwal ulang. Laporan Pembatalan tidak memuat baris ini karena pesanannya tidak dibatalkan.
+
+**Contoh `LAB-DEC-269`.** Sesudah rilis pertama, dr. Arif (poli) masih memesan Profil Lipid lewat layar antrean dokter tanpa
+pilihan tanggal, sehingga tanggal rencananya hari Kamis itu. Ia menulis *cek Senin* di catatan. Gilang membaca catatan itu lalu
+menjadwalkan ulang ke Senin dengan alasan *sesuai instruksi dokter*. Begitu `LAB-COORD-023` selesai, dr. Arif memilih Senin
+langsung dari layar pesanannya.
+
+> **Hasil putaran:** `LAB-DEC-251`..`LAB-DEC-269` (BR-157), seluruhnya pilihan yang direkomendasikan; `AC-338`..`AC-352`;
+> fakta F32-1..F32-12; `LAB-COORD-022` dan `LAB-COORD-023` dibuka; dua tafsir penulis (`LAB-DEC-255`, `LAB-DEC-258`) menunggu
+> konfirmasi closure. Langkah berikutnya: `/trace-existing-capabilities` impact scan (capability map revision 9 basi), lalu
+> `/design-business-module` untuk amandemen `LAB-API-v1`, `LAB-PERM-v1`, `LAB-VAL-v1`, dan `LAB-STATE-v1`.
+
+### BR-157 — Penjadwalan ulang pemeriksaan Laboratorium (`LAB-DEC-252`..`LAB-DEC-269`)
+
+**Tujuan.** Pemeriksaan yang belum bisa dikerjakan pada hari yang direncanakan dapat dipindah ke hari lain tanpa membatalkan
+pesanan, dan setiap perpindahan meninggalkan jejak yang bisa dipertanggungjawabkan: kapan, oleh siapa, dari tanggal berapa ke
+tanggal berapa, dan mengapa.
+
+**Pelaku.**
+
+| Pelaku | Peran |
+|---|---|
+| Dokter pemesan (poli, IGD, Rawat Inap) | Membuat pesanan; kelak memilih tanggal rencana (`LAB-COORD-023`); satu-satunya yang mencabut CITO |
+| Petugas penerimaan / Analis Laboratorium | Menjadwalkan ulang — pemegang `LabOrder : Reschedule` |
+| Kepala Instalasi Laboratorium | Menjadwalkan ulang — pemegang bawaan `LabOrder : Reschedule` |
+| Admin Role Access | Memberikan atau mencabut `LabOrder : Reschedule` per departemen-posisi |
+| Pemegang `LabOrder : Read` (termasuk dokter) | Membaca tanggal rencana dan riwayatnya |
+| Petugas MCU | Pemilik jadwal pesanan Lab berpaket MCU — **bukan** Laboratorium |
+
+**Pemicu.** Pasien belum siap (misalnya belum puasa), pasien meminta pindah hari, pasien tidak datang, atau kendala Lab
+(misalnya alat rusak).
+
+**Prasyarat.** Pesanan memiliki tanggal rencana (pesanan lama: tanggal diminta, WIB); pelaku memegang `LabOrder : Reschedule`.
+
+**Langkah utama.**
+
+1. Saat pesanan dibuat, tanggal rencana terisi hari itu (WIB), kecuali pemesan memilih tanggal ke depan (`LAB-DEC-253`).
+2. Daftar Pasien Lab menampilkan, secara bawaan, pesanan bertanggal rencana hari ini beserta pesanan *Terlewat* (`LAB-DEC-258`, `LAB-DEC-260`).
+3. Petugas memilih aksi *Jadwal Ulang* pada baris daftar atau di detail pesanan (`LAB-DEC-267`).
+4. Dialog meminta tanggal baru dan alasan.
+5. Backend memeriksa penjaga pada aturan bisnis di bawah, lalu mengganti tanggal rencana dan menulis satu baris riwayat.
+6. Daftar memuat ulang; pesanan muncul pada daftar tanggal barunya.
+
+**Aturan bisnis.**
+
+| No | Aturan | Contoh |
+|---:|---|---|
+| 1 | Hanya tanggal rencana yang berubah; nomor order, kunjungan, pemeriksaan, CITO, status pesanan, dan status wadah tetap (`LAB-DEC-252`, `LAB-DEC-257`) | Gula Darah Puasa `OnHold` dipindah ke Selasa → tetap `OnHold` |
+| 2 | Tanggal rencana = tanggal kalender WIB, tanpa jam (`LAB-DEC-263`) | *Senin 02-12-2026*; jam 2 Jam PP di catatan |
+| 3 | Tanggal baru ≥ hari ini (WIB) dan ≠ tanggal rencana saat ini (`LAB-DEC-253`, `LAB-DEC-264`) | Rabu → Rabu ditolak; ke kemarin ditolak |
+| 4 | Alasan wajib, teks bebas, pola `VAL-74` (`LAB-DEC-256`) | Alasan kosong ditolak *Alasan wajib diisi* |
+| 5 | Pesanan `Requested`/`Confirmed`, atau `OnHold` yang status sebelum ditahannya salah satu dari keduanya, dan belum ada wadah atau seluruh wadah `Planned` (`LAB-DEC-270`, menggantikan `LAB-DEC-255`); wadah `Cancelled`/`RecollectionRequired` diabaikan, wadah `OnHold` dinilai dari status sebelum ditahan, wadah `Rejected` tanpa ambil ulang menolak (`LAB-DEC-275`, `LAB-DEC-276`) | `Confirmed` dengan wadah `Planned` → boleh; `Accepted` atau wadah `Collected` 07.15 → ditolak |
+| 6 | Kunjungan asal bukan `Completed`/`Cancelled`/`NoShow` (`LAB-DEC-261`) | Pasien rawat inap sudah pulang → ditolak |
+| 7 | Tidak ada CITO aktif: permintaan `Ordered` ber-CITO atau pemeriksaan ber-CITO yang tidak gugur/batal (`LAB-DEC-262`, diperjelas `LAB-DEC-271`) | Troponin CITO berwadah → dokter mencabut CITO dulu; Troponin CITO belum berwadah → batal lalu pesan ulang |
+| 8 | Pesanan tidak bertaut komponen MCU, berpaket maupun tambahan (`LAB-DEC-265`, diamandemen `LAB-DEC-272`) | Darah Lengkap paket dan HbA1c tambahan MCU PT PLN → keduanya diarahkan ke petugas MCU |
+| 9 | Tanpa batas jumlah atau jarak (`LAB-DEC-264`) | Dipindah 3 kali, atau ke 3 bulan lagi → diterima |
+| 10 | Tanggal rencana adalah penanda, bukan penghalang pengerjaan (`LAB-DEC-259`) | Pasien datang Jumat untuk rencana Senin → langsung dilayani |
+
+**Perubahan status.**
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat |
+|---|---|---|---|---|
+| `Requested` | Jadwal Ulang | `Requested` (tanggal rencana berganti) | Pemegang `LabOrder : Reschedule` | Aturan 3–8 |
+| `Confirmed` | Jadwal Ulang | `Confirmed` (tanggal rencana berganti) | Pemegang `LabOrder : Reschedule` | Aturan 3–8 (`LAB-DEC-270`) |
+| `OnHold` (`StatusBeforeHold` = `Requested`/`Confirmed`) | Jadwal Ulang | `OnHold` (tanggal rencana berganti; `StatusBeforeHold` utuh) | Pemegang `LabOrder : Reschedule` | Aturan 3–8 |
+| `Draft`, `Accepted`, `InProcess`, `Completed`, `CancelRequested`, `Cancelled`; `OnHold` dari status selain `Requested`/`Confirmed` | Jadwal Ulang | — ditolak | — | `LAB-DEC-270` |
+
+**Jalur tidak normal.**
+
+| Kejadian | Perilaku |
+|---|---|
+| Pasien tidak datang | Pesanan bertanda *Terlewat* pada daftar bawaan; tidak dibatalkan sistem (`LAB-DEC-260`) |
+| Pasien datang lebih awal | Kiosk menampilkan *lebih awal* dan tetap menerima; petugas boleh langsung mengerjakan (`LAB-DEC-259`, `LAB-DEC-266`) |
+| Sampel sudah diambil lalu pasien minta pindah | Ditolak; gunakan batal wadah/ambil ulang yang sudah ada (`LAB-DEC-255`) |
+| Tanpa izin | Ditolak 403, aksi tidak tampil (`LAB-DEC-254`) |
+| Dua petugas menjadwalkan ulang pesanan yang sama hampir bersamaan | *Asumsi, dikonfirmasi pada desain:* mengikuti penjaga konkurensi pesanan yang ada (`LabOrder.Version`) — yang kedua ditolak dan diminta memuat ulang |
+
+**Hasil akhir.** Pesanan tetap satu dengan tanggal rencana terbaru. Riwayat memuat setiap perpindahan dan terbaca oleh pemegang
+`LabOrder : Read` (`LAB-DEC-268`). Tidak ada tagihan, wadah, atau status yang berubah; Laporan Pembatalan tidak terpengaruh.
+
+**Di luar BR-157.** Pilihan tanggal pada layar pemesan dokter (`LAB-COORD-023`), penyelarasan dengan jadwal komponen MCU
+(`LAB-COORD-022`), tombol Tahan/Lanjutkan pesanan di layar (F32-11), laporan jadwal ulang, Beranda, dan pemberitahuan ke
+pasien (`S17`).
+
+## Closure Pass Putaran 33 — Pertanyaan penutup capability map revision 10 (dibuka 2026-11-25)
+
+**Sumber:** [`01-existing-capability-map.md`](01-existing-capability-map.md) revision 10 bagian C, Q-P32-01..Q-P32-06
+(impact scan 2026-11-25 pada BE `4d2c0162` / FE `004524f4c`). Peta **segar**: `HEAD` kedua repository masih sama saat
+putaran ini dibuka. Batas scope **sama dengan `LAB-DEC-251`**; putaran ini hanya menutup pertentangan dan tafsir yang
+ditemukan peta, tanpa butir baru.
+
+| ID | Fakta dari capability map revision 10 | Bukti |
+|---|---|---|
+| F33-1 | `Accepted` baru tercapai **sesudah** sampel pertama dinyatakan layak (`Specimen.Accept`); `Confirmed` berdiri **antara** `Requested` dan `Accepted`, sebelum sampel | `CAP-P32-04` |
+| F33-2 | Tahan sah dari status apa pun kecuali `OnHold`/`Cancelled`/`Completed`, dan menyimpan `StatusBeforeHold` — `OnHold` bisa berasal dari `InProcess` | `CAP-P32-04` |
+| F33-3 | CITO pada permintaan (`LabOrderedProcedure.Urgency`) ditulis saat pesanan lahir dan tidak punya endpoint pengubah; pencabutan hanya untuk pemeriksaan, oleh dokter pemesan | `CAP-P32-08` |
+| F33-4 | `CoveringMcuOrderId` hanya terisi untuk komponen MCU yang ditanggung paket; tautan lengkap pesanan Lab dari MCU = `McuOrderComponent.LabOrderId`. MCU menolak menjadwal ulang komponen yang sudah dipesan ke Lab | `CAP-P32-09` |
+| F33-5 | Lab tidak memakai `AvailableActions`; tombol dari aturan status frontend + `usePermission`; baris daftar pantau tanpa status wadah, status kunjungan, CITO permintaan | `CAP-P32-11` |
+| F33-6 | `LabOrder : Hold` hanya dipegang Analis; Kepala Instalasi hanya `LabOrder : Read`, tanpa `LabMonitoring : Read`; preseden seeder salin-izin sekali jalan ada | `CAP-P32-03` |
+
+| Urutan | Pertanyaan | Jawaban | Keputusan |
+|---|---|---|---|
+| Q1 | Q-P32-01 — jendela status jadwal ulang | *`Requested` + `Confirmed` + `OnHold` yang status sebelum ditahannya salah satu dari keduanya* | `LAB-DEC-270` (menggantikan `LAB-DEC-255`) |
+| Q2 | Q-P32-02 — CITO pada permintaan yang tak dapat dicabut | *Tetap tolak; batal lalu pesan ulang* | `LAB-DEC-271` (memperjelas `LAB-DEC-262`) |
+| Q3 | Q-P32-03 — pesanan Lab yang jadwalnya milik MCU | *Semua pesanan bertaut komponen MCU* | `LAB-DEC-272` (mengamandemen `LAB-DEC-265`) |
+| Q4 | Q-P32-04 — ketersediaan aksi per baris | *Backend mengirim penanda + alasan* | `LAB-DEC-273` |
+| Q5 | Q-P32-05 — cara pemberian bawaan `LabOrder : Reschedule` | *Seeder salin dari `Hold` + Kepala Instalasi manual* | `LAB-DEC-274` |
+| Q6a | Q-P32-06 butir 1 — tafsir wadah `Cancelled`/`OnHold` | *Setuju dengan tafsir* | `LAB-DEC-275` |
+| Q6b | Wadah ditolak lalu diambil ulang | *Boleh sesudah ambil ulang diminta* | `LAB-DEC-276` |
+| Q6c | Q-P32-06 butir 2 — tafsir bawaan periode Daftar Pasien Lab | *Setuju dengan tafsir* | `LAB-DEC-277` |
+
+**Contoh `LAB-DEC-270`.**
+
+| Keadaan pesanan Gula Darah Puasa | Jadwal ulang? | Alasan |
+|---|---|---|
+| `Requested`, belum ada wadah | Boleh | Sampel belum ada |
+| `Confirmed` (Gilang sudah memilih dokter pemeriksa), wadah `Planned` | Boleh | Masih sebelum sampel |
+| `OnHold` dengan status sebelum ditahan `Confirmed`, wadah `Planned` | Boleh | Ditahan sebelum sampel |
+| `OnHold` dengan status sebelum ditahan `InProcess` | **Ditolak** | Pemeriksaan sudah berjalan sebelum ditahan |
+| `Accepted` (sampel pertama dinyatakan layak) | **Ditolak** | Sampel sudah diambil |
+| `Confirmed`, satu wadah `Collected` pukul 07.15 | **Ditolak** — *Sampel sudah diambil; batalkan wadah atau ambil ulang lebih dulu* | Sampel tidak boleh menggantung |
+
+**Contoh `LAB-DEC-271`.** Troponin CITO dipesan dr. Arif di IGD pukul 13.20; wadah belum direncanakan. Alat troponin rusak.
+Gilang mencoba menjadwalkan ulang ke besok: ditolak, *Pesanan memuat pemeriksaan CITO; minta dokter mencabut tanda CITO
+lebih dulu, atau batalkan lalu pesan ulang*. Karena CITO pada permintaan tidak dapat dicabut, dr. Arif memutuskan: pesanan
+dibatalkan dengan alasan *alat troponin rusak, dirujuk besok*, lalu ia memesan ulang tanpa CITO untuk besok. Seandainya wadah
+sudah direncanakan (pemeriksaan sudah lahir), dr. Arif cukup mencabut CITO pada pemeriksaannya, lalu Gilang menjadwalkan ulang.
+
+**Contoh `LAB-DEC-272`.** Peserta MCU PT PLN memesan paket (Darah Lengkap, ditanggung paket) dan tambahan berbayar (HbA1c,
+di luar paket). Keduanya menjadi pesanan Lab bertaut komponen MCU. Gilang mencoba memindah HbA1c ke Jumat: **ditolak**, sama
+seperti Darah Lengkap — *Pesanan ini bagian MCU; jadwal ulang dilakukan petugas MCU*. Karena komponen yang sudah dipesan
+juga tidak dapat dijadwal ulang di MCU, perpindahan hari ditempuh petugas MCU dengan membatalkan komponennya (pesanan Lab
+ikut batal beralasan) lalu memesan ulang pada hari baru.
+
+**Contoh `LAB-DEC-273`.** Daftar Pasien Lab memuat tiga baris bagi Gilang (pemegang `LabOrder : Reschedule`):
+
+| Baris | Penanda dari backend | Yang tampil |
+|---|---|---|
+| Gula Darah Puasa, `Confirmed`, wadah `Planned` | boleh | *Jadwal Ulang* aktif |
+| Kolesterol, `Confirmed`, satu wadah `Collected` | tidak boleh — *Sampel sudah diambil* | *Jadwal Ulang* nonaktif dengan alasan itu |
+| HbA1c MCU PT PLN | tidak boleh — *Pesanan bagian MCU; jadwal ulang oleh petugas MCU* | *Jadwal Ulang* nonaktif dengan alasan itu |
+
+Bagi dr. Nabila yang tidak memegang izin, tombol itu tidak tampil sama sekali. Bila keadaan berubah di antara muat daftar dan
+Simpan (misalnya wadah baru saja diambil), server tetap menolak dengan pesan yang sama.
+
+**Contoh `LAB-DEC-274`.** Saat backend versi baru pertama kali menyala di devYoga, seeder mendapati `LabOrder : Reschedule` belum
+punya satu pun baris kebijakan, lalu memberikannya kepada jabatan pemegang `LabOrder : Hold` — hari ini hanya *Analis
+Laboratorium* (Gilang, Vina). Langkah rilis kemudian memberikan izin itu kepada *Kepala Instalasi Laboratorium* (dr. Bima) lewat
+Role Access. Bila admin kelak mencabutnya dari Analis, startup berikutnya **tidak** memberikannya kembali, karena seeder hanya
+berjalan selama izin itu belum pernah punya baris kebijakan. dr. Bima menjadwalkan ulang dari detail pesanan, karena jabatannya
+tidak memegang `LabMonitoring : Read`.
+
+**Contoh `LAB-DEC-275`.** Pesanan `Confirmed` dengan wadah A `Cancelled` (salah tabung) dan wadah B `Planned` → boleh dijadwalkan
+ulang. Wadah C `OnHold` yang ditahan dari `Planned` → dihitung `Planned`, boleh. Wadah D `OnHold` yang ditahan dari `Collected` →
+dihitung `Collected`, ditolak.
+
+**Contoh `LAB-DEC-276`.** Kalium pasien poli (`Confirmed`) hemolisis pukul 09.10; wadahnya `Rejected`. Gilang mencoba memindah ke
+besok: **ditolak**, *Sampel ditolak; minta ambil ulang lebih dulu*. Gilang meminta ambil ulang: wadah lama menjadi
+`RecollectionRequired`, wadah pengganti lahir `Planned`. Sekarang jadwal ulang ke besok **berhasil** dengan alasan *pasien sudah
+pulang, datang lagi besok pagi*.
+
+**Contoh `LAB-DEC-277`.** Gilang membuka *Daftar Pasien Lab Patologi Klinik*: periode bawaan *Tanggal Rencana = hari ini*. Ia lalu
+membuka *Hasil dan Riwayat Lab Patologi Klinik*: periode bawaan tetap *Tanggal Order*, dan pilihan *Tanggal Rencana* tersedia
+bila ia memilihnya. Layar dokter poli yang memanggil daftar pesanan tanpa kategori periode tetap memperoleh penyaring menurut
+tanggal order seperti sebelumnya.
+
+> **Hasil putaran:** `LAB-DEC-270`..`LAB-DEC-277`, seluruhnya pilihan yang direkomendasikan. **`LAB-DEC-255` superseded**
+> (digantikan `LAB-DEC-270`); `LAB-DEC-262` diperjelas `LAB-DEC-271`; `LAB-DEC-265` diamandemen `LAB-DEC-272`; rujukan
+> `AvailableActions` pada `LAB-DEC-254`/`265`/`267` digantikan `LAB-DEC-273`. `LAB-COORD-022` ditutup; `LAB-OPEN-056` dibuka
+> (temuan di luar scope). BR-157 aturan 5, 7, 8 dan tabel status diamandemen; `AC-341`, `AC-348`, `AC-350` diamandemen;
+> `AC-353`..`AC-356` ditambah. Keenam pertanyaan penutup capability map revision 10 tertutup; tidak ada pertentangan atau
+> tafsir yang tersisa bagi BR-157. Langkah berikutnya: `/design-business-module` untuk amandemen `LAB-API-v1`,
+> `LAB-PERM-v1`, `LAB-VAL-v1`, dan `LAB-STATE-v1`.
+
+## Amendment Pass Putaran 34 — Membuka penahan `BE-LAB-41`: pengiriman hasil ke pasien (2026-11-27)
+
+**Sumber:** permintaan pemilik modul 2026-11-27: *"lakukan grill me untuk membuka penahan BE-LAB-41"*, sesudah roadmap
+Laboratorium tidak lagi memuat task yang siap dikerjakan. Dibaca pada backend `cce1dbf5` (branch `yoga`) dan frontend
+`11b3aaece` (branch `YogaV2`); FE v1 `C:\Users\Admin\QuilvianSystemFrontendDev` sebagai pembanding paritas.
+
+*Pengiriman hasil ke pasien* di sini berarti **menyerahkan dokumen hasil final satu nomor order kepada pasien lewat
+WhatsApp**, lalu mencatatnya sehingga kolom *Terkirim ke Pasien* di menu Hasil dan Riwayat berisi angka yang sebenarnya.
+
+**Capability map berpotensi basi.** Revision 10 dipindai pada BE `4d2c0162` / FE `004524f4c`; `HEAD` kini `cce1dbf5` /
+`11b3aaece`. Fakta putaran ini dibaca langsung dari source. Impact scan `/trace-existing-capabilities` dianjurkan sebelum
+desain.
+
+### Batas scope putaran ini (dikonfirmasi pemilik modul 2026-11-27 — `LAB-DEC-278`)
+
+| Di dalam scope | Di luar scope — untuk pemilik lain |
+|---|---|
+| Saluran kirim yang dipakai Laboratorium selama gerbang otomatis belum ada | Membangun gerbang WhatsApp platform — pemilik platform (`LAB-COORD-011`); cukup titik sentuh |
+| Dokumen hasil final yang dikirim (PDF), versinya, dan arsipnya | Mesin PDF platform (QuestPDF) — pemilik platform; Lab hanya memakai |
+| Syarat kirim (gerbang `LAB-DEC-139`) | Perubahan nomor WhatsApp pada data induk pasien — Manajemen Pasien |
+| Nomor tujuan, kirim ulang dan batasnya, perilaku gagal | Portal atau unduh mandiri oleh pasien |
+| Siapa yang boleh mengirim; log pengiriman dan angka *Terkirim ke Pasien* (`BE-LAB-41`) | Pengiriman hasil Radiologi dan MCU — modul masing-masing |
+| | Penetapan siapa Profesor dan bentuk persetujuannya — pihak klinis (`LAB-OPEN-029`) |
+
+### Fakta dari source (bukti, bukan keputusan)
+
+| ID | Fakta | Bukti |
+|---|---|---|
+| F34-1 | **Pembaca sudah ada.** Menu Hasil dan Riwayat memuat kolom *Terkirim ke Pasien* yang selalu berisi *Belum Terkirim* (keputusan pemilik 2026-10-09) dan aksi *Kirim Hasil ke Pasien* yang nonaktif beralasan *"Belum tersedia: V2 belum memiliki layanan pengiriman WhatsApp."* | `lab-monitoring-table-columns.jsx` `buildLabResultHistoryColumns` |
+| F34-2 | **Hasil sudah dapat dirilis.** Validasi dan rilis empat mata berjalan (`LabExaminationResult : Validate/Release`); `DEC-LAB-011` ditutup sebagai kebijakan (`LAB-DEC-150`, `LAB-DEC-152`) | Laporan `BE-LAB-73` dst.; decision log |
+| F34-3 | **Pembangkit PDF kini ada di platform:** paket `QuestPDF 2026.7.1` sejak merge 2026-10-09 (`81e87b211`), dipakai Keuangan dan Aset. Belum dipakai Laboratorium | `QuilvianSystemBackend.csproj`; `FinanceReceiptService.cs`, `AssetLabelDocumentService.cs` |
+| F34-4 | **Gerbang WhatsApp masih nol.** Yang ada hanya `SmtpEmailSender` (email teks polos, **tanpa lampiran**), dipakai pendaftaran online | `Services/Notification/SmtpEmailSender.cs`; `OnlineRegistrationPublicService` |
+| F34-5 | Tombol *Preview Hasil* dan *Print Hasil* di halaman hasil V2 **nonaktif beralasan** — cetak hasil untuk pasien belum dibangun; gerbang `LAB-DEC-139` belum diimplementasikan di jalur mana pun | `lab-result-v1-layout.jsx` `LabResultV1ActionBar` |
+| F34-6 | FE v1 mengirim lewat server: `POST /LabHasil/LabHasilWA-Pasien/{hasilLabId}`, dan menolak kiriman ke-4: *"Hasil pasien maksimal dapat dikirim 3 kali melalui WhatsApp."* | v1 `LabHasilSlice.jsx` `sendLabHasilToPatientWhatsApp` |
+| F34-7 | Nomor tujuan sudah punya tempat: `MstPatient.WhatsAppNumber` | `BR-50` bagian *Yang sudah terpenuhi source* |
+
+### Pertentangan yang ditemukan dan penyelesaiannya
+
+| ID | Pertentangan | Penyelesaian |
+|---|---|---|
+| `LAB-CONFLICT-025` | `LAB-DEC-183` (approved 2026-10-06): WhatsApp mengirim **tautan aman** lewat layanan platform, bukan berkas. Jawaban Q2 putaran ini: petugas mengirim **berkas PDF** dari WhatsApp resmi rumah sakit | ✅ `LAB-DEC-279` — berkas PDF sebagai jalur **sementara**; `LAB-DEC-183` diamandemen, tidak digantikan |
+| `LAB-CONFLICT-026` | `LAB-DEC-183`/`LAB-DEC-140`: PDF **berversi**, versi lama *sudah digantikan*. Jawaban Q7 awal: salinan PDF disimpan **per pengiriman** | ✅ `LAB-DEC-284` — arsip **per versi**; log menunjuk versi yang dikirim |
+| `LAB-CONFLICT-027` | Paritas v1 membatasi 3 kali kirim (F34-6); `BR-50` butir 6 tidak menyebut batas | ✅ `LAB-DEC-281` — tanpa batas, tercatat; paritas v1 **tidak** diadopsi pada butir ini |
+
+### Pertanyaan dan jawaban
+
+| No. | Pertanyaan | Jawaban pemilik modul | Keputusan |
+|---|---|---|---|
+| Q1 | Batas scope putaran ini | Setuju | `LAB-DEC-278` |
+| Q2 | Gerbang WhatsApp otomatis belum ada — bagaimana pengiriman dibuka? | **Kirim manual berbantu** (direkomendasikan) | `LAB-DEC-279` |
+| Q3 | Syarat persetujuan Profesor | **Ajukan ke dr. Bima, gerbang tertutup** (direkomendasikan) | `LAB-DEC-280` |
+| Q4 | Batas kirim ulang | **Tanpa batas, tercatat** (direkomendasikan) | `LAB-DEC-281` |
+| Q5 | Nomor tujuan kosong/keliru | **Hanya nomor data induk** (direkomendasikan) | `LAB-DEC-282` |
+| Q6 | Pencatatan hasil kirim manual | **Terkirim / Gagal beralasan** (direkomendasikan) | `LAB-DEC-283` |
+| Q7 | Dokumen dan arsip | **Cetak hasil pasien + arsip** (direkomendasikan), lalu Q11 | `LAB-DEC-284` |
+| Q8 | Koreksi sesudah terkirim | **Tandai *Perlu kirim ulang*** (direkomendasikan) | `LAB-DEC-285` |
+| Q9 | Kewenangan | **Izin tersendiri, Analis** (direkomendasikan) | `LAB-DEC-286` |
+| Q10a | Pemakaian PDF untuk Preview/Print | **Satu PDF, satu gerbang** (direkomendasikan) | `LAB-DEC-287` |
+| Q10b | Disiplin | **Patologi Klinik + Mikrobiologi** (direkomendasikan) | `LAB-DEC-288` |
+| Q11a | `LAB-CONFLICT-025` berkas atau tautan | **Berkas PDF, sementara** (direkomendasikan) | `LAB-DEC-279` |
+| Q11b | `LAB-CONFLICT-026` arsip | **Arsip per versi** (direkomendasikan) | `LAB-DEC-284` |
+
+### Proses bisnis sesudah putaran ini
+
+1. Seluruh pemeriksaan pada nomor order `LAB-RSMMC-000040` sudah **dirilis** empat mata oleh dokter berkewenangan.
+   Sistem menerbitkan **dokumen hasil final versi 1**: PDF bernomor, berversi, ber-QR, berisi sama dengan lembar hasil
+   untuk pasien, disimpan di penyimpanan privat.
+2. Selama persetujuan Profesor belum punya pemegang dan mekanisme (`LAB-OPEN-029`, nota `LAB-OPEN-057`), aksi
+   *Kirim Hasil ke Pasien*, *Print Hasil*, dan unduh **nonaktif** dengan keterangan *Menunggu persetujuan Profesor*.
+   *Preview Hasil* tetap dapat dibuka petugas, bertanda air **BELUM FINAL — bukan untuk pasien**.
+3. Sesudah gerbang terbuka, Gilang (Analis, pemegang izin kirim) memilih *Kirim Hasil ke Pasien*. Sistem memakai nomor
+   WhatsApp pasien di data induk, membuka WhatsApp ke nomor itu, dan menyediakan PDF versi 1 untuk dilampirkan.
+4. Gilang mengirim PDF dari WhatsApp resmi rumah sakit, lalu memilih **Terkirim**. Satu baris log tercatat: pelaku,
+   waktu, nomor tujuan (snapshot), saluran *WhatsApp manual*, versi dokumen. Kolom *Terkirim ke Pasien* menjadi `1`.
+5. Pasien kehilangan pesannya dan meminta lagi → Gilang mengirim ulang → baris log kedua, angka `2`. Tidak ada batas.
+6. Seminggu kemudian dokter mengoreksi satu nilai (koreksi beralasan) → terbit **versi 2**; versi 1 berstatus
+   *sudah digantikan* pada halaman verifikasi QR. Baris di Hasil dan Riwayat menampilkan **Perlu kirim ulang** sampai
+   versi 2 tercatat *Terkirim*. Angka tidak dikurangi.
+
+**Jalur tidak normal.**
+
+| Keadaan | Yang terjadi |
+|---|---|
+| Nomor WhatsApp pasien kosong di data induk | Aksi nonaktif: *Nomor WhatsApp pasien belum tercatat — perbarui di data pasien*. Petugas Lab tidak dapat mengetik nomor lain |
+| Nomor tidak terdaftar di WhatsApp | Petugas memilih **Gagal** + alasan *Nomor tidak terdaftar di WhatsApp*. Log tercatat, angka tidak bertambah, kirim ulang tetap tersedia |
+| Pasien menolak dikirimi | **Gagal** + alasan *Pasien menolak dikirim*. Log tercatat |
+| Order belum lengkap dirilis | Aksi nonaktif beralasan — syarat `LAB-DEC-139` yang belum terpenuhi disebut |
+| Pengguna tanpa izin kirim | Aksi tidak tampil; panggilan API langsung → `403` tanpa tulis |
+| Order Patologi Anatomi | Aksi nonaktif beralasan — di luar putaran ini (`LAB-DEC-288`) |
+
+> **Hasil putaran:** `LAB-DEC-278`..`LAB-DEC-288`, seluruhnya pilihan yang direkomendasikan. **`LAB-DEC-183` diamandemen**
+> oleh `LAB-DEC-279` (berkas PDF sementara) dan diselaraskan `LAB-DEC-284` (arsip per versi); `BR-50` butir 5–6 dan
+> `LAB-DEC-067` dijabarkan, syaratnya tidak diubah. Tiga pertentangan ditutup (`LAB-CONFLICT-025`..`027`).
+> `LAB-COORD-011`: sisi PDF **tersedia** (QuestPDF), sisi WhatsApp tetap koordinasi platform — tidak lagi menahan
+> `BE-LAB-41` karena jalur manual. **Penahan yang tersisa bagi PEMAKAIAN fitur, bukan pembangunannya:** persetujuan
+> Profesor (`LAB-OPEN-029`, diajukan lewat `LAB-OPEN-057`). `AC-357`..`AC-365` ditambah. Langkah berikutnya: impact
+> scan `/trace-existing-capabilities`, lalu `/design-business-module` untuk amandemen `02-backend-architecture.md`
+> bagian 13 dan kontrak `LAB-API-v1`/`LAB-PERM-v1`/`LAB-VAL-v1`/`LAB-STATE-v1`.
+
 ## State dan Transition
 
 Kerangka mengikuti `LAB-INH-001`, `LAB-INH-002`, dan `LAB-INH-003`. Bagian yang ditambahkan
@@ -6844,6 +7263,44 @@ dengan alasan keselamatan **tidak boleh** dihapus atau diperlemah oleh keputusan
 | `LAB-DEC-247` | Decision | **`LAB-DEC-237` adalah penjaga BACKEND SAJA bagi setiap pemanggil; layar Laboratorium TETAP TANPA aksi batal per pemeriksaan/wadah (`VAL-13` utuh); bila kelak layar itu dibuka, isian alasan wajib sejak awal.** Mengamandemen BR-148 butir 5. Menutup `CAP-P30-04` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-10-20 — *"A"*, pilihan yang direkomendasikan | Lihat BR-154. F31-2. Baris *Pemeriksaan* Laporan Pembatalan hanya lahir dari API |
 | `LAB-DEC-248` | Decision | **Tombol Cetak laporan `S16b` memanggil SERVER lebih dulu lewat panggilan berizin unduh yang MENCATAT cetak (siapa, kapan, laporan, periode, penyaring; tanpa data pasien); dialog cetak baru terbuka bila server menerima — FAIL-CLOSED bila ditolak atau gagal.** Izin ditegakkan di server. Ctrl+P peramban di luar jangkauan aplikasi. Bentuk endpoint milik desain | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-10-20 — *"A"*, pilihan yang direkomendasikan | Lihat BR-155. Menjawab BR-145 butir 3 dan `CAP-P30-12`. `AC-337` |
 | `LAB-DEC-250` | Decision | **Label status pada berkas `.xlsx` Laporan Pembatalan dan pada metadata penyaring status pesanan SAMA PERSIS dengan label layar Laboratorium** (`LAB_ORDER_STATUS_LABEL`, `LAB_EXAMINATION_STATUS_LABEL`): *Sedang Dikerjakan*, *Pembatalan Diminta*, *Terpesan*, *Layak Tagih*, *Digugurkan* — bukan bunyi backend lama (*Sedang dikerjakan*, *Dipesan*, *Layak tagih*, *Gugur*). Satu kata di layar, penyaring, kertas, dan Excel; arah penyeragaman: berkas mengikuti layar, karena label layar adalah sumber tunggal modul | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-10-21 — *"saya setujui keputusan FE-LAB-55 agar diseragamkan jika memang itu rekomendasinya"*; arah yang direkomendasikan: berkas mengikuti layar | Temuan `FE-LAB-55` bagian 5. Diterapkan `LabFilterMetadataFactory.LabelOrderStatus`/`LabelStatusPemeriksaan` 2026-10-21; harness `BE-LAB-100` 31/31; berkas nyata diperiksa dengan akun dr. Bima |
+| `LAB-DEC-251` | Decision | **Batas scope Amendment Pass putaran 32 — reschedule pemeriksaan Laboratorium.** Di dalam: arti *reschedule* pada pesanan Lab; tanggal rencana pemeriksaan pada pesanan (perlu atau tidak, siapa mengisi); siapa boleh menjadwalkan ulang dan pada status pesanan/wadah apa; dampak ke wadah/sampel, CITO, dan kunjungan; alasan dan jejak audit; batas jumlah penjadwalan ulang; tampilan Daftar Pasien Lab dan kiosk *Konfirmasi Kehadiran*. **Di luar** (cukup titik sentuh): reschedule MCU, Radiologi, pemindahan kunjungan/antrean (Registrasi), tagihan (Billing), jadwal jaga dokter (SDM), WhatsApp `S17` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q0 *Setuju* putaran 32 | Putaran 32 bagian *Batas scope*. F32-1..F32-7 |
+| `LAB-DEC-252` | Decision | **Reschedule = MENGUBAH TANGGAL RENCANA PEMERIKSAAN pada pesanan Laboratorium YANG SAMA.** Pesanan memperoleh *tanggal rencana pemeriksaan*; menjadwalkan ulang mengganti tanggal itu tanpa membatalkan pesanan — nomor order, kunjungan, pemeriksaan, dan CITO tetap. Setiap perubahan disimpan sebagai riwayat: tanggal lama, tanggal baru, alasan, pelaku, waktu. **Ditolak:** batal-lalu-pesan-ulang (nomor berganti, kaitan hilang, terhitung pembatalan) dan edit tanggal tanpa jejak ala v1 | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q1 *Ubah tanggal rencana* putaran 32 | F32-1, F32-5. Menuntut kolom dan riwayat baru (keputusan migration terpisah) |
+| `LAB-DEC-253` | Decision | **Tanggal rencana pemeriksaan BAWAAN = hari pesanan dibuat (WIB); pemesan BOLEH memilih tanggal ke depan, TIDAK BOLEH sebelum hari ini.** Pesanan yang lahir sebelum fitur ini memakai tanggal diminta (`RequestedAt`, WIB) sebagai tanggal rencananya. **Ditolak:** wajib dipilih tanpa bawaan (klik tambahan pada IGD/Rawat Inap) dan diisi petugas Lab saja (dokter tak bisa menyatakan *cek Senin depan*) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q2 *Bawaan hari ini, dokter boleh ubah* putaran 32 | F32-5 (v1 *Tanggal Pemesanan* bawaan hari ini). Tafsir *hari ini* = tanggal kalender WIB |
+| `LAB-DEC-254` | Decision | **Menjadwalkan ulang dijaga AKSI IZIN BARU `LabOrder : Reschedule`**, terpisah dari `LabOrder : Update`. Bawaan pemberian: posisi petugas penerimaan/Analis Laboratorium dan Kepala Instalasi Laboratorium; posisi lain, termasuk dokter, memperolehnya hanya bila diberikan admin lewat Role Access. Backend menolak tanpa izin (403) dan menyembunyikan aksinya dari ~~`AvailableActions`~~ penanda kelayakan per pesanan (`LAB-DEC-273`). **Ditolak:** hak otomatis dokter pemesan (aturan kepemilikan baru di luar model izin per posisi) dan menumpang `LabOrder : Update` (Analis tidak memegangnya sejak 2026-10-01) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q3 *Izin baru LabOrder : Reschedule* putaran 32 | Model izin `SysAccessPolicies` per `(DepartmentId, PositionId)`. Menuntut amandemen `LAB-PERM-v1`. Pemberian bawaan dilakukan lewat Role Access — POST menimpa seluruh set, baca lalu kirim ulang utuh |
+| `LAB-DEC-255` | Decision | **Menjadwalkan ulang HANYA SEBELUM SAMPEL DIAMBIL:** status pesanan `Requested`, `Accepted`, atau `OnHold`, **dan** pesanan belum punya wadah atau seluruh wadahnya masih `Planned`. Status pesanan lain (`Draft`, `InProcess`, `Completed`, `Confirmed`, `CancelRequested`, `Cancelled`) dan wadah yang sudah `Collected` atau lebih jauh **ditolak** dengan pesan yang menunjuk alur batal wadah/ambil ulang yang sudah ada. *Tafsir penulis, dikonfirmasi pada closure:* wadah `Cancelled` diabaikan; wadah `OnHold` dihitung menurut status sebelum ditahan (`StatusBeforeHold`). **Ditolak:** membatalkan wadah terambil secara otomatis (satu aksi menyentuh banyak wadah, masuk Laporan Pembatalan) dan hanya `Requested` (menutup kasus `OnHold` belum puasa) | Yoga Aji Pratama | `superseded` — digantikan `LAB-DEC-270` (2026-11-25, closure pass putaran 33) | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q4 *Hanya sebelum sampel diambil* putaran 32. **Daftar status keliru** (F33-1): `Accepted` sudah sesudah sampel, `Confirmed` pra-sampel tertolak | F32-2, F32-3. Menuntut amandemen `LAB-STATE-v1`/`LAB-VAL-v1` |
+| `LAB-DEC-256` | Decision | **Alasan penjadwalan ulang WAJIB, TEKS BEBAS — pola sama dengan alasan pembatalan Lab (`LAB-DEC-237`, `VAL-74`)**: kosong atau hanya spasi ditolak dengan pesan dan kode status yang sama; panjang maksimum mengikuti alasan pembatalan. Bukan daftar terkendali, tanpa master baru. **Ditolak:** daftar alasan terkendali (master dan pengelola baru, pola berbeda dari pembatalan) dan alasan opsional (menggugurkan riwayat beralasan `LAB-DEC-252`) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q5 *Wajib, teks bebas* putaran 32 | `LAB-DEC-237`. Menuntut amandemen `LAB-VAL-v1` |
+| `LAB-DEC-257` | Decision | **Menjadwalkan ulang TIDAK MENGUBAH STATUS pesanan maupun wadah** — hanya tanggal rencana dan riwayatnya. Pesanan `OnHold` tetap `OnHold` (`StatusBeforeHold` utuh) sampai petugas menekan *Lanjutkan*; `Requested`/`Accepted` tetap. Tidak ada status baru. **Ditolak:** melanjutkan `OnHold` secara otomatis (satu aksi dua efek; penahanan beralasan lain ikut terlepas) dan status *Dijadwalkan Ulang* (menambah `LAB-STATE-v1` dan setiap laporan/penyaring) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q6 *Status tidak berubah* putaran 32 | F32-2, F32-3. `LAB-STATE-v1` tidak memperoleh status baru |
+| `LAB-DEC-258` | Decision | **Daftar Pasien Laboratorium memperoleh KOLOM *Tanggal Rencana* dan PILIHAN PERIODE *Tanggal Rencana*, yang menjadi BAWAAN layar itu.** Pesanan lama tidak berubah tampilannya karena tanggal rencananya = tanggal diminta (`LAB-DEC-253`). *Tafsir penulis, dikonfirmasi pada closure:* bawaan diganti **di layar** Daftar Pasien Lab saja; bawaan backend `DateCategory` kosong = `OrderDate` tetap, demi kompatibilitas pemanggil lain (Hasil dan Riwayat `LAB-DEC-217`, laporan). **Ditolak:** bawaan tetap Tanggal Order (pesanan Senin baru terlihat bila periode diganti) dan hanya di detail | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q7 *Kolom + periode Tanggal Rencana bawaan* putaran 32 | F32-8. Menuntut amandemen `LAB-API-v1` (`LabDateCategory` nilai baru) |
+| `LAB-DEC-259` | Decision | **Tanggal rencana adalah PENANDA, BUKAN PENGHALANG.** Perencanaan wadah, pengambilan, penerimaan, dan pengerjaan tetap boleh pada hari mana pun, lebih awal maupun terlambat; tidak ada penjaga backend yang membandingkan tanggal rencana dengan hari ini. Penilaian kesiapan klinis (misalnya puasa) tetap pada petugas seperti sekarang. Menjadwalkan ulang ke hari ini bersifat sukarela. **Ditolak:** menghalangi sebelum tanggalnya dan menghalangi di luar tanggalnya (langkah tambahan setiap pasien datang di luar jadwal) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q8 *Penanda, tidak menghalangi* putaran 32 | `LAB-DEC-255` tetap: jadwal ulang ditolak sesudah sampel diambil |
+| `LAB-DEC-260` | Decision | **Pesanan TERLEWAT tampil pada daftar bawaan dengan penanda *Terlewat*.** Terlewat = tanggal rencana < hari ini (WIB), pesanan masih dalam jendela jadwal ulang `LAB-DEC-270` (*diamandemen closure 33; semula `Requested`/`Accepted`/`OnHold` menurut `LAB-DEC-255`*). Dihitung saat dibaca, **tanpa job terjadwal** (A7.5), **tanpa pembatalan otomatis** — petugas memutuskan jadwal ulang atau batal beralasan. **Ditolak:** hanya rencana hari ini (pesanan tidak datang terlupakan) dan batal otomatis sesudah N hari (melanggar A7.5, batal tanpa pelaku manusia) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q9 *Tampil sebagai Terlewat* putaran 32 | `LAB-DEC-258`, A7.5 |
+| `LAB-DEC-261` | Decision | **Jadwal ulang DITOLAK bila kunjungan asal pesanan `Completed`, `Cancelled`, atau `NoShow`** — sejalan dengan `VAL-67`. Pemeriksaan di hari lain dipesan ulang pada kunjungan baru. Tagihan tidak berpindah ke kunjungan yang sudah tutup. **Ditolak:** tetap boleh dengan tagihan di kunjungan asal (penerimaan tagihan susulan oleh Billing belum diketahui) dan menahan butir ini sebagai koordinasi Billing | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q10 *Tolak bila kunjungan selesai* putaran 32 | F32-9. Apakah pengerjaan pesanan yang sudah ada terhalang sesudah kunjungan selesai tetap bahan trace — **tidak** diubah keputusan ini |
+| `LAB-DEC-262` | Decision | **Jadwal ulang DITOLAK selama pesanan memuat pemeriksaan CITO yang masih aktif** (tidak batal/gugur). Penundaan pemeriksaan mendesak adalah keputusan klinis dokter: dokter mencabut CITO lebih dulu lewat mekanisme yang sudah ada (penanda dokter dan waktu, `LAB-DEC-227`), sesudah itu jadwal ulang tunduk pada aturan biasa. **Ditolak:** boleh dengan CITO melekat (pemeriksaan mendesak tertunda tanpa keputusan dokter) dan boleh hanya dalam hari yang sama | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q11 *Tolak selama ada CITO* putaran 32 | `LAB-DEC-226`/`227`. Keselamatan klinis — fail-closed |
+| `LAB-DEC-263` | Decision | **Tanggal rencana menyimpan TANGGAL KALENDER SAJA (WIB), tanpa jam dan tanpa sesi.** Jam khusus (misalnya 2 Jam PP) tetap ditulis pada catatan pemeriksaan. *Catatan desain:* simpan sebagai tanggal murni, bukan waktu tengah malam UTC, agar tidak bergeser satu hari (jebakan 17 jam yang sudah terjadi pada tanggal SDM). **Ditolak:** tanggal dan jam (isian tambahan, aturan zona waktu) dan sesi Pagi/Siang (daftar sesi baru) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q12 *Tanggal saja* putaran 32 | F32-5, F32-8 |
+| `LAB-DEC-264` | Decision | **Tanpa batas jumlah dan tanpa batas jarak penjadwalan ulang.** Aturan tanggal baru hanya dua: tidak sebelum hari ini (WIB) dan berbeda dari tanggal rencana saat ini. Detail pesanan menampilkan berapa kali pesanan sudah dijadwalkan ulang beserta seluruh riwayatnya. **Ditolak:** batas jumlah dengan persetujuan Kepala Instalasi (angka belum berdasar SOP, alur persetujuan baru) dan batas jarak N hari (menghalangi kontrol jangka panjang) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q13 *Tanpa batas, riwayat terlihat* putaran 32 | `LAB-DEC-252`, `LAB-DEC-253` |
+| `LAB-DEC-265` | Decision | **Pesanan Lab yang ditanggung paket MCU (`CoveringMcuOrderId` terisi) TIDAK DAPAT dijadwalkan ulang dari Laboratorium**; jadwalnya milik MCU (jadwal ulang per komponen). Backend menolak dengan pesan yang mengarahkan ke petugas MCU, dan aksinya tidak tampil di ~~`AvailableActions`~~ penanda kelayakan per pesanan (`LAB-DEC-273`). Penyelarasan tanggal rencana Lab dengan tanggal susulan komponen MCU diajukan sebagai **`LAB-COORD-022`** kepada pemilik modul `mcu`. **Ditolak:** boleh dari kedua sisi (dua tanggal bertentangan) dan Lab ikut menggeser komponen MCU (Lab menulis data MCU) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q14 *Tolak, jadwal milik MCU* putaran 32 | F32-10. *Penandanya diamandemen `LAB-DEC-272` (closure 33): semua pesanan bertaut komponen MCU, bukan hanya `CoveringMcuOrderId`* |
+| `LAB-DEC-266` | Decision | **Kiosk *Konfirmasi Kehadiran* jalur Laboratorium MENAMPILKAN tanggal rencana setiap pesanan** beserta penanda *lebih awal* (tanggal rencana > hari ini) atau *Terlewat* (`LAB-DEC-260`), **tanpa menolak** dan tetap nol tulis selain sesi kiosk (`LAB-DEC-213` utuh). Seluruh pesanan aktif tetap terbaca sebagai booking. **Ditolak:** menyembunyikan pesanan ke depan (pasien bisa masuk jalur pendaftaran baru, kunjungan ganda) dan tanpa perubahan kiosk | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q15 *Tampilkan tanggal, tetap terima* putaran 32 | `LAB-DEC-213`, `LAB-DEC-259` |
+| `LAB-DEC-267` | Decision | **Aksi *Jadwal Ulang* tersedia sebagai aksi baris di Daftar Pasien Laboratorium DAN tombol di detail pesanan; keduanya membuka DIALOG berisi tanggal baru dan alasan**, mengikuti pola dialog Batal pesanan yang sudah ada (F32-11). Aksi hanya tampil bila backend menyatakannya tersedia (~~`AvailableActions`~~ penanda kelayakan per pesanan (`LAB-DEC-273`)). Riwayat jadwal ulang tampil di detail pesanan. **`DEV_DISCRETION`:** warna, ikon, label tombol, susunan isi dialog, dan bentuk tabel riwayat, dalam pola layar Lab yang ada. **Ditolak:** hanya di detail (petugas meja depan membuka detail setiap pasien) dan `DEV_DISCRETION` penuh | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q16 *Daftar Pasien Lab + detail, dialog* putaran 32 | F32-11. Hierarki: keamanan/invariant → keputusan ini → konvensi proyek → `DEV_DISCRETION` |
+| `LAB-DEC-268` | Decision | **Riwayat jadwal ulang terbaca oleh setiap pemegang `LabOrder : Read`** di detail pesanan — tanpa izin baca baru. **Tidak ada laporan jadwal ulang** pada putaran ini; jadwal ulang **bukan** pembatalan dan tidak masuk Laporan Pembatalan (`BR-151`). Laporan rekap dapat diusulkan kelak lewat katalog `S16b` dengan kesebelas butir `LAB-DEC-181`. **Ditolak:** laporan sekarang (putaran memanjang tanpa kebutuhan SOP) dan riwayat hanya bagi pemegang izin Reschedule (dokter tak tahu mengapa pemeriksaan dipindah) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q17 *Pemegang LabOrder : Read, tanpa laporan* putaran 32 | `LAB-DEC-181`, `LAB-DEC-231`, BR-151 |
+| `LAB-DEC-269` | Decision | **Rilis pertama penjadwalan ulang = sisi Laboratorium saja:** backend menerima tanggal rencana **opsional** (bawaan hari ini, WIB) pada pembuatan pesanan, aksi jadwal ulang dari Daftar Pasien Lab dan detail pesanan, tampilan kiosk. **Pilihan tanggal pada layar pemesan dokter** (antrean dokter poli, IGD, Rawat Inap — milik modul lain) **menyusul** sebagai `LAB-COORD-023`; sampai itu, *cek Senin depan* dikerjakan petugas Lab lewat jadwal ulang. **Ditolak:** rilis bersama ketiga layar pemesan (rilis Lab bergantung tiga modul) dan Lab + layar poli saja | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q18 *Lab dulu, layar dokter menyusul* putaran 32 | F32-12. Membuka `LAB-COORD-023`; `LAB-COORD-022` dibuka `LAB-DEC-265` |
+| `LAB-DEC-270` | Decision | **Jendela jadwal ulang (menggantikan `LAB-DEC-255`): status pesanan `Requested` atau `Confirmed`, atau `OnHold` yang `StatusBeforeHold`-nya `Requested`/`Confirmed`; DAN pesanan belum punya wadah atau seluruh wadahnya `Planned`.** `Accepted` (sampel pertama sudah layak) dan setiap status sesudahnya ditolak; `OnHold` yang ditahan dari `Accepted`/`InProcess` ditolak. Maksud tetap: *hanya sebelum sampel diambil*. Penolakan menunjuk alur batal wadah/ambil ulang. **Ditolak:** `Requested` saja (pesanan yang sudah dikonfirmasi harus dibatalkan untuk dipindah) dan mempertahankan `LAB-DEC-255` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q1 *Requested + Confirmed + OnHold-nya* closure pass putaran 33 | F33-1, F33-2, `CAP-P32-04`. Mengamandemen BR-157 aturan 5 dan tabel perubahan status, `LAB-DEC-260` (definisi *Terlewat*), `AC-341` |
+| `LAB-DEC-271` | Decision | **Memperjelas `LAB-DEC-262`: *CITO aktif* = permintaan berstatus `Ordered` yang `Urgency`-nya Cito, ATAU pemeriksaan ber-CITO yang tidak gugur/batal. Selama ada salah satunya, jadwal ulang DITOLAK.** CITO pada pemeriksaan dicabut dokter pemesan lewat mekanisme yang ada; CITO pada **permintaan** (belum berwadah) tidak dapat dicabut, sehingga jalan keluarnya **batal beralasan lalu pesan ulang** oleh dokter. **Tanpa endpoint baru** pada rilis ini. **Ditolak:** membuka pencabutan CITO permintaan (butuh tombol di layar dokter milik modul lain) dan mengizinkan jadwal ulang meski CITO (membalik keputusan keselamatan) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q2 *Tetap tolak; batal lalu pesan ulang* closure pass putaran 33 | F33-3, `CAP-P32-08`. `LAB-DEC-262` tetap `approved`. Mengamandemen BR-157 aturan 7 dan `AC-348`. Penanda `HasCito` daftar pantau buta terhadap CITO permintaan — catatan desain |
+| `LAB-DEC-272` | Decision | **Mengamandemen penanda `LAB-DEC-265`: SETIAP pesanan Lab yang ditautkan komponen MCU (`McuOrderComponent.LabOrderId`) — berpaket maupun tambahan di luar paket — tidak dapat dijadwalkan ulang dari Laboratorium**, bukan hanya yang ber-`CoveringMcuOrderId`. Perpindahan hari pesanan MCU ditempuh dari sisi MCU dengan batal komponen (pesanan Lab ikut batal beralasan) lalu pesan ulang. Karena MCU juga menolak menjadwal ulang komponen yang sudah dipesan (F33-4), tanggal Lab dan MCU tidak dapat bertentangan; **`LAB-COORD-022` ditutup**. **Ditolak:** hanya yang berpaket (komponen tambahan lolos, MCU tak tahu tanggal berubah) dan mengizinkan Lab menjadwal ulang semua pesanan MCU (petugas MCU kehilangan kendali jadwal) | Yoga Aji Pratama (pemilik modul `laboratorium` dan `mcu`) | `approved` | Yoga Aji Pratama, 2026-11-25 — Q3 *Semua pesanan bertaut komponen MCU* closure pass putaran 33 | F33-4, `CAP-P32-09`. Mengamandemen BR-157 aturan 8 dan `AC-350` |
+| `LAB-DEC-273` | Decision | **Kelayakan jadwal ulang dihitung BACKEND dan dikirim per pesanan — pada baris Daftar Pasien Lab dan detail pesanan — sebagai penanda *boleh dijadwalkan ulang* beserta ALASAN bila tidak boleh**, dari aturan yang sama dengan penjaga aksi (BR-157 aturan 5–8: jendela status/wadah, kunjungan, CITO aktif, tautan MCU). Layar = penanda × izin `LabOrder : Reschedule`: tanpa izin → tombol tidak tampil; berizin tetapi tidak layak → tombol nonaktif dengan alasan dari backend. Server tetap menegakkan aturan saat Simpan. Menggantikan rujukan *`AvailableActions`* pada `LAB-DEC-254`/`265`/`267` dan `AC-340` (Lab tidak memakai pola itu). **Ditolak:** frontend menghitung dari ruas mentah (aturan di dua tempat) dan tampil menurut status + izin saja (dialog diisi lalu ditolak) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q4 *Backend kirim penanda + alasan* closure pass putaran 33 | F33-5, `CAP-P32-11`. Menuntut amandemen `LAB-API-v1` (ruas baris/detail). Pola Lab yang ada (aturan status FE untuk Batal) tidak diubah |
+| `LAB-DEC-274` | Decision | **Pemberian bawaan `LabOrder : Reschedule` = seeder SEKALI JALAN yang menyalin pemberian `LabOrder : Hold` ke `LabOrder : Reschedule` pada departemen-posisi yang sama** (pola `OperatingRoomHandoverPermissionSeeder`: hanya berjalan bila `Reschedule` belum pernah punya baris kebijakan, termasuk yang sudah dicabut; dijalankan sesudah `AccessMenuSeeder`), **ditambah langkah rilis: pemberian kepada *Kepala Instalasi Laboratorium* lewat Role Access** di setiap lingkungan. Pencabutan oleh admin tidak ditimpa seeder. Kepala Instalasi memakai aksi dari detail pesanan selama jabatannya tidak memegang `LabMonitoring : Read` (pemberian izin daftar itu **bukan** bagian keputusan ini). **Ditolak:** seluruhnya manual (mudah terlupa, tombol tidak tampil bagi siapa pun) dan tanpa Kepala (mengubah `LAB-DEC-254`) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q5 *Seeder salin dari Hold + Kepala manual* closure pass putaran 33 | F33-6, `CAP-P32-03`. Melaksanakan `LAB-DEC-254`. Langkah rilis Role Access: baca set jabatan lebih dulu (POST menimpa seluruh set) |
+| `LAB-DEC-275` | Decision | **Mengonfirmasi tafsir penulis pada syarat wadah `LAB-DEC-270`: wadah `Cancelled` DIABAIKAN; wadah `OnHold` DINILAI menurut `StatusBeforeHold`-nya** (ditahan dari `Planned` = belum diambil; ditahan dari `Collected` atau sesudahnya = sampel sudah ada). **Ditolak:** wadah ditahan selalu menolak dan wadah batal ikut menolak | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q6a *Setuju dengan tafsir* closure pass putaran 33 | `LabSpecimen.StatusBeforeHold`. Tafsir penulis pada `LAB-DEC-255` (*dikonfirmasi pada closure*) kini keputusan |
+| `LAB-DEC-276` | Decision | **Wadah `RecollectionRequired` DIABAIKAN seperti `Cancelled` (status akhir; wadah penggantinya yang dinilai); wadah `Rejected` yang ambil ulangnya belum diminta MENOLAK jadwal ulang** — petugas memutuskan ambil ulang lebih dulu. Pasien yang harus datang lagi untuk ambil ulang dapat dipindah jadwalnya tanpa batal-pesan ulang. Jendela status pesanan `LAB-DEC-270` tetap berlaku (pesanan yang sudah `Accepted` karena wadah lain layak tetap ditolak). **Ditolak:** selalu menolak bila pernah ada sampel dan `Rejected` pun boleh | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q6b *Boleh sesudah ambil ulang diminta* closure pass putaran 33 | `LabSpecimenService.cs` `TerminalSpecimenStatuses` (`Cancelled`, `RecollectionRequired`), alur ambil ulang baris 900–975. Melengkapi syarat wadah BR-157 aturan 5 |
+| `LAB-DEC-277` | Decision | **Mengonfirmasi tafsir penulis `LAB-DEC-258`: bawaan periode *Tanggal Rencana* HANYA pada Daftar Pasien Laboratorium (tampilan daftar pantau mode daftar kerja).** Menu Hasil dan Riwayat (mode hasil) tetap berbawaan *Tanggal Order*, dengan pilihan *Tanggal Rencana* tersedia; bawaan backend bila kategori periode kosong tetap `OrderDate` demi pemanggil lain. **Ditolak:** Hasil dan Riwayat ikut Tanggal Rencana dan mengubah bawaan API | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-25 — Q6c *Setuju dengan tafsir* closure pass putaran 33 | `CAP-P32-10` (konstanta bersama, prop `mode`). Tafsir penulis pada `LAB-DEC-258` kini keputusan |
+| `LAB-DEC-278` | Decision | **Batas scope amendment pass putaran 34: pengiriman hasil final Lab ke pasien dari menu Hasil dan Riwayat, beserta log pengiriman dan angka *Terkirim ke Pasien* (`BE-LAB-41` + jalur kirimnya).** Di luar: gerbang WhatsApp dan mesin PDF platform, nomor WhatsApp data induk (Manajemen Pasien), portal pasien, hasil Radiologi/MCU, penetapan Profesor (klinis) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-27 — Q1 *Setuju* amendment pass putaran 34 | Bagian putaran 34 tabel scope |
+| `LAB-DEC-279` | Decision | **Selama gerbang WhatsApp platform dan tautan aman (`LAB-COORD-015`) belum tersedia, hasil dikirim dengan KIRIM MANUAL BERBANTU: sistem menyediakan PDF hasil final dan membuka WhatsApp ke nomor pasien di data induk; petugas mengirim BERKAS PDF dari WhatsApp resmi rumah sakit lalu mencatat hasilnya.** Jalur ini **sementara**: begitu gerbang otomatis dan tautan aman tersedia, saluran beralih ke tautan aman (`LAB-DEC-183`) dan jalur manual dicabut. *Terkirim* pada jalur ini adalah **pernyataan petugas**, bukan bukti gerbang. **Mengamandemen `LAB-DEC-183`** (butir tautan aman) untuk masa sementara; menutup `LAB-CONFLICT-025` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-27 — Q2 *Kirim manual berbantu*, Q11a *Berkas PDF, sementara* amendment pass putaran 34 | F34-3, F34-4; `LAB-DEC-183` |
+| `LAB-DEC-280` | Decision | **Persetujuan Dokter Lab (`LAB-DEC-067`) = validasi + rilis empat mata oleh dokter berkewenangan yang sudah berjalan (`LAB-DEC-150`, `LAB-DEC-152`). Syarat persetujuan Profesor TETAP, diajukan ke dr. Bima Prasetya, Sp.PK lewat nota (`LAB-OPEN-057`); sampai dijawab, gerbang `LAB-DEC-139` TERTUTUP** — Kirim, Print Hasil, dan unduh nonaktif beralasan *Menunggu persetujuan Profesor*. Pembangunan fitur tidak ditahan; pemakaiannya ditahan | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-27 — Q3 *Ajukan ke dr. Bima, gerbang tertutup* amendment pass putaran 34 | `LAB-OPEN-029`, `LAB-DEC-139` |
+| `LAB-DEC-281` | Decision | **Kirim ulang hasil satu nomor order TANPA BATAS; setiap pengiriman tercatat.** Paritas v1 (maksimal 3 kali, F34-6) **tidak** diadopsi pada butir ini; menutup `LAB-CONFLICT-027` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-27 — Q4 *Tanpa batas, tercatat* amendment pass putaran 34 | `BR-50` butir 6; F34-6 |
+| `LAB-DEC-282` | Decision | **Nomor tujuan HANYA nomor WhatsApp pasien pada data induk (`MstPatient.WhatsAppNumber`), disimpan sebagai snapshot pada setiap baris log.** Nomor kosong → aksi nonaktif beralasan *Nomor WhatsApp pasien belum tercatat — perbarui di data pasien*; petugas Lab tidak dapat mengetik nomor lain | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-27 — Q5 *Hanya nomor data induk* amendment pass putaran 34 | F34-7; rancangan `BE-LAB-41` (snapshot nomor) |
+| `LAB-DEC-283` | Decision | **Setiap pengiriman manual dicatat TERKIRIM atau GAGAL beralasan.** Alasan gagal: *Nomor tidak terdaftar di WhatsApp*, *Pasien menolak dikirim*, *Lainnya* (+ keterangan wajib). Keduanya masuk log (pelaku, waktu, nomor snapshot, saluran *WhatsApp manual*, versi dokumen); **hanya Terkirim menambah angka *Terkirim ke Pasien***, dan angka itu **turunan** dari log. Selaras status `Sent`/`Failed` `LAB-DEC-183`; `Pending`/`Delivered` hanya untuk gerbang otomatis kelak | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-27 — Q6 *Terkirim / Gagal beralasan* amendment pass putaran 34 | `BR-50` butir 6; rancangan `BE-LAB-41` |
+| `LAB-DEC-284` | Decision | **Dokumen yang dikirim = dokumen hasil final `LAB-DEC-183`: PDF dibuat server (QuestPDF), satu per nomor order, bernomor, berversi, ber-QR (`LAB-DEC-140`), isi sama dengan lembar hasil untuk pasien (`LAB-EVD-005`), tidak dapat diedit pasien. Setiap VERSI disimpan sekali di penyimpanan privat; setiap baris log menunjuk versi yang dikirim.** Menutup `LAB-CONFLICT-026` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-27 — Q7 *Cetak hasil pasien + arsip*, Q11b *Arsip per versi* amendment pass putaran 34 | F34-3; `LAB-DEC-067`, `LAB-DEC-140`, `LAB-DEC-183` |
+| `LAB-DEC-285` | Decision | **Koreksi hasil sesudah pernah terkirim melahirkan VERSI BARU dokumen (versi lama *sudah digantikan*), dan baris Hasil dan Riwayat menampilkan penanda *Perlu kirim ulang* sampai versi terbaru tercatat Terkirim.** Log lama utuh; angka tidak dikurangi | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-27 — Q8 *Tandai Perlu kirim ulang* amendment pass putaran 34 | `LAB-DEC-140` (status versi) |
+| `LAB-DEC-286` | Decision | **Mengirim/mencatat pengiriman memakai IZIN TERSENDIRI (aksi baru pada resource hasil Lab, nama ditetapkan desain), diberikan ke Analis Laboratorium; admin lain lewat Role Access.** Riwayat pengiriman terbaca pemegang izin baca hasil. Tidak menumpang izin rilis/cetak. Menjabarkan `LAB-DEC-068` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-27 — Q9 *Izin tersendiri, Analis* amendment pass putaran 34 | `LAB-DEC-068` |
+| `LAB-DEC-287` | Decision | **Satu PDF, satu gerbang: dokumen yang sama melayani Kirim Hasil ke Pasien, Print Hasil, dan unduh — ketiganya di balik gerbang `LAB-DEC-139` yang ditegakkan backend. Preview Hasil untuk petugas boleh sebelum gerbang terbuka, bertanda air *BELUM FINAL — bukan untuk pasien*, dan tidak dapat dikirim** | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-27 — Q10a *Satu PDF, satu gerbang* amendment pass putaran 34 | F34-5; `LAB-DEC-139` |
+| `LAB-DEC-288` | Decision | **Cakupan putaran ini: Patologi Klinik dan Mikrobiologi (sesuai `LAB-DEC-139`). Patologi Anatomi di luar — aksi kirim di daftar PA tetap nonaktif beralasan sampai diputuskan tersendiri** | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-11-27 — Q10b *PK + Mikrobiologi* amendment pass putaran 34 | `LAB-DEC-139` |
 | `LAB-DEC-249` | Decision | **Laboratorium MENGUSULKAN `ProcedureCategoryName` sebagai ruas kategori terkendali kepada pemilik Master Data**, dengan isi awal 15 nilai yang sudah ada: nilai bernama disiplin (*Mikrobiologi*, *Patologi Anatomi*) diganti kategori sebenarnya, ejaan mengikuti data, kategori artifact yang belum ada ditambahkan saat prosedurnya ada. Isi final kepala instalasi + pemilik Master Data | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-10-20 — *"A"*, pilihan yang direkomendasikan | Lihat BR-156. F31-4, `CAP-P30-09`. Persetujuan Master Data tetap `LAB-COORD-021` |
 | `LAB-CONFLICT-018` | Conflict | **Kunci Lunas menahan Proses Pemeriksaan pasien rawat inap dan IGD Tunai** — rawat inap tertahan *Belum Lunas* sampai pulang, IGD tertahan *Belum Ditagih* selamanya. Ditemukan capability map revision 8. **Diselesaikan sisi Laboratorium oleh `LAB-DEC-223`/`LAB-DEC-224` 2026-10-08**; penagihan Lab IGD diteruskan `LAB-COORD-020` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-10-08 | F27-1..F27-3 |
 | `LAB-DEC-149` | Decision | **Hasil Patologi Klinik diisi pada HALAMAN DETAIL PER ORDER**, seluruh pemeriksaan yang tidak batal dalam satu tabel isian — parameter, hasil, satuan, nilai rujukan, penanda `L`/`H`. Final tetap per pemeriksaan; Daftar Kerja tetap sebagai antrean dan membuka halaman ini; dialog modal pengisian hasil dicabut. Menutup `LAB-CLOSE-016` dan `LAB-CONFLICT-013` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-100 dan `LAB-FE-017`. Sejajar halaman Mikrobiologi yang juga per order (`lab-monitoring/microbiology/[slug]` menerima `labOrderId`). Memenuhi PRD `FR-PK-001`. Bukti keadaan lama: capability map revision 5 `CAP-P14-18`. `AC-234`..`AC-237` |
@@ -7239,6 +7696,34 @@ pengujian.
 | AC-335 | `LAB-DEC-245`, *diamandemen `LAB-DEC-246`*: ~~Kalium yang wadahnya ditolak lalu gugur tetap terhitung pada unitnya;~~ Kalium yang wadahnya ditolak lalu gugur **tidak** terhitung, dan pemeriksaan penggantinya hasil ambil ulang terhitung **satu kali**; order yang dibatalkan tidak; pemeriksaan tanpa disiplin tampil di kolom *Belum terklasifikasi*; kunjungan tanpa unit tampil *Unit tidak tercatat*; respons dan berkas `.xlsx` tidak memuat No. RM maupun nama pasien |
 | AC-336 | `LAB-DEC-246`: pada tahun dan data yang sama dengan dua pemeriksaan `Voided`, jumlah pemeriksaan Statistik Pesanan per disiplin **sama** dengan grafik per disiplin Beranda; menambah satu pemeriksaan gugur tidak mengubah kedua angka |
 | AC-337 | `LAB-DEC-248`: pemegang izin unduh menekan Cetak → tepat satu baris log cetak tanpa data pasien, lalu pratinjau terbuka; panggilan pencatat dijawab `403` bagi pemegang izin lihat saja; panggilan pencatat gagal (jaringan) → pratinjau **tidak** terbuka dan nol baris log |
+| AC-338 | `LAB-DEC-252`: menjadwalkan ulang Gula Darah Puasa dari Senin 02-12 ke Selasa 03-12 → nomor order, kunjungan, pemeriksaan, dan CITO **sama** sebelum dan sesudah; tepat **satu** baris riwayat bertambah berisi tanggal lama, tanggal baru, alasan, pelaku, dan waktu |
+| AC-339 | `LAB-DEC-253`: pesanan dibuat 02-12-2026 pukul 00.30 WIB tanpa tanggal → tanggal rencana **02-12-2026** (bukan 01-12); pesanan dengan tanggal 27-11 saat hari ini 28-11 → ditolak *Tanggal rencana tidak boleh sebelum hari ini*; pesanan yang lahir sebelum fitur → tanggal rencana = tanggal `RequestedAt` WIB |
+| AC-340 | `LAB-DEC-254`: pengguna tanpa `LabOrder : Reschedule` → panggilan jadwal ulang dijawab `403` dan aksi tidak tampil (~~`AvailableActions`~~ penanda kelayakan per pesanan (`LAB-DEC-273`)); pengguna yang memegangnya → berhasil; memegang `LabOrder : Update` saja **tidak** cukup |
+| AC-341 | *Diamandemen `LAB-DEC-270`:* `Requested` tanpa wadah, `Confirmed` dengan wadah `Planned`, dan `OnHold` ber-`StatusBeforeHold` `Confirmed` dengan wadah `Planned` → berhasil; `Accepted`, `OnHold` ber-`StatusBeforeHold` `InProcess`, dan wadah `Collected` → ditolak. *Rumusan asli `LAB-DEC-255` (superseded):* ~~ `Requested` tanpa wadah, `Accepted` dengan wadah `Planned`, dan `OnHold` dengan wadah `Planned` → berhasil; satu wadah `Collected` → ditolak dengan pesan yang menunjuk batal wadah/ambil ulang; `InProcess`, `Completed`, `Confirmed`, `CancelRequested`, `Cancelled`, `Draft` → ditolak~~ |
+| AC-342 | `LAB-DEC-256`: alasan kosong atau hanya spasi → ditolak dengan pesan dan kode status yang **sama** dengan alasan pembatalan (`VAL-74`); alasan terisi → tersimpan apa adanya di riwayat |
+| AC-343 | `LAB-DEC-257`: sesudah jadwal ulang, status pesanan dan status setiap wadah **sama** dengan sebelumnya; pesanan `OnHold` tetap `OnHold` dengan `StatusBeforeHold` tidak berubah |
+| AC-344 | `LAB-DEC-258`, `LAB-DEC-267`: Daftar Pasien Lab dibuka tanpa mengubah penyaring → periode *Tanggal Rencana = hari ini*, kolom *Tanggal Rencana* tampil, dan aksi *Jadwal Ulang* tampil hanya pada baris yang tersedia menurut backend; pemanggil API tanpa `DateCategory` tetap memperoleh penyaring `OrderDate` |
+| AC-345 | `LAB-DEC-259`: wadah direncanakan dan diambil pada Jumat untuk pesanan bertanggal rencana Senin → **berhasil** tanpa jadwal ulang; tanggal rencana tetap Senin |
+| AC-346 | `LAB-DEC-260`: pesanan bertanggal rencana Senin, belum ada wadah diambil, dibuka Rabu → tampil pada daftar bawaan dengan penanda *Terlewat*; sesudah wadahnya `Collected` → penanda hilang; tidak ada pesanan yang dibatalkan sistem |
+| AC-347 | `LAB-DEC-261`: kunjungan asal `Completed`, `Cancelled`, atau `NoShow` → jadwal ulang ditolak |
+| AC-348 | `LAB-DEC-262`, *diperjelas `LAB-DEC-271`*: pesanan dengan satu pemeriksaan CITO aktif → ditolak; sesudah dokter mencabut CITO → berhasil; pemeriksaan CITO yang sudah batal/gugur tidak menghalangi; pesanan belum berwadah dengan permintaan `Ordered` ber-CITO → **ditolak**, dan tetap ditolak selama permintaan itu ada |
+| AC-349 | `LAB-DEC-263`, `LAB-DEC-264`: tanggal baru sama dengan tanggal rencana saat ini → ditolak; tanggal 90 hari ke depan → diterima; empat kali jadwal ulang berturut-turut → keempatnya diterima dan detail menampilkan *Dijadwalkan ulang 4 kali* |
+| AC-350 | `LAB-DEC-265`, *diamandemen `LAB-DEC-272`*: pesanan dengan `CoveringMcuOrderId` terisi **dan** pesanan tanpa penanda itu yang ditautkan komponen MCU di luar paket → jadwal ulang ditolak dengan pesan yang mengarahkan ke petugas MCU; pesanan Lab biasa yang tidak bertaut MCU → tidak terpengaruh. *(Ketersediaan aksi: lihat Q-P32-04.)* |
+| AC-351 | `LAB-DEC-266`: pasien dengan pesanan bertanggal rencana ke depan → kiosk menampilkan tanggal rencana bertanda *lebih awal*, *Konfirmasi Kehadiran* berhasil, dan nol baris tulis selain sesi kiosk |
+| AC-352 | `LAB-DEC-268`: pemegang `LabOrder : Read` tanpa `LabOrder : Reschedule` membuka detail → riwayat tampil, aksi tidak tampil; Laporan Pembatalan pada periode yang sama **tidak** memuat jadwal ulang |
+| AC-353 | `LAB-DEC-273`: baris Daftar Pasien Lab dan detail pesanan memuat penanda boleh-jadwal-ulang dan alasannya; Gilang (berizin) melihat *Jadwal Ulang* aktif pada pesanan layak dan nonaktif beralasan *Sampel sudah diambil* pada pesanan berwadah `Collected`; pengguna tanpa izin tidak melihat tombol; wadah diambil di antara muat daftar dan Simpan → server menolak dengan alasan yang sama |
+| AC-354 | `LAB-DEC-274`: startup pertama sesudah rilis → setiap departemen-posisi pemegang `LabOrder : Hold` memperoleh `LabOrder : Reschedule`, jabatan lain tidak; izin dicabut admin lalu backend dinyalakan ulang → tidak diberikan kembali; Kepala Instalasi tidak memperolehnya dari seeder |
+| AC-355 | `LAB-DEC-275`, `LAB-DEC-276`: pesanan `Confirmed` dengan wadah `Cancelled` + `Planned` → boleh; wadah `OnHold` dari `Planned` → boleh; wadah `OnHold` dari `Collected` → ditolak; wadah `Rejected` → ditolak; sesudah ambil ulang diminta (`RecollectionRequired` + pengganti `Planned`) → boleh |
+| AC-356 | `LAB-DEC-277`: Daftar Pasien Lab dibuka → periode bawaan *Tanggal Rencana*; Hasil dan Riwayat dibuka → periode bawaan *Tanggal Order* dengan pilihan *Tanggal Rencana* tersedia; `GET` daftar pantau tanpa kategori periode → penyaring `OrderDate` |
+| AC-357 | `LAB-DEC-280`, `LAB-DEC-287`: selama persetujuan Profesor belum ada, *Kirim Hasil ke Pasien*, *Print Hasil*, dan unduh pada order PK/Mikrobiologi yang seluruhnya dirilis **nonaktif** dengan keterangan *Menunggu persetujuan Profesor*; panggilan API langsung ditolak backend tanpa tulis | BR-50; putaran 34 |
+| AC-358 | `LAB-DEC-287`: *Preview Hasil* dapat dibuka petugas sebelum gerbang terbuka; PDF-nya bertanda air *BELUM FINAL — bukan untuk pasien* dan tidak tersedia untuk dikirim | BR-50; putaran 34 |
+| AC-359 | `LAB-DEC-282`: pasien tanpa nomor WhatsApp di data induk → aksi kirim nonaktif beralasan *Nomor WhatsApp pasien belum tercatat — perbarui di data pasien*; tidak ada isian nomor lain | BR-50; putaran 34 |
+| AC-360 | `LAB-DEC-279`, `LAB-DEC-283`: petugas berizin memilih **Terkirim** → satu baris log (pelaku, waktu, nomor snapshot, saluran *WhatsApp manual*, versi dokumen) dan angka *Terkirim ke Pasien* naik 1; memilih **Gagal** + alasan → satu baris log, angka tetap; *Lainnya* tanpa keterangan ditolak | BR-50; putaran 34 |
+| AC-361 | `LAB-DEC-281`, `LAB-DEC-283`: kiriman ke-4 dan seterusnya diterima; angka *Terkirim ke Pasien* selalu sama dengan jumlah baris log berstatus Terkirim untuk order itu | BR-50; putaran 34 |
+| AC-362 | `LAB-DEC-282`: nomor WhatsApp pasien diubah di data induk sesudah pengiriman → baris log lama tetap menampilkan nomor lama | BR-50; putaran 34 |
+| AC-363 | `LAB-DEC-284`, `LAB-DEC-285`: koreksi hasil sesudah terkirim → terbit versi 2; versi 1 berstatus *sudah digantikan*; baris Hasil dan Riwayat menampilkan *Perlu kirim ulang* sampai versi 2 tercatat Terkirim; angka tidak berkurang; log lama menunjuk versi 1 | BR-50; putaran 34 |
+| AC-364 | `LAB-DEC-286`: pengguna tanpa izin kirim → aksi tidak tampil, riwayat pengiriman tetap terbaca pemegang izin baca hasil; `POST` kirim/catat langsung → `403` tanpa tulis | BR-50; putaran 34 |
+| AC-365 | `LAB-DEC-288`: order Patologi Anatomi → aksi kirim nonaktif beralasan; tidak ada PDF hasil final yang diterbitkan putaran ini | BR-50; putaran 34 |
 
 ---
 
@@ -7260,7 +7745,7 @@ pengujian.
 
 | ID | Hal yang belum selesai | Pemilik | Memblokir |
 |---|---|---|---|
-| `LAB-COORD-011` | 🟡 **ARSITEKTUR DIPUTUSKAN 2026-10-06 — `LAB-DEC-183`**: PDF bernomor dan berversi ber-QR, WhatsApp lewat layanan platform terpisah, tautan aman alih-alih URL publik, status kirim terpisah dari rilis. **Yang tersisa hanya penyediaan** pembangkit PDF dan gerbang WhatsApp oleh platform — dependency implementasi, bukan penahan roadmap (`LAB-DEC-187`). Isi asli: **Gerbang pengiriman pesan (WhatsApp) dan pembangkit berkas PDF, keduanya nol pada platform.** `F7` diverifikasi ulang 2026-09-16 dan masih benar: nol `Twilio`, `Fonnte`, `SendMessageAsync`, `IWhatsAppService`, `SmtpClient`, maupun `MailKit` di seluruh backend; nol pustaka PDF pada `.csproj`. `QRCoder 1.8.0` sudah ada dan menutup kebutuhan barcode, tetapi tidak menutup kebutuhan PDF. Laboratorium tidak berwenang mengadakan keduanya sendiri. **Diverifikasi ulang 2026-09-23 dan masih benar seluruhnya** — nol `Twilio`, `Fonnte`, `IWhatsAppService`, `SendMessageAsync`, `SmtpClient`, maupun `MailKit` di seluruh backend; `QuilvianSystemBackend.csproj` memuat **satu** paket yang relevan, `QRCoder 1.8.0`, dan nol pustaka PDF. Tujuh hari sejak verifikasi 2026-09-16, **nol bergerak** | Pemilik platform + Yoga Aji Pratama | Seluruh `CAP-009`/`CAP-010` artifact — pengiriman dan pengiriman ulang hasil |
+| `LAB-COORD-011` | 🟡 **DIPERBARUI 2026-11-27 (putaran 34):** sisi PDF **tersedia** — `QuestPDF` di platform sejak 2026-10-09 (F34-3); sisi WhatsApp **masih nol** dan tetap koordinasi platform, tetapi **tidak lagi menahan `BE-LAB-41`** karena jalur kirim manual berbantu sementara (`LAB-DEC-279`). **ARSITEKTUR DIPUTUSKAN 2026-10-06 — `LAB-DEC-183`**: PDF bernomor dan berversi ber-QR, WhatsApp lewat layanan platform terpisah, tautan aman alih-alih URL publik, status kirim terpisah dari rilis. **Yang tersisa hanya penyediaan** pembangkit PDF dan gerbang WhatsApp oleh platform — dependency implementasi, bukan penahan roadmap (`LAB-DEC-187`). Isi asli: **Gerbang pengiriman pesan (WhatsApp) dan pembangkit berkas PDF, keduanya nol pada platform.** `F7` diverifikasi ulang 2026-09-16 dan masih benar: nol `Twilio`, `Fonnte`, `SendMessageAsync`, `IWhatsAppService`, `SmtpClient`, maupun `MailKit` di seluruh backend; nol pustaka PDF pada `.csproj`. `QRCoder 1.8.0` sudah ada dan menutup kebutuhan barcode, tetapi tidak menutup kebutuhan PDF. Laboratorium tidak berwenang mengadakan keduanya sendiri. **Diverifikasi ulang 2026-09-23 dan masih benar seluruhnya** — nol `Twilio`, `Fonnte`, `IWhatsAppService`, `SendMessageAsync`, `SmtpClient`, maupun `MailKit` di seluruh backend; `QuilvianSystemBackend.csproj` memuat **satu** paket yang relevan, `QRCoder 1.8.0`, dan nol pustaka PDF. Tujuh hari sejak verifikasi 2026-09-16, **nol bergerak** | Pemilik platform + Yoga Aji Pratama | Seluruh `CAP-009`/`CAP-010` artifact — pengiriman dan pengiriman ulang hasil |
 | ~~`LAB-OPEN-028`~~ | **Ditutup 2026-09-16** oleh `LAB-DEC-071` — pembandingnya inklusif, `Tgl Awal <= Tgl Akhir` | — | — |
 | ~~`LAB-OPEN-029`~~ | ✅ **DITUTUP 2026-10-06** oleh **`LAB-DEC-182`** — gelar tidak menjadi izin; izin berbasis peran `LabResultPatientDeliveryApprover` bagi yang ditunjuk Kepala Instalasi; hasil normal Released tanpa persetujuan tambahan; persetujuan kedua dapat disetel bagi kategori sensitif (`LAB-OPEN-048`). Konfirmasi Kepala Instalasi `LAB-SIGN-002`. Isi aslinya: **MENYEMPIT 2026-09-17 — satu dari tiga pertanyaannya terjawab.** ✅ *Siapa pemegang wewenang Clinical Governance-nya* dijawab `LAB-DEC-078`: tiga dokter, satu per disiplin. ❌ Masih terbuka: **apakah persetujuan Profesor dan Dokter Lab yang disebut artifact adalah tanda tangan klinis `LAB-DEC-011`**, dan bagaimana keduanya menjadi peran pada `LAB-PERM-v1`. Penetapan justru **menajamkan** pertanyaan pertamanya: nol di antara ketiga nama bergelar Profesor, sehingga `RULE-017` menyebut penyetuju yang tidak ada padanannya pada penetapan. **2026-09-24 — MENYEMPIT LAGI (`LAB-EVD-009`):** bentuk persetujuannya **elektronik dengan audit trail**, bukan tanda tangan kertas. Siapa Profesor yang dimaksud, perannya pada `LAB-PERM-v1`, dan mekanismenya tetap **menunggu pihak klinis** | Yoga Aji Pratama + wewenang klinis | Memblokir penyerahan hasil kepada pasien (`LAB-DEC-139`) |
 | `LAB-OPEN-030` | **Jabatan `Dokter Lantai` nol kemunculan** di seluruh blueprint, sedangkan artifact memakainya bersama `Dokter DPJP` pada kolom Dokter Konfirmator angka kritis | Yoga Aji Pratama | Bertaut `LAB-P0-004` dan `LAB-OPEN-014`. Memblokir kolom Dokter Konfirmator |
@@ -7503,6 +7988,35 @@ bagian 0G.
 | `DEC-LAB-032` | **Bagi pemeriksaan yang dirilis `Sementara` lalu `Definitif`, rilis mana yang dipakai jumlah pemeriksaan dan TAT `S16a` serta keterlambatan cito `S7`?** Keduanya sudah dibangun dan membaca satu waktu rilis. **Usulan baseline:** rilis pertama — hasil resmi pertama (`LAB-DEC-155`) | Yoga Aji Pratama + Kepala Instalasi | **Kontrak `S4d-2`.** Tidak menahan desain; mengubah perilaku `S7`/`S16a` yang berjalan |
 | `DEC-LAB-033` | **Apakah perubahan `Critical Notification SLA` dan aturan kritis Mikrobiologi/PA melewati persetujuan pengusul ≠ penyetuju yang sama dengan batas kritis (`LAB-DEC-175`)?** Memanjangkan SLA sama berbahayanya dengan menaikkan batas. **Usulan baseline:** ya | Yoga Aji Pratama + Kepala Instalasi | **Kontrak `S5`.** Tidak menahan desain |
 | `DEC-LAB-034` | **Sesudah tarik hasil: pemeriksaannya berhenti dan pemeriksaan ulang dipesan baru, atau dibuka kembali? Order yang sudah *Selesai* tetap Selesai? Fakta apa yang diterbitkan untuk Billing, dan siapa menanggung pemeriksaan ulang bila kesalahannya internal?** **Usulan baseline:** pemeriksaan berhenti dan pemeriksaan ulang adalah pemeriksaan baru; order lama tetap Selesai; penarikan tidak menerbitkan fakta tagih baru — alasan koreksi membawa penanda kesalahan internal (pola `LAB-DEC-019`) yang dibaca Billing, dan koreksi uangnya tetap wewenang Billing (`LAB-INH-010`) | Yoga Aji Pratama + `billing-kasir` | **Desain `S6-2`** — tarik hasil. `S6-1` ganti nilai tidak tertahan |
+
+### Dibuka amendment pass putaran 34 — 2026-11-27
+
+| ID | Hal yang belum selesai | Pemilik | Memblokir |
+|---|---|---|---|
+| `LAB-OPEN-057` | **Nota persetujuan Profesor kepada dr. Bima Prasetya, Sp.PK** (`LAB-DEC-280`): siapa Profesor yang dimaksud `LAB-DEC-067`, untuk hasil apa (seluruh order atau kasus tertentu), dan bentuk persetujuan elektronik beraudit (`LAB-OPEN-029`). Sampai dijawab, gerbang `LAB-DEC-139` tertutup | dr. Bima Prasetya, Sp.PK; diajukan Yoga Aji Pratama | **Pemakaian** kirim/cetak/unduh — tidak memblokir desain maupun implementasi |
+| `LAB-OPEN-058` | **Kapasitas penyimpanan arsip PDF per versi** (`LAB-DEC-284`) dan masa simpannya — memakai penyimpanan privat yang ada (`FileStorage:PrivateRootPath`, dipakai gambar Radiologi) | Pemilik platform + Yoga Aji Pratama | Tidak — desain memakai penyimpanan privat yang ada; masa simpan dicatat `LATER SLICE` |
+
+### Dibuka closure pass putaran 33 — 2026-11-25
+
+**Ditutup putaran ini:** `LAB-COORD-022` (`LAB-DEC-272`); konfirmasi dua tafsir penulis putaran 32 (`LAB-DEC-275`, `LAB-DEC-277`);
+bahan trace putaran 32 (dijawab capability map revision 10); pertentangan `CAP-P32-04`, `CAP-P32-08`, `CAP-P32-09`, `CAP-P32-11`
+(`LAB-DEC-270`..`LAB-DEC-273`).
+
+| ID | Hal yang belum selesai | Pemilik | Memblokir |
+|---|---|---|---|
+| `LAB-OPEN-056` | **`POST /lab-orders` (`CreateAsync`) tidak menjalankan `VAL-67`**: IGD dan Rawat Inap dapat memesan Lab pada kunjungan `Completed`/`Cancelled`/`NoShow`, sedangkan `POST /lab-orders/by-examinations` menolaknya (`CAP-P32-07`). Temuan impact scan, **di luar** BR-157 — perlu diputuskan apakah diperbaiki dan kapan | Yoga Aji Pratama | Tidak — BR-157 memakai penjaga kunjungan sendiri (`LAB-DEC-261`) |
+| — | **Amandemen kontrak:** `LAB-API-v1` (tanggal rencana pada pembuatan/daftar/detail/kiosk, aksi jadwal ulang dan riwayat, nilai `LabDateCategory` baru, penanda *Terlewat*, **penanda kelayakan + alasan** `LAB-DEC-273`), `LAB-PERM-v1` (`LabOrder : Reschedule`, seeder `LAB-DEC-274`), `LAB-VAL-v1` (BR-157 aturan 3–8 sesudah `LAB-DEC-270`..`272`, `275`, `276`), `LAB-STATE-v1` (tanpa status baru) | `/design-business-module`, disetujui Yoga Aji Pratama | **IMPLEMENTATION** |
+
+### Dibuka amendment pass putaran 32 — 2026-11-25
+
+| ID | Hal yang belum selesai | Pemilik | Memblokir |
+|---|---|---|---|
+| `LAB-COORD-022` | **Penyelarasan tanggal rencana pesanan Lab berpaket MCU dengan tanggal susulan komponen MCU** (`LAB-DEC-265`). Laboratorium menolak jadwal ulang pesanan berpaket MCU; apakah jadwal ulang komponen MCU ikut menggeser tanggal rencana pesanan Lab-nya, dan lewat jalur apa, diputuskan pemilik modul `mcu` | Pemilik modul `mcu` (Yoga Aji Pratama) | ~~**LATER SLICE**~~ **Ditutup 2026-11-25 oleh `LAB-DEC-272`** — MCU menolak menjadwal ulang komponen yang sudah dipesan dan Lab menolak menjadwal ulang pesanan bertaut MCU, sehingga tidak ada tanggal yang perlu diselaraskan |
+| `LAB-COORD-023` | **Pilihan tanggal rencana pada layar pemesan dokter** — antrean dokter poli, IGD, Rawat Inap (F32-12, `LAB-DEC-269`). Backend Lab menerima tanggal opsional; perubahan layar milik modul pemesan | Pemilik modul Registrasi/antrean dokter, IGD, Rawat Inap | **LATER SLICE** |
+| — | **Konfirmasi dua tafsir penulis:** (1) `LAB-DEC-255` — wadah `Cancelled` diabaikan, wadah `OnHold` dihitung menurut `StatusBeforeHold`; (2) `LAB-DEC-258` — bawaan *Tanggal Rencana* hanya di layar, bawaan backend `DateCategory` tetap `OrderDate` | Yoga Aji Pratama | ~~**DESIGN**~~ **Ditutup 2026-11-25** — `LAB-DEC-275`, `LAB-DEC-277` |
+| — | **Bahan trace (impact scan):** (a) apakah pengerjaan pesanan yang sudah ada terhalang sesudah kunjungannya selesai (F32-9); (b) apakah jadwal ulang komponen MCU menyentuh pesanan Lab (F32-10); (c) penjaga konkurensi `LabOrder.Version` pada aksi pesanan; (d) pemberian bawaan `LabOrder : Reschedule` lewat Role Access (POST menimpa seluruh set) | `/trace-existing-capabilities` | ~~**DESIGN**~~ **Ditutup 2026-11-25** — capability map revision 10 (`CAP-P32-03`, `06`, `07`, `09`) |
+| — | **Amandemen kontrak:** `LAB-API-v1` (ruas tanggal rencana pada pembuatan/daftar/detail, aksi jadwal ulang, riwayat, nilai `LabDateCategory` baru, penanda *Terlewat*), `LAB-PERM-v1` (`LabOrder : Reschedule`), `LAB-VAL-v1` (aturan 3–8 BR-157), `LAB-STATE-v1` (catatan: tanpa status baru) | `/design-business-module`, disetujui Yoga Aji Pratama | **IMPLEMENTATION** |
+| — | **Perubahan schema** (kolom tanggal rencana + tabel riwayat) dan isi awal pesanan lama dari `RequestedAt` — keputusan migration terpisah | Developer backend + Yoga Aji Pratama | **IMPLEMENTATION** |
 
 ### Dibuka amendment pass putaran 29 — 2026-10-09
 
@@ -7772,6 +8286,34 @@ pada 2026-09-01. Yang perlu dicatat jujur tentang persetujuan ini:
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 144 | 2026-11-27 | **Amendment pass putaran 34 — membuka penahan `BE-LAB-41` (pengiriman hasil ke pasien).** Fakta baru F34-1..7: pembaca (kolom *Terkirim ke Pasien*, hasil dirilis) dan `DEC-LAB-011` sudah tertutup; QuestPDF tersedia; WhatsApp masih nol. `LAB-DEC-278`..`LAB-DEC-288`, seluruhnya pilihan yang direkomendasikan: kirim manual berbantu sementara (berkas PDF), syarat Profesor diajukan ke dr. Bima dengan gerbang `LAB-DEC-139` tertutup, kirim ulang tanpa batas, nomor hanya data induk, Terkirim/Gagal beralasan, PDF berversi dengan arsip per versi, penanda *Perlu kirim ulang*, izin tersendiri Analis, satu PDF satu gerbang, PK + Mikrobiologi. `LAB-DEC-183` diamandemen; `LAB-CONFLICT-025`..`027` ditutup; `LAB-OPEN-057`, `058`; `LAB-COORD-011` diperbarui; `AC-357`..`AC-365` | `draft` |
+| 143 | 2026-11-25 | **Closure pass putaran 33 ditutup.** Q6c: `LAB-DEC-277` — bawaan *Tanggal Rencana* hanya Daftar Pasien Lab. BR-157 aturan 5 dilengkapi syarat wadah; `AC-353`..`AC-356`; tafsir dan bahan trace putaran 32 ditutup; `LAB-OPEN-056` (`CreateAsync` tanpa `VAL-67`, di luar scope) dibuka. Keenam pertanyaan penutup tertutup. Langkah berikutnya: `/design-business-module` | `draft` |
+| 142 | 2026-11-25 | **Closure pass putaran 33, Q6b — ambil ulang.** `LAB-DEC-276`: `RecollectionRequired` diabaikan seperti `Cancelled`; `Rejected` tanpa ambil ulang menolak | `draft` |
+| 141 | 2026-11-25 | **Closure pass putaran 33, Q6a — tafsir wadah.** `LAB-DEC-275`: wadah `Cancelled` diabaikan, wadah `OnHold` dinilai dari `StatusBeforeHold` | `draft` |
+| 140 | 2026-11-25 | **Closure pass putaran 33, Q5 — pemberian bawaan izin.** `LAB-DEC-274`: seeder sekali jalan salin dari `LabOrder : Hold`, ditambah langkah rilis Kepala Instalasi lewat Role Access | `draft` |
+| 139 | 2026-11-25 | **Closure pass putaran 33, Q4 — ketersediaan aksi.** `LAB-DEC-273`: backend mengirim penanda boleh-jadwal-ulang + alasan per pesanan; tanpa izin tersembunyi, berizin tak layak nonaktif beralasan. Rujukan `AvailableActions` pada `LAB-DEC-254`/`265`/`267` dan `AC-340` dicoret | `draft` |
+| 138 | 2026-11-25 | **Closure pass putaran 33, Q3 — penanda MCU.** `LAB-DEC-272`: semua pesanan bertaut komponen MCU ditolak dijadwalkan ulang dari Lab — mengamandemen `LAB-DEC-265`; `LAB-COORD-022` ditutup; BR-157 aturan 8 dan `AC-350` diamandemen. Urutan baris Q1/Q2 tabel putaran dirapikan | `draft` |
+| 137 | 2026-11-25 | **Closure pass putaran 33, Q2 — CITO permintaan.** `LAB-DEC-271`: CITO aktif mencakup permintaan; tetap ditolak, jalan keluar batal lalu pesan ulang; tanpa endpoint baru. BR-157 aturan 7 dan `AC-348` diamandemen | `draft` |
+| 136 | 2026-11-25 | **Closure pass putaran 33 dibuka — pertanyaan penutup capability map revision 10.** Fakta F33-1..F33-6. Q1: `LAB-DEC-270` jendela jadwal ulang `Requested`/`Confirmed`/`OnHold`-nya — **menggantikan `LAB-DEC-255`** (superseded; daftar status Q4 putaran 32 keliru); BR-157 aturan 5 dan tabel status, `LAB-DEC-260`, `AC-341` diamandemen | `draft` |
+| 135 | 2026-11-25 | **Amendment pass putaran 32 ditutup.** Q18: `LAB-DEC-269` — rilis pertama sisi Lab, layar pemesan dokter menyusul (`LAB-COORD-023`). BR-157 ditulis (proses bisnis lengkap); `AC-338`..`AC-352`; `LAB-COORD-022`/`023` dan bahan trace dibuka di *Open Questions*. Dua tafsir penulis menunggu closure. Langkah berikutnya: `/trace-existing-capabilities` impact scan, lalu `/design-business-module` | `draft` |
+| 134 | 2026-11-25 | **Amendment pass putaran 32, Q17 — pembaca riwayat.** `LAB-DEC-268`: pemegang `LabOrder : Read`; tanpa laporan; bukan pembatalan. Fakta F32-12 (layar pemesan milik poli/IGD/Rawat Inap) | `draft` |
+| 133 | 2026-11-25 | **Amendment pass putaran 32, Q16 — letak aksi.** `LAB-DEC-267`: aksi baris Daftar Pasien Lab + tombol detail, dialog tanggal + alasan; detail visual `DEV_DISCRETION`. Fakta F32-11 mengoreksi klaim pertanyaan: hanya Batal pesanan yang punya dialog; Tahan/Lanjutkan pesanan tanpa layar | `draft` |
+| 132 | 2026-11-25 | **Amendment pass putaran 32, Q15 — kiosk.** `LAB-DEC-266`: kiosk menampilkan tanggal rencana dan penanda lebih awal/Terlewat, tetap menerima, nol tulis | `draft` |
+| 131 | 2026-11-25 | **Amendment pass putaran 32, Q14 — paket MCU.** `LAB-DEC-265`: pesanan Lab berpaket MCU tidak dijadwalkan ulang dari Lab; `LAB-COORD-022` dibuka | `draft` |
+| 130 | 2026-11-25 | **Amendment pass putaran 32, Q13 — batas.** `LAB-DEC-264`: tanpa batas jumlah/jarak; tanggal baru ≥ hari ini dan berbeda; jumlah dan riwayat terlihat. Fakta F32-10 (jadwal ulang per komponen MCU) | `draft` |
+| 129 | 2026-11-25 | **Amendment pass putaran 32, Q12 — ketelitian.** `LAB-DEC-263`: tanggal kalender WIB saja, disimpan sebagai tanggal murni | `draft` |
+| 128 | 2026-11-25 | **Amendment pass putaran 32, Q11 — CITO.** `LAB-DEC-262`: jadwal ulang ditolak selama ada pemeriksaan CITO aktif; dokter mencabut CITO dulu | `draft` |
+| 127 | 2026-11-25 | **Amendment pass putaran 32, Q10 — kunjungan selesai.** `LAB-DEC-261`: jadwal ulang ditolak bila kunjungan asal `Completed`/`Cancelled`/`NoShow`, sejalan `VAL-67` | `draft` |
+| 126 | 2026-11-25 | **Amendment pass putaran 32, Q9 — pesanan terlewat.** `LAB-DEC-260`: tampil bertanda *Terlewat* pada daftar bawaan, dihitung saat dibaca, tanpa batal otomatis. Fakta F32-9 (`VAL-67` kunjungan selesai) | `draft` |
+| 125 | 2026-11-25 | **Amendment pass putaran 32, Q8 — sifat tanggal rencana.** `LAB-DEC-259`: penanda, bukan penghalang; pengerjaan boleh lebih awal/terlambat | `draft` |
+| 124 | 2026-11-25 | **Amendment pass putaran 32, Q7 — Daftar Pasien Lab.** `LAB-DEC-258`: kolom dan periode *Tanggal Rencana*, bawaan layar; bawaan backend tetap `OrderDate` (tafsir, closure) | `draft` |
+| 123 | 2026-11-25 | **Amendment pass putaran 32, Q6 — status sesudah jadwal ulang.** `LAB-DEC-257`: status pesanan dan wadah tidak berubah; `OnHold` tetap sampai *Lanjutkan*. Fakta F32-8 (penyaring periode `DateCategory`) | `draft` |
+| 122 | 2026-11-25 | **Amendment pass putaran 32, Q5 — alasan.** `LAB-DEC-256`: wajib, teks bebas, pola `VAL-74` | `draft` |
+| 121 | 2026-11-25 | **Amendment pass putaran 32, Q4 — jendela status.** `LAB-DEC-255`: hanya sebelum sampel diambil (pesanan `Requested`/`Accepted`/`OnHold`, wadah nihil atau seluruhnya `Planned`); tafsir wadah `Cancelled`/`OnHold` menunggu closure | `draft` |
+| 120 | 2026-11-25 | **Amendment pass putaran 32, Q3 — pelaku.** `LAB-DEC-254`: aksi izin baru `LabOrder : Reschedule`, bawaan petugas penerimaan/Analis dan Kepala Instalasi; posisi lain lewat admin | `draft` |
+| 119 | 2026-11-25 | **Amendment pass putaran 32, Q2 — pengisian tanggal rencana.** `LAB-DEC-253`: bawaan hari ini (WIB), pemesan boleh memilih tanggal ke depan, tak boleh mundur; pesanan lama memakai tanggal diminta | `draft` |
+| 118 | 2026-11-25 | **Amendment pass putaran 32, Q1 — arti reschedule.** `LAB-DEC-252`: ubah tanggal rencana pemeriksaan pada pesanan yang sama, dengan riwayat beralasan | `draft` |
+| 117 | 2026-11-25 | **Amendment pass putaran 32 dibuka — reschedule pemeriksaan Laboratorium.** Fakta F32-1..F32-7: pesanan Lab terikat satu kunjungan tanpa tanggal rencana; hanya Tahan/Lanjutkan/Batal; FE v1 mengubah tanggal lewat Edit Permintaan dokter, tanpa tombol reschedule. Q0: `LAB-DEC-251` batas scope dikonfirmasi. Capability map revision 9 berpotensi basi (BE `4d3e4f98` → `4d2c0162`) | `draft` |
 | 116 | 2026-10-21 | **`LAB-DEC-250`** — penyeragaman label status berkas `.xlsx` Laporan Pembatalan dan metadata penyaring status pesanan dengan label layar Laboratorium (temuan `FE-LAB-55`), disetujui pemilik modul | `draft` |
 | 115 | 2026-10-20 | **Closure pass putaran 31 ditutup.** Q4: `LAB-DEC-249` (BR-156) — usulan ruas kategori `ProcedureCategoryName`; `LAB-COORD-021` dipersempit. Keempat pertanyaan penutup capability map revision 9 tertutup (`LAB-DEC-246`..`249`); BR-151 dan BR-152 tidak lagi tertahan | `draft` |
 | 114 | 2026-10-20 | **Closure pass putaran 31, Q3.** `LAB-DEC-248` (BR-155): cetak dicatat lewat panggilan server berizin unduh sebelum dialog cetak terbuka, fail-closed. `AC-337` | `draft` |

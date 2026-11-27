@@ -96,6 +96,10 @@ public sealed class ProcurementPurchaseRequestVerificationService
             query = request.IsChecked.Value
                 ? query.Where(x => x.StockFulfilledQuantity != null)
                 : query.Where(x => x.StockFulfilledQuantity == null);
+        // Saringan tanggal (PBJ-DEC-055) memakai tanggal PR dibuat, sama dengan daftar PR.
+        var period = ProcurementPeriodFilter.Resolve(request.StartDate, request.EndDate, request.CustomPeriod);
+        if (period.FromUtc is { } fromUtc) query = query.Where(x => x.PurchaseRequest!.CreateDateTime >= fromUtc);
+        if (period.ToExclusiveUtc is { } toUtc) query = query.Where(x => x.PurchaseRequest!.CreateDateTime < toUtc);
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim().ToUpper();
@@ -320,7 +324,11 @@ public sealed class ProcurementPurchaseRequestVerificationService
         var reason = RequireReason(request.Reason);
 
         var entity = await _dbContext.PrcPurchaseRequests.FirstAsync(x => x.Id == id, cancellationToken);
-        if (entity.Status == ProcurementStatuses.PurchaseRequest.ConvertedToPackage || entity.ConvertedPackageId.HasValue)
+        // BE-PBJ-PS-005: paket dibentuk per baris (PBJ-DEC-071), jadi PR yang sebagian barisnya sudah berpaket masih
+        // APPROVED. Baris berpaket tetap menahan pembatalan supaya sumber paket tidak kehilangan barisnya.
+        var hasPackagedLine = await _dbContext.PrcPurchaseRequestLines.AnyAsync(
+            x => x.PurchaseRequestId == id && !x.IsDelete && x.PackageId != null, cancellationToken);
+        if (entity.Status == ProcurementStatuses.PurchaseRequest.ConvertedToPackage || entity.ConvertedPackageId.HasValue || hasPackagedLine)
             throw new ProcurementRequestConflictException("PBJ-VAL-092", "Pengajuan sudah masuk paket dan tidak dapat dibatalkan dari sini.");
         if (entity.Status != ProcurementStatuses.PurchaseRequest.Approved)
             throw new ProcurementRequestConflictException("PBJ-VAL-093", InvalidTransitionMessage);

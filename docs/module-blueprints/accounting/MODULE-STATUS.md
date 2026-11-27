@@ -320,6 +320,36 @@ selesai sesuai lingkup yang sudah dibentuk.
 bernilai `0`. Berkas impor wajib mengirim jenis akun `1`..`5` dan saldo normal `1` (Debit) atau `2`
 (Kredit); berkas `gl_coa_all_request_body_swagger.json` yang ada tidak dipakai.
 
+### TITIK LANJUT — 26 November 2026: Amendment ACC-FIN-001 — `FIN-2` dan `FIN-3` selesai, berikutnya `FIN-4`
+
+| Hal | Keadaan |
+|---|---|
+| Dasar | `ACC-DEC-158`..`173` approved Rizki 25 November 2026 (`172`/`173` lewat `GATE-DESAIN-1125`) |
+| Desain | Manifest revisi 19 bagian *Amendment ACC-FIN-001 Master COA*: backend bagian 26, frontend bagian 16, PRD bagian 31 (`FR-FIN-050`..`058`), `ACC-API-0.18`, `ACC-VALIDATION-0.13`, `ACC-PERMISSION-0.9`, kamus data bagian 21, `flowcharts/07-master-coa.md`, uji `F25`..`F41` |
+| Dampak data | **Satu migration** `AddChartOfAccountReportClassification` (dua kolom nullable, tanpa pengisian data), dibuat Rizki sendiri sesudah izin `OQ-167-1`; nol tabel, hak, controller, dan baris `Program.cs` baru |
+| Laba ditahan (`ACC-DEC-158`) | Koreksi konfigurasi dan `JP` atas `JT/2020/12/00001` dikerjakan Rizki lewat layar (prosedur di decision log) |
+| Approval | **`GATE-DESAIN-1125`** Rizki, 25 November 2026 (termasuk `172`/`173`); izin migration `OQ-167-1` diberikan hari yang sama |
+| Roadmap | Revisi 2 `APPROVED`: `BE/FE-ACC-FIN-001-01` (`FIN-2`), `001-02` (`FIN-3`, migration oleh Rizki), `001-03` (`FIN-4`) |
+| Kemajuan | ✅ `BE/FE-ACC-FIN-001-01` (kode otomatis, jenis warisan) dan ✅ `BE/FE-ACC-FIN-001-02` (klasifikasi; migration `20261125091331_AddChartOfAccountReportClassification` diterapkan sesudah koreksi sapuan HR). Bukti di laporan task dan `testing/acceptance-test-matrix.md` bagian 5 |
+| Berikutnya | `build-module-backend BE-ACC-FIN-001-03` (peringatan klasifikasi di `GET /general-ledger/balance-sheet`) → `FE-ACC-FIN-001-03`; sesudahnya `design-business-module` 008-04 rasio |
+| Belum diverifikasi | `npm run build` sesudah `FE-ACC-FIN-001-02` |
+| Commit | 26 November 2026 — lihat `git log` (tanpa push; merge/push oleh Rizki) |
+
+### TITIK LANJUT — 24 November 2026: finishing ACC-FIN-005 + 008 dirancang (`draft`)
+
+Rizki menempel MASTER PRD finishing `ACC-FIN-PRD-001` (29 kebutuhan, 7 wave). Development selesai
+30 September tetap berlaku; PRD ini membuka lingkup baru atas permintaan eksplisit Rizki.
+
+| Hal | Keadaan |
+|---|---|
+| Audit | [finishing/01-capability-map-finishing.md](finishing/01-capability-map-finishing.md) — 2 Ready, 3 Reuse with adapter, 8 Extend, 6 Missing, 6 Conflict, 4 Unknown. Wave 6 dipenuhi roadmap Aset; Wave 3 konflik Medical Fee → Payroll/Finance (`C-01`); Wave 4 konflik anggaran Pengadaan (`C-02`); Wave 5 terhalang harga perolehan Farmasi (`U-04`) |
+| Slice pertama | Buku besar + laba rugi + neraca: `ACC-DEC-141`..`155` (decision log revisi 19), gerbang `evidence/19` `READY_FOR_DOMAIN_DESIGN`, desain **approved** `GATE-DESAIN-1124` (manifest revisi 18, bagian *Amendment 24 November 2026*) |
+| Dampak data | Nol tabel, kolom, migration, hak, dan baris `Program.cs` baru |
+| Roadmap | [backend](roadmap/backend-roadmap-finishing.md), [frontend](roadmap/frontend-roadmap-finishing.md), [traceability](roadmap/requirement-traceability-finishing.md) — revisi 1 `APPROVED`. `FIN-0`: `BE/FE-ACC-FIN-005-01`, `BE/FE-ACC-FIN-008-01`. `FIN-1`: `BE/FE-ACC-FIN-008-02`, `008-03`. Sisa ACC-FIN-008 ⛔: `008-04` (`U-05`), `008-05` (`C-02`), `008-06` (`U-07`) |
+| Kemajuan | **`FIN-0` selesai (development) 25 November 2026:** `BE/FE-ACC-FIN-005-01` ✅, `BE/FE-ACC-FIN-008-01` ✅. Bukti uji di `QuilvianSystemFrontendDev/test-with-agy/accounting/`; register hasil di `testing/acceptance-test-matrix.md` bagian 4 |
+| Berikutnya | `FIN-1`: `BE-ACC-FIN-008-02` (laba rugi) → `FE-ACC-FIN-008-02`, lalu `008-03` (neraca) |
+| Commit | 005-01 di-commit 24 November 2026 (BE `bafbacaa`, FE `ff46618d8`); 008-01 dan penguatan 005-01 belum di-commit |
+
 ### TITIK LANJUT — 5 Oktober 2026: jawaban atas surat Finance 22 dan permintaan kode sewa
 
 Dokumen saja — nol perubahan source, nol kartu baru (arahan Rizki 5 Oktober 2026). Development tetap ✅ selesai.

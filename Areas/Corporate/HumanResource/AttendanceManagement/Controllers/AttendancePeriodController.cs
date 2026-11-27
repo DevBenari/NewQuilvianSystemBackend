@@ -154,7 +154,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             var result = await _service.CloseAsync(id, request, actor, cancellationToken);
             if (result.Success && result.Data != null)
             {
-                await _loggerService.InfoAsync(LogCategory, "AttendancePeriod.Close", "Menutup attendance period.", result.Data);
+                // Isi log harus berada di teks pesan; LoggerService tidak menulis objek payload.
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "AttendancePeriod.Close",
+                    $"Menutup attendance period {result.Data.PeriodCode}: {result.Data.ConvertedIncompleteToAbsentCount} hari dikonversi menjadi Absent, {result.Data.ClosedConversionExceptionCount} pengecualian konversi ditutup (HRD-DEC-249).",
+                    result.Data);
             }
             return ToActionResult(result);
         }

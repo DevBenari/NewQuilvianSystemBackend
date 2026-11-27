@@ -9,6 +9,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.DT
 
 public sealed class StockCheckQuery
 {
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+    [MaxLength(20)] public string? CustomPeriod { get; set; }
     /// <summary>Cari nomor PR atau kode/nama barang.</summary>
     public string? Search { get; set; }
     public Guid? DepartmentId { get; set; }

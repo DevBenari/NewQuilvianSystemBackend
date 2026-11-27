@@ -57,15 +57,24 @@ public sealed class PayrollDataReadinessItemResponse
     /// </summary>
     public string PayrollProfileStatus { get; set; } = string.Empty;
 
+    /// <summary>Status konfigurasi PPh: "Sudah ditetapkan" atau "Belum ditetapkan".</summary>
+    public string TaxStatus { get; set; } = string.Empty;
+
     /// <summary>
-    /// "Sudah ditetapkan", "Belum ditetapkan" (PPh dan iuran pada profil sama-sama nol; belum ada sumber kebijakan, bukan kekurangan
-    /// HRD), atau "Menunggu profil". Tidak memengaruhi <see cref="IsComplete"/>.
+    /// Nama historis: sama dengan <see cref="TaxStatus"/>. Sejak PAY-BE-FIX-007 hanya konfigurasi PPh yang dinilai; asuransi swasta dan
+    /// iuran BPJS bukan syarat. Tidak memengaruhi <see cref="IsComplete"/>.
     /// </summary>
     public string TaxInsuranceStatus { get; set; } = string.Empty;
 
+    /// <summary>NOT_CONFIGURED | CONFIGURED | NOT_EFFECTIVE | ERROR untuk konfigurasi PPh (Profil Pajak HRD).</summary>
+    public string TaxConfigurationStatus { get; set; } = string.Empty;
+
+    /// <summary>Kekurangan konfigurasi PPh yang sebenarnya (mis. jenis PPh atau kategori belum ditentukan); kosong bila lengkap.</summary>
+    public List<string> TaxConfigurationIssues { get; set; } = new();
+
     /// <summary>
     /// (3) Siap mengikuti proses Payroll: tidak ada penghalang. Benar bila <see cref="HrdComplete"/> dan profil "Siap" atau "Akan
-    /// disiapkan otomatis". Tidak mencakup tetapan PPh dan iuran (lihat <see cref="TaxInsuranceStatus"/>).
+    /// disiapkan otomatis". Tidak mencakup tetapan PPh (lihat <see cref="TaxStatus"/>).
     /// </summary>
     public bool IsComplete { get; set; }
 
@@ -98,6 +107,20 @@ public sealed class PayrollDataReadinessSummaryResponse
     /// <summary>Orang yang profil payroll-nya ada tetapi tidak aktif, tidak eligible, atau bukan Active.</summary>
     public int ProfilesNeedAttention { get; set; }
 
-    /// <summary>Orang dengan profil payroll yang tetapan PPh dan iurannya belum ditetapkan (keduanya nol).</summary>
+    /// <summary>
+    /// Orang yang konfigurasi PPh-nya di HRD belum ditetapkan secara sah dan berlaku (jenis PPh, kategori, atau skema
+    /// perhitungan belum ditentukan, belum/tidak berlaku, atau tidak sah). Bukan perbandingan nominal nol.
+    /// </summary>
+    public int TaxNotSet { get; set; }
+
+    /// <summary>Nama historis: sama dengan <see cref="TaxNotSet"/> (hanya PPh).</summary>
     public int TaxInsuranceNotSet { get; set; }
+
+    /// <summary>
+    /// Ketersediaan kebijakan tarif PPh berversi yang disahkan dan berlaku hari ini. "Menunggu Verifikasi Kebijakan" berarti PPh
+    /// otomatis menahan payroll run walaupun konfigurasi per orang sudah lengkap.
+    /// </summary>
+    public bool TaxPolicyApproved { get; set; }
+    public string? TaxPolicyVersion { get; set; }
+    public string TaxPolicyStatusLabel { get; set; } = string.Empty;
 }

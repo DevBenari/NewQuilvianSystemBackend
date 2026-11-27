@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Controllers
 {
@@ -86,7 +87,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             {
                 return BadRequest(ApiResponse<string>.Fail(400, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<string>.Fail(500, $"Terjadi kegagalan saat menyimpan aturan pelatihan: {ex.Message}"));
             }
@@ -161,7 +162,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             {
                 return NotFound(ApiResponse<string>.Fail(404, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(500, ApiResponse<string>.Fail(500, $"Terjadi kegagalan saat pengamanan shift dinas: {ex.Message}"));
             }

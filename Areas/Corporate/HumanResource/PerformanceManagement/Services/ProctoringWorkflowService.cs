@@ -283,7 +283,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             };
         }
 
-        public async Task<FppeCaseLogResponseDto> VerifyCaseLogAsync(Guid logId, VerifyFppeCaseLogRequestDto request, CancellationToken cancellationToken = default)
+        public async Task<FppeCaseLogResponseDto> VerifyCaseLogAsync(Guid logId, VerifyFppeCaseLogRequestDto request, Guid currentProctorWorkforceId, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
 
@@ -300,6 +300,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             if (engagement == null)
             {
                 throw new InvalidOperationException("Relasi penugasan FPPE untuk log kasus ini tidak valid.");
+            }
+
+            // MSL-06 (18 Nov 2026): hanya dokter proctor yang ditunjuk komite pada penugasan ini yang boleh menilai.
+            // Identitas proctor diambil dari token, bukan dari isian ProctorWorkforceId pada body.
+            if (currentProctorWorkforceId == Guid.Empty || engagement.AssignedProctorWorkforceId != currentProctorWorkforceId)
+            {
+                throw new UnauthorizedAccessException("Hasil proctoring hanya dapat diisi oleh dokter proctor yang ditunjuk Komite Medik untuk penugasan FPPE ini.");
+            }
+
+            if (request.ProctorWorkforceId != Guid.Empty && request.ProctorWorkforceId != currentProctorWorkforceId)
+            {
+                throw new UnauthorizedAccessException("Identitas proctor pada isian tidak sama dengan akun yang sedang masuk.");
+            }
+
+            if (caseLog.IsVerifiedByProctor)
+            {
+                throw new InvalidOperationException("Kasus ini sudah diverifikasi proctor sebelumnya, sehingga penilaiannya tidak dapat diubah.");
             }
 
             // Update evaluasi hasil pengamatan proctor

@@ -26,13 +26,13 @@ Dipotong menjadi dua blok karena lebar; `BE-AST-021` muncul lagi sebagai sambung
                                           │ │
                       BE-AST-017 [MOV] ─┐ │ │
                                         │ │ │
-BE-AST-004 [REG] ─> BE-AST-020 ─────────┴─┴─┴─> BE-AST-021
+BE-AST-004 [REG] ─> BE-AST-020 ✅ ──────┴─┴─┴─> BE-AST-021 ✅
 ```
 
 ```text
-BE-AST-008 [REG] ─┬─> BE-AST-022 ─> BE-AST-023 ─> BE-AST-024
+BE-AST-008 [REG] ─┬─> BE-AST-022 ✅ ─> BE-AST-023 ✅ ─> BE-AST-024 ✅
                   │
-      BE-AST-021 ─┘
+   BE-AST-021 ✅ ─┘
 ```
 
 `[REG]` = task backend sub-modul `register` · `[MOV]` = task backend sub-modul `pergerakan`. Cermin baca-saja.
@@ -59,37 +59,37 @@ Pasangan prasyarat→task: **9** (sama dengan kolom `Dependency`).
 
 ## Kartu task
 
-### `BE-AST-020` — Tabel opname dan migration `AddAssetPhysicalInventory`
+### ✅ `BE-AST-020` — Tabel opname dan migration `AddAssetPhysicalInventory`
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ Selesai, 2026-11-23: 6 model, 4 enum, 6 configuration, 6 DbSet (source `5e810439`); QBE Strict 14 berkas PASS; migration `20261123032511_AddAssetPhysicalInventory` dibuat dan diterapkan Rizki sesudah merge integration `2d76f11b`, berisi 6 `CreateTable` + 27 `CreateIndex` saja. DB dev: 133 kolom, 21 FK Restrict, check tanggal, unik parsial sesi aktif per unit dan ketua per sesi. Migration belum di-commit — [`BE-AST-020.md`](../task/report/backend/BE-AST-020.md) |
 | Acceptance criteria | 1. Enam tabel sesuai data dict. 2. Unik parsial satu sesi aktif per unit; satu ketua per sesi. 3. Migration hanya menambah enam tabel |
 
-### `BE-AST-021` — Sesi opname dan gerbang penahanan
+### ✅ `BE-AST-021` — Sesi opname dan gerbang penahanan
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 23 November 2026.** `StockTakeSessionService` (+`.Query`), `AssetStockTakesController` (8 operasi, resource `AssetStockTake` aksi `Read`/`Create`/`Start`/`Cancel`), gerbang `AssetStockTakeGate` diisi, mutasi/pinjaman kini `AST-VAL-MOV-006` + nama unit, deret `AST-OPN`. QBE Strict 13 berkas `PASS`; nol baris komentar; build Rizki DLL 12:06:17. Runtime **45/45** (putaran 1 39/44 = skrip membandingkan status sebagai teks): `AT-INV-01`, `02`, `03`, `30`, `31`, `AT-MOV-24`, `AT-REG-38` lulus; DB: snapshot 44 baris = `ExpectedCount`, aset dipinjam keluar tercatat unit peminjamnya. Pinjaman `Dipinjam` tidak menahan mulai (tafsiran `AST-DES-027`). Delta: +`filters/metadata`, +`summary`, `startBlockers`, body `{ rowVersion }` pada mulai — [`BE-AST-021.md`](../task/report/backend/BE-AST-021.md) |
 | Acceptance criteria | 1. Jadwal dengan tim tepat satu ketua. 2. Mulai menolak bila ada penyerahan/mutasi/pinjaman berjalan di unit, dan menyebut nomornya. 3. Snapshot aset diharapkan dibekukan, termasuk aset dipinjam keluar. 4. `IsUnitUnderStockTake` dipanggil pengajuan mutasi, pinjaman, dan penyerahan (`AST-VAL-MOV-006`, `AST-VAL-REG-026`). 5. Batal hanya Kepala Bagian Aset |
 
-### `BE-AST-022` — Pemindaian dan pencocokan
+### ✅ `BE-AST-022` — Pemindaian dan pencocokan
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 23 November 2026.** `StockTakeScanService` (lookup, pindai, temuan, daftar diharapkan, riwayat), `StockTakeMatchingService` (enam kategori, catatan tim terbawa saat tutup ulang), tutup/buka kembali di `StockTakeSessionService.Counting`; 8 endpoint baru, resource `AssetStockTake` 6 aksi. QBE Strict 9 berkas `PASS`; nol baris komentar; build Rizki DLL 14:40:09. Runtime **37/37**: `AT-INV-04`, `05`, `06`, `32`, `33`, `AST-DES-028`, validasi `010..016`, `020`; ketua tim tanpa `Create` memulai dan menutup sesi. DB: 9 pindaian (1 digantikan), 46 hasil aktif + 46 lama terhapus lunak, 2 foto `StockTakeScan`. Delta: +`GET /{id}/lookup`; `PUT results/{id}` dan izin unduh foto menyusul `BE-AST-023` — [`BE-AST-022.md`](../task/report/backend/BE-AST-022.md) |
 | Acceptance criteria | 1. Hanya anggota tim saat `Berjalan`. 2. Pindai ulang menggantikan (`IsLatest`). 3. Temuan wajib keterangan + foto. 4. Tutup menghitung enam kategori; buka kembali dengan alasan. 5. Aset unit lain yang ditemukan → `BedaLokasi` (`AST-DES-028`) |
 
-### `BE-AST-023` — Verifikasi, berita acara, tindak lanjut
+### ✅ `BE-AST-023` — Verifikasi, berita acara, tindak lanjut
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 23 November 2026.** `StockTakeSessionService.Verification` (catatan tim, ajukan, verifikasi/kembalikan, PDF), `StockTakeFollowUpService` (usulan per selisih saat verifikasi; proses klaim → dokumen tujuan → isi target; abaikan), `StockTakeDocumentService` (QuestPDF), controller `AssetStockTakeFollowUps` (`Read`/`Process`/`Dismiss`); register + `AssetPlacementService.CreateStockTakeCorrectionAsync` dan izin unduh foto `StockTakeScan`. QBE Strict 14 berkas `PASS`; nol baris komentar; build Rizki DLL 15:26:45. Runtime **40/40** (putaran 1 39/40 = skrip memilih aset yang sudah terkunci pemanfaatan lama): `AT-INV-07`, `08`, `09`, `10`, `12`, `34`, `35`, `36`, `37`, `AST-DEC-019`, validasi `020..023`, `030`, `031`; PDF berita acara 2 halaman dibaca langsung. Delta: +`GET /follow-ups/{id}`, `draft` pada proses temuan, `followUps[]` per hasil, dokumen hanya saat `Diverifikasi` — [`BE-AST-023.md`](../task/report/backend/BE-AST-023.md) |
 | Acceptance criteria | 1. Ajukan mewajibkan catatan selisih. 2. Verifikator Kepala Bagian Aset bukan anggota tim. 3. Verifikasi membuat usulan tanpa mengubah aset; linimasa `Diopname`. 4. Proses usulan membuat dokumen tujuan sesuai jenis (`AST-DES-007`); abaikan dengan alasan. 5. PDF berita acara (`AST-DEC-046`) |
 
-### `BE-AST-024` — Dashboard 1.5 dan laporan inventaris
+### ✅ `BE-AST-024` — Dashboard 1.5 dan laporan inventaris
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 24 November 2026.** `StockTakeQueryService` (kartu 1.5 = opname lewat jadwal belum diverifikasi + usulan `Usulan`; laporan per sesi dengan hitungan kategori dan usulan; ekspor xlsx 27 kolom, batas 10.000), controller `AssetStockTakeDashboard` (`AssetStockTake : Read`) dan `AssetStockTakeReports` (`AssetReport : Read`), saringan `overdue`/`hasOpenFollowUps` di kueri sesi. QBE Strict 6 berkas `PASS`; nol baris komentar; build Rizki DLL 08:56:45. Runtime **23/23** (putaran 1 22/23 = skrip memanggil `unzip` di luar PATH Node; isi xlsx benar): `AT-INV-11` kartu 0 → 1, sesudah verifikasi lewat jadwal 1 → 0 dan selisih terbuka 0 → 21, hitungan laporan sama dengan rincian sesi, isi ekspor dibaca langsung, tanpa hak 403. Delta: dua controller (arsitektur menulis satu), +`filters/metadata`, +`followUpCounts` — [`BE-AST-024.md`](../task/report/backend/BE-AST-024.md) |
 | Acceptance criteria | 1. Kartu: sesi lewat tanggal belum diverifikasi + usulan `Usulan`. 2. Laporan per sesi dan kategori, ekspor |

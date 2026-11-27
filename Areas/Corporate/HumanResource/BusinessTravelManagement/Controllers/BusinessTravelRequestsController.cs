@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -89,36 +90,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             }
         }
 
-        /// <summary>
-        /// Mendaftarkan pengajuan perjalanan dinas baru (SPPD) via ESS (Kontrak v25)
-        /// </summary>
         [HttpPost]
         [AccessAction("Create", "Mengajukan Perjalanan Dinas", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("BusinessTravelRequest", "Create")]
-        [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelDetailResponseDto>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelDetailResponseDto>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateRequest([FromBody] CreateBusinessTravelRequestDto dto)
         {
             try
             {
                 var (userId, empId) = GetCurrentUserContext();
                 var result = await _travelRequestService.CreateRequestAsync(dto, userId, empId);
-                return StatusCode(StatusCodes.Status201Created, ApiResponse<BusinessTravelResponseDto>.Ok(result, "Pengajuan SPPD berhasil didaftarkan"));
+                return StatusCode(StatusCodes.Status201Created, ApiResponse<BusinessTravelDetailResponseDto>.Ok(result, "SPPD disimpan sebagai Draf. Tekan Ajukan untuk mengirim ke atasan."));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
-                return BadRequest(ApiResponse<BusinessTravelResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+                return BadRequest(ApiResponse<BusinessTravelDetailResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
         }
 
-        /// <summary>
-        /// Memperbarui draf pengajuan SPPD sebelum diajukan resmi (Kontrak v25)
-        /// </summary>
         [HttpPut("{id}")]
         [AccessAction("Update", "Mengubah Draf SPPD", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("BusinessTravelRequest", "Update")]
         [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> UpdateRequest([FromRoute] Guid id, [FromBody] UpdateBusinessTravelRequestDto dto)
         {
             try
@@ -127,29 +124,70 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 var result = await _travelRequestService.UpdateRequestAsync(id, dto, userId);
                 return Ok(ApiResponse<BusinessTravelResponseDto>.Ok(result, "Draf pengajuan SPPD berhasil diperbarui"));
             }
-            catch (Exception ex)
+            catch (BusinessTravelRequestException ex)
+            {
+                return StatusCode(ex.StatusCode, ApiResponse<BusinessTravelResponseDto>.Fail(ex.StatusCode, ex.Message));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<BusinessTravelResponseDto>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<BusinessTravelResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
         }
 
-        /// <summary>
-        /// Membatalkan perjalanan dinas yang belum berjalan dengan alasan minimal 15 karakter (Kontrak v25)
-        /// </summary>
+        [HttpPost("{id}/submit")]
+        [AccessAction("Create", "Mengajukan Perjalanan Dinas", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("BusinessTravelRequest", "Create")]
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelDetailResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelDetailResponseDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelDetailResponseDto>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelDetailResponseDto>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelDetailResponseDto>), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> SubmitRequest([FromRoute] Guid id, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var (userId, empId) = GetCurrentUserContext();
+                var result = await _travelRequestService.SubmitRequestAsync(id, userId, empId, cancellationToken);
+                return Ok(ApiResponse<BusinessTravelDetailResponseDto>.Ok(result, "SPPD berhasil diajukan dan menunggu persetujuan."));
+            }
+            catch (BusinessTravelRequestException ex)
+            {
+                return StatusCode(ex.StatusCode, ApiResponse<BusinessTravelDetailResponseDto>.Fail(ex.StatusCode, ex.Message));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<BusinessTravelDetailResponseDto>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+        }
+
         [HttpPut("{id}/cancel")]
         [AccessAction("Cancel", "Membatalkan Perjalanan Dinas", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("BusinessTravelRequest", "Cancel")]
         [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> CancelRequest([FromRoute] Guid id, [FromBody] CancelTravelRequestDto dto)
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> CancelRequest([FromRoute] Guid id, [FromBody] CancelTravelRequestDto dto, CancellationToken cancellationToken)
         {
             try
             {
                 var (userId, _) = GetCurrentUserContext();
-                var result = await _travelRequestService.CancelRequestAsync(id, dto, userId);
+                var result = await _travelRequestService.CancelRequestAsync(id, dto, userId, cancellationToken);
                 return Ok(ApiResponse<BusinessTravelResponseDto>.Ok(result, "Perjalanan dinas berhasil dibatalkan"));
             }
-            catch (Exception ex)
+            catch (BusinessTravelRequestException ex)
+            {
+                return StatusCode(ex.StatusCode, ApiResponse<BusinessTravelResponseDto>.Fail(ex.StatusCode, ex.Message));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<BusinessTravelResponseDto>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return BadRequest(ApiResponse<BusinessTravelResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }

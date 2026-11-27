@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Claims;
 using System.Threading;
@@ -80,5 +81,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             Guid caseId,
             Guid itemId,
             CancellationToken cancellationToken = default);
+
+        async Task<(bool Exists, Stream? Stream, string? ContentType, string? FileName, bool IsForbidden)> DownloadItemEvidenceScopedAsync(
+            Guid caseId,
+            Guid itemId,
+            ClaimsPrincipal user,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await DownloadItemEvidenceAsync(caseId, itemId, cancellationToken);
+            return (result.Exists, result.Stream, result.ContentType, result.FileName, false);
+        }
+
+        Task<RecruitmentResult<List<OnboardingCoordinatorOptionDto>>> GetCoordinatorOptionsAsync(
+            string? search,
+            ClaimsPrincipal user,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(RecruitmentResult<List<OnboardingCoordinatorOptionDto>>.Ok(new List<OnboardingCoordinatorOptionDto>()));
     }
 }

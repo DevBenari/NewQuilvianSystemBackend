@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `9cc8097c` (branch `yoga`) |
 | Tanggal | 12 November 2026 |
-| Status | ✅ Selesai — dengan satu penanda dipindah ke `BE-HRD-349` (lihat 7) dan startup Development menunggu migration `BE-HRD-334` diterapkan |
+| Status | ✅ Selesai — dengan satu penanda dipindah ke `BE-HRD-349` (lihat 7); migration `BE-HRD-334` sudah diterapkan (13 November 2026), jadi startup Development tidak lagi tertahan migration |
 
 ### Backend Governance Preflight
 
@@ -147,3 +147,8 @@ Uji manual: `NOT APPLICABLE`.
 | Interupsi | `NONE`. Saat mulai, ditemukan pengguna sudah meng-commit `BE-HRD-334` (`9cc8097c`); tidak ada yang dikerjakan ulang |
 | Status Git | 4 berkas source (3 diubah, 1 baru); 2 dokumen roadmap/traceability diubah; laporan ini baru. Tidak ada stage atau commit |
 | Langkah berikutnya | `BE-HRD-336` — `HrdUnitScopeService` dan penerapan cakupan pada endpoint roster (butuh data penempatan berjabatan dan akun non-superadmin untuk uji 403). Penerapan migration `BE-HRD-334` tetap menunggu instruksi pengguna |
+
+
+## Pembaruan 21 November 2026 — Status Migration
+
+Migration `20261112043425_AddSchedulingAttendanceAmendmentA52` sudah diterapkan ke database pengembangan `QuilvianNewDevHamzah`: pemilik menjalankan `dotnet ef database update --no-build` ("No migrations were applied. The database is already up to date.") dan `dotnet ef migrations list --no-build` terhadap `QuilvianNewDevHamzah` tidak menunjukkan satu pun migration `Pending`. Pernyataan "migration belum dijalankan" dan "wajib dijalankan sebelum dipakai" pada bagian di atas sudah tidak berlaku untuk DB dev tersebut; database lain (staging/production) tetap wajib menjalankannya sebelum fitur dipakai. Status task tetap ✅. Startup `ASPNETCORE_ENVIRONMENT=Development` tidak dijalankan ulang dalam pembaruan ini, sehingga baris uji startup di atas tetap `NOT RUN`.

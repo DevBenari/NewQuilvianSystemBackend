@@ -104,6 +104,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public DateTime? DateOfBirth { get; set; }
         public string? BloodType { get; set; }
         public List<string> FamilyMembersSummary { get; set; } = new();
+
+        /// <summary>
+        /// Usang (kontrak v30 bagian 36.3). Tetap diisi dari sumber yang sama dengan <see cref="DisciplinaryRecords"/>
+        /// untuk kompatibilitas pemanggil lama; layar baru memakai <see cref="DisciplinaryRecords"/>.
+        /// </summary>
+        [Obsolete("Gunakan DisciplinaryRecords (kontrak v30 bagian 36.3).")]
         public List<string> DisciplinarySanctions { get; set; } = new();
+
+        /// <summary>
+        /// Riwayat disiplin pegawai: sanksi alur resmi (<c>OFFICIAL</c>) dan catatan profil lama (<c>LEGACY</c>),
+        /// urut tanggal terbit terbaru. Kosong bila pemanggil tidak memegang <c>EmployeeDisciplinary : ViewSanctions</c>.
+        /// </summary>
+        public List<Employee360DisciplinaryItemDto> DisciplinaryRecords { get; set; } = new();
+
+        /// <summary>
+        /// <c>true</c> bila pemanggil tidak memegang <c>EmployeeDisciplinary : ViewSanctions</c>
+        /// (<c>HRD-DEC-246</c> butir 4, <c>VR-PKB-09</c>); kedua daftar disiplin kemudian dikirim kosong.
+        /// </summary>
+        public bool DisciplineHidden { get; set; }
+    }
+
+    /// <summary>
+    /// Satu baris riwayat disiplin pada Employee 360 (kontrak v30 bagian 36.3, kamus data 31.3).
+    /// </summary>
+    public class Employee360DisciplinaryItemDto
+    {
+        /// <summary><c>OFFICIAL</c> = sanksi alur resmi; <c>LEGACY</c> = catatan profil lama, selalu baca-saja.</summary>
+        public string Source { get; set; } = string.Empty;
+        public string? ReferenceNumber { get; set; }
+        public string? Level { get; set; }
+        public string? Title { get; set; }
+        public DateTime IssuedDate { get; set; }
+        public DateTime? ValidUntil { get; set; }
+        public string? Status { get; set; }
+        public bool IsActive { get; set; }
     }
 }

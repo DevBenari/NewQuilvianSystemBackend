@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Controllers
 {
@@ -69,10 +70,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [AccessAction("Read", "Melihat Data Pensiun", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("RetirementAdministration", "Read")]
         public async Task<IActionResult> GetEligibleEmployees(
-            [FromQuery] int minAge = 55,
+            [FromQuery] int? minAge = null,
             CancellationToken cancellationToken = default)
         {
             var result = await _service.GetEligibleEmployeesAsync(minAge, cancellationToken);
+            if (result == null)
+            {
+                // BE-HRD-368: tanpa kebijakan usia pensiun RS, kandidat pensiun otomatis tidak dihitung.
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Usia pensiun normal rumah sakit belum ditetapkan pada Pengaturan Siklus Kepegawaian. Kandidat pensiun otomatis tidak dapat dihitung; kasus pensiun yang sudah ada tetap dapat dibuka.",
+                    RetirementService.PolicyNotConfiguredCode));
+            }
             return Ok(ApiResponse<List<EligibleRetirementEmployeeResponse>>.Ok(result, "Daftar pegawai mendekati usia pensiun berhasil diambil."));
         }
 
@@ -104,7 +113,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             {
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -129,7 +138,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             {
                 return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(StatusCodes.Status409Conflict, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -150,7 +159,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             {
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }
@@ -171,7 +180,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             {
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HrSafeError.IsDomain(ex))
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail(StatusCodes.Status500InternalServerError, ex.Message));
             }

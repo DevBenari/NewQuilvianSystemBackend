@@ -447,12 +447,12 @@ public sealed class CalculationResponse
     public decimal RemainingAmount { get; set; }
 
     /// <summary>
-    /// Nilai tagihan pasien sebelum penyesuaian pembulatan tunai.
+    /// Nilai tagihan pasien sebelum penyesuaian pembulatan pembayaran.
     /// </summary>
     public decimal OriginalPayableAmount { get; set; }
 
     /// <summary>
-    /// Selisih pembulatan tunai (negatif untuk pembulatan ke bawah, positif untuk pembulatan ke atas).
+    /// Selisih pembulatan pembayaran ke atas ke rupiah penuh (selalu nol atau positif; data lama dapat negatif).
     /// </summary>
     public decimal RoundingAdjustmentAmount { get; set; }
 

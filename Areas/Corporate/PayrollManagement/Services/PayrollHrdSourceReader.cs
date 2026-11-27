@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
@@ -50,11 +52,8 @@ public static class PayrollProfileRules
     /// </summary>
     public static bool CanAutoPrepare(bool hasSalaryAssignment, bool hasBankAccount) => hasSalaryAssignment && hasBankAccount;
 
-    /// <summary>
-    /// Tetapan PPh dan iuran per orang belum punya sumber di HRD dan rumus PPh/BPJS belum disahkan. Keduanya nol dianggap BELUM
-    /// ditetapkan, bukan hasil perhitungan yang sah.
-    /// </summary>
-    public static bool IsTaxInsuranceUnset(decimal taxAmount, decimal insuranceAmount) => taxAmount == 0m && insuranceAmount == 0m;
+    // Penentu kelengkapan PPh dan iuran BUKAN lagi "TaxAmount == 0 && InsuranceAmount == 0": nol bisa merupakan hasil yang sah. Status
+    // dinilai eksplisit dari konfigurasi HRD (PrlTax, PrlInsurance) oleh PayrollTaxInsuranceRules.
 }
 
 /// <summary>
@@ -65,10 +64,13 @@ public static class PayrollProfileRules
 public sealed class PayrollHrdSourceReader
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly PayrollPolicyOptions _policy;
 
-    public PayrollHrdSourceReader(ApplicationDbContext dbContext)
+    /// <param name="policyOptions">Opsional supaya pemakai lama (termasuk tes) yang hanya memberi DbContext tetap berjalan; tanpa opsi, bawaan kebijakan dipakai.</param>
+    public PayrollHrdSourceReader(ApplicationDbContext dbContext, IOptions<PayrollPolicyOptions>? policyOptions = null)
     {
         _dbContext = dbContext;
+        _policy = policyOptions?.Value ?? new PayrollPolicyOptions();
     }
 
     /// <summary>Pegawai lalu dokter aktif; WorkforceProfileId yang sama tidak digandakan.</summary>
@@ -153,7 +155,9 @@ public sealed class PayrollHrdSourceReader
                 x.SalaryStructureId,
                 x.SalaryGradeId,
                 x.EffectiveStartDate,
-                Approved = x.ApprovedAt != null
+                x.IsPrimary,
+                // Aturan tunggal "disetujui" (WfpSalaryAssignmentRules.IsApprovedExpression): kedua kolom persetujuan terisi.
+                Approved = x.ApprovedAt != null && x.ApprovedByUserId != null
             })
             .ToListAsync(cancellationToken);
 
@@ -163,15 +167,29 @@ public sealed class PayrollHrdSourceReader
                 g => g.Key,
                 g =>
                 {
-                    var approved = g.Where(a => a.Approved).ToList();
-                    var chosen = (approved.Count > 0 ? approved : g.ToList())
+                    var primaries = g.Where(a => a.IsPrimary).ToList();
+                    var pool = primaries.Count > 0 ? primaries : g.ToList();
+                    var approved = pool.Where(a => a.Approved).ToList();
+                    // Yang disetujui didahulukan; bila hanya ada yang belum disetujui, baris itu tetap dikembalikan supaya
+                    // pemanggil dapat menyatakan "menunggu persetujuan" (bukan "belum ada") dan tidak memperlakukannya sebagai gaji sah.
+                    var chosen = (approved.Count > 0 ? approved : pool)
                         .OrderByDescending(a => a.EffectiveStartDate)
                         .ThenBy(a => a.Id)
                         .First();
+                    // Sakelar RequireApprovedSalaryAssignment mati (bawaan): setiap penetapan utama aktif yang efektif dianggap sah tanpa
+                    // approval (keputusan "peniadaan approval" 19 Nov 2026), jadi tidak ada yang berstatus menunggu dan semuanya dihitung.
+                    // Menyala: hanya yang disetujui sah, yang lain menunggu persetujuan.
+                    if (!_policy.RequireApprovedSalaryAssignment)
+                        return new PayrollHrdSalary(
+                            chosen.Id, chosen.SalaryStructureId, chosen.SalaryGradeId, chosen.EffectiveStartDate,
+                            HasApproved: true,
+                            HasPending: false,
+                            ApprovedCount: pool.Count);
+
                     return new PayrollHrdSalary(
                         chosen.Id, chosen.SalaryStructureId, chosen.SalaryGradeId, chosen.EffectiveStartDate,
                         HasApproved: approved.Count > 0,
-                        HasPending: g.Any(a => !a.Approved),
+                        HasPending: pool.Any(a => !a.Approved),
                         ApprovedCount: approved.Count);
                 });
     }

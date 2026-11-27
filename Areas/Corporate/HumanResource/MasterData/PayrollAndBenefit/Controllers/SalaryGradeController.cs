@@ -183,6 +183,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             [FromQuery] string? currencyCode,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null,
+            [FromQuery] Guid? salaryStructureId = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25,
             CancellationToken cancellationToken = default)
@@ -197,6 +198,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 currencyCode,
                 onlyActive ? true : null,
                 search);
+
+            if (salaryStructureId.HasValue && salaryStructureId.Value != Guid.Empty)
+            {
+                var gradeId = await _dbContext.Set<MstSalaryStructure>()
+                    .AsNoTracking()
+                    .Where(s => s.Id == salaryStructureId.Value && !s.IsDelete)
+                    .Select(s => (Guid?)s.SalaryGradeId)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (gradeId.HasValue)
+                {
+                    query = query.Where(x => x.Id == gradeId.Value);
+                }
+            }
 
             var totalData = await query.CountAsync(cancellationToken);
 

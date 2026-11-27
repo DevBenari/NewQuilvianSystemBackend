@@ -12,7 +12,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             Guid workforceProfileId,
             SubmitDocumentRequestDto request,
             Guid requestedByUserId,
-            CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default,
+            System.Security.Claims.ClaimsPrincipal? user = null);
 
         /// <summary>
         /// Tier 1 Approval: Verifikasi & Persetujuan oleh Supervisor Kompensasi & Benefit (HRS-W4, VR-HRS-07)

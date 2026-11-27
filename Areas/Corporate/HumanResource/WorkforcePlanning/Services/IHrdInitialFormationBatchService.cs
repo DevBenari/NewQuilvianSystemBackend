@@ -92,5 +92,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
             CancelInitialFormationBatchRequest request,
             Guid currentUserId,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Memulihkan batch berstatus Submitted yang terputus/tanpa workflow sah secara teraudit (BE-HRD-FIN-WFP-010).
+        /// </summary>
+        Task<WorkforcePlanningResult<InitialFormationBatchResponse>> RecoverAsync(
+            Guid id,
+            RecoverInitialFormationBatchRequest request,
+            Guid currentUserId,
+            CancellationToken cancellationToken = default);
     }
 }

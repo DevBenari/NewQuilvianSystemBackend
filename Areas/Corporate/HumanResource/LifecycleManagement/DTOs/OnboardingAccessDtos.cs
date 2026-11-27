@@ -7,6 +7,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
     {
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 10;
+        public Guid? OnboardingCaseId { get; set; }
         public OnboardingAccessRequestType? RequestType { get; set; }
         public OnboardingAccessRequestStatus? RequestStatus { get; set; }
         public Guid? HospitalSiteId { get; set; }

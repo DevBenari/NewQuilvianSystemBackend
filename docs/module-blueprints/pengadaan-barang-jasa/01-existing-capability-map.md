@@ -3,15 +3,18 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `PBJ-BP-001` |
-| Revisi peta | `1` — audit penuh pertama |
+| Revisi peta | `2` — revisi 1 (audit penuh pertama, 12 November 2026) + impact scan `pemilihan-penyedia` (bagian 7, 26 November 2026) |
 | Status | `draft` |
-| Revisi blueprint / keputusan | revisi `1` / `decision_revision 2` (`PBJ-DEC-001`..`018`) |
-| Masukan | BRD & PRD v1.0 DRAFT; `00-interview-decisions.md` |
-| Backend SHA | `100c011d54147bb19ca4bd874fdfb200448ba46a` (branch `sukmagp`, working tree bersih) |
-| Frontend SHA | `763d665b2db3f31cf370ddba68623dc8aa57cf18` (branch `sukmagpV2`) |
-| Kontrak yang berlaku | Belum ada |
+| Revisi blueprint / keputusan | revisi `2` / `decision_revision 18` (`PBJ-DEC-001`..`081`) |
+| Masukan | BRD & PRD v1.0 DRAFT; `00-interview-decisions.md` (scope pass `pemilihan-penyedia` `PBJ-DEC-066`..`081`) |
+| Backend SHA | Revisi 1: `100c011d54147bb19ca4bd874fdfb200448ba46a`. Revisi 2: `d5fdc8faefb8724810fcd1fe42f9128a2fcc0ede` (branch `sukmagp`; working tree hanya berisi `00-interview-decisions.md` yang belum di-commit) |
+| Frontend SHA | Revisi 1: `763d665b2db3f31cf370ddba68623dc8aa57cf18`. Revisi 2: `3e538667994feba533d2c93a142a6f333092066d` (branch `sukmagpV2`, bersih) |
+| Kontrak yang berlaku | `perencanaan-permintaan` set 1.0 (API 1.4, INT 1.1, PERM 1.3); `manajemen-vendor` set 1.1 |
 | Sifat audit | **Hanya membaca.** Tidak ada source aplikasi yang diubah. Database tidak disentuh |
-| Tanggal | 12 November 2026 |
+| Tanggal | 12 November 2026 (revisi 1); 26 November 2026 (revisi 2) |
+
+> **Baca bagian 7 lebih dulu** untuk kebutuhan `pemilihan-penyedia`. Status baris `PBJ-CAP-001`..`018` di bagian 3
+> adalah keadaan 12 November 2026; status terkininya untuk sub-modul ini ada di bagian 7.1.
 
 **Singkatan bukti.** `BE` = `NewQuilvianSystemBackend`, `FE` = `V2QuilvianSystemFrontendDev`. Bila SHA tidak
 ditulis, berlaku SHA pada tabel di atas.
@@ -121,3 +124,85 @@ Peta ini harus dinyatakan usang dan diperiksa ulang secara terbatas bila salah s
 `Areas/Platform/NumberSeriesManagement/**`, `Areas/Administrator/MasterData/Models/MstSupplier.cs` beserta DTO-nya,
 `Areas/Corporate/FinanceManagement/Purchasing/**`, `Services/Security/**`, `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`,
 dan `FE/src/utils/menu-sidebar/**`.
+
+**Tambahan revisi 2:** `Areas/Corporate/ProcurementManagement/Common/**`, `.../Request/Services/**` dan `.../Request/Models/**`,
+`.../Planning/Services/ProcurementBudgetCommitmentService.cs`, `.../Planning/Services/ProcurementPackagePlanService.cs`,
+`.../Vendor/Services/ProcurementVendorEligibilityService.cs`, kontrak `perencanaan-permintaan/contracts/integration-contract.md`
+dan `manajemen-vendor/contracts/integration-contract.md`, serta `FE/src/components/view/corporate/procurement/shared/**` dan
+`FE/src/lib/services/corporate/procurement/procurement-approval-service.js`.
+
+---
+
+## 7. Impact scan `pemilihan-penyedia` — 26 November 2026
+
+### 7.0 Batas dan cara
+
+| Hal | Isi |
+| --- | --- |
+| Pemicu | Scope pass `pemilihan-penyedia` (`PBJ-DEC-066`..`081`) memakai peta yang dibuat pada `100c011d`/`763d665b`. Sejak itu dua sub-modul Pengadaan sudah dibangun |
+| Diperiksa | Kebutuhan K-05 dan K-07 beserta titik sentuhnya: PR dan rencana paket, pagu, kelayakan vendor, `Wfl`, nomor, lampiran, riwayat, cakupan data, izin, PO Finance, menu dan komponen FE Pengadaan |
+| Tidak diperiksa | Perilaku runtime (tidak ada eksekusi); notifikasi (`PBJ-CAP-017` tetap `Unknown`); kebutuhan `kontrak-pelaksanaan` |
+| Perubahan pada jalur pemicu revisi 1 | `WorkflowManagement` 11 commit dan `MasterData/Workflow` 2 commit (perluasan `PBJ-DEC-019`/`038`: `IWorkflowReferenceLifecycleHandler`, `CreateAndSubmitOnBehalfAsync`, `ActivationConditionCode`, ditambah perubahan HR); `Services/Security` 1 commit (Turnstile, tidak relevan); `SupplierController` 1 commit (kunci blokir `PBJ-DEC-060`); registry 7 commit (baris `Prc`); menu FE 57 commit. `NumberSeriesManagement`, `MstSupplier`, `SupplierDtos`, dan `FinanceManagement/Purchasing`: **0 commit** |
+
+### 7.1 Status terkini baris lama yang dipakai `pemilihan-penyedia`
+
+| ID | Status 12 Nov | Status 26 Nov | Bukti (`@d5fdc8fa` / `@3e5386679`) | Arti bagi `pemilihan-penyedia` |
+| --- | --- | --- | --- | --- |
+| `PBJ-CAP-001` Mesin persetujuan | `Extend` | `Reuse with adapter` | `BE/.../ProcurementManagement/Common/Services/ProcurementApprovalGateway.cs#SubmitAsync`, `#WithdrawAsync`, `#CloseReturnedAsync`; `.../ProcurementWorkflowLifecycleHandler.cs#CanHandle` (semua `ReferenceType` berawalan `PBJ_`); `BE/.../MasterData/Workflow/Models/MstWorkflowStep.cs#ActivationConditionCode`; `.../Common/Seeders/ProcurementWorkflowDefinitionSeeder.cs` (7 definisi, fail-closed) | Perluasan `Wfl` sudah selesai. Paket cukup menambah dua definisi (persiapan, penetapan) dan penerap statusnya di Pengadaan sendiri. Syarat lama tetap: penyetuju wajib punya data pegawai |
+| `PBJ-CAP-002` Kotak masuk | `Reuse with adapter` | `Reuse with adapter` | `FE/src/app/corporate/procurement/approvals/inbox`; `FE/src/lib/constants/corporate/procurement/procurement-constants.jsx` baris 198–203 (daftar jenis dokumen); `FE/src/lib/services/corporate/procurement/procurement-approval-service.js` baris 24–30 (peta `documentType` → endpoint) | Antrean Persetujuan Pengadaan sudah ada; jenis dokumen paket cukup didaftarkan di dua peta FE itu |
+| `PBJ-CAP-003` Nomor dokumen | `Ready to reuse` | `Ready to reuse` | `BE/.../Common/Constants/ProcurementNumberSeries.cs` (`ResetPolicy = Never`, prefix `PR`/`RKB`/`RPK`/`KTL`/`UBV`) | Tambah `PKT` dan `RFQ` (`PBJ-ASM-008`) |
+| `PBJ-CAP-004` Lampiran | `Missing` | `Extend` | `BE/.../Common/Models/PrcAttachment.cs` (`AttachmentCategory` teks bebas, versi); `.../Common/Services/ProcurementAttachmentService.cs` (allowlist ekstensi baris 49, cek signature baris 147); `.../IProcurementDocumentAccessProvider.cs` (hak per **dokumen**: None/Read/Edit) | Unggah aman sudah ada. **Belum ada** pembatasan per kategori lampiran, padahal `PBJ-DEC-079` meminta lampiran harga tertutup bagi evaluator. Hak akses hari ini berlaku untuk seluruh lampiran satu dokumen |
+| `PBJ-CAP-005` Jejak audit | `Reuse with adapter` | `Ready to reuse` | `BE/.../Common/Models/PrcDocumentHistory.cs`; `.../Common/Services/ProcurementDocumentHistoryWriter.cs`; `.../Common/Constants/ProcurementDocumentHistoryActions.cs` | Riwayat paket, RFQ, perpanjangan batas waktu, pembatalan memakai penulis yang sama |
+| `PBJ-CAP-006` Hak akses | `Ready to reuse` | `Ready to reuse` | Tidak berubah | — |
+| `PBJ-CAP-007` Cakupan per unit | `Reuse with adapter` | `Reuse with adapter` | `BE/.../Common/Services/ProcurementDataScopeService.cs#ResolveAsync` (aksi `ReadAllUnits` per resource, lalu penempatan departemen) | Paket berisi baris banyak unit; unit peminta melihat paket bila **salah satu** baris berasal dari unitnya. Aturan itu ditulis di service paket |
+| `PBJ-CAP-009` Identitas vendor | `Ready to reuse` | `Ready to reuse` | `MstSupplier` 0 commit sejak revisi 1 | — |
+| `PBJ-CAP-010` Status blokir | `Conflict` | `Ready to reuse` | Ditutup `PBJ-DEC-021`/`060`; `BE/Areas/Administrator/MasterData/Services/SupplierProcurementStatusService.cs`; dibaca lewat kelayakan (`PBJ-CAP-023`) | `pemilihan-penyedia` tidak membaca `IsBlacklisted` langsung |
+| `PBJ-CAP-012` Katalog barang/jasa | `Missing` | `Ready to reuse` | `BE/.../MasterData/Models/MstProcurementItem.cs`, `MstProcurementItemCategory.cs`; `PrcPurchaseRequestLine.ItemId` | Baris paket memakai `ItemId` dari baris PR |
+| `PBJ-CAP-014` PO menurut nomor | `Extend` | `Extend` | `BE/.../FinanceManagement/Purchasing/DTOs/FinancePurchaseOrderDtos.cs#PurchaseOrderQuery` baris 79–86 (masih tanpa `PONumber`); jalur Purchasing 0 commit | Sesuai `PBJ-DEC-011`, nomor PO di paket cukup teks rujukan unik **di Pengadaan**. Pencocokan ke Finance tetap menunggu filter Finance dan `FIN-OQ-141` |
+| `PBJ-CAP-018` Menu FE | `Missing` | `Missing` (menu 4 dan 6) | `FE/src/utils/menu-sidebar/menu-items.jsx`: 25 rute `/corporate/procurement/**`, tidak satu pun untuk menu 4, 6, atau 11.3 | Nama submenu menunggu `PBJ-OQ-038` |
+
+### 7.2 Kemampuan baru yang dibutuhkan `pemilihan-penyedia`
+
+| ID | Kebutuhan (keputusan) | Pemilik | Bukti (`@d5fdc8fa` / `@3e5386679`) | Status | Gap / penghubung | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| `PBJ-CAP-019` | Daftar baris PR `APPROVED` yang siap dipaketkan (`PBJ-DEC-071`) | `perencanaan-permintaan` | Kontrak `perencanaan-permintaan/contracts/integration-contract.md` (`PBJ-PP-INT` 1.1) mencantumkan `ProcurementPurchaseRequestService.GetApprovedForPackagingAsync`; `rg` di `Areas/Corporate/ProcurementManagement` **tidak menemukan** metode itu | `Missing` | Kontrak menjanjikan, kode belum ada (laporan kesiapan `perencanaan-permintaan` G-10). Harus dibangun di service pemilik, per **baris**, dengan sisa jumlah beli yang belum dipaketkan | Bila `pemilihan-penyedia` membaca tabel PR langsung, aturan `perencanaan-permintaan` dilangkahi |
+| `PBJ-CAP-020` | Menandai baris PR masuk paket, dan melepasnya saat paket batal (`PBJ-DEC-071`, `077`) | `perencanaan-permintaan` | `BE/.../Request/Models/PrcPurchaseRequest.cs` baris 91 `ConvertedPackageId` (tingkat **kepala** PR); `PrcPurchaseRequestLine.cs` tanpa rujukan paket; `.../Request/Services/ProcurementPurchaseRequestVerificationService.cs` baris 327 memakai `ConvertedPackageId`; kontrak `MarkConvertedAsync(prIds, packageId)`; metodenya tidak ada di kode | `Extend` | Model dan kontrak dirancang satu paket per PR. `PBJ-DEC-071` membutuhkan rujukan paket **per baris**, status `CONVERTED_TO_PACKAGE` setelah semua baris beli masuk paket, dan pelepasan saat batal. Butuh migration di tabel milik `perencanaan-permintaan` dan amendment `PBJ-PP-INT` | Perubahan menyentuh sub-modul yang sudah `READY_WITH_CONDITIONS`; regresi layar PR dan antrean verifikasi perlu diuji ulang |
+| `PBJ-CAP-021` | Rencana paket yang disetujui sebagai sumber paket (`PBJ-DEC-028`) | `perencanaan-permintaan` | Kontrak mencantumkan `ProcurementPackagePlanService.GetApprovedAsync`; metode **tidak ditemukan**. `BE/.../Planning/Models/PrcPackagePlanLine.cs` berisi `NeedPlanLineKey`, `DepartmentId`, `ItemId`, `AllocatedQuantity`; `PrcPurchaseRequestLine.NeedPlanLineKey` ada | `Missing` | Hubungan rencana paket → PR hanya lewat `NeedPlanLineKey`. Baris rencana paket **tidak** membawa sumber dana per baris PR, sehingga komitmen per baris PR (`PBJ-DEC-078`) tetap membutuhkan baris PR. Lihat pertanyaan `PBJ-OQ-039` | Paket yang dibuat dari rencana paket saja tidak punya dasar komitmen pagu |
+| `PBJ-CAP-022` | Komitmen pagu per garis pagu dan pelepasannya (`PBJ-DEC-077`, `078`) | `perencanaan-permintaan` | `BE/.../Planning/Services/ProcurementBudgetCommitmentService.cs#FindCurrentLineageAsync(fiscalYear, departmentId, itemCategoryId, fundSourceId)`, `#CommitAsync`, `#ReleaseAsync`; komentar kelas: ikut transaksi pemanggil, idempoten, contoh `PBJ_AWARD`; kontrak INT: kunci unik `(BudgetLineageKey, SourceDocumentType, SourceDocumentId)`, satu dokumen boleh mengikat beberapa pagu | `Ready to reuse` | Pemanggil menjumlahkan baris PR per garis pagu, lalu memanggil `CommitAsync` sekali per garis. Belum ada pemanggil, jadi perilaku runtime belum terbukti | Selisih pembulatan antar garis (aturan `PBJ-DEC-078`) |
+| `PBJ-CAP-023` | Kelayakan vendor untuk RFQ dan penetapan (`PBJ-DEC-076`, `PBJ-ASM-006`) | `manajemen-vendor` | `BE/.../Vendor/Services/ProcurementVendorEligibilityService.cs#CheckAsync(supplierId, itemCategoryId)`, `#GetEligibleAsync(itemCategoryId)`; aturan baris 124–126 (`IsActive`, `IsBlacklisted`, kategori aktif) dan 145 (`IsRestricted`); `.../Vendor/DTOs/VendorEligibilityDtos.cs#VendorEligibilityResponse` (`IsEligible`, `IsRestricted`, `Reasons`, `Warnings`) | `Reuse with adapter` | Service menilai **satu** kategori. Paket dengan beberapa kategori butuh irisan di sisi `pemilihan-penyedia` (layak untuk semua kategori). Pemeriksaan ulang saat pengajuan dan saat penyetuju terakhir ditulis di penerap status paket | Penerap status `Wfl` berjalan sesudah keputusan `Wfl` commit; bila vendor tidak layak pada saat itu, dokumen perlu jalur "gagal diterapkan" yang jelas |
+| `PBJ-CAP-024` | Jenjang tambahan "Melebihi HPS" dan "metode di luar rentang" (`PBJ-DEC-068`, `073`) | `Wfl` + Pengadaan | `BE/.../Common/Constants/ProcurementWorkflowCodes.cs` (`PBJ_OVER_BUDGET`, `PBJ_OUT_OF_PLAN`); `MstWorkflowStep.ActivationConditionCode`; seeder baris 25 dan 186 | `Reuse with adapter` | Pola langkah bersyarat sudah ada. Tambah dua kode kondisi milik paket dan isi kondisinya saat paket diajukan | — |
+| `PBJ-CAP-025` | Menyembunyikan HPS dan harga dari evaluator (`PBJ-DEC-079`) | Platform Authorization + Pengadaan | `BE/.../Common/Services/ProcurementDataScopeService.cs` baris 62–66 memanggil `_accessPermissionService.HasAccessAsync(user, resource, action)`; pola aksi tambahan `ReadAllUnits` (`BE/.../Request/ProcurementRequestExplicitPermissions.cs`) | `Reuse with adapter` | Mekanisme cek izin per aksi sudah ada. Pengadaan perlu satu aksi tambahan (mis. "baca harga") dan penyaring kolom di DTO paket/penawaran. Lampiran harga bergantung pada `PBJ-CAP-004` | Penyaringan hanya di FE akan membocorkan harga lewat API (`PBJ-AC-029`) |
+| `PBJ-CAP-026` | Evaluator hanya melihat paket yang ditugaskan (`PBJ-DEC-074`, `080`) | Pengadaan | `ProcurementDataScopeService` hanya mengenal "semua unit" atau "unit penempatan"; tidak ada cakupan per penugasan di `Areas/Corporate/ProcurementManagement` | `Missing` | Perlu cakupan baru "per penugasan" untuk evaluator, termasuk untuk `IProcurementDocumentAccessProvider` lampiran | Evaluator dari unit pengguna bisa melihat paket lain bila cakupan unit dipakai |
+| `PBJ-CAP-027` | Master metode pengadaan berkonfigurasi (`PBJ-DEC-068`, `069`) | Pengadaan | `BE/.../MasterData/Models/MstProcurementType.cs` hanya `TypeCode`, `TypeName`, `IsGoods`, `Description`, `IsActive` (ini **jenis**, bukan metode); tidak ada model metode | `Missing` | Master baru: rentang HPS, minimum penawaran, wajib evaluasi teknis, dokumen wajib | — |
+| `PBJ-CAP-028` | Checklist dokumen wajib persiapan (`PBJ-ASM-007`) | Pengadaan | `MstProcurementType` tanpa daftar dokumen; `MstProcurementCategoryDocumentRequirement` milik `manajemen-vendor` adalah dokumen **legalitas vendor** per kategori, bukan dokumen paket | `Missing` | Jangan memakai ulang kewajiban dokumen vendor untuk checklist paket; konsepnya berbeda | Salah pakai tabel vendor membuat aturan vendor dan paket saling memengaruhi |
+| `PBJ-CAP-029` | Komponen FE bersama untuk layar paket dan RFQ | Frontend `perencanaan-permintaan` | `FE/src/components/view/corporate/procurement/shared/` (`procurement-approval-panel`, `procurement-attachment-panel`, `procurement-document-tabs`, `procurement-history-panel`, `procurement-list-filter`, `procurement-status-badge`) | `Reuse with adapter` | Daftarkan jenis dokumen dan jenis status baru (pola `kind` dari laporan `FE-PBJ-VD-002`). Panel lampiran belum bisa memisah lampiran teknis dan harga (`PBJ-CAP-004`) | — |
+| `PBJ-CAP-030` | Folder dan registry submodule `pemilihan-penyedia` | Registry | `BE/docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 55–59: `Procurement`, `Planning`, `Request`, `Common`, `Vendor` | `Missing` | Perlu baris submodule baru di bawah `ProcurementManagement` (pola `PBJ-DEC-063`) sebelum model pertama | Model di folder tanpa baris registry gagal QBE |
+
+### 7.3 Kontrak as-is yang menjadi titik sentuh
+
+**`perencanaan-permintaan` → `pemilihan-penyedia` (`PBJ-PP-INT` 1.1):** tiga dari empat metode yang dijanjikan belum ada di
+kode (`GetApprovedForPackagingAsync`, `MarkConvertedAsync`, `GetApprovedAsync`). Hanya `ProcurementBudgetCommitmentService`
+yang ada. Bentuk `MarkConvertedAsync(prIds, packageId)` juga sudah tidak cocok dengan `PBJ-DEC-071` (per baris).
+
+**`manajemen-vendor` → `pemilihan-penyedia` (`PBJ-VD-INT` 1.1):** `CheckAsync` dan `GetEligibleAsync` ada dan cocok dengan
+kontrak. Contoh respons tidak layak: `{ "isEligible": false, "isRestricted": false, "reasons": ["Dokumen wajib Izin Pedagang
+Besar Farmasi kedaluwarsa sejak 16-11-2026."] }`.
+
+### 7.4 Conflict dan Unknown
+
+| ID | Jenis | Uraian | Pemilik keputusan |
+| --- | --- | --- | --- |
+| ~~`PBJ-OQ-039`~~ (ditutup `PBJ-DEC-082`, 26 November 2026: isi paket selalu baris PR, rencana paket rujukan) | Conflict → Open Question | `PBJ-DEC-028` membolehkan paket dibuat dari rencana paket **dan/atau** PR, tetapi `PBJ-DEC-071` dan `PBJ-DEC-078` mengandaikan isi paket selalu baris PR (komitmen pagu butuh unit dan sumber dana dari baris PR). Baris rencana paket tidak membawa sumber dana per baris PR (`PBJ-CAP-021`). Perlu diputuskan apakah rencana paket hanya menjadi **rujukan** pembanding, sementara isi paket selalu baris PR yang disetujui | Pengguna sesi |
+| `PBJ-UNK-002` | Unknown | Perilaku penerap status `Wfl` bila pemeriksaan ulang kelayakan vendor gagal **setelah** penyetuju terakhir menyetujui (`PBJ-DEC-076`). Pola `perencanaan-permintaan`: keputusan `Wfl` tetap sah dan kegagalan sinkron dicatat untuk diulang. Belum terbukti cocok untuk penolakan karena aturan bisnis | Desain (`design-business-module`), mungkin butuh keputusan pengguna |
+| `PBJ-UNK-001` | Unknown | Notifikasi (`PBJ-CAP-017`) | Tetap ditunda |
+
+### 7.5 Ringkasan
+
+- **Siap dipakai ulang:** nomor, riwayat dokumen, hak akses, identitas vendor, status blokir, katalog, komitmen pagu.
+- **Pakai dengan penghubung:** persetujuan `Wfl` (dua definisi baru), kotak masuk, cakupan unit, kelayakan vendor (irisan
+  kategori), jenjang bersyarat, penyaringan harga per izin, komponen FE bersama.
+- **Perlu diperluas di pemilik lain:** lampiran (visibilitas per kategori), rujukan paket per baris PR (`perencanaan-permintaan`),
+  filter nomor PO Finance (tetap, tidak memblokir).
+- **Belum ada:** daftar baris PR siap paket, rencana paket disetujui, cakupan evaluator per penugasan, master metode, checklist
+  dokumen paket, baris registry submodule, menu 4 dan 6.
+- **Butuh keputusan:** `PBJ-OQ-039` (rencana paket sebagai sumber isi paket).

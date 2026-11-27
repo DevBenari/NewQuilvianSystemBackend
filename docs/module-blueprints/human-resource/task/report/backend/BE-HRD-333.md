@@ -5,7 +5,7 @@
 * **Nama Task**: 5 Controller API Kontrak v25 (24 Endpoint Swagger), Worker Kurs BI TRV-W4, 24 Permissions & Audit Verifikasi E2E QBE Conformance
 * **Modul / Sub-Modul**: Human Resource / Sub-modul 20: Business Travel & Expense Reimbursement (Perjalanan Dinas & Biaya Operasional)
 * **Slice Delivery**: `S-D5` (Kontrak API `v25`, Gelombang `Verifikasi`)
-* **Status**: `✅ Selesai (2026-11-09)`
+* **Status**: `🟡 Sebagian (2026-11-18)` — `AT-HRD-TRV-22` lulus; persetujuan SPPD dan lima event audit belum ada (lihat bagian "Pengerjaan Ulang 18 November 2026" di akhir laporan). Klaim ✅ 9 November 2026 sudah diturunkan sejak 10 November
 * **Deliverables**:
   - `Implementasi 5 Controller ASP.NET Core Kontrak v25 mencakup 24 RESTful endpoint pada Swagger tags resmi, background worker TravelCurrencyRateSyncWorker (TRV-W4), penguncian 24 permissions Hrd.BusinessTravel.* dan Hrd.Expense.*, pencatatan 14 audit event HRD_TRV_*, kompilasi dotnet build 0 error dan QBE Conformance PASS.`
 
@@ -93,3 +93,54 @@ Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamz
 Lima hak akses yang kurang kini punya endpoint: `POST /settlements/{id}/missing-receipts`, `POST /settlements/missing-receipts/{itemId}/approve`, `PUT /expenses/claims/{id}`, `POST /expenses/claims/{id}/approve`, `GET /travel/audit-logs`, dan master `expense-categories`. Log audit disusun dari cap waktu yang tersimpan karena modul tidak punya tabel audit. Pintu Finance uang muka kini memakai hak akses `BusinessTravelAdvance : ApproveFinance`. Potongan payroll H+30 kini benar-benar membuat `TrxPayrollDeductionSchedule`, satu kali per uang muka.
 
 `dotnet build` 0 error, 602 warning. QBE Strict `PASS`. Aplikasi dijalankan pada 11 November 2026: seluruh worker berjalan tanpa galat query dan lima dokumen Swagger berhasil dibuat. Uji API dengan akun sungguhan `NOT RUN`.
+
+## Pengerjaan Ulang 18 November 2026 — `AT-HRD-TRV-22` dan celah yang ditemukan
+
+| Field | Nilai |
+| --- | --- |
+| Task mode | `BACKEND` (instruksi pengguna 18 November 2026 "lanjut BE-HRD-333") |
+| Commit backend saat dikerjakan | `d7d4eb3b` (branch `yoga`) + perubahan `BE-HRD-298`/`316` yang belum di-commit |
+| Backend Governance Preflight | Area `Corporate`; Module `HumanResource` / `BusinessTravelManagement`; keberlakuan `TOUCHED LEGACY` hanya sebagai objek uji — **tidak ada source yang diubah**; tanpa migration |
+| Status | 🟡 **Tetap sebagian** (keputusan pemilik 18 November 2026) — `AT-HRD-TRV-22` lulus; dua celah acceptance criteria "seluruh permission dan audit event bekerja" dijadikan usulan task baru |
+
+### `AT-HRD-TRV-22` — kepatuhan 24 endpoint kontrak v25
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Tests/QuilvianSystemBackend.HumanResourceTests/TravelContractV25Tests.cs` (baru) | 26 uji: 24 baris endpoint kontrak §31.1–§31.5 (verb + path, tag Swagger, `[Authorize]` tanpa `[AllowAnonymous]`, `[AccessPermission]` = `ControllerName` + nama `[AccessAction]`), lima tag berbeda dan setiap endpoint source dijaga izin, serta kelima controller lolos `PermissionRegistryValidator` |
+
+| Skenario | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| 24 endpoint kontrak v25 | Seluruhnya ada pada controller bertag sesuai, berlogin, dan berizin konsisten | `PASS` | `Endpoint_kontrak_v25_ada_bertag_berlogin_dan_berizin` (24 baris) |
+| Endpoint tambahan di luar kontrak | 7 endpoint (uang muka `finance-approve`, tiga `missing-receipts`, klaim `PUT {id}` dan `approve`, `audit-logs`) juga dijaga izin; jumlah endpoint source 31 | `PASS` | `Lima_tag_dan_setiap_endpoint_source_dijaga_izin` |
+| Validator registri izin | Kelima controller tanpa temuan | `PASS` | `Kelima_controller_lolos_validator_registri_izin` |
+| Kontrol negatif (berkas dipulihkan identik tiap putaran) | K1 izin endpoint `zones` dihapus → 3 uji gagal; K2 argumen izin `approve` uang muka tidak cocok → 1 baris gagal; K3 tag Settlements salah → 5 baris gagal | `PASS` | Keluaran `dotnet test` |
+| Proyek uji HR (`dotnet test -p:RunAnalyzers=False`, build penuh) | 319/319 lulus (293 + 26 baru) | `PASS` | Keluaran `dotnet test` |
+
+Kontrak §31 tidak mencantumkan endpoint di luar 24 itu; ketujuh endpoint tambahan dicatat untuk penyegaran kontrak pada pass blueprint.
+
+### Celah yang ditemukan (belum dikerjakan)
+
+| No | Celah | Bukti | Akibat |
+| --- | --- | --- | --- |
+| 1 | **SPPD tidak pernah disetujui.** Matriks izin punya `Hrd.BusinessTravel.Request.Approve` dan event `HRD_TRV_REQUEST_APPROVED`, tetapi tidak ada endpoint persetujuan SPPD, tidak ada sambungan ke workflow persetujuan, dan tidak ada transisi `TravelStatus` ke `Approved` | `BusinessTravelRequestService` hanya `Draft`/`Submitted` → `Cancelled`; status berikutnya berasal dari uang muka/settlement. `TravelAdvanceRequestService` hanya menolak SPPD `Cancelled`/`Rejected` | Uang muka dapat diajukan dan dicairkan untuk SPPD yang belum disahkan atasan |
+| 2 | **Event audit belum lengkap.** Matriks izin dan audit mencantumkan 12 event `HRD_TRV_*`; `TravelAuditTrailService` menurunkan 10 event dari cap waktu tabel dengan sebagian nama berbeda (`REQUEST_CREATED` vs `REQUEST_SUBMITTED`, `ADVANCE_SUBMITTED` vs `ADVANCE_REQUESTED`) | Tidak ada: `HRD_TRV_MISSING_RECEIPT_DECLARED`, `HRD_TRV_SPPD_FROZEN_OVERDUE`, `HRD_TRV_PAYROLL_DEDUCTION_TRIGGERED`, `HRD_TRV_ATTENDANCE_SYNCED`, `HRD_TRV_ROSTER_LOCK_APPLIED` | Jejak audit akreditasi tidak memuat lima peristiwa itu |
+
+Usulan task baru (keputusan desain lebih dulu): (a) persetujuan SPPD — lewat workflow persetujuan umum (reference type baru pada `WorkflowReferenceLifecycleService`) atau endpoint `POST …/requests/{id}/approve` yang belum ada di kontrak, beserta gerbang "SPPD harus disetujui" pada pengajuan uang muka; (b) penyelarasan nama dan kelengkapan event audit `HRD_TRV_*` dengan matriks.
+
+### Catatan
+
+| Hal | Isi |
+| --- | --- |
+| Perubahan sampingan | `NONE`; tidak ada source dan data devYoga yang diubah |
+| Status Git | 1 berkas uji baru, laporan ini, roadmap/traceability/indeks uji. Tidak ada commit |
+
+## Penutupan 19 November 2026 — celah ditutup amandemen kontrak `v28`
+
+| Field | Nilai |
+| --- | --- |
+| Status | ✅ **Selesai** — kedua celah 18 November 2026 ditutup oleh `BE-HRD-374` s.d. `BE-HRD-380` (kontrak `v28`, `HRD-DEC-224` s.d. `HRD-DEC-228`) |
+| Celah 1 — SPPD tidak pernah disetujui | Ditutup: persetujuan lewat Workflow V2 (definisi `BUSINESS_TRAVEL_REQUEST`, endpoint Ajukan, penangan status, penyelarasan ulang); hak `Hrd.BusinessTravel.Request.Approve` diwujudkan sebagai penugasan approver workflow; uang muka/settlement hanya untuk SPPD disetujui. Dibuktikan di devYoga dengan akun asli (Dewi → dr. Bima) — [BE-HRD-375](BE-HRD-375.md), [BE-HRD-376](BE-HRD-376.md), [BE-HRD-377](BE-HRD-377.md), [BE-HRD-378](BE-HRD-378.md) |
+| Celah 2 — 5 dari 12 event audit belum ada | Ditutup: ke-12 event `HRD_TRV_*` bernama matriks — [BE-HRD-379](BE-HRD-379.md) |
+| Verifikasi akhir | `TravelContractV25Tests` 34/34 (25 endpoint v25 + v28), proyek uji HR 379/379, QBE Strict 17 berkas tanpa temuan, registri hak valid — [BE-HRD-380](BE-HRD-380.md) |
+| Migration | Tidak ada |

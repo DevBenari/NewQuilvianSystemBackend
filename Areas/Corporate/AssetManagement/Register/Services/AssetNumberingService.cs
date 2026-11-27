@@ -96,6 +96,9 @@ public sealed class AssetDocumentNumberSeries
     public static readonly AssetDocumentNumberSeries ConditionReport = new("AST_CONDITION", "AST-KND");
     public static readonly AssetDocumentNumberSeries Utilization = new("AST_UTILIZATION", "AST-PMF");
     public static readonly AssetDocumentNumberSeries Import = new("AST_IMPORT", "AST-IMP");
+    public static readonly AssetDocumentNumberSeries Transfer = new("AST_TRANSFER", "AST-MUT");
+    public static readonly AssetDocumentNumberSeries Loan = new("AST_LOAN", "AST-PJM");
+    public static readonly AssetDocumentNumberSeries StockTake = new("AST_STOCKTAKE", "AST-OPN");
 
     private AssetDocumentNumberSeries(string sequenceKey, string prefix)
     {

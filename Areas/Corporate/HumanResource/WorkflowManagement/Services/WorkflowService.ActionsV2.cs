@@ -71,7 +71,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                         "Workflow instance tidak ditemukan.");
                 }
 
-                var validation = ValidateActionAssignment(instance, assignmentId, actorContext.UserId);
+                var validation = await ValidateActionAssignmentAsync(instance, assignmentId, actorContext, cancellationToken);
                 if (!validation.IsValid)
                 {
                     await transaction.RollbackAsync(cancellationToken);
@@ -82,6 +82,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
                 var assignment = validation.Assignment!;
                 var step = validation.Step!;
+                var actingDelegation = validation.Delegation;
                 var reason = await ResolveRejectionReasonAsync(
                     instance,
                     step,
@@ -247,6 +248,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     resultingStepStatus,
                     now);
 
+                ApplyActingDelegation(action, assignment, actorContext, actingDelegation);
+
                 action.ActionReasonId = reason.Id;
                 action.ActionReasonType = "RejectionReason";
                 action.ActionReasonCodeSnapshot = reason.ReasonCode;
@@ -382,7 +385,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                         "Workflow instance tidak ditemukan.");
                 }
 
-                var validation = ValidateActionAssignment(instance, assignmentId, actorContext.UserId);
+                var validation = await ValidateActionAssignmentAsync(instance, assignmentId, actorContext, cancellationToken);
                 if (!validation.IsValid)
                 {
                     await transaction.RollbackAsync(cancellationToken);
@@ -393,6 +396,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
                 var assignment = validation.Assignment!;
                 var step = validation.Step!;
+                var actingDelegation = validation.Delegation;
                 MstRejectionReason? reason = null;
 
                 if (request.RejectionReasonId.HasValue && request.RejectionReasonId.Value != Guid.Empty)
@@ -445,6 +449,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     previousStepStatus,
                     WorkflowValueConstants.StepStatus.RevisionRequested,
                     now);
+
+                ApplyActingDelegation(action, assignment, actorContext, actingDelegation);
 
                 if (reason != null)
                 {
@@ -583,7 +589,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                         "Workflow instance tidak ditemukan.");
                 }
 
-                var validation = ValidateActionAssignment(instance, assignmentId, actorContext.UserId);
+                var validation = await ValidateActionAssignmentAsync(instance, assignmentId, actorContext, cancellationToken);
                 if (!validation.IsValid)
                 {
                     await transaction.RollbackAsync(cancellationToken);
@@ -594,6 +600,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
                 var assignment = validation.Assignment!;
                 var step = validation.Step!;
+                var actingDelegation = validation.Delegation;
                 var targetStep = instance.StepInstances.FirstOrDefault(x =>
                     x.IsActive &&
                     !x.IsDelete &&
@@ -679,6 +686,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     previousStepStatus,
                     WorkflowValueConstants.StepStatus.Returned,
                     now);
+
+                ApplyActingDelegation(action, assignment, actorContext, actingDelegation);
 
                 if (reason != null)
                 {
@@ -939,10 +948,43 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             }
         }
 
-        public async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> WithdrawAsync(
+        public Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> WithdrawAsync(
             Guid workflowInstanceId,
             WorkflowWithdrawRequest request,
+            CancellationToken cancellationToken = default) =>
+            WithdrawCoreAsync(workflowInstanceId, request, null, cancellationToken);
+
+        /// <summary>
+        /// Menarik instance <b>atas nama</b> pemohonnya, untuk dokumen modul yang ditarik dari layar
+        /// modul atau ditutup proses terjadwal (contoh: penilaian masa percobaan yang masa percobaannya
+        /// habis, <c>HRD-DEC-085</c> butir 9). Hanya dipanggil service server; tidak ada endpoint.
+        /// </summary>
+        /// <remarks>
+        /// Berbeda dari <see cref="WithdrawAsync"/>, instance yang sedang dikembalikan ke pemohon
+        /// (<c>RevisionRequested</c>/<c>Returned</c>) juga dapat ditarik, karena dokumen modulnya boleh
+        /// ditarik pada status itu. Pemohon tetap harus sama dengan pemohon instance.
+        /// </remarks>
+        public Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> WithdrawOnBehalfAsync(
+            Guid workflowInstanceId,
+            Guid requesterUserId,
+            WorkflowWithdrawRequest request,
             CancellationToken cancellationToken = default)
+        {
+            if (requesterUserId == Guid.Empty)
+            {
+                return Task.FromResult(WorkflowServiceResult<WorkflowInstanceDetailResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pemohon workflow wajib diisi."));
+            }
+
+            return WithdrawCoreAsync(workflowInstanceId, request, requesterUserId, cancellationToken);
+        }
+
+        private async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> WithdrawCoreAsync(
+            Guid workflowInstanceId,
+            WorkflowWithdrawRequest request,
+            Guid? onBehalfOfUserId,
+            CancellationToken cancellationToken)
         {
             if (workflowInstanceId == Guid.Empty || request == null || string.IsNullOrWhiteSpace(request.Reason))
             {
@@ -954,7 +996,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             HumanResourceUserContextDto actorContext;
             try
             {
-                actorContext = await _humanResourceContextService.GetCurrentAsync(cancellationToken);
+                actorContext = onBehalfOfUserId.HasValue
+                    ? await _humanResourceContextService.GetByUserIdAsync(onBehalfOfUserId.Value, cancellationToken)
+                    : await _humanResourceContextService.GetCurrentAsync(cancellationToken);
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -1007,10 +1051,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                         "Workflow definition tidak mengizinkan withdraw oleh pemohon.");
                 }
 
-                if (!string.Equals(
+                var isInProgress = string.Equals(
                     instance.WorkflowStatus,
                     WorkflowValueConstants.WorkflowStatus.InProgress,
-                    StringComparison.OrdinalIgnoreCase))
+                    StringComparison.OrdinalIgnoreCase);
+                var isReturnedToRequester = onBehalfOfUserId.HasValue &&
+                    (string.Equals(instance.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.RevisionRequested, StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(instance.WorkflowStatus, WorkflowValueConstants.WorkflowStatus.Returned, StringComparison.OrdinalIgnoreCase));
+
+                if (!isInProgress && !isReturnedToRequester)
                 {
                     await transaction.RollbackAsync(cancellationToken);
                     return WorkflowServiceResult<WorkflowInstanceDetailResponse>.Fail(
@@ -1185,10 +1234,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             return null;
         }
 
-        private ActionAssignmentValidation ValidateActionAssignment(
+        private async Task<ActionAssignmentValidation> ValidateActionAssignmentAsync(
             TrxWorkflowInstance instance,
             Guid assignmentId,
-            Guid actorUserId)
+            HumanResourceUserContextDto actorContext,
+            CancellationToken cancellationToken)
         {
             if (!string.Equals(
                 instance.WorkflowStatus,
@@ -1233,14 +1283,78 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     "Assignment belum tersedia atau sudah diproses.");
             }
 
-            if (assignment.AssignedApproverUserId != actorUserId)
+            // BE-HRD-441 (VR-WF-30): pemegang penugasan, atau Plh aktif dari pemegang penugasan yang bukan pemohon.
+            var actor = await ResolveActingAuthorityAsync(instance, step, assignment, actorContext, cancellationToken);
+            if (!actor.CanAct)
             {
                 return ActionAssignmentValidation.Fail(
                     StatusCodes.Status403Forbidden,
-                    "User login bukan approver yang ditugaskan.");
+                    actor.Message);
             }
 
-            return ActionAssignmentValidation.Ok(assignment, step);
+            return ActionAssignmentValidation.Ok(assignment, step, actor.Delegation);
+        }
+
+        /// <summary>
+        /// BE-HRD-441 (kontrak v29, VR-WF-30, VR-WF-02, INT-HR-113): pengguna boleh memutuskan penugasan bila ia pemegang
+        /// penugasan, atau bila pemegang penugasan sedang mendelegasikan kepadanya secara aktif (cakupan definisi/tahap cocok)
+        /// dan ia bukan pemohon. Penugasan tidak dipindahkan; delegasi yang dipakai dicatat pada jejak aksi.
+        /// </summary>
+        private async Task<ActingAuthority> ResolveActingAuthorityAsync(
+            TrxWorkflowInstance instance,
+            TrxWorkflowStepInstance step,
+            TrxWorkflowApproverAssignment assignment,
+            HumanResourceUserContextDto actorContext,
+            CancellationToken cancellationToken)
+        {
+            if (assignment.AssignedApproverUserId == actorContext.UserId)
+            {
+                return ActingAuthority.Allowed(null);
+            }
+
+            var delegation = await WorkflowDelegationResolver.FindActingDelegationAsync(
+                _dbContext,
+                assignment.AssignedApproverUserId,
+                actorContext.UserId,
+                instance.WorkflowDefinitionId,
+                step.WorkflowStepId,
+                DateTime.UtcNow,
+                cancellationToken);
+
+            if (delegation == null)
+            {
+                return ActingAuthority.Denied("User login bukan approver yang ditugaskan.");
+            }
+
+            if (instance.RequestedByUserId == actorContext.UserId)
+            {
+                return ActingAuthority.Denied("Pejabat tidak boleh menyetujui permohonan sendiri.");
+            }
+
+            return ActingAuthority.Allowed(delegation);
+        }
+
+        /// <summary>
+        /// BE-HRD-441 (VR-WF-25): aksi Plh atas penugasan pejabat definitif mencatat pelaku Plh dan pejabat definitif.
+        /// Penugasan yang sudah dialihkan saat dibuat (<c>IsDelegated</c>) tetap memakai jejak bawaannya.
+        /// </summary>
+        private static void ApplyActingDelegation(
+            TrxApprovalAction action,
+            TrxWorkflowApproverAssignment assignment,
+            HumanResourceUserContextDto actorContext,
+            TrxApprovalDelegation? delegation)
+        {
+            if (delegation == null)
+            {
+                return;
+            }
+
+            action.ApprovalDelegationId = delegation.Id;
+            action.IsDelegated = true;
+            action.DelegatedFromUserId = assignment.AssignedApproverUserId;
+            action.DelegatedFromWorkforceProfileId = assignment.AssignedApproverWorkforceProfileId;
+            action.ActionEmployeeId = actorContext.EmployeeId;
+            action.OnBehalfOfEmployeeId = delegation.PrincipalEmployeeId;
         }
 
         private async Task<MstRejectionReason?> ResolveRejectionReasonAsync(
@@ -1706,6 +1820,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                    string.Equals(status, WorkflowValueConstants.AssignmentStatus.Completed, StringComparison.OrdinalIgnoreCase);
         }
 
+        private sealed class ActingAuthority
+        {
+            public bool CanAct { get; private set; }
+            public string Message { get; private set; } = string.Empty;
+            public TrxApprovalDelegation? Delegation { get; private set; }
+
+            public static ActingAuthority Allowed(TrxApprovalDelegation? delegation) =>
+                new() { CanAct = true, Delegation = delegation };
+
+            public static ActingAuthority Denied(string message) =>
+                new() { CanAct = false, Message = message };
+        }
+
         private sealed class ActionAssignmentValidation
         {
             public bool IsValid { get; private set; }
@@ -1713,17 +1840,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             public string Message { get; private set; } = string.Empty;
             public TrxWorkflowApproverAssignment? Assignment { get; private set; }
             public TrxWorkflowStepInstance? Step { get; private set; }
+            public TrxApprovalDelegation? Delegation { get; private set; }
 
             public static ActionAssignmentValidation Ok(
                 TrxWorkflowApproverAssignment assignment,
-                TrxWorkflowStepInstance step)
+                TrxWorkflowStepInstance step,
+                TrxApprovalDelegation? delegation = null)
             {
                 return new ActionAssignmentValidation
                 {
                     IsValid = true,
                     StatusCode = StatusCodes.Status200OK,
                     Assignment = assignment,
-                    Step = step
+                    Step = step,
+                    Delegation = delegation
                 };
             }
 

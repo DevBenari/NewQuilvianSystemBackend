@@ -14,6 +14,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndB
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Features;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services
 {
@@ -37,11 +38,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         private static readonly Regex BpjsKesRegex = new(@"^[0-9]{13}$", RegexOptions.Compiled);
         private static readonly Regex BpjsTkRegex = new(@"^[0-9]{11}$", RegexOptions.Compiled);
 
-        public BenefitEnrollmentService(ApplicationDbContext dbContext, ILogger<BenefitEnrollmentService> logger, NumberSeriesAllocator numberAllocator)
+        private readonly IBpjsFeatureGate _bpjsGate;
+
+        public BenefitEnrollmentService(
+            ApplicationDbContext dbContext,
+            ILogger<BenefitEnrollmentService> logger,
+            NumberSeriesAllocator numberAllocator,
+            IBpjsFeatureGate bpjsGate)
         {
             _dbContext = dbContext;
             _logger = logger;
             _numberAllocator = numberAllocator;
+            _bpjsGate = bpjsGate;
         }
 
         // =========================================================================
@@ -220,6 +228,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             if (enrollment == null)
             {
                 throw new KeyNotFoundException($"Kepesertaan asuransi dengan ID '{id}' tidak ditemukan.");
+            }
+
+            // Saat fitur BPJS nonaktif, nomor kepesertaan BPJS tidak boleh dibuat atau diubah (nomor lama tetap tersimpan dan terbaca).
+            // Nomor polis swasta tetap dapat diperbarui; Frontend tidak lagi mengirim nomor BPJS sehingga permintaan normal tidak terdampak.
+            if (!_bpjsGate.IsEnabled
+                && (!string.IsNullOrWhiteSpace(request.BpjsKesehatanNumber) || !string.IsNullOrWhiteSpace(request.BpjsKetenagakerjaanNumber)))
+            {
+                throw new BpjsFeatureDisabledException(_bpjsGate.DisabledMessage);
             }
 
             // Validasi format nomor BPJS Kesehatan (VR-BEN-09: 13 digit)
