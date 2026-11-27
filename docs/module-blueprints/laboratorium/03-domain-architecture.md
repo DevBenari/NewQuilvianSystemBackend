@@ -6,10 +6,10 @@
 |---|---|
 | Blueprint ID | `laboratorium` |
 | Architecture ID | `LAB-DA-001` |
-| Revision | `12` — bagian **A9**, 2026-11-25: `S20-1` penjadwalan ulang pemeriksaan; `AGG-LAB-01` diperluas (`LAB-DC-066`..`069`), rujukan baca pertama ke `BC-MCU` (`LAB-DC-070`); `INV-61`..`INV-69`; nol status baru. Sebelumnya `11` — bagian **A8**, 2026-10-20: `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan; hubungan baca pertama laporan ke `BC-REG`; `INV-58`..`INV-60`. Sebelumnya `10` — bagian **A7**, 2026-09-25: `S16a` tiga laporan operasional; `INV-54` dibukukan. Sebelumnya `9` — bagian **A6**, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `8` — bagian **A5**, 2026-09-24: `S4` validasi dan rilis Patologi Klinik |
+| Revision | `13` — bagian **A10**, 2026-11-27: `S17-1` penyerahan hasil kepada pasien; aggregate baru `AGG-LAB-04` Dokumen Hasil untuk Pasien (`LAB-DC-071`..`083`); `INV-70`..`INV-81`; nol status baru pada pesanan/pemeriksaan. Sebelumnya `12` — bagian **A9**, 2026-11-25: `S20-1` penjadwalan ulang pemeriksaan; `AGG-LAB-01` diperluas (`LAB-DC-066`..`069`), rujukan baca pertama ke `BC-MCU` (`LAB-DC-070`); `INV-61`..`INV-69`; nol status baru. Sebelumnya `11` — bagian **A8**, 2026-10-20: `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan; hubungan baca pertama laporan ke `BC-REG`; `INV-58`..`INV-60`. Sebelumnya `10` — bagian **A7**, 2026-09-25: `S16a` tiga laporan operasional; `INV-54` dibukukan. Sebelumnya `9` — bagian **A6**, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `8` — bagian **A5**, 2026-09-24: `S4` validasi dan rilis Patologi Klinik |
 | Status | `draft` |
-| **Kesiapan arsitektur** | **Revision 12: `S20-1` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol status baru, sembilan invariant `INV-61`..`INV-69`, nol gap memblokir. Lihat A9.15.** **Revision 11: `S16b-1` dan `S16b-2` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol konsep tersimpan, tiga invariant `INV-58`..`INV-60`, nol gap memblokir. Lihat A8.14.** **Revision 10: `S16a` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol konsep tersimpan, tiga invariant arti `INV-55`..`INV-57`, nol gap memblokir. Lihat A7.14.** **Revision 9: `S4d-1` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja; `S4d-2` dan `S4e` tidak dirancang (`DEC-LAB-020`, `DEC-LAB-021`). Lihat A6.14.** **Revision 8: `S4` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja — pemakaian nyatanya tertahan `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016`. Lihat A5.14.** Sebelumnya: **`DOMAIN_ARCHITECTURE_READY`** — **12 slice siap.** `S4c` **dirancang ulang revision 7** sesudah bukti `LAB-EVD-003`; bentuk lamanya pada A3 dicabut, bentuk barunya pada **A4**. Jumlah slice tidak berubah; yang berubah isinya. **12 slice siap.** Sepuluh slice revision 2-4 tetap `READY`; revision 5 menambahkan `S4b` dan `S4c` ke dalam scope, dan revision 6 menaikkan `S4b` menjadi `READY` sesudah `LAB-DEC-084` menutup `DEC-LAB-015`. **Satu bagian dikecualikan, bukan satu slice:** gambar hasil Patologi Anatomi menunggu `DEC-LAB-016`. Lihat A3.16 |
-| Scope yang dinilai | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11` (rev 2); `S13a`, `S13b`, `S14`, `S15` (rev 3); **`S4b` dan `S4c` (rev 5-6)**; **`S4` (rev 8)**; **`S4d-1` (rev 9)**; **`S16a` (rev 10)**; **`S16b-1`, `S16b-2` (rev 11)**; **`S20-1` (rev 12)** |
+| **Kesiapan arsitektur** | **Revision 13: `S17-1` ditambahkan `DOMAIN_ARCHITECTURE_READY` — satu aggregate baru, dua belas invariant `INV-70`..`INV-81`, nol gap memblokir; `S17-2` tidak dirancang. Lihat A10.15.** **Revision 12: `S20-1` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol status baru, sembilan invariant `INV-61`..`INV-69`, nol gap memblokir. Lihat A9.15.** **Revision 11: `S16b-1` dan `S16b-2` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol konsep tersimpan, tiga invariant `INV-58`..`INV-60`, nol gap memblokir. Lihat A8.14.** **Revision 10: `S16a` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol konsep tersimpan, tiga invariant arti `INV-55`..`INV-57`, nol gap memblokir. Lihat A7.14.** **Revision 9: `S4d-1` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja; `S4d-2` dan `S4e` tidak dirancang (`DEC-LAB-020`, `DEC-LAB-021`). Lihat A6.14.** **Revision 8: `S4` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja — pemakaian nyatanya tertahan `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016`. Lihat A5.14.** Sebelumnya: **`DOMAIN_ARCHITECTURE_READY`** — **12 slice siap.** `S4c` **dirancang ulang revision 7** sesudah bukti `LAB-EVD-003`; bentuk lamanya pada A3 dicabut, bentuk barunya pada **A4**. Jumlah slice tidak berubah; yang berubah isinya. **12 slice siap.** Sepuluh slice revision 2-4 tetap `READY`; revision 5 menambahkan `S4b` dan `S4c` ke dalam scope, dan revision 6 menaikkan `S4b` menjadi `READY` sesudah `LAB-DEC-084` menutup `DEC-LAB-015`. **Satu bagian dikecualikan, bukan satu slice:** gambar hasil Patologi Anatomi menunggu `DEC-LAB-016`. Lihat A3.16 |
+| Scope yang dinilai | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11` (rev 2); `S13a`, `S13b`, `S14`, `S15` (rev 3); **`S4b` dan `S4c` (rev 5-6)**; **`S4` (rev 8)**; **`S4d-1` (rev 9)**; **`S16a` (rev 10)**; **`S16b-1`, `S16b-2` (rev 11)**; **`S20-1` (rev 12)**; **`S17-1` (rev 13)** |
 | Kesiapan requirement | `PARTIALLY_READY` dari `LAB-RCG-001` revision 4; seluruh slice dikirim sebagai slice siap yang berdiri sendiri |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | Backend SHA | `c87d9c0` |
@@ -1841,6 +1841,268 @@ eksplisit; tiga gap tidak memblokir. **Independen** dari `S20-2` dan `S1b`.
 
 ---
 
+## A10. Revision 13 — `S17-1` penyerahan hasil Laboratorium kepada pasien (2026-11-27)
+
+**Bagian ini menambah satu aggregate baru milik Laboratorium, `AGG-LAB-04` Dokumen Hasil untuk Pasien**, dan dua data
+setelan Laboratorium yang menjaga gerbangnya. `AGG-LAB-01` Pesanan **tidak** diperluas: pesanan hanya **dibaca** (status
+*Selesai*, disiplin, pemeriksaan dan perilisnya). **Nol status baru pada pesanan maupun pemeriksaan.**
+
+*Penyerahan hasil kepada pasien* berarti dokumen hasil final satu nomor order sampai ke tangan pasien — dikirim lewat
+WhatsApp oleh petugas, dicetak di loket, atau diunduh. Contoh yang dipakai sepanjang bagian ini: order
+`LAB-RSMMC-000040` (Darah Lengkap + Gula Darah Puasa, Patologi Klinik) dirilis lengkap Senin 2 Desember 10.05 oleh
+dr. Aditya; terbit dokumen versi 1. Patologi Klinik sudah diaktifkan Kepala Instalasi. Pukul 10.20 Gilang (Analis)
+memilih *Kirim Hasil ke Pasien*, WhatsApp terbuka ke `6281234567890`, ia melampirkan PDF bersandi, mengirim dari
+WhatsApp resmi rumah sakit, lalu memilih **Terkirim**. Kolom *Terkirim ke Pasien* menjadi `1`.
+
+### A10.1 Identitas dan gerbang masuk
+
+| Butir | Isi |
+|---|---|
+| Scope | **`S17-1`** — dokumen hasil final berversi per order dan arsipnya; *Preview* petugas; gerbang penyerahan (satu rumus untuk kirim, cetak, unduh); aktivasi penyerahan per disiplin; daftar pemeriksaan sensitif dan persetujuan kedua; kirim manual berbantu dan catatan pengirimannya; angka *Terkirim ke Pasien* dan penanda *Perlu kirim ulang*; kewenangan. **`S17-2`** (halaman verifikasi QR publik, tautan aman) **tidak** dirancang |
+| Kesiapan requirement | `LAB-RCG-001` **revision 16** bagian 0J.8 + 0J.9: **`S17-1` utuh `READY_FOR_DOMAIN_DESIGN`**, independen dari `S17-2` |
+| Decision ID yang mengikat | `LAB-DEC-278`..`LAB-DEC-298`; diwarisi `LAB-DEC-066`..`068`, `LAB-DEC-139`, `LAB-DEC-140`, `LAB-DEC-150`, `152`, `172`, `LAB-DEC-182` (ditegaskan `293`), `LAB-DEC-183` (diamandemen `279`, `284`), `LAB-DEC-184`, `LAB-DEC-185`; `LAB-DEC-280` hanya bagian *Dokter Lab*; `LAB-DEC-180` tanpa butir antrean. `AC-357`..`AC-376` |
+| Bukti | Decisions **rev 147**; capability map **rev 11** (`CAP-P34-01`..`18`) pada BE `cce1dbf5` / FE `11b3aaece`; pergeseran ke BE `693941d5` / FE `48680f6de` diperiksa terbatas (putaran 35) — nol perubahan pada butir ini |
+| Baseline rujukan | **Tidak dipakai** — seluruh aturan diputuskan pemilik modul; isi klinis (daftar sensitif, penyetuju) menunggu Kepala Instalasi |
+
+### A10.2 Ubiquitous language — istilah yang ditambahkan
+
+| Istilah | Arti |
+|---|---|
+| **Dokumen Hasil untuk Pasien** | Satu dokumen per nomor order PK/Mikrobiologi yang **seluruh** pemeriksaannya dirilis; isinya sama dengan lembar hasil untuk pasien (`LAB-EVD-005`). **Berbeda** dari dokumen hasil di rekam medis (`LAB-DC-057`, satu per pemeriksaan yang dirilis, milik `BC-MRC`) — keduanya tidak saling menggantikan |
+| **Versi dokumen** | Satu terbitan dokumen yang dibekukan: nomor versi, waktu terbit, perilis, token QR, berkas arsip. Versi 1 terbit saat order *Selesai*; versi berikutnya hanya dari koreksi `S6` (`LAB-DEC-289`). Statusnya *berlaku* atau *sudah digantikan* |
+| **Penyerahan** | Satu dari tiga jalur dokumen sampai ke pasien: **kirim WhatsApp**, **cetak** (*Print Hasil*), **unduh**. Ketiganya lewat **satu gerbang** (`LAB-DEC-139`) |
+| **Gerbang penyerahan** | Jawaban *terbuka / tertutup beserta alasannya* bagi satu versi dokumen, dari tiga syarat: order *Selesai*, disiplin **diaktifkan**, dan — bila memuat pemeriksaan sensitif — versi itu **disetujui** |
+| **Aktivasi penyerahan** | Setelan per disiplin (PK, Mikrobiologi), bawaan **nonaktif**, yang dinyalakan Kepala Instalasi sesudah konfirmasi klinis `LAB-SIGN-002` (`LAB-DEC-295`) |
+| **Pemeriksaan sensitif** | Jenis pemeriksaan yang ditetapkan Kepala Instalasi (`LAB-OPEN-048`) sehingga hasilnya butuh **orang kedua** sebelum diserahkan (`LAB-DEC-182`, `294`). Contoh ilustratif — isinya belum ditetapkan: *Anti-HIV* |
+| **Persetujuan penyerahan** | Keputusan *disetujui* atau *ditolak beralasan* oleh penyetuju kedua atas **satu versi** dokumen yang memuat pemeriksaan sensitif (`LAB-DEC-297`) |
+| **Kirim manual berbantu** | Sistem membuka WhatsApp ke nomor pasien dan menyediakan salinan PDF; **petugas** mengirim dari WhatsApp resmi rumah sakit lalu menyatakan hasilnya. *Terkirim* = pernyataan petugas, bukan bukti gerbang pesan (`LAB-DEC-279`) |
+| **Catatan pengiriman** | Satu baris per upaya kirim, *Terkirim* atau *Gagal* beralasan; tidak pernah diubah (`LAB-DEC-283`) |
+| **Salinan WhatsApp** | Versi dokumen yang dikunci sandi pembuka = tanggal lahir pasien `HHBBTTTT`, dibuat saat diminta dan **tidak** diarsip (`LAB-DEC-290`) |
+| **Preview** | Tampilan petugas sebelum/sesudah gerbang, bertanda air *BELUM FINAL — bukan untuk pasien*; **bukan** versi dokumen dan tidak dapat diserahkan (`LAB-DEC-287`) |
+| **Perlu kirim ulang** | Penanda: pasien pernah dikirimi versi lama, versi berlaku belum pernah tercatat *Terkirim* (`LAB-DEC-285`, `298`) |
+
+### A10.3 Peta bounded context — perubahan
+
+**Nol context baru milik Laboratorium.** Satu hubungan baca baru ke data induk pasien untuk dua ruas; sisanya hubungan
+yang sudah ada.
+
+| Dari | Ke | Sifat | Dipakai oleh | Arah kebenaran |
+|---|---|---|---|---|
+| `BC-LAB` | **Data induk pasien** (modul `patient-management`) | **Baca, conformist** — **nomor WhatsApp** dan **tanggal lahir** pasien, lewat kunjungan order. Hubungan baca No. RM/nama yang sudah ada (A8.3) diperluas | Nomor tujuan (`INV-77`), sandi salinan WhatsApp (`INV-78`), isi dokumen | Data induk pasien pemiliknya. Laboratorium **tidak** menulis, tidak menormalkan di data induk, dan tidak menyediakan isian nomor lain (`LAB-DEC-282`, `292`) |
+| `BC-LAB` | `BC-PLAT` | Hilir — pembangkit PDF (`QuestPDF`, `CAP-P34-01`), registri kewenangan (tiga aksi baru, A10.9), penyimpanan berkas privat | Terbit versi, arsip, salinan WhatsApp | `BC-PLAT` penyedia. Penyimpanan bersama belum ada (`LAB-COORD-019`) — `ARCH-GAP-LAB-24` |
+| `BC-LAB` | `BC-MD` | Baca — jenis pemeriksaan | Daftar pemeriksaan sensitif **merujuk** jenis pemeriksaan | `BC-MD` pemilik katalog. Penanda *sensitif* **milik Laboratorium**, tidak ditulis ke katalog `BC-MD` |
+| `BC-LAB` | `BC-MRC` | **Tidak berubah** — pendaftaran dokumen per rilis (`LAB-DC-057`) tetap | — | Dokumen untuk pasien **tidak** didaftarkan ke rekam medis sebagai dokumen kedua |
+| `BC-LAB` | Gerbang WhatsApp platform | **Tidak ada** pada `S17-1` — jalur manual (`LAB-DEC-279`); kelak `LAB-COORD-011` | — | — |
+
+**Yang tidak dibuat:** hubungan tulis ke data induk pasien; endpoint tanpa login; integrasi penyedia pesan; pendaftaran
+dokumen pasien ke `BC-MRC`.
+
+### A10.4 Katalog konsep domain
+
+| ID | Nama | Klasifikasi | Context | Ownership | Identitas | Peran | Bukti |
+|---|---|---|---|---|---|---|---|
+| `LAB-DC-071` | **Dokumen Hasil untuk Pasien** | `AGGREGATE_ROOT` (`AGG-LAB-04`) | `BC-LAB` | **`New`** | Satu per nomor order (`LAB-DEC-067`); dirujuk lewat order | Pemilik versi, persetujuan, dan catatan pengiriman | `LAB-DEC-067`, `284` |
+| `LAB-DC-072` | **Versi Dokumen** | `ENTITY` di dalam `AGG-LAB-04` | `BC-LAB` | **`New`** | Nomor versi berurutan dari 1 per dokumen; dibekukan sesudah terbit | Nomor dokumen, waktu terbit, perilis, status *berlaku*/*sudah digantikan*, token, berkas arsip | `LAB-DEC-140`, `183` butir 1, `284`, `289` |
+| `LAB-DC-073` | **Token Verifikasi** | `VALUE_OBJECT` pada `LAB-DC-072` | `BC-LAB` | **`New`** | Acak per versi; dapat dicabut | Isi kode QR; tidak memuat identitas pasien atau nomor order | `LAB-DEC-140`, `184`, `291` |
+| `LAB-DC-074` | **Berkas Arsip Versi** | `VALUE_OBJECT` (rujukan berkas) pada `LAB-DC-072` | `BC-LAB` (isi), `BC-PLAT` (penyimpanan) | **`New`** | Satu per versi; tidak dihapus | PDF tanpa sandi, dikunci dari pengeditan, di penyimpanan privat | `LAB-DEC-185`, `284` |
+| `LAB-DC-075` | **Persetujuan Penyerahan** | `ENTITY` di dalam `AGG-LAB-04` | `BC-LAB` | **`New`** | Identitas sendiri; menempel pada satu versi; tidak diubah | *Disetujui* / *ditolak* + alasan, penyetuju, waktu | `LAB-DEC-182`, `294`, `297` |
+| `LAB-DC-076` | **Catatan Pengiriman** | `ENTITY` di dalam `AGG-LAB-04` | `BC-LAB` | **`New`** — menggantikan rancangan bagian 13 arsitektur backend (`LabResultDelivery`), yang belum dibangun | Identitas sendiri; tidak diubah atau dihapus | Pelaku, waktu, nomor tujuan snapshot, saluran *WhatsApp manual*, versi, *Terkirim*/*Gagal*, alasan | `LAB-DEC-066`, `281`..`283` |
+| `LAB-DC-077` | **Gerbang Penyerahan** | `ADAPTER/VIEW` (aturan turunan) | `BC-LAB` | **`New`** — dihitung, tidak disimpan | Tanpa identitas | Satu jawaban bagi kirim, cetak, unduh, dan penanda layar | `LAB-DEC-139`, `287`, `293`..`297` |
+| `LAB-DC-078` | **Angka Terkirim dan Perlu Kirim Ulang** | `ADAPTER/VIEW` | `BC-LAB` | **`New`** — dihitung dari `LAB-DC-072` + `LAB-DC-076` | Tanpa identitas | Kolom *Terkirim ke Pasien* dan penanda di Hasil dan Riwayat | `LAB-DEC-066`, `283`, `285`, `298` |
+| `LAB-DC-079` | **Aktivasi Penyerahan per Disiplin** | `ENTITY` (setelan berhistori) | `BC-LAB` | **`Extend`/`New`** — penempatan fisiknya `ARCH-GAP-LAB-21` | Satu per disiplin PK/Mikrobiologi | Aktif/nonaktif + jejak perubahan (siapa, kapan, alasan) | `LAB-DEC-295`, `296` |
+| `LAB-DC-080` | **Daftar Pemeriksaan Sensitif** | `REFERENCE_DATA` | `BC-LAB` | **`New`** — merujuk jenis pemeriksaan `BC-MD` | Satu baris per jenis pemeriksaan yang ditandai | Syarat persetujuan kedua; isinya `LAB-OPEN-048` | `LAB-DEC-182`, `294` |
+| `LAB-DC-081` | **Salinan WhatsApp Bersandi** | `ADAPTER/VIEW` (berkas turunan) | `BC-LAB` | **`New`** — dibuat dari `LAB-DC-074` saat diminta, tidak disimpan | Tanpa identitas | Berkas yang dilampirkan petugas | `LAB-DEC-290` |
+| `LAB-DC-082` | **Preview Belum Final** | `ADAPTER/VIEW` | `BC-LAB` | **`New`** — dibuat saat diminta | Tanpa identitas | Pemeriksaan isi oleh petugas; bertanda air | `LAB-DEC-287` |
+| `LAB-DC-083` | **Kontak dan identitas pasien** (rujukan) | `EXTERNAL_CONTRACT` | Data induk pasien | `Existing` — **dibaca**: nomor WhatsApp, tanggal lahir, No. RM, nama | Milik Manajemen Pasien | Nomor tujuan, sandi, isi dokumen | `CAP-P34-12`, F34-7 |
+| `LAB-DC-001` | Pesanan Laboratorium | `AGGREGATE_ROOT` (`AGG-LAB-01`) | `BC-LAB` | `Existing` — **dibaca** | Tetap | Status *Selesai*, disiplin, nomor cetak | `LAB-DEC-139`, `172`; `CAP-P34-05` |
+| `LAB-DC-052` | Rilis Hasil | `VALUE_OBJECT` pada `LAB-DC-002` | `BC-LAB` | `Existing` — **dibaca** | Tetap | Isi dokumen; daftar perilis bagi `INV-74` | `LAB-DEC-150`, `152`; `CAP-P34-03` |
+
+**Fakta yang dibaca — seluruhnya sudah ada:** status pesanan *Selesai* turunan rilis seluruh pemeriksaan (`CAP-P34-05`);
+hasil dan pelaku rilis per pemeriksaan (`CAP-P34-03`); nomor cetak per disiplin (`LAB-DEC-117`, `170`); nomor WhatsApp
+dan tanggal lahir pasien (`CAP-P34-12`).
+
+### A10.5 Invariant
+
+| Invariant | Isi | Contoh |
+|---|---|---|
+| `INV-70` | **Satu dokumen per order**; versinya bernomor berurutan mulai 1; **tepat satu** versi *berlaku* pada satu waktu sesudah versi 1 terbit (`LAB-DEC-067`, `140`) | `LAB-RSMMC-000040` punya dokumen dengan versi 1 *berlaku*; tidak ada dokumen kedua untuk order yang sama |
+| `INV-71` | Versi 1 terbit **hanya** bila order PK/Mikrobiologi *Selesai* — seluruh pemeriksaan tak-batal dirilis, Mikrobiologi tidak `Sementara`. **Patologi Anatomi tidak pernah** menerbitkan dokumen pada slice ini. Terbit versi **tidak** bergantung pada gerbang (`LAB-DEC-139`, `172`, `284`, `288`) | Mikrobiologi dirilis `Sementara` → tidak ada versi; dirilis `Definitif` → versi 1 terbit walau disiplin belum diaktifkan |
+| `INV-72` | Versi n+1 lahir **hanya** dari koreksi hasil sesudah rilis (`S6`) — hari ini tidak ada pemicunya. Saat lahir, versi n menjadi *sudah digantikan* dan tokennya dicabut, dalam satu kejadian (`LAB-DEC-140`, `180`, `289`) | Hari ini: setiap dokumen hanya punya versi 1 |
+| `INV-73` | **Satu rumus gerbang** (`LAB-DC-077`) bagi satu versi: *berlaku* **dan** order *Selesai* **dan** disiplin **aktif** **dan** (tidak memuat pemeriksaan sensitif tak-batal **atau** versi itu **disetujui**). Dipakai kirim, cetak, unduh, **dan** penanda layar; diperiksa ulang saat tindakan dijalankan. *Preview* tidak melewati gerbang (`LAB-DEC-139`, `287`, `293`..`297`; pola `INV-57`/`INV-67`) | PK belum aktif → tertutup *Penyerahan hasil ke pasien belum diaktifkan untuk Patologi Klinik*; Anti-HIV belum disetujui → tertutup *Menunggu persetujuan penyerahan hasil sensitif* |
+| `INV-74` | Persetujuan penyerahan diberikan pemegang kewenangan penyetuju yang **bukan perilis** pemeriksaan mana pun pada order; menempel pada **satu versi**; catatan tidak pernah diubah; penolakan **tidak final** — versi yang sama dapat disetujui kemudian, kedua catatan tetap. Persetujuan diminta hanya bila versi memuat pemeriksaan sensitif (`LAB-DEC-182`, `294`, `297`) | dr. Aditya merilis GDP → tidak dapat menyetujui order itu; dr. Bima menyetujui versi 1 → tidak berlaku bagi versi 2 kelak |
+| `INV-75` | Catatan pengiriman **hanya** boleh dibuat untuk versi *berlaku* yang gerbangnya **terbuka** saat dicatat; hasilnya *Terkirim* atau *Gagal*; *Gagal* wajib alasan (*Nomor tidak terdaftar di WhatsApp*, *Pasien menolak dikirim*, *Lainnya* + keterangan wajib); tidak pernah diubah atau dihapus; tanpa batas jumlah (`LAB-DEC-281`, `283`) | Kiriman ke-4 diterima; *Lainnya* tanpa keterangan ditolak; salah pilih *Terkirim* dikoreksi dengan baris *Gagal* berketerangan |
+| `INV-76` | **Angka *Terkirim ke Pasien*** = jumlah catatan *Terkirim* untuk dokumen order itu (seluruh versi); **tidak pernah disimpan**. **Perlu kirim ulang** = ada catatan *Terkirim* atas versi lama **dan** nol catatan *Terkirim* atas versi berlaku (`LAB-DEC-066`, `283`, `285`, `298`) | Dua *Terkirim* versi 1, lalu versi 2 terbit → angka `2`, *Perlu kirim ulang*; satu *Terkirim* versi 2 → angka `3`, penanda hilang |
+| `INV-77` | Nomor tujuan **hanya** nomor WhatsApp data induk pasien, dinormalkan (buang selain angka; awalan `0`/`8` → `62`; wajib `628…`, 10–15 angka) **saat** tindakan; kosong atau gagal → tindakan kirim ditolak beralasan; nomor ternormalkan disalin ke catatan sebagai **snapshot** (`LAB-DEC-282`, `292`) | `+62 812-3456-7890` → snapshot `6281234567890`; `0215551234` → *Nomor WhatsApp pasien tidak valid — perbarui di data pasien*; nomor diubah sesudahnya → catatan lama tetap |
+| `INV-78` | Arsip versi dan *Print Hasil* **tanpa sandi**; salinan WhatsApp = arsip yang sama yang dikunci **sandi pembuka tanggal lahir `HHBBTTTT`**; ketiganya dikunci dari pengeditan; salinan **tidak** disimpan. Tanggal lahir kosong → tindakan kirim ditolak beralasan (`LAB-DEC-284`, `290`) | Pasien lahir 4 Maret 1978 → sandi `04031978` |
+| `INV-79` | Token verifikasi **acak per versi**, tidak dapat diturunkan dari nomor cetak, No. RM, maupun identitas order; QR tidak memuat data pasien; **nol** jalur tanpa login pada `S17-1` (`LAB-DEC-140`, `184`, `291`) | Dua versi → dua token berbeda; memindai QR hari ini tidak menampilkan apa pun dari rumah sakit |
+| `INV-80` | Aktivasi per disiplin bawaan **nonaktif**; setiap perubahan tercatat (pelaku, waktu, alasan) dan dapat dibalik; menonaktifkan tidak mengubah versi, arsip, persetujuan, maupun catatan pengiriman (`LAB-DEC-295`, `296`) | Kepala Instalasi menonaktifkan PK karena insiden → seluruh gerbang PK tertutup; angka *Terkirim* tidak berubah |
+| `INV-81` | Berkas arsip tinggal di **penyimpanan privat**; dibuka hanya lewat jalur terautentikasi berkewenangan; setiap cetak dan unduh **teraudit** (`LAB-DEC-185`) | Unduh versi 1 oleh Gilang tercatat siapa dan kapan |
+
+**Yang tidak boleh muncul:** status `Pending`/`Delivered` pada jalur manual; kolom angka tersimpan; isian nomor tujuan
+lain; batas jumlah kirim; jalur tanpa login; syarat Profesor bergelar; persetujuan oleh perilis order; persetujuan lintas
+versi; gerbang terbuka tanpa aktivasi; dokumen Patologi Anatomi; tulis ke data induk pasien atau katalog `BC-MD`.
+
+### A10.6 Model aggregate
+
+**`AGG-LAB-04` Dokumen Hasil untuk Pasien — baru.** Ia tidak dimasukkan ke `AGG-LAB-01` karena lifecycle-nya dimulai
+**sesudah** pesanan *Selesai* dan berlanjut lama sesudahnya (kirim ulang, versi koreksi, persetujuan), sedangkan pesanan
+sudah membesar (`ARCH-GAP-LAB-05`, `06`). Penjaga yang membaca pesanan (`INV-71`, `INV-73`, `INV-74`) membaca keadaan
+pesanan pada saat tindakan; pesanan tidak dikunci bersama dokumen.
+
+| Tindakan bisnis | Wewenang | Invariant yang diperiksa | Menerbitkan fakta? |
+|---|---|---|---|
+| **Menerbitkan versi 1** | Sistem, ketika order menjadi *Selesai* (`ARCH-GAP-LAB-20`) | `INV-70`, `INV-71`, `INV-79` | Tidak keluar `BC-LAB` |
+| Menerbitkan versi berikutnya | Sistem, dari koreksi `S6` — **belum ada pemicu** | `INV-70`, `INV-72`, `INV-79` | Tidak |
+| **Menyetujui / menolak penyerahan** | Penyetuju kedua (A10.9) | `INV-74` | Tidak |
+| **Mencatat pengiriman** (*Terkirim*/*Gagal*) | Pemegang kewenangan kirim | `INV-73`, `INV-75`, `INV-77`, `INV-78` | Tidak |
+| Menyediakan salinan WhatsApp | Pemegang kewenangan kirim | `INV-73`, `INV-77`, `INV-78` | Tidak — tanpa catatan sampai petugas menyatakan hasil |
+| Mencetak / mengunduh versi | Pemegang kewenangan cetak/unduh (`ARCH-GAP-LAB-23`) | `INV-73`, `INV-81` | Tidak — teraudit, tidak menambah angka |
+| Membuka *Preview* | Pemegang hak baca hasil | — (tanpa gerbang) | Tidak |
+
+**Di luar aggregate (setelan Laboratorium):**
+
+| Tindakan | Wewenang | Invariant |
+|---|---|---|
+| **Mengaktifkan / menonaktifkan penyerahan per disiplin** | Pemegang kewenangan aktivasi (bawaan Kepala Instalasi) | `INV-80` |
+| Mengubah daftar pemeriksaan sensitif | Usulan: kewenangan aktivasi yang sama (`ARCH-GAP-LAB-21`) | — |
+
+### A10.7 Model relasi
+
+| Dari | Ke | Arti | Kardinalitas | Wajib / opsional | Hapus / arsip |
+|---|---|---|---|---|---|
+| Pesanan (`LAB-DC-001`) | Dokumen (`LAB-DC-071`) | Dokumen hasil order | 1 : 0..1 — ada sesudah *Selesai* | Opsional | **Tidak dihapus**; pesanan tidak dihapus sesudah *Selesai* |
+| Dokumen | Versi (`LAB-DC-072`) | Terbitan berurutan | 1 : 1..n | Wajib ≥ 1 | Tidak dihapus; versi lama *sudah digantikan* |
+| Versi | Token (`LAB-DC-073`), Berkas arsip (`LAB-DC-074`) | Isi QR, PDF beku | 1 : 1 masing-masing | Wajib | Token dicabut, berkas tidak dihapus |
+| Versi | Persetujuan (`LAB-DC-075`) | Keputusan penyetuju kedua | 1 : 0..n, berurutan waktu | Opsional — hanya versi bersensitif | Tidak dihapus |
+| Versi | Catatan pengiriman (`LAB-DC-076`) | Upaya kirim atas versi itu | 1 : 0..n | Opsional | Tidak dihapus |
+| Disiplin (PK, Mikrobiologi) | Aktivasi (`LAB-DC-079`) | Keadaan gerbang per disiplin + jejak | 1 : 1 keadaan, 1 : 0..n perubahan | Wajib — bawaan nonaktif | Jejak tidak dihapus |
+| Jenis pemeriksaan (`BC-MD`) | Daftar sensitif (`LAB-DC-080`) | Penanda milik Lab | 1 : 0..1 | Opsional | Penandaan dicabut, jejak tetap |
+| Catatan pengiriman | Kontak pasien (`LAB-DC-083`) | Nomor saat dikirim | Snapshot nilai, **bukan** rujukan | Wajib pada catatan | Tidak ikut berubah |
+
+### A10.8 Model lifecycle
+
+**Nol status baru pada pesanan maupun pemeriksaan.** Lifecycle baru hanya milik konsep baru:
+
+| Konsep | Keadaan | Transisi | Pemicu | Ilegal |
+|---|---|---|---|---|
+| Versi dokumen | *Berlaku* → *Sudah digantikan* | Satu arah | Terbit versi berikutnya (`S6`) | Kembali *berlaku*; dua versi *berlaku* |
+| Persetujuan per versi | *Belum diputuskan* → *Disetujui* / *Ditolak*; *Ditolak* → *Disetujui* | Catatan bertambah, tidak diubah | Penyetuju kedua | Disetujui oleh perilis; persetujuan berpindah versi |
+| Catatan pengiriman | Lahir *Terkirim* atau *Gagal* — **tanpa transisi** | — | Petugas | `Pending`/`Delivered` pada jalur manual; mengubah *Gagal* menjadi *Terkirim* |
+| Aktivasi per disiplin | *Nonaktif* ↔ *Aktif* | Dapat dibalik, tercatat | Kepala Instalasi | Aktif tanpa jejak |
+
+**Koreksi:** catatan pengiriman yang keliru dikoreksi dengan catatan baru; hasil yang keliru dikoreksi lewat `S6`
+(versi baru). **Pembatalan:** order *Selesai* tidak dibatalkan; menonaktifkan disiplin menutup gerbang tanpa menghapus apa
+pun. **Reopen:** pembukaan kembali hasil sesudah rilis tidak ada (`VAL-143`); bila kelak ada, ia lewat `S6`.
+
+### A10.9 Tanggung jawab authorization
+
+| Tindakan | Siapa | Dasar |
+|---|---|---|
+| Mencatat pengiriman, menyediakan salinan WhatsApp | Pemegang **kewenangan kirim hasil ke pasien** — tersendiri, bawaan Analis Laboratorium; jabatan lain lewat Role Access | `LAB-DEC-286` |
+| Menyetujui / menolak penyerahan sensitif | Pemegang **kewenangan penyetuju penyerahan** (`LabResultPatientDeliveryApprover`), ditunjuk Kepala Instalasi lewat Role Access; **bukan perilis** order itu | `LAB-DEC-182`, `297` |
+| Mengaktifkan / menonaktifkan penyerahan per disiplin | Pemegang **kewenangan aktivasi** — tersendiri, bawaan **hanya** Kepala Instalasi; `LabDisciplineSetting : Update` tidak cukup | `LAB-DEC-296` |
+| Mengubah daftar pemeriksaan sensitif | `PROPOSED`: kewenangan aktivasi yang sama | `LAB-DEC-294` — `ARCH-GAP-LAB-21` |
+| Mencetak / mengunduh versi | `PROPOSED` — ditetapkan desain | `ARCH-GAP-LAB-23` |
+| Membuka *Preview*, membaca riwayat pengiriman dan persetujuan | Pemegang hak baca hasil Laboratorium | `LAB-DEC-286`, `287` |
+| Kiosk, pasien, pengguna tanpa login | **Tidak ada** | `LAB-DEC-291` |
+
+Kewenangan **ditegakkan di server**. Penanda gerbang dan penyembunyian tombol hanyalah kenyamanan (`INV-73`). Gerbang dan
+kewenangan adalah dua pemeriksaan terpisah: berwenang tetapi gerbang tertutup → nonaktif beralasan; tidak berwenang →
+tidak tampil / `403`.
+
+### A10.10 Model audit dan histori
+
+| Kejadian | Dicatat | Status |
+|---|---|---|
+| Versi terbit, versi digantikan, token dicabut | **Ya** — pada versi: waktu, perilis, sebab | `CONFIRMED` (`LAB-DEC-140`, `183`) |
+| Persetujuan dan penolakan | **Ya** — penyetuju, waktu, versi, alasan; tidak diubah | `CONFIRMED` (`LAB-DEC-297`) |
+| Upaya kirim | **Ya** — catatan pengiriman lengkap; tidak diubah | `CONFIRMED` (`LAB-DEC-283`) |
+| Aktivasi dan penonaktifan | **Ya** — pelaku, waktu, alasan | `CONFIRMED` (`LAB-DEC-295`) |
+| Perubahan daftar sensitif | Jejak penandaan dan pencabutan | `PROPOSED`, `NON_BLOCKING_STANDARD` |
+| Cetak dan unduh versi | Teraudit — pelaku, waktu, versi; **tidak** menambah angka | `CONFIRMED` sifatnya (`LAB-DEC-185`); bentuknya `ARCH-GAP-LAB-23` |
+| Salinan WhatsApp disediakan tanpa catatan hasil | Pencatatan teknis saja | `PROPOSED`, `NON_BLOCKING_STANDARD` |
+| *Preview* dibuka | Tidak dicatat | `PROPOSED`, `NON_BLOCKING_STANDARD` — bukan penyerahan |
+| Pencatatan teknis (log) | Pelaku, nomor order, versi, hasil; **tanpa** nomor WhatsApp, tanggal lahir, nilai hasil, maupun alasan bebas | `PROPOSED`, `NON_BLOCKING_STANDARD` — pola Lab (bagian 33.10 butir 4 arsitektur backend) |
+
+### A10.11 Model integrasi
+
+**Nol integrasi otomatis keluar rumah sakit.** WhatsApp dibuka di perangkat petugas lewat tautan `wa.me` berisi nomor dan
+teks pesan (pola Registrasi, `CAP-P34-13`); berkas dilampirkan manusia. Hasil kirim adalah **pernyataan petugas**.
+
+| Titik | Perilaku | Kegagalan | Idempotensi |
+|---|---|---|---|
+| Terbit versi saat order *Selesai* | Sinkron atau tertunda — `ARCH-GAP-LAB-20` | Kegagalan membangkitkan PDF **tidak** membatalkan *Selesai* maupun rilis (`LAB-DEC-183` butir 5); versi diterbitkan ulang sampai berhasil | Unik per (dokumen, nomor versi) — terbit dua kali tidak melahirkan dua versi 1 |
+| Penyimpanan arsip | Penyimpanan privat per area (`ARCH-GAP-LAB-24`) | Berkas gagal tersimpan → versi tidak dianggap terbit | Satu berkas per versi |
+| Salinan WhatsApp | Dibangkitkan dari arsip saat diminta | Gagal → tindakan ditolak, nol catatan | Tanpa efek tersimpan |
+| Mencatat hasil kirim | Satu tindakan petugas | — | **Klik ganda** dapat melahirkan dua catatan dan angka ganda — `ARCH-GAP-LAB-22` |
+| Gerbang WhatsApp platform kelak | `LAB-COORD-011`; status `Pending`/`Delivered` dan antrean versi koreksi hidup di sana (`LAB-DEC-283`, `298`) | — | — |
+
+**Konkurensi:** dua penyetuju bersamaan → keduanya tercatat (catatan bertambah, `INV-74`); terbit versi berbarengan dengan
+koreksi kelak → dijaga keunikan nomor versi (`INV-70`).
+
+### A10.12 Dampak billing
+
+**Tidak ada dampak charge yang diketahui.** Terbit, persetujuan, kirim, cetak, dan unduh tidak membuat, mengubah, atau
+membalik tagihan; gerbang **tidak** memeriksa pelunasan — tidak ada keputusan yang memintanya. Bila kelak rumah sakit
+ingin menahan hasil sampai lunas, itu keputusan baru (`grill-me`), bukan tafsiran desain.
+
+### A10.13 Dampak keselamatan klinis
+
+**Relevan terhadap keselamatan dan privasi.** Batas yang dibuat eksplisit:
+
+| Risiko | Batas | Wewenang |
+|---|---|---|
+| Pasien menerima hasil yang belum diverifikasi | `INV-71`, `INV-73` — hanya order yang seluruhnya dirilis empat mata; *Preview* bertanda air dan tidak dapat diserahkan | Dokter berkewenangan rilis |
+| Hasil sensitif sampai ke pasien tanpa pendampingan | `INV-73`, `INV-74` — orang kedua yang bukan perilis, per versi | Penyetuju kedua; daftar oleh Kepala Instalasi |
+| Penyerahan dimulai sebelum rumah sakit siap | `INV-80` — bawaan nonaktif per disiplin; dibuka Kepala Instalasi sesudah `LAB-SIGN-002` | Kepala Instalasi |
+| Hasil terkirim ke orang yang salah | `INV-77` (hanya nomor data induk, ternormalkan) + `INV-78` (sandi tanggal lahir) | Petugas; data induk oleh Manajemen Pasien |
+| Pasien memegang versi yang sudah dikoreksi | `INV-72`, `INV-76` — versi lama *sudah digantikan*; penanda *Perlu kirim ulang* | Petugas kirim; koreksi oleh `S6` |
+| Kebocoran lewat QR atau log | `INV-79`, A10.10 — token acak tanpa data pasien; log tanpa nomor, tanggal lahir, dan nilai hasil | — |
+
+Sumber kebenaran isi: **rilis hasil** (`LAB-DC-052`); dokumen adalah **bekuan** isi itu per versi. Koreksi: `S6`.
+Audit: A10.10.
+
+### A10.14 Gap arsitektur
+
+| ID | Isi | Status | Dampak |
+|---|---|---|---|
+| `ARCH-GAP-LAB-20` | **Saat terbit versi 1:** di dalam penyelesaian order (sinkron) atau tertunda sesudahnya (mis. saat pertama diminta / proses latar). Syarat apa pun pilihannya: kegagalan PDF tidak membatalkan *Selesai*; isi diambil dari hasil yang sudah dirilis dan terkunci (`VAL-143`), sehingga isinya sama kapan pun dibangkitkan; nomor versi unik | `PROPOSED`, `NON_BLOCKING_STANDARD` — **diputuskan di `design-business-module`** | Bentuk eksekusi saja |
+| `ARCH-GAP-LAB-21` | **Penempatan fisik aktivasi dan daftar sensitif.** Lab sudah punya setelan per disiplin (`LabDisciplineSetting`); aktivasi dapat menjadi ruasnya dengan jejak perubahan tersendiri, atau setelan tersendiri. Daftar sensitif: penanda milik Lab yang merujuk jenis pemeriksaan. Kewenangan mengubah daftar sensitif belum ditanyakan — usulan: kewenangan aktivasi | `PROPOSED`, `NON_BLOCKING_STANDARD` | Kewenangan daftar sensitif dapat ditanyakan pada persetujuan kontrak |
+| `ARCH-GAP-LAB-22` | **Klik ganda pada *Terkirim*.** Setiap catatan adalah upaya kirim, sehingga dua catatan dari satu tindakan menggandakan angka. Pilihan: kunci idempotensi dari layar, atau penjaga versi dokumen | `PROPOSED`, `NON_BLOCKING_STANDARD` | Integritas angka; diputuskan desain |
+| `ARCH-GAP-LAB-23` | **Kewenangan dan jejak cetak/unduh.** `LAB-DEC-286` memisahkan kirim dari cetak, tetapi kewenangan cetak hasil untuk pasien belum ada di kode (tombol *Print Hasil* nonaktif, `CAP-P34-17`) | `PROPOSED`, `NON_BLOCKING_STANDARD` | Ditetapkan desain bersama kontrak izin; persetujuan kontrak dapat menanyakannya |
+| `ARCH-GAP-LAB-24` | **Penyimpanan privat.** Layanan bersama belum ada (`LAB-COORD-019`); pola per area Radiologi (`FileStorage:PrivateRootPath`, `CAP-P34-11`) memenuhi `LAB-DEC-185`. Masa simpan dan kapasitas `LAB-OPEN-058` | `PROPOSED`, `NON_BLOCKING_STANDARD` bagi desain | **Implementasi** menunggu penerimaan pola per area oleh pemilik platform atau pemilik modul |
+| `ARCH-GAP-LAB-25` | **Bentuk nomor dokumen:** nomor cetak per disiplin (`LAB-DEC-117`, `170`) + versi (usulan `LAB-RCG-001-r12` 0G.10) | `PROPOSED`, `NON_BLOCKING_STANDARD` | Bunyi nomor pada dokumen |
+| `ARCH-GAP-LAB-26` | **Lisensi `QuestPDF` *Community*** (`UNK-P34-01`) | `MISSING` (platform) | Risiko produksi bersama 16 layanan; tidak mengubah arsitektur |
+
+**Nol gap `BLOCKING`.** Penahan **aktivasi** (bukan arsitektur): `LAB-SIGN-002`, isi `LAB-OPEN-048`, penunjukan penyetuju
+— lewat nota `LAB-OPEN-057`.
+
+### A10.15 Kesiapan arsitektur
+
+**`S17-1`: `DOMAIN_ARCHITECTURE_READY`.** Satu aggregate baru `AGG-LAB-04` (`LAB-DC-071`) dengan tiga entity
+(`LAB-DC-072`, `075`, `076`) dan dua value object (`LAB-DC-073`, `074`); empat pandangan turunan (`LAB-DC-077`, `078`, `081`,
+`082`); satu setelan berhistori (`LAB-DC-079`) dan satu data rujukan (`LAB-DC-080`) milik Laboratorium; satu rujukan baca
+yang diperluas ke data induk pasien (`LAB-DC-083`); dua belas invariant (`INV-70`..`INV-81`); nol status baru pada pesanan
+dan pemeriksaan; tiga kewenangan baru; nol dampak billing; batas keselamatan dan privasi eksplisit; tujuh gap tidak
+memblokir. **Independen** dari `S17-2`.
+
+### A10.16 Handoff ke `design-business-module`
+
+| Field | Nilai |
+|---|---|
+| Slice | `S17-1` (`BE-LAB-41` dan pasangan frontend) |
+| Kesiapan requirement | `READY_FOR_DOMAIN_DESIGN` (`LAB-RCG-001` revision 16, 0J.8–0J.9) |
+| Kesiapan arsitektur | `DOMAIN_ARCHITECTURE_READY` (`LAB-DA-001` revision 13) |
+| Snapshot | BE `693941d5`, FE `48680f6de`; decisions rev 147; capability map rev 11 |
+| Konsep | `LAB-DC-071`..`LAB-DC-083`; dibaca `LAB-DC-001`, `LAB-DC-052` |
+| Invariant | `INV-70`..`INV-81`; diwarisi `INV-57`/`INV-67` (pola satu rumus) |
+| Rancangan yang digantikan | Arsitektur backend bagian 13 (`LabResultDelivery`, 2026-09-17): log + angka turunan + snapshot nomor **dipertahankan**; ditambah rujukan versi, saluran *WhatsApp manual*, alasan gagal pilihan, dan penempatan di dalam `AGG-LAB-04` |
+| Usulan yang wajib tetap ditandai usulan | `ARCH-GAP-LAB-20`..`25`; baris `PROPOSED` A10.9 dan A10.10 |
+| Yang wajib dipakai ulang | `QuestPDF` + pola kunci PDF slip gaji (`CAP-P34-02`); pola penyimpanan privat Radiologi (`CAP-P34-11`); `normalizeWhatsAppPhone`/`buildWhatsAppUrl` sebagai acuan aturan (`CAP-P34-12`, `13`); kolom *Terkirim ke Pasien* dan tombol yang ada di Hasil dan Riwayat (`CAP-P34-16`, `17`); ruas `deliveryBlockedReason` (`CAP-P34-06`); status *Selesai* turunan (`CAP-P34-05`); pola atribut kewenangan + `PermissionRegistryValidator`; setelan per disiplin yang ada; tanggal operasional WIB |
+| Yang **tidak boleh** muncul | Seluruh daftar *yang tidak boleh muncul* A10.5; tabel `LabResultDelivery` di luar `AGG-LAB-04`; dokumen kedua di `BC-MRC`; perubahan status pesanan/pemeriksaan |
+
+---
+
 ## B. Ubiquitous Language
 
 Satu istilah, satu makna. Bila satu kata dipakai dua arti oleh bagian berbeda, perbedaannya
@@ -2362,6 +2624,7 @@ dijawab, yang berjalan di produksi tidak boleh disentuh.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 13 | 2026-11-27 | **`S17-1` penyerahan hasil kepada pasien dirancang** (bagian A10), dari `LAB-RCG-001` rev 16 (0J.8–0J.9) atas decisions rev 147 dan capability map rev 11. **Aggregate baru `AGG-LAB-04` Dokumen Hasil untuk Pasien** — satu per order, versi berurutan (hari ini hanya versi 1; versi berikutnya dari `S6`), token acak per versi, arsip privat per versi, persetujuan penyerahan per versi, catatan pengiriman tak-berubah. Tidak dimasukkan ke `AGG-LAB-01` karena lifecycle-nya mulai sesudah *Selesai* dan pesanan sudah membesar. **Gerbang satu rumus** (`INV-73`): berlaku + *Selesai* + disiplin aktif + (tanpa sensitif atau disetujui). Setelan aktivasi per disiplin dan daftar pemeriksaan sensitif milik Lab. Angka *Terkirim* dan *Perlu kirim ulang* turunan. Rujukan baca ke data induk pasien diperluas (nomor WhatsApp, tanggal lahir). Tiga kewenangan baru; nol dampak billing; tujuh gap `NON_BLOCKING` (`ARCH-GAP-LAB-20`..`26`). Menggantikan rancangan bagian 13 arsitektur backend dengan mempertahankan intinya. BE `693941d5`, FE `48680f6de` | `draft` |
 | 12 | 2026-11-25 | **`S20-1` penjadwalan ulang pemeriksaan, sisi Laboratorium** (bagian A9), dari `LAB-RCG-001` revision 14 bagian 0I. `AGG-LAB-01` diperluas: value object Tanggal Rencana Pemeriksaan (`LAB-DC-066`), entity riwayat Peristiwa Jadwal Ulang (`LAB-DC-067`), pandangan turunan Kelayakan Jadwal Ulang (`LAB-DC-068`, satu rumus untuk penjaga dan penanda) dan Penanda Terlewat (`LAB-DC-069`). Context `BC-MCU` dicatat pertama kali sebagai hubungan **baca** (`LAB-DC-070`); hubungan baca `BC-REG` diperluas ke status kunjungan. Invariant `INV-61`..`INV-69`. Nol status baru, nol integrasi, nol dampak billing; keselamatan klinis relevan dengan batas eksplisit (A9.13). Gap tidak memblokir: `ARCH-GAP-LAB-17` (penempatan fisik riwayat), `ARCH-GAP-LAB-18` (layar basi), `ARCH-GAP-LAB-19` (`LAB-OPEN-056`, di luar scope). **`DOMAIN_ARCHITECTURE_READY`**; handoff A9.16 | `draft` |
 | 11 | 2026-10-20 | **`S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan dirancang** (bagian A8), menurunkan `LAB-RCG-001` revision 13 bagian 0H dan `LAB-DEC-230`..`249`. **Nol konsep tersimpan:** dua `ADAPTER/VIEW` (`LAB-DC-063`, `LAB-DC-064`); `LAB-DC-065` Permintaan Pemeriksaan **dibukukan** (sudah ada). **Hubungan baca baru** `BC-LAB` → `BC-REG`/`BC-MD`/data pasien, hanya baca — mengamandemen kalimat A7.3. `INV-58` satu baris per peristiwa, `INV-59` satu definisi hitung bersama Beranda, `INV-60` alasan wajib setiap pembatalan. Batas privasi Laporan Pembatalan (A8.12). Gap `ARCH-GAP-LAB-14` (jejak membuka laporan berisi pasien, usulan), `15` (`Draft` teoretis), `16` (permintaan order batal tetap `Ordered`). Bukti BE `4d3e4f98`, FE `7fb1e1d3e`, decisions rev 115, capability map rev 9 | `draft` |
 | 10 | 2026-09-25 | **`S16a` tiga laporan operasional dirancang** (bagian A7), menurunkan `LAB-RCG-001-r11` bagian 0F dan `LAB-DEC-159`/`160`. **Nol konsep tersimpan:** ketiga laporan `ADAPTER/VIEW` (`LAB-DC-060`..`062`) plus satu `VALUE_OBJECT` Periode Laporan (`LAB-DC-059`) yang memakai ulang `LabQueryDateRange` dan tanggal operasional **WIB**. Tiga invariant arti: `INV-55` hitung pada tanggal rilis, `INV-56` penolakan per keputusan kelayakan, **`INV-57` TAT memakai titik mulai `ChargeEligibleAt` yang sama dengan daftar pantau cito** — diverifikasi pada kode, nilainya sama dengan `DecidedAt` wadah. Pengambilan ulang membuat pemeriksaan baru, sehingga TAT mulai dari wadah pengganti — sesuai bunyi `LAB-DEC-159`. Tiga usulan tidak memblokir `ARCH-GAP-LAB-11`..`13`. **`INV-54`** (penyelesaian pesanan, `LAB-DEC-154`) dibukukan sesuai usulan `02-backend-architecture.md` 22.0. Impact scan: BE `84383f64` (73 commit) dan FE `2083ff36a` (38 commit), nol berkas source Laboratorium. **`DOMAIN_ARCHITECTURE_READY`**; siap ke `design-business-module` | `draft` |

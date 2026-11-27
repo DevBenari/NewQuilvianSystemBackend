@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `21` — bagian 33, 2026-11-25: `EPIC-LAB-21` penjadwalan ulang pemeriksaan (`S20-1`), gelombang `MVP-16a`..`e`; kontrak dan enam butir 33.10 **`approved` 2026-11-25**. Sebelumnya `20` — bagian 32, 2026-10-20: `EPIC-LAB-20` Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`), gelombang `MVP-15a`..`e`; kontrak **`approved` 2026-10-20** beserta keenam butir 32.10. Sebelumnya `19` — bagian 31, pencatatan susulan kolom tabel v1 dan halaman hasil v1 (`r47`, `r48`), 2026-10-14 — `LAB-REQ-024`, `LAB-REQ-025`. Sebelumnya `18` — bagian 30.1, rencana ulang sesudah wadah dibatalkan (putaran 29), 2026-10-09 — kontrak usulan `LAB-REQ-023`. Sebelumnya `17` — bagian 30, CITO dari pemesanan sampai ke pemeriksaan (putaran 28), 2026-10-09 — kontrak usulan `LAB-REQ-022`. Sebelumnya `16` — bagian 29, `EPIC-LAB-19` Beranda Lab mengikuti susunan v1 (BR-140), 2026-10-08 — kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — bagian 28, lingkup kunci Lunas (putaran 27), 2026-10-08 — kontrak usulan `LAB-REQ-020`. Sebelumnya `14` — bagian 27, alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), 2026-10-08 — kontrak usulan `LAB-REQ-019`. Sebelumnya `13` — bagian 26, `EPIC-LAB-18` diperluas (dokter pemeriksa bagi pengonfirmasi, jejak konfirmasi), 2026-10-07 — kontrak `r41`/revision 14 masih usulan `LAB-REQ-017`. Sebelumnya `12` — bagian 25, `EPIC-LAB-18` urutan kerja v1 di daftar pasien lab, 2026-10-07 — kontrak `r40`/`r8`/`r17`/revision 13 masih usulan `LAB-REQ-016`. Sebelumnya `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
+| Revision | `22` — bagian 34, 2026-11-27: `EPIC-LAB-22` penyerahan hasil kepada pasien (`S17-1`), gelombang `MVP-17a`..`e`; kontrak, 34.10, dan F-1/F-2 **`approved` 2026-11-27**. Sebelumnya `21` — bagian 33, 2026-11-25: `EPIC-LAB-21` penjadwalan ulang pemeriksaan (`S20-1`), gelombang `MVP-16a`..`e`; kontrak dan enam butir 33.10 **`approved` 2026-11-25**. Sebelumnya `20` — bagian 32, 2026-10-20: `EPIC-LAB-20` Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`), gelombang `MVP-15a`..`e`; kontrak **`approved` 2026-10-20** beserta keenam butir 32.10. Sebelumnya `19` — bagian 31, pencatatan susulan kolom tabel v1 dan halaman hasil v1 (`r47`, `r48`), 2026-10-14 — `LAB-REQ-024`, `LAB-REQ-025`. Sebelumnya `18` — bagian 30.1, rencana ulang sesudah wadah dibatalkan (putaran 29), 2026-10-09 — kontrak usulan `LAB-REQ-023`. Sebelumnya `17` — bagian 30, CITO dari pemesanan sampai ke pemeriksaan (putaran 28), 2026-10-09 — kontrak usulan `LAB-REQ-022`. Sebelumnya `16` — bagian 29, `EPIC-LAB-19` Beranda Lab mengikuti susunan v1 (BR-140), 2026-10-08 — kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — bagian 28, lingkup kunci Lunas (putaran 27), 2026-10-08 — kontrak usulan `LAB-REQ-020`. Sebelumnya `14` — bagian 27, alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), 2026-10-08 — kontrak usulan `LAB-REQ-019`. Sebelumnya `13` — bagian 26, `EPIC-LAB-18` diperluas (dokter pemeriksa bagi pengonfirmasi, jejak konfirmasi), 2026-10-07 — kontrak `r41`/revision 14 masih usulan `LAB-REQ-017`. Sebelumnya `12` — bagian 25, `EPIC-LAB-18` urutan kerja v1 di daftar pasien lab, 2026-10-07 — kontrak `r40`/`r8`/`r17`/revision 13 masih usulan `LAB-REQ-016`. Sebelumnya `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
 | Status | `draft` |
 | Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
 | Scope tambahan revision 5 | **`EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan** dan gelombang `MVP-5c` — lihat bagian 17. Ditambahkan 2026-09-15 dari rekonsiliasi bukti putaran 2 |
@@ -2116,3 +2116,135 @@ kemarin → `422`; alasan kosong → Simpan nonaktif, dipaksa lewat API → `422
 | Izin tulis data uji devYoga | Tidak bagi desain; ya bagi UAT data asli | Yoga Aji Pratama |
 | `LAB-COORD-023` | Tidak — hanya `S20-2` | Pemilik layar poli/IGD/Rawat Inap |
 
+## 34. Amandemen 2026-11-27 — `EPIC-LAB-22` Penyerahan hasil Laboratorium kepada pasien (`S17-1`)
+
+Menurunkan `02-backend-architecture.md` rev 26 bagian 34, `03-frontend-architecture.md` amandemen 2026-11-27,
+`erd/data-dictionary.md` rev 15 bagian 25, dan usulan kontrak `LAB-API-v1` `r51`, `LAB-PERM-v1` revision 19,
+`LAB-VAL-v1` `r23`, `LAB-STATE-v1` `r13` — **keempatnya `approved` 2026-11-27** oleh Yoga Aji Pratama bersama dua belas
+butir 34.10 dan butir frontend F-1 (a)/F-2 (a). `LAB-INT-v1` `r6` berlaku apa adanya: nol integrasi otomatis (A10.11). Arsitektur domain
+`LAB-DA-001` rev 13 bagian A10; requirement `LAB-RCG-001` rev 16 bagian 0J; decisions rev 147.
+
+**Seluruh yang disebut di bawah sudah tercatat pada dokumen itu. Enam tabel baru, nol kolom pada tabel lama, nol status
+baru pada pesanan maupun pemeriksaan.**
+
+### 34.1 Batas epic
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Order Patologi Klinik atau Mikrobiologi berstatus *Selesai* (seluruh pemeriksaan dirilis empat mata) |
+| **Titik akhir** | Dokumen hasil versi 1 terarsip; pasien menerima PDF lewat WhatsApp (dicatat *Terkirim*), cetak, atau unduh — hanya bila disiplin sudah diaktifkan dan, bagi pemeriksaan sensitif, sudah disetujui; kolom *Terkirim ke Pasien* berisi angka sebenarnya. **Bukan** titik akhir: halaman verifikasi QR, pengiriman otomatis, versi koreksi |
+
+**Yang dianggap selesai:** sesudah Kepala Instalasi mengaktifkan penyerahan, Analis dapat mengirim hasil final ke nomor
+WhatsApp pasien di data induk dalam berkas PDF bersandi tanggal lahir, mencatat berhasil atau gagalnya, dan siapa pun
+pembaca hasil melihat berapa kali hasil sudah terkirim. Sebelum aktivasi, seluruh penyerahan tertutup dengan alasan yang
+jelas, dan *Preview* tetap tersedia bagi petugas.
+
+### 34.2 Kemampuan `MUST HAVE`
+
+| ID kemampuan asal | Kemampuan | Disposisi |
+|---|---|---|
+| `CAP-P34-01` | Pembangkit PDF | **`EXISTING / REUSE`** — `QuestPDF` |
+| `CAP-P34-02` | PDF tidak dapat diedit, sandi salinan WhatsApp | **`EXTEND`** — pola `EncryptPdf` Payroll disalin |
+| `CAP-P34-03` | Isi dokumen dari hasil dirilis | **`EXTEND`** — `LabPatientResultContentReader` |
+| `CAP-P34-04` | Templat lembar hasil pasien | **`MISSING / NEW`** — `LabPatientResultPdfRenderer` |
+| `CAP-P34-05` | Order *Selesai* | **`EXISTING / REUSE`** |
+| `CAP-P34-06` | Alasan gerbang | **`EXTEND`** — gerbang per order; ruas per pemeriksaan tetap |
+| `CAP-P34-08`, `CAP-P34-09`, `CAP-P34-10` | Dokumen berversi, nomor, token QR | **`MISSING / NEW`** — `AGG-LAB-04` |
+| `CAP-P34-11` | Arsip privat | **`EXTEND`** — pola Radiologi (34.10 no. 6) |
+| `CAP-P34-12`, `CAP-P34-13` | Nomor tujuan ternormalkan, buka WhatsApp | **`EXTEND`** — `LabWhatsAppNumberNormalizer`; `buildWhatsAppUrl` |
+| `CAP-P34-14` | Catatan kirim + angka | **`MISSING / NEW`** — `LabPatientResultDelivery` |
+| `CAP-P34-15` | Izin tersendiri | **`EXTEND`** — lima aksi + seeder |
+| `CAP-P34-16`, `CAP-P34-17` | Kolom/aksi Hasil dan Riwayat, *Preview*/*Print* | **`EXTEND`** |
+| `CAP-P34-07` | Persetujuan sebelum penyerahan | **`MISSING / NEW`** — aktivasi per disiplin + persetujuan kedua sensitif (`LAB-DEC-293`..`297`) |
+
+**Yang ditunda, beserta penggantinya selama MVP:**
+
+| Ditunda | Sebab | Pengganti selama MVP |
+|---|---|---|
+| Halaman verifikasi QR publik (`S17-2`) | `LAB-COORD-015` | QR tercetak dengan token; halaman menyusul |
+| Pengiriman WhatsApp otomatis | `LAB-COORD-011` | Kirim manual berbantu (`LAB-DEC-279`) |
+| Versi koreksi dan *Perlu kirim ulang* nyata | Pemicu `S6` (`LAB-COORD-018`) | Hanya versi 1; penanda siap |
+| Penyerahan hasil Patologi Anatomi | `LAB-DEC-288` | Tetap jalur yang ada |
+| Antrean persetujuan tersendiri | F-2 (b) tidak dirancang | Persetujuan di halaman hasil |
+
+### 34.3 Functional requirement
+
+| ID | Kebutuhan | Dapat diuji lewat | Disposisi |
+|---|---|---|---|
+| `FR-22.1` | Order PK/Mikro *Selesai* menerbitkan dokumen versi 1 (nomor `{nomor cetak}-V1`, token acak, arsip privat ber-SHA-256); terbit idempoten; kegagalan PDF tidak menggagalkan `complete`; order lama memperoleh versi 1 saat dibuka | `AC-366`; `T-S17-01` | `MISSING / NEW` |
+| `FR-22.2` | Ringkasan dokumen per order: versi, gerbang, angka, *Perlu kirim ulang*, riwayat — `LabExamination : Read` | `AC-360`; `T-S17-02` | `MISSING / NEW` |
+| `FR-22.3` | *Preview* bertanda air tanpa QR, tanpa gerbang; PA dan nol rilis ditolak (`VAL-180`) | `AC-358`; `T-S17-03` | `MISSING / NEW` |
+| `FR-22.4` | Gerbang satu rumus (lima kode) dipakai cetak, unduh, kirim, dan penanda daftar (`VAL-167`) | `AC-357`, `AC-365`, `AC-370`, `AC-373`; `T-S17-04` | `MISSING / NEW` |
+| `FR-22.5` | Cetak/unduh PDF arsip tanpa sandi, terkunci dari pengeditan, teraudit — `LabPatientResult : Print` | `AC-367`; `T-S17-05` | `MISSING / NEW` |
+| `FR-22.6` | Persiapan WhatsApp: nomor ternormalkan, teks pesan tanpa nama pasien; nomor kosong/tidak valid/tanggal lahir kosong ditolak (`VAL-168`, `169`) | `AC-359`, `AC-369`; `T-S17-06` | `MISSING / NEW` |
+| `FR-22.7` | Salinan WhatsApp bersandi `HHBBTTTT`, tidak disimpan | `AC-367`; `T-S17-07` | `MISSING / NEW` |
+| `FR-22.8` | Catat kirim *Terkirim*/*Gagal* + alasan, snapshot nomor, `clientRequestId` idempoten; tanpa batas (`VAL-170`..`172`) | `AC-360`..`AC-362`; `T-S17-08` | `MISSING / NEW` |
+| `FR-22.9` | Persetujuan kedua per versi bagi order bersensitif; penyetuju bukan perilis (`VAL-173`..`177`) | `AC-373`..`AC-375`; `T-S17-09` | `MISSING / NEW` |
+| `FR-22.10` | Aktivasi per disiplin bawaan nonaktif, beralasan, berjejak, dapat dibalik; aktivasi menuntut penegasan daftar sensitif dan alamat verifikasi (`VAL-178`) | `AC-370`..`AC-372`; `T-S17-10` | `MISSING / NEW` |
+| `FR-22.11` | Daftar pemeriksaan sensitif: tambah, cabut beralasan (`VAL-179`) | `AC-373`; `T-S17-11` | `MISSING / NEW` |
+| `FR-22.12` | Lima aksi izin; seeder `Send`/`Print` dari `LabOrder : Hold`; `LabPatientDeliverySetting` lewat langkah rilis | `AC-364`, `AC-371`; `T-S17-12` | `EXTEND` |
+| `FR-22.13` | Daftar pantau: angka, *Perlu kirim ulang*, ruas gerbang dalam satu proyeksi | `AC-360`, `AC-376`; `T-S17-13` | `EXTEND` |
+| `FR-22.14` | Layar: kolom + aksi kirim di Hasil dan Riwayat; *Preview*/*Print*/unduh + ringkasan + persetujuan di halaman hasil; setelan penyerahan (letak F-1) | `03-frontend-architecture.md` amandemen 2026-11-27; `T-S17-14` | `EXTEND` |
+
+### 34.4 Skenario UAT
+
+Seluruh data samaran. Hari uji: **Senin 2 Desember 2026**.
+
+**Jalur berhasil — kirim pertama.** PK diaktifkan dr. Bima pukul 08.00 (*Konfirmasi LAB-SIGN-002*). Order
+`LAB-RSMMC-900040` *Selesai* 10.05 → Hasil dan Riwayat: *Terkirim ke Pasien* `0`, aksi aktif. Gilang memilih *Kirim
+Hasil ke Pasien* → PDF `PK-26-000123-V1.pdf` terunduh, WhatsApp terbuka ke `6281234567890`; ia melampirkan, mengirim,
+memilih **Terkirim** → angka `1`. Berkas terbuka dengan sandi tanggal lahir pasien; tanpa sandi tidak terbuka.
+
+**Jalur berhasil — kirim ulang dan cetak.** Pasien kehilangan pesan → kiriman kedua → angka `2`. Pasien datang ke loket →
+*Print Hasil* mencetak versi 1 tanpa sandi; PDF tidak dapat diedit.
+
+**Jalur berhasil — sensitif.** Order PK memuat *Anti-HIV* yang ditandai sensitif → aksi nonaktif *Menunggu persetujuan
+penyerahan hasil sensitif*. dr. Bima (bukan perilis) menyetujui di halaman hasil → aksi aktif.
+
+**Jalur gagal — belum aktif.** Mikrobiologi belum diaktifkan → *Print Hasil* dan kirim nonaktif *Penyerahan hasil ke
+pasien belum diaktifkan untuk Mikrobiologi*; `GET …/file` dipaksa → `409`. *Preview* tetap terbuka bertanda air.
+
+**Jalur gagal — nomor.** Pasien bernomor `0215551234` → *Nomor WhatsApp pasien tidak valid — perbarui di data pasien*;
+tidak ada isian nomor lain. Pasien tanpa nomor → *belum tercatat*.
+
+**Jalur gagal — gagal kirim.** Nomor tidak terdaftar → Gilang memilih **Gagal** + *Nomor tidak terdaftar di WhatsApp* →
+catatan tercatat, angka tetap; *Lainnya* tanpa keterangan → Simpan nonaktif, dipaksa → `422`.
+
+**Jalur gagal — persetujuan dan izin.** dr. Aditya (perilis) mencoba menyetujui → `409` *Penyetuju tidak boleh perilis
+hasil pada order ini*. dr. Nabila (tanpa `Send`) tidak melihat aksi kirim; `POST deliveries` dipaksa → `403`. Analis
+mencoba mengaktifkan → `403`. Klik ganda *Terkirim* → satu catatan.
+
+### 34.5 Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| `LAB-API-v1` `r51`, `LAB-PERM-v1` rev 19, `LAB-VAL-v1` `r23`, `LAB-STATE-v1` `r13` `approved`, beserta 34.10 dan F-1/F-2 | Tabel status kontrak dan `approved_by` |
+| Migration diterapkan ke devYoga atas instruksi; enam tabel ada | Kueri baca-saja `information_schema` |
+| `T-S17-01`..`T-S17-14` lulus | Laporan task dengan keluaran |
+| PDF arsip terbuka tanpa sandi dan menolak penyuntingan; salinan WhatsApp menolak dibuka tanpa sandi | Uji berkas pada laporan task |
+| Validator izin menerima lima aksi; seeder memberi Analis `Send`/`Print`; Kepala Instalasi diberi `LabPatientDeliverySetting` lewat Role Access | `SysAccessPolicies` |
+| Log tanpa nomor WhatsApp, tanggal lahir, nilai hasil, alasan bebas, token | Kutipan log pada laporan task |
+| `complete` tetap berhasil ketika PDF gagal dibangkitkan | Uji harness |
+| Aktivasi nyata **bukan** syarat selesai — menunggu `LAB-OPEN-057` | Dicatat pada laporan rilis |
+
+### 34.6 Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `MVP-17a` | Migration + model + konfigurasi; aktivasi dan daftar sensitif (`FR-22.10`, `22.11`); izin + seeder (`FR-22.12`) | Kontrak `approved` |
+| `MVP-17b` | Isi dokumen, templat PDF, arsip, terbit versi 1, ringkasan, *Preview*, gerbang, cetak/unduh (`FR-22.1`..`22.5`) | `MVP-17a` |
+| `MVP-17c` | Persiapan dan salinan WhatsApp, catat kirim, persetujuan kedua, daftar pantau (`FR-22.6`..`22.9`, `22.13`) | `MVP-17b` |
+| `MVP-17d` | Frontend (`FR-22.14`) | `MVP-17c`; F-1/F-2 diputuskan |
+| `MVP-17e` | Rilis: langkah rilis izin, data uji, UAT dengan akun asli | `MVP-17d` |
+| `POST-MVP` | Aktivasi nyata (`LAB-OPEN-057`, `LAB-SIGN-002`, `LAB-OPEN-048`); `S17-2`; gerbang otomatis; versi koreksi `S6` | Pihak klinis, keamanan, platform |
+
+### 34.7 Pertanyaan terbuka sebelum development lock
+
+| Pertanyaan | Pemilik | Memblokir |
+|---|---|---|
+| ~~Dua belas butir 34.10~~ | Yoga Aji Pratama | ✅ **Disetujui 2026-11-27** |
+| ~~F-1 letak setelan; F-2 letak persetujuan~~ | Yoga Aji Pratama | ✅ **Disetujui 2026-11-27** — F-1 (a), F-2 (a) |
+| `LabPatientResult:VerificationBaseUrl` — alamat halaman verifikasi kelak | Pemilik platform | Tidak bagi pembangunan; **ya** bagi aktivasi (`VAL-178`) |
+| Penyimpanan privat per area diterima (`LAB-COORD-019`) | Pemilik platform / Yoga | Diterima lewat 34.10 no. 6 |
+| Lisensi `QuestPDF` *Community* (`ARCH-GAP-LAB-26`) | Pemilik platform | Tidak — risiko bersama |
+| Nota `LAB-OPEN-057` (konfirmasi, daftar sensitif, penyetuju) | dr. Bima Prasetya, Sp.PK | Tidak bagi pembangunan; **ya** bagi aktivasi |

@@ -3,7 +3,8 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | **`50` — `approved`** 2026-11-25, bagian 45 (penjadwalan ulang `S20-1`). Sebelumnya: **`49` — `approved`** 2026-10-20, bagian 44 (Laporan Pembatalan dan Statistik Pesanan `S16b-1`/`S16b-2`; `VAL-155` pada batal pemeriksaan/wadah). Sebelumnya: **`48` — `approved`** 2026-10-14, bagian 43 (kartu informasi halaman hasil v1: delapan ruas baca aditif di `LabOrderDetailResponse` dan `resultEnteredByName` di `LabExaminationResultFormResponse`; nol endpoint/izin/migration; persetujuan susulan atas kode 2026-10-13) — disetujui Yoga Aji Pratama lewat `LAB-REQ-025`. Sebelumnya: **`47` — `approved`** 2026-10-09, bagian 42 (kolom tabel v1 pada daftar pantau: delapan ruas baca aditif di `LabMonitoringItemResponse`; nol endpoint/izin/migration) — disetujui Yoga Aji Pratama lewat `LAB-REQ-024`. Sebelumnya: **`46` — `approved`** 2026-10-09, bagian 41 (rencana ulang sesudah wadah dibatalkan; pendahulu tanpa penanda membaca permintaan) — disetujui Yoga Aji Pratama lewat `LAB-REQ-023`. Sebelumnya: **`45` — `approved`** 2026-10-09, bagian 40 (CITO dari pemesanan sampai ke pemeriksaan: perilaku `urgency` saat rencana wadah dan ambil ulang, perbaikan data lama; nol endpoint/ruas baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-022`. Sebelumnya: **`44` — `approved`** 2026-10-08, bagian 39 (data ringkasan Beranda Lab, BR-140: tiga endpoint baca baru `dashboard/today`, `dashboard/yearly`, `dashboard/recent-orders`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`43` — `approved`** 2026-10-08, bagian 38 (lingkup kunci Lunas: nilai `paymentStatus` `Deferred`, `start-process` lolos bagi rawat inap/IGD) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`42` — `approved`** 2026-10-08, bagian 37 (alur Lab dari kiosk sampai hasil mengikuti FE v1, BR-141) — dua endpoint baca baru, enam ruas respons, dua `409` `start-process` — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`41` — `approved`** 2026-10-07, bagian 36 (daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian pesanan, BR-139) — satu endpoint baca baru dan satu perbaikan kesesuaian `r13`, disetujui Yoga Aji Pratama. Sebelumnya: **`40` — `approved`** 2026-10-07, bagian 35 (Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1, BR-138) — dua perubahan perilaku dan satu perubahan hak akses, disetujui Yoga Aji Pratama. Sebelumnya: **`39` — `approved`** 2026-10-06, bagian 34 (Spesifik Specimen pada respons specimen, `LAB-DEC-167`) — aditif pada respons dan satu perubahan perilaku penggantian, disetujui Yoga Aji Pratama. Sebelumnya: **`38` — `approved`** 2026-10-01, bagian 33 (identitas pasien pada rincian order, `LAB-DEC-166`) — aditif, disetujui Yoga Aji Pratama. Sebelumnya: **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| Revision | **`51` — `approved`** 2026-11-27, bagian 46 (penyerahan hasil kepada pasien `S17-1`). Sebelumnya: **`50` — `approved`** 2026-11-25, bagian 45 (penjadwalan ulang `S20-1`). Sebelumnya: **`49` — `approved`** 2026-10-20, bagian 44 (Laporan Pembatalan dan Statistik Pesanan `S16b-1`/`S16b-2`; `VAL-155` pada batal pemeriksaan/wadah). Sebelumnya: **`48` — `approved`** 2026-10-14, bagian 43 (kartu informasi halaman hasil v1: delapan ruas baca aditif di `LabOrderDetailResponse` dan `resultEnteredByName` di `LabExaminationResultFormResponse`; nol endpoint/izin/migration; persetujuan susulan atas kode 2026-10-13) — disetujui Yoga Aji Pratama lewat `LAB-REQ-025`. Sebelumnya: **`47` — `approved`** 2026-10-09, bagian 42 (kolom tabel v1 pada daftar pantau: delapan ruas baca aditif di `LabMonitoringItemResponse`; nol endpoint/izin/migration) — disetujui Yoga Aji Pratama lewat `LAB-REQ-024`. Sebelumnya: **`46` — `approved`** 2026-10-09, bagian 41 (rencana ulang sesudah wadah dibatalkan; pendahulu tanpa penanda membaca permintaan) — disetujui Yoga Aji Pratama lewat `LAB-REQ-023`. Sebelumnya: **`45` — `approved`** 2026-10-09, bagian 40 (CITO dari pemesanan sampai ke pemeriksaan: perilaku `urgency` saat rencana wadah dan ambil ulang, perbaikan data lama; nol endpoint/ruas baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-022`. Sebelumnya: **`44` — `approved`** 2026-10-08, bagian 39 (data ringkasan Beranda Lab, BR-140: tiga endpoint baca baru `dashboard/today`, `dashboard/yearly`, `dashboard/recent-orders`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`43` — `approved`** 2026-10-08, bagian 38 (lingkup kunci Lunas: nilai `paymentStatus` `Deferred`, `start-process` lolos bagi rawat inap/IGD) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`42` — `approved`** 2026-10-08, bagian 37 (alur Lab dari kiosk sampai hasil mengikuti FE v1, BR-141) — dua endpoint baca baru, enam ruas respons, dua `409` `start-process` — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`41` — `approved`** 2026-10-07, bagian 36 (daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian pesanan, BR-139) — satu endpoint baca baru dan satu perbaikan kesesuaian `r13`, disetujui Yoga Aji Pratama. Sebelumnya: **`40` — `approved`** 2026-10-07, bagian 35 (Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1, BR-138) — dua perubahan perilaku dan satu perubahan hak akses, disetujui Yoga Aji Pratama. Sebelumnya: **`39` — `approved`** 2026-10-06, bagian 34 (Spesifik Specimen pada respons specimen, `LAB-DEC-167`) — aditif pada respons dan satu perubahan perilaku penggantian, disetujui Yoga Aji Pratama. Sebelumnya: **`38` — `approved`** 2026-10-01, bagian 33 (identitas pasien pada rincian order, `LAB-DEC-166`) — aditif, disetujui Yoga Aji Pratama. Sebelumnya: **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| `r51` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-11-27** — *"Setujui semua (Recommended)"* atas pertanyaan persetujuan sesudah *"lanjutkan"* — keempat kontrak `S17-1`, kedua belas butir `02-backend-architecture.md` 34.10, dan butir frontend F-1 (a)/F-2 (a) |
 | `r50` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-11-25** — *"setuju semua sesuai rekomendasi, lanjut plan-module-delivery"* — atas keempat kontrak `S20-1` dan keenam butir `02-backend-architecture.md` 33.10 |
 | `r49` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-20** — *"Setuju keenam butir (Direkomendasikan)"* — pilihan pemilik modul pada sesi 2026-10-20 atas keempat kontrak dan keenam butir `02-backend-architecture.md` 32.10 |
 | `r48` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-14** — *"saya setuju buatkan surat permintaan persetujuannya dan bagian kontraknya"* atas `LAB-REQ-025`, keempat butir |
@@ -5124,3 +5125,185 @@ memperoleh:
 | `dateCategory=PlannedDate`, `includeOverdue`, `isOverdue` | `LAB-DEC-258`, `260`, `277` | `LAB-DC-069` | `AC-344`, `AC-346`, `AC-356` |
 | Kiosk | `LAB-DEC-266` | A9.11 | `AC-351` |
 
+## 46. Amandemen `r51` — Penyerahan hasil Laboratorium kepada pasien (`S17-1`), 2026-11-27
+
+> ### ✅ STATUS: `approved` — 2026-11-27
+>
+> | Butir | Isi |
+> |---|---|
+> | Status | **`approved`** — boleh diturunkan ke roadmap |
+> | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-11-27** — *"Setujui semua (Recommended)"* atas pertanyaan persetujuan sesudah *"lanjutkan"* — keempat kontrak `S17-1`, kedua belas butir `02-backend-architecture.md` 34.10, dan butir frontend F-1 (a)/F-2 (a) |
+> | `input_revision` | decisions **rev 147**; `LAB-RCG-001` **rev 16** bagian 0J; `LAB-DA-001` **rev 13** bagian A10; `02-backend-architecture.md` **rev 26** bagian 34; capability map **rev 11** |
+> | Keputusan | `LAB-DEC-278`..`LAB-DEC-298`; `LAB-DEC-139`, `140`, `182`..`185` sebagaimana diamandemen |
+> | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_READY` (A10.15) |
+> | Sifat | **Aditif**: dua belas endpoint baru dalam dua grup baru; lima ruas baru pada baris daftar pantau. **Nol** perubahan perilaku bagi pemanggil yang ada. `PUT /lab-orders/{id}/complete` **tidak berubah bentuk** — ia memicu terbit versi 1 sesudah commit |
+> | Migration | Satu — enam tabel baru (`02-backend-architecture.md` 34.7) |
+> | Permission | Lima aksi baru — `LAB-PERM-v1` revision 19 |
+> | Yang wajib disetujui tersendiri | Dua belas butir `02-backend-architecture.md` 34.10 |
+
+### 46.1 Kenapa amandemen ini ada
+
+Pemilik modul membuka penahan `BE-LAB-41` pada putaran 34–36: hasil final satu nomor order Patologi Klinik atau
+Mikrobiologi diserahkan kepada pasien lewat **WhatsApp manual berbantu**, **cetak**, atau **unduh** — ketiganya lewat
+**satu gerbang** (`LAB-DEC-139`); dokumennya PDF **berversi** ber-QR yang diarsip (`LAB-DEC-284`, `289`); setiap upaya
+kirim dicatat *Terkirim* atau *Gagal* (`LAB-DEC-283`); gerbang terbuka hanya sesudah disiplin **diaktifkan** Kepala
+Instalasi dan, bagi pemeriksaan sensitif, sesudah **persetujuan kedua** (`LAB-DEC-293`..`297`).
+
+**Contoh alur.** Order `LAB-RSMMC-900040` (samaran) *Selesai* 10.05 → versi 1 terbit. Gilang membuka Hasil dan Riwayat:
+baris memuat `patientDeliveryAvailable: true`, `patientResultSentCount: 0`. Ia memanggil
+`GET …/by-order/{id}/whatsapp-preparation` → nomor `6281234567890` dan teks pesan; `GET …/versions/1/whatsapp-file` →
+PDF bersandi; mengirim dari WhatsApp resmi; lalu `POST …/by-order/{id}/deliveries`
+`{"versionNumber":1,"outcome":"Sent","clientRequestId":"7b0c…"}` → `201`. Baris kini `patientResultSentCount: 1`.
+
+### 46.2 `[Tags("Health Services / Laboratory Management / Lab Patient Result")]` — endpoint baru
+
+Base URL: `api/v1/health-services/laboratory-management/lab-patient-results`
+Contract version: `LAB-API-v1` `r51` — status `approved` 2026-11-27
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/by-order/{labOrderId:guid}` | Ringkasan dokumen hasil pasien satu order: versi, gerbang, angka terkirim, *Perlu kirim ulang*, riwayat kirim dan persetujuan. Menerbitkan versi 1 bila order *Selesai* dan belum ada | `LabExamination : Read` | - | `ApiResponse<LabPatientResultSummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/by-order/{labOrderId:guid}/preview` | PDF *Preview* bertanda air *BELUM FINAL — bukan untuk pasien*, tanpa QR; tidak melewati gerbang | `LabExamination : Read` | - | `application/pdf` | **Rencana (belum tersedia)** |
+| `GET` | `/by-order/{labOrderId:guid}/versions/{versionNumber:int}/file` | PDF versi dari arsip — tanpa sandi, dikunci dari pengeditan — untuk cetak atau unduh | `LabPatientResult : Print` | Query `purpose` = `print` \| `download` (wajib) | `application/pdf` | **Rencana (belum tersedia)** |
+| `GET` | `/by-order/{labOrderId:guid}/whatsapp-preparation` | Nomor tujuan ternormalkan, teks pesan, nomor versi, dan nama berkas untuk membuka WhatsApp | `LabPatientResult : Send` | - | `ApiResponse<LabPatientResultWhatsAppPreparationResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/by-order/{labOrderId:guid}/versions/{versionNumber:int}/whatsapp-file` | Salinan PDF versi **bersandi** tanggal lahir `HHBBTTTT`; tidak disimpan | `LabPatientResult : Send` | - | `application/pdf` | **Rencana (belum tersedia)** |
+| `POST` | `/by-order/{labOrderId:guid}/deliveries` | Mencatat hasil satu upaya kirim manual: *Terkirim* atau *Gagal* beralasan | `LabPatientResult : Send` | `RecordLabPatientResultDeliveryRequest` | `ApiResponse<LabPatientResultDeliveryResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/by-order/{labOrderId:guid}/versions/{versionNumber:int}/approvals` | Menyetujui atau menolak (beralasan) penyerahan versi yang memuat pemeriksaan sensitif | `LabPatientResult : Approve` | `DecideLabPatientResultApprovalRequest` | `ApiResponse<LabPatientResultApprovalResponse>` | **Rencana (belum tersedia)** |
+
+**Kode status.**
+
+| Endpoint | `200` | `201` | `403` | `404` | `409` | `422` |
+|---|---|---|---|---|---|---|
+| Ringkasan | Selalu, termasuk gerbang tertutup (alasan di respons) | — | Tanpa izin | Order tidak ada | — | — |
+| *Preview* | PDF | — | Tanpa izin | Order tidak ada | `VAL-180` | — |
+| Berkas versi | PDF | — | Tanpa izin | Order/versi tidak ada | `VAL-167`, `VAL-170` | `purpose` kosong/tidak dikenal |
+| Persiapan WhatsApp | Data | — | Tanpa izin | Order tidak ada | `VAL-167`, `VAL-168`, `VAL-169` | — |
+| Berkas WhatsApp | PDF | — | Tanpa izin | Order/versi tidak ada | `VAL-167`..`VAL-170` | — |
+| Catat kirim | `clientRequestId` sama + isi sama (`VAL-172`) | Baris baru | Tanpa izin | Order tidak ada | `VAL-167`..`VAL-170`, `VAL-172` | `VAL-171`, `VAL-172` |
+| Persetujuan | — | Baris baru | Tanpa izin | Order/versi tidak ada | `VAL-170`, `VAL-173`, `VAL-174`, `VAL-176`, `VAL-177` | `VAL-175` |
+
+Respons `409` membawa `code` (kode gerbang 34.4 atau kode `VAL`) dan `message` berbahasa Indonesia.
+
+**`LabPatientResultSummaryResponse`** (jenis *Response*)
+
+| Ruas | Tipe | Isi | Contoh |
+|---|---|---|---|
+| `labOrderId` | `Guid` | — | — |
+| `discipline` | `string` | `ClinicalPathology` / `Microbiology` / `AnatomicPathology` | `"ClinicalPathology"` |
+| `currentVersion` | `LabPatientResultVersionResponse?` | Versi berlaku; `null` bila belum terbit | — |
+| `versions` | `List<LabPatientResultVersionResponse>` | Seluruh versi, terbaru di atas | — |
+| `gate` | `LabPatientDeliveryGateResponse` | `canDeliver`, `blockReasonCode`, `blockReason` (34.4) | `{"canDeliver":false,"blockReasonCode":"DeliveryNotActivated","blockReason":"Penyerahan hasil ke pasien belum diaktifkan untuk Patologi Klinik."}` |
+| `requiresSensitiveApproval` | `bool` | Order memuat pemeriksaan sensitif tak-batal | `false` |
+| `sentCount` | `int` | Jumlah catatan *Terkirim* seluruh versi (`INV-76`) | `1` |
+| `needsResend` | `bool` | *Perlu kirim ulang* (`INV-76`) | `false` |
+| `destinationMasked` | `string?` | Nomor ternormalkan tersamar (34.10 no. 10); `null` bila kosong/tidak valid | `"6281****7890"` |
+| `deliveries` | `List<LabPatientResultDeliveryResponse>` | Terbaru di atas | — |
+| `approvals` | `List<LabPatientResultApprovalResponse>` | Terbaru di atas | — |
+
+**`LabPatientResultVersionResponse`**: `versionNumber` (`int`), `documentNumber` (`string`, mis. `"PK-26-000123-V1"`),
+`status` (`Current`/`Superseded`), `issuedAt` (`DateTime`, UTC), `supersededAt` (`DateTime?`). **Token tidak pernah
+dikirim** ke layar.
+
+**`LabPatientResultWhatsAppPreparationResponse`**: `versionNumber` (`int`), `destination` (`string`, utuh,
+`"6281234567890"`), `messageText` (`string`, teks 34.10 no. 9), `fileName` (`string`, `"PK-26-000123-V1.pdf"`).
+Sandi **tidak** dikirim.
+
+**`RecordLabPatientResultDeliveryRequest`** (jenis *Create*)
+
+| Ruas | Tipe | Wajib | Batas / validasi | Contoh |
+|---|---|:---:|---|---|
+| `versionNumber` | `int` | Ya | Versi berlaku (`VAL-170`) | `1` |
+| `outcome` | `string` enum `Sent` \| `Failed` | Ya | `VAL-171` | `"Sent"` |
+| `failureReason` | `string?` enum `NotRegisteredOnWhatsApp` \| `PatientRefused` \| `Other` | Bila `Failed` | Wajib bila `Failed`, dilarang bila `Sent` (`VAL-171`) | `null` |
+| `failureNote` | `string?` | Bila `Other` | `[MaxLength(500)]`, di-*trim*, tidak boleh kosong bila `Other` (`VAL-171`) | `null` |
+| `clientRequestId` | `Guid` | Ya | Bukan `Guid.Empty`; unik (`VAL-172`) | `"7b0c2d4e-…"` |
+
+**`LabPatientResultDeliveryResponse`**: `id`, `versionNumber`, `channel` (`WhatsAppManual`), `outcome`,
+`failureReason`, `failureNote`, `destinationMasked` (snapshot **tersamar** bagi setiap pembaca — 34.10 no. 10),
+`recordedByName`, `recordedAt`.
+
+**`DecideLabPatientResultApprovalRequest`** (jenis *Status*)
+
+| Ruas | Tipe | Wajib | Batas / validasi | Contoh |
+|---|---|:---:|---|---|
+| `decision` | `string` enum `Approved` \| `Rejected` | Ya | `VAL-177` | `"Approved"` |
+| `reason` | `string?` | Bila `Rejected` | `[MaxLength(1000)]`, di-*trim*; wajib bila `Rejected` (`VAL-175`) | `null` |
+
+**`LabPatientResultApprovalResponse`**: `id`, `versionNumber`, `decision`, `reason`, `decidedByName`, `decidedAt`.
+
+### 46.3 `[Tags("Health Services / Laboratory Management / Lab Patient Delivery Setting")]` — endpoint baru
+
+Base URL: `api/v1/health-services/laboratory-management/lab-patient-delivery-settings`
+Contract version: `LAB-API-v1` `r51` — status `approved` 2026-11-27
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Keadaan aktivasi PK dan Mikrobiologi (aktif/nonaktif, perubahan terakhir) dan daftar pemeriksaan sensitif | `LabPatientDeliverySetting : Read` | - | `ApiResponse<LabPatientDeliverySettingResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{discipline}/activation` | Mengaktifkan atau menonaktifkan penyerahan hasil ke pasien untuk satu disiplin, beralasan | `LabPatientDeliverySetting : Update` | `ChangeLabPatientDeliveryActivationRequest` | `ApiResponse<LabPatientDeliverySettingResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{discipline}/activation-history` | Jejak perubahan aktivasi satu disiplin, terbaru di atas | `LabPatientDeliverySetting : Read` | - | `ApiResponse<List<LabPatientDeliveryActivationResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `/sensitive-procedures` | Menandai satu jenis pemeriksaan sebagai sensitif | `LabPatientDeliverySetting : Update` | `AddLabSensitiveProcedureRequest` | `ApiResponse<LabSensitiveProcedureResponse>` | **Rencana (belum tersedia)** |
+| `DELETE` | `/sensitive-procedures/{id:guid}` | Mencabut penanda sensitif, beralasan | `LabPatientDeliverySetting : Update` | `RemoveLabSensitiveProcedureRequest` (body) | `ApiResponse<object>` | **Rencana (belum tersedia)** |
+
+`{discipline}` = `ClinicalPathology` atau `Microbiology`; `AnatomicPathology` → `422` (`VAL-178`).
+
+**`ChangeLabPatientDeliveryActivationRequest`** (jenis *Status*)
+
+| Ruas | Tipe | Wajib | Batas / validasi | Contoh |
+|---|---|:---:|---|---|
+| `enabled` | `bool` | Ya | ≠ keadaan kini (`VAL-178`) | `true` |
+| `reason` | `string` | Ya | `[MaxLength(500)]`, di-*trim*, tidak kosong (`VAL-178`) | `"Konfirmasi Kepala Instalasi LAB-SIGN-002 tanggal 1 Desember 2026"` |
+| `sensitiveListConfirmed` | `bool` | Bila `enabled = true` | Harus `true` saat mengaktifkan — penegasan daftar sensitif sudah ditetapkan, termasuk bila kosong (`VAL-178`) | `true` |
+
+**`LabPatientDeliverySettingResponse`**: `disciplines` (`List` berisi `discipline`, `enabled`, `changedAt`,
+`changedByName`, `reason`), `sensitiveProcedures` (`List<LabSensitiveProcedureResponse>`),
+`verificationBaseUrlConfigured` (`bool`).
+
+**`AddLabSensitiveProcedureRequest`**: `procedureId` (`Guid`, wajib, `VAL-179`), `note` (`string?`, maks. 500).
+**`RemoveLabSensitiveProcedureRequest`**: `reason` (`string`, wajib, maks. 500, `VAL-179`).
+**`LabSensitiveProcedureResponse`**: `id`, `procedureId`, `procedureCode`, `procedureName`, `note`, `markedByName`,
+`markedAt`.
+
+**Kode status.** `GET` → `200`/`403`. `PUT` → `200`; `403`; `409` bila keadaan sama atau `VerificationBaseUrl` kosong
+saat mengaktifkan; `422` alasan/penegasan/disiplin. `POST` → `201`; `403`; `404` jenis pemeriksaan tidak ada; `409`
+sudah ditandai. `DELETE` → `200`; `403`; `404`; `422` alasan kosong.
+
+### 46.4 `[Tags("Health Services / Laboratory Management / Lab Monitoring")]` — perluasan
+
+Tiga endpoint daftar pantau (`clinical-pathology`, `microbiology`, `anatomic-pathology`) — **nol parameter baru**.
+`LabMonitoringItemResponse` memperoleh:
+
+| Ruas | Tipe | Isi | Contoh |
+|---|---|---|---|
+| `patientResultSentCount` | `int` | Jumlah catatan *Terkirim* (`INV-76`); `0` bila belum ada dokumen | `1` |
+| `patientResultNeedsResend` | `bool` | *Perlu kirim ulang* | `false` |
+| `patientDeliveryAvailable` | `bool` | Gerbang terbuka (34.4, syarat 1–5) — **tanpa** penjaga nomor/tanggal lahir | `true` |
+| `patientDeliveryBlockReasonCode` | `string?` | Kode 34.4 | `null` |
+| `patientDeliveryBlockReason` | `string?` | Pesan 34.4 | `null` |
+
+Ruas diproyeksikan di dalam kueri daftar yang sama; daftar **tidak** menerbitkan versi (penerbitan hanya oleh
+`complete` dan pembaca dokumen) — order *Selesai* tanpa versi tampil `DocumentNotReady` sampai dibuka.
+
+### 46.5 Kompatibilitas
+
+| Pemanggil | Dampak |
+|---|---|
+| FE Hasil dan Riwayat | Kolom *Terkirim ke Pasien* membaca `patientResultSentCount` menggantikan teks statis *Belum Terkirim*; aksi *Kirim Hasil ke Pasien* memakai ruas gerbang |
+| FE halaman hasil | *Preview Hasil*/*Print Hasil* memakai `preview` dan `file?purpose=print` |
+| `PUT /lab-orders/{id}/complete` | Bentuk dan kode status **tidak berubah**; terbit versi terjadi sesudah commit dan kegagalannya tidak memengaruhi respons |
+| Ruas `deliveryBlockedReason` per pemeriksaan (`CAP-P34-06`) | **Tetap** apa adanya — alasan per pemeriksaan; gerbang per order ada di ruas baru. Tidak dihapus |
+| Kiosk, pemanggil luar | Nol perubahan |
+
+### 46.6 Traceability `r51`
+
+| Butir kontrak | Keputusan | Arsitektur domain | AC |
+|---|---|---|---|
+| Ringkasan, versi, terbit | `LAB-DEC-284`, `289` | `INV-70`..`72` | `AC-366` |
+| Gerbang dan alasannya | `LAB-DEC-139`, `287`, `288`, `293`..`297` | `INV-73` | `AC-357`, `AC-365`, `AC-370`, `AC-373` |
+| *Preview* | `LAB-DEC-287` | `LAB-DC-082` | `AC-358` |
+| Berkas cetak/unduh | `LAB-DEC-185`, `287` | `INV-78`, `INV-81` | `AC-367` |
+| Persiapan dan berkas WhatsApp | `LAB-DEC-279`, `282`, `290`, `292` | `INV-77`, `INV-78` | `AC-359`, `AC-367`, `AC-369` |
+| Catat kirim | `LAB-DEC-281`, `283` | `INV-75` | `AC-360`, `AC-361`, `AC-362` |
+| Persetujuan | `LAB-DEC-182`, `297` | `INV-74` | `AC-373`..`AC-375` |
+| Aktivasi, daftar sensitif | `LAB-DEC-294`..`296` | `INV-80` | `AC-370`..`AC-372` |
+| Daftar pantau | `LAB-DEC-066`, `283`, `285`, `298` | `INV-76` | `AC-360`, `AC-363`, `AC-376` |
+| Token, QR | `LAB-DEC-140`, `184`, `291` | `INV-79` | `AC-368` |

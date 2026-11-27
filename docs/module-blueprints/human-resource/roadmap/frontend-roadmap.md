@@ -7971,9 +7971,9 @@ Entri sidebar yang menuju layar `FE-HRD-317` s.d. `FE-HRD-320` dan `FE-HRD-322` 
 * **Risiko / pemilik**: nilai status dari metadata server — tidak di-hardcode; UI Lead HR.
 * **DoD**: AC terbukti, laporan `FE-HRD-413.md`.
 
-#### ⬜ `FE-HRD-414` — Layar HR Tukar Dinas
+#### ✅ `FE-HRD-414` — Layar HR Tukar Dinas
 * **Slice / MVP**: `A52-B` / `MVP-78` · `EPIC HRD-135`
-* **Status**: ⬜ Belum dikerjakan
+* **Status**: ✅ Selesai (2026-11-27). AC 1–4 `FE-HRD-413` untuk tukar dinas dan kriteria kedua pegawai/shift terpenuhi. Rute baru `/hr/scheduling/shift-swaps` dengan pola `FE-HRD-413`. Tabel menampilkan Pemohon · Shift, Rekan Tujuan · Shift, dan Tanggapan Rekan; detail memuat kedua pihak, tanggapan/catatan rekan, dan riwayat workflow. Terapkan hanya untuk `Approved` yang sudah diterima rekan (`isAcceptedByTarget = true`, sesuai `ShiftSwapService.ApplyAsync`). Panel riwayat workflow diekstrak menjadi komponen bersama; kartu ringkasan dan pemilah galat `FE-HRD-413` diperumum tanpa mengubah perilaku. Bukti: uji unit 13/13 (6 baru), 15/15 mutasi tertangkap; E2E API tiruan 6/6, 11/11 mutasi tertangkap, regresi penjadwalan 35/35; data asli devYoga: metadata, label, filter, dan keadaan kosong (belum ada pengajuan); `lint:errors` dan `npm run build` lulus. Suite unit penuh 161 gagal: 14 kegagalan baru semuanya uji Payroll dari sesi lain. Laporan: [FE-HRD-414](../task/report/frontend/FE-HRD-414.md)
 * **Outcome**: `/hr/scheduling/shift-swaps` dengan pola `FE-HRD-413`; menampilkan kedua pegawai dan kedua shift.
 * **Requirement / keputusan**: `FR-PK-038`; `HRD-DEC-253`
 * **Kontrak**: `v31` — API 37.7; Validation `VR-PK-35`
@@ -7985,9 +7985,9 @@ Entri sidebar yang menuju layar `FE-HRD-317` s.d. `FE-HRD-320` dan `FE-HRD-322` 
 * **Risiko / pemilik**: rendah; UI Lead HR.
 * **DoD**: AC terbukti, laporan `FE-HRD-414.md`.
 
-#### ⬜ `FE-HRD-415` — Layar Penugasan Tambahan (penempatan sementara)
+#### ✅ `FE-HRD-415` — Layar Penugasan Tambahan (penempatan sementara)
 * **Slice / MVP**: `A52-B` / `MVP-78` · `EPIC HRD-134`
-* **Status**: ⬜ Belum dikerjakan
+* **Status**: ✅ Selesai (2026-11-27). 3/3 acceptance criteria terpenuhi. Rute baru `/hr/workforce-core/temporary-assignments` (baca-saja). Kolom: pegawai (tautan Profil Pegawai 360), unit asal, unit tujuan, tanggal, status waktu (label server), dan no. surat. Filter: cari, rentang tanggal, status waktu dari metadata. `403` → pesan server "Anda tidak berwenang melihat data unit ini"; kosong → "Belum ada penempatan sementara". Delta: pemilih unit hanya untuk pemegang cakupan baca semua unit (`AttendanceReport : ReadAllUnits` / `RosterPeriod : ManageAllUnits`), mengikuti keputusan pengguna 24 November 2026 di `FE-HRD-315`, karena belum ada opsi unit per cakupan. Bukti: uji unit 4/4, 12/12 mutasi tertangkap; E2E API tiruan 5/5, 9/9 mutasi tertangkap, regresi 12/12; data asli devYoga (2 penempatan Raka → IGD; tampilan Kepala Unit dan Admin HRD); `lint:errors` dan `npm run build` lulus. Catatan: backend lokal ke devYoga butuh `Seeders__ContinueOnFailure=true` (migration Pengadaan belum diterapkan). Laporan: [FE-HRD-415](../task/report/frontend/FE-HRD-415.md)
 * **Outcome**: `/hr/workforce-core/temporary-assignments`: filter unit (hanya dalam cakupan; pilihan dari opsi unit berizin), rentang tanggal, status waktu, cari; tabel pegawai, unit asal, unit tujuan, tanggal, status waktu; tautan ke Profil Pegawai 360. Tanpa tombol tambah/ubah.
 * **Requirement / keputusan**: `FR-PK-037`; `HRD-DEC-251`
 * **Kontrak**: `v31` — API 37.6; Validation `VR-PK-27`; desain 36.3

@@ -1235,6 +1235,19 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<LabOrderReschedule> LabOrderReschedules { get; set; }
 
+        // BE-LAB-104 (S17-1): AGG-LAB-04 Dokumen Hasil untuk Pasien dan dua setelan penyerahan.
+        public DbSet<LabPatientResultDocument> LabPatientResultDocuments { get; set; }
+
+        public DbSet<LabPatientResultVersion> LabPatientResultVersions { get; set; }
+
+        public DbSet<LabPatientResultApproval> LabPatientResultApprovals { get; set; }
+
+        public DbSet<LabPatientResultDelivery> LabPatientResultDeliveries { get; set; }
+
+        public DbSet<LabPatientDeliveryActivation> LabPatientDeliveryActivations { get; set; }
+
+        public DbSet<LabSensitiveProcedure> LabSensitiveProcedures { get; set; }
+
         public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }
 
         public DbSet<LabSpecimenType> LabSpecimenTypes { get; set; }

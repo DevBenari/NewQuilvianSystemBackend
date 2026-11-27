@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `19` — amandemen 2026-11-25: penjadwalan ulang pemeriksaan (`S20-1`), bagian terakhir dokumen (`draft`). Sebelumnya `18` — amandemen 2026-10-20: Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`), bagian terakhir dokumen. Sebelumnya `17` — pencatatan susulan 2026-10-14: kolom tabel dan halaman hasil mengikuti v1 (`r47`, `r48`; `LAB-REQ-024`, `LAB-REQ-025`), bagian terakhir dokumen. Sebelumnya `16` — amandemen 2026-10-08: Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — amandemen 2026-10-07 (kedua): pemilih dokter pemeriksa memakai daftar Lab (BR-139). Sebelumnya `14` — amandemen 2026-10-07: urutan Konfirmasi v1 (BR-138) dan pencatatan susulan putaran 22 (menu, aksi baris). Sebelumnya `13` — amandemen 2026-09-25 (keempat), laporan operasional `S16a`. Sebelumnya `12` — amandemen 2026-09-25 (ketiga), label keadaan hasil (`LAB-DEC-156`). Sebelumnya `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
+| Revision | `20` — amandemen 2026-11-27: penyerahan hasil kepada pasien (`S17-1`), bagian terakhir dokumen (`draft`); F-1 (a)/F-2 (a) disetujui 2026-11-27. Sebelumnya `19` — amandemen 2026-11-25: penjadwalan ulang pemeriksaan (`S20-1`), bagian terakhir dokumen (`draft`). Sebelumnya `18` — amandemen 2026-10-20: Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`), bagian terakhir dokumen. Sebelumnya `17` — pencatatan susulan 2026-10-14: kolom tabel dan halaman hasil mengikuti v1 (`r47`, `r48`; `LAB-REQ-024`, `LAB-REQ-025`), bagian terakhir dokumen. Sebelumnya `16` — amandemen 2026-10-08: Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — amandemen 2026-10-07 (kedua): pemilih dokter pemeriksa memakai daftar Lab (BR-139). Sebelumnya `14` — amandemen 2026-10-07: urutan Konfirmasi v1 (BR-138) dan pencatatan susulan putaran 22 (menu, aksi baris). Sebelumnya `13` — amandemen 2026-09-25 (keempat), laporan operasional `S16a`. Sebelumnya `12` — amandemen 2026-09-25 (ketiga), label keadaan hasil (`LAB-DEC-156`). Sebelumnya `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S14`, `S15`. **Revision 4 menambah menu Penerimaan Sampling/Specimen** (bagian 10). **Revision 5 menyerap `LAB-DEC-048`**: butir menu Pesanan Laboratorium dicabut, Monitoring dinamai ulang menjadi Pemeriksaan, dan disiplin diturunkan dari pemeriksaan yang dipilih |
 | Frontend SHA | Revision 1-3: `688daff90`. **Revision 4: `9cd4cd03f`** — fakta `F5` dicabut capability map revision 3 |
@@ -1927,3 +1927,109 @@ Lokasi mengikuti `rules/frontend/frontend-architecture.md`; **nama berkas `DEV_D
 | E2E (Playwright, API tiruan) | Aksi tampil/nonaktif/tersembunyi menurut izin dan `canReschedule`; dialog berhasil memuat ulang daftar; `409` menampilkan pesan server; Hasil dan Riwayat tetap `OrderDate`; kiosk menampilkan *lebih awal* |
 | Peramban data asli | Lewat dev 3000 dengan akun Analis dan Kepala Instalasi, data uji izin tulis tersendiri |
 
+## Amandemen 2026-11-27 — Penyerahan hasil kepada pasien (`S17-1`)
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** — kontrak `r51`, kedua belas butir 34.10, dan F-1 (a)/F-2 (a) **disetujui 2026-11-27** |
+| Slice | `S17-1`. **`S17-2`** (halaman verifikasi QR publik) **tidak** dirancang — `LAB-COORD-015` |
+| Masukan | decisions rev 147 (`LAB-DEC-278`..`298`); `LAB-DA-001` rev 13 A10; `02-backend-architecture.md` bagian 34; `LAB-API-v1` `r51`, `LAB-PERM-v1` revision 19, `LAB-VAL-v1` `r23` — **ketiganya `approved` 2026-11-27** |
+| Frontend SHA | **`48680f6de`** (branch `YogaV2`) |
+| Sifat | Perluasan dua layar yang ada (Hasil dan Riwayat tiga disiplin; halaman hasil); **satu tempat setelan baru** yang letaknya diminta diputuskan (butir F-1 di bawah) |
+
+### Keadaan frontend saat dirancang
+
+| Sudah ada | Berkas | Hubungan |
+|---|---|---|
+| Hasil dan Riwayat (mode `results`) | `components/view/health-services/laboratory-management/lab-monitoring/lab-monitoring-table-columns.jsx#buildLabResultHistoryColumns` — kolom *Terkirim ke Pasien* statis *Belum Terkirim*, aksi *Kirim Hasil ke Pasien* nonaktif *"Belum tersedia…"* (`CAP-P34-16`) | Kolom membaca angka; aksi bergerbang |
+| Halaman hasil | `components/view/health-services/laboratory-management/lab-monitoring/lab-result-v1-layout.jsx#LabResultV1ActionBar` — *Preview Hasil*/*Print Hasil* nonaktif (`CAP-P34-17`) | Diaktifkan |
+| Buka WhatsApp | `utils/health-services/registration-management/priority-reservation/priority-reservation.utils.js#buildWhatsAppUrl` (`CAP-P34-13`) | **Dipakai ulang** dengan nomor dari backend — FE **tidak** menormalkan ulang |
+| Unduh *blob* | `lib/hooks/finance/receivable/use-ar-payment-report.jsx` dkk. | Pola unduh PDF; nama berkas cadangan dari respons JSON (CORS tanpa `Content-Disposition`) |
+| Setelan disiplin | `app/health-services/laboratory-management/master-data/lab-discipline-setting/`, `components/view/…/master-data/lab-discipline-setting/` | Calon letak setelan penyerahan (F-1) |
+| Izin | `usePermission(resource, action)` | `LabPatientResult : Send/Print/Approve`, `LabPatientDeliverySetting : Read/Update` |
+
+### Hierarki wewenang yang dipakai
+
+| Tingkat | Yang diputuskan di tingkat itu |
+|---|---|
+| Keamanan/privasi/invariant | Gerbang **dari backend**, tidak dihitung ulang (`INV-73`); nomor tujuan dari backend, tanpa isian nomor (`LAB-DEC-282`); sandi tidak pernah ditampilkan; *Preview* bertanda air dibuat server; token QR tidak pernah sampai ke layar; nomor tersamar di ringkasan (34.10 no. 10) |
+| Brief produk yang disetujui | Kolom *Terkirim ke Pasien* berisi angka + penanda *Perlu kirim ulang* (`LAB-DEC-283`, `285`); aksi *Kirim Hasil ke Pasien* di Hasil dan Riwayat (`LAB-DEC-068`); *Preview*/*Print Hasil* di halaman hasil (`LAB-DEC-287`); pilihan *Terkirim*/*Gagal* + alasan (`LAB-DEC-283`) |
+| Konvensi proyek | Dialog beralasan pola Batal pesanan; pesan galat dari `ApiResponse.message`; unduh *blob* |
+| `DEV_DISCRETION` | Bentuk dialog kirim (langkah-langkah atau satu dialog), label tombol, ikon, warna lencana *Perlu kirim ulang*, bentuk riwayat kirim/persetujuan — dalam pola layar Lab |
+| Brief produk yang disetujui (2026-11-27) | **F-1 (a):** setelan penyerahan = bagian baru pada halaman *Setelan Disiplin*, tampil bagi `LabPatientDeliverySetting : Read`; **F-2 (a):** persetujuan kedua di halaman hasil order |
+
+**F-1 — letak setelan penyerahan.** Pilihan: **(a)** bagian baru pada halaman *Setelan Disiplin* yang ada, tampil hanya
+bagi `LabPatientDeliverySetting : Read` — **direkomendasikan**: satu tempat setelan per disiplin, nol menu baru;
+**(b)** menu baru di bawah Data Induk Lab. **F-2 — letak persetujuan kedua.** Pilihan: **(a)** di halaman hasil order
+(Kepala Instalasi tidak memegang `LabMonitoring : Read`, tetapi membuka hasil lewat detail pesanan) — **direkomendasikan**;
+**(b)** daftar antrean persetujuan tersendiri — butuh endpoint daftar yang belum dirancang.
+
+### Kebutuhan layar — Hasil dan Riwayat (mode `results`, PK dan Mikrobiologi)
+
+| Kebutuhan | Perilaku |
+|---|---|
+| Kolom *Terkirim ke Pasien* | Angka `patientResultSentCount`; bila `patientResultNeedsResend` tampil penanda *Perlu kirim ulang*. Patologi Anatomi tetap *Belum Terkirim* |
+| Aksi *Kirim Hasil ke Pasien* | Tampil hanya bila `usePermission("LabPatientResult","Send")`; aktif bila `patientDeliveryAvailable`, selain itu nonaktif dengan `patientDeliveryBlockReason` sebagai keterangan |
+| Alur kirim | (1) `GET whatsapp-preparation` — galat `409` nomor/tanggal lahir ditampilkan apa adanya, alur berhenti; (2) unduh `whatsapp-file` (nama dari `fileName`); (3) buka `buildWhatsAppUrl(destination, messageText)` di tab baru; (4) petugas memilih **Terkirim** atau **Gagal** + alasan (*Nomor tidak terdaftar di WhatsApp* / *Pasien menolak dikirim* / *Lainnya* + keterangan wajib); (5) `POST deliveries` dengan `clientRequestId` yang dibuat **sekali** saat dialog dibuka |
+| Sesudah tercatat | Tutup dialog, notifikasi, muat ulang daftar |
+| Kirim ulang | Aksi yang sama; tanpa batas |
+
+### Kebutuhan layar — halaman hasil order
+
+| Kebutuhan | Perilaku |
+|---|---|
+| *Preview Hasil* | Aktif bila ada hasil dirilis; membuka `preview` (PDF bertanda air) di tab baru |
+| *Print Hasil* | Tampil bila `usePermission("LabPatientResult","Print")`; aktif bila ringkasan `gate.canDeliver`, selain itu nonaktif dengan `gate.blockReason`; membuka `versions/{n}/file?purpose=print` |
+| Unduh | Sama dengan cetak, `purpose=download` |
+| Ringkasan penyerahan | Versi berlaku + nomor dokumen, angka terkirim, *Perlu kirim ulang*, riwayat kirim (nomor tersamar), riwayat persetujuan |
+| Persetujuan kedua (F-2 a) | Tampil bila `usePermission("LabPatientResult","Approve")` **dan** `requiresSensitiveApproval`; tombol *Setujui* / *Tolak* (alasan wajib); `409` `ApproverIsReleaser` ditampilkan apa adanya |
+
+### Kebutuhan layar — setelan penyerahan (F-1 a)
+
+| Kebutuhan | Perilaku |
+|---|---|
+| Aktivasi per disiplin | Keadaan PK dan Mikrobiologi + perubahan terakhir; tombol *Aktifkan*/*Nonaktifkan* (alasan wajib; mengaktifkan meminta centang *Daftar pemeriksaan sensitif sudah ditetapkan*); tampil bila `Update` |
+| Peringatan alamat QR | Bila `verificationBaseUrlConfigured = false`: *Alamat verifikasi QR belum dikonfigurasi* dan *Aktifkan* nonaktif |
+| Riwayat aktivasi | Dibuka per disiplin |
+| Daftar sensitif | Tabel jenis pemeriksaan + tambah (pemilih jenis pemeriksaan yang ada) + cabut (alasan wajib) |
+
+### Aksi per peran
+
+| Peran | Hasil dan Riwayat | Halaman hasil | Setelan |
+|---|---|---|---|
+| Analis (seeder `Send`+`Print`) | Lihat angka + kirim | *Preview*, cetak, unduh, ringkasan | — |
+| Kepala Instalasi (langkah rilis `LabPatientDeliverySetting`) | Tidak dapat membuka (tanpa `LabMonitoring : Read`) | *Preview*, ringkasan; persetujuan bila ditunjuk | Aktivasi + daftar sensitif |
+| Penyetuju yang ditunjuk (`Approve`) | Sesuai izin daftar | Setujui/Tolak | — |
+| Pemegang `LabExamination : Read` saja | Lihat angka | *Preview* + ringkasan, tanpa cetak/kirim | — |
+
+### Penanganan keadaan
+
+| Keadaan | Perilaku |
+|---|---|
+| Memuat / PDF dibangkitkan | Tombol menampilkan sedang memproses; nonaktif selama permintaan berjalan |
+| Simpan catatan sedang berjalan | Tombol nonaktif; `clientRequestId` tetap sama bila dikirim ulang — balasan `200` diperlakukan berhasil |
+| `409` | Pesan server apa adanya; ringkasan/daftar dimuat ulang — keadaan gerbang ikut berubah |
+| `422` | Pesan di bawah isian terkait |
+| `403` | *Akses ditolak*; sembunyikan aksi |
+| Riwayat kosong | *Belum pernah dikirim* / *Belum ada keputusan* |
+| Tab WhatsApp diblokir peramban | Tampilkan tautan *Buka WhatsApp* yang dapat diklik |
+
+### Berkas yang terdampak
+
+| Berkas | Perubahan |
+|---|---|
+| `lib/services/health-services/laboratory-management/lab-patient-result.service.js` (**baru**) | Tujuh panggilan 46.2 |
+| `lib/services/health-services/laboratory-management/lab-patient-delivery-setting.service.js` (**baru**) | Lima panggilan 46.3 |
+| `lib/hooks/health-services/laboratory-management/lab-patient-delivery-rules.js` (**baru**) | Susun payload catat kirim (alasan wajib, keterangan *Lainnya*), pembuat `clientRequestId` — **tidak** menghitung gerbang |
+| `lab-monitoring-table-columns.jsx` | Kolom angka + penanda; aksi bergerbang |
+| `lab-result-v1-layout.jsx` | *Preview*/*Print* aktif; ringkasan; persetujuan |
+| Dialog kirim (**baru**, nama `DEV_DISCRETION`) | Alur lima langkah |
+| Setelan penyerahan (**baru**, letak F-1) | Aktivasi, riwayat, daftar sensitif |
+
+### Uji yang dibutuhkan
+
+| Uji | Isi |
+|---|---|
+| Unit | `lab-patient-delivery-rules`: payload *Terkirim*/*Gagal*/*Lainnya*; `clientRequestId` sekali per dialog |
+| E2E (Playwright, API tiruan; predikat memuat `/v1/`) | Aksi tampil/nonaktif/tersembunyi menurut izin dan gerbang; alur kirim membuka `wa.me` berisi nomor backend; `409` nomor kosong menghentikan alur; angka naik sesudah *Terkirim*, tetap sesudah *Gagal*; *Print* nonaktif sebelum aktivasi; setelan menolak aktivasi tanpa centang |
+| Peramban data asli | Lewat dev 3000 dengan akun Analis dan Kepala Instalasi; berkas WhatsApp terbuka dengan tanggal lahir, berkas cetak tanpa sandi dan tidak dapat diedit |

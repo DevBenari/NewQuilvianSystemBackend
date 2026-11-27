@@ -3,7 +3,8 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-PERM-v1` |
-| Revision | **18 — `approved`** 2026-11-25, bagian 20 (`LabOrder : Reschedule`). Sebelumnya: **revision 17 `approved`** 2026-10-20 bagian 19; **`16` — `approved`** 2026-10-08, bagian 18 (tiga endpoint ringkasan Beranda dijaga `LabOrder : Read`; nol aksi baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`15` — `approved`** 2026-10-08, bagian 17 (dua endpoint alur v1 dipetakan; nol aksi baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`14` — `approved`** 2026-10-07, bagian 16 (daftar dokter pemeriksa dijaga `LabOrder : Confirm`; nol aksi baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-10-07, bagian 15 (`LabOrder : Confirm`) — disetujui Yoga Aji Pratama. Sebelumnya: **`12` — `approved`** 2026-09-28, bagian 14 (`S16a`: resource `LabOperationalReport`) — disetujui Yoga Aji Pratama, termasuk `Export` terpisah dari `Read`. Sebelumnya: **`11` — `approved`** 2026-09-25, bagian 13 (`S4`: `Validate`, `Release`, `Return`, dua data induk alasan). Terakhir `approved`: `10` — **`approved`** 2026-09-24, bagian 12. *Baris ini sempat tertinggal di `7` sejak revision 8; dirapikan 2026-09-24* |
+| Revision 19 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-11-27** — *"Setujui semua (Recommended)"* atas pertanyaan persetujuan sesudah *"lanjutkan"* — keempat kontrak `S17-1`, kedua belas butir `02-backend-architecture.md` 34.10, dan butir frontend F-1 (a)/F-2 (a) |
+| Revision | **19 — `approved`** 2026-11-27, bagian 21 (`LabPatientResult : Send/Print/Approve`, `LabPatientDeliverySetting : Read/Update`). Sebelumnya: **18 — `approved`** 2026-11-25, bagian 20 (`LabOrder : Reschedule`). Sebelumnya: **revision 17 `approved`** 2026-10-20 bagian 19; **`16` — `approved`** 2026-10-08, bagian 18 (tiga endpoint ringkasan Beranda dijaga `LabOrder : Read`; nol aksi baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`15` — `approved`** 2026-10-08, bagian 17 (dua endpoint alur v1 dipetakan; nol aksi baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`14` — `approved`** 2026-10-07, bagian 16 (daftar dokter pemeriksa dijaga `LabOrder : Confirm`; nol aksi baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-10-07, bagian 15 (`LabOrder : Confirm`) — disetujui Yoga Aji Pratama. Sebelumnya: **`12` — `approved`** 2026-09-28, bagian 14 (`S16a`: resource `LabOperationalReport`) — disetujui Yoga Aji Pratama, termasuk `Export` terpisah dari `Read`. Sebelumnya: **`11` — `approved`** 2026-09-25, bagian 13 (`S4`: `Validate`, `Release`, `Return`, dua data induk alasan). Terakhir `approved`: `10` — **`approved`** 2026-09-24, bagian 12. *Baris ini sempat tertinggal di `7` sejak revision 8; dirapikan 2026-09-24* |
 | Revision 18 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-11-25** — *"setuju semua sesuai rekomendasi, lanjut plan-module-delivery"* — atas keempat kontrak `S20-1` dan keenam butir `02-backend-architecture.md` 33.10 |
 | Revision 17 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-20** — bagian 19: `LabCancellationReport` dan `LabOrderStatisticsReport`, masing-masing `Read`/`Export`; cetak memakai `Export` |
 | Revision 16 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju 11 butir"* atas `LAB-REQ-021`, kesebelas butir |
@@ -1250,3 +1251,80 @@ dari detail pesanan. Pemberian izin daftar **bukan** bagian amandemen ini.
 | Riwayat dibaca `LabOrder : Read` | `LAB-DEC-268` | A9.10 | `AC-352` |
 | Penanda bukan izin | `LAB-DEC-273` | `INV-67` | `AC-353` |
 
+## 21. Amandemen revision 19 — Penyerahan hasil Laboratorium kepada pasien (`S17-1`), 2026-11-27
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-PERM-v1` |
+| Revision | **19** |
+| Status | **`approved`** 2026-11-27 bersama `LAB-API-v1` `r51` |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-11-27** — *"Setujui semua (Recommended)"* atas pertanyaan persetujuan sesudah *"lanjutkan"* — keempat kontrak `S17-1`, kedua belas butir `02-backend-architecture.md` 34.10, dan butir frontend F-1 (a)/F-2 (a) |
+| `input_revision` | decisions rev 147 (`LAB-DEC-182`, `286`, `287`, `293`, `294`, `296`, `297`); `LAB-DA-001` rev 13 A10.9; `02-backend-architecture.md` rev 26 bagian 34 |
+
+### 21.1 Kenapa amandemen ini ada
+
+`LAB-DEC-286` memisahkan **mengirim hasil ke pasien** dari izin rilis dan cetak; `LAB-DEC-182`/`297` menuntut
+**penyetuju kedua** berbasis peran bagi pemeriksaan sensitif; `LAB-DEC-296` menuntut izin **aktivasi** tersendiri yang
+tidak ikut dengan izin setelan disiplin. Cetak dan unduh hasil untuk pasien belum punya izin di kode (`CAP-P34-17`).
+
+### 21.2 Aksi yang ditambahkan
+
+| Resource | Aksi | `AccessType` | Kegunaan |
+|---|---|---|---|
+| **`LabPatientResult`** (baru) | **`Send`** | `Create` | Persiapan WhatsApp, salinan bersandi, mencatat hasil kirim |
+| `LabPatientResult` | **`Print`** | `Read` | Mengambil PDF versi untuk cetak dan unduh (34.10 no. 5) |
+| `LabPatientResult` | **`Approve`** | `Update` | Menyetujui/menolak penyerahan versi bersensitif — peran `LabResultPatientDeliveryApprover` `LAB-DEC-182` |
+| **`LabPatientDeliverySetting`** (baru) | **`Read`** | `Read` | Melihat aktivasi, jejaknya, dan daftar sensitif |
+| `LabPatientDeliverySetting` | **`Update`** | `Update` | Mengaktifkan/menonaktifkan per disiplin; mengubah daftar sensitif (34.10 no. 3) |
+
+Atribut, contoh: `[AccessAction("Send", "Send Lab Result to Patient", Description = "Mengirim hasil laboratorium ke pasien lewat WhatsApp manual dan mencatat hasilnya", AccessType = AccessTypes.Create)]`
++ `[AccessPermission("LabPatientResult", "Send")]`; `[AccessAction("Approve", "Approve Lab Result Delivery", Description = "Menyetujui penyerahan hasil pemeriksaan sensitif kepada pasien", AccessType = AccessTypes.Update)]`
++ `[AccessPermission("LabPatientResult", "Approve")]`. Terdaftar lewat `AccessMenuSeeder`, diperiksa
+`PermissionRegistryValidator`. *`SortOrder` ditetapkan implementer tanpa bertabrakan.*
+
+### 21.3 Pemetaan endpoint
+
+| Endpoint | String yang dipakai | Dicatat logger |
+|---|---|:---:|
+| `GET /lab-patient-results/by-order/{id}` | `[AccessPermission("LabExamination", "Read")]` | Tidak (konvensi `GET`); terbit versi dicatat sekali |
+| `GET …/preview` | `[AccessPermission("LabExamination", "Read")]` | Tidak |
+| `GET …/versions/{n}/file?purpose=` | `[AccessPermission("LabPatientResult", "Print")]` | **Ya** — pelaku, order, versi, tujuan (`LAB-DEC-185`) |
+| `GET …/whatsapp-preparation`, `GET …/versions/{n}/whatsapp-file` | `[AccessPermission("LabPatientResult", "Send")]` | **Ya** pada berkas — tanpa nomor dan sandi |
+| `POST …/deliveries` | `[AccessPermission("LabPatientResult", "Send")]` | **Ya** — tanpa nomor, tanpa keterangan |
+| `POST …/versions/{n}/approvals` | `[AccessPermission("LabPatientResult", "Approve")]` | **Ya** — tanpa alasan |
+| `GET /lab-patient-delivery-settings`, `GET …/activation-history` | `[AccessPermission("LabPatientDeliverySetting", "Read")]` | Tidak |
+| `PUT …/{discipline}/activation`, `POST`/`DELETE …/sensitive-procedures` | `[AccessPermission("LabPatientDeliverySetting", "Update")]` | **Ya** |
+| Daftar pantau (ruas baru) | Tidak berubah — `LabMonitoring : Read` | Tidak |
+
+**Pemisahan izin dan gerbang.** Tanpa izin → aksi tidak tampil dan `403` tanpa tulis. Berizin tetapi gerbang tertutup →
+aksi nonaktif beralasan dan `409` (`VAL-167`).
+
+### 21.4 Pemberian bawaan
+
+| Langkah | Siapa memperoleh | Cara |
+|---|---|---|
+| Seeder sekali jalan `LabPatientResultPermissionSeeder` | Setiap departemen–jabatan pemegang kebijakan **aktif** `LabOrder : Hold` — di devYoga: *Penunjang Medis / Analis Laboratorium* — memperoleh `LabPatientResult : Send` dan `: Print` | Berjalan hanya bila kedua aksi belum pernah punya baris kebijakan (termasuk yang dicabut) — pola `LabOrderReschedulePermissionSeeder` |
+| Langkah rilis | *Kepala Instalasi Laboratorium* — `LabPatientDeliverySetting : Read` dan `: Update` | Role Access — baca set jabatan lebih dulu; POST menimpa seluruh set |
+| Aktivasi | Penyetuju yang ditunjuk Kepala Instalasi — `LabPatientResult : Approve` | Role Access, sesudah nota `LAB-OPEN-057` |
+| Jabatan lain | — | Admin lewat Role Access |
+
+### 21.5 Aksi yang tidak dibuat
+
+| Yang tidak dibuat | Alasan |
+|---|---|
+| Izin baca dokumen tersendiri | `LAB-DEC-286` — pemegang hak baca hasil (`LabExamination : Read`) |
+| Izin *Preview* tersendiri | `LAB-DEC-287` — bukan penyerahan |
+| Izin ubah/hapus catatan kirim atau persetujuan | `INV-74`, `INV-75` |
+| Izin terbit versi | Tindakan sistem |
+| Aktivasi lewat `LabDisciplineSetting : Update` | `LAB-DEC-296` |
+| Izin tanpa login | `LAB-DEC-291` |
+
+### 21.6 Traceability revision 19
+
+| Butir | Keputusan | Arsitektur domain | AC |
+|---|---|---|---|
+| `LabPatientResult : Send` | `LAB-DEC-286` | A10.9 | `AC-360`, `AC-364` |
+| `LabPatientResult : Print` | `LAB-DEC-139`, `185`, `287` | A10.9, `ARCH-GAP-LAB-23` | `AC-357` |
+| `LabPatientResult : Approve` | `LAB-DEC-182`, `297` | A10.9 | `AC-374` |
+| `LabPatientDeliverySetting : Read/Update` | `LAB-DEC-294`..`296` | A10.9 | `AC-371` |
+| Seeder salin dari `Hold` | 34.10 no. 8 | — | `AC-364` |

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `4` — 2026-11-25: `BC-MCU` dicatat sebagai hulu baca (tautan komponen order MCU, `LAB-DA-001` A9.3); `LabOrder` diperluas `PlannedDate`, `LabOrderReschedule` baru (`S20-1`, `draft`). Sebelumnya `3` — 2026-10-20: hubungan baca laporan `S16b-1`/`S16b-2` ke Registrasi, Master Data, dan data pasien (A8.3); nol entity baru |
+| Revision | `5` — 2026-11-27: `AGG-LAB-04` Dokumen Hasil untuk Pasien dan dua tabel setelan (`S17-1`, `draft`); baca nomor WhatsApp dan tanggal lahir dari data induk pasien. Sebelumnya `4` — 2026-11-25: `BC-MCU` dicatat sebagai hulu baca (tautan komponen order MCU, `LAB-DA-001` A9.3); `LabOrder` diperluas `PlannedDate`, `LabOrderReschedule` baru (`S20-1`, `draft`). Sebelumnya `3` — 2026-10-20: hubungan baca laporan `S16b-1`/`S16b-2` ke Registrasi, Master Data, dan data pasien (A8.3); nol entity baru |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
 | Backend SHA | `c87d9c0` |
@@ -157,3 +157,14 @@ Laboratorium **tidak mengerjakannya** dan **tidak menulis** ke sana.
 | Tabel pemberitahuan | `LAB-DEC-016` menetapkannya milik platform |
 | Tabel keutuhan dokumen rekam medis | Slice pendaftaran rekam medis terblokir `LAB-COORD-002` |
 | Tabel daftar kerja | Daftar kerja diturunkan, tidak disimpan |
+
+## Amandemen 2026-11-27 — Penyerahan hasil kepada pasien (`S17-1`)
+
+| Perubahan | Isi |
+|---|---|
+| Aggregate baru | `AGG-LAB-04` Dokumen Hasil untuk Pasien — `LabPatientResultDocument`, `LabPatientResultVersion`, `LabPatientResultApproval`, `LabPatientResultDelivery` (**New**, Laboratorium); merujuk `LabOrder` (baca) |
+| Setelan baru | `LabPatientDeliveryActivation`, `LabSensitiveProcedure` (**New**, Laboratorium); yang kedua merujuk `MstProcedure` milik Master Data (baca) |
+| Hubungan baca diperluas | Data induk pasien (`MstPatient`): **nomor WhatsApp** dan **tanggal lahir**, lewat kunjungan — nol tulis |
+| Tidak berubah | Rekam Medis (`LAB-DC-057`): dokumen pasien **bukan** dokumen RM kedua |
+
+ERD rinci: `data-dictionary.md` bagian 25. Arsitektur domain: `LAB-DA-001` A10.

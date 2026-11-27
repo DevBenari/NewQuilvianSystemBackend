@@ -4,7 +4,8 @@
 |---|---|
 | Contract version | `LAB-VAL-v1` |
 | `r21` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-20** — bagian 23: `VAL-155` alasan wajib batal pemeriksaan/wadah; `VAL-147`..`149` dipakai dua laporan baru |
-| Revision | **`r22` — `approved`** 2026-11-25, bagian 24 (`VAL-156`..`VAL-166`). Sebelumnya: **`r21` `approved`** 2026-10-20 bagian 23; **`20` — `approved`** 2026-10-08, bagian 22 (`VAL-154`, tahun pada ringkasan Beranda Lab) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`19` — `approved`** 2026-10-08, bagian 21 (`VAL-152`/`VAL-153` dipersempit) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`18` — `approved`** 2026-10-08, bagian 20 (`VAL-152`, `VAL-153`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`17` — `approved`** 2026-10-07, bagian 19 (`VAL-71` dipersempit, `VAL-151` baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`16` — `approved`** 2026-10-06, bagian 18 (`VAL-150`, Spesifik Specimen nonaktif pada koreksi specimen, `LAB-DEC-167`) — disetujui Yoga Aji Pratama. Sebelumnya: **`15` — `approved`** 2026-09-28, bagian 17 (`VAL-147`..`VAL-149`, periode laporan) — disetujui Yoga Aji Pratama, termasuk batas 366 hari. Sebelumnya: **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
+| `r23` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-11-27** — *"Setujui semua (Recommended)"* atas pertanyaan persetujuan sesudah *"lanjutkan"* — keempat kontrak `S17-1`, kedua belas butir `02-backend-architecture.md` 34.10, dan butir frontend F-1 (a)/F-2 (a) |
+| Revision | **`r23` — `approved`** 2026-11-27, bagian 25 (`VAL-167`..`VAL-180`, penyerahan hasil `S17-1`). Sebelumnya: **`r22` — `approved`** 2026-11-25, bagian 24 (`VAL-156`..`VAL-166`). Sebelumnya: **`r21` `approved`** 2026-10-20 bagian 23; **`20` — `approved`** 2026-10-08, bagian 22 (`VAL-154`, tahun pada ringkasan Beranda Lab) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`19` — `approved`** 2026-10-08, bagian 21 (`VAL-152`/`VAL-153` dipersempit) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`18` — `approved`** 2026-10-08, bagian 20 (`VAL-152`, `VAL-153`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`17` — `approved`** 2026-10-07, bagian 19 (`VAL-71` dipersempit, `VAL-151` baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`16` — `approved`** 2026-10-06, bagian 18 (`VAL-150`, Spesifik Specimen nonaktif pada koreksi specimen, `LAB-DEC-167`) — disetujui Yoga Aji Pratama. Sebelumnya: **`15` — `approved`** 2026-09-28, bagian 17 (`VAL-147`..`VAL-149`, periode laporan) — disetujui Yoga Aji Pratama, termasuk batas 366 hari. Sebelumnya: **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
 | `r20` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju 11 butir"* atas `LAB-REQ-021`, kesebelas butir |
 | `r19` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"setuju keenam butir"* atas `LAB-REQ-020`, keenam butir |
 | `r18` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju ketujuh butir"* atas `LAB-REQ-019`, ketujuh butir |
@@ -1111,3 +1112,59 @@ diminta alasannya — pola `VAL-75` lalu `VAL-74`.
 | `VAL-164` | `LAB-DEC-272` | `INV-65` | `AC-350` |
 | `VAL-165` | 33.10 no. 2 (disetujui 2026-11-25) | `ARCH-GAP-LAB-18` | `T-S20-14` |
 
+## 25. Amandemen `r23` — Penyerahan hasil Laboratorium kepada pasien (`S17-1`), 2026-11-27
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | **`r23`** |
+| Status | **`approved`** 2026-11-27 bersama `LAB-API-v1` `r51` |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-11-27** — *"Setujui semua (Recommended)"* atas pertanyaan persetujuan sesudah *"lanjutkan"* — keempat kontrak `S17-1`, kedua belas butir `02-backend-architecture.md` 34.10, dan butir frontend F-1 (a)/F-2 (a) |
+| `input_revision` | decisions rev 147 (`LAB-DEC-278`..`298`); `LAB-DA-001` rev 13 A10 (`INV-70`..`81`); `02-backend-architecture.md` rev 26 bagian 34 |
+
+### 25.1 Aturan yang ditambahkan
+
+Pesan ditampilkan apa adanya kepada pengguna. `409` = keadaan tidak mengizinkan; `422` = isian tidak sah.
+
+| ID | Berlaku pada | Aturan | Respons | Pesan | Dasar |
+|---|---|---|---|---|---|
+| `VAL-167` | Berkas versi, persiapan WhatsApp, berkas WhatsApp, catat kirim | **Gerbang tertutup** — dinilai `LabPatientDeliveryGate` urutan 1–5 | `409`, `code` = kode gerbang | Pesan gerbang 34.4 (mis. *Penyerahan hasil ke pasien belum diaktifkan untuk Patologi Klinik.*) | `INV-73`; `LAB-DEC-139`, `287`, `288`, `293`..`297` |
+| `VAL-168` | Persiapan WhatsApp, berkas WhatsApp, catat kirim | Nomor WhatsApp data induk kosong / gagal dinormalkan (buang selain angka; `0`/`8` → `62`; wajib `628…`, 10–15 angka) | `409`, `PatientPhoneMissing` / `PatientPhoneInvalid` | *Nomor WhatsApp pasien belum tercatat — perbarui di data pasien.* / *Nomor WhatsApp pasien tidak valid — perbarui di data pasien.* | `INV-77`; `LAB-DEC-282`, `292` |
+| `VAL-169` | Persiapan WhatsApp, berkas WhatsApp, catat kirim | Tanggal lahir pasien kosong | `409`, `PatientBirthDateMissing` | *Tanggal lahir pasien belum tercatat — perbarui di data pasien.* | `INV-78`; `LAB-DEC-290` |
+| `VAL-170` | Berkas versi, berkas WhatsApp, catat kirim, persetujuan | Nomor versi bukan versi **berlaku** | `409`, `VersionSuperseded` | *Versi {n} sudah digantikan versi {m}. Gunakan versi terbaru.* | `INV-72`, `INV-75` |
+| `VAL-171` | Catat kirim | `outcome` wajib; `Failed` wajib `failureReason`; `Other` wajib `failureNote` (tidak kosong sesudah *trim*, maks. 500); `Sent` tidak boleh membawa `failureReason`/`failureNote` | `422` | *Pilih alasan pengiriman gagal.* / *Tuliskan keterangan untuk alasan Lainnya.* / *Pengiriman berhasil tidak memerlukan alasan gagal.* | `INV-75`; `LAB-DEC-283` |
+| `VAL-172` | Catat kirim | `clientRequestId` wajib, bukan GUID kosong. Id yang sudah tercatat dengan isi sama → `200` berisi catatan lama, **nol baris baru**; id sama dengan isi berbeda → `409` | `422` / `200` / `409` `DuplicateRequest` | *Permintaan tidak memiliki penanda unik.* / *Permintaan ini sudah tercatat dengan isi berbeda. Muat ulang lalu coba lagi.* | 34.10 no. 4; `ARCH-GAP-LAB-22` |
+| `VAL-173` | Persetujuan | Order tidak memuat pemeriksaan sensitif tak-batal | `409`, `ApprovalNotRequired` | *Order ini tidak memuat pemeriksaan sensitif; persetujuan tidak diperlukan.* | `INV-74`; `LAB-DEC-294` |
+| `VAL-174` | Persetujuan | Penyetuju adalah perilis salah satu pemeriksaan order | `409`, `ApproverIsReleaser` | *Penyetuju tidak boleh perilis hasil pada order ini.* | `INV-74`; `LAB-DEC-297` |
+| `VAL-175` | Persetujuan | `decision` wajib; `Rejected` wajib `reason` (tidak kosong sesudah *trim*, maks. 1000) | `422` | *Tuliskan alasan penolakan.* | `INV-74`; `LAB-DEC-297` |
+| `VAL-176` | Persetujuan | Order bukan *Selesai* atau versi berlaku belum terbit | `409`, `OrderNotCompleted` / `DocumentNotReady` | Pesan gerbang 34.4 urutan 2/3 | `INV-71` |
+| `VAL-177` | Persetujuan | Keputusan terbaru versi itu sudah *Disetujui* | `409`, `AlreadyApproved` | *Versi ini sudah disetujui.* | 34.10 no. 11 |
+| `VAL-178` | Aktivasi | Disiplin `AnatomicPathology` → `422`; `reason` wajib (maks. 500) → `422`; mengaktifkan tanpa `sensitiveListConfirmed = true` → `422`; `enabled` sama dengan keadaan kini → `409` `NoChange`; mengaktifkan selama `LabPatientResult:VerificationBaseUrl` kosong → `409` `VerificationUrlMissing` | `422` / `409` | *Penyerahan hasil Patologi Anatomi belum tersedia.* / *Tuliskan alasan perubahan.* / *Tegaskan bahwa daftar pemeriksaan sensitif sudah ditetapkan.* / *Penyerahan {disiplin} sudah {aktif/nonaktif}.* / *Alamat verifikasi QR belum dikonfigurasi; hubungi admin platform.* | `INV-80`; `LAB-DEC-294`..`296`; 34.10 no. 12 |
+| `VAL-179` | Daftar sensitif | Jenis pemeriksaan tidak ada → `404`; sudah ditandai (aktif) → `409` `AlreadyMarked`; mencabut tanpa `reason` (maks. 500) → `422` | `404` / `409` / `422` | *Jenis pemeriksaan tidak ditemukan.* / *Pemeriksaan ini sudah ditandai sensitif.* / *Tuliskan alasan pencabutan.* | `LAB-DEC-294` |
+| `VAL-180` | *Preview* | Order Patologi Anatomi → `409` `DisciplineNotSupported`; nol pemeriksaan dirilis → `409` `NothingReleased` | `409` | *Penyerahan hasil Patologi Anatomi belum tersedia.* / *Belum ada hasil yang dirilis pada order ini.* | `LAB-DEC-287`, `288` |
+
+**Urutan penilaian pada catat kirim:** izin (`403`) → order ada (`404`) → `VAL-171`/`VAL-172` isian → `VAL-172` id
+ganda → `VAL-170` → `VAL-167` → `VAL-168` → `VAL-169`. Id ganda dinilai **sebelum** gerbang supaya kiriman ulang atas
+catatan yang sudah sah tetap memperoleh `200` walau gerbang tertutup sesudahnya.
+
+### 25.2 Yang bukan aturan
+
+| Hal | Alasan |
+|---|---|
+| Batas jumlah kirim | `LAB-DEC-281` — tanpa batas |
+| Pemeriksaan pelunasan sebelum penyerahan | Tidak ada keputusan (A10.12) |
+| Isian nomor tujuan | `LAB-DEC-282` — tidak ada isian |
+| Penolakan *Preview* karena gerbang tertutup | `LAB-DEC-287` — *Preview* tidak melewati gerbang |
+
+### 25.3 Traceability `r23`
+
+| Aturan | Keputusan | Invariant | AC |
+|---|---|---|---|
+| `VAL-167` | `LAB-DEC-139`, `287`, `288`, `293`..`297` | `INV-73` | `AC-357`, `AC-365`, `AC-370`, `AC-373` |
+| `VAL-168` | `LAB-DEC-282`, `292` | `INV-77` | `AC-359`, `AC-369` |
+| `VAL-169` | `LAB-DEC-290` | `INV-78` | `AC-367` |
+| `VAL-170` | `LAB-DEC-289` | `INV-72`, `INV-75` | `AC-363` |
+| `VAL-171`, `VAL-172` | `LAB-DEC-283` | `INV-75` | `AC-360`, `AC-361` |
+| `VAL-173`..`VAL-177` | `LAB-DEC-182`, `294`, `297` | `INV-74` | `AC-373`..`AC-375` |
+| `VAL-178`, `VAL-179` | `LAB-DEC-294`..`296` | `INV-80` | `AC-370`..`AC-372` |
+| `VAL-180` | `LAB-DEC-287`, `288` | — | `AC-358` |

@@ -4,7 +4,8 @@
 |---|---|
 | Contract version | `LAB-STATE-v1` |
 | `r11` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-20** — bagian 13: syarat alasan pada transisi batal pemeriksaan dan wadah; nol status, nol transisi baru |
-| Revision | **`r12` — `approved`** 2026-11-25, bagian 14 (tindakan *Jadwal Ulang* tanpa perpindahan status). Sebelumnya: **`r11` `approved`** 2026-10-20 bagian 13; **`10` — `approved`** 2026-10-08, bagian 12 (syarat Proses dilonggarkan bagi rawat inap/IGD) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`9` — `approved`** 2026-10-08, bagian 11 (Proses wajib lolos pembayaran) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`8` — `approved`** 2026-10-07, bagian 10 (Konfirmasi juga sah pada `Accepted`; Proses wajib terkonfirmasi) — disetujui Yoga Aji Pratama. Sebelumnya: **`7` — `approved`** 2026-09-25, bagian 9 (penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`6` — `approved`** 2026-09-25, bagian 8 (`S4d-1` Mikrobiologi) — disetujui Yoga Aji Pratama. Sebelumnya: **`5` — `approved`** 2026-09-25, bagian 7 (`S4`: Tervalidasi dan Dirilis sebagai keadaan turunan). Terakhir `approved`: `4` — **`approved`** 2026-09-24, bagian 6 |
+| `r13` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-11-27** — *"Setujui semua (Recommended)"* atas pertanyaan persetujuan sesudah *"lanjutkan"* — keempat kontrak `S17-1`, kedua belas butir `02-backend-architecture.md` 34.10, dan butir frontend F-1 (a)/F-2 (a) |
+| Revision | **`r13` — `approved`** 2026-11-27, bagian 15 (lifecycle versi dokumen, persetujuan, aktivasi; nol status pesanan baru). Sebelumnya: **`r12` — `approved`** 2026-11-25, bagian 14 (tindakan *Jadwal Ulang* tanpa perpindahan status). Sebelumnya: **`r11` `approved`** 2026-10-20 bagian 13; **`10` — `approved`** 2026-10-08, bagian 12 (syarat Proses dilonggarkan bagi rawat inap/IGD) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`9` — `approved`** 2026-10-08, bagian 11 (Proses wajib lolos pembayaran) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`8` — `approved`** 2026-10-07, bagian 10 (Konfirmasi juga sah pada `Accepted`; Proses wajib terkonfirmasi) — disetujui Yoga Aji Pratama. Sebelumnya: **`7` — `approved`** 2026-09-25, bagian 9 (penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`6` — `approved`** 2026-09-25, bagian 8 (`S4d-1` Mikrobiologi) — disetujui Yoga Aji Pratama. Sebelumnya: **`5` — `approved`** 2026-09-25, bagian 7 (`S4`: Tervalidasi dan Dirilis sebagai keadaan turunan). Terakhir `approved`: `4` — **`approved`** 2026-09-24, bagian 6 |
 | `r10` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"setuju keenam butir"* atas `LAB-REQ-020`, keenam butir |
 | `r9` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju ketujuh butir"* atas `LAB-REQ-019`, ketujuh butir |
 | Status | `approved` — `r2` dikunci 2026-09-02; **amandemen `r3` disetujui pemilik modul 2026-09-15** lewat `LAB-DEC-061` dan `LAB-DEC-063` |
@@ -665,3 +666,67 @@ pesanan tetap `Confirmed`, A tetap `RecollectionRequired`, B tetap `Planned`.
 | Syarat wadah efektif | `LAB-DEC-275`, `276` | `INV-62` | `AC-355` |
 | Nol penghalang pada transisi wadah | `LAB-DEC-259` | `INV-68` | `AC-345` |
 
+## 15. Amandemen `r13` — Penyerahan hasil Laboratorium kepada pasien (`S17-1`), 2026-11-27
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-STATE-v1` |
+| Revision | **`r13`** |
+| Status | **`approved`** 2026-11-27 bersama `LAB-API-v1` `r51` |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-11-27** — *"Setujui semua (Recommended)"* atas pertanyaan persetujuan sesudah *"lanjutkan"* — keempat kontrak `S17-1`, kedua belas butir `02-backend-architecture.md` 34.10, dan butir frontend F-1 (a)/F-2 (a) |
+| `input_revision` | decisions rev 147; `LAB-DA-001` rev 13 A10.8; `02-backend-architecture.md` rev 26 bagian 34 |
+
+### 15.1 Status pesanan dan pemeriksaan — tidak berubah
+
+**Nol status dan nol transisi baru** pada pesanan, wadah, permintaan, dan pemeriksaan. `PUT /lab-orders/{id}/complete`
+tetap transisi `InProcess → Completed` dengan penjaga yang sama; terbit versi 1 terjadi **sesudah** transisi itu dan
+tidak dapat membatalkannya (`LAB-DEC-183` butir 5).
+
+### 15.2 Lifecycle baru — konsep `AGG-LAB-04` dan setelan
+
+**Versi dokumen** (`LabPatientResultVersionStatus`)
+
+| Dari | Ke | Pemicu | Penjaga | Akibat |
+|---|---|---|---|---|
+| — | `Current` (versi 1) | Order menjadi `Completed` (sesudah commit) atau pembaca dokumen pertama | Order PK/Mikrobiologi `Completed`; belum ada versi | Token baru, berkas arsip, nomor `{nomor cetak}-V1` |
+| `Current` (versi n) | `Superseded` | Terbit versi n+1 dari koreksi `S6` — **belum ada pemicu** (`LAB-DEC-289`) | — | Token versi n dicabut (`TokenRevokedAt`); persetujuan versi n tidak berpindah |
+| `Superseded` | apa pun | — | **Ilegal** | — |
+
+**Persetujuan penyerahan** (per versi; dibaca dari keputusan terbaru)
+
+| Keadaan | Tindakan | Ke | Penjaga | Ilegal |
+|---|---|---|---|---|
+| *Belum diputuskan* | Setujui | *Disetujui* | `VAL-173`..`VAL-176` | — |
+| *Belum diputuskan* | Tolak beralasan | *Ditolak* | `VAL-173`..`VAL-176` | — |
+| *Ditolak* | Setujui | *Disetujui* | Sama | — |
+| *Ditolak* | Tolak lagi | *Ditolak* | Sama | — |
+| *Disetujui* | Setujui / Tolak | — | `VAL-177` | **Ilegal** |
+
+**Catatan pengiriman** — **tanpa lifecycle**: lahir `Sent` atau `Failed`, tidak pernah berubah. `Pending`/`Delivered`
+**tidak ada** pada jalur manual (`LAB-DEC-283`, `298`).
+
+**Aktivasi per disiplin** (dibaca dari baris terbaru; tanpa baris = nonaktif)
+
+| Dari | Ke | Penjaga | Akibat |
+|---|---|---|---|
+| Nonaktif | Aktif | `VAL-178` — alasan, penegasan daftar sensitif, alamat verifikasi | Gerbang syarat 4 terpenuhi bagi disiplin itu |
+| Aktif | Nonaktif | `VAL-178` — alasan | Gerbang tertutup; versi, arsip, persetujuan, catatan **tidak berubah** |
+| Keadaan sama | Keadaan sama | — | **Ditolak** `409` `NoChange` |
+
+### 15.3 Penanda turunan — bukan status
+
+| Penanda | Rumus | Kapan hilang |
+|---|---|---|
+| Gerbang terbuka/tertutup | `LabPatientDeliveryGate` (34.4) | Dihitung setiap dibaca |
+| *Perlu kirim ulang* | Ada `Sent` atas versi `Superseded` **dan** nol `Sent` atas versi `Current` | Begitu versi berlaku tercatat `Sent` |
+| Angka *Terkirim ke Pasien* | Jumlah `Sent` seluruh versi | Tidak pernah berkurang |
+
+### 15.4 Traceability `r13`
+
+| Butir | Keputusan | Invariant | AC |
+|---|---|---|---|
+| Status pesanan tidak berubah | `LAB-DEC-139`, `183` | `INV-71` | `AC-366` |
+| Versi `Current` → `Superseded` | `LAB-DEC-140`, `289` | `INV-70`, `INV-72` | `AC-363`, `AC-375` |
+| Persetujuan per versi | `LAB-DEC-297` | `INV-74` | `AC-374`, `AC-375` |
+| Catatan tanpa transisi | `LAB-DEC-283`, `298` | `INV-75` | `AC-376` |
+| Aktivasi | `LAB-DEC-295` | `INV-80` | `AC-370`..`AC-372` |

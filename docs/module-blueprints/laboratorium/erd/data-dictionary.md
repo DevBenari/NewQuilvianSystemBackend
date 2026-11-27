@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `14` — 2026-11-25: bagian 24 — penjadwalan ulang `S20-1`: kolom `LabOrder.PlannedDate` (`date`, wajib), tabel baru `LabOrderReschedule`, dua index (`draft`). Sebelumnya `13` — 2026-10-20: bagian 23 — dua laporan `S16b`: nol tabel, nol kolom, satu index usulan `LabTransitionHistory (Action, OccurredAt)`; kolom kunci yang dibaca, `MstPatient` dan `ReasonNote` bertanda sensitif. Sebelumnya `12` — 2026-10-09: putaran 28 (`LAB-CONFLICT-019`) — nol tabel, nol kolom; penjelasan `LabExamination.Urgency`, `UrgencyMarkedAt`, dan `LabOrderedProcedure.Urgency` diperjelas (`02-backend-architecture.md` 29.2). Sebelumnya `11` — bagian 22, 2026-10-08: BR-140 Beranda — nol tabel, nol kolom; kolom `LabOrder`, `LabOrderedProcedure`, `LabExamination` yang dibaca dicatat. Sebelumnya `10` — bagian 21, 2026-10-07: BR-139 — nol tabel, nol kolom; `MstDoctor` dibaca empat kolom. Sebelumnya `9` — bagian 20, 2026-10-07: BR-138 — nol tabel, nol kolom. Sebelumnya `8` — bagian 19, 2026-09-25: `S16a` — nol tabel, nol kolom, satu index `LabSpecimen.DecidedAt`. Sebelumnya `7` — bagian 18, 2026-09-25: `S4d-1` — nol tabel, nol kolom. Sebelumnya `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
+| Revision | `15` — 2026-11-27: bagian 25 — penyerahan hasil `S17-1`: enam tabel baru (`AGG-LAB-04` + dua setelan), nol kolom pada tabel lama (`draft`). Sebelumnya `14` — 2026-11-25: bagian 24 — penjadwalan ulang `S20-1`: kolom `LabOrder.PlannedDate` (`date`, wajib), tabel baru `LabOrderReschedule`, dua index (`draft`). Sebelumnya `13` — 2026-10-20: bagian 23 — dua laporan `S16b`: nol tabel, nol kolom, satu index usulan `LabTransitionHistory (Action, OccurredAt)`; kolom kunci yang dibaca, `MstPatient` dan `ReasonNote` bertanda sensitif. Sebelumnya `12` — 2026-10-09: putaran 28 (`LAB-CONFLICT-019`) — nol tabel, nol kolom; penjelasan `LabExamination.Urgency`, `UrgencyMarkedAt`, dan `LabOrderedProcedure.Urgency` diperjelas (`02-backend-architecture.md` 29.2). Sebelumnya `11` — bagian 22, 2026-10-08: BR-140 Beranda — nol tabel, nol kolom; kolom `LabOrder`, `LabOrderedProcedure`, `LabExamination` yang dibaca dicatat. Sebelumnya `10` — bagian 21, 2026-10-07: BR-139 — nol tabel, nol kolom; `MstDoctor` dibaca empat kolom. Sebelumnya `9` — bagian 20, 2026-10-07: BR-138 — nol tabel, nol kolom. Sebelumnya `8` — bagian 19, 2026-09-25: `S16a` — nol tabel, nol kolom, satu index `LabSpecimen.DecidedAt`. Sebelumnya `7` — bagian 18, 2026-09-25: `S4d-1` — nol tabel, nol kolom. Sebelumnya `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 3 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 12 |
 | Backend SHA | Revision 1-2: `c87d9c0`. **Revision 3: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -1697,3 +1697,208 @@ alur mana pun).
 | `McuOrderComponent` (MCU) — `MedicalCheckupManagement/Models/McuOrderComponent.cs` | `LabOrderId`, `IsDelete` | `VAL-164` | Tidak |
 | `Users` (Platform) | `Id`, `DisplayName` (cadangan `UserName`/`Email`/`UserCode`) | `actorName` riwayat | Tidak |
 
+## 25. Amandemen 2026-11-27 — Penyerahan hasil kepada pasien (`S17-1`): enam tabel baru, nol kolom pada tabel lama
+
+Menurunkan `02-backend-architecture.md` bagian 34 (`draft`) dan `LAB-DA-001` A10 (`AGG-LAB-04`). Keenam tabel **Baru**
+ditulis lengkap; tabel `Sudah ada` hanya kolom kunci yang dipakai aturan penyerahan. Seluruh tabel mewarisi
+`IdentityModel` (kepala dokumen). Penghapusan bersifat penandaan, sehingga **setiap index unik wajib tersaring**
+`WHERE "IsDelete" = false` (pelajaran `LAB-CONFLICT-005`).
+
+### 25.0 ERD bagian ini
+
+**Diagram 1 — aggregate `AGG-LAB-04` Dokumen Hasil untuk Pasien.**
+
+```mermaid
+erDiagram
+    LabOrder ||--o| LabPatientResultDocument : "dokumen hasil pasien"
+    LabPatientResultDocument ||--|{ LabPatientResultVersion : "versi"
+    LabPatientResultVersion ||--o{ LabPatientResultApproval : "persetujuan kedua"
+    LabPatientResultVersion ||--o{ LabPatientResultDelivery : "catatan kirim"
+    LabPatientResultDocument ||--o{ LabPatientResultDelivery : "catatan kirim"
+    LabPatientResultDocument {
+        uuid Id PK
+        uuid LabOrderId FK "unik tersaring, Restrict"
+        int Discipline
+        int CurrentVersionNumber
+        int Version "token konkurensi"
+    }
+    LabPatientResultVersion {
+        uuid Id PK
+        uuid DocumentId FK "Restrict"
+        int VersionNumber "unik per dokumen"
+        varchar DocumentNumber "60"
+        int Status
+        timestamptz IssuedAt
+        varchar VerificationToken "64, unik"
+        timestamptz TokenRevokedAt "nullable"
+        varchar StoragePath "500"
+        char FileSha256 "64"
+    }
+    LabPatientResultApproval {
+        uuid Id PK
+        uuid VersionId FK "Restrict"
+        int Decision
+        varchar Reason "1000, nullable"
+        uuid DecidedByUserId FK
+        timestamptz DecidedAt
+    }
+    LabPatientResultDelivery {
+        uuid Id PK
+        uuid DocumentId FK "Restrict"
+        uuid VersionId FK "Restrict"
+        int Outcome
+        int FailureReason "nullable"
+        varchar DestinationSnapshot "20, sensitif"
+        uuid RecordedByUserId FK
+        uuid ClientRequestId "unik"
+    }
+```
+
+**Diagram 2 — setelan Laboratorium.**
+
+```mermaid
+erDiagram
+    MstProcedure ||--o| LabSensitiveProcedure : "ditandai sensitif (baca)"
+    LabPatientDeliveryActivation {
+        uuid Id PK
+        int Discipline
+        bool Enabled
+        varchar Reason "500"
+        bool SensitiveListConfirmed
+        uuid ChangedByUserId FK
+        timestamptz ChangedAt
+    }
+    LabSensitiveProcedure {
+        uuid Id PK
+        uuid ProcedureId FK "unik tersaring, Restrict"
+        varchar Note "500, nullable"
+        varchar RemovalReason "500, nullable"
+    }
+```
+
+| Entity | Status | Owner |
+|---|---|---|
+| `LabPatientResultDocument`, `LabPatientResultVersion`, `LabPatientResultApproval`, `LabPatientResultDelivery` | **New** (Baru) | Laboratorium — `AGG-LAB-04` |
+| `LabPatientDeliveryActivation`, `LabSensitiveProcedure` | **New** (Baru) | Laboratorium — setelan |
+| `LabOrder`, `LabExamination`, `LabDisciplineSetting` | Existing — baca | Laboratorium |
+| `MstPatient` | Existing — baca | Manajemen Pasien |
+| `MstProcedure` | Existing — baca | Master Data |
+
+### 25.1 `public.LabPatientResultDocument` — Baru
+
+Model: `Areas/HealthServices/LaboratoryManagement/Models/LabPatientResultDocument.cs`. Configuration:
+`Repositories/Configurations/HealthServices/LaboratoryManagement/LabPatientResultDocumentConfiguration.cs`.
+
+| Kolom | Tipe | Wajib | Bawaan | Batas / validasi | Sensitif | Arti |
+|---|---|:---:|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | PK | Tidak | — |
+| `LabOrderId` | `uuid` | Ya | — | FK → `LabOrder.Id` `Restrict`; satu per order (`INV-70`) | Tidak | Order pemilik dokumen |
+| `Discipline` | `integer` (`LabDiscipline`) | Ya | — | Disalin dari order saat terbit; hanya PK (1) atau Mikrobiologi (3) (`LAB-DEC-288`) | Tidak | Kunci aktivasi tanpa join |
+| `CurrentVersionNumber` | `integer` | Ya | `1` | ≥ 1; = nomor versi `Current` | Tidak | Pembacaan versi berlaku tanpa sub-kueri |
+| `Version` | `integer` | Ya | `0` | Token konkurensi (`IsConcurrencyToken`) | Tidak | Menjaga pergantian versi kelak |
+
+| Index | Kolom | Unique | Alasan |
+|---|---|:---:|---|
+| `IX_LabPatientResultDocument_LabOrderId` | `LabOrderId` | **Ya**, tersaring `IsDelete = false` | `INV-70`; terbit ganda |
+
+### 25.2 `public.LabPatientResultVersion` — Baru
+
+| Kolom | Tipe | Wajib | Bawaan | Batas / validasi | Sensitif | Arti |
+|---|---|:---:|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | PK | Tidak | — |
+| `DocumentId` | `uuid` | Ya | — | FK → `LabPatientResultDocument.Id` `Restrict` | Tidak | — |
+| `VersionNumber` | `integer` | Ya | — | ≥ 1, berurutan per dokumen | Tidak | — |
+| `DocumentNumber` | `varchar(60)` | Ya | — | `{nomor cetak}-V{n}`, cadangan `{OrderNumber}-V{n}` (34.10 no. 7) | Tidak | Nomor tercetak, mis. `PK-26-000123-V1` |
+| `Status` | `integer` (`LabPatientResultVersionStatus`) | Ya | — | `Current`/`Superseded` | Tidak | `INV-72` |
+| `IssuedAt` | `timestamptz` | Ya | — | UTC | Tidak | Waktu terbit sebenarnya |
+| `SupersededAt` | `timestamptz` | Tidak | `null` | Terisi bersama `Status = Superseded` | Tidak | — |
+| `VerificationToken` | `varchar(64)` | Ya | — | 32 byte acak, base64url; tidak pernah dicatat log | **Ya** — rahasia akses | Isi QR (`INV-79`) |
+| `TokenRevokedAt` | `timestamptz` | Tidak | `null` | Terisi saat versi digantikan | Tidak | — |
+| `StoragePath` | `varchar(500)` | Ya | — | Relatif terhadap `FileStorage:PrivateRootPath`; tanpa nama pasien | Tidak | `lab-patient-results/2026/12/{guid}.pdf` |
+| `FileSha256` | `char(64)` | Ya | — | Heksadesimal huruf kecil | Tidak | Keutuhan berkas |
+| `FileSizeBytes` | `bigint` | Ya | — | > 0 | Tidak | — |
+
+| Index | Kolom | Unique | Alasan |
+|---|---|:---:|---|
+| `IX_LabPatientResultVersion_DocumentId_VersionNumber` | `DocumentId`, `VersionNumber` | **Ya**, tersaring | `INV-70` |
+| `IX_LabPatientResultVersion_VerificationToken` | `VerificationToken` | **Ya**, tersaring | Halaman verifikasi kelak (`S17-2`) |
+
+### 25.3 `public.LabPatientResultApproval` — Baru
+
+| Kolom | Tipe | Wajib | Bawaan | Batas / validasi | Sensitif | Arti |
+|---|---|:---:|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | PK | Tidak | — |
+| `VersionId` | `uuid` | Ya | — | FK → `LabPatientResultVersion.Id` `Restrict` | Tidak | Persetujuan per versi (`INV-74`) |
+| `Decision` | `integer` (`LabPatientResultApprovalDecision`) | Ya | — | `Approved`/`Rejected` (`VAL-175`, `VAL-177`) | Tidak | — |
+| `Reason` | `varchar(1000)` | Bila `Rejected` | `null` | Di-*trim* | **Ya** — dapat menyebut kondisi klinis | Alasan |
+| `DecidedByUserId` | `uuid` | Ya | — | FK → `AspNetUsers.Id` `Restrict`; **selalu orang** (13.7); bukan perilis order (`VAL-174`) | Tidak | — |
+| `DecidedAt` | `timestamptz` | Ya | — | UTC | Tidak | — |
+
+| Index | Kolom | Unique | Alasan |
+|---|---|:---:|---|
+| `IX_LabPatientResultApproval_VersionId_DecidedAt` | `VersionId`, `DecidedAt` | Tidak | Keputusan terbaru per versi |
+
+### 25.4 `public.LabPatientResultDelivery` — Baru (menggantikan rancangan `LabResultDelivery` bagian 13)
+
+| Kolom | Tipe | Wajib | Bawaan | Batas / validasi | Sensitif | Arti |
+|---|---|:---:|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | PK | Tidak | — |
+| `DocumentId` | `uuid` | Ya | — | FK → `LabPatientResultDocument.Id` `Restrict` | Tidak | Hitung per order tanpa join versi |
+| `VersionId` | `uuid` | Ya | — | FK → `LabPatientResultVersion.Id` `Restrict`; versi `Current` saat dicatat (`VAL-170`) | Tidak | — |
+| `Channel` | `integer` (`LabPatientResultDeliveryChannel`) | Ya | — | Hanya `WhatsAppManual = 1` | Tidak | — |
+| `Outcome` | `integer` (`LabPatientResultDeliveryOutcome`) | Ya | — | `Sent`/`Failed` (`VAL-171`) | Tidak | Hanya `Sent` menambah angka |
+| `FailureReason` | `integer` (`LabPatientResultDeliveryFailureReason`) | Bila `Failed` | `null` | Dilarang bila `Sent` | Tidak | — |
+| `FailureNote` | `varchar(500)` | Bila `Other` | `null` | Di-*trim* | **Ya** — teks bebas | Keterangan *Lainnya* |
+| `DestinationSnapshot` | `varchar(20)` | Ya | — | Ternormalkan `628…`, 10–15 angka (`VAL-168`) | **Ya** | Nomor tujuan saat dikirim — tidak ikut berubah |
+| `RecordedByUserId` | `uuid` | Ya | — | FK → `AspNetUsers.Id` `Restrict`; **selalu orang** | Tidak | — |
+| `RecordedAt` | `timestamptz` | Ya | — | UTC | Tidak | — |
+| `ClientRequestId` | `uuid` | Ya | — | ≠ GUID kosong (`VAL-172`) | Tidak | Penangkal klik ganda |
+
+| Index | Kolom | Unique | Alasan |
+|---|---|:---:|---|
+| `IX_LabPatientResultDelivery_DocumentId_Outcome` | `DocumentId`, `Outcome` | Tidak | Angka *Terkirim* per baris daftar (bagian 13.1) |
+| `IX_LabPatientResultDelivery_ClientRequestId` | `ClientRequestId` | **Ya**, tersaring | `VAL-172` |
+
+### 25.5 `public.LabPatientDeliveryActivation` — Baru
+
+| Kolom | Tipe | Wajib | Bawaan | Batas / validasi | Sensitif | Arti |
+|---|---|:---:|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | PK | Tidak | — |
+| `Discipline` | `integer` (`LabDiscipline`) | Ya | — | PK (1) atau Mikrobiologi (3) (`VAL-178`) | Tidak | — |
+| `Enabled` | `boolean` | Ya | — | ≠ keadaan kini (`VAL-178`) | Tidak | Keadaan sesudah perubahan |
+| `Reason` | `varchar(500)` | Ya | — | Di-*trim*, tidak kosong | Tidak | Mis. rujukan konfirmasi `LAB-SIGN-002` |
+| `SensitiveListConfirmed` | `boolean` | Ya | `false` | Wajib `true` bila `Enabled = true` | Tidak | Penegasan daftar sensitif |
+| `ChangedByUserId` | `uuid` | Ya | — | FK → `AspNetUsers.Id` `Restrict` | Tidak | — |
+| `ChangedAt` | `timestamptz` | Ya | — | UTC | Tidak | — |
+
+| Index | Kolom | Unique | Alasan |
+|---|---|:---:|---|
+| `IX_LabPatientDeliveryActivation_Discipline_ChangedAt` | `Discipline`, `ChangedAt` | Tidak | Keadaan kini = baris terbaru per disiplin |
+
+Baris **tidak pernah diubah atau dihapus**. Tanpa baris = nonaktif.
+
+### 25.6 `public.LabSensitiveProcedure` — Baru
+
+| Kolom | Tipe | Wajib | Bawaan | Batas / validasi | Sensitif | Arti |
+|---|---|:---:|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | PK | Tidak | — |
+| `ProcedureId` | `uuid` | Ya | — | FK → `MstProcedure.Id` `Restrict` (`VAL-179`) | Tidak | Jenis pemeriksaan yang ditandai |
+| `Note` | `varchar(500)` | Tidak | `null` | — | Tidak | Catatan Kepala Instalasi |
+| `RemovalReason` | `varchar(500)` | Bila dicabut | `null` | Terisi bersama `IsDelete = true` | Tidak | Alasan pencabutan |
+
+| Index | Kolom | Unique | Alasan |
+|---|---|:---:|---|
+| `IX_LabSensitiveProcedure_ProcedureId` | `ProcedureId` | **Ya**, tersaring | Satu penanda aktif per pemeriksaan |
+
+Penanda dibuat (`CreateBy`, `CreateDateTime`) dan dicabut (`IsDelete`, `DeleteBy`, `DeleteDateTime` + `RemovalReason`)
+memakai kolom warisan `IdentityModel`; penandaan ulang = baris baru.
+
+### 25.7 Tabel `Sudah ada` — kolom kunci yang dibaca
+
+| Tabel | Kolom | Dipakai untuk | Model |
+|---|---|---|---|
+| `LabOrder` | `Id`, `OrderStatus`, `Discipline`, `LabReportNumber`, `OrderNumber`, `EncounterId` | Gerbang syarat 1–2, nomor dokumen, jalan ke pasien | `Models/LabOrder.cs` |
+| `LabExamination` | `LabOrderId`, `ProcedureId`, `ExaminationStatus`, pelaku rilis | Isi dokumen, pemeriksaan sensitif, `VAL-174` | `Models/LabExamination.cs` |
+| `LabDisciplineSetting` | `Discipline`, `ConsultantLabel`, `ConsultantName`, `StandingNote` | Kepala dokumen | `Models/LabDisciplineSetting.cs` |
+| `MstPatient` | `WhatsAppNumber`, `BirthDate`, No. RM, nama | Nomor tujuan, sandi, isi | `PatientManagement/MasterData/Models/MstPatient.cs` |
+| `MstProcedure` | `Id`, kode, nama | Daftar sensitif | Master Data |

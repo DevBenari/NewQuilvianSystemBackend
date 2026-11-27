@@ -529,6 +529,7 @@ try
     builder.Services.AddScoped<LabSpecimenCorrectionService>();
     builder.Services.AddScoped<LabReportNumberService>();
     builder.Services.AddScoped<LabDisciplineSettingService>();
+    builder.Services.AddScoped<LabPatientDeliverySettingService>();
     builder.Services.AddScoped<LabConfirmingDoctorResolver>();
     builder.Services.AddScoped<LabClinicalPrivilegeResolver>();
     builder.Services.AddScoped<LabResultValidationService>();
@@ -3092,6 +3093,10 @@ try
         // sekali jalan (pencabutan admin tidak dipulihkan). Wajib sesudah AccessMenuSeeder.
         await RunStartupSeederAsync("LabOrderReschedulePermissionSeeder",
             () => LabOrderReschedulePermissionSeeder.SeedAsync(app.Services));
+        // BE-LAB-104 / LAB-PERM-v1 rev 19 21.4: pemegang LabOrder : Hold memperoleh LabPatientResult : Send
+        // dan : Print, sekali jalan per aksi; Approve tidak pernah. Wajib sesudah AccessMenuSeeder.
+        await RunStartupSeederAsync("LabPatientResultPermissionSeeder",
+            () => LabPatientResultPermissionSeeder.SeedAsync(app.Services));
         // BE-BKC-088 / BKC-DEC-162: hak akses awal Supervisor Kasir pada modul tinjauan void biaya admin. Wajib sesudah AccessMenuSeeder.
         await RunStartupSeederAsync("BillingSupersededItemReviewPermissionSeeder",
             () => BillingSupersededItemReviewPermissionSeeder.SeedAsync(app.Services));

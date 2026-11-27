@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `25` — 2026-11-25: persetujuan bagian 33 dibukukan. `24` — bagian 33, 2026-11-25: rancangan `S20-1` penjadwalan ulang pemeriksaan. Sebelumnya `23` — 2026-10-20: persetujuan bagian 32 dibukukan. `22` — bagian 32, 2026-10-20: rancangan `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan (`draft`). Sebelumnya `21` — bagian 31, 2026-10-14: pencatatan susulan ruas baca v1 `r47`/`r48` (kontrak `approved` lewat `LAB-REQ-024` dan `LAB-REQ-025`). Sebelumnya `20` — bagian 30, 2026-10-09: rencana ulang sesudah wadah dibatalkan (putaran 29, temuan T1), kontrak usulan `LAB-REQ-023`. Sebelumnya `19` — bagian 29, 2026-10-09: CITO dari pemesanan sampai ke pemeriksaan (putaran 28, `LAB-CONFLICT-019`), kontrak usulan `LAB-REQ-022`. Sebelumnya `18` — bagian 28, 2026-10-08: data ringkasan Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `17` — bagian 27, 2026-10-08: lingkup kunci Lunas — rawat inap dan IGD *Ditagih Kemudian* (putaran 27), kontrak usulan `LAB-REQ-020`. Sebelumnya `16` — bagian 26, 2026-10-08: alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), kontrak usulan `LAB-REQ-019`. Sebelumnya `15` — bagian 25, 2026-10-07: daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian (BR-139), kontrak usulan `LAB-REQ-017`. Sebelumnya `14` — bagian 24, 2026-10-07: Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1 (BR-138), kontrak usulan `LAB-REQ-016`. Sebelumnya `13` — bagian 23, 2026-09-25: `S16a` tiga laporan operasional. Sebelumnya `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
+| Revision | `27` — 2026-11-27: persetujuan bagian 34 dibukukan. `26` — 2026-11-27: bagian 34 — rancangan `S17-1` penyerahan hasil kepada pasien (`draft`). Sebelumnya `25` — 2026-11-25: persetujuan bagian 33 dibukukan. `24` — bagian 33, 2026-11-25: rancangan `S20-1` penjadwalan ulang pemeriksaan. Sebelumnya `23` — 2026-10-20: persetujuan bagian 32 dibukukan. `22` — bagian 32, 2026-10-20: rancangan `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan (`draft`). Sebelumnya `21` — bagian 31, 2026-10-14: pencatatan susulan ruas baca v1 `r47`/`r48` (kontrak `approved` lewat `LAB-REQ-024` dan `LAB-REQ-025`). Sebelumnya `20` — bagian 30, 2026-10-09: rencana ulang sesudah wadah dibatalkan (putaran 29, temuan T1), kontrak usulan `LAB-REQ-023`. Sebelumnya `19` — bagian 29, 2026-10-09: CITO dari pemesanan sampai ke pemeriksaan (putaran 28, `LAB-CONFLICT-019`), kontrak usulan `LAB-REQ-022`. Sebelumnya `18` — bagian 28, 2026-10-08: data ringkasan Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `17` — bagian 27, 2026-10-08: lingkup kunci Lunas — rawat inap dan IGD *Ditagih Kemudian* (putaran 27), kontrak usulan `LAB-REQ-020`. Sebelumnya `16` — bagian 26, 2026-10-08: alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), kontrak usulan `LAB-REQ-019`. Sebelumnya `15` — bagian 25, 2026-10-07: daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian (BR-139), kontrak usulan `LAB-REQ-017`. Sebelumnya `14` — bagian 24, 2026-10-07: Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1 (BR-138), kontrak usulan `LAB-REQ-016`. Sebelumnya `13` — bagian 23, 2026-09-25: `S16a` tiga laporan operasional. Sebelumnya `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -1134,6 +1134,10 @@ supaya persetujuannya tidak terbaca lebih luas daripada yang diberikan.
 ---
 
 ## 13. Rancangan 2026-09-17 — Penyimpanan pengiriman hasil ke pasien (`REC3-NEW-004`)
+
+> **Digantikan bagian 34 (2026-11-27).** Log pengiriman, angka turunan, snapshot nomor, dan peringatan 13.7 **dipertahankan**;
+> tabelnya kini `LabPatientResultDelivery` di dalam aggregate dokumen hasil pasien, menunjuk versi dokumen. Bagian ini
+> dibiarkan sebagai jejak alasan.
 
 Menurunkan `LAB-DEC-066` dari decision log. **Rancangan, bukan pelaksanaan** — alasannya ditulis
 pada 13.6 dan itu bagian yang paling penting dibaca sebelum ada yang menjadwalkannya.
@@ -5804,10 +5808,469 @@ lewat skrip per migration **hanya atas instruksi pemilik**.
 | Riwayat terbaca | `LAB-DEC-268` | A9.10 | `r50` 45.3 | `AC-352` |
 | Ruas opsional pembuatan pesanan | `LAB-DEC-253`, `269` | A9.11 | `r50` 45.4 | `AC-339` |
 
+## 34. Rancangan 2026-11-27 — `S17-1` penyerahan hasil Laboratorium kepada pasien (`BE-LAB-41`)
+
+Bagian ini menurunkan `LAB-DA-001` **revision 13 bagian A10** ke rancangan backend dan **menggantikan bagian 13**
+(rancangan `LabResultDelivery` 2026-09-17) dengan mempertahankan intinya: log pengiriman, angka turunan, snapshot nomor
+tujuan, dan peringatan FK pelaku 13.7. Yang dirancang: **satu aggregate baru** (`AGG-LAB-04` Dokumen Hasil untuk Pasien)
+dalam **empat tabel**, **dua tabel setelan** milik Laboratorium, **satu pembangkit dokumen** PDF, **satu aturan gerbang
+bersama**, **dua belas endpoint baru** dalam dua controller, perluasan baris daftar pantau, **lima aksi izin baru**, dan
+**satu migration**.
+
+*Contoh yang dipakai sepanjang bagian ini:* order `LAB-RSMMC-900040` (nomor samaran; Darah Lengkap + Gula Darah Puasa,
+Patologi Klinik) dinyatakan *Selesai* Senin 2 Desember 2026 10.05 WIB; dokumen versi 1 bernomor `PK-26-000123-V1` terbit.
+Patologi Klinik sudah diaktifkan Kepala Instalasi pukul 08.00. Pukul 10.20 Gilang (Analis) mengirim lewat WhatsApp ke
+`6281234567890` dan mencatat **Terkirim**.
+
+### 34.0 Identitas dan gerbang masukan
+
+| Butir | Isi |
+|---|---|
+| Status | **`draft`** — dokumen arsitektur. **Keempat kontraknya (`LAB-API-v1` `r51`, `LAB-PERM-v1` revision 19, `LAB-VAL-v1` `r23`, `LAB-STATE-v1` `r13`) dan kedua belas butir 34.10 disetujui 2026-11-27** |
+| Masukan | `00-interview-decisions.md` **revisi 147** (`LAB-DEC-278`..`LAB-DEC-298`, `AC-357`..`AC-376`); `LAB-RCG-001` **revision 16** bagian 0J; `LAB-DA-001` **revision 13** bagian A10; capability map **revision 11** (`CAP-P34-01`..`18`) |
+| SHA | Backend **`693941d5`** (branch `yoga`), frontend **`48680f6de`** (branch `YogaV2`). Capability map dipindai pada `cce1dbf5`/`11b3aaece`; pergeserannya diperiksa terbatas pada closure pass putaran 35 — nol perubahan pada butir ini |
+| Gerbang | Requirement `READY_FOR_DOMAIN_DESIGN` (0J.9); arsitektur `DOMAIN_ARCHITECTURE_READY` (A10.15) |
+| Yang dirancang | Dokumen hasil berversi dan arsipnya; *Preview*; gerbang penyerahan; aktivasi per disiplin; daftar pemeriksaan sensitif dan persetujuan kedua; salinan WhatsApp bersandi; pencatatan kirim; angka *Terkirim ke Pasien* dan *Perlu kirim ulang*; izin dan seeder |
+| Yang **tidak** dirancang | `S17-2` halaman verifikasi QR publik dan tautan aman (`LAB-COORD-015`); gerbang WhatsApp otomatis (`LAB-COORD-011`); pemicu versi 2 (koreksi `S6`, `LAB-COORD-018`); Patologi Anatomi (`LAB-DEC-288`); tata letak layar (`03-frontend-architecture.md`) |
+| Skema | **Enam tabel baru**, nol kolom pada tabel yang ada. Satu migration tanpa pengisian data lama (34.7) |
+
+### 34.1 Bounded context, invariant, dan batas transaksi
+
+| Butir | Isi |
+|---|---|
+| Bounded context | `BC-LAB`. **Baca** dari data induk pasien (nomor WhatsApp, tanggal lahir, No. RM, nama — lewat kunjungan), `BC-MD` (jenis pemeriksaan). `BC-PLAT` menyediakan `QuestPDF`, `QRCoder`, penyimpanan privat, izin, pelaku, pencatat |
+| Aggregate | **`AGG-LAB-04` baru**: `LabPatientResultDocument` (root) + `LabPatientResultVersion` + `LabPatientResultApproval` + `LabPatientResultDelivery`. `AGG-LAB-01` Pesanan **hanya dibaca** |
+| Invariant | `INV-70`..`INV-81` (A10.5); pola satu rumus `INV-57`/`INV-67` |
+| Transaksi | **Terbit versi:** satu transaksi menulis dokumen (bila belum ada) + versi; berkas ditulis **sebelum** commit, dihapus bila commit gagal. **Persetujuan:** satu sisipan. **Catat kirim:** satu sisipan. **Aktivasi:** satu sisipan peristiwa. Tidak ada transaksi yang menyentuh `LabOrder` |
+| Konkurensi | Keunikan `(DocumentId, VersionNumber)` dan satu dokumen per order (index unik tersaring) menjaga terbit ganda; `ClientRequestId` unik menjaga klik ganda catat kirim (34.10 no. 4); `LabPatientResultDocument.Version` sebagai token konkurensi saat versi berganti kelak |
+| Rollback | Penolakan apa pun terjadi sebelum tulis. Kegagalan bangkit PDF atau simpan berkas → nol baris versi; order tetap *Selesai* (`LAB-DEC-183` butir 5) |
+
+**Kapan versi 1 terbit (`ARCH-GAP-LAB-20`, usulan 34.10 no. 1).** Sesudah `PUT /lab-orders/{id}/complete` **berhasil
+commit**, `LabOrderService.CompleteAsync` memanggil `LabPatientResultDocumentService.TryIssueFirstVersionAsync` di luar
+transaksi penyelesaian; kegagalannya dicatat dan **tidak** mengubah respons `complete`. Setiap pembaca dokumen
+(ringkasan, berkas, persiapan WhatsApp) memanggil `EnsureIssuedAsync` yang menerbitkan bila belum ada — sehingga order
+yang sudah *Selesai* sebelum fitur ini (devYoga: order lama) memperoleh versi 1 saat pertama dibuka, **tanpa** pengisian
+data lama. `IssuedAt` = waktu terbit sebenarnya; waktu selesai order tetap dibaca dari pesanan.
+
+**Isi dokumen dibekukan.** Hasil yang dirilis terkunci (`VAL-143`), sehingga PDF yang dibangkitkan kapan pun dari hasil
+dirilis berisi sama. PDF versi disimpan **sekali** dan dilayani dari arsip, tidak dibangkitkan ulang.
+
+### 34.2 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+|---|---|:---:|---|
+| Dokumen hasil untuk pasien, versinya, persetujuan, catatan pengiriman | **Laboratorium** (`AGG-LAB-04`) — **baru** | Ya | — pemiliknya Laboratorium |
+| Aktivasi penyerahan per disiplin | **Laboratorium** (`LabPatientDeliveryActivation`) — **baru** | Ya | — |
+| Daftar pemeriksaan sensitif | **Laboratorium** (`LabSensitiveProcedure`) — **baru**, merujuk `MstProcedure` | Ya | **Tidak** — penanda tidak ditulis ke `MstProcedure` |
+| Status *Selesai*, disiplin, nomor cetak, nomor order | Laboratorium (`LabOrder`) | Ya — **baca** | Tidak |
+| Hasil, validasi, rilis, perilis | Laboratorium (`LabExamination` dan hasil Mikrobiologi) | Ya — **baca** (isi dokumen, `INV-74`) | Tidak |
+| Setelan disiplin (label konsultan, awalan nomor cetak) | Laboratorium (`LabDisciplineSetting`) | Ya — **baca** (kepala dokumen) | Tidak — **tidak** diperluas (34.10 no. 2) |
+| Dokumen hasil per rilis di rekam medis | **Rekam Medis** (`LAB-DC-057`) | **Tidak** | Tidak — dokumen pasien bukan dokumen RM kedua |
+| Nomor WhatsApp, tanggal lahir, No. RM, nama pasien | **Manajemen Pasien** (`MstPatient`) | Ya — **baca** lewat kunjungan | **Tidak** — nomor disalin hanya sebagai snapshot catatan kirim |
+| Jenis pemeriksaan | **Master Data** (`MstProcedure`) | Ya — **baca** | Tidak |
+| Pelaku | **Platform** (`Users`) | Ya — **baca** | Tidak |
+| Kebijakan izin per departemen–jabatan | **Platform** (`SysAccessPolicies`) | Ya — seeder **menambah** baris | Tidak |
+| Berkas PDF | **Platform** (penyimpanan privat, `FileStorage:PrivateRootPath`) | Ya — tulis/baca berkas | Tidak — metadata di `LabPatientResultVersion` |
+
+### 34.3 Class diagram
+
+**Diagram 1 — aggregate `AGG-LAB-04` (milik `BC-LAB`).**
+
+```mermaid
+classDiagram
+    class LabPatientResultDocument {
+        <<Baru · root>>
+        +Guid Id
+        +Guid LabOrderId
+        +LabDiscipline Discipline
+        +int CurrentVersionNumber
+        +int Version
+    }
+    class LabPatientResultVersion {
+        <<Baru>>
+        +Guid Id
+        +Guid DocumentId
+        +int VersionNumber
+        +string DocumentNumber
+        +LabPatientResultVersionStatus Status
+        +DateTime IssuedAt
+        +string VerificationToken
+        +DateTime? TokenRevokedAt
+        +string StoragePath
+        +string FileSha256
+        +long FileSizeBytes
+    }
+    class LabPatientResultApproval {
+        <<Baru>>
+        +Guid Id
+        +Guid VersionId
+        +LabPatientResultApprovalDecision Decision
+        +string? Reason
+        +Guid DecidedByUserId
+        +DateTime DecidedAt
+    }
+    class LabPatientResultDelivery {
+        <<Baru>>
+        +Guid Id
+        +Guid DocumentId
+        +Guid VersionId
+        +LabPatientResultDeliveryChannel Channel
+        +LabPatientResultDeliveryOutcome Outcome
+        +LabPatientResultDeliveryFailureReason? FailureReason
+        +string? FailureNote
+        +string DestinationSnapshot
+        +Guid RecordedByUserId
+        +DateTime RecordedAt
+        +Guid ClientRequestId
+    }
+    class LabOrder {
+        <<Sudah ada · baca>>
+        +LabOrderStatus OrderStatus
+        +LabDiscipline Discipline
+        +string? LabReportNumber
+    }
+    LabOrder "1" --> "0..1" LabPatientResultDocument
+    LabPatientResultDocument "1" --> "1..*" LabPatientResultVersion
+    LabPatientResultVersion "1" --> "0..*" LabPatientResultApproval
+    LabPatientResultVersion "1" --> "0..*" LabPatientResultDelivery
+```
+
+**Diagram 2 — setelan Laboratorium.**
+
+```mermaid
+classDiagram
+    class LabPatientDeliveryActivation {
+        <<Baru · peristiwa>>
+        +Guid Id
+        +LabDiscipline Discipline
+        +bool Enabled
+        +string Reason
+        +bool SensitiveListConfirmed
+        +Guid ChangedByUserId
+        +DateTime ChangedAt
+    }
+    class LabSensitiveProcedure {
+        <<Baru · rujukan>>
+        +Guid Id
+        +Guid ProcedureId
+        +string? Note
+        +string? RemovalReason
+    }
+    class MstProcedure {
+        <<BC-MD · Sudah ada · baca>>
+        +Guid Id
+    }
+    MstProcedure "1" --> "0..1" LabSensitiveProcedure : ditandai sensitif
+```
+
+**Diagram 3 — aturan, layanan, dan controller.**
+
+```mermaid
+classDiagram
+    class LabPatientDeliveryGate {
+        <<Baru · static>>
+        +Evaluate(snapshot) LabPatientDeliveryVerdict
+    }
+    class LabPatientDeliveryVerdict {
+        <<Baru · record>>
+        +bool CanDeliver
+        +string? BlockReasonCode
+        +string? BlockReason
+    }
+    class LabWhatsAppNumberNormalizer {
+        <<Baru · static>>
+        +TryNormalize(raw) string?
+    }
+    class LabPatientResultDocumentService {
+        <<Baru>>
+        +TryIssueFirstVersionAsync(orderId)
+        +EnsureIssuedAsync(orderId)
+        +GetSummaryAsync(orderId)
+        +GetPreviewAsync(orderId)
+        +GetVersionFileAsync(orderId, n, purpose)
+        +GetWhatsAppPreparationAsync(orderId)
+        +GetWhatsAppFileAsync(orderId, n)
+        +RecordDeliveryAsync(orderId, request)
+        +DecideApprovalAsync(orderId, n, request)
+    }
+    class LabPatientResultPdfRenderer {
+        <<Baru>>
+        +RenderFinal(content, version) byte[]
+        +RenderPreview(content) byte[]
+        +LockForEditing(pdf, userPassword?) byte[]
+    }
+    class LabPatientResultFileStore {
+        <<Baru>>
+        +SaveAsync(bytes) StoredFile
+        +OpenAsync(path) Stream
+    }
+    class LabPatientDeliverySettingService {
+        <<Baru>>
+        +GetAsync()
+        +ChangeActivationAsync(discipline, request)
+        +GetActivationHistoryAsync(discipline)
+        +AddSensitiveProcedureAsync(request)
+        +RemoveSensitiveProcedureAsync(id, request)
+    }
+    class LabPatientResultController { <<Baru>> }
+    class LabPatientDeliverySettingController { <<Baru>> }
+    class LabOrderService { <<Diperbarui>> +CompleteAsync «memicu terbit» }
+    class LabMonitoringService { <<Diperbarui>> +GetByDisciplineAsync «angka, penanda, gerbang» }
+    LabPatientResultController --> LabPatientResultDocumentService
+    LabPatientDeliverySettingController --> LabPatientDeliverySettingService
+    LabPatientResultDocumentService --> LabPatientDeliveryGate
+    LabPatientResultDocumentService --> LabPatientResultPdfRenderer
+    LabPatientResultDocumentService --> LabPatientResultFileStore
+    LabPatientResultDocumentService --> LabWhatsAppNumberNormalizer
+    LabMonitoringService --> LabPatientDeliveryGate
+    LabOrderService --> LabPatientResultDocumentService
+    LabPatientDeliveryGate --> LabPatientDeliveryVerdict
+```
+
+### 34.4 Penjelasan setiap class
+
+| Class | Status | Lokasi file | Tanggung jawab |
+|---|---|---|---|
+| `LabPatientResultDocument` | **Baru** | `Areas/HealthServices/LaboratoryManagement/Models/LabPatientResultDocument.cs` | Root `AGG-LAB-04`: satu per order (`INV-70`). `[Table("LabPatientResultDocument", Schema = "public")]`, mewarisi `IdentityModel`. Navigasi `Versions`, `Deliveries` |
+| `LabPatientResultVersion` | **Baru** | `…/Models/LabPatientResultVersion.cs` | Satu terbitan beku: nomor dokumen, status, token, berkas. Tidak pernah dihapus; hanya `Status`, `TokenRevokedAt`, `SupersededAt` yang berubah, dan hanya saat versi berikutnya terbit (`INV-72`) |
+| `LabPatientResultApproval` | **Baru** | `…/Models/LabPatientResultApproval.cs` | Satu keputusan penyetuju kedua per baris; tidak pernah diubah (`INV-74`) |
+| `LabPatientResultDelivery` | **Baru** — menggantikan rancangan `LabResultDelivery` bagian 13 | `…/Models/LabPatientResultDelivery.cs` | Satu upaya kirim; tidak pernah diubah atau dihapus (`INV-75`) |
+| `LabPatientDeliveryActivation` | **Baru** | `…/Models/LabPatientDeliveryActivation.cs` | Satu baris per perubahan aktivasi; keadaan kini = baris terbaru per disiplin; tanpa baris = **nonaktif** (`INV-80`) |
+| `LabSensitiveProcedure` | **Baru** | `…/Models/LabSensitiveProcedure.cs` | Penanda sensitif milik Lab atas satu `MstProcedure`; pencabutan = tanda hapus beralasan, penandaan ulang = baris baru |
+| Enum `LabPatientResultVersionStatus`, `LabPatientResultApprovalDecision`, `LabPatientResultDeliveryChannel`, `LabPatientResultDeliveryOutcome`, `LabPatientResultDeliveryFailureReason` | **Baru** | `…/Enums/LabPatientResultEnums.cs` | Nilai di 34.6 |
+| `LabPatientResultDocumentConfiguration` + tiga konfigurasi anak, `LabPatientDeliveryActivationConfiguration`, `LabSensitiveProcedureConfiguration` | **Baru** | `Repositories/Configurations/HealthServices/LaboratoryManagement/` | FK, index, `DeleteBehavior.Restrict` (data dictionary bagian 25) |
+| `ApplicationDbContext` | **Diperbarui** | `Repositories/ApplicationDbContext.cs` | Enam `DbSet` |
+| `LabPatientDeliveryGate` | **Baru** | `…/Services/LabPatientDeliveryGate.cs` | **Satu rumus gerbang** (`INV-73`), statis tanpa akses basis data; potret disusun pemanggil dengan proyeksi. Urutan penilaian di bawah |
+| `LabPatientDeliveryVerdict` | **Baru** | Berkas yang sama | `CanDeliver`, `BlockReasonCode`, `BlockReason` |
+| `LabWhatsAppNumberNormalizer` | **Baru** | `…/Services/LabWhatsAppNumberNormalizer.cs` | Aturan `LAB-DEC-292` disalin dari `normalizeWhatsAppPhone` FE — satu aturan di backend, FE tidak menormalkan ulang |
+| `LabPatientResultContentReader` | **Baru** | `…/Services/LabPatientResultContentReader.cs` | Merakit isi dokumen per order dari hasil **dirilis** PK/Mikrobiologi — adapter atas `LabMedicalRecordDocumentSource` dan proyeksi formulir hasil (`CAP-P34-03`), satu kueri per order (tanpa N+1) |
+| `LabPatientResultPdfRenderer` | **Baru** | `…/Services/LabPatientResultPdfRenderer.cs` | Templat lembar hasil pasien (`LAB-EVD-005`, `CAP-P34-04`) dengan `QuestPDF` + QR `QRCoder`; *Preview* bertanda air *BELUM FINAL — bukan untuk pasien* tanpa QR; `LockForEditing` = pola `EncryptPdf` Payroll (`CAP-P34-02`): kunci pemilik acak, `AllowContentExtraction/Annotation/Assembly/FillingForms = false`, `AllowPrinting = true`; sandi pembuka hanya bagi salinan WhatsApp |
+| `LabPatientResultFileStore` | **Baru** | `…/Services/LabPatientResultFileStore.cs` | Pola `RadOrderImageService.TryResolvePrivateRoot` (`CAP-P34-11`): menolak folder privat di dalam folder publik; jalur relatif `lab-patient-results/{yyyy}/{MM}/{guid}.pdf`; SHA-256 dan ukuran |
+| `LabPatientResultDocumentService` | **Baru** | `…/Services/LabPatientResultDocumentService.cs` | Terbit (membuka transaksi), ringkasan, berkas, persiapan dan berkas WhatsApp, catat kirim (sisipan), keputusan persetujuan (sisipan). Seluruh tindakan memeriksa ulang gerbang |
+| `LabPatientDeliverySettingService` | **Baru** | `…/Services/LabPatientDeliverySettingService.cs` | Aktivasi (sisipan peristiwa), riwayat aktivasi, daftar sensitif (tambah/cabut) |
+| `LabPatientResultController` | **Baru** | `…/Controllers/LabPatientResultController.cs` | Tujuh endpoint (`LAB-API-v1` `r51` 46.2). Galat: `KeyNotFoundException` → `404`; `LabPatientResultConflictException` → `409` dengan `code`; `LabPatientResultValidationException` → `422` |
+| `LabPatientDeliverySettingController` | **Baru** | `…/Controllers/LabPatientDeliverySettingController.cs` | Lima endpoint (46.3) |
+| `LabPatientResultDtos` | **Baru** | `…/DTOs/LabPatientResultDtos.cs` | DTO 46.2–46.3 |
+| `LabMonitoringDtos` | **Diperbarui** | `…/DTOs/LabMonitoringDtos.cs` | `LabMonitoringItemResponse` + `PatientResultSentCount`, `PatientResultNeedsResend`, `PatientDeliveryAvailable`, `PatientDeliveryBlockReasonCode`, `PatientDeliveryBlockReason` |
+| `LabMonitoringService` | **Diperbarui** | `…/Services/LabMonitoringService.cs` | Ruas baru diproyeksikan **di dalam proyeksi yang sama** (pelajaran `BE-LAB-33`, bagian 13.1) |
+| `LabOrderService` | **Diperbarui** | `…/Services/LabOrderService.cs` | `CompleteAsync` memanggil `TryIssueFirstVersionAsync` sesudah commit |
+| `LabPatientResultPermissionSeeder` | **Baru** | `…/Seeders/LabPatientResultPermissionSeeder.cs` | Sekali jalan: salin kebijakan aktif `LabOrder : Hold` ke `LabPatientResult : Send` dan `LabPatientResult : Print` (34.10 no. 8) — pola `LabOrderReschedulePermissionSeeder` |
+| `Program.cs` | **Diperbarui** | `Program.cs` | Daftar DI layanan baru; `RunStartupSeederAsync("LabPatientResultPermissionSeeder", …)` sesudah `AccessMenuSeeder` |
+| Konfigurasi | **Diperbarui** | `appsettings.json` | `LabPatientResult:VerificationBaseUrl` (kosong bawaan — 34.10 no. 12); `FileStorage:PrivateRootPath` **sudah ada** |
+
+**Isi `LabPatientDeliveryGate.Evaluate` — urutan dan pesan.** Urutan ini juga urutan penjaga pada setiap tindakan
+penyerahan, supaya penanda dan penolakan selalu memberi alasan yang sama (`INV-73`).
+
+| Urutan | Syarat | `BlockReasonCode` | Pesan bagi pengguna | Dasar |
+|---:|---|---|---|---|
+| 1 | Disiplin order Patologi Anatomi, **atau kosong** (`LabOrder.Discipline` nullable — pesanan lama) | `DisciplineNotSupported` | *Penyerahan hasil Patologi Anatomi belum tersedia.* / *Disiplin order ini belum ditetapkan; hasil tidak dapat diserahkan.* | `LAB-DEC-288`; fail-closed |
+| 2 | Order bukan `Completed` | `OrderNotCompleted` | *Hasil baru dapat diserahkan sesudah seluruh pemeriksaan dirilis dan order berstatus Selesai.* | `INV-71` |
+| 3 | Order *Selesai* tetapi versi berlaku belum ada (terbit gagal) | `DocumentNotReady` | *Dokumen hasil sedang disiapkan. Coba lagi beberapa saat.* | 34.1 |
+| 4 | Disiplin belum diaktifkan | `DeliveryNotActivated` | *Penyerahan hasil ke pasien belum diaktifkan untuk {Patologi Klinik/Mikrobiologi}.* | `LAB-DEC-295` |
+| 5 | Order memuat pemeriksaan tak-batal yang `ProcedureId`-nya ada di daftar sensitif **dan** keputusan terbaru versi berlaku bukan *Disetujui* | `SensitiveApprovalPending` / `SensitiveApprovalRejected` | *Menunggu persetujuan penyerahan hasil sensitif.* / *Penyerahan hasil sensitif ditolak: {alasan}.* | `INV-73`, `INV-74` |
+
+Daftar sensitif dibaca **saat dinilai**, tidak dibekukan pada versi: pemeriksaan yang ditandai sensitif sesudah versi
+terbit tetap menahan penyerahan berikutnya (fail-closed).
+
+**Penjaga tambahan khusus kirim WhatsApp** (bukan bagian gerbang, sebab cetak/unduh tidak memerlukannya):
+
+| Urutan | Syarat | Kode | Pesan | Dasar |
+|---:|---|---|---|---|
+| 6 | Nomor WhatsApp data induk kosong | `PatientPhoneMissing` | *Nomor WhatsApp pasien belum tercatat — perbarui di data pasien.* | `INV-77` |
+| 7 | Nomor gagal dinormalkan | `PatientPhoneInvalid` | *Nomor WhatsApp pasien tidak valid — perbarui di data pasien.* | `LAB-DEC-292` |
+| 8 | Tanggal lahir kosong | `PatientBirthDateMissing` | *Tanggal lahir pasien belum tercatat — perbarui di data pasien.* | `INV-78` |
+
+**Contoh.** `LAB-RSMMC-900040`: PK aktif, tanpa pemeriksaan sensitif, versi 1 berlaku → `CanDeliver = true`. Seandainya
+order itu memuat *Anti-HIV* yang ditandai sensitif dan belum disetujui → `CanDeliver = false`, `SensitiveApprovalPending`.
+
+### 34.5 Arsitektur folder
+
+```text
+NewQuilvianSystemBackend/
+├── Areas/HealthServices/LaboratoryManagement/
+│   ├── Controllers/
+│   │   ├── LabPatientResultController.cs                 # Baru — 7 endpoint
+│   │   └── LabPatientDeliverySettingController.cs        # Baru — 5 endpoint
+│   ├── DTOs/
+│   │   ├── LabPatientResultDtos.cs                       # Baru
+│   │   └── LabMonitoringDtos.cs                          # Diperbarui — 5 ruas baris
+│   ├── Enums/
+│   │   └── LabPatientResultEnums.cs                      # Baru — 5 enum
+│   ├── Models/
+│   │   ├── LabPatientResultDocument.cs                   # Baru
+│   │   ├── LabPatientResultVersion.cs                    # Baru
+│   │   ├── LabPatientResultApproval.cs                   # Baru
+│   │   ├── LabPatientResultDelivery.cs                   # Baru
+│   │   ├── LabPatientDeliveryActivation.cs               # Baru
+│   │   └── LabSensitiveProcedure.cs                      # Baru
+│   ├── Seeders/
+│   │   └── LabPatientResultPermissionSeeder.cs           # Baru
+│   └── Services/
+│       ├── LabPatientDeliveryGate.cs                     # Baru
+│       ├── LabWhatsAppNumberNormalizer.cs                # Baru
+│       ├── LabPatientResultContentReader.cs              # Baru
+│       ├── LabPatientResultPdfRenderer.cs                # Baru
+│       ├── LabPatientResultFileStore.cs                  # Baru
+│       ├── LabPatientResultDocumentService.cs            # Baru
+│       ├── LabPatientDeliverySettingService.cs           # Baru
+│       ├── LabOrderService.cs                            # Diperbarui — CompleteAsync
+│       └── LabMonitoringService.cs                       # Diperbarui — proyeksi baris
+├── Repositories/
+│   ├── ApplicationDbContext.cs                           # Diperbarui — 6 DbSet
+│   └── Configurations/HealthServices/LaboratoryManagement/
+│       ├── LabPatientResultDocumentConfiguration.cs      # Baru
+│       ├── LabPatientResultVersionConfiguration.cs       # Baru
+│       ├── LabPatientResultApprovalConfiguration.cs      # Baru
+│       ├── LabPatientResultDeliveryConfiguration.cs      # Baru
+│       ├── LabPatientDeliveryActivationConfiguration.cs  # Baru
+│       └── LabSensitiveProcedureConfiguration.cs         # Baru
+├── Migrations/
+│   └── <timestamp>_AddLabPatientResultDelivery.cs        # Baru (+ Designer, snapshot)
+├── appsettings.json                                      # Diperbarui — LabPatientResult:VerificationBaseUrl
+└── Program.cs                                            # Diperbarui — DI + satu baris seeder
+```
+
+**Utang teknis yang dicatat, tidak dirapikan:** `TryResolvePrivateRoot` kini akan berada di **empat** salinan (Pasien,
+Rujukan, Radiologi, Lab) — layanan bersama milik platform (`LAB-COORD-019`). `EncryptPdf` Payroll `private static` —
+disalin, tidak diangkat ke berkas Payroll.
+
+### 34.6 Status model dan dampak migration
+
+| Model | Status | Yang berubah | Dampak migration |
+|---|---|---|---|
+| `LabPatientResultDocument` | **Baru** | Seluruh kolom (data dictionary 25.1) | `CreateTable`; FK `LabOrderId` `Restrict`; index unik tersaring `(LabOrderId) WHERE "IsDelete" = false` |
+| `LabPatientResultVersion` | **Baru** | Seluruh kolom (25.2) | `CreateTable`; FK `DocumentId` `Restrict`; unik tersaring `(DocumentId, VersionNumber)`; unik tersaring `(VerificationToken)` |
+| `LabPatientResultApproval` | **Baru** | Seluruh kolom (25.3) | `CreateTable`; FK `VersionId` `Restrict`, `DecidedByUserId` → `AspNetUsers` `Restrict`; index `(VersionId, DecidedAt)` |
+| `LabPatientResultDelivery` | **Baru** | Seluruh kolom (25.4) | `CreateTable`; FK `DocumentId`, `VersionId` `Restrict`, `RecordedByUserId` → `AspNetUsers` `Restrict`; index `(DocumentId, Outcome)`; unik tersaring `(ClientRequestId)` |
+| `LabPatientDeliveryActivation` | **Baru** | Seluruh kolom (25.5) | `CreateTable`; FK `ChangedByUserId` → `AspNetUsers` `Restrict`; index `(Discipline, ChangedAt)` |
+| `LabSensitiveProcedure` | **Baru** | Seluruh kolom (25.6) | `CreateTable`; FK `ProcedureId` → `MstProcedure` `Restrict`; unik tersaring `(ProcedureId) WHERE "IsDelete" = false` |
+| `LabOrder`, `LabExamination`, `LabDisciplineSetting`, `MstPatient`, `MstProcedure` | `Sudah ada` | **Nol** | Nol |
+
+**Enum baru** (`LabPatientResultEnums.cs`), seluruhnya tanpa nilai bawaan — wajib diisi:
+
+| Enum | Nilai |
+|---|---|
+| `LabPatientResultVersionStatus` | `Current = 1`, `Superseded = 2` |
+| `LabPatientResultApprovalDecision` | `Approved = 1`, `Rejected = 2` |
+| `LabPatientResultDeliveryChannel` | `WhatsAppManual = 1` — kanal lain menambah nilai, bukan kolom (bagian 13.4) |
+| `LabPatientResultDeliveryOutcome` | `Sent = 1`, `Failed = 2` — `Pending`/`Delivered` hanya bersama gerbang otomatis kelak (`LAB-DEC-283`, `298`) |
+| `LabPatientResultDeliveryFailureReason` | `NotRegisteredOnWhatsApp = 1`, `PatientRefused = 2`, `Other = 3` |
+
+**Peringatan FK pelaku (bagian 13.7, `BE-EXT-05`) tetap berlaku.** `DecidedByUserId`, `RecordedByUserId`, dan
+`ChangedByUserId` **wajib** dan selalu orang — tidak ada tindakan sistem pada ketiga tabel itu. Terbit versi adalah
+tindakan sistem dan tidak menulis kolom pelaku.
+
+### 34.7 Rencana migration dan urutan rilis
+
+**Migration tunggal `AddLabPatientResultDelivery`**, dibangkitkan di atas snapshot terkini; enam `CreateTable` beserta
+FK dan index. **Nol pengisian data lama** — order yang sudah *Selesai* memperoleh versi 1 saat pertama dibuka (34.1).
+Diterapkan ke devYoga lewat skrip per migration **hanya atas instruksi pemilik**.
+
+| Rilis | Isi | Tanpa henti layanan? | Mundur |
+|---:|---|:---:|---|
+| 1 | Migration | **Ya** — hanya tabel baru | `Down`: hapus keenam tabel — **seluruh versi, persetujuan, catatan kirim, dan jejak aktivasi hilang**; lakukan hanya sebelum aktivasi. Berkas di penyimpanan privat **tidak** ikut terhapus — hapus manual bila perlu |
+| 2 | Deploy kode + konfigurasi `FileStorage:PrivateRootPath` (sudah ada) | Ya | Kode sebelumnya; tabel tetap ada dan tidak dibaca |
+| 3 | Seeder izin berjalan saat startup | Ya | Cabut kebijakan lewat Role Access |
+| 4 | **Langkah rilis:** admin memberi `LabPatientDeliverySetting : Read/Update` kepada *Kepala Instalasi Laboratorium* — baca set jabatan lebih dulu; POST menimpa seluruh set | — | Cabut kebijakan |
+| 5 | **Aktivasi (bukan rilis teknis):** sesudah nota `LAB-OPEN-057` dijawab — Kepala Instalasi mengisi daftar sensitif, menunjuk penyetuju (`LabPatientResult : Approve` lewat Role Access), mengisi `VerificationBaseUrl`, lalu mengaktifkan per disiplin | — | Menonaktifkan disiplin |
+
+### 34.8 Rencana data master awal
+
+| Data | Isi minimum | Sumber |
+|---|---|---|
+| Aktivasi | **Nol baris** — tanpa baris berarti nonaktif; itu memang keadaan awal yang benar | `LAB-DEC-295` |
+| Daftar pemeriksaan sensitif | **Ditetapkan Kepala Instalasi** (`LAB-OPEN-048`) — boleh kosong, tetapi aktivasi mewajibkan penegasan `sensitiveListConfirmed` | `LAB-DEC-294` |
+| Kebijakan `LabPatientResult : Send/Print` | Setiap jabatan pemegang `LabOrder : Hold` — di devYoga: *Analis Laboratorium* | Seeder (34.4) |
+| Kebijakan `LabPatientResult : Approve` | Ditunjuk Kepala Instalasi — **tidak** diberikan otomatis | `LAB-DEC-182`, `297` |
+| Kebijakan `LabPatientDeliverySetting : Read/Update` | *Kepala Instalasi Laboratorium* | Langkah rilis 4 |
+| Konfigurasi `LabPatientResult:VerificationBaseUrl` | Alamat dasar halaman verifikasi kelak — pemilik platform | 34.10 no. 12 |
+| Data uji | Order PK *Selesai* berpasien dengan nomor `+62…` dan `08…`; pasien tanpa nomor; order bersensitif; order Mikrobiologi `Sementara`; order PA | Tahap uji, **izin tulis tersendiri** |
+
+### 34.9 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Kolom `SentToPatientCount` pada `LabOrder` | Bagian 13.1 — angka turunan dari catatan kirim (`INV-76`) |
+| Tabel `LabResultDelivery` di luar dokumen (rancangan bagian 13) | Catatan wajib menunjuk versi; tempatnya di dalam `AGG-LAB-04` (A10.16) |
+| Status `Pending`/`Delivered`, antrean versi koreksi | `LAB-DEC-283`, `298` |
+| Kolom aktivasi pada `LabDisciplineSetting` | `PUT lab-discipline-settings/{discipline}` menimpa baris utuh dengan `LabDisciplineSetting : Update`; aktivasi wajib berizin tersendiri dan berjejak (`LAB-DEC-296`) — usulan 34.10 no. 2 |
+| Penanda sensitif pada `MstProcedure` | Milik `BC-MD`; Lab tidak menulis data induk modul lain |
+| Membekukan *memuat sensitif* pada versi | Daftar dibaca saat dinilai — fail-closed (34.4) |
+| Menyimpan salinan WhatsApp bersandi | `LAB-DEC-290` |
+| Menyimpan PDF *Preview* | Bukan versi (`LAB-DEC-287`) |
+| Endpoint verifikasi QR tanpa login | `S17-2`, `LAB-COORD-015`, `LAB-DEC-291` |
+| Isian nomor tujuan lain, batas jumlah kirim | `LAB-DEC-282`, `281` |
+| Pendaftaran dokumen pasien ke rekam medis | A10.3 — dokumen RM per rilis sudah ada |
+| Pembangkit PDF per rilis pemeriksaan | Satu dokumen per order (`LAB-DEC-067`) |
+| Job latar penerbitan versi | Terbit sesudah *Selesai* + pemulihan saat diminta cukup (34.1); nol infrastruktur antrean di Lab |
+| Endpoint ubah/hapus catatan kirim atau persetujuan | `INV-74`, `INV-75` |
+
+### 34.10 Keputusan yang diminta pada persetujuan kontrak
+
+> **✅ Kedua belas butir disetujui 2026-11-27** oleh Yoga Aji Pratama selaku pemilik modul, bersama `LAB-API-v1` `r51`,
+> `LAB-PERM-v1` revision 19, `LAB-VAL-v1` `r23`, `LAB-STATE-v1` `r13`, dan butir frontend F-1 (a)/F-2 (a), lewat pilihan
+> *"Setujui semua (Recommended)"*. Yang disetujui adalah **kolom "Usulan rancangan"** di bawah.
+
+| No | Hal | Usulan rancangan | Bila tidak disetujui |
+|---:|---|---|---|
+| 1 | **Saat terbit versi 1** (`ARCH-GAP-LAB-20`) | Sesudah `complete` berhasil commit (kegagalan tidak memengaruhi `complete`) **dan** pemulihan saat dokumen pertama kali dibaca; order lama memperoleh versi 1 saat dibuka, tanpa pengisian data | Di dalam transaksi `complete` — kegagalan PDF menggagalkan penyelesaian order, bertentangan `LAB-DEC-183` butir 5 |
+| 2 | **Tempat aktivasi** (`ARCH-GAP-LAB-21`) | Tabel peristiwa `LabPatientDeliveryActivation` (baris terbaru = keadaan kini) | Kolom pada `LabDisciplineSetting` + tabel jejak — setelan disiplin harus dipecah izinnya |
+| 3 | **Kewenangan daftar sensitif** (`ARCH-GAP-LAB-21`) | Sama dengan aktivasi: `LabPatientDeliverySetting : Update` | Aksi tersendiri — satu izin lagi untuk Kepala Instalasi |
+| 4 | **Klik ganda *Terkirim*** (`ARCH-GAP-LAB-22`) | `clientRequestId` (GUID dari layar) **wajib**; kiriman ulang dengan id sama → `200` berisi catatan yang sama, nol baris baru (`VAL-172`) | Tanpa kunci — dua klik menghasilkan dua catatan dan angka ganda |
+| 5 | **Cetak dan unduh** (`ARCH-GAP-LAB-23`) | **Satu** aksi `LabPatientResult : Print` untuk keduanya (`purpose=print|download`); dicatat lewat pencatat teknis pola `LabReportOutputLogger` — pelaku, order, versi, tujuan | Dua aksi terpisah, atau tabel jejak akses tersendiri |
+| 6 | **Penyimpanan berkas** (`ARCH-GAP-LAB-24`) | Pola per area Radiologi di `FileStorage:PrivateRootPath/lab-patient-results/…` + SHA-256; layanan bersama tetap `LAB-COORD-019` | Menunggu layanan bersama platform — `BE-LAB-41` tertahan implementasinya |
+| 7 | **Nomor dokumen** (`ARCH-GAP-LAB-25`) | `{nomor cetak}-V{n}` (mis. `PK-26-000123-V1`); bila nomor cetak kosong → `{OrderNumber}-V{n}` | Penomoran tersendiri per tahun — satu layanan nomor lagi |
+| 8 | **Pemberian bawaan** | Seeder sekali jalan: pemegang `LabOrder : Hold` memperoleh `Send` dan `Print`; `Approve` **tidak** diberikan otomatis; `LabPatientDeliverySetting` lewat langkah rilis | Seluruhnya lewat Role Access manual |
+| 9 | **Teks pesan WhatsApp** | Tetap di backend, **tanpa nama pasien dan tanpa hasil**: *"Yth. Pasien, berikut hasil pemeriksaan Laboratorium {nama rumah sakit} nomor {nomor dokumen}. Berkas dilindungi sandi: tanggal lahir pasien 8 angka (HHBBTTTT)."* | Menyebut nama pasien — terbaca bila nomor ternyata milik orang lain |
+| 10 | **Nomor WhatsApp pada ringkasan** | Ringkasan (`LabExamination : Read`) menampilkan nomor **tersamar** `6281****7890`; nomor utuh hanya pada persiapan WhatsApp (`LabPatientResult : Send`) dan catatan kirim | Nomor utuh bagi setiap pembaca hasil |
+| 11 | **Persetujuan sesudah *Disetujui*** | Versi yang sudah disetujui tidak dapat ditolak lagi (`VAL-177`); penolakan dapat disusul persetujuan (`LAB-DEC-297`) | Penyetuju dapat mencabut persetujuan — butuh status ketiga |
+| 12 | **Isi QR** | URL `{VerificationBaseUrl}/{token}`; **aktivasi ditolak** selama `VerificationBaseUrl` kosong (`VAL-178`) — supaya QR yang beredar tidak pernah berganti alamat | QR berisi token saja — halaman kelak tidak dapat dibuka dari pemindai biasa |
+
+### 34.11 Keamanan, privasi, dan pencatatan
+
+- **Izin ditegakkan di server**; gerbang dihitung **tanpa** melihat izin dan tidak pernah menggantikan pemeriksaan izin.
+- **Data sensitif:** nomor WhatsApp, tanggal lahir, isi hasil, alasan penolakan/gagal. Tidak satu pun masuk log;
+  `InfoAsync` memuat pelaku, nomor order, versi, kode hasil saja — isi di **teks pesan**, bukan payload
+  (`LoggerService` mengabaikan payload). Contoh: *"Pengiriman hasil LAB-RSMMC-900040 versi 1 dicatat Terkirim oleh
+  pengguna {UserId}."*
+- **Berkas** dilayani hanya lewat endpoint terautentikasi; respons `Cache-Control: no-store`; nama berkas tanpa nama
+  pasien (`PK-26-000123-V1.pdf`).
+- **Salinan WhatsApp:** sandi pembuka tidak dikirim ke layar maupun log; berkas temporer enkripsi di `Path.GetTempPath()`
+  dihapus di `finally` (pola Payroll).
+- **Token** 32 byte `RandomNumberGenerator`, base64url; tidak pernah dicatat; tidak pernah diturunkan dari data lain.
+- **Kiosk dan pengguna tanpa login:** nol endpoint.
+
+### 34.12 Strategi uji
+
+| Lapis | Yang diuji |
+|---|---|
+| Unit | `LabPatientDeliveryGate` (lima kode dan urutannya); `LabWhatsAppNumberNormalizer` (tabel `LAB-DEC-292`); nomor dokumen; teks pesan |
+| Harness (salinan scratchpad, SQLite) | Terbit idempoten (dua panggilan → satu versi); `complete` tetap berhasil bila PDF gagal; catat kirim + `clientRequestId` ganda; persetujuan oleh perilis ditolak; aktivasi tanpa penegasan daftar ditolak; angka dan *Perlu kirim ulang* dari catatan. **Ingat:** harness SQLite mencabut indeks unik tersaring — uji bentrok wajib menegakkan kunci unik sendiri |
+| Provider-real (PostgreSQL portabel) | Index unik tersaring dan FK `Restrict` |
+| HTTP devYoga (izin pemilik) | `403` tanpa izin; gerbang tertutup sebelum aktivasi; PDF terbuka tanpa sandi (cetak) dan butuh sandi (WhatsApp); berkas tidak dapat diedit |
+
+### 34.13 Traceability bagian 34
+
+| Rancangan | Keputusan | Arsitektur domain | Kontrak | AC |
+|---|---|---|---|---|
+| `LabPatientResultDocument`/`Version`, terbit | `LAB-DEC-284`, `289` | `LAB-DC-071`..`074`, `INV-70`..`72` | `r51` 46.2; `LAB-STATE-v1` `r13` | `AC-366` |
+| Gerbang satu rumus | `LAB-DEC-139`, `287`, `288`, `293`..`297` | `LAB-DC-077`, `INV-73` | `LAB-VAL-v1` `r23` | `AC-357`, `AC-365`, `AC-370`, `AC-373` |
+| *Preview* | `LAB-DEC-287` | `LAB-DC-082` | `r51` 46.2 | `AC-358` |
+| Salinan WhatsApp, sandi | `LAB-DEC-279`, `290` | `LAB-DC-081`, `INV-78` | `r51` 46.2 | `AC-367` |
+| Nomor tujuan | `LAB-DEC-282`, `292` | `LAB-DC-083`, `INV-77` | `r23` | `AC-359`, `AC-362`, `AC-369` |
+| Catatan kirim, angka, *Perlu kirim ulang* | `LAB-DEC-066`, `281`, `283`, `285`, `298` | `LAB-DC-076`, `078`, `INV-75`, `76` | `r51` 46.2, 46.4 | `AC-360`, `AC-361`, `AC-363`, `AC-376` |
+| Persetujuan kedua | `LAB-DEC-182`, `294`, `297` | `LAB-DC-075`, `INV-74` | `r51`; `r23` | `AC-373`..`AC-375` |
+| Aktivasi, daftar sensitif | `LAB-DEC-294`..`296` | `LAB-DC-079`, `080`, `INV-80` | `r51` 46.3 | `AC-370`..`AC-372` |
+| Izin | `LAB-DEC-286`, `296`, `297` | A10.9 | `LAB-PERM-v1` rev 19 | `AC-364`, `AC-371` |
+| Token QR | `LAB-DEC-140`, `184`, `291` | `LAB-DC-073`, `INV-79` | `r51` | `AC-368` |
+| Arsip privat, jejak cetak/unduh | `LAB-DEC-185` | `LAB-DC-074`, `INV-81` | `r51`; rev 19 | — |
+
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 27 | 2026-11-27 | **Persetujuan dibukukan:** keempat kontrak bagian 34 dan kedua belas butir 34.10 `approved` oleh Yoga Aji Pratama — terbit versi 1 sesudah `complete` + pemulihan saat dibaca, tabel peristiwa aktivasi, daftar sensitif berizin aktivasi, `clientRequestId`, satu aksi `Print` + log, penyimpanan pola Radiologi, nomor `{nomor cetak}-V{n}`, seeder `Send`/`Print` dari `Hold`, teks pesan tanpa nama pasien, nomor tersamar, persetujuan final sesudah *Disetujui*, aktivasi menuntut `VerificationBaseUrl` | `draft` |
+| 26 | 2026-11-27 | **Bagian 34 — rancangan `S17-1` penyerahan hasil kepada pasien (`BE-LAB-41`)**, dari `LAB-DA-001` rev 13 A10 dan `LAB-RCG-001` rev 16 0J; **menggantikan bagian 13** dengan mempertahankan intinya. Aggregate baru `AGG-LAB-04` dalam empat tabel (`LabPatientResultDocument`, `…Version`, `…Approval`, `…Delivery`) + dua tabel setelan (`LabPatientDeliveryActivation`, `LabSensitiveProcedure`); nol kolom pada tabel lama. Pembangkit PDF (`QuestPDF` + pola kunci Payroll), arsip privat pola Radiologi, gerbang satu rumus `LabPatientDeliveryGate` (lima kode), normalisasi nomor WhatsApp di backend; dua belas endpoint dalam dua controller; lima ruas baris daftar pantau; lima aksi izin + seeder salin dari `LabOrder : Hold`; satu migration tanpa pengisian data. Versi 1 terbit sesudah `complete` commit + pemulihan saat dibaca. Dua belas butir 34.10 menunggu persetujuan bersama `LAB-API-v1` `r51`, `LAB-PERM-v1` rev 19, `LAB-VAL-v1` `r23`, `LAB-STATE-v1` `r13`. BE `693941d5`, FE `48680f6de` | `draft` |
 | 25 | 2026-11-25 | **Persetujuan dibukukan:** keempat kontrak bagian 33 dan keenam butir 33.10 `approved` oleh Yoga Aji Pratama — tabel riwayat `LabOrderReschedule`, `version` opsional (`VAL-165`), endpoint riwayat tersendiri, log tanpa alasan/identitas pasien, isi awal bukan peristiwa, `includeOverdue` | `draft` |
 | 24 | 2026-11-25 | **Bagian 33 — rancangan `S20-1` penjadwalan ulang pemeriksaan**, dari `LAB-DA-001` rev 12 A9. Satu kolom `LabOrder.PlannedDate` (`date`, wajib, isi awal dari waktu diminta WIB); satu tabel baru `LabOrderReschedule`; satu aturan kelayakan bersama `LabRescheduleEligibility`; `PUT {id}/reschedule` dan `GET {id}/reschedules`; perluasan pembuatan pesanan, detail, daftar pantau (`PlannedDate`, `includeOverdue`), dan kiosk; `LabOrder : Reschedule` + seeder salin dari `Hold`; satu migration. Enam butir 33.10 menunggu persetujuan bersama `LAB-API-v1` `r50`, `LAB-PERM-v1` rev 18, `LAB-VAL-v1` `r22`, `LAB-STATE-v1` `r12` | `draft` |
 | 23 | 2026-10-20 | **Persetujuan dibukukan:** keempat kontrak bagian 32 dan keenam butir 32.10 `approved` oleh Yoga Aji Pratama. Butir 1 — pembukaan Laporan Pembatalan **dicatat** — menutup `ARCH-GAP-LAB-14` | `draft` |
