@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using System.Text.Json;
@@ -471,6 +472,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                             .Where(u => u.Id == x.RequestedByUserId)
                             .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
                             .FirstOrDefault(),
+                    PlannedDate = x.PlannedDate,
                     CompletedAt = x.CompletedAt,
                     StatusBeforeHold = x.StatusBeforeHold != null ? x.StatusBeforeHold.ToString() : null,
                     Version = x.Version,
@@ -920,6 +922,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             if (request.ProcedureId == Guid.Empty)
                 throw new ArgumentException("ProcedureId wajib diisi.");
 
+            // BE-LAB-101 / VAL-166: diperiksa sebelum apa pun dibaca atau ditulis.
+            var plannedDate = ResolvePlannedDate(request.PlannedDate);
+
             // LAB-DEC-025: hanya tiga disiplin yang ada. Angka di luar ketiganya ditolak di
             // sini, bukan disimpan diam-diam sebagai nilai enum yang tidak berarti apa pun.
             if (request.Discipline.HasValue && !Enum.IsDefined(request.Discipline.Value))
@@ -1008,6 +1013,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 Discipline = request.Discipline ?? procedure.LabDiscipline,
                 OrderStatus = LabOrderStatus.Requested,
                 RequestedAt = now,
+                PlannedDate = plannedDate,
                 RequestedByUserId = actorUserId,
                 InstructingDoctorId = instruksi.InstructingDoctorId,
                 InstructionVerificationStatus = instruksi.Status,
@@ -1205,6 +1211,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             if (coverage != null && request.InpEpisodeId.HasValue && request.InpEpisodeId.Value != Guid.Empty)
                 throw new ArgumentException("Pesanan paket MCU tidak boleh menumpang perawatan rawat inap.");
 
+            // BE-LAB-101 / VAL-166: satu tanggal rencana bagi setiap pesanan hasil pemecahan,
+            // diperiksa sebelum nomor dialokasikan maupun pesanan apa pun ditulis.
+            var plannedDate = ResolvePlannedDate(request.PlannedDate);
+
             var procedureIds = request.Examinations?
                 .Where(x => x != Guid.Empty)
                 .ToList() ?? new List<Guid>();
@@ -1324,6 +1334,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     Discipline = g.Key,
                     OrderStatus = LabOrderStatus.Requested,
                     RequestedAt = now,
+                    PlannedDate = plannedDate,
                     RequestedByUserId = actorUserId,
                     // BE-MCU-020: tanda paket dan dokter MCU sebagai pemberi instruksi (penerima
                     // nilai kritis). Verifikasi instruksi tetap NotRequired (bawaan).
@@ -2224,6 +2235,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 RequestedAt = entity.RequestedAt,
                 RequestedByUserId = entity.RequestedByUserId,
                 RequestedByName = requestedByName,
+                PlannedDate = entity.PlannedDate,
                 CompletedAt = entity.CompletedAt,
                 StatusBeforeHold = entity.StatusBeforeHold?.ToString(),
                 Version = entity.Version,
@@ -2235,6 +2247,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 InstructionVerifiedByUserId = entity.InstructionVerifiedByUserId,
                 IsCoveredByMcuPackage = entity.CoveringMcuOrderId != null
             };
+        }
+
+        /// <summary>
+        /// Pesan <c>VAL-166</c> (dan kelak <c>VAL-157</c>) — satu bunyi bagi setiap jalur yang
+        /// menetapkan tanggal rencana.
+        /// </summary>
+        internal const string PlannedDateBeforeTodayMessage = "Tanggal rencana tidak boleh sebelum hari ini.";
+
+        /// <summary>
+        /// Hari ini menurut tanggal operasional WIB (<c>LAB-DEC-263</c>), bukan tanggal UTC —
+        /// pukul 00.30 WIB masih tanggal UTC kemarin.
+        /// </summary>
+        internal static DateOnly TodayPlannedDate() =>
+            DateOnly.FromDateTime(AppDateTimeHelper.OperationalDate());
+
+        /// <summary>
+        /// Tanggal rencana pesanan yang lahir (<c>LAB-DEC-253</c>, <c>VAL-166</c>): kosong berarti
+        /// hari ini; tanggal ke depan dihormati apa adanya; tanggal sebelum hari ini ditolak
+        /// <c>422</c>. Tidak ada batas atas (<c>LAB-DEC-264</c>).
+        /// </summary>
+        private static DateOnly ResolvePlannedDate(DateOnly? requested)
+        {
+            var today = TodayPlannedDate();
+
+            if (requested.HasValue && requested.Value < today)
+                throw new LabOrderValidationException(PlannedDateBeforeTodayMessage);
+
+            return requested ?? today;
         }
     }
 

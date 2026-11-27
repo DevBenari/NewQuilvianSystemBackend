@@ -3,7 +3,7 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint | `PBJ-BP-001` revisi 2 · `perencanaan-permintaan` (`approved`, `PBJ-DEC-034`) |
-| Revisi roadmap | `1` · `draft` · 12 November 2026 |
+| Revisi roadmap | `2` · `draft` · 12 November 2026; rev 2 17 November 2026 |
 | Kontrak | set `1.0` (`approved`) |
 | SHA | BE `100c011d`, FE `763d665b` |
 | Hash masukan | `../blueprint-manifest.md` |
@@ -37,6 +37,7 @@ layar Playwright dengan aktor non-SuperAdmin; tangkapan layar tercatat pada lapo
 | Persetujuan berjenjang terkonfigurasi | `PBJ-DEC-007`, `019` | Arsitektur §8, §10 | `BE-PBJ-005` ✅ | `FE-PBJ-005` ✅ (`-17`) | `AT-PP-31`..`33` `PASS` dengan matriks **uji** dev ([BE-PBJ-008](../task/report/backend/BE-PBJ-008.md)); matriks SOP menunggu `PBJ-OQ-019`; layar: 4 langkah disetujui dari Antrean Persetujuan, `PBJ-VAL-091` ([FE-PBJ-005](../task/report/frontend/FE-PBJ-005.md)) |
 | Menu dan keterjangkauan layar | `PBJ-FE-001`, `PBJ-DEC-032` | FE §3 | — | semua task FE ✅ | `AT-PP-63` sebagian: 24 rute dan butir menu §3 terdaftar; butir tersembunyi tanpa izin (uji aktor Keuangan) ([FE-PBJ-001](../task/report/frontend/FE-PBJ-001.md)) |
 | Registry dan konformitas | `PBJ-OQ-002` → `PBJ-DEC-035` | Arsitektur §5 | `BE-PBJ-002` ✅ | — | `AT-PP-60` — QBE Strict `PASS` 53 berkas, 0 temuan (16 Nov 2026) |
+| Standar layar daftar: baris filter satu baris, saringan tanggal/periode, hero tanpa tombol | `PBJ-FE-004`, `PBJ-DEC-055`..`057` | API 1.4; VAL-094; FE §4.7 | `BE-PBJ-012` ✅ | `FE-PBJ-009` ✅ | `AT-PP-65` 13/13 `PASS` runtime ([BE-PBJ-012](../task/report/backend/BE-PBJ-012.md)); `AT-PP-66` 81/81 `PASS` uji layar ([FE-PBJ-009](../task/report/frontend/FE-PBJ-009.md)) — 17 Nov 2026 |
 | Build dan skema | — | Kamus data §8 | semua task BE | semua task FE ✅ | `AT-PP-61` BE `PASS`; `AT-PP-62` `PASS` ([BE-PBJ-011](../task/report/backend/BE-PBJ-011.md)); FE: `npm run lint:errors` dan `npm run build` `PASS` 16 Nov 2026 |
 
 ## 2. Keputusan → task
@@ -58,6 +59,8 @@ layar Playwright dengan aktor non-SuperAdmin; tangkapan layar tercatat pada lapo
 | `PBJ-DEC-028` | `BE-PBJ-011`, `FE-PBJ-008` |
 | `PBJ-DEC-032` | `FE-PBJ-001` |
 | `PBJ-DEC-033` | `BE-PBJ-002`, `003`, `007`, `009`, `010`, `011` |
+| `PBJ-DEC-055` | `BE-PBJ-012` |
+| `PBJ-FE-004`, `PBJ-DEC-056`, `057`, `058` | `FE-PBJ-009` |
 
 ## 3. Gap traceability
 

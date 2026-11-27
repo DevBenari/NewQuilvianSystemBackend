@@ -3,10 +3,10 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint | `PBJ-BP-001` revisi 2 · sub-modul `perencanaan-permintaan` (`approved`, `PBJ-DEC-034`) |
-| Revisi roadmap | `1` · status `draft` |
-| Tanggal | 12 November 2026 |
+| Revisi roadmap | `2` · status `draft`. Rev 2 menambah `FE-PBJ-009` (`PBJ-FE-004`) |
+| Tanggal | 12 November 2026; rev 2 17 November 2026 |
 | Kontrak | set `1.0` (`PBJ-PP-API`, `-PERM`, `-STATE`, `-VAL`); `03-frontend-architecture.md` |
-| Kewenangan UI | `PBJ-FE-001` (nama menu SOURCE, `approved`), `PBJ-DEC-032` (grup Pengaturan, `approved`), `PBJ-FE-002` (rupa: `DEV_DISCRETION`), `PBJ-FE-003` (invariant) |
+| Kewenangan UI | `PBJ-FE-001` (nama menu SOURCE, `approved`), `PBJ-DEC-032` (grup Pengaturan, `approved`), `PBJ-FE-002` (rupa: `DEV_DISCRETION`), `PBJ-FE-003` (invariant), `PBJ-FE-004` (standar layar daftar, `approved` 17 November 2026) |
 | SHA | FE `763d665b` (branch `sukmagpV2`), BE `100c011d` |
 | Repository target | `V2QuilvianSystemFrontendDev` |
 
@@ -29,8 +29,8 @@ respons nyata berbeda dari kontrak, kontrak yang direvisi, bukan frontend yang m
 
 ## Grafik Urutan Dependency
 
-Dua blok karena jumlah node (16 > 15). `FE-PBJ-001` dan `FE-PBJ-002` pada blok 2 adalah node yang sama dengan
-blok 1 (sambungan).
+Tiga blok karena jumlah node (17 > 15). `FE-PBJ-001` dan `FE-PBJ-002` pada blok 2, serta `FE-PBJ-005`, `007`, `008`
+pada blok 3, adalah node yang sama dengan blok sebelumnya (sambungan).
 
 ```text
 BE-PBJ-003 [BE] ✅ ─> FE-PBJ-001 ✅ ─────┐
@@ -56,10 +56,20 @@ BE-PBJ-009 [BE] ✅ ────────┴───┴─> FE-PBJ-006 ✅ �
                                                  BE-PBJ-011 [BE] ✅ ─┘
 ```
 
-`[BE]` = task backend pada `backend-roadmap.md`, cermin baca-saja. Status backend per 16 November 2026: `BE-PBJ-001`..`011`
+```text
+FE-PBJ-005 ✅ ──────────────┐
+                            │
+FE-PBJ-007 ✅ ──────────┐   │
+                        │   │
+FE-PBJ-008 ✅ ──────┐   │   │
+                    │   │   │
+BE-PBJ-012 [BE] ✅ ─┴───┴───┴─> FE-PBJ-009 ✅
+```
+
+`[BE]` = task backend pada `backend-roadmap.md`, cermin baca-saja. Status backend per 17 November 2026: `BE-PBJ-001`..`012`
 ✅. Gerbang registry `PBJ-OQ-002` sudah ditutup (`PBJ-DEC-035`).
 
-Jumlah pasangan prasyarat → task: **16**, sama dengan isi kolom `Dependency`.
+Jumlah pasangan prasyarat → task: **20**, sama dengan isi kolom `Dependency`.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
@@ -71,6 +81,7 @@ Jumlah pasangan prasyarat → task: **16**, sama dengan isi kolom `Dependency`.
 | 3 | `FE-PBJ-006`, `BE-PBJ-010` | `FE-PBJ-007` ✅ — 16 November 2026 |
 | 3 | `FE-PBJ-006`, `BE-PBJ-011` | `FE-PBJ-008` ✅ — 16 November 2026 |
 | 4 | `FE-PBJ-004`, `BE-PBJ-008` | `FE-PBJ-005` ✅ — 16 November 2026 |
+| 5 | `FE-PBJ-005`, `FE-PBJ-007`, `FE-PBJ-008`, `BE-PBJ-012` | `FE-PBJ-009` ✅ — 17 November 2026 |
 
 Gelombang dihitung dari prasyarat frontend. Prasyarat `[BE]` menahan mulai hingga task backend-nya ✅. Per
 16 November 2026 seluruh prasyarat `[BE]` frontend sudah ✅.
@@ -87,6 +98,7 @@ Gelombang dihitung dari prasyarat frontend. Prasyarat `[BE]` menahan mulai hingg
 | `FE-PBJ-006` | Rencana kebutuhan, revisi, banding versi | `-01`, `-02`, `-08` (bagian rencana) | API §Need Plan | — | `FE-PBJ-001`, `FE-PBJ-002`, `BE-PBJ-009` | ✅ 16 November 2026 ([laporan](../task/report/frontend/FE-PBJ-006.md)) |
 | `FE-PBJ-007` | Pagu dan revisinya | `-04`, `-05`, `-08` (bagian pagu) | API §Budget | — | `FE-PBJ-006`, `BE-PBJ-010` | ✅ 16 November 2026 ([laporan](../task/report/frontend/FE-PBJ-007.md)) |
 | `FE-PBJ-008` | Konsolidasi dan rencana paket | `-03`, `-06`, `-07` | API §Consolidation, §Package Plan | — | `FE-PBJ-006`, `BE-PBJ-011` | ✅ 16 November 2026 ([laporan](../task/report/frontend/FE-PBJ-008.md)) |
+| `FE-PBJ-009` | Baris filter standar satu baris dan hero tanpa tombol di semua layar daftar Pengadaan | `-02`, `-03`, `-05`, `-06`, `-09`, `-11`, `-13`..`-19` | API 1.4 "Saringan tanggal daftar"; `PBJ-FE-004`; FE §4.7 | `DataFilter`, `FilterDatePicker`, `FilterSelect`, `BaseButton`; rujukan `administrator/master-data/supplier` | `FE-PBJ-005`, `FE-PBJ-007`, `FE-PBJ-008`, `BE-PBJ-012` | ✅ 17 November 2026 ([laporan](../task/report/frontend/FE-PBJ-009.md)) |
 
 ## Kartu task
 
@@ -171,3 +183,15 @@ Ketentuan bersama untuk semua kartu:
 | Acceptance criteria | (1) Rincian unit asal tampil per barang. (2) `PBJ-VAL-050`/`051` terbaca. (3) Rencana paket yang dibuat dari konsolidasi memuat unit asal |
 | DoD | Kriteria + laporan |
 | **Status** | ✅ **SELESAI 16 November 2026.** Uji layar: konsolidasi → paket dengan unit asal, `PBJ-VAL-050`. `npm run lint:errors` PASS; `npm run build` PASS (24 rute); unit test 4749/4800 lulus, 51 gagal di modul lain (A/B identik dengan `HEAD`). Laporan: [laporan](../task/report/frontend/FE-PBJ-008.md) |
+
+### ✅ `FE-PBJ-009` — Standar baris filter dan hero
+
+| Aspek | Isi |
+| --- | --- |
+| Outcome | Semua layar daftar Pengadaan tampil seragam dengan modul lain: satu baris filter dan tombol aksi di filter, bukan di hero |
+| Jejak | `PBJ-FE-004`, `PBJ-DEC-056`, `PBJ-DEC-057`; `03-frontend-architecture.md` §4.7; API 1.4 |
+| Cakupan | Layar daftar PR, Mendesak, Riwayat, Menunggu Persetujuan, Antrean Verifikasi, Pemeriksaan Stock, Rencana Kebutuhan, Rencana Anggaran, Rencana Paket, Revisi Perencanaan, Katalog, Kategori & Sumber Dana, Antrean Persetujuan, Konsolidasi. Baris: Tanggal awal, Tanggal akhir, Periode, saringan relevan §4.7, Status, Pencarian, Jumlah baris, ↻. Tombol aksi di `actions` `DataFilter` varian `primary`. Halaman form/detail dokumen tidak diubah |
+| Acceptance criteria | `AT-PP-66`; saringan tanggal/periode mengubah permintaan ke server dan hasilnya; ↻ mengembalikan semua saringan; Jumlah baris mengubah ukuran halaman; pengecualian `PBJ-DEC-057` sesuai |
+| Verifikasi | Gerbang keputusan base component, lint, build, uji layar Playwright per layar pada lebar desktop |
+| DoD | Kriteria + laporan `task/report/frontend/FE-PBJ-009.md` |
+| **Status** | ✅ **SELESAI 17 November 2026.** Uji layar 81/81 `PASS` (15 layar × 1440/1920 px: satu baris, hero tanpa tombol, tombol primary; interaksi Periode, Jumlah baris, ↻, `period` `Wfl`). `npm run lint:errors` dan `npm run build` exit 0 (24 rute). Antrean Persetujuan ikut pola penuh (`PBJ-DEC-058`); Konsolidasi tetap pengecualian. Catatan: label terpotong di 1440 px. Laporan: [laporan](../task/report/frontend/FE-PBJ-009.md) |

@@ -2013,3 +2013,34 @@ Batas yang dijaga:
 1. Dashboard **tidak** menulis ke modul sumber dan tidak menyimpan salinan angka.
 2. Dashboard memakai ulang service radar milik modul sumber; aturan "STR seumur hidup tidak dihitung" tetap dimiliki `CredentialingManagement`.
 3. Hanya SPK/RKK yang dibaca langsung dari tabel karena belum ada radar; bila kelak `CredentialingManagement` menyediakan radar SPK/RKK, dashboard wajib beralih memakainya.
+
+## 28. Integrasi Amandemen `A52-B`: Pembuka Task Tertahan Penjadwalan & Kehadiran (Kontrak `v31`, approved 24 November 2026)
+
+Dasar: `HRD-DEC-249`, `HRD-DEC-251`, `HRD-DEC-252`, `HRD-DEC-256`. Seluruhnya **integrasi di dalam modul HR**; tidak ada integrasi lintas modul, antrean pesan, atau sistem luar baru. Billing dan klinis tidak tersentuh.
+
+### 28.1 `INT-HR-119` — Layanan Mandiri → Service Izin Pulang Cepat / Dinas Luar
+
+| Field | Isi |
+| --- | --- |
+| Arah | `EarlyLeavePermissionSelfServiceController` / `OfficialDutySelfServiceController` → `HumanResourceContextService` (identitas) → `EarlyLeavePermissionService` / `OfficialDutyRequestService` (aturan yang sama dengan layar HR) |
+| Mekanisme | Pemanggilan service sinkron di proses yang sama |
+| Hasil | Pengajuan ESS tersimpan pada tabel yang sama dan tampil di daftar HR; diputuskan lewat endpoint approve/reject yang ada (`HRD-DEC-256`) |
+| Transaksi | Satu `SaveChanges` per aksi |
+| Idempotensi | Klik ganda dicegah layar; izin ganda pada tanggal sama ditolak aturan yang ada; batal kedua kali `409` |
+| Kegagalan | Galat validasi → tidak ada yang tersimpan; lampiran yang terunggah tetapi tidak dipakai tetap di penyimpanan (perilaku `HrAttachmentStorage` yang ada) |
+
+### 28.2 `INT-HR-120` — Tutup Periode → Pengecualian Presensi
+
+| Field | Isi |
+| --- | --- |
+| Arah | `AttendancePeriodService.CloseAsync` → `HrdAttendanceDaily` (konversi `Absent`) dan `HrdAttendanceException` (penyelesaian pengecualian konversi) |
+| Transaksi | Satu transaksi `Serializable` bersama status periode; gagal → seluruhnya batal |
+| Hilir | Sinkronisasi payroll membaca hasil tutup seperti sebelumnya; tidak ada perubahan kontrak payroll |
+
+### 28.3 `INT-HR-121` — Daftar Penempatan Sementara → Cakupan Unit
+
+| Field | Isi |
+| --- | --- |
+| Arah | `TemporaryAssignmentQueryService` → `WfpOrganizationAssignment` (baca) + `HrdUnitScopeService.GetReadScopeAsync` |
+| Mekanisme | Baca saja; paginasi di basis data |
+| Kegagalan | Filter unit di luar cakupan → `403` (`VR-PK-27`) |

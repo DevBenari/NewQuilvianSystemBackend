@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Service
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.Services;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Services;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement
 {
@@ -25,6 +26,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement
             services.AddScoped<ProcurementItemCategoryService>();
             services.AddScoped<ProcurementFundSourceService>();
             services.AddScoped<ProcurementTypeService>();
+
+            // BE-PBJ-VD-002 — master konfigurasi vendor: jenis dokumen legalitas, dokumen wajib per kategori,
+            // kriteria penilaian (satu service per master, PBJ-DEC-037).
+            services.AddScoped<ProcurementVendorDocumentTypeService>();
+            services.AddScoped<ProcurementCategoryDocumentRequirementService>();
+            services.AddScoped<ProcurementEvaluationCriterionService>();
 
             // BE-PBJ-004 — lampiran. Penyedia akses per jenis dokumen (IProcurementDocumentAccessProvider)
             // didaftarkan task pemilik dokumennya; tanpa penyedia, lampiran jenis itu ditolak (fail-closed).
@@ -63,6 +70,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement
             // BE-PBJ-008 — verifikasi PR oleh Tim Pengadaan dan penerap status Wfl PBJ_PR.
             services.AddScoped<ProcurementPurchaseRequestVerificationService>();
             services.AddScoped<IProcurementWorkflowStatusApplier, PurchaseRequestWorkflowStatusApplier>();
+
+            // BE-PBJ-VD-003 — vendor: daftar, detail, kategori, riwayat (status dan keadaan dokumen dihitung).
+            services.AddScoped<ProcurementVendorProfileService>();
+
+            // BE-PBJ-VD-004 — dokumen legalitas vendor dan penyedia akses lampiran PBJ_VENDOR_DOCUMENT.
+            services.AddScoped<ProcurementVendorDocumentService>();
+            services.AddScoped<IProcurementDocumentAccessProvider, VendorDocumentAttachmentAccessProvider>();
+
+            // BE-PBJ-VD-005 — kelayakan vendor per kategori; kontrak bagi pemilihan-penyedia (PBJ-VD-INT §2).
+            services.AddScoped<ProcurementVendorEligibilityService>();
+
+            // BE-PBJ-VD-008 — penilaian vendor berkala dan penyedia akses lampiran PBJ_VENDOR_EVALUATION.
+            services.AddScoped<ProcurementVendorEvaluationService>();
+            services.AddScoped<IProcurementDocumentAccessProvider, VendorEvaluationAttachmentAccessProvider>();
+
+            // BE-PBJ-VD-007 — usulan blokir/buka blokir vendor: penyedia akses dan penerap status Wfl PBJ_VENDOR_STATUS.
+            // Penulis status blokir (SupplierProcurementStatusService) milik Administrator, didaftarkan di Program.cs.
+            services.AddScoped<ProcurementVendorStatusService>();
+            services.AddScoped<IProcurementDocumentAccessProvider, VendorStatusRequestAccessProvider>();
+            services.AddScoped<IProcurementWorkflowStatusApplier, VendorStatusRequestWorkflowStatusApplier>();
 
             return services;
         }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.DTOs;
 
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.DTOs;
 
@@ -9,6 +10,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.D
 
 public sealed class BudgetQuery
 {
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+    [MaxLength(20)] public string? CustomPeriod { get; set; }
     public int? FiscalYear { get; set; }
     public Guid? DepartmentId { get; set; }
     public Guid? ItemCategoryId { get; set; }
@@ -144,6 +148,7 @@ public sealed class BudgetOptionValue
 
 public sealed class BudgetFilterMetadataResponse
 {
+    public List<ProcurementPeriodOptionResponse> CustomPeriods { get; set; } = ProcurementPeriodOptionResponse.Defaults();
     public BudgetQuery DefaultFilter { get; set; } = new();
     public List<BudgetOptionValue> StatusOptions { get; set; } = new();
     public List<BudgetOptionValue> SortOptions { get; set; } = new();

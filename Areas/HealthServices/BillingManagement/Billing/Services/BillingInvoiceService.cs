@@ -681,7 +681,7 @@ public sealed class BillingInvoiceService
                 running += t.Amount;
                 var isSettled = (isFullyPaid && running >= totalPaid)
                     || running >= effectivePatientObligation
-                    || (effectivePatientObligation > 0 && Math.Abs(running - Math.Round(effectivePatientObligation, 0, MidpointRounding.AwayFromZero)) == 0);
+                    || (effectivePatientObligation > 0 && Math.Abs(running - BillingPaymentRounding.RoundUp(effectivePatientObligation)) == 0);
                 return new PaymentHistoryTenderResponse
                 {
                     Id = t.Id,
@@ -1367,9 +1367,10 @@ public sealed class BillingInvoiceService
         var roundingAdjustment = 0m;
         var effectivePayable = outstanding;
 
-        if (isCash && outstanding > 0m)
+        // BE-BKC-FIX-027: pembulatan ke atas berlaku untuk semua metode pembayaran, bukan hanya tunai.
+        if (outstanding > 0m)
         {
-            var rounded = Math.Round(outstanding, 0, MidpointRounding.AwayFromZero);
+            var rounded = BillingPaymentRounding.RoundUp(outstanding);
             roundingAdjustment = rounded - outstanding;
             effectivePayable = rounded;
         }
@@ -1389,9 +1390,10 @@ public sealed class BillingInvoiceService
             OutstandingAmount = outstanding,
             PaymentStatus = paymentStatus,
             InvoiceLifecycleStatus = invoice.Status,
-            IsCashRoundingApplied = isCash && roundingAdjustment != 0m,
-            Description = isCash && roundingAdjustment != 0m
-                ? $"Pembulatan tunai ke Rupiah penuh: {(roundingAdjustment > 0 ? "+" : "")}{roundingAdjustment:N2}"
+            // Nama properti dipertahankan demi kompatibilitas kontrak; maknanya kini "pembulatan diterapkan" (semua metode).
+            IsCashRoundingApplied = roundingAdjustment != 0m,
+            Description = roundingAdjustment != 0m
+                ? $"Pembulatan ke atas ke Rupiah penuh: {(roundingAdjustment > 0 ? "+" : "")}{roundingAdjustment:N2}"
                 : "Nominal pembayaran eksak."
         };
     }

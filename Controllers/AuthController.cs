@@ -8,8 +8,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Services;
 using QuilvianSystemBackend.Constants;
@@ -451,7 +450,9 @@ namespace QuilvianSystemBackend.Controllers
                     {
                         Auth = BuildAuthInfoResponse(user, kioskContext, queueDisplayContext, nurseViewContext, bedTabletContext),
                         Endpoints = new AuthEndpointResponse(),
-                        User = BuildUserResponse(user, roles, kioskContext, queueDisplayContext, nurseViewContext, bedTabletContext)
+                        User = await WithOrganizationNamesAsync(
+                            BuildUserResponse(user, roles, kioskContext, queueDisplayContext, nurseViewContext, bedTabletContext),
+                            user)
                     },
                     _languageService.GetMessage(MessageKeys.AuthLoginSuccess)
                 ));
@@ -659,7 +660,9 @@ namespace QuilvianSystemBackend.Controllers
                 {
                     Auth = BuildAuthInfoResponse(user, kioskContext, queueDisplayContext),
                     Endpoints = new AuthEndpointResponse(),
-                    User = BuildUserResponse(user, roles, kioskContext, queueDisplayContext)
+                    User = await WithOrganizationNamesAsync(
+                        BuildUserResponse(user, roles, kioskContext, queueDisplayContext),
+                        user)
                 },
                 "Login fingerprint berhasil."
             ));
@@ -771,7 +774,9 @@ namespace QuilvianSystemBackend.Controllers
             );
 
             return Ok(ApiResponse<UserLoginResponse>.Ok(
-                BuildUserResponse(user, roles, kioskContext, queueDisplayContext, nurseViewContext, bedTabletContext),
+                await WithOrganizationNamesAsync(
+                    BuildUserResponse(user, roles, kioskContext, queueDisplayContext, nurseViewContext, bedTabletContext),
+                    user),
                 "User profile berhasil diambil."
             ));
         }
@@ -950,7 +955,9 @@ namespace QuilvianSystemBackend.Controllers
                 {
                     Auth = BuildAuthInfoResponse(user, kioskContext, queueDisplayContext, nurseViewContext, bedTabletContext),
                     Endpoints = new AuthEndpointResponse(),
-                    User = BuildUserResponse(user, roles, kioskContext, queueDisplayContext, nurseViewContext, bedTabletContext)
+                    User = await WithOrganizationNamesAsync(
+                        BuildUserResponse(user, roles, kioskContext, queueDisplayContext, nurseViewContext, bedTabletContext),
+                        user)
                 },
                 _languageService.GetMessage(MessageKeys.AuthSessionRefreshed)
             ));
@@ -2399,6 +2406,46 @@ namespace QuilvianSystemBackend.Controllers
                 ExpiresAtUtc = DateTime.UtcNow.AddMinutes(expireMinutes),
                 FrontendInstruction = "Gunakan credentials: 'include' atau withCredentials: true pada setiap request ke backend. Access token disimpan di HttpOnly cookie."
             };
+        }
+
+        /// <summary>
+        /// Melengkapi respons dengan nama departemen dan jabatan utama dari master (hanya baca). Kegagalan pencarian tidak
+        /// boleh menggagalkan login/sesi: nama dibiarkan kosong dan FE menampilkan "-".
+        /// </summary>
+        private async Task<UserLoginResponse> WithOrganizationNamesAsync(UserLoginResponse response, ApplicationUser user)
+        {
+            try
+            {
+                if (user.PrimaryDepartmentId.HasValue)
+                {
+                    var departmentId = user.PrimaryDepartmentId.Value;
+                    response.DepartmentName = await _dbContext.MstDepartments
+                        .AsNoTracking()
+                        .Where(x => x.Id == departmentId && !x.IsDelete)
+                        .Select(x => x.DepartmentName)
+                        .FirstOrDefaultAsync();
+                }
+
+                if (user.PrimaryPositionId.HasValue)
+                {
+                    var positionId = user.PrimaryPositionId.Value;
+                    response.PositionName = await _dbContext.MstPositions
+                        .AsNoTracking()
+                        .Where(x => x.Id == positionId && !x.IsDelete)
+                        .Select(x => x.PositionName)
+                        .FirstOrDefaultAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                await _loggerService.WarningAsync(
+                    "Auth",
+                    "OrganizationNames",
+                    "Nama departemen/jabatan tidak dapat dimuat; respons dikirim tanpa nama.",
+                    new { user.Id, ex.Message });
+            }
+
+            return response;
         }
 
         private UserLoginResponse BuildUserResponse(

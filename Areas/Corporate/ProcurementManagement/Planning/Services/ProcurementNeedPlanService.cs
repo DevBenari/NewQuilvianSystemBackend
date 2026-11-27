@@ -103,6 +103,7 @@ public sealed class ProcurementNeedPlanService
     public async Task<PagedResult<NeedPlanResponse>> GetPagedAsync(ClaimsPrincipal user, NeedPlanQuery request, CancellationToken cancellationToken)
     {
         var query = await ScopedAsync(user, cancellationToken);
+        query = query.WhereCreatedWithin(ProcurementPeriodFilter.Resolve(request.StartDate, request.EndDate, request.CustomPeriod));
         if (!request.IncludeHistory) query = query.Where(x => x.Status != ProcurementStatuses.Plan.Superseded);
         if (!string.IsNullOrWhiteSpace(request.Status)) query = query.Where(x => x.Status == request.Status.Trim());
         if (request.DepartmentId.HasValue) query = query.Where(x => x.DepartmentId == request.DepartmentId.Value);

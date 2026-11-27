@@ -100,6 +100,7 @@ public sealed class ProcurementPackagePlanService
     public async Task<PagedResult<PackagePlanResponse>> GetPagedAsync(ClaimsPrincipal user, PackagePlanQuery request, CancellationToken cancellationToken)
     {
         var query = await ScopedAsync(user, cancellationToken);
+        query = query.WhereCreatedWithin(ProcurementPeriodFilter.Resolve(request.StartDate, request.EndDate, request.CustomPeriod));
         if (!string.IsNullOrWhiteSpace(request.Status)) query = query.Where(x => x.Status == request.Status.Trim());
         if (request.FiscalYear.HasValue) query = query.Where(x => x.FiscalYear == request.FiscalYear.Value);
         if (request.ProcurementTypeId.HasValue) query = query.Where(x => x.ProcurementTypeId == request.ProcurementTypeId.Value);

@@ -1,6 +1,6 @@
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 
-// Kosakata kebijakan regulasi penggajian berversi: tarif PPh (PrlTaxPolicy). Kebijakan iuran BPJS (PrlBpjsPolicy) tidak lagi dikelola; tabelnya dipertahankan sebagai data historis. Kolom string
+// Kosakata kebijakan regulasi penggajian berversi: tarif PPh (PrlTaxPolicy). Kebijakan iuran BPJS tidak lagi dikelola; entity-nya sudah dihapus dari source (tabel PrlBpjsPolicy di database tidak disentuh). Kolom string
 // tanpa check constraint: nilai dijaga validasi layanan kebijakan. Tidak ada tarif atau nominal regulasi di sini; angkanya hanya ada
 // pada kebijakan yang disahkan.
 
