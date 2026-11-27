@@ -54,6 +54,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
         /// pertanyaannya "pesanan mana yang dikerjakan dalam rentang ini", dan yang belum
         /// dikerjakan bukan bagian dari jawabannya.
         /// </summary>
-        ExaminationDate = 3
+        ExaminationDate = 3,
+
+        /// <summary>
+        /// Tanggal rencana pemeriksaan — <c>LabOrder.PlannedDate</c> (<c>LAB-API-v1</c> <c>r50</c>
+        /// 45.5, <c>BE-LAB-103</c>). Dibandingkan sebagai <b>tanggal</b>: bagian tanggal dari
+        /// <c>StartDate</c>/<c>EndDate</c>, keduanya inklusif. Bersama <c>IncludeOverdue</c>, pesanan
+        /// <i>Terlewat</i> bertanggal rencana sebelum <c>StartDate</c> ikut dimuat.
+        ///
+        /// <b>Bukan bawaan</b> — ruas kosong tetap <see cref="OrderDate"/> (<c>LAB-DEC-277</c>), supaya
+        /// menu Hasil dan Riwayat tidak berubah perilaku.
+        /// </summary>
+        PlannedDate = 4
     }
 }

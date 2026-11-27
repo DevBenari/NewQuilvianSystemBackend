@@ -70,18 +70,49 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
 
             var normalizedStatus = (context.WorkflowStatus ?? string.Empty).Trim();
 
-            if (string.Equals(normalizedStatus, "Approved", StringComparison.OrdinalIgnoreCase) ||
+            if (string.Equals(normalizedStatus, "Draft", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalizedStatus, "Submitted", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalizedStatus, "InProgress", StringComparison.OrdinalIgnoreCase))
+            {
+                return WorkforcePlanningApplyResult.AlreadyFinal(previousStatus);
+            }
+
+            if (string.Equals(normalizedStatus, "Completed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalizedStatus, "Approved", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(normalizedStatus, "FinalApproved", StringComparison.OrdinalIgnoreCase))
             {
-                // Eksekusi atomik satu transaksi (NFR-011 & kriteria 6)
-                await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                // Eksekusi atomik satu transaksi (NFR-011 & kriteria 6), hindari nested transaction jika pemanggil sudah membuka transaksi
+                var ownTransaction = _dbContext.Database.CurrentTransaction == null;
+                await using var transaction = ownTransaction
+                    ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                    : null;
+
                 try
                 {
                     var approvedAt = DateTime.UtcNow;
+                    var effectiveActorId = context.ActorUserId != Guid.Empty
+                        ? context.ActorUserId
+                        : batch.SubmittedByUserId ?? Guid.Empty;
 
                     foreach (var row in batch.Rows.Where(r => !r.IsDelete))
                     {
-                        var formation = await _formationService.CreateNewVersionAsync(
+                        if (row.CreatedFormationId.HasValue)
+                        {
+                            continue;
+                        }
+
+                        // Idempotensi tambahan: cek apakah formasi untuk batch & baris ini sudah terbentuk sebelumnya
+                        var existingFormation = await _dbContext.HrdPositionFormations
+                            .FirstOrDefaultAsync(f =>
+                                !f.IsDelete &&
+                                f.SourceType == PositionFormationSourceType.InitialBatch &&
+                                f.SourceDocumentId == batch.Id &&
+                                f.OrganizationUnitId == row.OrganizationUnitId &&
+                                f.PositionId == row.PositionId &&
+                                f.EffectiveStartDate == row.EffectiveStartDate,
+                                cancellationToken);
+
+                        var formation = existingFormation ?? await _formationService.CreateNewVersionAsync(
                             hospitalSiteId: batch.HospitalSiteId,
                             organizationUnitId: row.OrganizationUnitId,
                             positionId: row.PositionId,
@@ -90,30 +121,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                             sourceType: PositionFormationSourceType.InitialBatch,
                             sourceDocumentId: batch.Id,
                             sourceDocumentNumber: batch.BatchNumber,
-                            approvedByUserId: context.ActorUserId,
+                            approvedByUserId: effectiveActorId,
                             approvedAt: approvedAt,
                             cancellationToken: cancellationToken);
 
                         row.CreatedFormationId = formation.Id;
                         row.UpdateDateTime = approvedAt;
-                        row.UpdateBy = context.ActorUserId;
+                        row.UpdateBy = effectiveActorId;
                     }
 
                     batch.BatchStatus = InitialFormationBatchStatus.Applied;
-                    batch.ApprovedByUserId = context.ActorUserId;
-                    batch.ApprovedAt = approvedAt;
-                    batch.AppliedAt = approvedAt;
+                    batch.ApprovedByUserId = effectiveActorId != Guid.Empty ? effectiveActorId : batch.ApprovedByUserId;
+                    batch.ApprovedAt ??= approvedAt;
+                    batch.AppliedAt ??= approvedAt;
                     batch.RowVersion = Guid.NewGuid();
                     batch.UpdateDateTime = approvedAt;
-                    batch.UpdateBy = context.ActorUserId;
+                    batch.UpdateBy = effectiveActorId;
 
                     await _dbContext.SaveChangesAsync(cancellationToken);
-                    await transaction.CommitAsync(cancellationToken);
+                    if (transaction != null)
+                    {
+                        await transaction.CommitAsync(cancellationToken);
+                    }
 
                     _logger.LogInformation(
                         "Batch formasi awal {BatchNumber} berhasil diterapkan (Applied) dengan {RowCount} formasi versi baru.",
                         batch.BatchNumber,
-                        batch.Rows.Count);
+                        batch.Rows.Count(r => !r.IsDelete));
 
                     return WorkforcePlanningApplyResult.Success(
                         previousStatus: previousStatus,
@@ -124,7 +158,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                 }
                 catch (Exception ex)
                 {
-                    await transaction.RollbackAsync(cancellationToken);
+                    if (transaction != null)
+                    {
+                        await transaction.RollbackAsync(cancellationToken);
+                    }
                     _logger.LogError(ex, "Gagal menerapkan keputusan persetujuan pada batch formasi awal {BatchNumber}. Transaksi dibatalkan (NFR-011).", batch.BatchNumber);
                     throw;
                 }
@@ -145,7 +182,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                     currentStatus: batch.BatchStatus.ToString(),
                     statusChanged: true);
             }
-            else if (string.Equals(normalizedStatus, "Returned", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(normalizedStatus, "Returned", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(normalizedStatus, "ReturnedForRevision", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(normalizedStatus, "RevisionRequested", StringComparison.OrdinalIgnoreCase))
             {
                 batch.BatchStatus = InitialFormationBatchStatus.Returned;
                 batch.RowVersion = Guid.NewGuid();
@@ -154,7 +193,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation("Batch formasi awal {BatchNumber} dikembalikan (Returned) melalui workflow.", batch.BatchNumber);
+                _logger.LogInformation("Batch formasi awal {BatchNumber} dikembalikan (Returned) melalui workflow ({Status}).", batch.BatchNumber, normalizedStatus);
 
                 return WorkforcePlanningApplyResult.Success(
                     previousStatus: previousStatus,

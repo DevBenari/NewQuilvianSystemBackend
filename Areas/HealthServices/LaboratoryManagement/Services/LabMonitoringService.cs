@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Constants;
@@ -172,9 +173,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                         .Min(s => s.CollectedAt),
                     FirstExaminedAt = _dbContext.LabExaminations
                         .Where(e => e.LabOrderId == x.Id && !e.IsDelete && e.ExaminedAt.HasValue)
-                        .Min(e => e.ExaminedAt)
+                        .Min(e => e.ExaminedAt),
+
+                    // r50 45.5 (BE-LAB-103).
+                    PlannedDate = x.PlannedDate
                 })
                 .ToListAsync(cancellationToken);
+
+            // r50 45.5 (BE-LAB-103) — penanda kelayakan dan Terlewat. Potret seluruh halaman dibaca
+            // dua kueri, lalu dinilai rumus yang sama dengan penjaga PUT reschedule (INV-67).
+            var today = LabOrderService.TodayPlannedDate();
+            var potret = await LabRescheduleSnapshotReader.ReadAsync(
+                _dbContext, items.Select(x => x.LabOrderId).ToList(), cancellationToken);
+
+            foreach (var item in items)
+            {
+                if (!potret.TryGetValue(item.LabOrderId, out var snapshot)) continue;
+
+                var verdict = LabRescheduleEligibility.Evaluate(snapshot, today);
+
+                item.CanReschedule = verdict.CanReschedule;
+                item.RescheduleBlockReasonCode = verdict.BlockReasonCode;
+                item.RescheduleBlockReason = verdict.BlockReason;
+                item.IsOverdue = LabRescheduleEligibility.IsOverdue(snapshot, today);
+                item.OverdueDays = LabRescheduleEligibility.OverdueDays(snapshot, today);
+            }
 
             // r47 — daftar pemeriksaan yang diminta, satu kueri untuk seluruh halaman.
             var orderIds = items.Select(x => x.LabOrderId).ToList();
@@ -364,6 +387,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                                   (!sampai.HasValue || e.ExaminedAt.Value <= sampai.Value)));
                 }
             }
+            else if (query.DateCategory == LabDateCategory.PlannedDate)
+            {
+                source = TerapkanTanggalRencana(source, query);
+            }
             else
             {
                 if (query.StartDate.HasValue)
@@ -442,6 +469,67 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             }
 
             return source;
+        }
+
+        /// <summary>
+        /// Kategori <c>PlannedDate</c> (<c>r50</c> 45.5, <c>BE-LAB-103</c>): tanggal rencana di dalam
+        /// periode — bagian tanggal <c>StartDate</c>/<c>EndDate</c>, keduanya inklusif.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Bersama <c>IncludeOverdue</c> dan <c>StartDate</c>, hasilnya <b>ditambah</b> pesanan
+        /// <i>Terlewat</i> bertanggal rencana sebelum <c>StartDate</c> (33.10 no. 6). Syarat
+        /// <i>Terlewat</i> diambil dari <see cref="LabRescheduleEligibility.OverdueExpression"/> —
+        /// bentuk kueri rumus yang sama dengan penanda baris, bukan rumus kedua.
+        /// </para>
+        /// <para>
+        /// <i>Contoh:</i> Rabu 4 Desember, <c>startDate=endDate=2026-12-04</c>, <c>includeOverdue=true</c> →
+        /// pesanan bertanggal rencana 4 Desember ditambah Profil Lipid bertanggal 2 Desember yang belum
+        /// diambil sampelnya.
+        /// </para>
+        /// </remarks>
+        private static IQueryable<LabOrder> TerapkanTanggalRencana(IQueryable<LabOrder> source, LabMonitoringQuery query)
+        {
+            DateOnly? mulai = query.StartDate.HasValue ? DateOnly.FromDateTime(query.StartDate.Value) : null;
+            DateOnly? sampai = query.EndDate.HasValue ? DateOnly.FromDateTime(query.EndDate.Value) : null;
+
+            if (!mulai.HasValue && !sampai.HasValue)
+                return source;
+
+            Expression<Func<LabOrder, bool>> dalamPeriode = x =>
+                (!mulai.HasValue || x.PlannedDate >= mulai.Value) &&
+                (!sampai.HasValue || x.PlannedDate <= sampai.Value);
+
+            if (!query.IncludeOverdue || !mulai.HasValue)
+                return source.Where(dalamPeriode);
+
+            var awal = mulai.Value;
+            Expression<Func<LabOrder, bool>> sebelumPeriode = x => x.PlannedDate < awal;
+
+            var terlewat = Gabung(
+                LabRescheduleEligibility.OverdueExpression(LabOrderService.TodayPlannedDate()),
+                sebelumPeriode,
+                Expression.AndAlso);
+
+            return source.Where(Gabung(dalamPeriode, terlewat, Expression.OrElse));
+        }
+
+        /// <summary>Menggabungkan dua predikat menjadi satu ekspresi yang dapat diterjemahkan EF.</summary>
+        private static Expression<Func<LabOrder, bool>> Gabung(
+            Expression<Func<LabOrder, bool>> kiri,
+            Expression<Func<LabOrder, bool>> kanan,
+            Func<Expression, Expression, BinaryExpression> penghubung)
+        {
+            var parameter = kiri.Parameters[0];
+            var badanKanan = new GantiParameter(kanan.Parameters[0], parameter).Visit(kanan.Body);
+
+            return Expression.Lambda<Func<LabOrder, bool>>(penghubung(kiri.Body, badanKanan), parameter);
+        }
+
+        private sealed class GantiParameter(ParameterExpression dari, ParameterExpression ke) : ExpressionVisitor
+        {
+            protected override Expression VisitParameter(ParameterExpression node) =>
+                node == dari ? ke : base.VisitParameter(node);
         }
     }
 }

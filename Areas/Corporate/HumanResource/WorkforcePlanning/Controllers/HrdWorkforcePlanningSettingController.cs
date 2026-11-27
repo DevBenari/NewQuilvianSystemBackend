@@ -39,6 +39,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
         }
 
         /// <summary>
+        /// Mengambil daftar pengaturan seluruh rumah sakit yang diizinkan beserta ringkasan kelengkapannya (BE-HRD-FIN-WFP-002).
+        /// </summary>
+        [HttpGet("list")]
+        [AccessAction("Read", "Read Workforce Planning Setting", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforcePlanningSetting", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<WorkforcePlanningSettingListResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> GetList([FromQuery] WorkforcePlanningSettingListQuery query, CancellationToken cancellationToken)
+        {
+            var result = await _service.GetListAsync(query ?? new WorkforcePlanningSettingListQuery(), GetCurrentUserId(), cancellationToken);
+            return ToActionResult(result);
+        }
+
+        /// <summary>
         /// Mengambil pengaturan satu rumah sakit (BE-HRD-031 kriteria 1).
         /// </summary>
         /// <param name="hospitalSiteId">ID unik rumah sakit (MstHospitalSite)</param>
@@ -52,7 +67,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Get([FromQuery] Guid hospitalSiteId, CancellationToken cancellationToken)
         {
-            var result = await _service.GetByHospitalSiteIdAsync(hospitalSiteId, cancellationToken);
+            var result = await _service.GetByHospitalSiteIdAsync(hospitalSiteId, GetCurrentUserId(), cancellationToken);
             return ToActionResult(result);
         }
 

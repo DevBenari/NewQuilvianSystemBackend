@@ -1,7 +1,9 @@
+using System.Reflection;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
@@ -36,14 +38,46 @@ public sealed class DrugStockService
     private readonly ApplicationDbContext _dbContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly LoggerService _loggerService;
+    private readonly IConfiguration? _configuration;
 
+    /// <param name="dbContext">Basis data.</param>
+    /// <param name="httpContextAccessor">Pengguna yang sedang login.</param>
+    /// <param name="loggerService">Pencatat audit.</param>
+    /// <param name="configuration">
+    /// Opsional; dipakai Mutasi Saldo Persediaan untuk membaca lokasi yang buku mutasinya sudah lolos
+    /// UAT (<see cref="LogisticsLedgerVerification.ConfigKey"/>). Pemanggil lama tidak perlu mengirimnya.
+    /// </param>
     public DrugStockService(ApplicationDbContext dbContext,
-        IHttpContextAccessor httpContextAccessor, LoggerService loggerService)
+        IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
+        IConfiguration? configuration = null)
     {
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
+        _configuration = configuration;
     }
+
+    /// <summary>Jenis dokumen sumber yang dikenal, dari konstanta <see cref="DrugStockSourceDocumentTypes"/>.</summary>
+    private static readonly IReadOnlyDictionary<string, string> KnownSourceDocumentTypes =
+        typeof(DrugStockSourceDocumentTypes)
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(x => x.IsLiteral && x.FieldType == typeof(string))
+            .Select(x => (string)x.GetRawConstantValue()!)
+            .ToDictionary(x => x, x => x, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Menafsirkan daftar jenis sumber yang dipisah koma: hanya nilai yang dikenal (dinormalkan ke
+    /// ejaan baku), tanpa duplikat, paling banyak sepuluh. Fungsi murni.
+    /// </summary>
+    internal static List<string> ParseSourceDocumentTypes(string? raw) =>
+        (raw ?? string.Empty)
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => KnownSourceDocumentTypes.GetValueOrDefault(x))
+            .Where(x => x != null)
+            .Select(x => x!)
+            .Distinct()
+            .Take(10)
+            .ToList();
 
     // ============================================================ 1. stok per lokasi
 
@@ -55,6 +89,7 @@ public sealed class DrugStockService
         if (request.DrugId.HasValue) query = query.Where(x => x.DrugId == request.DrugId);
         if (request.StorageLocationId.HasValue)
             query = query.Where(x => x.StorageLocationId == request.StorageLocationId);
+        query = FilterByServiceUnit(query, request.ServiceUnitId);
         if (request.DrugBatchId.HasValue)
             query = query.Where(x => x.DrugBatchId == request.DrugBatchId);
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
@@ -88,11 +123,14 @@ public sealed class DrugStockService
         var total = await query.CountAsync(cancellationToken);
 
         // Yang paling dekat kedaluwarsa ditampilkan lebih dahulu: itulah yang harus dipakai
-        // lebih dahulu, dan itu pula yang paling mendesak diperhatikan.
+        // lebih dahulu, dan itu pula yang paling mendesak diperhatikan. Id sebagai penentu akhir
+        // membuat halaman stabil, sehingga lembar hitung Stock Opname yang dimuat beberapa halaman
+        // tidak melewatkan atau menggandakan baris (FIN-LGS-086).
         var items = await query
             .OrderBy(x => x.DrugBatch!.ExpiryDate == null)
             .ThenBy(x => x.DrugBatch!.ExpiryDate)
             .ThenBy(x => x.Drug!.DrugName)
+            .ThenBy(x => x.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Select(x => new DrugStockBalanceResponse
@@ -131,6 +169,25 @@ public sealed class DrugStockService
         };
     }
 
+    /// <summary>
+    /// Stok per unit (FIN-LGS-081) memakai struktur yang sudah ada: lokasi penyimpanan milik unit
+    /// layanan (<c>MstDrugStorageLocation.ServiceUnitId</c>). Lokasi yang tidak menunjuk unit ikut
+    /// bila lokasi induknya (satu tingkat) milik unit itu, misalnya rak di dalam depo unit.
+    /// </summary>
+    private static IQueryable<PhmDrugStockBalance> FilterByServiceUnit(IQueryable<PhmDrugStockBalance> query,
+        Guid? serviceUnitId)
+    {
+        if (!serviceUnitId.HasValue) return query;
+
+        var unitId = serviceUnitId.Value;
+        return query.Where(x =>
+            x.StorageLocation != null &&
+            (x.StorageLocation.ServiceUnitId == unitId ||
+             (x.StorageLocation.ServiceUnitId == null &&
+              x.StorageLocation.ParentStorageLocation != null &&
+              x.StorageLocation.ParentStorageLocation.ServiceUnitId == unitId)));
+    }
+
     // ==================================================== 1b. ringkasan per item
 
     /// <summary>
@@ -150,6 +207,7 @@ public sealed class DrugStockService
         if (request.DrugId.HasValue) query = query.Where(x => x.DrugId == request.DrugId);
         if (request.StorageLocationId.HasValue)
             query = query.Where(x => x.StorageLocationId == request.StorageLocationId);
+        query = FilterByServiceUnit(query, request.ServiceUnitId);
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
         if (request.OnlyInStock) query = query.Where(x => x.QuantityOnHand > 0);
 
@@ -472,6 +530,15 @@ public sealed class DrugStockService
             query = query.Where(x => x.MutationType == request.MutationType);
         if (!string.IsNullOrWhiteSpace(request.SourceDocumentType))
             query = query.Where(x => x.SourceDocumentType == request.SourceDocumentType);
+        if (!string.IsNullOrWhiteSpace(request.SourceDocumentTypes))
+        {
+            // Riwayat Mutasi (FIN-LGS-055): satu daftar untuk beberapa sumber. Nilai yang tidak
+            // dikenal tidak pernah melebarkan hasil; bila tidak ada yang dikenal, hasilnya kosong.
+            var sourceTypes = ParseSourceDocumentTypes(request.SourceDocumentTypes);
+            query = sourceTypes.Count == 0
+                ? query.Where(x => false)
+                : query.Where(x => x.SourceDocumentType != null && sourceTypes.Contains(x.SourceDocumentType));
+        }
         if (request.SourceDocumentId.HasValue)
             query = query.Where(x => x.SourceDocumentId == request.SourceDocumentId);
 
@@ -541,6 +608,68 @@ public sealed class DrugStockService
             Items = items
         };
     }
+
+    // ================================================ 2b. laporan Logistik (FIN-LGS-024)
+
+    /// <summary>Laporan Persediaan: saldo per obat × lokasi dengan kolom per status (hanya baca).</summary>
+    public Task<InventoryReportResponse> GetInventoryReportAsync(InventoryReportQuery request,
+        CancellationToken cancellationToken = default) =>
+        new LogisticsReportQueries(_dbContext).GetInventoryAsync(request, cancellationToken);
+
+    /// <summary>Laporan Mutasi Barang: masuk, keluar, dan penyesuaian per obat × lokasi dalam periode.</summary>
+    public Task<MutationReportResponse> GetMutationReportAsync(MutationReportQuery request,
+        CancellationToken cancellationToken = default) =>
+        new LogisticsReportQueries(_dbContext).GetMutationsAsync(request, cancellationToken);
+
+    /// <summary>Dashboard Penerimaan &amp; Pengeluaran: transaksi masuk/keluar per sumber dan per hari.</summary>
+    public Task<StockFlowSummaryResponse> GetStockFlowSummaryAsync(StockFlowSummaryQuery request,
+        CancellationToken cancellationToken = default) =>
+        new LogisticsReportQueries(_dbContext).GetStockFlowAsync(request, cancellationToken);
+
+    /// <summary>Pemeriksaan kelengkapan buku mutasi terhadap saldo pada satu lokasi (FIN-LGS-039).</summary>
+    public Task<LedgerConsistencyResponse> GetLedgerConsistencyAsync(LedgerConsistencyQuery request,
+        CancellationToken cancellationToken = default) =>
+        new LogisticsReportQueries(_dbContext).GetLedgerConsistencyAsync(request, cancellationToken);
+
+    /// <summary>
+    /// Mutasi Saldo Persediaan (FIN-LGS-056): saldo awal, masuk, keluar, dan saldo akhir per obat ×
+    /// lokasi dengan rincian batch; status valid hanya untuk lokasi yang buku mutasinya lolos UAT.
+    /// </summary>
+    public Task<BalanceMovementResponse> GetBalanceMovementAsync(BalanceMovementQuery request,
+        CancellationToken cancellationToken = default) =>
+        new LogisticsReportQueries(_dbContext).GetBalanceMovementAsync(request,
+            LogisticsLedgerVerification.FromConfiguration(_configuration), cancellationToken);
+
+    /// <summary>Rekomendasi Pengisian Ulang (FIN-LGS-057). Hanya membaca; tidak membuat permintaan.</summary>
+    public Task<ReplenishmentResponse> GetReplenishmentAsync(ReplenishmentQuery request,
+        CancellationToken cancellationToken = default) =>
+        new LogisticsReportQueries(_dbContext).GetReplenishmentAsync(request, cancellationToken);
+
+    /// <summary>
+    /// Hitung selisih Stock Opname (FIN-LGS-084): membandingkan hasil hitung fisik dengan saldo saat
+    /// ini. Hanya membaca — tidak menyimpan sesi, tidak menulis mutasi, tidak mengubah saldo.
+    /// </summary>
+    public Task<StockOpnameVariancePreviewResponse> PreviewOpnameVarianceAsync(
+        StockOpnameVariancePreviewRequest request, CancellationToken cancellationToken = default) =>
+        new StockOpnameQueries(_dbContext).PreviewVarianceAsync(request, cancellationToken);
+
+    /// <summary>
+    /// Penyesuaian hasil Stock Opname yang sudah disetujui (FIN-LGS-091): satu mutasi
+    /// <c>Adjustment</c> bersumber <c>StockOpname</c> pada kartu stok, lewat jalur yang sama dengan
+    /// penyesuaian lain (saldo tidak boleh negatif <c>PHM028</c>, tidak boleh di bawah yang ditahan
+    /// <c>PHM029</c>, versi saldo naik).
+    /// </summary>
+    /// <remarks>
+    /// Tidak memanggil <c>SaveChanges</c>: <see cref="StockOpnameService"/> memposting seluruh baris dan
+    /// mengubah status sesi dalam satu transaksi. <paramref name="correlationId"/> (<c>opname-{baris}</c>)
+    /// dijaga indeks unik <c>(SourceDocumentType, CorrelationId)</c>, jadi posting kedua untuk baris yang
+    /// sama ditolak basis data.
+    /// </remarks>
+    internal Task<PhmDrugStockMutation> ApplyStockOpnameAdjustmentAsync(PhmDrugStockBalance balance,
+        decimal quantityChange, string reason, Guid stockOpnameId, string correlationId,
+        CancellationToken cancellationToken) =>
+        ApplyMutationAsync(balance, DrugStockMutationType.Adjustment, quantityChange, reason,
+            DrugStockSourceDocumentTypes.StockOpname, stockOpnameId, null, correlationId, cancellationToken);
 
     // ============================================================ 3. saldo pembuka
 

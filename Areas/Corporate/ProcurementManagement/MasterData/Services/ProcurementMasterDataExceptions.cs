@@ -12,6 +12,12 @@ public sealed class ProcurementMasterValidationException(string message, string?
     public string? Code { get; } = code;
 }
 
+/// <summary>
+/// Bentuk isian tidak sah menurut kontrak (HTTP 400), dipakai bila kontrak menetapkan 400, bukan 422. Contoh: dokumen wajib
+/// paket mengisi metode <b>dan</b> jenis pengadaan sekaligus, atau tidak satu pun (PBJ-PS-API 1.0; BE-PBJ-PS-002).
+/// </summary>
+public sealed class ProcurementMasterBadRequestException(string message) : Exception(message);
+
 /// <summary>Bentrok dengan data lain, misalnya kode sudah dipakai (HTTP 409).</summary>
 public sealed class ProcurementMasterConflictException(string message) : Exception(message);
 

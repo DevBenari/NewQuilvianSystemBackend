@@ -60,6 +60,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             return StatusCode(result.StatusCode, result);
         }
 
+        [HttpGet("{id}/journey")]
+        [AccessAction("Read", "Melihat Perjalanan Wizard Onboarding", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceOnboardingCase", "Read")]
+        public async Task<IActionResult> GetJourney(Guid id, CancellationToken cancellationToken)
+        {
+            var result = await _caseService.GetByIdAsync(id, User, cancellationToken);
+            return StatusCode(result.StatusCode, result);
+        }
+
+        [HttpGet("coordinator-options")]
+        [AccessAction("Reassign", "Mengganti Koordinator Onboarding", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("WorkforceOnboardingCase", "Reassign")]
+        public async Task<IActionResult> GetCoordinatorOptions([FromQuery] string? search, CancellationToken cancellationToken)
+        {
+            var result = await _caseService.GetCoordinatorOptionsAsync(search, User, cancellationToken);
+            return StatusCode(result.StatusCode, result);
+        }
+
         [HttpPost("{id}/first-day-attendance")]
         [AccessAction("CompleteItem", "Menyelesaikan Butir Onboarding", AccessType = AccessTypes.Update, SortOrder = 2)]
         [AccessPermission("WorkforceOnboardingCase", "CompleteItem")]
@@ -164,7 +182,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             Guid itemId,
             CancellationToken cancellationToken)
         {
-            var (exists, stream, contentType, fileName) = await _caseService.DownloadItemEvidenceAsync(id, itemId, cancellationToken);
+            var (exists, stream, contentType, fileName, isForbidden) = await _caseService.DownloadItemEvidenceScopedAsync(id, itemId, User, cancellationToken);
+            if (isForbidden)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = "Anda tidak memiliki wewenang mengunduh berkas bukti kasus onboarding di luar unit Anda." });
+            }
             if (!exists || stream == null)
             {
                 return NotFound(new { message = "Berkas bukti tidak ditemukan atau belum diunggah." });

@@ -171,3 +171,53 @@ Sub-modul boleh dibuka ke pengguna setelah K-1 sampai K-3 terpenuhi. K-4 sampai 
 | 19 November 2026 | K-4 selesai | Dokumen kontrak ditulis: `PBJ-VD-API` 1.1 (seluruh endpoint kini tercatat tersedia, delta per laporan task ditandai "(1.1, VD-00x D-y)", tabel perubahan 1.0 → 1.1), `PBJ-VD-INT` 1.1 (`supplierCode`, `supplierName`, `warnings[]`), `PBJ-VD-STATE` 1.1 (Digantikan, aturan cabut-lalu-batasi, pengusul saja, revisi menyalin snapshot), `PBJ-VD-VAL` 1.1 (bagian penolakan tanpa kode), `PBJ-VD-PERM` 1.1 (bundel Direktur, penjaga di service, riwayat usulan). Manifest diperbarui | `manage-module-blueprint` |
 
 K-1, K-2, K-5..K-7 dan bagian commit K-3 masih terbuka; K-4 selesai. Verdict tetap `READY_WITH_CONDITIONS` sampai audit ulang.
+
+---
+
+## 9. Pemeriksaan ulang 26 November 2026
+
+| Field | Nilai |
+| --- | --- |
+| Source yang diperiksa | Backend `c97642bb` (branch `sukmagp`), frontend `3e5386679` (branch `sukmagpV2`); keduanya bersih |
+| Cara | Read-only: riwayat Git, hash dokumen, dan query `SELECT` di `QuilvianNewDevSukma` dalam transaksi `READ ONLY`. Build dan uji runtime **tidak** dijalankan ulang, karena kode sub-modul ini tidak berubah sejak di-commit (lihat 9.1) |
+| Verdict sub-modul | **Tetap `READY_WITH_CONDITIONS`** |
+| Verdict modul | **Tetap `NOT_READY`** — `pemilihan-penyedia` dan `kontrak-pelaksanaan` masih `NOT_STARTED` |
+
+### 9.1 Commit kode (K-3)
+
+Kode yang diuji 17–19 November 2026 sudah di-commit dan di-push:
+
+| Repository | Commit | Branch remote | Isi |
+| --- | --- | --- | --- |
+| Backend | `5e777833` (19 November 2026 14:16) | `origin/sukmagp` | Area `Vendor`, tiga master konfigurasi, migration `20261117074530_AddProcurementVendorManagement`, perubahan `SupplierController`, dan dokumen blueprint |
+| Frontend | `af8a430ac` (19 November 2026 14:16) | `origin/sukmagpV2` | 15 halaman `/corporate/procurement/vendors/**` dan `/settings/*`, hook, service, dan konfigurasi form Master Data Supplier |
+
+Sesudah kedua commit itu, kode Pengadaan tidak berubah lagi. Dua berkas bersama memang berubah karena merge modul lain:
+
+- `menu-items.jsx` diformat ulang (satu baris izin menjadi beberapa baris). 25 rute Pengadaan dan himpunan izin menunya identik dengan `af8a430ac`.
+- `ApplicationDbContextModelSnapshot.cs` berubah karena migration modul lain. Ke-9 entity vendor (`PrcVendor*` dan tiga `MstProcurement*` konfigurasi) masih ada, dan 9 migration Pengadaan tercatat di `__EFMigrationsHistory`.
+
+Hash 4 masukan dan 14 artefak desain cocok dengan manifest, sehingga desain tidak basi.
+
+### 9.2 Keadaan syarat
+
+| No | Status | Bukti 26 November 2026 |
+| ---: | --- | --- |
+| K-1 | Terbuka | `PBJ-VND-BLOKIR` dan `PBJ-VND-BUKA` masih `Draft` dan tidak aktif. Dari 6 baris matriks, 0 yang aktif. Baris yang ada adalah sisa matriks uji yang sudah dinonaktifkan. Vendor tetap **tidak bisa diblokir sama sekali** |
+| K-2 | Terbuka | 17 akses controller `Procurement*` terdaftar di `SysControllerAccess`, tetapi 0 baris `SysAccessPolicy` memberi izin atas controller itu. Sebagai pembanding, 28 jabatan sudah punya izin modul lain |
+| K-3 | **Selesai** | Commit `5e777833` / `af8a430ac` (9.1); manifest diselaraskan hari ini |
+| K-4 | Selesai | 19 November 2026 (bagian 8) |
+| K-5 | Terbuka | `owners.security` di manifest sub-modul masih "belum ditetapkan" |
+| K-6 | Terbuka | Tidak ada catatan UAT baru; tetap 0/12 |
+| K-7 | Terbuka | `PBJ-OQ-033` dan `PBJ-OQ-034` belum diputuskan |
+
+**Contoh dampak K-1 hari ini:** Tim Pengadaan menemukan "Alkes Maju" mengirim alat rusak tiga kali. Manajer mengajukan usulan blokir,
+tetapi sistem menjawab `PBJ-VAL-091` dan vendor tetap Aktif. Satu-satunya rem yang tersedia adalah **Batasi**: vendor masih bisa dipilih,
+tetapi dengan catatan pembatasan.
+
+### 9.3 Langkah berikutnya
+
+1. Product Owner + admin `Wfl`: isi matriks `PBJ-VND-*` dari SOP lalu aktifkan (K-1). Wajib sebelum kunci Master Data dirilis ke produksi.
+2. Admin Akses Role: terapkan bundel `PBJ-DEC-051` beserta tambahan Direktur `PBJ-DEC-065` (K-2).
+3. Product Owner: tunjuk pemilik keamanan (K-5).
+4. UAT bersama pengguna (K-6) dan isi master nyata (K-7), lalu `verify-module-readiness` ulang untuk sign-off.

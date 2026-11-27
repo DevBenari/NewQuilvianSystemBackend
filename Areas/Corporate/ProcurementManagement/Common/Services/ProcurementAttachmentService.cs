@@ -39,6 +39,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Ser
     /// <para><b>Hak akses.</b> Selain izin <c>ProcurementAttachment</c>, pengguna wajib punya hak atas
     /// dokumen induknya lewat <see cref="IProcurementDocumentAccessProvider"/>. Jenis dokumen tanpa
     /// penyedia dijawab 404 (fail-closed).</para>
+    /// <para><b>Kategori (BE-PBJ-PS-006).</b> Jenis dokumen yang punya <see cref="IProcurementAttachmentCategoryPolicy"/>
+    /// memeriksa kategori saat unggah dan menyaring lampiran yang boleh dilihat. Contoh: lampiran paket berkategori
+    /// Dasar HPS tidak didaftar bagi pengguna tanpa <c>ProcurementPackage : ReadPrice</c>, dan unduhannya 404. Jenis
+    /// dokumen lain tidak berubah.</para>
     /// </remarks>
     public sealed class ProcurementAttachmentService
     {
@@ -61,6 +65,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Ser
         private readonly ApplicationDbContext _dbContext;
         private readonly ProcurementDocumentHistoryWriter _historyWriter;
         private readonly IReadOnlyList<IProcurementDocumentAccessProvider> _accessProviders;
+        private readonly IReadOnlyList<IProcurementAttachmentCategoryPolicy> _categoryPolicies;
         private readonly IWebHostEnvironment _environment;
         private readonly IConfiguration _configuration;
         private readonly LoggerService _loggerService;
@@ -69,6 +74,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Ser
             ApplicationDbContext dbContext,
             ProcurementDocumentHistoryWriter historyWriter,
             IEnumerable<IProcurementDocumentAccessProvider> accessProviders,
+            IEnumerable<IProcurementAttachmentCategoryPolicy> categoryPolicies,
             IWebHostEnvironment environment,
             IConfiguration configuration,
             LoggerService loggerService)
@@ -76,6 +82,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Ser
             _dbContext = dbContext;
             _historyWriter = historyWriter;
             _accessProviders = accessProviders.ToList();
+            _categoryPolicies = categoryPolicies.ToList();
             _environment = environment;
             _configuration = configuration;
             _loggerService = loggerService;
@@ -92,6 +99,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Ser
             if (!query.IncludeHistory)
             {
                 rows = rows.Where(x => x.IsCurrent && !x.IsCancel);
+            }
+
+            var visible = await GetVisibleCategoriesAsync(user, documentType, cancellationToken);
+            if (visible != null)
+            {
+                var categories = visible.ToList();
+                rows = rows.Where(x => x.AttachmentCategory != null && categories.Contains(x.AttachmentCategory));
             }
 
             return await rows
@@ -162,10 +176,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Ser
                         !x.IsDelete,
                     cancellationToken)
                     ?? throw new KeyNotFoundException("Lampiran yang akan diganti tidak ditemukan pada dokumen ini.");
+                await EnsureVisibleAsync(user, replaced, "Lampiran yang akan diganti tidak ditemukan pada dokumen ini.", cancellationToken);
                 if (!replaced.IsCurrent || replaced.IsCancel)
                     throw new ProcurementAttachmentConflictException(
                         "PBJ-VAL-083", "Lampiran yang akan diganti bukan versi yang berlaku.");
             }
+
+            var policy = FindCategoryPolicy(documentType);
+            if (policy != null)
+                category = await policy.NormalizeCategoryAsync(documentType, category ?? replaced?.AttachmentCategory, cancellationToken);
 
             var now = DateTime.UtcNow;
             var storedFileName = $"{Guid.NewGuid():N}{extension}";
@@ -270,6 +289,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Ser
             var entity = await _dbContext.PrcAttachments.FirstOrDefaultAsync(x => x.Id == attachmentId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Lampiran tidak ditemukan.");
             await RequireAccessAsync(user, entity.DocumentType, entity.DocumentId, ProcurementDocumentAccessLevel.Edit, cancellationToken);
+            await EnsureVisibleAsync(user, entity, "Lampiran tidak ditemukan.", cancellationToken);
 
             if (!entity.IsCurrent || entity.IsCancel)
                 throw new ProcurementAttachmentConflictException("PBJ-VAL-083", "Lampiran ini sudah tidak berlaku.");
@@ -304,6 +324,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Ser
                 .FirstOrDefaultAsync(x => x.Id == attachmentId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Lampiran tidak ditemukan.");
             await RequireAccessAsync(user, entity.DocumentType, entity.DocumentId, ProcurementDocumentAccessLevel.Read, cancellationToken);
+            await EnsureVisibleAsync(user, entity, "Lampiran tidak ditemukan.", cancellationToken);
 
             var physicalPath = ResolvePhysicalPath(entity.RelativePath);
             if (!File.Exists(physicalPath))
@@ -352,6 +373,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Ser
 
             if (access < required)
                 throw new ProcurementAttachmentConflictException("PBJ-VAL-083", "Dokumen sudah final; lampiran tidak dapat diubah.");
+        }
+
+        private IProcurementAttachmentCategoryPolicy? FindCategoryPolicy(string documentType) =>
+            _categoryPolicies.FirstOrDefault(x => x.Handles(documentType));
+
+        /// <summary>Himpunan kategori yang boleh dilihat; <c>null</c> = semua (tanpa aturan kategori, atau aturan mengizinkan).</summary>
+        private Task<IReadOnlySet<string>?> GetVisibleCategoriesAsync(
+            ClaimsPrincipal user, string documentType, CancellationToken cancellationToken) =>
+            FindCategoryPolicy(documentType)?.GetVisibleCategoriesAsync(user, documentType, cancellationToken)
+            ?? Task.FromResult<IReadOnlySet<string>?>(null);
+
+        /// <summary>Lampiran yang disembunyikan aturan kategori dijawab seolah tidak ada (404).</summary>
+        private async Task EnsureVisibleAsync(ClaimsPrincipal user, PrcAttachment entity, string notFoundMessage, CancellationToken cancellationToken)
+        {
+            var visible = await GetVisibleCategoriesAsync(user, entity.DocumentType, cancellationToken);
+            if (visible != null && (entity.AttachmentCategory == null || !visible.Contains(entity.AttachmentCategory)))
+                throw new KeyNotFoundException(notFoundMessage);
         }
 
         private static string NormalizeDocumentType(string? documentType)

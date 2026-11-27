@@ -255,6 +255,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             public const string Cancelled = "Cancelled";
         }
 
+        // Kategori surat tugas dinas luar (HRD-DEC-109); nilai yang sudah dipakai layar HR. Pengajuan ESS wajib salah satunya (kontrak v31 API 37.5).
+        public static class OfficialDutyCategory
+        {
+            public const string AmbulanceReferral = "AmbulanceReferral";
+            public const string LabCourier = "LabCourier";
+            public const string TrainingSeminar = "TrainingSeminar";
+            public const string HomeCare = "HomeCare";
+            public const string Other = "Other";
+
+            public static readonly IReadOnlyList<string> All = new[] { AmbulanceReferral, LabCourier, TrainingSeminar, HomeCare, Other };
+        }
+
         public static class StudyAssignmentStatus
         {
             public const string Active = "Active";

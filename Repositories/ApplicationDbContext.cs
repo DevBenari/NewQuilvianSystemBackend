@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Mod
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.Models;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Models;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Sourcing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
@@ -1156,6 +1157,11 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmDrugStockBalance> PhmDrugStockBalances { get; set; }
         public DbSet<PhmDrugStockMutation> PhmDrugStockMutations { get; set; }
 
+        // Stock Opname Logistik (FIN-LGS-091). Tabelnya menunggu migrasi oleh pihak berwenang;
+        // sebelum itu layanan menjawab BLOCKED_SCHEMA (PHM039), bukan galat basis data mentah.
+        public DbSet<PhmStockOpname> PhmStockOpnames { get; set; }
+        public DbSet<PhmStockOpnameLine> PhmStockOpnameLines { get; set; }
+
         public DbSet<PhmDrugReturn> PhmDrugReturns { get; set; }
         public DbSet<PhmDrugReturnItem> PhmDrugReturnItems { get; set; }
         public DbSet<PhmDrugReturnHistory> PhmDrugReturnHistories { get; set; }
@@ -1529,6 +1535,27 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PrcVendorStatusRequest> PrcVendorStatusRequests { get; set; }
         public DbSet<PrcVendorEvaluation> PrcVendorEvaluations { get; set; }
         public DbSet<PrcVendorEvaluationScore> PrcVendorEvaluationScores { get; set; }
+
+        // BE-PBJ-PS-001: pemilihan penyedia — master metode pengadaan dan dokumen paket.
+        public DbSet<MstProcurementMethod> MstProcurementMethods { get; set; }
+        public DbSet<MstProcurementPackageDocumentType> MstProcurementPackageDocumentTypes { get; set; }
+        public DbSet<MstProcurementPackageDocumentRequirement> MstProcurementPackageDocumentRequirements { get; set; }
+
+        // BE-PBJ-PS-004: pemilihan penyedia — paket, RFQ, penawaran, evaluasi teknis, negosiasi, penetapan.
+        public DbSet<PrcPackage> PrcPackages { get; set; }
+        public DbSet<PrcPackageItem> PrcPackageItems { get; set; }
+        public DbSet<PrcPackageItemSource> PrcPackageItemSources { get; set; }
+        public DbSet<PrcPackageChecklistItem> PrcPackageChecklistItems { get; set; }
+        public DbSet<PrcPackageEvaluator> PrcPackageEvaluators { get; set; }
+        public DbSet<PrcRfq> PrcRfqs { get; set; }
+        public DbSet<PrcRfqInvitation> PrcRfqInvitations { get; set; }
+        public DbSet<PrcQuotation> PrcQuotations { get; set; }
+        public DbSet<PrcQuotationLine> PrcQuotationLines { get; set; }
+        public DbSet<PrcTechnicalCriterion> PrcTechnicalCriteria { get; set; }
+        public DbSet<PrcTechnicalEvaluationResult> PrcTechnicalEvaluationResults { get; set; }
+        public DbSet<PrcNegotiation> PrcNegotiations { get; set; }
+        public DbSet<PrcNegotiationLine> PrcNegotiationLines { get; set; }
+        public DbSet<PrcPackageAward> PrcPackageAwards { get; set; }
         #endregion REHABILITATION MANAGEMENT
 
         #region MEDICAL CHECKUP MANAGEMENT

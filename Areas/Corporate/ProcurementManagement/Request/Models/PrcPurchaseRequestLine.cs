@@ -67,5 +67,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Mo
 
         [Column(TypeName = "numeric(18,2)")]
         public decimal PurchaseAmount { get; set; }
+
+        /// <summary>
+        /// Paket pengadaan yang memuat baris ini (BE-PBJ-PS-003; PBJ-DEC-071, <c>PBJ-PP-INT</c> 1.2). Kosong = belum
+        /// dipaketkan. Ditulis hanya lewat <c>ProcurementPurchaseRequestService</c> (tandai/lepas baris), tanpa FK fisik
+        /// ke paket. Contoh: 10 kursi roda PR-000031 masuk PKT-000012; bila paket batal, nilainya dikosongkan lagi.
+        /// </summary>
+        public Guid? PackageId { get; set; }
+
+        /// <summary>Saat baris dimasukkan ke paket; kosong bersama <see cref="PackageId"/>.</summary>
+        public DateTimeOffset? PackagedAt { get; set; }
     }
 }

@@ -56,7 +56,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
             var now = DateTime.UtcNow;
             var normalizedStatus = (context.WorkflowStatus ?? string.Empty).Trim();
 
-            if (string.Equals(normalizedStatus, "Approved", StringComparison.OrdinalIgnoreCase) ||
+            if (string.Equals(normalizedStatus, "Completed", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalizedStatus, "Approved", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(normalizedStatus, "FinalApproved", StringComparison.OrdinalIgnoreCase))
             {
                 // Idempoten (kriteria 5)
@@ -163,7 +164,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
             }
 
             if (string.Equals(normalizedStatus, "Returned", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(normalizedStatus, "ReturnedForRevision", StringComparison.OrdinalIgnoreCase))
+                string.Equals(normalizedStatus, "ReturnedForRevision", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalizedStatus, "RevisionRequested", StringComparison.OrdinalIgnoreCase))
             {
                 plan.PlanStatus = ManpowerPlanStatus.Returned;
                 plan.UpdateDateTime = now;

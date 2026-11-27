@@ -553,6 +553,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     ReferenceId = request.ReferenceId,
                     RequestNumber = BuildRequestNumber(),
                     WorkflowStatus = WorkflowValueConstants.WorkflowStatus.Draft,
+                    CurrentStepOrder = 1,
+                    TotalSteps = Math.Max(workflowSteps.Count, 1),
                     SourceChannel = sourceChannel,
                     StartedAt = now,
                     RequestCorrelationId = NormalizeOptionalText(request.RequestCorrelationId),

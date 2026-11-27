@@ -3,13 +3,13 @@
 | Field | Nilai |
 | --- | --- |
 | `blueprint_id` | `LGS-BP-001` |
-| `revision` | `5` — keputusan `LGS-DEC-003` (atasan unit), `LGS-DEC-004` (otorisasi CITO), `LGS-DEC-005` (verifikasi susulan CITO), `LGS-DEC-006` (batas aktivasi) `approved`; verifikasi susulan CITO diterapkan |
+| `revision` | `7` — verifikasi akhir: rancangan kebijakan baca lintas unit `LGS-OQ-027` dicatat sebagai usulan (bukan approval), pertanyaan baru `LGS-OQ-029` (cakupan perintah tulis). `r6`: finishing pasca-integration (PR #356). Keputusan `approved`: `LGS-DEC-001`..`006` |
 | `status` | `DISCOVERY` — struktur modul dan persetujuan permintaan unit sudah disetujui; keputusan operasional, kepemilikan domain, alur Goods Receipt, dan valuasi masih terbuka |
 | Modul | `logistik` — Logistik & Manajemen Persediaan (Health Services) |
 | `module_prefix` (usulan) | `LGS` untuk ID dokumen; prefix entity `Lgs` = *Logistik* **belum terdaftar** di `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` (`LGS-OQ-016`) |
 | `current_phase` | `LGS-PH-000` — penggalian keputusan (wawancara pemilik proses) |
 | Tanggal dibuat | 2026-11-17 |
-| `updated_at` | 2026-11-17 |
+| `updated_at` | 2026-11-18 |
 | `last_verified_at` | belum diverifikasi |
 | `supersedes` | tidak ada |
 
@@ -54,7 +54,7 @@ Belum ada kontrak. Kontrak baru disusun setelah keputusan pada `00-interview-dec
 
 | Tahap | Artefak | Hasil |
 | --- | --- | --- |
-| Wawancara | `00-interview-decisions.md` r5 | Enam keputusan `approved` (`LGS-DEC-001`..`006`); `LGS-OQ-004` dan `020`..`023` ditutup; 18 pertanyaan masih terbuka (`LGS-OQ-001`..`003`, `005`..`019`) |
+| Wawancara | `00-interview-decisions.md` r7 | Enam keputusan `approved` (`LGS-DEC-001`..`006`); 24 pertanyaan masih terbuka (`LGS-OQ-001`..`003`, `005`..`019`, `024`..`029`) |
 | Capability map | `01-existing-capability-map.md` r2 | 35 kemampuan: 12 Ready to reuse, 8 Reuse with adapter, 4 Extend, 8 Missing, 1 Conflict (`LGS-CAP-07`), 2 Unknown. Impact scan sesudah sinkron integration 2026-11-17; SHA sama dengan snapshot |
 | Requirement gate | — | Belum dijalankan |
 | Arsitektur domain | — | Belum dijalankan |
@@ -63,6 +63,8 @@ Belum ada kontrak. Kontrak baru disusun setelah keputusan pada `00-interview-dec
 
 | Revisi | Tanggal | Perubahan |
 | --- | --- | --- |
+| 7 | 2026-11-18 | Verifikasi akhir (FIN-LGS-VER-008..012): rancangan kebijakan `LGS-OQ-027` dicatat sebagai usulan beserta audit dampak; `LGS-OQ-029` dibuka; laporan master ditambah bagian *FINAL VERIFICATION & RUNTIME READINESS* |
+| 6 | 2026-11-18 | Finishing pasca-integration: laporan master `task/report/FIN-LGS-LAPORAN-FINISHING.md`; tidak ada keputusan baru; `LGS-OQ-024`..`028` dibuka |
 | 5 | 2026-11-17 | `LGS-DEC-003`..`006` dicatat; verifikasi susulan CITO (endpoint, daftar, panel); izin Approve eksplisit di service; pengendalian batas aktivasi; dokumen `evidence/05-aktivasi-batas-persetujuan.md` dan `06-dataset-uji-persetujuan.md`; test backend dipecah per jenis; laporan `LGS-BE-ADH-04` dan `LGS-FE-ADH-04` |
 | 4 | 2026-11-17 | Penyempurnaan `LGS-DEC-002` atas instruksi pemrakarsa: kewenangan atasan unit dari struktur organisasi yang ada, otorisasi CITO yang tidak dapat dilewati peran SuperAdmin, aturan peralihan permintaan lama (`LGS-OQ-023`), usulan verifikasi susulan CITO (`evidence/04-usulan-verifikasi-susulan-cito.md`), test backend; laporan `LGS-BE-ADH-03` dan `LGS-FE-ADH-03` |
 | 3 | 2026-11-17 | `LGS-DEC-002` (persetujuan permintaan barang unit) `approved`, menutup `LGS-OQ-004`; pertanyaan lanjutan `LGS-OQ-020` (atasan per unit), `021` (peran otorisasi CITO), `022` (validasi atasan susulan untuk CITO); laporan task ad-hoc `LGS-BE-ADH-02` dan `LGS-FE-ADH-02` |

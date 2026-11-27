@@ -209,5 +209,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
         }
+
+        /// <summary>
+        /// Ringkasan teragregasi alur Recruitment Journey untuk satu ApplicationId secara read-only.
+        /// </summary>
+        [HttpGet("/api/v1/corporate/human-resource/recruitment/applications/{applicationId:guid}/journey")]
+        [AccessAction("Read", "Melihat Kandidat", AccessType = AccessTypes.Read, SortOrder = 42)]
+        [AccessPermission("Candidate", "Read")]
+        [Tags("Corporate / Human Resource / Recruitment Management / Candidate")]
+        [ProducesResponseType(typeof(ApiResponse<RecruitmentJourneyResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetApplicationJourney(
+            [FromRoute] Guid applicationId,
+            [FromServices] IRecruitmentJourneyService journeyService,
+            CancellationToken cancellationToken)
+        {
+            var result = await journeyService.GetApplicationJourneyAsync(applicationId, User, cancellationToken);
+            return ToActionResult(result);
+        }
     }
 }

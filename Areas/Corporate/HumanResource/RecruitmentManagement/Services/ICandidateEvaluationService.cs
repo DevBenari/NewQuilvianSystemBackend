@@ -19,6 +19,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             bool canViewAll,
             CancellationToken cancellationToken = default);
 
+        Task<RecruitmentResult<PagedResult<EvaluationEligibleApplicationResponse>>> GetEligibleApplicationsAsync(
+            EvaluationEligibleQuery query,
+            ClaimsPrincipal user,
+            bool canViewAll,
+            CancellationToken cancellationToken = default);
+
         /// <summary>
         /// Detail evaluasi. Tanpa <paramref name="canViewAll"/>, evaluasi milik penilai lain ditolak <c>403</c> (<c>VR-PKB-07</c>).
         /// </summary>

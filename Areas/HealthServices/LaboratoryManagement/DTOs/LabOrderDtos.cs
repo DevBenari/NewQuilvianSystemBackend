@@ -253,6 +253,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public string? CancelReason { get; set; }
     }
 
+    /// <summary>
+    /// Permintaan penjadwalan ulang pesanan laboratorium (<c>LAB-API-v1</c> <c>r50</c> 45.2). Status
+    /// pesanan tidak berubah; yang berpindah hanya tanggal rencana.
+    /// </summary>
+    public class RescheduleLabOrderRequest
+    {
+        /// <summary>
+        /// Tanggal rencana baru, <c>yyyy-MM-dd</c>. Wajib (<c>400</c> bila tidak ada atau bukan
+        /// tanggal, <c>VAL-156</c>); tidak boleh sebelum hari ini WIB (<c>VAL-157</c>) dan tidak boleh
+        /// sama dengan tanggal rencana saat ini (<c>VAL-158</c>) — keduanya <c>422</c>. Tanpa batas atas.
+        /// </summary>
+        [Required]
+        public DateOnly? PlannedDate { get; set; }
+
+        /// <summary>
+        /// Alasan penjadwalan ulang, maksimal 1000 karakter. Wajib berisi selain spasi
+        /// (<c>VAL-159</c>, <c>422</c>) dan disimpan sesudah di-<i>trim</i>. Sengaja tanpa
+        /// <c>[Required]</c> supaya alasan kosong menjadi <c>422</c>, bukan <c>400</c> — pola
+        /// <see cref="CancelLabOrderRequest"/>.
+        /// </summary>
+        [MaxLength(1000)]
+        public string? Reason { get; set; }
+
+        /// <summary>
+        /// Versi pesanan yang dimuat layar. Bila dikirim dan berbeda dengan versi saat ini, ditolak
+        /// <c>409</c> (<c>VAL-165</c>) — pesanan sudah diubah petugas lain.
+        /// </summary>
+        public int? Version { get; set; }
+    }
+
+    /// <summary>Satu peristiwa penjadwalan ulang pesanan laboratorium.</summary>
+    public class LabOrderRescheduleResponse
+    {
+        public Guid Id { get; set; }
+
+        /// <summary>Tanggal rencana sebelum dipindah.</summary>
+        public DateOnly PreviousPlannedDate { get; set; }
+
+        /// <summary>Tanggal rencana sesudah dipindah.</summary>
+        public DateOnly NewPlannedDate { get; set; }
+
+        /// <summary>Alasan penjadwalan ulang apa adanya.</summary>
+        public string Reason { get; set; } = string.Empty;
+
+        public Guid ActorUserId { get; set; }
+
+        /// <summary>Nama pelaku — jalur nama yang sama dengan nama pemesan pada detail pesanan.</summary>
+        public string? ActorName { get; set; }
+
+        /// <summary>Waktu penjadwalan ulang, UTC.</summary>
+        public DateTime OccurredAt { get; set; }
+    }
+
     public class LabOrderListResponse
     {
         public Guid Id { get; set; }
@@ -461,6 +514,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// </summary>
         public DateOnly PlannedDate { get; set; }
 
+        /// <summary>Jumlah peristiwa jadwal ulang pesanan ini (<c>r50</c> 45.3); pesanan lama = 0.</summary>
+        public int RescheduleCount { get; set; }
+
+        /// <summary>
+        /// Penanda <i>Terlewat</i> (<c>LAB-DC-069</c>): tanggal rencana sudah lewat dan pesanan masih
+        /// sebelum sampel diambil. Dihitung saat dibaca, bukan status.
+        /// </summary>
+        public bool IsOverdue { get; set; }
+
+        /// <summary>Hari sejak tanggal rencana bila <see cref="IsOverdue"/>, selain itu 0.</summary>
+        public int OverdueDays { get; set; }
+
+        /// <summary>
+        /// Kelayakan jadwal ulang (<c>LAB-DC-068</c>) — <b>bukan</b> izin: tombol tetap membutuhkan
+        /// <c>LabOrder : Reschedule</c>. Rumus yang sama dengan penjaga <c>PUT reschedule</c>.
+        /// </summary>
+        public bool CanReschedule { get; set; }
+
+        /// <summary>
+        /// <c>McuLinked</c>, <c>StatusNotEligible</c>, <c>SampleTaken</c>, <c>EncounterClosed</c>,
+        /// <c>ActiveCito</c>; kosong bila layak.
+        /// </summary>
+        public string? RescheduleBlockReasonCode { get; set; }
+
+        /// <summary>Pesan bagi pengguna — sama persis dengan pesan <c>409</c> <c>PUT reschedule</c>.</summary>
+        public string? RescheduleBlockReason { get; set; }
+
         /// <summary>
         /// Dokter atau petugas yang meminta pemeriksaan ini.
         ///
@@ -640,5 +720,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public string ProcedureName { get; set; } = string.Empty;
 
         public string OrderStatus { get; set; } = string.Empty;
+
+        /// <summary>Tanggal rencana pesanan (<c>r50</c> 45.6).</summary>
+        public DateOnly PlannedDate { get; set; }
+
+        /// <summary>Tanggal rencana sesudah hari ini WIB — kiosk menampilkan, tidak menolak (<c>LAB-DEC-266</c>).</summary>
+        public bool IsEarly { get; set; }
+
+        /// <summary>Penanda <i>Terlewat</i>. Kiosk sengaja tidak menerima alasan maupun riwayat.</summary>
+        public bool IsOverdue { get; set; }
     }
 }
