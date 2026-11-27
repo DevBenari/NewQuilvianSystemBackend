@@ -92,6 +92,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         /// <summary>Pencarian bebas pada nama pasien, nomor rekam medis, dan nomor kunjungan.</summary>
         public string? Search { get; set; }
+
+        /// <summary>
+        /// Ikut memuat pesanan <i>Terlewat</i> — tanggal rencana sebelum <see cref="StartDate"/> dan
+        /// masih sebelum sampel diambil (<c>LAB-API-v1</c> <c>r50</c> 45.5, <c>LAB-DEC-260</c>).
+        /// Bawaan <c>false</c>. <b>Hanya berlaku</b> bersama <c>DateCategory=PlannedDate</c> dan
+        /// <see cref="StartDate"/>; pada kategori lain diabaikan, tidak ditolak.
+        /// </summary>
+        public bool IncludeOverdue { get; set; }
     }
 
     /// <summary>
@@ -268,6 +276,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// Sama dengan sumber penyaring <c>ExaminationDate</c>; kosong bila belum ada yang diperiksa.
         /// </summary>
         public DateTime? FirstExaminedAt { get; set; }
+
+        /// <summary>Tanggal rencana pemeriksaan (<c>r50</c> 45.5).</summary>
+        public DateOnly PlannedDate { get; set; }
+
+        /// <summary>Penanda <i>Terlewat</i> — arti sama dengan detail pesanan (<c>r50</c> 45.3).</summary>
+        public bool IsOverdue { get; set; }
+
+        /// <summary>Hari sejak tanggal rencana bila terlewat, selain itu 0.</summary>
+        public int OverdueDays { get; set; }
+
+        /// <summary>Kelayakan jadwal ulang — bukan izin; rumus yang sama dengan penjaga <c>PUT reschedule</c>.</summary>
+        public bool CanReschedule { get; set; }
+
+        /// <summary>Kode alasan tidak layak; kosong bila layak.</summary>
+        public string? RescheduleBlockReasonCode { get; set; }
+
+        /// <summary>Pesan bagi pengguna — sama persis dengan pesan <c>409</c>.</summary>
+        public string? RescheduleBlockReason { get; set; }
 
         /// <summary>
         /// Seluruh pemeriksaan yang <b>diminta</b> pada pesanan ini (kolom Nama Pemeriksaan v1), urut

@@ -299,6 +299,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     x.EncounterId,
                     x.Discipline,
                     x.OrderStatus,
+                    x.PlannedDate,
                     RequestedAt = x.RequestedAt ?? x.CreateDateTime,
                     ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : string.Empty,
                     EncounterNumber = x.Encounter!.EncounterNumber,
@@ -307,6 +308,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 })
                 .Take(200)
                 .ToListAsync(cancellationToken);
+
+            // r50 45.6 (BE-LAB-103, LAB-DEC-266) — tanggal rencana, lebih awal, dan Terlewat; tanpa
+            // alasan maupun riwayat. Kiosk tetap nol tulis dan tidak menolak.
+            var today = TodayPlannedDate();
+            var potret = await LabRescheduleSnapshotReader.ReadAsync(
+                _dbContext, baris.Select(x => x.Id).ToList(), cancellationToken);
 
             return baris
                 .GroupBy(x => x.EncounterId)
@@ -335,7 +342,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                                     _ => null
                                 },
                                 ProcedureName = x.ProcedureName,
-                                OrderStatus = x.OrderStatus.ToString()
+                                OrderStatus = x.OrderStatus.ToString(),
+                                PlannedDate = x.PlannedDate,
+                                IsEarly = x.PlannedDate > today,
+                                IsOverdue = potret.TryGetValue(x.Id, out var snapshot) &&
+                                            LabRescheduleEligibility.IsOverdue(snapshot, today)
                             })
                             .ToList()
                     };
@@ -473,6 +484,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                             .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
                             .FirstOrDefault(),
                     PlannedDate = x.PlannedDate,
+                    // r50 45.3 (BE-LAB-103) — dihitung dari riwayat, bukan kolom tersimpan (33.9).
+                    RescheduleCount = _dbContext.LabOrderReschedules
+                        .Count(r => r.LabOrderId == x.Id && !r.IsDelete),
                     CompletedAt = x.CompletedAt,
                     StatusBeforeHold = x.StatusBeforeHold != null ? x.StatusBeforeHold.ToString() : null,
                     Version = x.Version,
@@ -617,6 +631,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                         OrderedStatus = x.OrderedStatus.ToString()
                     })
                     .ToListAsync(cancellationToken);
+            }
+
+            // r50 45.3 (BE-LAB-103) — penanda kelayakan dan Terlewat dari potret dan rumus yang
+            // sama dengan penjaga PUT reschedule (INV-67).
+            if (detail is not null)
+            {
+                var potret = await LabRescheduleSnapshotReader.ReadAsync(
+                    _dbContext, new[] { detail.Id }, cancellationToken);
+
+                if (potret.TryGetValue(detail.Id, out var snapshot))
+                {
+                    var today = TodayPlannedDate();
+                    var verdict = LabRescheduleEligibility.Evaluate(snapshot, today);
+
+                    detail.CanReschedule = verdict.CanReschedule;
+                    detail.RescheduleBlockReasonCode = verdict.BlockReasonCode;
+                    detail.RescheduleBlockReason = verdict.BlockReason;
+                    detail.IsOverdue = LabRescheduleEligibility.IsOverdue(snapshot, today);
+                    detail.OverdueDays = LabRescheduleEligibility.OverdueDays(snapshot, today);
+                }
             }
 
             return detail;
@@ -2068,6 +2102,166 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             return new LabOrderCancellationResult(detail, handoffs);
         }
 
+        // =====================================================================
+        // BE-LAB-102 — penjadwalan ulang pesanan (r50 45.2, LAB-VAL-v1 r22, LAB-STATE-v1 r12)
+        // =====================================================================
+
+        /// <summary>Pesan <c>VAL-158</c>.</summary>
+        internal const string PlannedDateUnchangedMessage = "Tanggal baru sama dengan tanggal rencana saat ini.";
+
+        /// <summary>Pesan <c>VAL-159</c>.</summary>
+        internal const string RescheduleReasonRequiredMessage = "Alasan penjadwalan ulang wajib diisi.";
+
+        /// <summary>Pesan <c>VAL-165</c> — bunyi yang sama dengan penolakan versi pada verifikasi instruksi.</summary>
+        internal const string StaleVersionMessage = "Pesanan ini baru saja diubah petugas lain. Muat ulang lalu coba lagi.";
+
+        /// <summary>
+        /// Memindahkan tanggal rencana pesanan ke tanggal lain, beralasan; status pesanan, wadah,
+        /// permintaan, dan pemeriksaan tidak disentuh (<c>LAB-DEC-257</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Urutan penjaga (<c>LAB-VAL-v1</c> <c>r22</c> 24.1): pesanan ada (<c>404</c>) → versi
+        /// (<c>VAL-165</c>) → kelayakan lewat <see cref="LabRescheduleEligibility"/> — rumus yang sama
+        /// dengan penanda layar (<c>INV-67</c>) — (<c>409</c>) → isi (<c>VAL-157</c>..<c>159</c>,
+        /// <c>422</c>). Keadaan lebih dulu: pesanan yang memang tidak boleh dipindah tidak diminta
+        /// alasannya — pola <c>VAL-75</c> lalu <c>VAL-74</c>.
+        /// </para>
+        /// <para>
+        /// <b>Satu <c>SaveChangesAsync</c></b> menulis perubahan pesanan dan satu baris
+        /// <see cref="LabOrderReschedule"/> bersama (<c>INV-69</c>); setiap penolakan terjadi sebelum
+        /// tulis. Balapan simpan ditangkap token <see cref="LabOrder.Version"/>. Riwayat perpindahan
+        /// status <b>tidak</b> ditulis — jadwal ulang bukan perpindahan status (33.10 no. 1).
+        /// </para>
+        /// </remarks>
+        public async Task<LabOrderDetailResponse> RescheduleAsync(
+            Guid id,
+            RescheduleLabOrderRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            var entity = await LoadTrackedAsync(id, cancellationToken);
+
+            // VAL-165 — 33.10 no. 2: layar basi ditolak sebelum apa pun dinilai.
+            if (request.Version.HasValue && request.Version.Value != entity.Version)
+                throw new LabOrderConflictException(StaleVersionMessage);
+
+            var today = TodayPlannedDate();
+            var snapshot = await ReadRescheduleSnapshotAsync(entity, cancellationToken);
+            var verdict = LabRescheduleEligibility.Evaluate(snapshot, today);
+
+            // VAL-164, VAL-160, VAL-161, VAL-162, VAL-163 — pesan sama persis dengan penanda layar.
+            if (!verdict.CanReschedule)
+                throw new LabOrderConflictException(verdict.BlockReason!);
+
+            // VAL-156 menjamin tanggal ada; penjaga ini hanya untuk pemanggil di luar pengikatan.
+            if (!request.PlannedDate.HasValue)
+                throw new ArgumentException("Tanggal rencana wajib diisi.");
+
+            var newPlannedDate = request.PlannedDate.Value;
+
+            // VAL-157.
+            if (newPlannedDate < today)
+                throw new LabOrderValidationException(PlannedDateBeforeTodayMessage);
+
+            // VAL-158.
+            if (newPlannedDate == entity.PlannedDate)
+                throw new LabOrderValidationException(PlannedDateUnchangedMessage);
+
+            // VAL-159 — pola VAL-74.
+            var reason = request.Reason?.Trim();
+            if (string.IsNullOrWhiteSpace(reason))
+                throw new LabOrderValidationException(RescheduleReasonRequiredMessage);
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+            var previousPlannedDate = entity.PlannedDate;
+
+            entity.PlannedDate = newPlannedDate;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+            entity.Version++;
+
+            _dbContext.LabOrderReschedules.Add(new LabOrderReschedule
+            {
+                LabOrderId = entity.Id,
+                PreviousPlannedDate = previousPlannedDate,
+                NewPlannedDate = newPlannedDate,
+                Reason = reason,
+                ActorUserId = actorUserId,
+                OccurredAt = now,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            });
+
+            await SaveWithConcurrencyGuardAsync(cancellationToken);
+
+            // 33.10 no. 4 — tanpa alasan dan tanpa identitas pasien: alasan dapat menyebut kondisi
+            // pasien. LoggerService mengabaikan payload, sehingga isinya ditulis di teks pesan.
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "LabOrder.Reschedule",
+                $"Pesanan {entity.OrderNumber} dijadwalkan ulang dari {previousPlannedDate:yyyy-MM-dd} " +
+                $"ke {newPlannedDate:yyyy-MM-dd} oleh pengguna {actorUserId}.");
+
+            return await GetDetailOrThrowAsync(entity.Id, cancellationToken);
+        }
+
+        /// <summary>
+        /// Riwayat penjadwalan ulang satu pesanan, terbaru di atas (<c>LAB-DEC-268</c>). Baca murni;
+        /// daftar kosong bila pesanan belum pernah dijadwalkan ulang.
+        /// </summary>
+        /// <exception cref="KeyNotFoundException">Pesanan tidak ada atau terhapus.</exception>
+        public async Task<List<LabOrderRescheduleResponse>> GetRescheduleHistoryAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var exists = await _dbContext.LabOrders
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+
+            if (!exists)
+                throw new KeyNotFoundException("Order laboratorium tidak ditemukan.");
+
+            return await _dbContext.LabOrderReschedules
+                .AsNoTracking()
+                .Where(x => x.LabOrderId == id && !x.IsDelete)
+                .OrderByDescending(x => x.OccurredAt)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Select(x => new LabOrderRescheduleResponse
+                {
+                    Id = x.Id,
+                    PreviousPlannedDate = x.PreviousPlannedDate,
+                    NewPlannedDate = x.NewPlannedDate,
+                    Reason = x.Reason,
+                    ActorUserId = x.ActorUserId,
+                    // Jalur nama pelaku r48 — sama dengan RequestedByName pada detail pesanan.
+                    ActorName = _dbContext.Users
+                        .Where(u => u.Id == x.ActorUserId)
+                        .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
+                        .FirstOrDefault(),
+                    OccurredAt = x.OccurredAt
+                })
+                .ToListAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Potret kelayakan satu pesanan — lewat <see cref="LabRescheduleSnapshotReader"/>, penyusun yang
+        /// sama dengan penanda detail, daftar pantau, dan kiosk (<c>BE-LAB-103</c>, <c>INV-67</c>).
+        /// </summary>
+        private async Task<LabRescheduleSnapshot> ReadRescheduleSnapshotAsync(
+            LabOrder entity,
+            CancellationToken cancellationToken)
+        {
+            var potret = await LabRescheduleSnapshotReader.ReadAsync(
+                _dbContext, new[] { entity.Id }, cancellationToken);
+
+            return potret.TryGetValue(entity.Id, out var snapshot)
+                ? snapshot
+                : throw new KeyNotFoundException("Order laboratorium tidak ditemukan.");
+        }
+
         public static LabBillingHandoffResponse MapHandoff(ClinicalFactEmissionResult emission) =>
             new()
             {
@@ -2250,8 +2444,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         /// <summary>
-        /// Pesan <c>VAL-166</c> (dan kelak <c>VAL-157</c>) — satu bunyi bagi setiap jalur yang
-        /// menetapkan tanggal rencana.
+        /// Pesan <c>VAL-166</c> dan <c>VAL-157</c> — satu bunyi bagi setiap jalur yang menetapkan
+        /// tanggal rencana.
         /// </summary>
         internal const string PlannedDateBeforeTodayMessage = "Tanggal rencana tidak boleh sebelum hari ini.";
 
