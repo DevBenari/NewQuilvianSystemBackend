@@ -51,7 +51,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             [FromQuery] Guid? workforceProfileId,
             CancellationToken cancellationToken)
         {
-            var result = await _service.GetSummaryAsync(workforceProfileId, cancellationToken);
+            var result = await _service.GetSummaryInScopeAsync(workforceProfileId, cancellationToken);
             return Ok(ApiResponse<ShiftSwapSummaryResponse>.Ok(
                 result,
                 "Ringkasan tukar shift berhasil diambil."));
@@ -71,7 +71,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             [FromQuery] int pageSize = 25,
             CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetPagedAsync(
+            var result = await _service.GetPagedInScopeAsync(
                 workforceProfileId,
                 "all",
                 requestStatus,
@@ -93,7 +93,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         [AccessPermission("ShiftSwapRequest", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
         {
-            return ToActionResult(await _service.GetByIdAsync(id, null, cancellationToken));
+            return ToActionResult(await _service.GetByIdInScopeAsync(id, cancellationToken));
         }
 
         [HttpGet("{id:guid}/workflow")]
@@ -101,6 +101,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         [AccessPermission("ShiftSwapRequest", "Read")]
         public async Task<IActionResult> GetWorkflow(Guid id, CancellationToken cancellationToken)
         {
+            var scope = await _service.CheckReadScopeAsync(id, cancellationToken);
+            if (!scope.Success) return ToActionResult(scope);
             return ToActionResult(await _workflowService.GetWorkflowAsync(id, null, cancellationToken));
         }
 
@@ -113,7 +115,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             CancellationToken cancellationToken)
         {
             if (!TryGetUserId(out var actorUserId)) return UnauthorizedResponse();
-            return ToActionResult(await _service.ApplyAsync(
+            return ToActionResult(await _service.ApplyInScopeAsync(
                 id,
                 actorUserId,
                 request.Notes,
@@ -126,6 +128,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public async Task<IActionResult> Synchronize(Guid id, CancellationToken cancellationToken)
         {
             if (!TryGetUserId(out var actorUserId)) return UnauthorizedResponse();
+            var scope = await _service.CheckManageScopeAsync(id, cancellationToken);
+            if (!scope.Success) return ToActionResult(scope);
             return ToActionResult(await _workflowService.SynchronizeAsync(
                 id,
                 actorUserId,

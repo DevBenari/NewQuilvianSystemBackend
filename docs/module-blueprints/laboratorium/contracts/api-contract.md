@@ -3,7 +3,8 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | **`49` — `approved`** 2026-10-20, bagian 44 (Laporan Pembatalan dan Statistik Pesanan `S16b-1`/`S16b-2`; `VAL-155` pada batal pemeriksaan/wadah). Sebelumnya: **`48` — `approved`** 2026-10-14, bagian 43 (kartu informasi halaman hasil v1: delapan ruas baca aditif di `LabOrderDetailResponse` dan `resultEnteredByName` di `LabExaminationResultFormResponse`; nol endpoint/izin/migration; persetujuan susulan atas kode 2026-10-13) — disetujui Yoga Aji Pratama lewat `LAB-REQ-025`. Sebelumnya: **`47` — `approved`** 2026-10-09, bagian 42 (kolom tabel v1 pada daftar pantau: delapan ruas baca aditif di `LabMonitoringItemResponse`; nol endpoint/izin/migration) — disetujui Yoga Aji Pratama lewat `LAB-REQ-024`. Sebelumnya: **`46` — `approved`** 2026-10-09, bagian 41 (rencana ulang sesudah wadah dibatalkan; pendahulu tanpa penanda membaca permintaan) — disetujui Yoga Aji Pratama lewat `LAB-REQ-023`. Sebelumnya: **`45` — `approved`** 2026-10-09, bagian 40 (CITO dari pemesanan sampai ke pemeriksaan: perilaku `urgency` saat rencana wadah dan ambil ulang, perbaikan data lama; nol endpoint/ruas baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-022`. Sebelumnya: **`44` — `approved`** 2026-10-08, bagian 39 (data ringkasan Beranda Lab, BR-140: tiga endpoint baca baru `dashboard/today`, `dashboard/yearly`, `dashboard/recent-orders`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`43` — `approved`** 2026-10-08, bagian 38 (lingkup kunci Lunas: nilai `paymentStatus` `Deferred`, `start-process` lolos bagi rawat inap/IGD) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`42` — `approved`** 2026-10-08, bagian 37 (alur Lab dari kiosk sampai hasil mengikuti FE v1, BR-141) — dua endpoint baca baru, enam ruas respons, dua `409` `start-process` — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`41` — `approved`** 2026-10-07, bagian 36 (daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian pesanan, BR-139) — satu endpoint baca baru dan satu perbaikan kesesuaian `r13`, disetujui Yoga Aji Pratama. Sebelumnya: **`40` — `approved`** 2026-10-07, bagian 35 (Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1, BR-138) — dua perubahan perilaku dan satu perubahan hak akses, disetujui Yoga Aji Pratama. Sebelumnya: **`39` — `approved`** 2026-10-06, bagian 34 (Spesifik Specimen pada respons specimen, `LAB-DEC-167`) — aditif pada respons dan satu perubahan perilaku penggantian, disetujui Yoga Aji Pratama. Sebelumnya: **`38` — `approved`** 2026-10-01, bagian 33 (identitas pasien pada rincian order, `LAB-DEC-166`) — aditif, disetujui Yoga Aji Pratama. Sebelumnya: **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| Revision | **`50` — `approved`** 2026-11-25, bagian 45 (penjadwalan ulang `S20-1`). Sebelumnya: **`49` — `approved`** 2026-10-20, bagian 44 (Laporan Pembatalan dan Statistik Pesanan `S16b-1`/`S16b-2`; `VAL-155` pada batal pemeriksaan/wadah). Sebelumnya: **`48` — `approved`** 2026-10-14, bagian 43 (kartu informasi halaman hasil v1: delapan ruas baca aditif di `LabOrderDetailResponse` dan `resultEnteredByName` di `LabExaminationResultFormResponse`; nol endpoint/izin/migration; persetujuan susulan atas kode 2026-10-13) — disetujui Yoga Aji Pratama lewat `LAB-REQ-025`. Sebelumnya: **`47` — `approved`** 2026-10-09, bagian 42 (kolom tabel v1 pada daftar pantau: delapan ruas baca aditif di `LabMonitoringItemResponse`; nol endpoint/izin/migration) — disetujui Yoga Aji Pratama lewat `LAB-REQ-024`. Sebelumnya: **`46` — `approved`** 2026-10-09, bagian 41 (rencana ulang sesudah wadah dibatalkan; pendahulu tanpa penanda membaca permintaan) — disetujui Yoga Aji Pratama lewat `LAB-REQ-023`. Sebelumnya: **`45` — `approved`** 2026-10-09, bagian 40 (CITO dari pemesanan sampai ke pemeriksaan: perilaku `urgency` saat rencana wadah dan ambil ulang, perbaikan data lama; nol endpoint/ruas baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-022`. Sebelumnya: **`44` — `approved`** 2026-10-08, bagian 39 (data ringkasan Beranda Lab, BR-140: tiga endpoint baca baru `dashboard/today`, `dashboard/yearly`, `dashboard/recent-orders`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`43` — `approved`** 2026-10-08, bagian 38 (lingkup kunci Lunas: nilai `paymentStatus` `Deferred`, `start-process` lolos bagi rawat inap/IGD) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`42` — `approved`** 2026-10-08, bagian 37 (alur Lab dari kiosk sampai hasil mengikuti FE v1, BR-141) — dua endpoint baca baru, enam ruas respons, dua `409` `start-process` — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`41` — `approved`** 2026-10-07, bagian 36 (daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian pesanan, BR-139) — satu endpoint baca baru dan satu perbaikan kesesuaian `r13`, disetujui Yoga Aji Pratama. Sebelumnya: **`40` — `approved`** 2026-10-07, bagian 35 (Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1, BR-138) — dua perubahan perilaku dan satu perubahan hak akses, disetujui Yoga Aji Pratama. Sebelumnya: **`39` — `approved`** 2026-10-06, bagian 34 (Spesifik Specimen pada respons specimen, `LAB-DEC-167`) — aditif pada respons dan satu perubahan perilaku penggantian, disetujui Yoga Aji Pratama. Sebelumnya: **`38` — `approved`** 2026-10-01, bagian 33 (identitas pasien pada rincian order, `LAB-DEC-166`) — aditif, disetujui Yoga Aji Pratama. Sebelumnya: **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| `r50` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-11-25** — *"setuju semua sesuai rekomendasi, lanjut plan-module-delivery"* — atas keempat kontrak `S20-1` dan keenam butir `02-backend-architecture.md` 33.10 |
 | `r49` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-20** — *"Setuju keenam butir (Direkomendasikan)"* — pilihan pemilik modul pada sesi 2026-10-20 atas keempat kontrak dan keenam butir `02-backend-architecture.md` 32.10 |
 | `r48` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-14** — *"saya setuju buatkan surat permintaan persetujuannya dan bagian kontraknya"* atas `LAB-REQ-025`, keempat butir |
 | `r47` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-09** — *"Ya, tambahkan semua"* atas `LAB-REQ-024`, ketiga butir |
@@ -4963,3 +4964,163 @@ judul kolom Bahasa Indonesia; angka disimpan sebagai angka; waktu dalam WIB. Nam
 | Izin per laporan | `LAB-DEC-231`, `239`, `245` | A8.8 | `AC-330` |
 | `.xlsx` dan pencatat cetak | `LAB-DEC-233`, `248` | A8.9 | `AC-332`, `AC-337` |
 | Alasan wajib batal pemeriksaan/wadah | `LAB-DEC-237`, `247` | `INV-60` | `AC-326`, `AC-327` |
+
+## 45. Amandemen `r50` — Penjadwalan ulang pemeriksaan (`S20-1`), 2026-11-25
+
+> ### ✅ STATUS: `approved` — 2026-11-25
+>
+> | Butir | Isi |
+> |---|---|
+> | Status | **`approved`** — boleh diturunkan ke roadmap |
+> | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-11-25 — *"setuju semua sesuai rekomendasi, lanjut plan-module-delivery"* — atas keempat kontrak `S20-1` dan keenam butir `02-backend-architecture.md` 33.10 |
+> | `input_revision` | decisions **rev 143**; `LAB-RCG-001` **rev 14** bagian 0I; `LAB-DA-001` **rev 12** bagian A9; `02-backend-architecture.md` **rev 24** bagian 33; capability map **rev 10** |
+> | Keputusan | `LAB-DEC-251`..`LAB-DEC-277` (tanpa `LAB-DEC-255`, superseded) |
+> | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_READY` (A9.15) |
+> | Sifat | **Aditif**: dua endpoint baru; ruas **opsional** baru pada dua permintaan pembuatan pesanan; ruas baru pada respons detail, daftar pantau, dan kiosk; satu nilai enum `LabDateCategory` baru; satu parameter query baru. **Nol** perubahan perilaku bagi pemanggil yang tidak mengirim ruas baru |
+> | Migration | Satu — kolom `LabOrder.PlannedDate` dan tabel `LabOrderReschedule` (`02-backend-architecture.md` 33.7) |
+> | Permission | Satu aksi baru — `LAB-PERM-v1` revision 18 |
+> | Yang wajib disetujui tersendiri | Enam butir `02-backend-architecture.md` 33.10 |
+
+### 45.1 Kenapa amandemen ini ada
+
+Pemilik modul memutuskan penjadwalan ulang pemeriksaan Laboratorium pada amendment pass putaran 32 dan closure pass
+putaran 33 (BR-157): pesanan memperoleh **tanggal rencana pemeriksaan**, dan petugas berwenang dapat **memindahkannya**
+ke hari lain sebelum sampel diambil, beralasan, tanpa membatalkan pesanan (`LAB-DEC-252`). Daftar Pasien Lab menampilkan
+rencana hari ini dan pesanan yang terlewat (`LAB-DEC-258`, `260`); kiosk menampilkan tanggalnya tanpa menolak
+(`LAB-DEC-266`).
+
+**Contoh alur.** Gula Darah Puasa `LAB-RSMMC-900031` (nomor samaran) direncanakan Senin 2 Desember 2026. Senin 07.40 WIB
+Gilang memanggil `PUT /lab-orders/{id}/reschedule` dengan `{"plannedDate":"2026-12-03","reason":"pasien belum puasa","version":4}`
+→ `200`; detail pesanan kini `plannedDate: "2026-12-03"`, `rescheduleCount: 1`; Daftar Pasien Lab Senin tidak lagi
+memuatnya, daftar Selasa memuatnya.
+
+### 45.2 `[Tags("Health Services / Laboratory Management / Lab Order")]` — endpoint baru
+
+Base URL: `api/v1/health-services/laboratory-management/lab-orders`
+Contract version: `LAB-API-v1` `r50` — status `approved` 2026-11-25
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `PUT` | `/{id:guid}/reschedule` | Memindahkan tanggal rencana pesanan ke tanggal lain, beralasan; status pesanan tidak berubah | `LabOrder : Reschedule` | `RescheduleLabOrderRequest` | `ApiResponse<LabOrderDetailResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}/reschedules` | Riwayat jadwal ulang satu pesanan, terbaru di atas | `LabOrder : Read` | - | `ApiResponse<List<LabOrderRescheduleResponse>>` | **Rencana (belum tersedia)** |
+
+**`RescheduleLabOrderRequest`** (jenis *Status*)
+
+| Ruas | Tipe | Wajib | Batas / validasi | Contoh |
+|---|---|:---:|---|---|
+| `plannedDate` | `DateOnly` (`yyyy-MM-dd`) | Ya | ≥ hari ini WIB (`VAL-157`); ≠ tanggal rencana saat ini (`VAL-158`) | `"2026-12-03"` |
+| `reason` | `string` | Ya (penjaga layanan, tanpa `[Required]` — pola `CancelLabOrderRequest`) | `[MaxLength(1000)]`; tidak boleh kosong atau hanya spasi (`VAL-159`); disimpan sesudah di-*trim* | `"pasien belum puasa"` |
+| `version` | `int?` | Tidak | Bila dikirim dan ≠ `LabOrder.Version` → `409` (`VAL-165`) — disetujui 33.10 no. 2 | `4` |
+
+**`LabOrderRescheduleResponse`** (jenis *Response*)
+
+| Ruas | Tipe | Arti |
+|---|---|---|
+| `id` | `Guid` | Identitas peristiwa |
+| `previousPlannedDate` | `DateOnly` | Tanggal sebelum dipindah |
+| `newPlannedDate` | `DateOnly` | Tanggal sesudah dipindah |
+| `reason` | `string` | Alasan apa adanya |
+| `actorUserId` | `Guid` | Pelaku |
+| `actorName` | `string?` | Nama pelaku — jalur nama pelaku `r48` |
+| `occurredAt` | `DateTime` (UTC) | Waktu jadwal ulang |
+
+**Kode status `PUT /{id}/reschedule`** — urutan penjaga: pesanan ada → izin → versi → kelayakan (urutan 33.4) → isi.
+
+| Kode | Kapan | Yang dibaca pengguna |
+|---|---|---|
+| `200` | Tanggal berganti, satu peristiwa tertulis | Detail pesanan terbaru |
+| `400` | Badan permintaan tidak terbaca, `plannedDate` tidak ada atau bukan tanggal, `reason` > 1000 karakter (`VAL-156`) | Pesan pengikatan bawaan |
+| `403` | Tidak memegang `LabOrder : Reschedule` | *Akses ditolak* |
+| `404` | Pesanan tidak ada atau terhapus | *Pesanan laboratorium tidak ditemukan.* |
+| `409` | Versi berbeda (`VAL-165`); pesanan bertaut MCU (`VAL-164`); status tidak dalam jendela (`VAL-160`); sampel sudah diambil atau ditolak (`VAL-161`); kunjungan selesai (`VAL-162`); CITO aktif (`VAL-163`); balapan simpan | Pesan `BlockReason` yang sama dengan penanda layar (`INV-67`) |
+| `422` | Tanggal lampau (`VAL-157`); tanggal sama (`VAL-158`); alasan kosong (`VAL-159`) | Pesan aturan |
+
+**Contoh penolakan.** Kolesterol yang wadahnya `Collected` pukul 07.15 → `409` *"Sampel sudah diambil; batalkan wadah atau
+ambil ulang lebih dulu."*; tanggal tetap, nol peristiwa. Gula Darah Puasa dipindah ke kemarin → `422` *"Tanggal rencana
+tidak boleh sebelum hari ini."*
+
+**Kode status `GET /{id}/reschedules`:** `200` (daftar, boleh kosong); `403`; `404`.
+
+### 45.3 Perluasan respons detail pesanan
+
+`GET /{id:guid}` → `LabOrderDetailResponse` memperoleh ruas baru (aditif):
+
+| Ruas | Tipe | Arti | Contoh |
+|---|---|---|---|
+| `plannedDate` | `DateOnly` | Tanggal rencana pemeriksaan | `"2026-12-03"` |
+| `rescheduleCount` | `int` | Jumlah peristiwa jadwal ulang | `1` |
+| `isOverdue` | `bool` | Penanda *Terlewat* (`LAB-DC-069`) | `false` |
+| `overdueDays` | `int` | Hari sejak tanggal rencana bila terlewat, selain itu `0` | `0` |
+| `canReschedule` | `bool` | Kelayakan jadwal ulang (`LAB-DC-068`) — **bukan** izin | `true` |
+| `rescheduleBlockReasonCode` | `string?` | `McuLinked`, `StatusNotEligible`, `SampleTaken`, `EncounterClosed`, `ActiveCito`; kosong bila layak | `null` |
+| `rescheduleBlockReason` | `string?` | Pesan bagi pengguna, sama persis dengan pesan `409` | `null` |
+
+### 45.4 Perluasan permintaan pembuatan pesanan
+
+| Endpoint | DTO | Ruas baru | Aturan |
+|---|---|---|---|
+| `POST /` | `CreateLabOrderRequest` | `plannedDate` `DateOnly?` — opsional | Kosong → hari ini WIB; lampau → `422` (`VAL-166`) |
+| `POST /by-examinations` | `CreateLabOrderByExaminationsRequest` | `plannedDate` `DateOnly?` — opsional; berlaku bagi **setiap** pesanan hasil pemecahan per disiplin | Sama |
+
+**Pemanggil yang ada tidak berubah perilaku**: layar dokter poli, IGD, Rawat Inap, MCU, dan layar Lab sendiri tidak
+mengirim ruas ini → pesanan lahir bertanggal rencana hari ini. Pemakaiannya di layar dokter = `S20-2` (`LAB-COORD-023`).
+
+### 45.5 `[Tags("Health Services / Laboratory Management / Lab Monitoring")]` — perluasan
+
+Base URL: `api/v1/health-services/laboratory-management/lab-monitoring`
+Contract version: `LAB-API-v1` `r50` — status `approved` 2026-11-25
+
+| Method | Path | Perubahan | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `/clinical-pathology`, `/anatomic-pathology`, `/microbiology` | Query dan baris diperluas (di bawah) | Tidak berubah | **Rencana (belum tersedia)** — perluasan |
+
+**`LabMonitoringQuery`**
+
+| Ruas | Perubahan | Aturan | Contoh |
+|---|---|---|---|
+| `dateCategory` | Nilai baru **`PlannedDate`** (= 4) — `startDate`/`endDate` dibandingkan dengan tanggal rencana | Kosong tetap `OrderDate` (`LAB-DEC-277`) | `PlannedDate` |
+| `includeOverdue` | **Baru**, `bool`, bawaan `false` | Hanya berlaku bila `dateCategory=PlannedDate`: hasil = rencana dalam periode **ditambah** pesanan *Terlewat* dengan tanggal rencana sebelum `startDate`. Diabaikan pada kategori lain — disetujui 33.10 no. 6 | `true` |
+
+**`LabMonitoringItemResponse`** memperoleh `plannedDate`, `isOverdue`, `overdueDays`, `canReschedule`,
+`rescheduleBlockReasonCode`, `rescheduleBlockReason` — arti sama dengan 45.3.
+
+**Contoh.** Rabu 4 Desember, layar daftar kerja memanggil `?dateCategory=PlannedDate&startDate=2026-12-04&endDate=2026-12-04&includeOverdue=true`
+→ pesanan bertanggal rencana 4 Desember **ditambah** Profil Lipid bertanggal 2 Desember yang belum diambil sampelnya
+(`isOverdue: true`, `overdueDays: 2`). Menu Hasil dan Riwayat memanggil tanpa `dateCategory` → perilaku `OrderDate` seperti
+sebelumnya.
+
+### 45.6 Perluasan kiosk
+
+`GET /lab-orders/kiosk/pending-by-patient/{patientId}` (`KioskReadPolicy`, tidak berubah) → `LabKioskPendingOrderItemResponse`
+memperoleh:
+
+| Ruas | Tipe | Arti |
+|---|---|---|
+| `plannedDate` | `DateOnly` | Tanggal rencana pesanan |
+| `isEarly` | `bool` | `plannedDate` > hari ini WIB |
+| `isOverdue` | `bool` | Penanda *Terlewat* |
+
+**Tidak** memuat alasan maupun riwayat. Kiosk tetap **nol tulis** dan **tidak menolak** (`LAB-DEC-266`).
+
+### 45.7 Kompatibilitas
+
+| Perubahan | Dampak pada pemanggil yang ada |
+|---|---|
+| Ruas respons baru (detail, daftar pantau, kiosk) | Nol — ruas tambahan diabaikan pemanggil lama |
+| `plannedDate` opsional pada pembuatan pesanan | Nol — tidak dikirim = hari ini |
+| Nilai enum `LabDateCategory.PlannedDate` | Nol bagi pemanggil yang tidak mengirimnya; nilai kosong tetap `OrderDate` |
+| `includeOverdue` | Nol — bawaan `false` |
+| Dua endpoint baru | Aditif |
+| Kolom `PlannedDate` NOT NULL | Kode lama yang membuat pesanan **gagal** bila migration diterapkan tanpa kode baru — rilis bersama (`02-backend-architecture.md` 33.7) |
+
+### 45.8 Traceability `r50`
+
+| Butir | Keputusan | Arsitektur domain | AC |
+|---|---|---|---|
+| `PUT {id}/reschedule` | `LAB-DEC-252`, `254`, `256`, `257`, `261`, `264`, `270`..`272`, `275`, `276` | `INV-61`..`INV-66`, `INV-69` | `AC-338`, `AC-340`..`AC-343`, `AC-347`..`AC-350`, `AC-355` |
+| `GET {id}/reschedules`, `rescheduleCount` | `LAB-DEC-268` | `LAB-DC-067` | `AC-349`, `AC-352` |
+| `canReschedule` + alasan | `LAB-DEC-273` | `INV-67` | `AC-353` |
+| `plannedDate` pada pembuatan | `LAB-DEC-253`, `263`, `269` | `INV-68` | `AC-339` |
+| `dateCategory=PlannedDate`, `includeOverdue`, `isOverdue` | `LAB-DEC-258`, `260`, `277` | `LAB-DC-069` | `AC-344`, `AC-346`, `AC-356` |
+| Kiosk | `LAB-DEC-266` | A9.11 | `AC-351` |
+

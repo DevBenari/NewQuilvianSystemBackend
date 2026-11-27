@@ -470,8 +470,6 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PrlTaxPolicy> PrlTaxPolicies { get; set; }
         // PAY-BE-FIX-016: tabel dibuat lewat DDL pemilik (PAY-BE-FIX-015 bagian 9.1). Hanya dibaca setelah keberadaannya diperiksa (PayrollOpeningTaxBalanceStoreSource).
         public DbSet<PrlOpeningTaxBalance> PrlOpeningTaxBalances { get; set; }
-        // LEGACY_PERSISTED (PAY-BE-FIX-007): tidak ada consumer aktif; dipertahankan agar model EF tetap sinkron dengan database dan snapshot migration.
-        public DbSet<PrlBpjsPolicy> PrlBpjsPolicies { get; set; }
         public DbSet<PrlPayrollRun> PrlPayrollRuns { get; set; }
         public DbSet<PrlPayrollRunEmployee> PrlPayrollRunEmployees { get; set; }
         public DbSet<HrdPayrollSetting> HrdPayrollSettings { get; set; }
@@ -1157,6 +1155,11 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmDrugStockBalance> PhmDrugStockBalances { get; set; }
         public DbSet<PhmDrugStockMutation> PhmDrugStockMutations { get; set; }
 
+        // Stock Opname Logistik (FIN-LGS-091). Tabelnya menunggu migrasi oleh pihak berwenang;
+        // sebelum itu layanan menjawab BLOCKED_SCHEMA (PHM039), bukan galat basis data mentah.
+        public DbSet<PhmStockOpname> PhmStockOpnames { get; set; }
+        public DbSet<PhmStockOpnameLine> PhmStockOpnameLines { get; set; }
+
         public DbSet<PhmDrugReturn> PhmDrugReturns { get; set; }
         public DbSet<PhmDrugReturnItem> PhmDrugReturnItems { get; set; }
         public DbSet<PhmDrugReturnHistory> PhmDrugReturnHistories { get; set; }
@@ -1229,6 +1232,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<LabOrderedProcedure> LabOrderedProcedures { get; set; }
 
         public DbSet<LabTransitionHistory> LabTransitionHistories { get; set; }
+
+        public DbSet<LabOrderReschedule> LabOrderReschedules { get; set; }
 
         public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }
 

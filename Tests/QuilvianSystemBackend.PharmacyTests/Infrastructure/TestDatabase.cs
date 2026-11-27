@@ -178,7 +178,15 @@ namespace QuilvianSystemBackend.Tests.Pharmacy.Infrastructure
     public sealed class ModelUjiSqlite(ModelCustomizerDependencies dependencies)
         : RelationalModelCustomizer(dependencies)
     {
-        private static readonly string[] FungsiKhususPostgres = ["num_nonnulls"];
+        /// <summary>
+        /// Fungsi yang hanya ada di PostgreSQL. <c>btrim</c> masuk 26 November 2026 bersama check
+        /// constraint Payroll dan Pengadaan (<c>PrlOpeningTaxBalance</c>, <c>PrcVendorProfile</c>,
+        /// <c>PrcVendorStatusRequest</c>) berbentuk <c>length(btrim("Kolom")) &gt; 0</c>. SQLite tidak
+        /// mengenalnya dan menolak <c>CREATE TABLE</c> dengan <c>no such function: btrim</c>, sehingga
+        /// skema uji tidak terbentuk dan seluruh uji gagal. Tabel-tabel itu milik modul lain dan
+        /// tidak disentuh uji Farmasi; constraint-nya tetap berlaku di PostgreSQL.
+        /// </summary>
+        private static readonly string[] FungsiKhususPostgres = ["num_nonnulls", "btrim"];
 
         private const string CastPostgres = "::";
 

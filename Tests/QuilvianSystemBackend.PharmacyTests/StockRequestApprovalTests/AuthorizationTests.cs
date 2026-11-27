@@ -6,8 +6,9 @@ using static QuilvianSystemBackend.Tests.Pharmacy.StockRequestApprovalTests.Peri
 namespace QuilvianSystemBackend.Tests.Pharmacy.StockRequestApprovalTests;
 
 /// <summary>
-/// Kewenangan memutus permintaan (<c>LGS-DEC-003</c>, <c>LGS-DEC-004</c>): izin eksplisit,
-/// atasan unit, otorisasi CITO, dan larangan memutus permintaan sendiri.
+/// Kewenangan memutus permintaan setelah disederhanakan (<c>FIN-LGS-070</c>): izin
+/// <c>StockRequest:Approve</c> atau <c>StockRequest:AuthorizeEmergency</c> yang aktif, larangan
+/// memutus permintaan sendiri, dan tidak ada lagi ketergantungan pada jabatan atau penempatan HRD.
 /// </summary>
 /// <remarks>
 /// Service dipanggil langsung, sehingga filter <c>[AccessPermission]</c> di controller tidak
@@ -16,10 +17,10 @@ namespace QuilvianSystemBackend.Tests.Pharmacy.StockRequestApprovalTests;
 /// </remarks>
 public class AuthorizationTests
 {
-    // ------------------------------------------------------------ atasan unit + izin
+    // ------------------------------------------------------------ izin persetujuan
 
     [Fact]
-    public async Task Atasan_unit_berizin_menyetujui_dan_keputusannya_tercatat_lengkap()
+    public async Task Penyetuju_berizin_menyetujui_dan_keputusannya_tercatat_lengkap()
     {
         using var h = new StockRequestApprovalHarness();
         var (id, _) = await h.PermintaanAsync();
@@ -37,7 +38,7 @@ public class AuthorizationTests
     }
 
     [Fact]
-    public async Task Kasus3_atasan_unit_tanpa_izin_Approve_eksplisit_ditolak()
+    public async Task Kasus3_penempatan_manajerial_tanpa_izin_Approve_eksplisit_ditolak()
     {
         using var h = new StockRequestApprovalHarness();
         var (id, _) = await h.PermintaanAsync();
@@ -50,70 +51,53 @@ public class AuthorizationTests
     }
 
     [Fact]
-    public async Task Staf_berizin_tanpa_penempatan_manajerial_ditolak()
-    {
-        using var h = new StockRequestApprovalHarness();
-        var (id, _) = await h.PermintaanAsync();
-
-        var galat = await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
-            h.Layanan(h.CreateContext(), h.StafUserId).ApproveAsync(id, Setujui("uji-staf")));
-
-        Assert.Contains("atasan unit", galat.Message);
-        await AssertMasihMenungguAsync(h, id);
-    }
-
-    [Fact]
-    public async Task Kasus2_atasan_unit_A_tidak_dapat_memutus_permintaan_unit_B()
+    public async Task Kasus2_penyetuju_dapat_memutus_permintaan_lintas_unit()
     {
         using var h = new StockRequestApprovalHarness();
         var (dariUnitA, _) = await h.PermintaanAsync(unitId: h.UnitId);
         var (dariUnitB, _) = await h.PermintaanAsync(unitId: h.UnitLainId);
 
-        await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
-            h.Layanan(h.CreateContext(), h.AtasanLainUserId).ApproveAsync(dariUnitA, Setujui("uji-lintas-1")));
-        await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
-            h.Layanan(h.CreateContext(), h.AtasanUserId).RejectAsync(dariUnitB, Tolak("uji-lintas-2")));
+        // Penempatan manajerial HRD AtasanLain ada di unit B, AtasanUser di unit A: keduanya tetap
+        // dapat memutus permintaan unit lain karena yang menentukan hanya izinnya.
+        var disetujui = await h.Layanan(h.CreateContext(), h.AtasanLainUserId)
+            .ApproveAsync(dariUnitA, Setujui("uji-lintas-1"));
+        var ditolak = await h.Layanan(h.CreateContext(), h.AtasanUserId)
+            .RejectAsync(dariUnitB, Tolak("uji-lintas-2"));
 
-        await AssertMasihMenungguAsync(h, dariUnitA);
-        await AssertMasihMenungguAsync(h, dariUnitB);
+        Assert.Equal(StockRequestStatus.Approved, disetujui.Status);
+        Assert.Equal(StockRequestStatus.Rejected, ditolak.Status);
+        Assert.Equal(h.AtasanLainUserId,
+            Assert.Single(disetujui.Histories, x => x.Action == "ApproveStockRequest").ActorUserId);
+        Assert.Equal(h.AtasanUserId,
+            Assert.Single(ditolak.Histories, x => x.Action == "RejectStockRequest").ActorUserId);
     }
 
-    [Fact]
-    public async Task Penempatan_manajerial_yang_berakhir_tidak_memberi_kewenangan()
+    [Theory]
+    [InlineData("penempatan-manajerial-berakhir")]
+    [InlineData("profil-tenaga-kerja-nonaktif")]
+    public async Task Penempatan_dan_profil_HRD_tidak_lagi_menentukan_kewenangan(string keadaan)
     {
         using var h = new StockRequestApprovalHarness();
         var (id, _) = await h.PermintaanAsync();
+        var penyetuju = keadaan == "penempatan-manajerial-berakhir"
+            ? h.AtasanKedaluwarsaUserId
+            : h.AtasanNonaktifUserId;
 
-        await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
-            h.Layanan(h.CreateContext(), h.AtasanKedaluwarsaUserId).ApproveAsync(id, Setujui("uji-lama")));
+        var hasil = await h.Layanan(h.CreateContext(), penyetuju)
+            .ApproveAsync(id, Setujui($"uji-hrd-{keadaan}"));
 
-        await AssertMasihMenungguAsync(h, id);
+        Assert.Equal(StockRequestStatus.Approved, hasil.Status);
     }
 
     [Fact]
-    public async Task Profil_tenaga_kerja_nonaktif_tidak_memberi_kewenangan()
-    {
-        using var h = new StockRequestApprovalHarness();
-        var (id, _) = await h.PermintaanAsync();
-
-        var galat = await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
-            h.Layanan(h.CreateContext(), h.AtasanNonaktifUserId).ApproveAsync(id, Setujui("uji-nonaktif")));
-
-        Assert.Contains("tidak aktif", galat.Message);
-        await AssertMasihMenungguAsync(h, id);
-    }
-
-    [Fact]
-    public async Task Unit_layanan_yang_belum_ditautkan_tidak_dapat_diputus_siapa_pun()
+    public async Task Unit_layanan_tanpa_tautan_organisasi_tetap_dapat_diputus_penyetuju()
     {
         using var h = new StockRequestApprovalHarness();
         var (id, _) = await h.PermintaanAsync(unitId: h.UnitTanpaTautanId);
 
-        var galat = await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
-            h.Layanan(h.CreateContext(), h.AtasanUserId).ApproveAsync(id, Setujui("uji-tautan")));
+        var hasil = await h.Layanan(h.CreateContext(), h.AtasanUserId).ApproveAsync(id, Setujui("uji-tautan"));
 
-        Assert.Contains("belum ditautkan ke unit organisasi", galat.Message);
-        await AssertMasihMenungguAsync(h, id);
+        Assert.Equal(StockRequestStatus.Approved, hasil.Status);
     }
 
     [Fact]
@@ -131,28 +115,44 @@ public class AuthorizationTests
     }
 
     [Fact]
+    public async Task Izin_CITO_saja_tidak_memberi_kewenangan_menyetujui_atau_menolak()
+    {
+        using var h = new StockRequestApprovalHarness();
+        var (id, _) = await h.PermintaanAsync();
+
+        var galat = await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
+            h.Layanan(h.CreateContext(), h.PetugasCitoUserId).ApproveAsync(id, Setujui("uji-cito-setuju")));
+        await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
+            h.Layanan(h.CreateContext(), h.PetugasCitoUserId).RejectAsync(id, Tolak("uji-cito-tolak")));
+
+        Assert.Contains("StockRequest:Approve", galat.Message);
+        await AssertMasihMenungguAsync(h, id);
+    }
+
+    [Fact]
     public async Task Detail_menyampaikan_kewenangan_dari_server_tanpa_masukan_layar()
     {
         using var h = new StockRequestApprovalHarness();
         var (id, _) = await h.PermintaanAsync(prioritas: StockRequestPriority.Emergency);
 
-        var atasan = await h.Layanan(h.CreateContext(), h.AtasanUserId).GetDetailAsync(id);
-        Assert.True(atasan!.HasApproveAuthority);
-        Assert.True(atasan.HasUnitAuthority);
-        Assert.Null(atasan.UnitAuthorityMessage);
-        Assert.False(atasan.HasEmergencyAuthority);
+        var penyetuju = await h.Layanan(h.CreateContext(), h.AtasanUserId).GetDetailAsync(id);
+        Assert.True(penyetuju!.HasApproveAuthority);
+        Assert.False(penyetuju.HasEmergencyAuthority);
+        Assert.False(penyetuju.IsOwnRequest);
 
         var tanpaIzin = await h.Layanan(h.CreateContext(), h.AtasanTanpaIzinUserId).GetDetailAsync(id);
         Assert.False(tanpaIzin!.HasApproveAuthority);
-        Assert.True(tanpaIzin.HasUnitAuthority);
+
+        var unitLain = await h.Layanan(h.CreateContext(), h.AtasanLainUserId).GetDetailAsync(id);
+        Assert.True(unitLain!.HasApproveAuthority);
 
         var staf = await h.Layanan(h.CreateContext(), h.StafUserId).GetDetailAsync(id);
-        Assert.True(staf!.HasApproveAuthority);
-        Assert.False(staf.HasUnitAuthority);
-        Assert.False(string.IsNullOrWhiteSpace(staf.UnitAuthorityMessage));
+        Assert.False(staf!.HasApproveAuthority);
+        Assert.False(staf.HasEmergencyAuthority);
 
         var petugasCito = await h.Layanan(h.CreateContext(), h.PetugasCitoUserId).GetDetailAsync(id);
         Assert.True(petugasCito!.HasEmergencyAuthority);
+        Assert.False(petugasCito.HasApproveAuthority);
 
         var pemohon = await h.Layanan(h.CreateContext(), h.PemohonUserId).GetDetailAsync(id);
         Assert.True(pemohon!.IsOwnRequest);
@@ -161,7 +161,7 @@ public class AuthorizationTests
     // ------------------------------------------------------------------ otorisasi CITO
 
     [Fact]
-    public async Task Kasus6_CITO_dengan_otorisasi_eksplisit_dapat_segera_diproses()
+    public async Task Kasus6_CITO_dengan_izin_eksplisit_tanpa_penunjukan_jabatan_dapat_segera_diproses()
     {
         using var h = new StockRequestApprovalHarness();
         var (id, _) = await h.PermintaanAsync(prioritas: StockRequestPriority.Emergency);
@@ -178,7 +178,7 @@ public class AuthorizationTests
     }
 
     [Fact]
-    public async Task Kasus5_CITO_tanpa_otorisasi_eksplisit_ditolak_termasuk_SuperAdmin_dan_atasan_unit()
+    public async Task Kasus5_CITO_tanpa_izin_eksplisit_ditolak_termasuk_SuperAdmin_dan_penyetuju_biasa()
     {
         using var h = new StockRequestApprovalHarness();
         var (id, _) = await h.PermintaanAsync(prioritas: StockRequestPriority.Emergency);
@@ -186,6 +186,7 @@ public class AuthorizationTests
         var superAdmin = await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
             h.Layanan(h.CreateContext(), h.SuperAdminUserId).AuthorizeEmergencyAsync(id, Cito("uji-cito-sa")));
         Assert.Contains("SuperAdmin", superAdmin.Message);
+        Assert.Contains("StockRequest:AuthorizeEmergency", superAdmin.Message);
 
         await Assert.ThrowsAsync<StockRequestForbiddenException>(() =>
             h.Layanan(h.CreateContext(), h.AtasanUserId).AuthorizeEmergencyAsync(id, Cito("uji-cito-atasan")));
@@ -219,7 +220,7 @@ public class AuthorizationTests
     }
 
     [Fact]
-    public async Task Atasan_yang_membuatkan_permintaan_tidak_dapat_menyetujuinya()
+    public async Task Penyetuju_yang_membuatkan_permintaan_tidak_dapat_menyetujuinya()
     {
         using var h = new StockRequestApprovalHarness();
         var (id, _) = await h.PermintaanAsync(dibuatOleh: h.AtasanUserId);

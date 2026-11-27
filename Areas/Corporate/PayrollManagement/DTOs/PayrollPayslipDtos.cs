@@ -5,6 +5,9 @@ public sealed class PayrollPayslipQuery
     /// <summary>Generated | Published | Downloaded | Superseded | Cancelled.</summary>
     public string? Status { get; set; }
     public string? Search { get; set; }
+
+    /// <summary>PAY-BE-FIX-039: tahun periode penggajian (akhir periode) untuk Slip Gaji Saya; kosong = semua tahun. Aditif.</summary>
+    public int? Year { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 25;
 }
@@ -53,6 +56,9 @@ public class PayslipSummaryResponse
     public Guid PayrollRunId { get; set; }
     public string RunNumber { get; set; } = string.Empty;
     public string PeriodCode { get; set; } = string.Empty;
+
+    /// <summary>PAY-BE-FIX-039: nama periode penggajian (mis. "Payroll Desember 2026") untuk tampilan. Aditif.</summary>
+    public string PeriodName { get; set; } = string.Empty;
     public string PayslipNumber { get; set; } = string.Empty;
     public int VersionNumber { get; set; }
     public string PayslipStatus { get; set; } = string.Empty;

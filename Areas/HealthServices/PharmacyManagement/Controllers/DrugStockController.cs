@@ -162,6 +162,175 @@ public class DrugStockController : ControllerBase
             "Kartu stok berhasil diambil."));
     }
 
+    // ================================================ laporan Logistik (FIN-LGS-024)
+
+    /// <summary>
+    /// Laporan Persediaan: saldo saat ini per obat × lokasi, dengan kolom siap pakai, ditahan,
+    /// karantina, kedaluwarsa, dan rusak dalam satuan stok obat.
+    /// </summary>
+    /// <remarks>
+    /// Tanpa nilai rupiah: harga per batch belum disimpan (<c>LGS-CAP-32</c>). Ringkasan berupa
+    /// hitungan baris, bukan penjumlahan jumlah lintas obat.
+    /// </remarks>
+    [HttpGet("reports/inventory")]
+    [ProducesResponseType(typeof(ApiResponse<InventoryReportResponse>), StatusCodes.Status200OK)]
+    [AccessAction("Read", "Read Drug Stock",
+        Description = "Melihat laporan persediaan", AccessType = AccessTypes.Read, SortOrder = 11)]
+    [AccessPermission("DrugStock", "Read")]
+    public async Task<IActionResult> GetInventoryReport([FromQuery] InventoryReportQuery query,
+        CancellationToken cancellationToken)
+    {
+        var data = await _service.GetInventoryReportAsync(query, cancellationToken);
+        return Ok(ApiResponse<InventoryReportResponse>.Ok(data, "Laporan persediaan berhasil diambil."));
+    }
+
+    /// <summary>
+    /// Laporan Mutasi Barang: barang masuk, keluar, saldo pembuka, dan penyesuaian per obat × lokasi
+    /// dalam periode (kosong = 30 hari terakhir, paling panjang 366 hari).
+    /// </summary>
+    [HttpGet("reports/mutations")]
+    [ProducesResponseType(typeof(ApiResponse<MutationReportResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    [AccessAction("Read", "Read Drug Stock",
+        Description = "Melihat laporan mutasi barang", AccessType = AccessTypes.Read, SortOrder = 12)]
+    [AccessPermission("DrugStock", "Read")]
+    public async Task<IActionResult> GetMutationReport([FromQuery] MutationReportQuery query,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.GetMutationReportAsync(query, cancellationToken);
+            return Ok(ApiResponse<MutationReportResponse>.Ok(data, "Laporan mutasi barang berhasil diambil."));
+        }
+        catch (LogisticsReportUnprocessableException ex) { return this.LogisticsReportUnprocessable(ex); }
+    }
+
+    /// <summary>
+    /// Dashboard Penerimaan &amp; Pengeluaran: transaksi masuk/keluar per sumber dokumen dan per hari,
+    /// serta obat dengan jumlah masuk/keluar terbesar.
+    /// </summary>
+    [HttpGet("reports/flow-summary")]
+    [ProducesResponseType(typeof(ApiResponse<StockFlowSummaryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    [AccessAction("Read", "Read Drug Stock",
+        Description = "Melihat dashboard penerimaan dan pengeluaran", AccessType = AccessTypes.Read, SortOrder = 13)]
+    [AccessPermission("DrugStock", "Read")]
+    public async Task<IActionResult> GetStockFlowSummary([FromQuery] StockFlowSummaryQuery query,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.GetStockFlowSummaryAsync(query, cancellationToken);
+            return Ok(ApiResponse<StockFlowSummaryResponse>.Ok(data,
+                "Ringkasan penerimaan dan pengeluaran berhasil diambil."));
+        }
+        catch (LogisticsReportUnprocessableException ex) { return this.LogisticsReportUnprocessable(ex); }
+    }
+
+    /// <summary>
+    /// Pemeriksaan kelengkapan buku mutasi: saldo fisik tersimpan dibandingkan dengan jumlah semua
+    /// mutasi per batch × status pada satu lokasi. Hanya membaca; tidak mengoreksi saldo.
+    /// </summary>
+    /// <remarks>Lokasi wajib (422 <c>PHM036</c>). Bawaan hanya mengembalikan baris yang tidak cocok.</remarks>
+    [HttpGet("reports/ledger-consistency")]
+    [ProducesResponseType(typeof(ApiResponse<LedgerConsistencyResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    [AccessAction("Read", "Read Drug Stock",
+        Description = "Memeriksa kelengkapan buku mutasi terhadap saldo", AccessType = AccessTypes.Read, SortOrder = 14)]
+    [AccessPermission("DrugStock", "Read")]
+    public async Task<IActionResult> GetLedgerConsistency([FromQuery] LedgerConsistencyQuery query,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.GetLedgerConsistencyAsync(query, cancellationToken);
+            return Ok(ApiResponse<LedgerConsistencyResponse>.Ok(data,
+                "Pemeriksaan buku mutasi berhasil dijalankan."));
+        }
+        catch (LogisticsReportUnprocessableException ex) { return this.LogisticsReportUnprocessable(ex); }
+    }
+
+    /// <summary>
+    /// Mutasi Saldo Persediaan (FIN-LGS-056): saldo awal, masuk, keluar, penyesuaian, dan saldo akhir
+    /// per obat × lokasi dengan rincian batch. Saldo awal dihitung mundur dari saldo tersimpan, hanya
+    /// untuk buku mutasi yang cocok; lainnya "Tidak dapat dihitung".
+    /// </summary>
+    /// <remarks>
+    /// Lokasi wajib (422 <c>PHM036</c>); periode bawaan 30 hari, paling panjang 366 hari (422
+    /// <c>PHM035</c>). Status "Valid" hanya untuk lokasi yang tercantum di konfigurasi
+    /// <c>PharmacyManagement:Logistics:LedgerVerifiedStorageLocations</c> sesudah UAT buku mutasi.
+    /// </remarks>
+    [HttpGet("reports/balance-movement")]
+    [ProducesResponseType(typeof(ApiResponse<BalanceMovementResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    [AccessAction("Read", "Read Drug Stock",
+        Description = "Melihat mutasi saldo persediaan", AccessType = AccessTypes.Read, SortOrder = 15)]
+    [AccessPermission("DrugStock", "Read")]
+    public async Task<IActionResult> GetBalanceMovement([FromQuery] BalanceMovementQuery query,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.GetBalanceMovementAsync(query, cancellationToken);
+            return Ok(ApiResponse<BalanceMovementResponse>.Ok(data,
+                "Mutasi saldo persediaan berhasil diambil."));
+        }
+        catch (LogisticsReportUnprocessableException ex) { return this.LogisticsReportUnprocessable(ex); }
+    }
+
+    /// <summary>
+    /// Rekomendasi Pengisian Ulang (FIN-LGS-057): usulan = maksimum − siap pakai (dibulatkan ke atas)
+    /// untuk kebijakan stok yang valid dan siap pakainya ≤ titik pesan ulang. Hanya membaca; tidak
+    /// membuat permintaan barang maupun PO.
+    /// </summary>
+    [HttpGet("reports/replenishment")]
+    [ProducesResponseType(typeof(ApiResponse<ReplenishmentResponse>), StatusCodes.Status200OK)]
+    [AccessAction("Read", "Read Drug Stock",
+        Description = "Melihat rekomendasi pengisian ulang", AccessType = AccessTypes.Read, SortOrder = 16)]
+    [AccessPermission("DrugStock", "Read")]
+    public async Task<IActionResult> GetReplenishment([FromQuery] ReplenishmentQuery query,
+        CancellationToken cancellationToken)
+    {
+        var data = await _service.GetReplenishmentAsync(query, cancellationToken);
+        return Ok(ApiResponse<ReplenishmentResponse>.Ok(data, "Rekomendasi pengisian ulang berhasil diambil."));
+    }
+
+    /// <summary>
+    /// Hitung selisih Stock Opname (FIN-LGS-084): membandingkan hasil hitung fisik per batch × status
+    /// dengan saldo saat ini pada satu lokasi. Hanya membaca.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Memakai POST hanya karena lembar hitung bisa sampai 2000 baris; tidak ada yang disimpan
+    /// (<c>isPersisted</c> selalu false), tidak ada mutasi, dan saldo tidak berubah. Karena itu izinnya
+    /// <c>DrugStock:Read</c>. Penyimpanan sesi, persetujuan, penyesuaian, dan berita acara menunggu
+    /// tabel Stock Opname.
+    /// </para>
+    /// <para>
+    /// Baris yang saldonya berubah sejak lembar hitung dimuat (jumlah berbeda, atau ada mutasi sesudah
+    /// <c>snapshotTakenAtUtc</c>) dijawab <c>NeedsRecount</c> tanpa selisih. Galat 422: <c>PHM036</c>
+    /// lokasi kosong/tidak terdaftar, <c>PHM037</c> isian lembar hitung tidak sah, <c>PHM038</c> saldo
+    /// tidak ditemukan atau bukan milik lokasi itu.
+    /// </para>
+    /// </remarks>
+    [HttpPost("opname/variance-preview")]
+    [ProducesResponseType(typeof(ApiResponse<StockOpnameVariancePreviewResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    [AccessAction("Read", "Read Drug Stock",
+        Description = "Menghitung selisih stock opname tanpa menyimpan", AccessType = AccessTypes.Read, SortOrder = 17)]
+    [AccessPermission("DrugStock", "Read")]
+    public async Task<IActionResult> PreviewOpnameVariance(
+        [FromBody] StockOpnameVariancePreviewRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.PreviewOpnameVarianceAsync(request, cancellationToken);
+            return Ok(ApiResponse<StockOpnameVariancePreviewResponse>.Ok(data,
+                "Selisih stock opname berhasil dihitung. Hasil ini tidak disimpan."));
+        }
+        catch (LogisticsReportUnprocessableException ex) { return this.LogisticsReportUnprocessable(ex); }
+    }
+
     // ======================================================== perintah persediaan
 
     /// <summary>
@@ -296,6 +465,13 @@ internal static class DrugStockControllerResults
 
     public static ObjectResult DrugStockUnprocessable(this ControllerBase controller,
         DrugStockUnprocessableException exception) =>
+        controller.StatusCode(StatusCodes.Status422UnprocessableEntity,
+            ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message,
+                new { exception.Code }));
+
+    /// <summary>Periode laporan Logistik yang tidak sah (<c>PHM035</c>); dipakai seluruh endpoint laporan.</summary>
+    public static ObjectResult LogisticsReportUnprocessable(this ControllerBase controller,
+        LogisticsReportUnprocessableException exception) =>
         controller.StatusCode(StatusCodes.Status422UnprocessableEntity,
             ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message,
                 new { exception.Code }));

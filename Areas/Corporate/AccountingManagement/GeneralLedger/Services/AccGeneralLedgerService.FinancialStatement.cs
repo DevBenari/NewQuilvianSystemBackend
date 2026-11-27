@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.E
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
@@ -18,6 +19,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
     {
         private const string PemberitahuanUnitBiayaLabaRugi =
             "Hanya baris jurnal yang mencatat unit biaya ini yang dihitung. Pendapatan dan beban yang dicatat tanpa unit biaya tidak ikut.";
+
+        private const string NamaLabaTahunBerjalan = "Laba (Rugi) Tahun Berjalan";
+
+        private const string NamaLabaTahunLaluBelumDitutup = "Laba (Rugi) Tahun Lalu Belum Ditutup";
 
         private static readonly Regex BentukKodePeriode =
             new(@"^\d{4}-(0[1-9]|1[0-2])$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
@@ -35,6 +40,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
             public AccountType AccountType { get; init; }
 
             public bool IsActive { get; init; }
+
+            public bool IsPostable { get; init; }
+
+            public AccountReportClassification? ReportClassification { get; init; }
+
+            public CurrentAssetCategory? CurrentAssetCategory { get; init; }
+        }
+
+        private sealed class LabaBelumDipindah
+        {
+            public decimal TahunBerjalan { get; init; }
+
+            public decimal TahunLalu { get; init; }
+
+            public List<int> TahunBelumDitutup { get; init; } = new();
         }
 
         private sealed class NilaiLaporan
@@ -213,6 +233,203 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
                 hasil, $"Laba rugi {hasil.PeriodName} berhasil diambil.");
         }
 
+        public async Task<AccountingServiceResult<BalanceSheetResponse>> GetBalanceSheetAsync(
+            BalanceSheetQuery query,
+            CancellationToken ct = default)
+        {
+            var penjaga = await AccountingLegalEntityGuard.PeriksaAsync<BalanceSheetResponse>(_db, ct);
+            if (penjaga is not null) return penjaga;
+
+            var siap = await SiapkanPeriodeLaporanAsync<BalanceSheetResponse>(
+                query.LegalEntityId, query.PeriodCode, ct);
+            if (siap.Gagal is not null) return siap.Gagal;
+
+            var periode = siap.Periode!;
+
+            var periodeDuaTahun = await _db.Set<AccAccountingPeriod>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete
+                            && x.LegalEntityId == query.LegalEntityId
+                            && (x.FiscalYear == periode.FiscalYear || x.FiscalYear == periode.FiscalYear - 1))
+                .ToListAsync(ct);
+
+            var awalTahun = periodeDuaTahun
+                .Where(x => x.FiscalYear == periode.FiscalYear)
+                .Min(x => x.StartDate);
+
+            var periodeTahunLalu = periodeDuaTahun
+                .Where(x => x.FiscalYear == periode.FiscalYear - 1)
+                .ToList();
+
+            var adaBanding = periodeTahunLalu.Count > 0;
+            DateTime? tanggalBanding = adaBanding ? periodeTahunLalu.Max(x => x.EndDate) : null;
+            DateTime? awalTahunBanding = adaBanding ? periodeTahunLalu.Min(x => x.StartDate) : null;
+
+            var akun = await MuatAkunLaporanAsync(query.LegalEntityId, ct);
+
+            var idAkunNeraca = akun
+                .Where(x => x.AccountType is AccountType.Asset or AccountType.Liability or AccountType.Equity)
+                .Select(x => x.Id)
+                .ToList();
+
+            var idAkunLabaRugi = akun
+                .Where(x => x.AccountType is AccountType.Revenue or AccountType.Expense)
+                .Select(x => x.Id)
+                .ToList();
+
+            var dasar = BarisDisahkan(query.LegalEntityId);
+            var barisNeraca = dasar.Where(x => idAkunNeraca.Contains(x.AccountId));
+            var barisLabaRugi = dasar.Where(x => idAkunLabaRugi.Contains(x.AccountId));
+
+            var kini = await JumlahPerAkunAsync(barisNeraca, null, periode.EndDate, ct);
+            var banding = tanggalBanding.HasValue
+                ? await JumlahPerAkunAsync(barisNeraca, null, tanggalBanding.Value, ct)
+                : null;
+
+            var labaKini = await HitungLabaBelumDipindahAsync(barisLabaRugi, awalTahun, periode.EndDate, ct);
+            var labaBanding = tanggalBanding.HasValue && awalTahunBanding.HasValue
+                ? await HitungLabaBelumDipindahAsync(barisLabaRugi, awalTahunBanding.Value, tanggalBanding.Value, ct)
+                : null;
+
+            var nilaiAkun = new Dictionary<Guid, NilaiLaporan>();
+
+            foreach (var a in akun.Where(x => idAkunNeraca.Contains(x.Id)))
+            {
+                nilaiAkun[a.Id] = new NilaiLaporan
+                {
+                    Kini = NilaiMenurutJenis(a.AccountType, kini, a.Id),
+                    Banding = banding is null ? null : NilaiMenurutJenis(a.AccountType, banding, a.Id)
+                };
+            }
+
+            var aset = SusunBagian(
+                AccountType.Asset, akun, nilaiAkun, query.IncludeZeroAccounts, adaBanding, adaYtd: false);
+            var liabilitas = SusunBagian(
+                AccountType.Liability, akun, nilaiAkun, query.IncludeZeroAccounts, adaBanding, adaYtd: false);
+            var ekuitas = SusunBagian(
+                AccountType.Equity, akun, nilaiAkun, query.IncludeZeroAccounts, adaBanding, adaYtd: false);
+
+            TambahBarisLaba(
+                ekuitas, NamaLabaTahunLaluBelumDitutup, labaKini.TahunLalu, labaBanding?.TahunLalu, wajibTampil: false);
+            TambahBarisLaba(
+                ekuitas, NamaLabaTahunBerjalan, labaKini.TahunBerjalan, labaBanding?.TahunBerjalan, wajibTampil: true);
+
+            ekuitas.Bagian.Total = ekuitas.Total.KeRespons();
+
+            var totalLiabilitasEkuitas = NilaiLaporan.Kosong(adaBanding, adaYtd: false);
+            totalLiabilitasEkuitas.Tambah(liabilitas.Total);
+            totalLiabilitasEkuitas.Tambah(ekuitas.Total);
+
+            var selisih = NilaiLaporan.Selisih(aset.Total, totalLiabilitasEkuitas);
+
+            var celahKlasifikasi = SusunCelahKlasifikasi(akun, nilaiAkun);
+
+            var hasil = new BalanceSheetResponse
+            {
+                LegalEntityId = query.LegalEntityId,
+                PeriodCode = periode.PeriodCode,
+                PeriodName = NamaPeriode(periode),
+                FiscalYear = periode.FiscalYear,
+                AsOfDate = periode.EndDate,
+                ComparisonAvailable = adaBanding,
+                ComparisonAsOfDate = tanggalBanding,
+                ComparisonUnavailableReason = adaBanding
+                    ? null
+                    : $"Tahun buku {(periode.FiscalYear - 1).ToString(CultureInfo.InvariantCulture)} belum ada di sistem.",
+                Sections = new List<FinancialStatementSectionResponse>
+                {
+                    aset.Bagian,
+                    liabilitas.Bagian,
+                    ekuitas.Bagian
+                },
+                TotalLiabilitiesAndEquity = totalLiabilitasEkuitas.KeRespons(),
+                IsBalanced = selisih.Kini == 0m,
+                Difference = selisih.Kini,
+                ComparisonIsBalanced = selisih.Banding.HasValue ? selisih.Banding.Value == 0m : null,
+                ComparisonDifference = selisih.Banding,
+                UnclosedFiscalYears = labaKini.TahunBelumDitutup,
+                UnclassifiedAccountCount = celahKlasifikasi.Count,
+                ClassificationGaps = celahKlasifikasi
+            };
+
+            return AccountingServiceResult<BalanceSheetResponse>.Ok(
+                hasil, $"Neraca {hasil.PeriodName} berhasil diambil.");
+        }
+
+        private async Task<LabaBelumDipindah> HitungLabaBelumDipindahAsync(
+            IQueryable<AccJournalLine> barisLabaRugi,
+            DateTime awalTahun,
+            DateTime sampai,
+            CancellationToken ct)
+        {
+            var tahunBerjalan = await barisLabaRugi
+                .Where(x => _db.Set<AccJournal>().Any(j => j.Id == x.JournalId
+                                                          && j.AccountingDate >= awalTahun
+                                                          && j.AccountingDate <= sampai))
+                .SumAsync(x => x.CreditAmount - x.DebitAmount, ct);
+
+            var perTahunLalu = await barisLabaRugi
+                .Join(
+                    _db.Set<AccJournal>(),
+                    x => x.JournalId,
+                    j => j.Id,
+                    (x, j) => new { x.DebitAmount, x.CreditAmount, j.AccountingDate, j.AccountingPeriodId })
+                .Where(x => x.AccountingDate < awalTahun)
+                .Join(
+                    _db.Set<AccAccountingPeriod>(),
+                    x => x.AccountingPeriodId,
+                    p => p.Id,
+                    (x, p) => new { p.FiscalYear, x.DebitAmount, x.CreditAmount })
+                .GroupBy(x => x.FiscalYear)
+                .Select(g => new
+                {
+                    FiscalYear = g.Key,
+                    Nilai = g.Sum(x => x.CreditAmount - x.DebitAmount)
+                })
+                .ToListAsync(ct);
+
+            return new LabaBelumDipindah
+            {
+                TahunBerjalan = tahunBerjalan,
+                TahunLalu = perTahunLalu.Sum(x => x.Nilai),
+                TahunBelumDitutup = perTahunLalu
+                    .Where(x => x.Nilai != 0m)
+                    .Select(x => x.FiscalYear)
+                    .OrderBy(x => x)
+                    .ToList()
+            };
+        }
+
+        private static void TambahBarisLaba(
+            (FinancialStatementSectionResponse Bagian, NilaiLaporan Total) ekuitas,
+            string nama,
+            decimal kini,
+            decimal? banding,
+            bool wajibTampil)
+        {
+            if (!wajibTampil && kini == 0m && (banding ?? 0m) == 0m) return;
+
+            var nilai = new NilaiLaporan
+            {
+                Kini = kini,
+                Banding = ekuitas.Total.Banding.HasValue ? banding ?? 0m : null
+            };
+
+            ekuitas.Bagian.Rows.Add(new FinancialStatementRowResponse
+            {
+                RowKind = FinancialStatementRowKind.Computed,
+                AccountId = null,
+                ParentAccountId = null,
+                AccountCode = string.Empty,
+                AccountName = nama,
+                Depth = 0,
+                IsActive = true,
+                Amounts = nilai.KeRespons()
+            });
+
+            ekuitas.Total.Tambah(nilai);
+        }
+
         private async Task<(AccountingServiceResult<T>? Gagal, AccAccountingPeriod? Periode)> SiapkanPeriodeLaporanAsync<T>(
             Guid legalEntityId,
             string? periodCode,
@@ -263,9 +480,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
                     AccountCode = x.AccountCode,
                     AccountName = x.AccountName,
                     AccountType = x.AccountType,
-                    IsActive = x.IsActive
+                    IsActive = x.IsActive,
+                    IsPostable = x.IsPostable,
+                    ReportClassification = x.ReportClassification,
+                    CurrentAssetCategory = x.CurrentAssetCategory
                 })
                 .ToListAsync(ct);
+        }
+
+        private static List<FinancialStatementClassificationGapResponse> SusunCelahKlasifikasi(
+            IReadOnlyList<AkunLaporan> akun,
+            IReadOnlyDictionary<Guid, NilaiLaporan> nilaiAkun)
+        {
+            var efektif = AccChartOfAccountClassification.Hitung(akun.Select(x => new AccChartOfAccountClassification.AkunKlasifikasi
+            {
+                Id = x.Id,
+                ParentAccountId = x.ParentAccountId,
+                AccountCode = x.AccountCode,
+                AccountName = x.AccountName,
+                AccountType = x.AccountType,
+                IsPostable = x.IsPostable,
+                ReportClassification = x.ReportClassification,
+                CurrentAssetCategory = x.CurrentAssetCategory
+            }));
+
+            return akun
+                .Where(x => AccChartOfAccountClassification.BerlakuUntuk(x.AccountType)
+                            && nilaiAkun.TryGetValue(x.Id, out var nilai)
+                            && (nilai.Kini != 0m || (nilai.Banding ?? 0m) != 0m)
+                            && efektif.TryGetValue(x.Id, out var klasifikasi)
+                            && klasifikasi.Gap.HasValue)
+                .OrderBy(x => x.AccountCode, StringComparer.Ordinal)
+                .Select(x => new FinancialStatementClassificationGapResponse
+                {
+                    AccountId = x.Id,
+                    AccountCode = x.AccountCode,
+                    AccountName = x.AccountName,
+                    AccountType = x.AccountType,
+                    GapKind = efektif[x.Id].Gap!.Value
+                })
+                .ToList();
         }
 
         private async Task<IQueryable<AccJournalLine>> BarisTanpaTutupTahunAsync(Guid legalEntityId, CancellationToken ct)
@@ -287,14 +541,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
 
         private async Task<Dictionary<Guid, (decimal Debit, decimal Kredit)>> JumlahPerAkunAsync(
             IQueryable<AccJournalLine> baris,
-            DateTime dari,
+            DateTime? dari,
             DateTime sampai,
             CancellationToken ct)
         {
-            var jumlah = await baris
-                .Where(x => _db.Set<AccJournal>().Any(j => j.Id == x.JournalId
-                                                          && j.AccountingDate >= dari
-                                                          && j.AccountingDate <= sampai))
+            var dalamRentang = dari.HasValue
+                ? baris.Where(x => _db.Set<AccJournal>().Any(j => j.Id == x.JournalId
+                                                                 && j.AccountingDate >= dari.Value
+                                                                 && j.AccountingDate <= sampai))
+                : baris.Where(x => _db.Set<AccJournal>().Any(j => j.Id == x.JournalId
+                                                                 && j.AccountingDate <= sampai));
+
+            var jumlah = await dalamRentang
                 .GroupBy(x => x.AccountId)
                 .Select(g => new
                 {

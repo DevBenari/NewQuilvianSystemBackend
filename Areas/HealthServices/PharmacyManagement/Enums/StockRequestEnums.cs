@@ -105,3 +105,39 @@ public enum StockRequestEmergencyReviewState
     /// <summary>Diverifikasi; tercatat temuan penyimpangan.</summary>
     Deviation = 3
 }
+
+/// <summary>
+/// Keadaan tenggat verifikasi susulan CITO, dihitung backend dari waktu otorisasi dan
+/// konfigurasi tenggat (UTC). Tidak pernah memicu verifikasi otomatis.
+/// </summary>
+public enum StockRequestEmergencyReviewDueState
+{
+    /// <summary>Tidak sedang menunggu verifikasi susulan.</summary>
+    NotApplicable = 0,
+
+    /// <summary>Menunggu verifikasi, tetapi tenggat belum dikonfigurasi di lingkungan ini.</summary>
+    NotConfigured = 1,
+
+    /// <summary>Belum jatuh tempo.</summary>
+    NotDue = 2,
+
+    /// <summary>Mendekati tenggat (dalam batas peringatan yang dikonfigurasi).</summary>
+    DueSoon = 3,
+
+    /// <summary>Melewati tenggat.</summary>
+    Overdue = 4
+}
+
+/// <summary>Cakupan daftar permintaan.</summary>
+public enum StockRequestListScope
+{
+    /// <summary>Seluruh permintaan yang boleh dibaca (perilaku lama).</summary>
+    All = 0,
+
+    /// <summary>
+    /// Hanya permintaan dalam kewenangan pengguna, dihitung backend: unit layanan yang dipimpinnya
+    /// (bila memegang izin persetujuan eksplisit), ditambah permintaan CITO bila ia berwenang
+    /// mengotorisasi CITO. Daftar unit dari klien tidak pernah dipakai sebagai bukti kewenangan.
+    /// </summary>
+    MyAuthority = 1
+}
