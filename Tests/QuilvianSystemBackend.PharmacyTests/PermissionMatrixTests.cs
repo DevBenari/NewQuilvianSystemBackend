@@ -8,7 +8,7 @@ using QuilvianSystemBackend.Attributes;
 namespace QuilvianSystemBackend.Tests.Pharmacy;
 
 /// <summary>
-/// Matriks izin modul Farmasi pada tingkat HTTP — 23 controller, 137 endpoint.
+/// Matriks izin modul Farmasi pada tingkat HTTP — 25 controller, 168 endpoint.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -79,14 +79,31 @@ public class PermissionMatrixTests
     /// Angkanya dikunci supaya controller baru tidak lolos masuk tanpa ikut diperiksa uji di
     /// bawah. Kalau jumlahnya berubah, yang perlu diperiksa apakah yang baru itu juga dijaga.
     /// </summary>
+    /// <remarks>
+    /// Diperbarui FIN-LGS-088 dari 23 controller / 137 endpoint (5 Oktober 2026) sesudah
+    /// diperiksa bahwa setiap tambahan dijaga uji di bawah (login, satu izin, sumber daya Farmasi,
+    /// izin baca untuk GET):
+    /// <list type="bullet">
+    /// <item><c>PrescriptionStockReservationController</c> (+1 controller, +1 endpoint, b3b0d323).</item>
+    /// <item>Permintaan stok Logistik: <c>StockRequestController</c> +8 (persetujuan, otorisasi CITO,
+    /// kesiapan persetujuan, linimasa, laporan distribusi).</item>
+    /// <item>Stok dan laporan Logistik: <c>DrugStockController</c> +8 (stok hampir habis, laporan
+    /// persediaan, mutasi, penerimaan/pengeluaran, rekonsiliasi buku mutasi, mutasi saldo,
+    /// rekomendasi pengisian ulang, hitung selisih Stock Opname).</item>
+    /// <item><c>DrugUsageController</c> +1 (laporan pemakaian per unit).</item>
+    /// <item>FIN-LGS-091: <c>StockOpnameController</c> (+1 controller, +13 endpoint: kesiapan, daftar,
+    /// detail, berita acara, buat, hasil hitung, muat ulang baris, catat/hapus temuan, ajukan, batal,
+    /// setujui, tolak).</item>
+    /// </list>
+    /// </remarks>
     [Fact]
     public void Jumlah_controller_dan_endpoint_farmasi_sesuai_yang_tercatat()
     {
         var controllers = Controllers().ToList();
         var endpoint = controllers.Sum(x => Aksi(x).Count());
 
-        Assert.Equal(23, controllers.Count);
-        Assert.Equal(137, endpoint);
+        Assert.Equal(25, controllers.Count);
+        Assert.Equal(168, endpoint);
     }
 
     // ── Login dan pendaftaran modul ───────────────────────────────────────────────────────
@@ -117,7 +134,7 @@ public class PermissionMatrixTests
 
     /// <summary>
     /// Regresi langsung atas temuan modul terbelah: nol controller Farmasi boleh kembali ke
-    /// kode lama, dan seluruh 23 harus berada pada satu kode yang sama.
+    /// kode lama, dan seluruh controller harus berada pada satu kode yang sama.
     /// </summary>
     [Fact]
     public void Kode_modul_legacy_tidak_dipakai_controller_farmasi_mana_pun()
@@ -178,11 +195,15 @@ public class PermissionMatrixTests
             pasangan.Add($"{(string)izin.Arguments![0]!}:{(string)izin.Arguments[1]!}");
         }
 
-        // 137 endpoint memakai 85 pasangan unik; beberapa endpoint memang sah berbagi pasangan
+        // 155 endpoint memakai 89 pasangan unik; beberapa endpoint memang sah berbagi pasangan
         // yang sama, misalnya daftar dan detail yang keduanya `Read`. Yang dijaga di sini
-        // jumlah pasangan uniknya tidak berubah akibat konsolidasi.
-        Assert.Equal(137, pasangan.Count);
-        Assert.Equal(85, pasangan.Distinct(StringComparer.Ordinal).Count());
+        // jumlah pasangan uniknya tidak berubah akibat konsolidasi. Empat pasangan baru sejak
+        // 85 (FIN-LGS-088): PrescriptionStockReservation:Read, StockRequest:Approve,
+        // StockRequest:AuthorizeEmergency, StockRequest:ViewApprovalReadiness. Laporan Logistik
+        // dan hitung selisih Stock Opname memakai pasangan baca yang sudah ada. FIN-LGS-091 menambah
+        // tiga: StockOpname:Read, StockOpname:Create, StockOpname:Approve.
+        Assert.Equal(168, pasangan.Count);
+        Assert.Equal(92, pasangan.Distinct(StringComparer.Ordinal).Count());
     }
 
     [Theory]
@@ -303,6 +324,13 @@ public class PermissionMatrixTests
     /// Pengecualiannya didaftarkan sebagai satu nama, bukan dilonggarkan untuk semua
     /// <c>Preview</c>, supaya endpoint pengubah data tidak bisa lolos hanya dengan menamai
     /// dirinya "preview".
+    ///
+    /// Pengecualian kedua (FIN-LGS-088): <c>DrugStockController.PreviewOpnameVariance</c> memakai
+    /// <c>POST</c> hanya karena lembar hitung Stock Opname bisa sampai 2000 baris. Hitungannya
+    /// hanya membaca (<c>AsNoTracking</c>, tanpa <c>SaveChanges</c>); uji
+    /// <c>StockOpnameTests.Hitung_selisih_tidak_menyimpan_tidak_menulis_mutasi_dan_tidak_mengubah_saldo</c>
+    /// membuktikan tidak ada mutasi dan saldo maupun versinya tidak berubah. Petugas penghitung
+    /// cukup berhak membaca stok; penyimpanan dan posting kelak memakai izin tersendiri.
     /// </remarks>
     [Theory]
     [MemberData(nameof(NamaController))]
@@ -310,7 +338,8 @@ public class PermissionMatrixTests
     {
         (string Controller, string Aksi)[] pengecualian =
         [
-            ("SlidingScaleExecutionController", "Preview")
+            ("SlidingScaleExecutionController", "Preview"),
+            ("DrugStockController", "PreviewOpnameVariance")
         ];
 
         var controller = Ambil(namaController);
@@ -356,6 +385,31 @@ public class PermissionMatrixTests
         var izin = preview.GetCustomAttributes<AccessPermissionAttribute>().Single();
         Assert.Equal("SlidingScaleExecution", (string)izin.Arguments![0]!);
         Assert.Equal("Read", (string)izin.Arguments[1]!);
+    }
+
+    /// <summary>
+    /// Sama untuk pengecualian hitung selisih Stock Opname: pengecualian hanya berlaku selama
+    /// endpoint itu POST baca saja atas <c>DrugStock:Read</c>. Endpoint yang menyimpan sesi atau
+    /// memposting penyesuaian kelak wajib endpoint lain dengan izin tulis, bukan memperluas ini.
+    /// </summary>
+    [Fact]
+    public void Hitung_selisih_stock_opname_memang_hanya_membaca()
+    {
+        var controller = Controllers().Single(x => x.Name == "DrugStockController");
+        var preview = Aksi(controller).Single(x => x.Name == "PreviewOpnameVariance");
+
+        var metode = preview.GetCustomAttributes<HttpMethodAttribute>().SelectMany(x => x.HttpMethods).ToList();
+        Assert.Equal(new[] { "POST" }, metode);
+        Assert.Equal("opname/variance-preview", preview.GetCustomAttribute<HttpPostAttribute>()!.Template);
+
+        var izin = preview.GetCustomAttributes<AccessPermissionAttribute>().Single();
+        Assert.Equal("DrugStock", (string)izin.Arguments![0]!);
+        Assert.Equal("Read", (string)izin.Arguments[1]!);
+
+        // Jawabannya menyatakan dirinya tidak tersimpan; kalau suatu hari menjadi true, pengecualian
+        // ini harus dicabut.
+        Assert.False(new QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
+            .StockOpnameVariancePreviewResponse().IsPersisted);
     }
 
     // ── Konsistensi penamaan ──────────────────────────────────────────────────────────────

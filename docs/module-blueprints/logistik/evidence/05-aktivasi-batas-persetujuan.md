@@ -84,3 +84,21 @@ Hasil audit 2026-11-17 (hanya baca), sebagai rujukan saja:
 | --- | --- |
 | `QuilvianNewDevMaster` | 0 (tabel kosong) |
 | `QuilvianNewDevIkbalFr` (lokal) | 0 (satu permintaan, berstatus Selesai) |
+
+## 6. Konfigurasi operasional lain (r6, 2026-11-18)
+
+Dua pengaturan lain dibaca dari konfigurasi lingkungan, dengan aturan pengaman yang sama: nilai
+kosong atau tidak sah tidak pernah membuka akses.
+
+| Konfigurasi | Variabel lingkungan | Isi | Bila kosong atau tidak sah |
+| --- | --- | --- | --- |
+| `PharmacyManagement:StockRequest:EmergencyAuthorizerPositions` | `PharmacyManagement__StockRequest__EmergencyAuthorizerPositions` | Id atau kode jabatan yang ditunjuk manajemen untuk otorisasi CITO (`LGS-DEC-004`), dipisah koma | Tidak ada yang berwenang mengotorisasi CITO |
+| `PharmacyManagement:StockRequest:EmergencyReviewDueHours` | `PharmacyManagement__StockRequest__EmergencyReviewDueHours` | Lama tenggat verifikasi susulan dalam jam (`LGS-DEC-005`) | Tenggat "belum dikonfigurasi"; tidak ada yang digolongkan terlambat |
+| `PharmacyManagement:StockRequest:EmergencyReviewWarningHours` | `PharmacyManagement__StockRequest__EmergencyReviewWarningHours` | Batas peringatan sebelum tenggat, dalam jam, lebih kecil dari tenggat | Tanpa keadaan "mendekati tenggat" |
+
+Nilainya **tidak diisi di dokumen ini**. Penunjukan jabatan ditetapkan manajemen. Tenggat
+ditetapkan sebagai keputusan operasional rumah sakit, bukan bawaan kode.
+
+Penunjukan jabatan saja tidak memberi izin. Jabatan yang ditunjuk tetap harus diberi izin
+`StockRequest:AuthorizeEmergency` lewat Akses Role. Setiap nilai baru tercatat di log
+(`StockRequest.EmergencyAuthorizerDesignation`, `StockRequest.EmergencyReviewDeadline`).
