@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -10,6 +12,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Enums;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
@@ -20,13 +23,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IHrdOnboardingCaseService? _onboardingCaseService;
+        private readonly NumberSeriesAllocator? _numberSeriesAllocator;
 
         public HiringHandoffService(
             ApplicationDbContext dbContext,
-            IHrdOnboardingCaseService? onboardingCaseService = null)
+            IHrdOnboardingCaseService? onboardingCaseService = null,
+            NumberSeriesAllocator? numberSeriesAllocator = null)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _onboardingCaseService = onboardingCaseService;
+            _numberSeriesAllocator = numberSeriesAllocator;
         }
 
         private static Guid GetUserId(ClaimsPrincipal user)
@@ -98,6 +104,89 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             return RecruitmentResult<PagedResult<HiringHandoffListItemResponse>>.Ok(result, "Daftar berkas serah terima onboarding berhasil diambil.");
         }
 
+        public async Task<RecruitmentResult<List<EligibleHandoffOfferResponse>>> GetEligibleOffersAsync(
+            string? search,
+            CancellationToken cancellationToken = default)
+        {
+            var dbQuery = _dbContext.HrdJobOffers
+                .AsNoTracking()
+                .Include(o => o.Application)
+                    .ThenInclude(a => a!.Candidate)
+                .Include(o => o.Application)
+                    .ThenInclude(a => a!.Vacancy)
+                .Include(o => o.MedicalCheck)
+                .Include(o => o.HiringHandoff)
+                .Where(o => !o.IsDelete
+                            && o.Status == JobOfferStatus.FinalAccepted
+                            && o.Application != null && !o.Application.IsDelete
+                            && o.Application.Candidate != null && !o.Application.Candidate.IsDelete);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                dbQuery = dbQuery.Where(o =>
+                    o.OfferNumber.ToLower().Contains(term) ||
+                    (o.Application != null && o.Application.ApplicationNumber.ToLower().Contains(term)) ||
+                    (o.Application != null && o.Application.Candidate != null && o.Application.Candidate.FullName.ToLower().Contains(term)));
+            }
+
+            var offers = await dbQuery.OrderByDescending(o => o.CandidateResponseDate ?? o.OfferDate).ToListAsync(cancellationToken);
+            var existingHandoffIds = offers
+                .Where(o => o.HiringHandoff != null && !o.HiringHandoff.IsDelete)
+                .Select(o => o.HiringHandoff!.Id)
+                .ToList();
+
+            var handoffsWithOnboarding = existingHandoffIds.Count == 0
+                ? new HashSet<Guid>()
+                : (await _dbContext.HrdOnboardingCases
+                    .AsNoTracking()
+                    .Where(c => !c.IsDelete && existingHandoffIds.Contains(c.HiringHandoffId))
+                    .Select(c => c.HiringHandoffId)
+                    .ToListAsync(cancellationToken)).ToHashSet();
+
+            var eligible = new List<EligibleHandoffOfferResponse>();
+            foreach (var offer in offers)
+            {
+                var app = offer.Application!;
+                var handoffPrereq = RecruitmentJourneyPolicy.EvaluateHandoffPrerequisites(app, offer, offer.MedicalCheck, app.Candidate);
+                if (!handoffPrereq.IsEligible)
+                {
+                    continue;
+                }
+
+                var activeHandoff = offer.HiringHandoff != null && !offer.HiringHandoff.IsDelete && offer.HiringHandoff.Status != HandoffStatus.Cancelled
+                    ? offer.HiringHandoff
+                    : null;
+                var needsRecovery = activeHandoff != null && !handoffsWithOnboarding.Contains(activeHandoff.Id);
+                if (activeHandoff != null && !needsRecovery)
+                {
+                    continue;
+                }
+
+                eligible.Add(new EligibleHandoffOfferResponse
+                {
+                    OfferId = offer.Id,
+                    OfferNumber = offer.OfferNumber,
+                    ApplicationId = offer.ApplicationId,
+                    ApplicationNumber = app.ApplicationNumber,
+                    CandidateId = app.CandidateId,
+                    CandidateCode = app.Candidate?.CandidateCode ?? string.Empty,
+                    CandidateName = app.Candidate?.FullName ?? string.Empty,
+                    VacancyId = app.VacancyId,
+                    VacancyTitle = app.Vacancy?.Title ?? offer.OfferedPositionTitle,
+                    IsRehire = app.Candidate?.IsRehire ?? false,
+                    PreviousWorkforceProfileId = app.Candidate?.PreviousWorkforceProfileId,
+                    McuClearanceId = offer.MedicalCheck!.Id,
+                    McuReferralNumber = offer.MedicalCheck.ReferralNumber,
+                    McuClearanceResult = offer.MedicalCheck.ClearanceResult.ToString(),
+                    NeedsOnboardingRecovery = needsRecovery,
+                    ExistingHandoffId = activeHandoff?.Id
+                });
+            }
+
+            return RecruitmentResult<List<EligibleHandoffOfferResponse>>.Ok(eligible, "Daftar penawaran final yang layak serah terima berhasil diambil.");
+        }
+
         public async Task<RecruitmentResult<HiringHandoffResponse>> GetByIdAsync(
             Guid id,
             CancellationToken cancellationToken = default)
@@ -149,82 +238,203 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<HiringHandoffResponse>.Unprocessable("Data lamaran, kandidat, atau lowongan tidak lengkap.");
             }
 
-            // Aturan Bisnis VR-REC-20: Cek status penawaran kerja
-            if (offer.Status != JobOfferStatus.FinalAccepted && offer.Status != JobOfferStatus.ConditionalAccepted)
-            {
-                return RecruitmentResult<HiringHandoffResponse>.Unprocessable(
-                    $"Serah terima onboarding hanya dapat diproses bila penawaran kerja telah disetujui kandidat. Status saat ini: {offer.Status} (VR-REC-20).");
-            }
-
-            // Aturan Bisnis VR-REC-20: Cek hasil kelaikan kerja MCU pra-kerja
-            var mcu = await _dbContext.HrdPreEmploymentMedicalChecks
-                .FirstOrDefaultAsync(m => m.OfferId == offer.Id && !m.IsDelete, cancellationToken);
-
-            if (mcu == null || (mcu.ClearanceResult != McuClearanceResult.Fit && mcu.ClearanceResult != McuClearanceResult.FitWithRestrictions))
-            {
-                return RecruitmentResult<HiringHandoffResponse>.Unprocessable(
-                    "Serah terima kandidat ke onboarding hanya dapat diproses bila hasil pemeriksaan kesehatan pra-kerja (MCU) dinyatakan Laik Kerja (FIT atau FIT WITH RESTRICTIONS) (VR-REC-20).");
-            }
-
             var existingHandoff = await _dbContext.HrdCandidateHiringHandoffs
                 .FirstOrDefaultAsync(h => h.OfferId == offer.Id && !h.IsDelete, cancellationToken);
 
             if (existingHandoff != null)
             {
-                return RecruitmentResult<HiringHandoffResponse>.Conflict(
-                    "Dokumen serah terima onboarding sudah pernah diterbitkan untuk penawaran ini.");
+                // Idempotent partial-handoff recovery: jika handoff sudah ada namun OnboardingCase belum terbentuk, pulihkan tanpa duplikasi profil/kursi
+                if (existingHandoff.Status == HandoffStatus.Cancelled)
+                {
+                    return RecruitmentResult<HiringHandoffResponse>.Conflict(
+                        "Dokumen serah terima onboarding ini sudah berstatus Cancelled.");
+                }
+
+                var hasOnboardingCase = await _dbContext.HrdOnboardingCases
+                    .AnyAsync(c => c.HiringHandoffId == existingHandoff.Id && !c.IsDelete, cancellationToken);
+
+                if (hasOnboardingCase)
+                {
+                    return RecruitmentResult<HiringHandoffResponse>.Conflict(
+                        "Dokumen serah terima dan kasus onboarding sudah pernah diterbitkan untuk penawaran ini.");
+                }
+
+                if (_onboardingCaseService == null)
+                {
+                    return RecruitmentResult<HiringHandoffResponse>.Unprocessable(
+                        "Layanan pembentukan kasus onboarding tidak tersedia untuk pemulihan partial handoff.");
+                }
+
+                await using var recoveryTx = _dbContext.Database.IsRelational()
+                    ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                    : null;
+
+                var recoverResult = await _onboardingCaseService.CreateFromHandoffAsync(existingHandoff.Id, userId, cancellationToken);
+                if (!recoverResult.IsSuccess)
+                {
+                    if (recoveryTx != null)
+                    {
+                        await recoveryTx.RollbackAsync(cancellationToken);
+                    }
+
+                    return RecruitmentResult<HiringHandoffResponse>.Unprocessable(
+                        $"Pemulihan kasus onboarding gagal: {recoverResult.ErrorMessage}");
+                }
+
+                existingHandoff.Status = HandoffStatus.TransferredToOnboarding;
+                existingHandoff.Notes = $"{existingHandoff.Notes} | Pemulihan kasus onboarding berhasil.";
+                existingHandoff.RowVersion = Guid.NewGuid();
+                existingHandoff.UpdateDateTime = DateTime.UtcNow;
+                existingHandoff.UpdateBy = userId;
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                if (recoveryTx != null)
+                {
+                    await recoveryTx.CommitAsync(cancellationToken);
+                }
+
+                return await GetByIdAsync(existingHandoff.Id, cancellationToken);
             }
 
-            var today = DateTime.UtcNow;
-            var todayStr = today.ToString("yyyyMMdd");
+            // Validasi prasyarat penuh (FinalAccepted + MCU Fit + non-terminal + bebas FitWithRestrictions unconfirmed)
+            var mcu = await _dbContext.HrdPreEmploymentMedicalChecks
+                .FirstOrDefaultAsync(m => m.OfferId == offer.Id && !m.IsDelete, cancellationToken);
 
-            // Aturan Bisnis AT-HRD-D2-11 & HRD-DEC-075: Pembentukan Draf WorkforceProfile Baru di Sub-modul 02
-            var countProfilesToday = await _dbContext.MstWorkforceProfiles
-                .CountAsync(p => p.ProfileCode.StartsWith($"WFP-{todayStr}-"), cancellationToken);
-
-            var profileCode = $"WFP-{todayStr}-{(countProfilesToday + 1):D4}";
-
-            var userType = vacancy.IsClinical ? UserType.PermanentDoctor : UserType.Employee;
-
-            var newProfile = new MstWorkforceProfile
+            var handoffPrereq = RecruitmentJourneyPolicy.EvaluateHandoffPrerequisites(app, offer, mcu, candidate);
+            if (!handoffPrereq.IsEligible)
             {
-                Id = Guid.NewGuid(),
-                ProfileCode = profileCode,
-                UserType = userType,
-                DisplayName = candidate.FullName.Trim(),
-                Email = candidate.Email.Trim(),
-                PhoneNumber = candidate.PhoneNumber.Trim(),
-                WhatsAppNumber = candidate.PhoneNumber.Trim(),
-                PrimaryPositionId = vacancy.Requisition?.PositionId,
-                IsActive = false, // Pending Onboarding (belum aktif login sebelum orientasi selesai)
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = userId
-            };
-            await _dbContext.MstWorkforceProfiles.AddAsync(newProfile, cancellationToken);
+                return RecruitmentResult<HiringHandoffResponse>.Unprocessable(handoffPrereq.BlockingMessage!);
+            }
 
-            // Aturan Bisnis INT-HR-20, INT-HR-23: Sinkronisasi Kursi Formasi WFP
+            // Validasi Kursi Formasi WFP sebelum menulis apa pun (INT-HR-20, INT-HR-23)
             Guid? seatId = request.HeadcountRequestSeatId;
             if (seatId.HasValue)
             {
                 var seat = await _dbContext.HrdHeadcountRequestSeats
                     .FirstOrDefaultAsync(s => s.Id == seatId.Value && !s.IsDelete, cancellationToken);
 
-                if (seat != null)
+                if (seat == null)
                 {
-                    seat.SeatStatus = HeadcountSeatStatus.Fulfilled;
-                    seat.FulfilledAt = DateOnly.FromDateTime(DateTime.UtcNow);
-                    seat.LinkedAt = DateTime.UtcNow;
-                    seat.LinkedByUserId = userId;
-                    seat.UpdateDateTime = DateTime.UtcNow;
-                    seat.UpdateBy = userId;
+                    return RecruitmentResult<HiringHandoffResponse>.NotFound("Kursi formasi WFP (HeadcountRequestSeatId) tidak ditemukan.");
+                }
+
+                if (vacancy.Requisition != null
+                    && vacancy.Requisition.HeadcountRequestId != Guid.Empty
+                    && seat.HeadcountRequestId != vacancy.Requisition.HeadcountRequestId)
+                {
+                    return RecruitmentResult<HiringHandoffResponse>.Unprocessable(
+                        "Kursi formasi yang dipilih bukan milik Headcount Request yang terkait dengan lowongan ini.");
+                }
+
+                if (seat.SeatStatus != HeadcountSeatStatus.Open && seat.SeatStatus != HeadcountSeatStatus.Linked)
+                {
+                    return RecruitmentResult<HiringHandoffResponse>.Conflict(
+                        $"Kursi formasi #{seat.SeatNumber} tidak tersedia untuk dipakai (status saat ini: '{seat.SeatStatus}').");
                 }
             }
 
-            // Generate nomor serah terima HND-yyyyMMdd-XXXX
-            var countHandoffsToday = await _dbContext.HrdCandidateHiringHandoffs
-                .CountAsync(h => h.HandoffNumber.StartsWith($"HND-{todayStr}-"), cancellationToken);
+            // Rehire Dedup HRD-DEC-075: gunakan ulang WorkforceProfile lama bila kandidat adalah rehire / NIK sudah memiliki WorkforceProfile
+            MstWorkforceProfile? profileToUse = null;
+            var reusedProfileId = candidate.PreviousWorkforceProfileId;
+            if (!reusedProfileId.HasValue)
+            {
+                var existingEmp = await _dbContext.MstEmployees
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(e => e.IdentityNumber == candidate.NationalIdNumber && !e.IsDelete, cancellationToken);
+                reusedProfileId = existingEmp?.WorkforceProfileId;
+            }
 
-            var handoffNumber = $"HND-{todayStr}-{(countHandoffsToday + 1):D4}";
+            if (reusedProfileId.HasValue)
+            {
+                profileToUse = await _dbContext.MstWorkforceProfiles
+                    .FirstOrDefaultAsync(p => p.Id == reusedProfileId.Value && !p.IsDelete, cancellationToken);
+            }
+
+            var dateCode = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, RecruitmentJourneyPolicy.JakartaTimeZone)
+                .ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+
+            string? allocatedProfileCode = null;
+            if (profileToUse == null)
+            {
+                var wfpPrefix = $"WFP-{dateCode}-";
+                var existingProfileCodes = await _dbContext.MstWorkforceProfiles
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .Where(p => p.ProfileCode.StartsWith(wfpPrefix))
+                    .Select(p => p.ProfileCode)
+                    .ToListAsync(cancellationToken);
+
+                allocatedProfileCode = await RecruitmentJourneyPolicy.AllocateSequenceAsync(
+                    _numberSeriesAllocator,
+                    existingProfileCodes,
+                    "HRD_WORKFORCE_PROFILE_CODE",
+                    "WFP",
+                    userId,
+                    cancellationToken);
+            }
+
+            var hndPrefix = $"HND-{dateCode}-";
+            var existingHandoffNumbers = await _dbContext.HrdCandidateHiringHandoffs
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(h => h.HandoffNumber.StartsWith(hndPrefix))
+                .Select(h => h.HandoffNumber)
+                .ToListAsync(cancellationToken);
+
+            var handoffNumber = await RecruitmentJourneyPolicy.AllocateSequenceAsync(
+                _numberSeriesAllocator,
+                existingHandoffNumbers,
+                "HRD_HIRING_HANDOFF",
+                "HND",
+                userId,
+                cancellationToken);
+
+            await using var tx = _dbContext.Database.IsRelational()
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                : null;
+
+            if (profileToUse == null)
+            {
+                var userType = vacancy.IsClinical ? UserType.PermanentDoctor : UserType.Employee;
+                profileToUse = new MstWorkforceProfile
+                {
+                    Id = Guid.NewGuid(),
+                    ProfileCode = allocatedProfileCode!,
+                    UserType = userType,
+                    DisplayName = candidate.FullName.Trim(),
+                    Email = candidate.Email.Trim(),
+                    PhoneNumber = candidate.PhoneNumber.Trim(),
+                    WhatsAppNumber = candidate.PhoneNumber.Trim(),
+                    PrimaryPositionId = vacancy.Requisition?.PositionId,
+                    IsActive = false,
+                    CreateDateTime = DateTime.UtcNow,
+                    CreateBy = userId
+                };
+                await _dbContext.MstWorkforceProfiles.AddAsync(profileToUse, cancellationToken);
+            }
+            else
+            {
+                profileToUse.DisplayName = candidate.FullName.Trim();
+                profileToUse.Email = candidate.Email.Trim();
+                profileToUse.PhoneNumber = candidate.PhoneNumber.Trim();
+                profileToUse.WhatsAppNumber = candidate.PhoneNumber.Trim();
+                profileToUse.PrimaryPositionId = vacancy.Requisition?.PositionId ?? profileToUse.PrimaryPositionId;
+                profileToUse.IsActive = false;
+                profileToUse.UpdateDateTime = DateTime.UtcNow;
+                profileToUse.UpdateBy = userId;
+            }
+
+            if (seatId.HasValue)
+            {
+                var seat = await _dbContext.HrdHeadcountRequestSeats
+                    .FirstAsync(s => s.Id == seatId.Value && !s.IsDelete, cancellationToken);
+                seat.SeatStatus = HeadcountSeatStatus.Fulfilled;
+                seat.FulfilledAt = DateOnly.FromDateTime(DateTime.UtcNow);
+                seat.LinkedAt = DateTime.UtcNow;
+                seat.LinkedByUserId = userId;
+                seat.UpdateDateTime = DateTime.UtcNow;
+                seat.UpdateBy = userId;
+            }
 
             var handoff = new HrdCandidateHiringHandoff
             {
@@ -232,7 +442,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 HandoffNumber = handoffNumber,
                 OfferId = offer.Id,
                 CandidateId = candidate.Id,
-                WorkforceProfileId = newProfile.Id,
+                WorkforceProfileId = profileToUse.Id,
                 HeadcountRequestSeatId = seatId,
                 HandoffDate = DateTime.UtcNow,
                 Status = HandoffStatus.TransferredToOnboarding,
@@ -250,6 +460,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             app.UpdateBy = userId;
 
             candidate.Status = CandidateStatus.Hired;
+            candidate.PreviousWorkforceProfileId ??= profileToUse.Id;
             candidate.UpdateDateTime = DateTime.UtcNow;
             candidate.UpdateBy = userId;
 
@@ -260,16 +471,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            // Integrasi INT-HR-25 / BE-HRD-074: Pembentukan kasus onboarding otomatis dari serah terima
+            // Integrasi INT-HR-25 / BE-HRD-074: Pembentukan kasus onboarding atomik dari serah terima
             if (_onboardingCaseService != null)
             {
                 var caseResult = await _onboardingCaseService.CreateFromHandoffAsync(handoff.Id, userId, cancellationToken);
                 if (!caseResult.IsSuccess)
                 {
-                    // Catat pesan peringatan jika pembentukan kasus mengalami hambatan
-                    handoff.Notes = $"{handoff.Notes} | Catatan Onboarding: {caseResult.ErrorMessage}";
-                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    if (tx != null)
+                    {
+                        await tx.RollbackAsync(cancellationToken);
+                    }
+
+                    return RecruitmentResult<HiringHandoffResponse>.Unprocessable(
+                        $"Serah terima onboarding dibatalkan secara atomik karena pembentukan kasus onboarding gagal: {caseResult.ErrorMessage}");
                 }
+            }
+
+            if (tx != null)
+            {
+                await tx.CommitAsync(cancellationToken);
             }
 
             return await GetByIdAsync(handoff.Id, cancellationToken);
@@ -289,6 +509,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             if (handoff == null)
             {
                 return RecruitmentResult<HiringHandoffResponse>.NotFound("Dokumen serah terima hiring handoff tidak ditemukan.");
+            }
+
+            if (handoff.Status == HandoffStatus.Cancelled)
+            {
+                return RecruitmentResult<HiringHandoffResponse>.Unprocessable(
+                    "Konfirmasi selesai ditolak karena dokumen serah terima berstatus Cancelled.");
+            }
+
+            var hasCase = await _dbContext.HrdOnboardingCases
+                .AnyAsync(c => c.HiringHandoffId == handoff.Id && !c.IsDelete, cancellationToken);
+
+            if (!hasCase)
+            {
+                if (_onboardingCaseService == null)
+                {
+                    return RecruitmentResult<HiringHandoffResponse>.Unprocessable(
+                        "Konfirmasi selesai ditolak: kasus onboarding belum terbentuk.");
+                }
+
+                var recovery = await _onboardingCaseService.CreateFromHandoffAsync(handoff.Id, userId, cancellationToken);
+                if (!recovery.IsSuccess)
+                {
+                    return RecruitmentResult<HiringHandoffResponse>.Unprocessable(
+                        $"Konfirmasi selesai ditolak karena pembuatan kasus onboarding gagal: {recovery.ErrorMessage}");
+                }
             }
 
             handoff.Status = HandoffStatus.Completed;
@@ -314,7 +559,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 OfferNumber = model.Offer?.OfferNumber ?? "-",
                 CandidateId = model.CandidateId,
                 CandidateName = model.Candidate?.FullName ?? "-",
-                CandidateNik = model.Candidate?.NationalIdNumber ?? "-",
+                CandidateNik = RecruitmentJourneyPolicy.MaskNationalIdNumber(model.Candidate?.NationalIdNumber),
                 VacancyTitle = model.Offer?.Application?.Vacancy?.Title ?? "-",
                 WorkforceProfileId = model.WorkforceProfileId,
                 WorkforceProfileCode = model.WorkforceProfile?.ProfileCode,

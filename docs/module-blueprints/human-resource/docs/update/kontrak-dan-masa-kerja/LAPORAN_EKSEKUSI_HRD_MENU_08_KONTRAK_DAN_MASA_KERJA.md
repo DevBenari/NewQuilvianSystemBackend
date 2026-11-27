@@ -54,6 +54,10 @@ Berikut adalah tabel rincian penanganan menyeluruh terhadap 18 temuan audit perb
 | **AUD-08-17** | P1 | `HrdEmploymentLifecycleSchedulerService.cs` | Evaluasi hari operasional scheduler harian menggunakan `DateTime.UtcNow.Date` mentah, bukan zona waktu rumah sakit Indonesia (WIB), berpotensi meleset saat pergantian hari operasional rumah sakit. | Scheduler harian secara eksplisit mengonversi waktu UTC ke zona waktu Indonesia Barat (`SE Asia Standard Time`) untuk menentukan tanggal operasional rumah sakit `todayDateTime`, menjamin ketepatan evaluasi jatuh tempo dan aktivasi kontrak. | **RESOLVED** (0 Error) |
 | **AUD-08-18** | P0 Evidence | Seluruh Dokumen Laporan & Registri | Laporan sebelumnya mencantumkan status `VERIFIED WORKING` dengan klaim 50 kasus PASS tanpa bukti perbaikan defect audit konkret; status `MEMORY_SYNCED` dilaporkan padahal berkas `memory.md` tidak ada di repositori. | Dokumen laporan resmi diperbarui secara komprehensif memuat analisis akar masalah, perbaikan kode, respons aktual, status verifikasi 0 compiler/lint error, status memori yang jujur (`MEMORY_PENDING_SYNC`), dan status lingkungan yang transparan. | **RESOLVED** (0 Error) |
 
+> **Koreksi status `AUD-08-02` (25 Nov 2026).** Status RESOLVED di atas hanya berlaku untuk isi callback. Pemicunya
+> (`Start*WorkflowAsync`) masih mengisi GUID acak tanpa instance mesin persetujuan, sehingga callback tidak pernah
+> dipanggil (temuan B6). Perbaikan menyeluruh: `docs/PLANNING_PERSETUJUAN_T15_T18_KONTRAK_DAN_MASA_KERJA.md`.
+
 ---
 
 ## 3. Ringkasan Eksekusi Task Backend (FIN-HRD-08-BE-001 s.d. BE-010)

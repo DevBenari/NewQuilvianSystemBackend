@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
@@ -90,7 +91,117 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                 },
                 cancellationToken);
 
+            // BE-HRD-FIN-WFP-009: Cegah workflow yatim (Draft tanpa submit berhasil) akibat kegagalan parsial.
+            if (!submitResult.Success &&
+                string.Equals(
+                    createResult.Data.WorkflowStatus,
+                    WorkflowValueConstants.WorkflowStatus.Draft,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                await CleanupOrphanDraftWorkflowAsync(
+                    createResult.Data.Id,
+                    submitResult.Message,
+                    cancellationToken);
+            }
+
             return submitResult;
+        }
+
+        private async Task CleanupOrphanDraftWorkflowAsync(
+            Guid workflowInstanceId,
+            string? failureReason,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                _dbContext.ChangeTracker.Clear();
+
+                var orphan = await _dbContext.Set<TrxWorkflowInstance>()
+                    .Include(w => w.StepInstances)
+                        .ThenInclude(s => s.ApproverAssignments)
+                    .FirstOrDefaultAsync(
+                        w => w.Id == workflowInstanceId &&
+                             !w.IsDelete &&
+                             w.WorkflowStatus == WorkflowValueConstants.WorkflowStatus.Draft,
+                        cancellationToken);
+
+                if (orphan == null)
+                {
+                    return;
+                }
+
+                var now = DateTime.UtcNow;
+                orphan.WorkflowStatus = WorkflowValueConstants.WorkflowStatus.Cancelled;
+                orphan.CancelledAt = now;
+                orphan.CancellationReason = string.IsNullOrWhiteSpace(failureReason)
+                    ? "Rollback otomatis workflow draf akibat kegagalan pengajuan awal."
+                    : $"Rollback otomatis workflow draf akibat kegagalan pengajuan awal: {failureReason}";
+                orphan.IsActive = false;
+                orphan.IsCancel = true;
+                orphan.CancelDateTime = now;
+                orphan.IsDelete = true;
+                orphan.DeleteDateTime = now;
+
+                foreach (var step in orphan.StepInstances)
+                {
+                    step.IsCurrentStep = false;
+                    step.IsActive = false;
+                    step.IsDelete = true;
+                    step.DeleteDateTime = now;
+
+                    foreach (var assignment in step.ApproverAssignments)
+                    {
+                        assignment.IsCurrentAssignment = false;
+                        assignment.IsActive = false;
+                        assignment.IsDelete = true;
+                        assignment.DeleteDateTime = now;
+                    }
+                }
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation(
+                    "Orphan draft workflow instance {WorkflowInstanceId} dibersihkan otomatis setelah gagal submit.",
+                    workflowInstanceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Gagal membersihkan orphan draft workflow instance {WorkflowInstanceId} setelah gagal submit.",
+                    workflowInstanceId);
+            }
+        }
+
+        public async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> ResubmitWorkflowAsync(
+            Guid workflowInstanceId,
+            string? comment,
+            CancellationToken cancellationToken = default)
+        {
+            var workflowService = _serviceProvider.GetRequiredService<WorkflowService>();
+            return await workflowService.SubmitAsync(
+                workflowInstanceId,
+                new WorkflowSubmitRequest
+                {
+                    Comment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim()
+                },
+                cancellationToken);
+        }
+
+        public async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> WithdrawWorkflowAsync(
+            Guid workflowInstanceId,
+            Guid requesterUserId,
+            string reason,
+            CancellationToken cancellationToken = default)
+        {
+            var workflowService = _serviceProvider.GetRequiredService<WorkflowService>();
+            return await workflowService.WithdrawOnBehalfAsync(
+                workflowInstanceId,
+                requesterUserId,
+                new WorkflowWithdrawRequest
+                {
+                    Reason = string.IsNullOrWhiteSpace(reason) ? "Ditarik kembali oleh pemohon." : reason.Trim()
+                },
+                cancellationToken);
         }
 
         public async Task<WorkflowReferenceLifecycleSynchronizationResult> SynchronizeAsync(

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,6 +12,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     {
         Task<RecruitmentResult<PagedResult<TalentPoolListItemResponse>>> GetPagedAsync(
             TalentPoolQuery query,
+            CancellationToken cancellationToken = default);
+
+        Task<RecruitmentResult<List<EligibleTalentPoolApplicationResponse>>> GetEligibleApplicationsAsync(
+            Guid? vacancyId,
+            string? search,
             CancellationToken cancellationToken = default);
 
         Task<RecruitmentResult<TalentPoolResponse>> GetByIdAsync(

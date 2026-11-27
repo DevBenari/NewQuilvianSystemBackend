@@ -3,11 +3,14 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services
@@ -19,6 +22,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         private readonly IEmployeeEmploymentRecordService _employeeEmploymentRecordService;
         private readonly ILogger<HrdEmploymentLifecycleSchedulerService> _logger;
         private readonly QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IHrdNotificationService _notificationService;
+        // Diambil saat dipakai: integrasi workflow dan penyelarasan lifecycle (B6) bergantung pada WorkflowService.
+        private readonly IServiceProvider _serviceProvider;
 
         private const string DailyTickLockKey = "HRD_EMPLOYMENT_LIFECYCLE_DAILY_TICK";
 
@@ -27,8 +32,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             IHrdOnboardingCaseService caseService,
             IEmployeeEmploymentRecordService employeeEmploymentRecordService,
             ILogger<HrdEmploymentLifecycleSchedulerService> logger,
-            QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IHrdNotificationService notificationService)
+            QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IHrdNotificationService notificationService,
+            IServiceProvider serviceProvider)
         {
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _caseService = caseService ?? throw new ArgumentNullException(nameof(caseService));
@@ -205,6 +212,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                             p.EndDate < today)
                 .ToListAsync(cancellationToken);
 
+            var expiredAssessmentWorkflows = new System.Collections.Generic.List<(Guid InstanceId, Guid RequesterUserId)>();
+
             foreach (var probation in expiredProbations)
             {
                 probation.ProbationStatus = ProbationStatus.PassedAutomatically;
@@ -216,6 +225,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 foreach (var assessment in probation.Assessments.Where(a => !a.IsDelete &&
                     (a.AssessmentStatus == ProbationAssessmentStatus.Submitted || a.AssessmentStatus == ProbationAssessmentStatus.Returned)))
                 {
+                    if (assessment.WorkflowInstanceId.HasValue)
+                    {
+                        expiredAssessmentWorkflows.Add((assessment.WorkflowInstanceId.Value, assessment.SubmittedByUserId));
+                    }
+
                     assessment.AssessmentStatus = ProbationAssessmentStatus.ClosedOnExpiry;
                     assessment.DecisionNote = "Penilaian ditutup otomatis karena masa percobaan telah melewati tanggal akhir tanpa persetujuan (Lulus Otomatis).";
                     assessment.DecidedAt = DateTime.UtcNow;
@@ -227,6 +241,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // 3b. B6 (HRD-DEC-085 butir 9): penilaian yang ditutup otomatis ikut ditarik dari Kotak Masuk penyetuju,
+            // atas nama pengajunya. Penangan lifecycle tidak mengubah penilaian yang sudah ClosedOnExpiry.
+            if (expiredAssessmentWorkflows.Count > 0)
+            {
+                var integration = _serviceProvider.GetRequiredService<IHrdEmploymentLifecycleWorkflowIntegrationService>();
+                foreach (var (instanceId, requesterUserId) in expiredAssessmentWorkflows)
+                {
+                    try
+                    {
+                        var withdrawn = await integration.WithdrawAsync(
+                            instanceId,
+                            requesterUserId,
+                            "Masa percobaan berakhir tanpa persetujuan; pegawai lulus otomatis (HRD-DEC-085 butir 9).",
+                            cancellationToken);
+                        if (!withdrawn.Success)
+                        {
+                            _logger.LogWarning("Instance penilaian {InstanceId} gagal ditarik: {Message}", instanceId, withdrawn.Message);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Instance penilaian {InstanceId} gagal ditarik.", instanceId);
+                    }
+                }
+            }
+
+            // 3c. B6: penyelarasan dokumen T15-T18 yang tertinggal bila panggilan sesudah aksi workflow gagal.
+            processedCount += await ReconcileLifecycleWorkflowsAsync(cancellationToken);
 
             // 4. Evaluasi Butir Otomatis Kasus Onboarding Berjalan
             var activeCases = await _dbContext.HrdOnboardingCases
@@ -290,6 +333,73 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
             _logger.LogInformation("Selesai menjalankan scheduler siklus kepegawaian. Total {Count} entitas dimutakhirkan.", processedCount);
             return processedCount;
+        }
+
+        /// <summary>
+        /// Menyelaraskan dokumen T15–T18 yang masih Diajukan/Dikembalikan padahal instance-nya sudah berpindah status
+        /// (keputusan 16 planning B6). Penangan lifecycle idempoten, jadi pemanggilan berulang aman.
+        /// </summary>
+        private async Task<int> ReconcileLifecycleWorkflowsAsync(CancellationToken cancellationToken)
+        {
+            var instanceIds = new System.Collections.Generic.List<Guid>();
+            instanceIds.AddRange(await _dbContext.HrdContractDecisions.AsNoTracking()
+                .Where(d => !d.IsDelete && d.WorkflowInstanceId != null &&
+                            (d.DecisionStatus == ContractDecisionStatus.Submitted || d.DecisionStatus == ContractDecisionStatus.Returned))
+                .Select(d => d.WorkflowInstanceId!.Value)
+                .ToListAsync(cancellationToken));
+            instanceIds.AddRange(await _dbContext.HrdProbationAssessments.AsNoTracking()
+                .Where(a => !a.IsDelete && a.WorkflowInstanceId != null &&
+                            (a.AssessmentStatus == ProbationAssessmentStatus.Submitted || a.AssessmentStatus == ProbationAssessmentStatus.Returned))
+                .Select(a => a.WorkflowInstanceId!.Value)
+                .ToListAsync(cancellationToken));
+            instanceIds.AddRange(await _dbContext.HrdContractCorrections.AsNoTracking()
+                .Where(c => !c.IsDelete && c.WorkflowInstanceId != null &&
+                            (c.CorrectionStatus == ContractCorrectionStatus.Submitted || c.CorrectionStatus == ContractCorrectionStatus.Returned))
+                .Select(c => c.WorkflowInstanceId!.Value)
+                .ToListAsync(cancellationToken));
+            instanceIds.AddRange(await _dbContext.HrdInitialContractBatches.AsNoTracking()
+                .Where(b => !b.IsDelete && b.WorkflowInstanceId != null &&
+                            (b.BatchStatus == InitialContractBatchStatus.Submitted || b.BatchStatus == InitialContractBatchStatus.Returned))
+                .Select(b => b.WorkflowInstanceId!.Value)
+                .ToListAsync(cancellationToken));
+
+            if (instanceIds.Count == 0)
+            {
+                return 0;
+            }
+
+            var candidates = await _dbContext.TrxWorkflowInstances.AsNoTracking()
+                .Where(w => instanceIds.Contains(w.Id) && !w.IsDelete)
+                .Select(w => w.Id)
+                .ToListAsync(cancellationToken);
+
+            if (candidates.Count == 0)
+            {
+                return 0;
+            }
+
+            var lifecycle = _serviceProvider.GetRequiredService<WorkflowReferenceLifecycleService>();
+            var changed = 0;
+            foreach (var instanceId in candidates)
+            {
+                try
+                {
+                    var result = await lifecycle.SynchronizeAsync(instanceId, Guid.Empty, allowAutoApply: true, cancellationToken: cancellationToken);
+                    if (result.StatusChanged)
+                    {
+                        changed++;
+                        _logger.LogInformation(
+                            "Dokumen {ReferenceId} diselaraskan dari {Previous} ke {Current} mengikuti workflow {InstanceId}.",
+                            result.ReferenceId, result.PreviousReferenceStatus, result.CurrentReferenceStatus, instanceId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Penyelarasan dokumen lifecycle untuk workflow {InstanceId} gagal.", instanceId);
+                }
+            }
+
+            return changed;
         }
     }
 }

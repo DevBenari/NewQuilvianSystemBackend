@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -420,13 +421,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             if (query.StartDate.HasValue)
             {
-                filtered = filtered.Where(x => x.CreateDateTime >= query.StartDate.Value);
+                var startUtc = InpDateRangeHelper.NormalizeStartUtc(query.StartDate.Value);
+                filtered = filtered.Where(x => x.CreateDateTime >= startUtc);
             }
 
             if (query.EndDate.HasValue)
             {
-                var exclusiveEnd = query.EndDate.Value.Date.AddDays(1);
-                filtered = filtered.Where(x => x.CreateDateTime < exclusiveEnd);
+                var (endUtc, isExclusive) = InpDateRangeHelper.ResolveEndUtc(query.EndDate.Value);
+                filtered = isExclusive
+                    ? filtered.Where(x => x.CreateDateTime < endUtc)
+                    : filtered.Where(x => x.CreateDateTime <= endUtc);
             }
 
             if (query.RequiresIsolation.HasValue)

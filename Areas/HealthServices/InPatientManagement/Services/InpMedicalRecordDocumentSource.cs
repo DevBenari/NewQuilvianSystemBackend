@@ -293,9 +293,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             if (encounterId.HasValue)
                 query = query.Where(x => x.Episode!.EncounterId == encounterId.Value);
             if (dari.HasValue)
-                query = query.Where(x => x.SignedAt >= dari.Value);
+            {
+                var dariUtc = Helpers.InpDateRangeHelper.NormalizeStartUtc(dari.Value);
+                query = query.Where(x => x.SignedAt >= dariUtc);
+            }
             if (sampai.HasValue)
-                query = query.Where(x => x.SignedAt <= sampai.Value);
+            {
+                var (sampaiUtc, isExclusive) = Helpers.InpDateRangeHelper.ResolveEndUtc(sampai.Value);
+                query = isExclusive
+                    ? query.Where(x => x.SignedAt < sampaiUtc)
+                    : query.Where(x => x.SignedAt <= sampaiUtc);
+            }
 
             return query;
         }
@@ -316,9 +324,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             if (encounterId.HasValue)
                 query = query.Where(x => x.Episode != null && x.Episode.EncounterId == encounterId.Value);
             if (dari.HasValue)
-                query = query.Where(x => x.CompletedAt >= dari.Value);
+            {
+                var dariUtc = Helpers.InpDateRangeHelper.NormalizeStartUtc(dari.Value);
+                query = query.Where(x => x.CompletedAt >= dariUtc);
+            }
             if (sampai.HasValue)
-                query = query.Where(x => x.CompletedAt <= sampai.Value);
+            {
+                var (sampaiUtc, isExclusive) = Helpers.InpDateRangeHelper.ResolveEndUtc(sampai.Value);
+                query = isExclusive
+                    ? query.Where(x => x.CompletedAt < sampaiUtc)
+                    : query.Where(x => x.CompletedAt <= sampaiUtc);
+            }
 
             return query;
         }

@@ -28,6 +28,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var dbQuery = _dbContext.HrdJobVacancies
                 .AsNoTracking()
                 .Include(v => v.Requisition)
+                    .ThenInclude(r => r!.Position)
+                .Include(v => v.Requisition)
+                    .ThenInclude(r => r!.OrganizationUnit)
+                .Include(v => v.Requisition)
+                    .ThenInclude(r => r!.HospitalSite)
                 .Where(v => !v.IsDelete);
 
             if (query.RequisitionId.HasValue && query.RequisitionId.Value != Guid.Empty)
@@ -67,7 +72,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     VacancyNumber = v.VacancyNumber,
                     RequisitionId = v.RequisitionId,
                     RequisitionNumber = v.Requisition != null ? v.Requisition.RequisitionNumber : null,
+                    PositionName = v.Requisition != null && v.Requisition.Position != null ? v.Requisition.Position.PositionName : null,
+                    OrganizationUnitName = v.Requisition != null && v.Requisition.OrganizationUnit != null ? v.Requisition.OrganizationUnit.UnitName : null,
+                    HospitalSiteName = v.Requisition != null && v.Requisition.HospitalSite != null ? v.Requisition.HospitalSite.SiteName : null,
                     Title = v.Title,
+                    Description = v.Description,
                     QuotaSeats = v.QuotaSeats,
                     IsClinical = v.IsClinical,
                     PublishDate = v.PublishDate,
@@ -76,6 +85,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     CreateDateTime = v.CreateDateTime
                 })
                 .ToListAsync(cancellationToken);
+
+            var vacancyIds = items.Select(i => i.Id).ToList();
+            var occupiedMap = await RecruitmentJourneyPolicy.CountOccupiedSeatsByVacancyAsync(_dbContext, vacancyIds, cancellationToken);
+            foreach (var item in items)
+            {
+                var occupied = occupiedMap.TryGetValue(item.Id, out var c) ? c : 0;
+                item.OccupiedSeats = occupied;
+                item.RemainingSeats = item.QuotaSeats > 0 ? Math.Max(0, item.QuotaSeats - occupied) : 0;
+            }
 
             var result = new PagedResult<JobVacancyListItemResponse>
             {
@@ -96,6 +114,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var v = await _dbContext.HrdJobVacancies
                 .AsNoTracking()
                 .Include(x => x.Requisition)
+                    .ThenInclude(r => r!.Position)
+                .Include(x => x.Requisition)
+                    .ThenInclude(r => r!.OrganizationUnit)
+                .Include(x => x.Requisition)
+                    .ThenInclude(r => r!.HospitalSite)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
             if (v == null)
@@ -103,7 +126,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<JobVacancyResponse>.NotFound("Lowongan kerja tidak ditemukan.");
             }
 
-            return RecruitmentResult<JobVacancyResponse>.Ok(MapToResponse(v), "Detail lowongan kerja berhasil diambil.");
+            var occupiedMap = await RecruitmentJourneyPolicy.CountOccupiedSeatsByVacancyAsync(_dbContext, new[] { v.Id }, cancellationToken);
+            var occupied = occupiedMap.TryGetValue(v.Id, out var c) ? c : 0;
+            return RecruitmentResult<JobVacancyResponse>.Ok(MapToResponse(v, occupied), "Detail lowongan kerja berhasil diambil.");
         }
 
         public async Task<RecruitmentResult<JobVacancyResponse>> CreateAsync(
@@ -171,6 +196,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var userId = GetUserId(user);
 
             var entity = await _dbContext.HrdJobVacancies
+                .Include(v => v.Requisition)
+                    .ThenInclude(r => r!.Vacancies)
                 .FirstOrDefaultAsync(v => v.Id == id && !v.IsDelete, cancellationToken);
 
             if (entity == null)
@@ -230,11 +257,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var userId = GetUserId(user);
 
             var entity = await _dbContext.HrdJobVacancies
+                .Include(v => v.Requisition)
+                    .ThenInclude(r => r!.Vacancies)
                 .FirstOrDefaultAsync(v => v.Id == id && !v.IsDelete, cancellationToken);
 
             if (entity == null)
             {
                 return RecruitmentResult<JobVacancyResponse>.NotFound("Lowongan kerja tidak ditemukan.");
+            }
+
+            if (entity.Requisition == null || entity.Requisition.IsDelete || entity.Requisition.Status != JobRequisitionStatus.Approved)
+            {
+                return RecruitmentResult<JobVacancyResponse>.Unprocessable(
+                    "Lowongan kerja tidak dapat dipublikasikan karena Requisition induk belum disetujui (Approved).");
+            }
+
+            var otherSeats = entity.Requisition.Vacancies
+                .Where(v => v.Id != entity.Id && !v.IsDelete && v.Status != JobVacancyStatus.Cancelled && v.Status != JobVacancyStatus.Closed)
+                .Sum(v => v.QuotaSeats);
+            var availableSeats = entity.Requisition.ApprovedSeats - otherSeats;
+            if (entity.QuotaSeats > availableSeats)
+            {
+                return RecruitmentResult<JobVacancyResponse>.Unprocessable(
+                    $"Lowongan tidak dapat dipublikasikan karena kuota ({entity.QuotaSeats}) melebihi sisa kursi Requisition ({availableSeats}).");
             }
 
             if (entity.Status != JobVacancyStatus.Draft)
@@ -268,6 +313,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var userId = GetUserId(user);
 
             var entity = await _dbContext.HrdJobVacancies
+                .Include(v => v.Requisition)
+                    .ThenInclude(r => r!.Vacancies)
                 .FirstOrDefaultAsync(v => v.Id == id && !v.IsDelete, cancellationToken);
 
             if (entity == null)
@@ -297,7 +344,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             return await GetByIdAsync(entity.Id, cancellationToken);
         }
 
-        private static JobVacancyResponse MapToResponse(HrdJobVacancy v)
+        private static JobVacancyResponse MapToResponse(HrdJobVacancy v, int occupiedSeats = 0)
         {
             return new JobVacancyResponse
             {
@@ -305,9 +352,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 VacancyNumber = v.VacancyNumber,
                 RequisitionId = v.RequisitionId,
                 RequisitionNumber = v.Requisition?.RequisitionNumber,
+                PositionName = v.Requisition?.Position?.PositionName,
+                OrganizationUnitName = v.Requisition?.OrganizationUnit?.UnitName,
+                HospitalSiteName = v.Requisition?.HospitalSite?.SiteName,
                 Title = v.Title,
                 Description = v.Description,
                 QuotaSeats = v.QuotaSeats,
+                OccupiedSeats = occupiedSeats,
+                RemainingSeats = v.QuotaSeats > 0 ? Math.Max(0, v.QuotaSeats - occupiedSeats) : 0,
                 IsClinical = v.IsClinical,
                 PublishDate = v.PublishDate,
                 ClosingDate = v.ClosingDate,

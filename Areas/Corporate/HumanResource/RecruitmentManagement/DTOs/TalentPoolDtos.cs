@@ -87,4 +87,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 20;
     }
+
+    public sealed class EligibleTalentPoolApplicationResponse
+    {
+        public Guid ApplicationId { get; set; }
+        public string ApplicationNumber { get; set; } = string.Empty;
+        public Guid CandidateId { get; set; }
+        public string CandidateCode { get; set; } = string.Empty;
+        public string CandidateName { get; set; } = string.Empty;
+        public Guid OriginalVacancyId { get; set; }
+        public string OriginalVacancyTitle { get; set; } = string.Empty;
+        public int QuotaSeats { get; set; }
+        public int FilledOrOfferedCount { get; set; }
+        public decimal? HrScore { get; set; }
+        public decimal? ClinicalScore { get; set; }
+        public decimal? SuggestedRankingScore { get; set; }
+    }
 }

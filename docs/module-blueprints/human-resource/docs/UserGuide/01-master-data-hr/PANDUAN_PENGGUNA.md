@@ -7,7 +7,7 @@
 | Nama Sub-Modul | Master Data HR (Data Induk Kepegawaian) |
 | Sasaran Pengguna | HR Superadmin & Tim Tata Kelola Sistem |
 | Lokasi Menu Sidebar | **Sumber Daya Manusia $\rightarrow$ Master Data** |
-| Alamat URL Utama | `http://localhost:3000/hr/master-data/organization`<br>`http://localhost:3000/hr/master-data/job-level`<br>`http://localhost:3000/hr/master-data/shift-group`<br>*(dan 62 katalog master data lainnya)* |
+| Alamat URL Utama | `http://localhost:3000/hr/master-data/organization-unit` (Struktur Organisasi)<br>`http://localhost:3000/hr/master-data/job-level`<br>`http://localhost:3000/hr/master-data/shift-group`<br>*(dan 62 katalog master data lainnya)* |
 
 ---
 
@@ -34,7 +34,7 @@ flowchart LR
 ### Langkah 1: Membuka Daftar Master Data
 1. Buka sidebar kiri $\rightarrow$ Klik menu **Sumber Daya Manusia**.
 2. Klik sub-menu **Master Data**. Anda akan melihat 62 kelompok master data yang dikelompokkan rapi (Organisasi, Jabatan, Shift, Cuti, Payroll, dll.).
-3. Pilih salah satu katalog, misalnya **Struktur Organisasi** (`/hr/master-data/organization`).
+3. Pilih salah satu katalog, misalnya **Struktur Organisasi** (`/hr/master-data/organization-unit`).
 
 ### Langkah 2: Menambah Data Induk Baru
 1. Di pojok kanan atas tabel, klik tombol **"Tambah Data"**.
@@ -49,6 +49,27 @@ flowchart LR
 1. Pada tabel data, gunakan kolom pencarian untuk menemukan unit yang ingin disunting.
 2. Klik tombol **Aksi $\rightarrow$ Edit** untuk memperbarui nama atau parameter.
 3. Jika unit sudah tidak digunakan lagi, ubah statusnya menjadi **Tidak Aktif (*Inactive*)**. Data lama tidak akan terhapus dari riwayat transaksi terdahulu.
+
+---
+
+### Menu Organisasi (berlaku sejak 24 November 2026, `HRD-DEC-257`; nomor lama `HRD-DEC-248`)
+
+Grup **Organisasi & Struktur Jabatan** kini memisahkan tiga hal:
+
+| Menu | Alamat | Untuk apa | Hak akses di layar Akses Role |
+| --- | --- | --- | --- |
+| **Struktur Organisasi** | `/hr/master-data/organization-unit` | Menyusun unit kerja (direktorat, divisi, instalasi, departemen, seksi, tim, unit). Tombol `Daftar` untuk tabel dan tambah/ubah unit, tombol `Hierarki` untuk melihat pohon | **Organization Unit** |
+| **Departemen** | `/hr/master-data/organization/departments` | Daftar nama departemen yang dipakai data pegawai dan unit | **Organization** |
+| **Posisi** | `/hr/master-data/organization/positions` | Daftar posisi/jabatan beserta tautan Uraian Tugas | **Organization** |
+
+Contoh: rumah sakit membuka Instalasi Gizi.
+
+1. Buka **Departemen**, tambah departemen "Gizi Klinik", lalu simpan.
+2. Buka **Struktur Organisasi**, tekan **+ Tambah Unit Organisasi**.
+3. Isi nama "Instalasi Gizi", tipe "Instalasi", pilih **Unit Induk** "Direktorat Penunjang Medis", dan pilih **Departemen Terkait** "Gizi Klinik". Level unit tidak perlu diisi: sistem menghitungnya dari unit induk (induk level 2 → unit baru level 3).
+4. Simpan, lalu tekan **Hierarki**. Instalasi Gizi tampil di bawah induknya. Pilih unitnya dan tekan **Buka Detail Unit** untuk melihat detail lengkap.
+
+Departemen baru tidak bisa dibuat dari form unit. Bila departemen yang dicari belum ada di pilihan, tambahkan dulu lewat menu **Departemen**. Alamat lama `/hr/master-data/organization` otomatis dialihkan ke menu yang benar.
 
 ---
 

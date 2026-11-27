@@ -67,9 +67,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public string VacancyNumber { get; set; } = string.Empty;
         public Guid RequisitionId { get; set; }
         public string? RequisitionNumber { get; set; }
+        public string? PositionName { get; set; }
+        public string? OrganizationUnitName { get; set; }
+        public string? HospitalSiteName { get; set; }
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int QuotaSeats { get; set; }
+        public int OccupiedSeats { get; set; }
+        public int RemainingSeats { get; set; }
         public bool IsClinical { get; set; }
         public DateTime? PublishDate { get; set; }
         public DateTime? ClosingDate { get; set; }
@@ -86,8 +91,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public string VacancyNumber { get; set; } = string.Empty;
         public Guid RequisitionId { get; set; }
         public string? RequisitionNumber { get; set; }
+        public string? PositionName { get; set; }
+        public string? OrganizationUnitName { get; set; }
+        public string? HospitalSiteName { get; set; }
         public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
         public int QuotaSeats { get; set; }
+        public int OccupiedSeats { get; set; }
+        public int RemainingSeats { get; set; }
         public bool IsClinical { get; set; }
         public DateTime? PublishDate { get; set; }
         public DateTime? ClosingDate { get; set; }

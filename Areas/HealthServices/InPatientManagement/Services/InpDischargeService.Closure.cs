@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
@@ -598,12 +599,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             if (query.ClosedFrom.HasValue)
             {
-                closedEpisodes = closedEpisodes.Where(x => x.ClosedAt >= query.ClosedFrom.Value);
+                var closedFromUtc = InpDateRangeHelper.NormalizeStartUtc(query.ClosedFrom.Value);
+                closedEpisodes = closedEpisodes.Where(x => x.ClosedAt >= closedFromUtc);
             }
 
             if (query.ClosedTo.HasValue)
             {
-                closedEpisodes = closedEpisodes.Where(x => x.ClosedAt <= query.ClosedTo.Value);
+                var (closedToUtc, isExclusive) = InpDateRangeHelper.ResolveEndUtc(query.ClosedTo.Value);
+                closedEpisodes = isExclusive
+                    ? closedEpisodes.Where(x => x.ClosedAt < closedToUtc)
+                    : closedEpisodes.Where(x => x.ClosedAt <= closedToUtc);
             }
 
             var joined = from procedure in filtered

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,6 +43,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public async Task<IActionResult> GetPaged([FromQuery] TalentPoolQuery query, CancellationToken cancellationToken)
         {
             var result = await _talentPoolService.GetPagedAsync(query, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("eligible-applications")]
+        [AccessAction("Read", "Melihat Talent Pool", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("TalentPool", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<List<EligibleTalentPoolApplicationResponse>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetEligibleApplications(
+            [FromQuery] Guid? vacancyId,
+            [FromQuery] string? search,
+            CancellationToken cancellationToken)
+        {
+            var result = await _talentPoolService.GetEligibleApplicationsAsync(vacancyId, search, cancellationToken);
             return ToActionResult(result);
         }
 

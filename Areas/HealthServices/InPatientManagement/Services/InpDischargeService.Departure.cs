@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Responses;
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
@@ -66,8 +67,18 @@ public partial class InpDischargeService
             x.DepartureClearanceObserved != null && x.DepartureClearanceObserved != InpClearanceObservation.Cleared &&
             (query.IncludeClosed || x.EpisodeStatus != InpEpisodeStatus.Closed));
         if (query.ServiceUnitId.HasValue) source = source.Where(x => x.ServiceUnitId == query.ServiceUnitId);
-        if (query.From.HasValue) source = source.Where(x => x.PhysicallyLeftAt >= query.From);
-        if (query.To.HasValue) source = source.Where(x => x.PhysicallyLeftAt <= query.To);
+        if (query.From.HasValue)
+        {
+            var fromUtc = InpDateRangeHelper.NormalizeStartUtc(query.From.Value);
+            source = source.Where(x => x.PhysicallyLeftAt >= fromUtc);
+        }
+        if (query.To.HasValue)
+        {
+            var (toUtc, isExclusive) = InpDateRangeHelper.ResolveEndUtc(query.To.Value);
+            source = isExclusive
+                ? source.Where(x => x.PhysicallyLeftAt < toUtc)
+                : source.Where(x => x.PhysicallyLeftAt <= toUtc);
+        }
         var count = await source.CountAsync(ct);
         var rows = await source.OrderByDescending(x => x.PhysicallyLeftAt).Skip((page - 1) * size).Take(size)
             .Select(x => new DepartureBeforeClearanceItem { EpisodeId = x.Id, EpisodeNumber = x.EpisodeNumber, EncounterId = x.EncounterId,

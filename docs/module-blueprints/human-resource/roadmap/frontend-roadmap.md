@@ -6,7 +6,10 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 20
+roadmap_revision: 26
+amendment_fin_menu03_rec: "2026-11-26 — Amandemen Pelamar Wizard, Recruitment Journey, Onboarding Wizard & Finishing Menu 03 (bagian 34 s.d. 37; nomor lama bagian 33 s.d. 36): FIN-HRD-REC-WIZ-02..04, FIN-HRD-REC-JRN-04..06, FIN-HRD-ONB-WIZ-03..06, FE-HRD-FIN-REC-001 s.d. FE-HRD-FIN-REC-027"
+amendment_org_menu_hrd_dec_257: "2026-11-24 (dinomori ulang 2026-11-27 saat merge QuilvianIntegrationBackEnd) — Amandemen Menu Organisasi (bagian 33; nomor lama bagian 32): FE-HRD-418 s.d. FE-HRD-422 (lama FE-HRD-410 s.d. FE-HRD-414), Grafik F100 (lama F99); HRD-DEC-257 s.d. 259 (lama HRD-DEC-248 s.d. 250); ISSUE-HRD-008 / PLAN-REPAIR-HRD-008; kontrak tetap v30"
+amendment_a52_b_v31: "2026-11-24 (digabungkan 2026-11-27 dari origin/QuilvianIntegrationBackEnd) — Amandemen A52-B Pembuka Task Tertahan Penjadwalan & Kehadiran (bagian 32, roadmap revisi 25): FE-HRD-410 s.d. FE-HRD-417, FE-HRD-100, FE-HRD-324, Grafik F99; kontrak v31 approved 24 November 2026 (HRD-DEC-248 s.d. 256)"
 amendment_package_b_v30: "2026-11-23 — Amandemen Paket B navigasi SDM (bagian 31): FE-HRD-401 s.d. FE-HRD-409, gelombang MVP-75 dan MVP-76, Grafik F98; kontrak v30 approved 23 November 2026; label menu Tindak Disiplin (HRD-DEC-247) masuk FE-HRD-408"
 amendment_s_a7_v2_v29: "2026-11-20 — Amandemen S-A7-V2 layar Kotak Masuk Terpadu (bagian 30): FE-HRD-394 s.d. FE-HRD-400, gelombang MVP-73 dan POST-MVP; kontrak v29 approved 20 November 2026"
 amendment_s_d5_v28: "2026-11-19 — Amandemen S-D5 layar Ajukan dan status SPPD (bagian 28): FE-HRD-337 s.d. FE-HRD-340, gelombang MVP-71; kontrak v28 approved 19 November 2026"
@@ -7015,7 +7018,7 @@ BE-HRD-406 🟡 [BE] ─> FE-HRD-365 🟡 ────────────�
 #### 🟡 `FE-HRD-361` — Unit Kerja: kolom induk, jumlah sub-unit, dan tanggal berlaku
 * **Slice / area**: `S-FIN-M05` / Unit Kerja
 * **Alias register finishing**: `FIN-HRD-05-FE-001` · baseline roadmap: —
-* **Status**: 🟡 **SEBAGIAN** — kolom `Parent Unit`, `Child Unit`, `Berlaku Sejak` dan teks bantuan anti-siklus ada. Laporan Menu 05 mencatat `npm run lint:errors` 0 error dan `npm run build` lulus (16 November 2026). Belum ada laporan tracked di `task/report/`. Uji browser NOT RUN.
+* **Status**: 🟡 **SEBAGIAN** — kolom `Parent Unit`, `Child Unit`, `Berlaku Sejak` dan teks bantuan anti-siklus ada. Laporan Menu 05 mencatat `npm run lint:errors` 0 error dan `npm run build` lulus (16 November 2026). Belum ada laporan tracked di `task/report/`. Uji browser NOT RUN. · **24 November 2026**: target layar diamandemen `HRD-DEC-257` (lama `HRD-DEC-248`) — Unit Kerja menjadi menu Struktur Organisasi dan mode Hierarki pindah ke halaman unit; lanjutannya bagian 33 (`FE-HRD-418` s.d. `FE-HRD-420`; nomor lama bagian 32, `FE-HRD-410` s.d. `FE-HRD-412`).
 * **Outcome**: Hubungan induk-anak terlihat jelas di daftar dan detail tanpa mengubah halaman lama.
 * **Dependencies**: `BE-HRD-403` 🟡 [BE]
 * **Acceptance Criteria**: (1) Data nyata, tidak ada sukses palsu. (2) Perubahan bertahan setelah muat ulang.
@@ -7024,7 +7027,7 @@ BE-HRD-406 🟡 [BE] ─> FE-HRD-365 🟡 ────────────�
 #### 🟡 `FE-HRD-362` — Mode Hierarki pada halaman Struktur Organisasi
 * **Slice / area**: `S-FIN-M05` / Struktur Organisasi
 * **Alias register finishing**: `FIN-HRD-05-FE-002` · baseline roadmap: —
-* **Status**: 🟡 **SEBAGIAN** — toggle `Daftar | Hierarki` dan `OrganizationHierarchyView` memanggil endpoint hierarki nyata. Laporan Menu 05 mencatat `npm run lint:errors` 0 error dan `npm run build` lulus (16 November 2026). Belum ada laporan tracked di `task/report/`. Uji browser NOT RUN.
+* **Status**: 🟡 **SEBAGIAN** — toggle `Daftar | Hierarki` dan `OrganizationHierarchyView` memanggil endpoint hierarki nyata. Laporan Menu 05 mencatat `npm run lint:errors` 0 error dan `npm run build` lulus (16 November 2026). Belum ada laporan tracked di `task/report/`. Uji browser NOT RUN. · **24 November 2026**: target layar diamandemen `HRD-DEC-257` (lama `HRD-DEC-248`) — Unit Kerja menjadi menu Struktur Organisasi dan mode Hierarki pindah ke halaman unit; lanjutannya bagian 33 (`FE-HRD-418` s.d. `FE-HRD-420`; nomor lama bagian 32, `FE-HRD-410` s.d. `FE-HRD-412`).
 * **Outcome**: Pohon unit dapat dibuka-tutup dengan panel detail node tanpa merusak tab Departemen/Posisi.
 * **Dependencies**: `FE-HRD-361` 🟡
 * **Acceptance Criteria**: (1) Mode daftar tidak regresi. (2) Node detail dan navigasi papan ketik tersedia.
@@ -7856,6 +7859,8 @@ Rincian reuse, cakupan berkas, acceptance criteria, verifikasi, risiko, dan DoD 
 * **Risiko / pemilik**: menyalakan backend di DB dev bersama memerlukan izin pengguna. UI Lead HR.
 * **DoD**: AC terbukti; Paket B siap rilis sesudah catatan rilis `BE-HRD-462` dijalankan.
 
+---
+
 ## 32. Amandemen `A52-B` — Pembuka Task Tertahan Penjadwalan & Kehadiran (roadmap revisi `25`, kontrak `v31`)
 
 > **Status slice: kontrak `v31` APPROVED 24 November 2026** oleh Pengguna (`HRD-DEC-015`), jawaban: "setujui kontrak v30, lanjut plan". Kontrak terkunci hash di manifest revision `71`, sehingga task frontend boleh disiapkan paralel dengan backend memakai API tiruan; bukti browser data asli menunggu task backend pasangannya.
@@ -8071,3 +8076,216 @@ Entri sidebar yang menuju layar `FE-HRD-317` s.d. `FE-HRD-320` dan `FE-HRD-322` 
 * **Verifikasi**: laporan task.
 * **Risiko / pemilik**: izin sementara untuk akun uji harus dipulihkan sesudah uji; UI Lead HR.
 * **DoD**: laporan `FE-HRD-417.md`.
+
+---
+
+## 33. Amandemen Menu Organisasi — Unit Organisasi Digabung ke Struktur Organisasi (roadmap revisi `26`, `HRD-DEC-257`)
+
+> **Status slice: SELESAI 24 November 2026 — 5/5 task frontend ✅** (disetujui pengguna 24 November 2026: "oke saya setujui kerjakan semua dan selesaikan"). Uji dengan backend dan akun nyata belum dijalankan; backend lokal perlu di-restart untuk `BE-HRD-469`. Sumber: [`ISSUE-HRD-008`](../docs/issue/issue-008-gabung-unit-organisasi-ke-struktur-organisasi.md) dan [`PLAN-REPAIR-HRD-008`](../docs/plan-repair/plan-repair-008-gabung-unit-organisasi-ke-struktur-organisasi.md). Kontrak tetap `v30`: master organisasi tidak diatur `api-contract.md`.
+>
+> **Catatan penomoran ulang (merge `QuilvianIntegrationBackEnd`, 27 November 2026)**: Saat merge `origin/QuilvianIntegrationBackEnd` (`A52-B`), seksi ini dipindahkan dari bagian `32` ke bagian `33`; ID keputusan `HRD-DEC-248` s.d. `250` dinomori ulang menjadi `HRD-DEC-257` s.d. `259`; `BE-HRD-463` menjadi `BE-HRD-469`; `FE-HRD-410` s.d. `FE-HRD-414` menjadi `FE-HRD-418` s.d. `FE-HRD-422`; dan grafik `F99` menjadi `F100` agar nomor `A52-B` yang sudah rilis tidak berubah. Nama berkas spec Playwright dan berkas screenshot bukti frontend (`FE-HRD-410..414`) tetap menggunakan nama historis pada commit frontend.
+
+| Field | Nilai |
+| --- | --- |
+| `blueprint_id` / revision | `HRD-BP-001` / manifest revision `72` (historis `70`) |
+| Slice | `S-FIN-M05` amandemen — Menu Organisasi |
+| Keputusan | `HRD-DEC-257` (susunan menu; nomor lama `HRD-DEC-248`), `HRD-DEC-258` (label hak akses tetap; nomor lama `HRD-DEC-249`), `HRD-DEC-259` (tipe unit Departemen tetap; nomor lama `HRD-DEC-250`) |
+| Desain | `03-frontend-architecture.md` 34.7; skema layar `PLAN-REPAIR-HRD-008` bagian 3 |
+| Source acuan | Frontend `fe8aebf2f` (branch `HamzahV2`) |
+| Bergantung backend | `BE-HRD-469` (nama pada detail unit; nomor lama `BE-HRD-463`) — roadmap backend bagian 33 |
+| Kebijakan test | `rules/frontend/test-policy.md`; uji unit sidebar `tests/unit/hr-master-data-sidebar-grouping.test.mjs` wajib diperbarui pada `FE-HRD-420`; validasi minimum `AGENTS.md` frontend |
+
+### Grafik F100 — Menu Organisasi (`FE-HRD-418` s.d. `FE-HRD-422`)
+
+```text
+FE-HRD-418 ✅ ─┬─> FE-HRD-419 ✅ ─> FE-HRD-420 ✅
+               │
+               └─> FE-HRD-421 ✅ ─┐
+                                  │
+BE-HRD-469 ✅ [BE] ───────────────┴─> FE-HRD-422 ✅
+```
+
+`[BE]` = task backend pada `backend-roadmap.md` bagian 33, cermin baca-saja. Grafik memuat 6 node dan 5 pasangan prasyarat→task, sama dengan kolom `Dependency` pada tabel task.
+
+### Tabel gelombang eksekusi
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | `FE-HRD-418` |
+| 2 | `FE-HRD-418` | `FE-HRD-419`, `FE-HRD-421` |
+| 3 | `FE-HRD-419` / `FE-HRD-421` + `BE-HRD-469` | `FE-HRD-420`, `FE-HRD-422` |
+
+`FE-HRD-418`, `FE-HRD-419`, dan `FE-HRD-420` dirilis bersamaan agar tidak ada jeda dua pintu atau menu tanpa butir sidebar.
+
+### Tabel task
+
+| Task ID | Outcome | Menutup | Dependency |
+| --- | --- | --- | --- |
+| `FE-HRD-418` | Halaman unit menjadi "Struktur Organisasi" dengan mode `Daftar \| Hierarki`; tombol pohon membuka detail unit | `FIX-HRD-008-03` | — |
+| `FE-HRD-419` | Halaman Departemen dan Posisi berdiri sendiri | `FIX-HRD-008-02` | `FE-HRD-418` |
+| `FE-HRD-420` | Sidebar baru, pengalihan alamat lama, tautan Penempatan Awal, uji sidebar | `FIX-HRD-008-04` | `FE-HRD-419` |
+| `FE-HRD-421` | Form unit: level otomatis dan petunjuk memilih departemen | `FIX-HRD-008-05` | `FE-HRD-418` |
+| `FE-HRD-422` | Detail unit menampilkan nama, bukan ID | `FIX-HRD-008-07` | `FE-HRD-421`, `BE-HRD-469` |
+
+### Rincian 5 task frontend (`FE-HRD-418` s.d. `FE-HRD-422`)
+
+#### ✅ `FE-HRD-418` — Halaman unit menjadi "Struktur Organisasi" dengan mode Daftar dan Hierarki (nomor lama `FE-HRD-410`)
+* **Slice / MVP**: `S-FIN-M05` amandemen / perbaikan `PLAN-REPAIR-HRD-008` (`FIX-HRD-008-03`)
+* **Status**: ✅ **SELESAI 24 November 2026** — 6/6 AC: halaman unit berjudul Struktur Organisasi dengan mode Daftar/Hierarki, tombol pohon membuka detail lewat token, label Indonesia. `npm run lint:errors` exit 0; `npm run build` sukses (927 halaman); uji sidebar 12/12; `check-css-usage` 0 temuan; Playwright `human-resource-organization-menu.spec.mjs` 5/5 (API dimock). `npm run test:unit` 104 gagal seluruhnya bawaan (identik dengan HEAD). Uji backend/akun nyata NOT RUN. Bukti: [laporan](../task/report/frontend/FE-HRD-418.md)
+* **Outcome**: `/hr/master-data/organization-unit` berjudul "Struktur Organisasi", punya tombol `Daftar | Hierarki` (bawaan Daftar). Mode Hierarki menampilkan `OrganizationHierarchyView`; tombol "Buka Detail Unit" membuka detail unit terpilih lewat token rute. Teks Inggris diganti.
+* **Requirement / keputusan**: `HRD-DEC-257`; `ISS-HRD-008-01`, `ISS-HRD-008-T1`, `ISS-HRD-008-T4`
+* **Reuse**: `Hero`, `OrganizationHierarchyView`, stylesheet `organization-hierarchy.module.css`, `registerPrivateRouteToken` dengan `scope`/`type` dari `ORGANIZATION_UNIT_CONFIG`
+* **Cakupan**: `master-data-organization-unit-view.jsx`, `organization-unit-constants.jsx` (teks), `organization-hierarchy-view.jsx`, `src/app/hr/master-data/organization-unit/page.jsx`
+* **Dependencies**: —
+* **Acceptance Criteria**:
+  1. `/hr/master-data/organization-unit` menampilkan judul "Struktur Organisasi", tombol `Daftar` dan `Hierarki`, dan daftar unit dengan "+ Tambah Unit Organisasi" sebagai tampilan pertama.
+  2. Di mode Hierarki, memilih unit lalu menekan "Buka Detail Unit" langsung membuka detail unit itu (`/hr/master-data/organization-unit/<token>`).
+  3. Panel pohon menampilkan tipe unit berbahasa Indonesia (mis. "Instalasi").
+  4. Unit yang baru ditambah di mode Daftar muncul saat beralih ke mode Hierarki.
+  5. Halaman dan pohon memakai satu hak akses (`OrganizationUnit : Read`).
+  6. Tidak ada lagi teks "Refresh", "Parent Unit", "Child", atau "Root Unit" di halaman ini.
+* **Verifikasi**: `npm run lint:errors`; `npm run test:unit`; `npm run build`; uji manual.
+* **Risiko / pemilik**: token rute tidak cocok dengan halaman detail bila `scope`/`type` diketik ulang — ambil dari konfigurasi. UI Lead HR.
+* **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-418.md` (nomor lama `FE-HRD-410.md`), tanda status diperbarui.
+
+#### ✅ `FE-HRD-419` — Halaman Departemen dan halaman Posisi berdiri sendiri (nomor lama `FE-HRD-411`)
+* **Slice / MVP**: `S-FIN-M05` amandemen / perbaikan `PLAN-REPAIR-HRD-008` (`FIX-HRD-008-02`)
+* **Status**: ✅ **SELESAI 24 November 2026** — 5/5 AC: `/hr/master-data/organization/departments` dan `/positions` berdiri sendiri, alamat kembali per jenis, jenis tak dikenal → halaman tidak ditemukan aplikasi, tanpa teks "Organization". Lint, build, Playwright lulus. Bukti: [laporan](../task/report/frontend/FE-HRD-419.md)
+* **Outcome**: `/hr/master-data/organization/departments` dan `/positions` menampilkan daftar masing-masing tanpa tab dan tanpa mode Hierarki; tombol kembali dari tambah/detail/ubah menuju halaman jenisnya; teks "Organization" diganti.
+* **Requirement / keputusan**: `HRD-DEC-257`; `ISS-HRD-008-02`, `ISS-HRD-008-T4`
+* **Reuse**: `MasterDataOrganizationView`, `useMasterDataOrganization`, hook editor/detail organisasi, halaman `[type]/create` dan `[type]/[slug]` yang sudah ada
+* **Cakupan**: baru `src/app/hr/master-data/organization/[type]/page.jsx`; `master-data-organization-view.jsx`, `use-master-data-organization.jsx`, `organization-constants.jsx`, `use-master-data-organization-editor.jsx`, `use-master-data-organization-detail.jsx`, judul halaman `[type]/**`
+* **Dependencies**: `FE-HRD-418`
+* **Acceptance Criteria**:
+  1. `/hr/master-data/organization/departments` berjudul "Departemen", tombol "+ Tambah Departemen", tanpa tab Posisi dan tanpa tombol Daftar/Hierarki.
+  2. `/hr/master-data/organization/positions` berjudul "Posisi", penyaring "Semua Departemen", tombol "+ Tambah Posisi", tombol "Buka Uraian" per baris.
+  3. Kembali dari tambah/detail/ubah departemen menuju `/hr/master-data/organization/departments`; untuk posisi menuju `/positions`.
+  4. `/hr/master-data/organization/abc` menampilkan halaman tidak ditemukan.
+  5. Kata "Organization" tidak muncul di judul halaman, judul tab peramban, pesan memuat, atau pesan kosong.
+* **Verifikasi**: `npm run lint:errors`; `npm run test:unit`; `npm run build`; uji manual.
+* **Risiko / pemilik**: alamat kembali yang terlewat masih menunjuk `?type=` (tetap sampai lewat pengalih `FE-HRD-420`). UI Lead HR.
+* **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-419.md` (nomor lama `FE-HRD-411.md`), tanda status diperbarui.
+
+#### ✅ `FE-HRD-420` — Sidebar baru, pengalihan alamat lama, tautan Penempatan Awal, dan uji sidebar (nomor lama `FE-HRD-412`)
+* **Slice / MVP**: `S-FIN-M05` amandemen / perbaikan `PLAN-REPAIR-HRD-008` (`FIX-HRD-008-04`)
+* **Status**: ✅ **SELESAI 24 November 2026** — 6/6 AC: sidebar 12 butir sesuai 34.7, pengalih `/hr/master-data/organization`, tautan Penempatan Awal, uji sidebar 12/12 (uji baru `HR-12`). Risiko rilis `HRD-DEC-258` dicatat. Bukti: [laporan](../task/report/frontend/FE-HRD-420.md)
+* **Outcome**: grup "Organisasi & Struktur Jabatan" berisi 12 butir sesuai `03-frontend-architecture.md` 34.7; `/hr/master-data/organization` menjadi halaman pengalih; tujuan `MASTER_POSITION`/`MASTER_DEPARTMENT` di Penempatan Awal diperbarui; uji sidebar diperbarui.
+* **Requirement / keputusan**: `HRD-DEC-257`, `HRD-DEC-258`; `ISS-HRD-008-01`, `ISS-HRD-008-02`
+* **Reuse**: pola halaman pengalih `src/app/finance/master-data/petty-cash-budget/page.jsx`; `findFullPathByPathname` (awalan terpanjang)
+* **Cakupan**: `src/utils/menu-sidebar/menu-items.jsx`, `src/app/hr/master-data/organization/page.jsx` (+ hapus `organization-client.jsx`), `initial-placement-batch-view.jsx`, `tests/unit/hr-master-data-sidebar-grouping.test.mjs`
+* **Dependencies**: `FE-HRD-419`
+* **Acceptance Criteria**:
+  1. Grup berisi 12 butir berurutan: Struktur Organisasi, Departemen, Posisi, Legal Entity, Fasilitas Rumah Sakit, Lokasi Kerja, Pusat Biaya, Rumpun Jabatan, Level Jabatan, Grade Karyawan, Uraian Tugas, Atasan Langsung; tanpa "Unit Organisasi".
+  2. Di halaman tambah/detail/ubah unit, butir yang menyala "Struktur Organisasi".
+  3. Di `/hr/master-data/organization/departments/create`, butir yang menyala "Departemen".
+  4. `/hr/master-data/organization` → Struktur Organisasi; `?type=positions` → Posisi; `?type=departments` → Departemen.
+  5. Tautan perbaikan Penempatan Awal: `POSITION_NOT_ASSIGNED` → Posisi; `ORGANIZATION_UNIT_DEPARTMENT_MISMATCH` → Struktur Organisasi.
+  6. `npm run test:unit` untuk uji sidebar lulus.
+* **Verifikasi**: `npm run lint:errors`; `npm run test:unit`; `npm run build`; uji manual.
+* **Risiko / pemilik**: peran yang hanya memegang `Organization : Read` melihat "akses ditolak" di Struktur Organisasi (`HRD-DEC-258`) — admin memeriksa sebelum rilis. UI Lead HR.
+* **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-420.md` (nomor lama `FE-HRD-412.md`), tanda status diperbarui.
+
+#### ✅ `FE-HRD-421` — Form unit: level otomatis dan petunjuk memilih departemen (nomor lama `FE-HRD-413`)
+* **Slice / MVP**: `S-FIN-M05` amandemen / perbaikan `PLAN-REPAIR-HRD-008` (`FIX-HRD-008-05`)
+* **Status**: ✅ **SELESAI 24 November 2026** — 4/4 AC: isian Level dicabut (payload tanpa `levelNumber`, dicek langsung), petunjuk Unit Induk dan Departemen Terkait. AC 2 terbukti dari source server; simpan nyata NOT RUN. Bukti: [laporan](../task/report/frontend/FE-HRD-421.md)
+* **Outcome**: form tambah/ubah unit tanpa isian "Level Hierarki" (payload tanpa `levelNumber`); "Unit Induk" memberi keterangan level otomatis; "Departemen Terkait" memberi petunjuk menu Departemen.
+* **Requirement / keputusan**: `HRD-DEC-257`, `HRD-DEC-259`; `ISS-HRD-008-02`, `ISS-HRD-008-T2`, `ISS-HRD-008-T4`
+* **Reuse**: konfigurasi field editor unit yang sudah ada
+* **Cakupan**: `organization-unit-constants.jsx` (`ORGANIZATION_UNIT_CREATE_FIELDS`, `transformPayload`, `helperText`)
+* **Dependencies**: `FE-HRD-418`
+* **Acceptance Criteria**:
+  1. Form tambah dan ubah unit tidak memuat isian "Level Hierarki" dan payload tidak membawa `levelNumber`.
+  2. Unit baru di bawah induk level 2 tersimpan dengan level 3; memindah induk ke level 1 membuat level 2.
+  3. "Departemen Terkait" menampilkan petunjuk menu Departemen; pilihannya hanya departemen aktif.
+  4. Tidak ada teks "Parent" di form.
+* **Verifikasi**: `npm run lint:errors`; `npm run test:unit`; `npm run build`; uji manual payload.
+* **Risiko / pemilik**: editor tetap mengirim `levelNumber` kosong → `400` dari `[Range(1, int.MaxValue)]`. UI Lead HR.
+* **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-421.md` (nomor lama `FE-HRD-413.md`), tanda status diperbarui.
+
+#### ✅ `FE-HRD-422` — Detail unit menampilkan nama, bukan ID (nomor lama `FE-HRD-414`)
+* **Slice / MVP**: `S-FIN-M05` amandemen / perbaikan `PLAN-REPAIR-HRD-008` (`FIX-HRD-008-07`)
+* **Status**: ✅ **SELESAI 24 November 2026** — 2/2 AC: detail unit menampilkan nama Legal Entity, Fasilitas, Departemen Terkait tanpa UUID (Playwright, respons sesuai DTO `BE-HRD-469`). Backend lokal perlu di-restart agar ruas nama terkirim. Bukti: [laporan](../task/report/frontend/FE-HRD-422.md)
+* **Outcome**: detail unit menampilkan Legal Entity, Fasilitas Rumah Sakit, dan Departemen Terkait dengan nama; baris ID dibuang; "Parent Unit" → "Unit Induk".
+* **Requirement / keputusan**: `ISS-HRD-008-T3`
+* **Reuse**: `detailFields` unit
+* **Cakupan**: `organization-unit-constants.jsx` (`detailFields`)
+* **Dependencies**: `FE-HRD-421`, `BE-HRD-469`
+* **Acceptance Criteria**:
+  1. Detail unit yang terhubung ke departemen menampilkan nama departemennya; tidak ada UUID di halaman.
+  2. Unit tanpa fasilitas menampilkan "Fasilitas Rumah Sakit: -".
+* **Verifikasi**: `npm run lint:errors`; `npm run test:unit`; `npm run build`; uji manual.
+* **Risiko / pemilik**: bila `BE-HRD-469` belum terpasang, ketiga baris menampilkan "-". UI Lead HR.
+* **DoD**: AC terbukti, laporan `task/report/frontend/FE-HRD-422.md` (nomor lama `FE-HRD-414.md`), tanda status diperbarui.
+
+---
+
+## 34. Amandemen Submenu Pelamar — Wizard Pendaftaran Pelamar 5 Langkah (`FIN-HRD-REC-WIZ-02` s.d. `FIN-HRD-REC-WIZ-04`, 25 November 2026)
+
+> **Catatan keterlacakan**: Label kerja lokal `FIN-HRD-REC-WIZ-02..04` pada slice `S-D2` (merujuk `REG-WIZ-01..10`) ditambahkan di bawah submenu **Pelamar** (`/hr/recruitment/candidates`, menambah `/hr/recruitment/candidates/create`) tanpa mengubah 8 item sidebar Rekrutmen. Task canonical existing (`FE-HRD-048`, `FE-HRD-049`, `FE-HRD-057`) tetap utuh.
+
+| Task Lokal | Lingkup & Output Nyata | Hubungan Canonical | Status | Bukti |
+| --- | --- | --- | --- | --- |
+| `FIN-HRD-REC-WIZ-02` | Route full-page `/hr/recruitment/candidates/create`, penggantian modal menjadi *Daftarkan Pelamar*, Step 1 pemilihan lowongan `Published`/Tanpa Lowongan, Step 2 lookup exact NIK (`AbortController`) + indikasi Rehire `MstEmployee`, Step 3 checkpoint persisten `POST/PUT` (`RowVersion` 409) & resume `?candidateId=` tanpa PII di browser storage. | Pelengkap submenu Pelamar atas `FE-HRD-048`, `FE-HRD-049`, `FE-HRD-057` (`S-D2`) | ✅ **IMPLEMENTED** (`check-css-usage` 0 temuan, `eslint --max-warnings=0`, `npm run lint:errors` exit 0, unit `6/6`, build `935/935`) | [FIN-HRD-REC-WIZ-02-03](../task/report/frontend/FIN-HRD-REC-WIZ-02-03.md) |
+| `FIN-HRD-REC-WIZ-03` | Step 4 arsip server + unggah multi-berkas `HrAttachmentField` + retry `key` idempoten & peringatan kepatuhan STR (`VR-REC-07/08`, termasuk perbaikan `isDateOnlyExpired` di detail kandidat), Step 5 NIK tersamar + links ubah + final submit `/apply` + timeout recovery + success panel & navigasi Seleksi. | Lanjutan `FIN-HRD-REC-WIZ-02`, konsumsi `FIN-HRD-REC-WIZ-01` | ✅ **IMPLEMENTED** | [FIN-HRD-REC-WIZ-02-03](../task/report/frontend/FIN-HRD-REC-WIZ-02-03.md) |
+| `FIN-HRD-REC-WIZ-04` | Verifikasi end-to-end API (`6/6 PASS`) & Chromium headed (`12/12` skenario, `0` HTTP 5xx, `0` pageError) mencakup `UAT-01..30`. Jalur Tanpa Lowongan, Rehire, RBAC, upload fisik/metadata, `RowVersion`, & responsif teruji langsung (`LIVE_BE`); jalur lowongan aktif memakai `page.route` atas `0` lowongan `Published` di DB dev. | Gerbang QA Submenu Pelamar (`UAT-01..30`) | 🟡 **PARTIAL (Blocked Live Vacancy DB)** — skenario lowongan aktif `ROUTE_INJECTED` sambil menunggu 1 lowongan klinis & 1 non-klinis `Published` nyata di DB dev | [Laporan Live Testing Pelamar](../testing/test-by-agy/laporan-live-testing-pelamar.md) |
+
+---
+
+## 35. Amandemen Submenu Pelamar — Recruitment Journey 6 Tahap (`FIN-HRD-REC-JRN-04` s.d. `06`, 25 November 2026)
+
+> **Catatan keterlacakan**: Label kerja lokal `FIN-HRD-REC-JRN-04..06` pada slice `S-D2` disematkan langsung di halaman detail `/hr/recruitment/candidates/[id]` tanpa menambah item sidebar Rekrutmen & Seleksi (`9` item tautan tetap utuh). Task canonical existing (`FE-HRD-048` s.d. `056`) tetap utuh.
+
+| Task Lokal | Lingkup & Output Nyata | Hubungan Canonical | Status | Bukti |
+| --- | --- | --- | --- | --- |
+| `FIN-HRD-REC-JRN-04` | `CandidateJourneyPanel` & `CandidateJourneyStageDetails` pada `/hr/recruitment/candidates/[id]` (dengan `?applicationId=&stage=` URL sync dalam `<Suspense>`, picker multi-lamaran & proteksi *race condition* via `useHrRemoteData`, stepper 6 tahap berbasis design token `candidate-journey.module.css`, blocker & next-action sidebar, masker gaji/medis/NIK, kronologi collapsible, dan aksi inline `ConfirmModal`). | Integrasi lintas `FE-HRD-049` s.d. `056` (`S-D2`) | ✅ **IMPLEMENTED** (`check-css-usage` 0 temuan, `eslint --max-warnings=0`, `npm run lint:errors` 0, `npm run build` `935/935`) | [FIN-HRD-REC-JRN-04-05](../task/report/frontend/FIN-HRD-REC-JRN-04-05.md) |
+| `FIN-HRD-REC-JRN-05` | Deep-link `?applicationId=` di `CandidateEvaluationWorkspace` (Wawancara HR & Asesmen Klinis) dan `JobOfferDetailView` lengkap dengan tombol *Kembali ke Journey*, masking NIK pada Hero `CandidateDetailScreeningView`, serta `5` unit test murni helper `recruitment-journey-utils.test.mjs`. | Pelengkap integrasi alur `FE-HRD-050..053` | ✅ **IMPLEMENTED** (`5/5` unit test baru & `19/19` suite HR lulus) | [FIN-HRD-REC-JRN-04-05](../task/report/frontend/FIN-HRD-REC-JRN-04-05.md) |
+| `FIN-HRD-REC-JRN-06` | Verifikasi live API (`3/3`) & Chrome headed via CDP (`11/11` grup `PASS`, `0` 5xx, `0` pageError) mencakup `RJ-UAT-01..18` (desktop `1366px` + mobile `390px`), `LIVE_BE` untuk direktori, empty state `0` lamaran, masking NIK, serta RBAC `Asesor`; jalur lamaran aktif memakai `page.route` karena DB dev `0` lamaran. | Gerbang QA Recruitment Journey (`RJ-UAT-01..18`) | 🟡 **IMPLEMENTED (`LIVE_BE` + `ROUTE_INJECTED` & `SQLITE_XUNIT`)** — `0` lamaran nyata di DB dev | [Laporan Live Testing Journey](../testing/test-by-agy/laporan-live-testing-recruitment-journey.md) |
+
+---
+
+## 36. Amandemen Penerimaan & Onboarding — Multi-Step Onboarding 7 Tahap Frontend & UAT (`FIN-HRD-ONB-WIZ-03..06`, 26 November 2026)
+
+> **Catatan keterlacakan**: Label kerja lokal `FIN-HRD-ONB-WIZ-03..06` pada slice `S-C4-ONB` (*Penerimaan & Onboarding*) memperbarui pengalaman wizard `/hr/lifecycle/onboarding-cases/[id]` beserta integrasi Submenu 5 (*Pendampingan Klinis*) dan Submenu 6 (*Permintaan Akses Onboarding*). Task canonical existing (`FE-HRD-059..062`, `FE-HRD-066`, `FE-HRD-068..070`) tetap utuh.
+
+| Task Lokal | Lingkup & Output Nyata | Hubungan Canonical | Status | Bukti |
+| --- | --- | --- | --- | --- |
+| `FIN-HRD-ONB-WIZ-03` | Halaman wizard 7 tahap `/hr/lifecycle/onboarding-cases/[id]` (`onboarding-case-detail-view.jsx`, `onboarding-wizard-stepper.jsx`, `onboarding-wizard-stages-early.jsx`, `onboarding-wizard-stages-late.jsx`, `onboarding-wizard-side-panel.jsx`, `onboarding-wizard-dialogs.jsx`, `use-onboarding-case-wizard.js`, `onboarding-wizard-utils.js`, `onboarding-case-wizard.module.css`) dengan Hero bebas mutasi, sinkronisasi `?stage=` dalam `<Suspense>`, fallback query tidak valid, 9 kelompok data pegawai + masking NIK/gaji, checklist berlapis dengan upload bukti PDF `FormData`, panel kanan blocker, serta modal konfirmasi `ConfirmModal`. | Integrasi lintas `FE-HRD-059..062` (`S-C4-ONB`) | ✅ **IMPLEMENTED** (`check-css-usage` `0/10`, `eslint --max-warnings=0` `0`, `npm run lint:errors` `0`, `npm run build` `935/935`) | [FIN-HRD-ONB-WIZ-03-05](../task/report/frontend/FIN-HRD-ONB-WIZ-03-05.md) |
+| `FIN-HRD-ONB-WIZ-04` | Integrasi ekosistem & perbaikan lanjutan: `LifecycleService.handleError` mempertahankan `.response`/`.request` untuk menampilkan konflik `409`/`422` pada `ConfirmModal`, `Reset Filter` eksplisit di atas tabel Tahap 5, pembatasan `Nyatakan Mandiri` Submenu 5 khusus status `Didampingi` (`=== 2`), dukungan `?onboardingCaseId=&returnTo=` dalam `<Suspense>` pada Submenu 6 beserta tombol *Kembali ke Detail Kasus*, dan `6` unit test murni helper (`onboarding-wizard-utils.test.mjs`). | Pelengkap alur `FE-HRD-066`, `FE-HRD-068..070` | ✅ **IMPLEMENTED** (`6/6` unit test onboarding & `11/11` suite lulus; 4 edit pasca-`7dfae4cdb` siap review di working tree FE) | [FIN-HRD-ONB-WIZ-03-05](../task/report/frontend/FIN-HRD-ONB-WIZ-03-05.md) |
+| `FIN-HRD-ONB-WIZ-05` | Kepatuhan UI Token & desain bersih (`0` utilitas Tailwind, `0` `status="neutral"`, `0` warna hex/rgb/rgba mentah, viewport mobile `390x844` `375/375px` tanpa horizontal page overflow) serta proteksi aksi kasus `Cancelled` dan peran terkunci `Khusus Kepala Unit`. | Gerbang Kepatuhan UI `S-C4-ONB` | ✅ **IMPLEMENTED** (`check-css-usage` `0/10`, grep `0` temuan, `WIZ-10-MOBILE-390` `PASS`) | [FIN-HRD-ONB-WIZ-03-05](../task/report/frontend/FIN-HRD-ONB-WIZ-03-05.md) |
+| `FIN-HRD-ONB-WIZ-06` | Verifikasi live API (`be-live-api-check.mjs` `ok: true` pada `b1cb2333`), unit/integrasi BE (`3/3`), dan Playwright Chromium Headed (`13/13 PASS`, `0` 5xx, `0` pageError, `59` calls): `LIVE_BE` untuk 7 submenu + RBAC `Novi` (`Akses Terbatas`) + endpoint API; `ROUTE_INJECTED` untuk wizard Tahap 1 s.d. 7, konflik `409`/Empat Mata `VR-ONB-12`, upload PDF, pembatalan, mobile `390px`, dan Submenu 5/6 karena DB dev `0` kasus onboarding. | Gerbang QA Onboarding Wizard (`SUBMENU-REG-07`, `WIZ-01..11`, `RBAC-NOVI-LIVE`) | 🟡 **IMPLEMENTED (`LIVE_BE` + `ROUTE_INJECTED` & `SQLITE_XUNIT`)** — `0` kasus onboarding di DB dev & port lokal `7184` perlu restart | [Laporan Live Testing Onboarding](../testing/test-by-agy/laporan-live-testing-onboarding-wizard.md) |
+
+---
+
+## 37. Amandemen Finishing Rekrutmen & Seleksi Menu 03 — Frontend (`FE-HRD-FIN-REC-001` s.d. `FE-HRD-FIN-REC-027`, 26 November 2026)
+
+> **Catatan keterlacakan & rekonsiliasi ID**: Seluruh task di bawah berasal dari master instruksi [`INSTRUKSI_AGENT_HRD_MENU_03_REKRUTMEN_DAN_SELEKSI.md`](../docs/instruksi/INSTRUKSI_AGENT_HRD_MENU_03_REKRUTMEN_DAN_SELEKSI.md) (`FE-HRD-FIN-REC-001..027`, slice `S-D2`). Task canonical existing (`FE-HRD-048..057`) dan amandemen sebelumnya (`FIN-HRD-REC-WIZ-02..04`, `FIN-HRD-REC-JRN-04..06`) tetap dipertahankan. Pengisian/persetujuan master konfigurasi (`FE-003`, `FE-014`) dan bagian penyimpanan per-item/skor rubrik mengikuti batas gerbang schema/kebijakan backend.
+
+| Task FIN | Cakupan Singkat | Hubungan Canonical / Dependency | Status Akhir |
+| --- | --- | --- | --- |
+| `FE-HRD-FIN-REC-001` | Dedicated `/hr/recruitment/requisitions/create` & edit Draft tanpa `ConfirmModal` | Memperkuat `FE-HRD-045` (`BE-HRD-052`) | ✅ **IMPLEMENTED** (`requisition-form-view.jsx`, `/requisitions/create`, UAT-REC-08 PASS) |
+| `FE-HRD-FIN-REC-002` | Dedicated `/hr/recruitment/vacancies/create` & edit dari requisition terpilih + pratinjau kuota | Memperkuat `FE-HRD-046/047` (`BE-HRD-053`) | ✅ **IMPLEMENTED** (`vacancy-form-view.jsx`, `/vacancies/create`, UAT-REC-08 PASS) |
+| `FE-HRD-FIN-REC-003` | Halaman konfigurasi persyaratan lowongan `/hr/recruitment/vacancies/[id]/requirements` (UI pratinjau terstruktur; persistensi penuh menunggu `BE-007/008`) | Lanjutan `FE-002` / `BE-007` (schema gate) | 🟡 **PARTIAL (UI Pratinjau Tersedia; Persistensi DB Locked `BE-007/008`)** (`vacancy-requirements-view.jsx`) |
+| `FE-HRD-FIN-REC-004` | Wizard pendaftaran pelamar 5 langkah: checklist dokumen dinamis klinis vs non-klinis, validasi, resume `?candidateId=` | Lanjutan `FIN-HRD-REC-WIZ-02..03` | ✅ **IMPLEMENTED** (`candidate-wizard-step-panels.jsx` tautan cerdas ke screening/workspace) |
+| `FE-HRD-FIN-REC-005` | Integrasi submit lamaran `/apply` dengan auto-screening `Pending` & timeout recovery | Lanjutan `FIN-HRD-REC-WIZ-03`, butuh `BE-002/003` | ✅ **IMPLEMENTED** (`candidate-apply-view.jsx`, `/candidates/[id]/apply`, UAT-REC-03 PASS) |
+| `FE-HRD-FIN-REC-006` | Direktori Pelamar memisahkan Status Kandidat vs Tahap Lamaran Aktif, badge multi-lamaran, tanpa N+1 | Memperkuat `FE-HRD-048`, butuh `BE-006` | ✅ **IMPLEMENTED** (`candidates-directory-view.jsx`, masking NIK + aksi Workspace, UAT-REC-01 PASS) |
+| `FE-HRD-FIN-REC-007` | Redesign Detail Pelamar (`/candidates/[id]`) menjadi **Candidate Workspace** sesuai Skema Target (Hero ringkas, pemilih lamaran, 70:30 split) | Merestrukturisasi `FE-HRD-049` / `FIN-HRD-REC-JRN-04` | ✅ **IMPLEMENTED** (`candidate-detail-screening-view.jsx`, Visual Gambar 1 + UAT-REC-02 PASS) |
+| `FE-HRD-FIN-REC-008` | Lima tab Workspace: `Ringkasan \| Biodata \| Lamaran \| Dokumen \| Riwayat` + halaman edit biodata `/candidates/[id]/edit` tanpa modal | Lanjutan `FE-007` | ✅ **IMPLEMENTED** (`candidate-workspace-tabs.jsx`, `candidate-edit-view.jsx`, UAT-REC-02/03 PASS) |
+| `FE-HRD-FIN-REC-009` | Stepper 6-tahap `CandidateJourneyPanel` & error/loading/restricted fail-closed | Merapikan `FIN-HRD-REC-JRN-04`, butuh `BE-005` | ✅ **IMPLEMENTED** (`UAT-REC-02`, `UAT-REC-10` retry 500 & `UAT-REC-12` RBAC PASS) |
+| `FE-HRD-FIN-REC-010` | Panel kanan dinamis `Panduan Berikutnya` dari `AllowedActions`/`NextAction`/`Blockers` + RBAC | Lanjutan `FE-007..009`, butuh `BE-005` | ✅ **IMPLEMENTED** (`candidate-detail-screening-view.jsx` `Panduan Berikutnya`, UAT-REC-02 PASS) |
+| `FE-HRD-FIN-REC-011` | Halaman dedicated unggah dokumen `/hr/recruitment/candidates/[id]/documents/create` tanpa modal | Mengganti modal upload di `FE-HRD-049` | ✅ **IMPLEMENTED** (`candidate-document-create-view.jsx`, UAT-REC-03 PASS) |
+| `FE-HRD-FIN-REC-012` | Worklist Seleksi Administrasi default `Pending`, ringkasan server, filter klinis & tombol `Periksa` / `Rincian` | Memperkuat `FE-HRD-049` (`FR-PKB-06/07`), butuh `BE-006` | ✅ **IMPLEMENTED** (`screening-worklist-view.jsx`, UAT-REC-04 PASS) |
+| `FE-HRD-FIN-REC-013` | Halaman dedicated pemeriksaan seleksi `/hr/recruitment/screenings/[id]` (Skema Target: Checklist Dokumen, Kualifikasi, Catatan, Ringkasan Pemeriksaan) | Lanjutan `FE-012`, butuh `BE-006/010` | ✅ **IMPLEMENTED** (`screening-detail-view.jsx`, Visual Gambar 2 + perbaikan enum `Pending/Passed/Rejected`, UAT-REC-05 PASS) |
+| `FE-HRD-FIN-REC-014` | Halaman Master Rubrik `/hr/recruitment/evaluations/rubrics` (struktur UI editor versi; penyimpanan DB menunggu `BE-011` schema/policy gate) | Baru; terikat `BE-011` (schema/policy gate) | 🟡 **PARTIAL (UI Gerbang Kebijakan & Pratinjau; Persistensi DB Locked `BE-011`)** (`evaluation-rubrics-view.jsx`, UAT-REC-06 PASS) |
+| `FE-HRD-FIN-REC-015` | Halaman Penilaian Wawancara HR `/hr/recruitment/evaluations/hr/[id]` sesuai Skema Target (daftar indikator evaluasi, skor ring & server-authoritative finalization) | Memperkuat `FE-HRD-050`, `FIN-HRD-REC-JRN-05` | ✅ **IMPLEMENTED** (`CandidateEvaluationWorkspace.jsx`, Visual Gambar 3 Skor `87` + UAT-REC-07 PASS) |
+| `FE-HRD-FIN-REC-016` | Halaman Asesmen Klinis/Teknis `/hr/recruitment/evaluations/clinical/[id]` terpisah, peran asesor, alasan veto klinis mutlak | Memperkuat `FE-HRD-051`, `FIN-HRD-REC-JRN-05` | ✅ **IMPLEMENTED** (`CandidateEvaluationWorkspace.jsx` & `candidate-clinical-exam-view.jsx`, veto klinis aktif) |
+| `FE-HRD-FIN-REC-017` | Antrean Tes/Wawancara menampilkan aplikasi lolos screening yang belum bersesi + filter track/status & `IsSubmitted` | Memperkuat `FE-HRD-405`, butuh `BE-006/013` | ✅ **IMPLEMENTED** (`evaluation-worklist-view.jsx`, `Antrean Siap Dinilai`, UAT-REC-06 PASS) |
+| `FE-HRD-FIN-REC-018` | Halaman dedicated pembuatan Offer `/hr/recruitment/offers/create` menggantikan `JobOfferFormModal` | Memperkuat `FE-HRD-052` | ✅ **IMPLEMENTED** (`job-offer-create-view.jsx`, UAT-REC-08 PASS) |
+| `FE-HRD-FIN-REC-019` | Detail Offer (`/offers/[id]`): approval bertingkat T13/T14, kirim bersyarat & catat respons inline | Memperkuat `FE-HRD-053` | ✅ **IMPLEMENTED** (`job-offer-detail-view.jsx` & `job-offers-list-view.jsx`) |
+| `FE-HRD-FIN-REC-020` | Halaman dedicated rujukan MCU `/hr/recruitment/mcu-clearance/create` tanpa modal | Memperkuat `FE-HRD-054` | ✅ **IMPLEMENTED** (`mcu-create-view.jsx`, UAT-REC-08 PASS) |
+| `FE-HRD-FIN-REC-021` | Halaman dedicated hasil MCU `/hr/recruitment/mcu-clearance/[id]` untuk petugas medis + masker ketat role HR umum | Memperkuat `FE-HRD-054`, butuh `BE-015` | ✅ **IMPLEMENTED** (`mcu-detail-view.jsx` masking medis K3RS, UAT-REC-09 PASS) |
+| `FE-HRD-FIN-REC-022` | Halaman dedicated Talent Pool `/hr/recruitment/talent-pool/create` & `/talent-pool/[id]` | Memperkuat `FE-HRD-055`, butuh `BE-016` | ✅ **IMPLEMENTED** (`talent-pool-create-view.jsx`, `talent-pool-detail-view.jsx`, UAT-REC-08 PASS) |
+| `FE-HRD-FIN-REC-023` | Halaman dedicated Fast-Track `/hr/recruitment/talent-pool/[id]/promote` memilih lowongan target & plafon gaji | Memperkuat `FE-HRD-055`, butuh `BE-017` | ✅ **IMPLEMENTED** (`talent-pool-promote-view.jsx`) |
+| `FE-HRD-FIN-REC-024` | Halaman dedicated Handoff `/hr/recruitment/handoffs/create` terhubung ke Onboarding Case wizard | Memperkuat `FE-HRD-056`, butuh `BE-018` | ✅ **IMPLEMENTED** (`hiring-handoff-create-view.jsx`, `hiring-handoffs-view.jsx`, UAT-REC-08 PASS) |
+| `FE-HRD-FIN-REC-025` | Pembaruan `RECRUITMENT_ROUTES`, deep link `?applicationId=&stage=&tab=`, proteksi stale response & RBAC | Lintas Menu 03 (`FE-001..024`) | ✅ **IMPLEMENTED** (`recruitment-constants.js`, `use-hr-remote-data.js`, `UAT-REC-02/10/12 PASS`) |
+| `FE-HRD-FIN-REC-026` | Base Component Decision Gate, CSS Modules & token murni (`0` Tailwind), responsif desktop/390px, a11y, regresi komponen global | Gerbang Kualitas UI | ✅ **IMPLEMENTED** (`0` komponen global baru, `check-css-usage.mjs` `0` temuan / 70 berkas `.jsx`, mobile `375 <= 390` `UAT-REC-11 PASS`) |
+| `FE-HRD-FIN-REC-027` | `lint:errors`, `test:unit`, `npm run build`, uji Chrome headed CDP (`UAT-01..32`, `AC-01..12`), laporan Menu 03 | Gerbang QA UAT | ✅ **IMPLEMENTED** (`eslint --quiet` 0 error, `17/17` unit test rekrutmen, `npm run build` 942/942 halaman & standalone siap, Chrome CDP `12/12 PASS`) — [Laporan FE](../task/report/frontend/FIN-HRD-REC-FIN-FE-01-27.md), [Laporan UAT](../testing/test-by-agy/laporan-live-testing-rekrutmen-dan-seleksi-finishing.md) |
