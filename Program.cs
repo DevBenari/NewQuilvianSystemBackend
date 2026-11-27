@@ -3138,9 +3138,14 @@ try
         // (PBJ-DEC-061). Dijalankan sesudah master Pengadaan karena kriteria menunjuk kategori UMUM. Idempoten.
         await RunStartupSeederAsync("ProcurementVendorMasterSeeder", () => QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Seeders.ProcurementVendorMasterSeeder.SeedAsync(app.Services));
 
-        // PBJ-BP-001, BE-PBJ-005, BE-PBJ-VD-001. Kerangka tujuh definisi approval Pengadaan pada mesin workflow
-        // bersama (termasuk PBJ-VND-BLOKIR/BUKA), dibuat TIDAK AKTIF sampai admin mengisi jabatan penyetuju sesuai
-        // SOP (PBJ-OQ-019). Idempoten.
+        // PBJ-BP-001, BE-PBJ-PS-001. Data awal master pemilihan penyedia: dua metode CONTOH (IsSample, bukan SOP —
+        // PBJ-DEC-069), enam jenis dokumen paket, dan empat dokumen wajib. Dijalankan sesudah master Pengadaan karena
+        // dokumen wajib menunjuk jenis SERVICE dan ASSET. Idempoten.
+        await RunStartupSeederAsync("ProcurementSourcingMasterSeeder", () => QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Seeders.ProcurementSourcingMasterSeeder.SeedAsync(app.Services));
+
+        // PBJ-BP-001, BE-PBJ-005, BE-PBJ-VD-001, BE-PBJ-PS-001. Kerangka sembilan definisi approval Pengadaan pada
+        // mesin workflow bersama (termasuk PBJ-VND-BLOKIR/BUKA dan PBJ-PKT-PERSIAPAN/PENETAPAN), dibuat TIDAK AKTIF
+        // sampai admin mengisi jabatan penyetuju sesuai SOP (PBJ-OQ-019). Idempoten.
         await RunStartupSeederAsync("ProcurementWorkflowDefinitionSeeder", () => QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Seeders.ProcurementWorkflowDefinitionSeeder.SeedAsync(app.Services));
 
         // HRD-BP-001, BE-HRD-374 (kontrak v28, HRD-DEC-224). Definisi workflow "Persetujuan Perjalanan Dinas"

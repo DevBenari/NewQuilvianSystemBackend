@@ -15,18 +15,18 @@ owners:
   frontend_authority: PBJ-FE-001 (approved), PBJ-FE-002 (DEV_DISCRETION)
 approved_by: Pengguna sesi (Product Owner Pengadaan)
 approved_at: 2026-11-12
-backend_commit_sha: 9f396063025f71d86f466553cfd8ccfda6e2a545   # branch sukmagp, 2026-11-16
-frontend_commit_sha: 608e46ba4dcb69dd73d0e4ca0600311abfe8ceaa  # branch sukmagpV2, 2026-11-16
+backend_commit_sha: 5e7778334faa85210c81513327da9a7fa6425a86   # branch sukmagp; commit terakhir yang menyentuh kode Pengadaan. Sejak 9f396063: BE-PBJ-012 (a6df5619) + tambahan aditif manajemen-vendor di Common. Diperiksa ulang di HEAD c97642bb 2026-11-26
+frontend_commit_sha: af8a430aca6ac8946dc44e0980f9d370b2e2716b  # branch sukmagpV2; sejak 608e46ba4: FE-PBJ-009 (b1b360efa) + perluasan komponen bersama oleh manajemen-vendor. Diperiksa ulang di HEAD 3e5386679 2026-11-26
 requirement_readiness: READY_FOR_DOMAIN_DESIGN    # 02-requirement-completeness-assessment.md rev 2
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN   # administratif; tanpa data klinis/billing
-last_verified_at: 2026-11-17
-readiness: READY_WITH_CONDITIONS   # testing/readiness-report.md; syarat K-1..K-4 terbuka, K-5 dan K-6 selesai 2026-11-17
+last_verified_at: 2026-11-26   # pemeriksaan ulang read-only (git, hash, SELECT dev); build/runtime tidak diulang — readiness-report bagian 9
+readiness: READY_WITH_CONDITIONS   # testing/readiness-report.md; syarat K-1..K-4 terbuka (dicek ulang 2026-11-26), K-5 dan K-6 selesai 2026-11-17
 contract_versions:
   set: "1.0"
   api-contract: PBJ-PP-API 1.4 (approved, PBJ-DEC-037, PBJ-DEC-040..042, PBJ-DEC-055)
   state-transition-matrix: PBJ-PP-STATE 1.0 (approved)
   validation-matrix: PBJ-PP-VAL 1.2 (approved, PBJ-DEC-041, PBJ-DEC-055)
-  integration-contract: PBJ-PP-INT 1.1 (approved, PBJ-DEC-038)
+  integration-contract: PBJ-PP-INT 1.2 (approved; 1.1 PBJ-DEC-038; 1.2 PBJ-DEC-095 2026-11-26 — metode per baris PR untuk pemilihan-penyedia, dibangun bersama sub-modul itu)
   permission-audit-matrix: PBJ-PP-PERM 1.3 (approved, PBJ-DEC-036/037/039/040)
   acceptance-test-matrix: PBJ-PP-TEST 1.2 (approved, PBJ-DEC-041, PBJ-DEC-042, PBJ-DEC-055, PBJ-FE-004)
   prd-to-mvp: PBJ-PP-MVP 1.1 (approved; 1.1 = teks PBJ-OQ-019 diselaraskan PBJ-DEC-038)
@@ -48,7 +48,7 @@ artifact_hashes:         # dihitung ulang 2026-11-17 (pemeliharaan sesudah audit
   contracts/api-contract.md: eeb444f23f05d0c3
   contracts/state-transition-matrix.md: eb2c48c11772c078
   contracts/validation-matrix.md: bed447ccdd62d2f8
-  contracts/integration-contract.md: 5c289c98fbb87bc2
+  contracts/integration-contract.md: 7c5bb9f4c76c4485   # PBJ-PP-INT 1.2, dihitung ulang 2026-11-26 (PBJ-DEC-095)
   contracts/permission-audit-matrix.md: 2770cc6bc402a1ba
   testing/acceptance-test-matrix.md: fdc61d22dcd99cbb
   flowcharts/00-alur-utama.md: c5e713fdce1e0c6c
