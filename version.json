@@ -1,51 +1,13 @@
 {
+  "backendVersion": "0.34.1",
+  "description": "Release 0.34.1 enhances  capabilities.",
+  "releaseName": "Quilvian 0.34.1 Maintenance Release",
   "releaseMetadata": {
-    "features": [
-      "Billing Workflow",
-      "Finance Workflow",
-      "Pharmacy Workflow",
-      "Blood Bank Workflow"
-    ],
-    "generatedAt": "2026-11-27T06:45:13",
-    "migrations": [
-      "20261117074530_AddProcurementVendorManagement.cs",
-      "20261118035706_AddPayrollStatutoryPolicyTaxInsuranceAndWorkforceAllowance.cs",
-      "20261118100000_AddHrdOvertimeSetting.cs",
-      "20261119042534_AddAssetMovement.cs",
-      "20261119134155_AddRegOnlineRegistration.cs",
-      "20261120035346_AddWorkflowBulkFlagAndEscalationLink.cs",
-      "20261120081927_AddSalaryGradeAndStructureToTransportAllowancePolicy.cs",
-      "20261120090000_AddHrdRetirementPolicyAge.cs",
-      "20261120091000_AddMstJobDescription.cs",
-      "20261120092000_AddHrdContractDecisionNoticeEvidence.cs",
-      "20261120093000_AddHrdAssignmentLetter.cs",
-      "20261123025831_AddPrlOpeningTaxBalance.cs",
-      "20261123032511_AddAssetPhysicalInventory.cs",
-      "20261123041316_AddSalaryGradeAndStructureToShiftOnCallHazardAllowancePolicy.cs",
-      "20261123045804_AddPrlAllowancePolicyAndWorkforceAllowanceProvenance.cs",
-      "20261124023459_AddAssetValuationProcessing.cs",
-      "20261125074224_AddLabOrderPlannedDateAndReschedule.cs",
-      "20261125091331_AddChartOfAccountReportClassification.cs",
-      "20261126043027_AddProcurementSourcingMasterData.cs",
-      "20261126080005_AddProcurementPurchaseRequestLinePackage.cs",
-      "20261126091428_AddProcurementSourcing.cs"
-    ],
-    "modules": [
-      "Accounting Management",
-      "Administrator Management",
-      "Billing Management",
-      "Human Resource Management",
-      "Inpatient Management",
-      "Laboratory Management",
-      "Pharmacy Management",
-      "Radiology Management",
-      "Registration Management",
-      "Self Service Management"
-    ],
+    "modules": [],
     "generatedBy": "Quilvian Release Generator",
-    "migrationCount": 21
-  },
-  "backendVersion": "0.34.0",
-  "releaseName": "Quilvian 0.34.0 - Enterprise Platform Enhancement",
-  "description": "Release 0.34.0 enhances Accounting Management, Administrator Management, Billing Management, Human Resource Management, Inpatient Management, Laboratory Management, Pharmacy Management, Radiology Management, Registration Management, Self Service Management capabilities. Includes improvements across Billing Workflow, Finance Workflow, Pharmacy Workflow, Blood Bank Workflow. Includes 21 database migration update(s)."
+    "migrations": [],
+    "generatedAt": "2026-11-27T09:24:36",
+    "features": [],
+    "migrationCount": 0
+  }
 }
