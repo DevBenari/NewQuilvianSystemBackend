@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Enums;
@@ -990,7 +991,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
 
             var requestContextJson = JsonSerializer.SerializeToElement(new
             {
-                summary = $"Pengajuan Batch Formasi Awal {batch.BatchNumber} ({siteName ?? "-"}) — {activeRows.Count} posisi, total {totalFte:0.##} FTE (SK: {batch.SourceDocumentReference})",
+                summary = new[]
+                {
+                    new { label = "Nomor Batch", value = batch.BatchNumber },
+                    new { label = "Rumah Sakit", value = siteName ?? "-" },
+                    new { label = "Nomor SK", value = batch.SourceDocumentReference },
+                    new
+                    {
+                        label = "Unit & Jabatan Utama",
+                        value = string.IsNullOrWhiteSpace(firstUnitName)
+                            ? "-"
+                            : activeRows.Count > 1
+                                ? $"{firstUnitName} — {firstPosName ?? "-"} (+{activeRows.Count - 1} posisi lain)"
+                                : $"{firstUnitName} — {firstPosName ?? "-"}"
+                    },
+                    new { label = "Total Formasi", value = $"{activeRows.Count} posisi · {totalFte:0.##} FTE" },
+                    new { label = "Tanggal Efektif", value = firstRow?.EffectiveStartDate.ToString("yyyy-MM-dd") ?? "-" }
+                },
                 source = new
                 {
                     batchId = batch.Id,

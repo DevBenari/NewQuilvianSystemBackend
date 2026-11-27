@@ -17,6 +17,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         public string WorkflowNumber { get; set; } = string.Empty;
         // BE-HRD-443: nomor dokumen modul (ExternalReferenceNumber), mis. SPPD/RSQ/2026/11/0013.
         public string? ReferenceNumber { get; set; }
+        public Guid ReferenceId { get; set; }
         // BE-HRD-443: butir layak Setujui Massal (VR-WF-32) agar layar dapat menonaktifkan pilihan.
         public bool CanBulkApprove { get; set; }
         public string RequestType { get; set; } = string.Empty;
