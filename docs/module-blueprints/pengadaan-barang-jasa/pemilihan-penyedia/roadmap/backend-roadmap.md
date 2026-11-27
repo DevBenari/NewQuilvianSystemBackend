@@ -49,13 +49,13 @@ Blok 1 — fondasi, paket draf, lampiran:
 ```text
 BE-PBJ-PS-001 ✅ ─┬─> BE-PBJ-PS-002 ✅
                   │
-                  └─> BE-PBJ-PS-003 ✅ ─> BE-PBJ-PS-004 ✅ ─> BE-PBJ-PS-005 ─> BE-PBJ-PS-006
+                  └─> BE-PBJ-PS-003 ✅ ─> BE-PBJ-PS-004 ✅ ─> BE-PBJ-PS-005 ✅ ─> BE-PBJ-PS-006 ✅
 ```
 
 Blok 2 — persiapan, persetujuan, RFQ, penawaran:
 
 ```text
-BE-PBJ-PS-006 ─> BE-PBJ-PS-007 ─> BE-PBJ-PS-008 ─> BE-PBJ-PS-009 ─> BE-PBJ-PS-010
+BE-PBJ-PS-006 ✅ ─> BE-PBJ-PS-007 ✅ ─> BE-PBJ-PS-008 ✅ ─> BE-PBJ-PS-009 ─> BE-PBJ-PS-010
 ```
 
 Blok 3 — evaluasi, negosiasi, penetapan, nomor PO, pecah dan batal:
@@ -71,10 +71,10 @@ Jumlah pasangan prasyarat → task: **14** (blok 1: 5, blok 2: 4, blok 3: 5), sa
 | 1 | — | `BE-PBJ-PS-001` ✅ — 26 November 2026 |
 | 2 | `BE-PBJ-PS-001` | `BE-PBJ-PS-002` ✅, `BE-PBJ-PS-003` ✅ — 26 November 2026 |
 | 3 | `BE-PBJ-PS-003` | `BE-PBJ-PS-004` ✅ — 26 November 2026 |
-| 4 | `BE-PBJ-PS-004` | `BE-PBJ-PS-005` |
-| 5 | `BE-PBJ-PS-005` | `BE-PBJ-PS-006` |
-| 6 | `BE-PBJ-PS-006` | `BE-PBJ-PS-007` |
-| 7 | `BE-PBJ-PS-007` | `BE-PBJ-PS-008` |
+| 4 | `BE-PBJ-PS-004` | `BE-PBJ-PS-005` ✅ — 27 November 2026 |
+| 5 | `BE-PBJ-PS-005` | `BE-PBJ-PS-006` ✅ — 27 November 2026 |
+| 6 | `BE-PBJ-PS-006` | `BE-PBJ-PS-007` ✅ — 27 November 2026 |
+| 7 | `BE-PBJ-PS-007` | `BE-PBJ-PS-008` ✅ — 27 November 2026 |
 | 8 | `BE-PBJ-PS-008` | `BE-PBJ-PS-009` |
 | 9 | `BE-PBJ-PS-009` | `BE-PBJ-PS-010` |
 | 10 | `BE-PBJ-PS-010` | `BE-PBJ-PS-011` |
@@ -109,10 +109,10 @@ butuh RFQ terkirim, evaluasi butuh penawaran, penetapan butuh hasil evaluasi. Fr
 | `BE-PBJ-PS-002` | Tiga master pemilihan dapat dikelola | `PBJ-DEC-068`, `095`; `PBJ-ASM-007`; FR-PS-001, 002 | API §Master Data (3 grup); VAL-071 | Pola master `ProcurementVendorDocumentTypes*` | 3 controller × 9 endpoint, 3 service | `BE-PBJ-PS-001` | `UAT-PS-01`, `02`; rentang metode aktif tidak tumpang tindih; dokumen wajib tepat satu dari metode/jenis | API manual | — | Kriteria + laporan | ✅ 26 November 2026 ([laporan](../task/report/backend/BE-PBJ-PS-002.md)) |
 | `BE-PBJ-PS-003` | Baris PR siap membawa rujukan paket | `PBJ-DEC-071`, `095` | Kamus data `PrcPurchaseRequestLine`; API §Perubahan sub-modul lain | `PrcPurchaseRequestLine`, `ProcurementPurchaseRequestService` (detail) | 2 kolom + index, migration `AddProcurementPurchaseRequestLinePackage`, `packageId` di detail PR | `BE-PBJ-PS-001` | Skema cocok; `packageId` kosong di PR lama; regresi PR | Build, skema DB, API PR | **Menyentuh `perencanaan-permintaan`**; pemilik PR = pengguna sesi (`PBJ-DEC-095`) | Kriteria + regresi + laporan | ✅ 26 November 2026 ([laporan](../task/report/backend/BE-PBJ-PS-003.md)) |
 | `BE-PBJ-PS-004` | Skema 14 tabel Sourcing berdiri | `PBJ-DEC-070`, `071`, `074`, `078`, `083`, `090`, `091`, `096` | Kamus data §Sourcing; arsitektur §3, §6 | `IdentityModel`, `RowVersion` pola Pengadaan | 14 model + konfigurasi, index unik parsial, migration `AddProcurementSourcing`, penanda izin eksplisit, pendaftaran DI | `BE-PBJ-PS-003` | `AT-PS-60`, `61`, `62` | QBE, build, skema DB, uji batasan (rollback) | Migration besar; jalankan sebelum data produksi ada | Kriteria + laporan | ✅ 26 November 2026 ([laporan](../task/report/backend/BE-PBJ-PS-004.md)) |
-| `BE-PBJ-PS-005` | Paket draf dibuat dari baris PR | `PBJ-DEC-020`, `022`, `071`, `077`, `079`, `082`, `090`, `091`; FR-PS-010, 011 | API §Procurement Package (daftar, buat, baris, detail, riwayat); `PBJ-PP-INT` 1.2 §2; VAL-120..123 | `ProcurementDataScopeService`, `PrcDocumentHistory`, `ProcurementPurchaseRequestService` | `ProcurementPackagesController` dan `ProcurementPackageService` bagian draf; tiga metode baris PR | `BE-PBJ-PS-004` | `AT-PS-01`..`06`; regresi PR | API manual, DB | **Menyentuh `perencanaan-permintaan`**; harga tertutup di DTO, bukan di layar | Kriteria + regresi + laporan | — |
-| `BE-PBJ-PS-006` | Lampiran paket aman dan lampiran harga tertutup | `PBJ-DEC-074`, `079`, `080`; `PBJ-CAP-004`, `026` | API §Perubahan sub-modul lain (`/attachments`); PERM §4 | `ProcurementAttachmentService`, `IProcurementDocumentAccessProvider` | Saringan `IsPriceSensitive`, `ProcurementSourcingAccessProvider` (`PBJ_PACKAGE`, `PBJ_RFQ`) | `BE-PBJ-PS-005` | Unggah/daftar oleh Tim Pengadaan; tanpa `ReadPrice` tidak melihat lampiran harga; regresi lampiran | API manual | **Menyentuh `Common` milik `perencanaan-permintaan`** | Kriteria + regresi + laporan | — |
-| `BE-PBJ-PS-007` | Persiapan paket lengkap | `PBJ-DEC-068`, `073`, `074`, `086`; `PBJ-ASM-007`; FR-PS-012, 013 | API `PUT /{id}`, `method-suggestion`, `criteria`, `evaluators`; VAL-125, 126, 149 | `PrcAttachment` (checklist) | Ubah persiapan, saran dan salinan metode, salinan checklist, kriteria, evaluator | `BE-PBJ-PS-006` | `AT-PS-11`, `12` (validasi), `17` | API manual, DB | — | Kriteria + laporan | — |
-| `BE-PBJ-PS-008` | Persiapan disetujui lewat `Wfl` | `PBJ-DEC-007`, `038`, `072`, `073`; FR-PS-014 | API `preparation/*`, `approval`, `workflow/synchronize`; STATE §1; VAL-091, 124, 127, 128 | `ProcurementApprovalGateway`, `ProcurementWorkflowLifecycleHandler`, `NumberSeriesAllocator` | Ajukan/tarik/buka ulang, penerap `PBJ_PACKAGE`, kondisi `PBJ_METHOD_OUT_OF_RANGE`, nomor `PKT` | `BE-PBJ-PS-007` | `AT-PS-10`, `12` (kondisi), `13`, `14`, `15`, `16`, `18` | API, DB; matriks uji `Wfl` | Matriks uji wajib dicabut sesudah uji | Kriteria + laporan | — |
+| `BE-PBJ-PS-005` | Paket draf dibuat dari baris PR | `PBJ-DEC-020`, `022`, `071`, `077`, `079`, `082`, `090`, `091`; FR-PS-010, 011 | API §Procurement Package (daftar, buat, baris, detail, riwayat); `PBJ-PP-INT` 1.2 §2; VAL-120..123 | `ProcurementDataScopeService`, `PrcDocumentHistory`, `ProcurementPurchaseRequestService` | `ProcurementPackagesController` dan `ProcurementPackageService` bagian draf; tiga metode baris PR | `BE-PBJ-PS-004` | `AT-PS-01`..`06`; regresi PR | API manual, DB | **Menyentuh `perencanaan-permintaan`**; harga tertutup di DTO, bukan di layar | Kriteria + regresi + laporan | ✅ 27 November 2026 ([laporan](../task/report/backend/BE-PBJ-PS-005.md)) |
+| `BE-PBJ-PS-006` | Lampiran paket aman dan lampiran harga tertutup | `PBJ-DEC-074`, `079`, `080`; `PBJ-CAP-004`, `026` | API §Perubahan sub-modul lain (`/attachments`); PERM §4 | `ProcurementAttachmentService`, `IProcurementDocumentAccessProvider` | Saringan `IsPriceSensitive`, `ProcurementSourcingAccessProvider` (`PBJ_PACKAGE`, `PBJ_RFQ`) | `BE-PBJ-PS-005` | Unggah/daftar oleh Tim Pengadaan; tanpa `ReadPrice` tidak melihat lampiran harga; regresi lampiran | API manual | **Menyentuh `Common` milik `perencanaan-permintaan`** | Kriteria + regresi + laporan | ✅ 27 November 2026 ([laporan](../task/report/backend/BE-PBJ-PS-006.md)) |
+| `BE-PBJ-PS-007` | Persiapan paket lengkap | `PBJ-DEC-068`, `073`, `074`, `086`; `PBJ-ASM-007`; FR-PS-012, 013 | API `PUT /{id}`, `method-suggestion`, `criteria`, `evaluators`; VAL-125, 126, 149 | `PrcAttachment` (checklist) | Ubah persiapan, saran dan salinan metode, salinan checklist, kriteria, evaluator | `BE-PBJ-PS-006` | `AT-PS-11`, `12` (validasi), `17` | API manual, DB | — | Kriteria + laporan | ✅ 27 November 2026 ([laporan](../task/report/backend/BE-PBJ-PS-007.md)) |
+| `BE-PBJ-PS-008` | Persiapan disetujui lewat `Wfl` | `PBJ-DEC-007`, `038`, `072`, `073`; FR-PS-014 | API `preparation/*`, `approval`, `workflow/synchronize`; STATE §1; VAL-091, 124, 127, 128 | `ProcurementApprovalGateway`, `ProcurementWorkflowLifecycleHandler`, `NumberSeriesAllocator` | Ajukan/tarik/buka ulang, penerap `PBJ_PACKAGE`, kondisi `PBJ_METHOD_OUT_OF_RANGE`, nomor `PKT` | `BE-PBJ-PS-007` | `AT-PS-10`, `12` (kondisi), `13`, `14`, `15`, `16`, `18` | API, DB; matriks uji `Wfl` | Matriks uji wajib dicabut sesudah uji | Kriteria + laporan | ✅ 27 November 2026 ([laporan](../task/report/backend/BE-PBJ-PS-008.md)) |
 | `BE-PBJ-PS-009` | RFQ ke vendor layak | `PBJ-DEC-045`, `054`, `075`, `081`, `087`; `PBJ-ASM-006`; FR-PS-020, 021, 023 | API §Procurement RFQ; STATE §2; VAL-129..132, 148 | `ProcurementVendorEligibilityService.GetEligibleAsync`, QuestPDF (pola `AssetMovementDocumentService`) | `ProcurementRfqsController`, `ProcurementRfqService`, dokumen RFQ PDF, nomor `RFQ` | `BE-PBJ-PS-008` | `AT-PS-20`, `21`, `22`, `24`, `35` | API, DB | Zona waktu batas waktu (`NFR-005`) | Kriteria + laporan | — |
 | `BE-PBJ-PS-010` | Penawaran tercatat dengan PPN dan waktu terima | `PBJ-DEC-067`, `081`, `084`; FR-PS-022 | API §Procurement Quotation (catat, ubah, void, daftar, detail); VAL-133, 134, 148 | `MstSupplier` (penanda pajak) | `ProcurementQuotationsController` dan `ProcurementQuotationService` bagian catat | `BE-PBJ-PS-009` | `AT-PS-23`, `25`, `26` | API, DB | Harga tidak masuk log (`NFR-006`) | Kriteria + laporan | — |
 | `BE-PBJ-PS-011` | Evaluasi teknis tanpa harga oleh evaluator yang ditunjuk | `PBJ-DEC-074`, `079`, `080`; FR-PS-030..032 | API §Technical Evaluation; VAL-135, 136 | `ProcurementSourcingAccessProvider` (`BE-PBJ-PS-006`) | `TechnicalEvaluationsController`, `ProcurementTechnicalEvaluationService` | `BE-PBJ-PS-010` | `AT-PS-30` (API), `31`, `32`, `33` | API, DB; aktor evaluator tanpa `ProcurementPackage : Read` | Kebocoran harga lewat DTO; uji respons mentah | Kriteria + laporan | — |
@@ -167,7 +167,7 @@ butuh RFQ terkirim, evaluasi butuh penawaran, penetapan butuh hasil evaluasi. Fr
 | DoD | Kriteria + laporan |
 | **Status** | ✅ **SELESAI 26 November 2026.** 14 tabel Sourcing terpasang di `QuilvianNewDevSukma` lewat migration `AddProcurementSourcing` (14 `CreateTable`, 48 index, tanpa drift; atas izin pemilik) dan cocok kamus data: 16 index unik parsial, 28 CHECK, 33 FK `RESTRICT`, `RowVersion` pada paket/RFQ/penawaran/penetapan; `has-pending-model-changes` bersih. Build Release 0 error (0 warning dari berkas baru/berubah), QBE Strict `PASS` 32 berkas (`QBE-MOD-002` folder `Sourcing`); uji batasan 26/26 `PASS` (rollback). Delta: `SortOrder` kriteria → `CriterionNo` (D-1); penanda izin eksplisit `ReadAllUnits`/`ReadPrice` **dipindah ke `BE-PBJ-PS-005`** karena registry menolak penanda ke resource tanpa endpoint (D-2); DI belum berubah karena belum ada service (D-3). Laporan: [laporan](../task/report/backend/BE-PBJ-PS-004.md) |
 
-### `BE-PBJ-PS-005` — Paket draf dan tiga metode baris PR (menyentuh `perencanaan-permintaan`)
+### ✅ `BE-PBJ-PS-005` — Paket draf dan tiga metode baris PR (menyentuh `perencanaan-permintaan`)
 
 | Aspek | Isi |
 | --- | --- |
@@ -175,9 +175,9 @@ butuh RFQ terkirim, evaluasi butuh penawaran, penetapan butuh hasil evaluasi. Fr
 | Acceptance criteria | `AT-PS-01` (15 kursi roda dari IGD 10 + Rawat Inap 5), `AT-PS-02` (409 `PBJ-VAL-121`), `AT-PS-03` (PR dua baris: `APPROVED` lalu `CONVERTED_TO_PACKAGE`; lepas baris → kembali `APPROVED`), `AT-PS-04` (422 `PBJ-VAL-122`/`123`), `AT-PS-05`, `AT-PS-06` (404 di luar cakupan); regresi PR |
 | Risiko / pemilik | Menyentuh service milik `perencanaan-permintaan` (`PBJ-DEC-095`) |
 | DoD | Kriteria + regresi + laporan |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 27 November 2026.** Sembilan endpoint `ProcurementPackagesController` bagian draf (delapan sesuai kontrak + `GET /summary`, D-1) dan tiga metode `PBJ-PP-INT` 1.2 di `ProcurementPurchaseRequestService` (ikut transaksi pemanggil); penanda `ProcurementPackage : ReadAllUnits`/`ReadPrice` dan DI terdaftar. Tanpa migration. Build Release 0 error (0 warning dari berkas yang diubah), QBE Strict `PASS` 11 berkas. Uji runtime 7185/`QuilvianNewDevSukma` dengan aktor non-SuperAdmin dan PR yang `APPROVED` lewat `Wfl` uji (dicabut sesudah uji): putaran 1 menemukan cacat CHECK `Quantity > 0` saat melepas baris terakhir sebuah barang (diperbaiki); putaran 2 31/32 `PASS`, `T-23` (`AT-PS-05`) `FAIL` karena tabel rencana paket di DB uji kosong, dibuktikan ulang lewat uji susulan `T-23b` `PASS`. `AT-PS-01`..`06` dan regresi PR (alur sampai `APPROVED`, penjaga batal `PBJ-VAL-092` kini per baris) terbukti. Fixture dibersihkan. Delta D-1..D-17 di laporan (antara lain HPS satuan rata-rata tertimbang, `RowVersion` PR berganti saat baris dipaketkan, kecocokan rencana paket belum diputuskan). Laporan: [laporan](../task/report/backend/BE-PBJ-PS-005.md) |
 
-### `BE-PBJ-PS-006` — Lampiran paket dan lampiran harga tertutup (menyentuh `Common`)
+### ✅ `BE-PBJ-PS-006` — Lampiran paket dan lampiran harga tertutup (menyentuh `Common`)
 
 | Aspek | Isi |
 | --- | --- |
@@ -185,18 +185,18 @@ butuh RFQ terkirim, evaluasi butuh penawaran, penetapan butuh hasil evaluasi. Fr
 | Acceptance criteria | (1) Tim Pengadaan mengunggah dan melihat lampiran paket. (2) Aktor yang punya `ProcurementPackage : Read` tanpa `ReadPrice` (bundel Keuangan) tidak melihat Dasar HPS di daftar, dan unduhannya 404. (3) Kategori di luar daftar jenis dokumen ditolak. (4) Regresi lampiran PR, rencana, pagu, dan vendor tidak berubah. Cabang evaluator (`AT-PS-31` bagian lampiran) dibuktikan di `BE-PBJ-PS-011`, karena penugasan evaluator baru ada di `BE-PBJ-PS-007` |
 | Risiko / pemilik | Menyentuh fondasi lampiran milik `perencanaan-permintaan` (`PBJ-DEC-095`) |
 | DoD | Kriteria + regresi + laporan |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 27 November 2026.** Penyedia akses `PBJ_PACKAGE` dan `PBJ_RFQ` (`ProcurementSourcingAccessProvider` + dua adaptor) dan aturan kategori lewat titik perluasan baru `IProcurementAttachmentCategoryPolicy` di `Common` (D-1): kategori wajib = kode jenis dokumen paket aktif, lampiran `IsPriceSensitive` tidak didaftar dan unduh/ganti/tariknya 404 tanpa `ProcurementPackage : ReadPrice`. Tanpa migration. Build Release 0 error (0 warning dari berkas yang diubah), QBE Strict `PASS` 6 berkas. Uji runtime 7185/`QuilvianNewDevSukma` 17/17 `PASS`: kriteria (1)–(3), regresi lampiran PR dan rencana paket, kunci kode jenis dokumen (`BE-PBJ-PS-002` D-5), fail-closed RFQ. Regresi pagu dan vendor lewat jalur kode yang sama (tanpa aturan kategori), tidak diuji tersendiri. Dikecualikan kartu: cabang evaluator (`BE-PBJ-PS-011`); cabang RFQ terbukti di `BE-PBJ-PS-009`/`010` (D-5). Fixture dibersihkan. Laporan: [laporan](../task/report/backend/BE-PBJ-PS-006.md) |
 
-### `BE-PBJ-PS-007` — Persiapan paket
+### ✅ `BE-PBJ-PS-007` — Persiapan paket
 
 | Aspek | Isi |
 | --- | --- |
 | Cakupan | `PUT /{id}` (judul, spesifikasi, HPS satuan, metode, alasan di luar rentang); `GET /{id}/method-suggestion`; salinan metode dan aturannya saat dipilih; salinan checklist dari dokumen wajib metode dan jenis; status checklist dari lampiran `PBJ_PACKAGE` berkategori kode jenis; `PUT /{id}/items/{itemId}/criteria`; `PUT /{id}/evaluators`; HPS terkunci setelah disetujui (409 `PBJ-VAL-149`) |
 | Acceptance criteria | `AT-PS-11` (HPS Rp 42.750.000 → saran Penunjukan Langsung contoh), `AT-PS-12` (422 `PBJ-VAL-126` tanpa alasan), `AT-PS-17` (ubah master tidak mengubah salinan di paket); hapus metode yang dipakai paket → 400 `PBJ-VAL-071` (`UAT-PS-02`) |
 | DoD | Kriteria + laporan |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 27 November 2026.** `PUT /{id}`, `GET /{id}/method-suggestion`, `PUT /{id}/items/{itemId}/criteria`, `PUT /{id}/evaluators` di service baru `ProcurementPackagePreparationService` (D-1); salinan metode dan checklist saat dipilih; status checklist dari lampiran; HPS terkunci 409 `PBJ-VAL-149`; hapus metode yang dipakai paket 400 `PBJ-VAL-071`. Tanpa migration. Build Release 0 error (0 warning dari berkas yang diubah), QBE Strict `PASS` 7 berkas. Uji runtime 7185/`QuilvianNewDevSukma` 20/20 `PASS`: `AT-PS-11`, `AT-PS-12` (bagian persiapan), `AT-PS-17`, `UAT-PS-02`, kriteria, evaluator, kunci status (diset lewat SQL uji), ditambah cabang evaluator lampiran `BE-PBJ-PS-006`. Bagian `AT-PS-12` "kondisi `PBJ_METHOD_OUT_OF_RANGE` di `Wfl`" milik `BE-PBJ-PS-008`. Fixture dibersihkan; master metode contoh dikembalikan. Laporan: [laporan](../task/report/backend/BE-PBJ-PS-007.md) |
 
-### `BE-PBJ-PS-008` — Persetujuan persiapan
+### ✅ `BE-PBJ-PS-008` — Persetujuan persiapan
 
 | Aspek | Isi |
 | --- | --- |
@@ -204,7 +204,7 @@ butuh RFQ terkirim, evaluasi butuh penawaran, penetapan butuh hasil evaluasi. Fr
 | Acceptance criteria | `AT-PS-10`, `12` (langkah tambahan aktif), `13`, `14` (422 `PBJ-VAL-091`, paket tetap `DRAFT`), `15`, `16`, `18` |
 | Verifikasi | API dan DB; matriks `Wfl` uji dipasang lalu dicabut atas izin pemilik |
 | DoD | Kriteria + laporan |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 27 November 2026.** `POST /{id}/preparation/submit`, `/withdraw`, `/reopen`, `GET /{id}/approval`, `POST /{id}/workflow/synchronize` di `ProcurementPackageApprovalService`; penerap `PBJ_PACKAGE` `ProcurementSourcingStatusApplier`; nomor `PKT` saat pertama diajukan; kondisi `PBJ_METHOD_OUT_OF_RANGE`. Tanpa migration. Build Release 0 error (0 warning dari berkas yang diubah), QBE Strict `PASS` 6 berkas. Uji runtime 7185/`QuilvianNewDevSukma` 21/21 `PASS` dengan matriks `Wfl` uji `PBJ-PKT-PERSIAPAN` (dipasang sesudah `AT-PS-14`, dicabut sesudah uji): `AT-PS-10`, `12` (dua langkah), `13`, `14`, `15` (setuju, minta revisi, tolak + baris PR dilepas), `16`, `18`. `AT-PS-14` memakai **409** `PBJ-VAL-091` sesuai `PBJ-DEC-097` (kontrak `PBJ-PS-STATE`/`-INT`/`-TEST` 1.1), bukan 422 seperti tertulis di kartu. Bagian "Layar" `AT-PS-15` milik `FE-PBJ-PS-003`. Catatan: nomor `PKT` dialokasikan sebelum `Wfl`, sehingga pengajuan yang ditolak `Wfl` memakan nomor (D-4). Laporan: [laporan](../task/report/backend/BE-PBJ-PS-008.md) |
 
 ### `BE-PBJ-PS-009` — RFQ
 

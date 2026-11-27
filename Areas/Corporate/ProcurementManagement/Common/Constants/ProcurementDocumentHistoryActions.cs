@@ -25,6 +25,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string Activate = "ACTIVATE";
         public const string Deactivate = "DEACTIVATE";
         public const string ConvertToPackage = "CONVERT_TO_PACKAGE";
+        /// <summary>PR kembali <c>APPROVED</c> karena barisnya dilepas dari paket (BE-PBJ-PS-005; PBJ-DEC-077).</summary>
+        public const string ReleaseFromPackage = "RELEASE_FROM_PACKAGE";
 
         // Manajemen vendor (BE-PBJ-VD-003; PBJ-VD-PERM 1.0 bagian 5): kategori vendor ditambah atau dilepas.
         public const string CategoryAdd = "CATEGORY_ADD";

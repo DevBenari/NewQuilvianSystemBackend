@@ -25,11 +25,11 @@ domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN   # administratif; al
 contract_versions:
   set: "1.0"
   api-contract: PBJ-PS-API 1.0 (approved, PBJ-DEC-095)
-  state-transition-matrix: PBJ-PS-STATE 1.0 (approved, PBJ-DEC-095)
+  state-transition-matrix: PBJ-PS-STATE 1.1 (approved, PBJ-DEC-095; 1.1 PBJ-DEC-097 status PBJ-VAL-091 = 409)
   validation-matrix: PBJ-PS-VAL 1.0 (approved, PBJ-DEC-095)
-  integration-contract: PBJ-PS-INT 1.0 (approved, PBJ-DEC-095) — bersama amendment PBJ-PP-INT 1.1 → 1.2
+  integration-contract: PBJ-PS-INT 1.1 (approved, PBJ-DEC-095; 1.1 PBJ-DEC-097 status PBJ-VAL-091 = 409) — bersama amendment PBJ-PP-INT 1.1 → 1.2
   permission-audit-matrix: PBJ-PS-PERM 1.0 (approved, PBJ-DEC-095)
-  acceptance-test-matrix: PBJ-PS-TEST 1.0 (approved, PBJ-DEC-095)
+  acceptance-test-matrix: PBJ-PS-TEST 1.1 (approved, PBJ-DEC-095; 1.1 PBJ-DEC-097)
   prd-to-mvp: PBJ-PS-MVP 1.0 (approved, PBJ-DEC-095)
 input_revisions:
   00-interview-decisions.md: decision_revision 19 (PBJ-DEC-001..096, PBJ-ASM-001..009, PBJ-FE-004)

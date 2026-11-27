@@ -46,13 +46,13 @@ BE-PBJ-PS-011 [BE] ────────────────────�
 Blok 2 — paket, persiapan, RFQ dan penawaran:
 
 ```text
-FE-PBJ-PS-001 ──────┐
-                    │
-BE-PBJ-PS-005 [BE] ─┴─> FE-PBJ-PS-002 ─┐
-                                       │
-BE-PBJ-PS-008 [BE] ────────────────────┴─> FE-PBJ-PS-003 ─┐
-                                                          │
-BE-PBJ-PS-010 [BE] ───────────────────────────────────────┴─> FE-PBJ-PS-004
+FE-PBJ-PS-001 ─────────┐
+                       │
+BE-PBJ-PS-005 ✅ [BE] ─┴─> FE-PBJ-PS-002 ─┐
+                                          │
+BE-PBJ-PS-008 ✅ [BE] ────────────────────┴─> FE-PBJ-PS-003 ─┐
+                                                             │
+BE-PBJ-PS-010 [BE] ──────────────────────────────────────────┴─> FE-PBJ-PS-004
 ```
 
 Blok 3 — perbandingan, penetapan, nomor PO:
@@ -83,9 +83,9 @@ Jumlah pasangan prasyarat → task: **16** (blok 1: 3, blok 2: 6, blok 3: 4, blo
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
 | 1 | `BE-PBJ-PS-002` ✅ | `FE-PBJ-PS-001` |
-| 2 | `FE-PBJ-PS-001`, `BE-PBJ-PS-005` | `FE-PBJ-PS-002` |
+| 2 | `FE-PBJ-PS-001`, `BE-PBJ-PS-005` ✅ | `FE-PBJ-PS-002` |
 | 2 | `FE-PBJ-PS-001`, `BE-PBJ-PS-011` | `FE-PBJ-PS-005` — menunggu `BE-PBJ-PS-011` ✅ |
-| 3 | `FE-PBJ-PS-002`, `BE-PBJ-PS-008` | `FE-PBJ-PS-003` |
+| 3 | `FE-PBJ-PS-002`, `BE-PBJ-PS-008` ✅ | `FE-PBJ-PS-003` |
 | 4 | `FE-PBJ-PS-003`, `BE-PBJ-PS-010` | `FE-PBJ-PS-004` |
 | 5 | `FE-PBJ-PS-004`, `BE-PBJ-PS-013` | `FE-PBJ-PS-006` |
 | 6 | `FE-PBJ-PS-006`, `BE-PBJ-PS-015` | `FE-PBJ-PS-007` |

@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PS-STATE` · `last_changed_in: 1.0` · status `approved` (`PBJ-DEC-095`) |
+| Kontrak | `PBJ-PS-STATE` · `last_changed_in: 1.1` · status `approved` (`PBJ-DEC-095`; 1.1 `PBJ-DEC-097`, 2026-11-27: status `PBJ-VAL-091` = 409) |
 | Pemilik | Pengguna sesi (Product Owner Pengadaan) · `approved_by: Pengguna sesi` · `approved_at: 2026-11-26` |
 | Masukan | `PBJ-DEC-070`..`085`; `PBJ-ASM-005`, `008`, `009`; `02-backend-architecture.md` bagian 8 · `input_revision`: decision log 26 November 2026 |
 | Kompatibilitas | Seluruh status baru. Satu perubahan pada `perencanaan-permintaan`: PR `APPROVED` → `CONVERTED_TO_PACKAGE` kini dipicu "semua baris beli sudah punya paket", dan dapat kembali ke `APPROVED` saat paket batal (`PBJ-DEC-077`) |
@@ -16,7 +16,7 @@ dijawab 409 `PBJ-VAL-128` kecuali disebut kode lain.
 | --- | --- | --- | --- | --- | --- |
 | — | Buat paket | `DRAFT` | `ProcurementPackage : Create` | Baris PR `APPROVED`, belum dipaketkan, satu jenis dan satu tahun | 409 `PBJ-VAL-120`/`121`, 422 `PBJ-VAL-122`/`123` |
 | `DRAFT`, `PREPARATION_RETURNED` | Ubah persiapan, tambah/lepas baris | sama | `ProcurementPackage : Update` | — | 409 `PBJ-VAL-090` bila data basi |
-| `DRAFT`, `PREPARATION_RETURNED` | Ajukan persiapan | `PREPARATION_PENDING_APPROVAL` | `ProcurementPackage : Submit` | HPS > 0 semua item, metode aktif, alasan bila di luar rentang, checklist wajib lengkap, definisi `PBJ-PKT-PERSIAPAN` aktif | 422 `PBJ-VAL-124`..`127`, 422 `PBJ-VAL-091` |
+| `DRAFT`, `PREPARATION_RETURNED` | Ajukan persiapan | `PREPARATION_PENDING_APPROVAL` | `ProcurementPackage : Submit` | HPS > 0 semua item, metode aktif, alasan bila di luar rentang, checklist wajib lengkap, definisi `PBJ-PKT-PERSIAPAN` aktif | 422 `PBJ-VAL-124`..`127`, 409 `PBJ-VAL-091` (1.1, `PBJ-DEC-097`) |
 | `PREPARATION_PENDING_APPROVAL` | Tarik pengajuan | `DRAFT` | Pengaju, `ProcurementPackage : Submit` | Instance belum diputus | 409 `PBJ-VAL-128` |
 | `PREPARATION_PENDING_APPROVAL` | Disetujui `Wfl` | `READY_FOR_RFQ` | Penyetuju sesuai matriks (bukan pengaju) | — | — |
 | `PREPARATION_PENDING_APPROVAL` | Dikembalikan `Wfl` | `PREPARATION_RETURNED` | Penyetuju | — | — |
@@ -70,7 +70,7 @@ evaluator aktif; bila metode tidak mewajibkan evaluasi teknis, penawaran sah dia
 
 | Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
 | --- | --- | --- | --- | --- | --- |
-| — | Ajukan | `PENDING_APPROVAL` | `ProcurementPackageAward : Submit` | Paket `EVALUATION`; penawaran sah dan *Lulus*; jumlah penawaran sah ≥ minimum metode; ≤ HPS atau alasan; terendah atau alasan; vendor layak (Dibatasi: alasan); definisi `PBJ-PKT-PENETAPAN` aktif | 422 `PBJ-VAL-139`..`143`, `PBJ-VAL-131`, `PBJ-VAL-091` |
+| — | Ajukan | `PENDING_APPROVAL` | `ProcurementPackageAward : Submit` | Paket `EVALUATION`; penawaran sah dan *Lulus*; jumlah penawaran sah ≥ minimum metode; ≤ HPS atau alasan; terendah atau alasan; vendor layak (Dibatasi: alasan); definisi `PBJ-PKT-PENETAPAN` aktif | 422 `PBJ-VAL-139`..`143`, `PBJ-VAL-131`; 409 `PBJ-VAL-091` (1.1, `PBJ-DEC-097`) |
 | `PENDING_APPROVAL` | Tarik | `WITHDRAWN` | Pengaju | Belum diputus | 409 `PBJ-VAL-128` |
 | `PENDING_APPROVAL` | Dikembalikan `Wfl` | `RETURNED` | Penyetuju | — | — |
 | `RETURNED` | Ajukan ulang (alasan/pilihan diubah) | `PENDING_APPROVAL` | Pengaju | Aturan pengajuan diperiksa ulang | Sama dengan Ajukan |

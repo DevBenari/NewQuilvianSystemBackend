@@ -33,13 +33,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
                 ConvertedToPackage
             };
 
-            /// <summary>Status final; dokumen tidak dihidupkan kembali.</summary>
+            /// <summary>
+            /// Status final; dokumen tidak dihidupkan kembali. <c>CONVERTED_TO_PACKAGE</c> <b>bukan</b> final sejak
+            /// BE-PBJ-PS-005: PR kembali <c>APPROVED</c> bila barisnya dilepas dari paket yang batal (PBJ-DEC-077).
+            /// </summary>
             public static readonly IReadOnlySet<string> Final = new HashSet<string>(StringComparer.Ordinal)
             {
                 Rejected,
                 Cancelled,
-                FulfilledFromStock,
-                ConvertedToPackage
+                FulfilledFromStock
             };
         }
 
@@ -156,6 +158,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
             public const string Ordered = "ORDERED";
             public const string Rejected = "REJECTED";
             public const string Cancelled = "CANCELLED";
+
+            /// <summary>
+            /// Persiapan paket (isi, baris PR, lampiran persiapan) hanya dapat diubah pada <c>DRAFT</c> dan
+            /// <c>PREPARATION_RETURNED</c> (PBJ-PS-STATE 1.0 bagian 1; BE-PBJ-PS-005, 006).
+            /// </summary>
+            public static bool IsPreparationEditable(string? status) =>
+                string.Equals(status, Draft, StringComparison.Ordinal) ||
+                string.Equals(status, PreparationReturned, StringComparison.Ordinal);
         }
 
         /// <summary>Status RFQ — matriks status pemilihan-penyedia bagian 2 (PBJ-PS-STATE 1.0).</summary>

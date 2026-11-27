@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Service
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.Services;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Services;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Sourcing.Services;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Vendor.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement
@@ -95,6 +96,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement
             services.AddScoped<ProcurementVendorStatusService>();
             services.AddScoped<IProcurementDocumentAccessProvider, VendorStatusRequestAccessProvider>();
             services.AddScoped<IProcurementWorkflowStatusApplier, VendorStatusRequestWorkflowStatusApplier>();
+
+            // BE-PBJ-PS-005 — paket pengadaan bagian draf; baris PR dipegang lewat ProcurementPurchaseRequestService
+            // (PBJ-PP-INT 1.2 §2).
+            services.AddScoped<ProcurementPackageService>();
+
+            // BE-PBJ-PS-007 — persiapan paket: ubah persiapan, saran metode, kriteria teknis, evaluator.
+            services.AddScoped<ProcurementPackagePreparationService>();
+
+            // BE-PBJ-PS-008 — persetujuan persiapan paket lewat Wfl dan penerap status PBJ_PACKAGE.
+            services.AddScoped<ProcurementPackageApprovalService>();
+            services.AddScoped<IProcurementWorkflowStatusApplier, ProcurementSourcingStatusApplier>();
+
+            // BE-PBJ-PS-006 — lampiran paket dan RFQ: penyedia akses dokumen induk, kategori wajib dari jenis dokumen
+            // paket, dan lampiran harga tertutup tanpa ProcurementPackage : ReadPrice.
+            services.AddScoped<ProcurementSourcingAccessProvider>();
+            services.AddScoped<IProcurementDocumentAccessProvider, PackageAttachmentAccessProvider>();
+            services.AddScoped<IProcurementDocumentAccessProvider, RfqAttachmentAccessProvider>();
+            services.AddScoped<IProcurementAttachmentCategoryPolicy, ProcurementSourcingAttachmentCategoryPolicy>();
 
             return services;
         }

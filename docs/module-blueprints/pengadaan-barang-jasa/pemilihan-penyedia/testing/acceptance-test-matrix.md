@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PS-TEST` · `last_changed_in: 1.0` · status `approved` (`PBJ-DEC-095`, Pengguna sesi, 2026-11-26) |
+| Kontrak | `PBJ-PS-TEST` · `last_changed_in: 1.1` · status `approved` (`PBJ-DEC-095`, Pengguna sesi, 2026-11-26; 1.1 `PBJ-DEC-097`, 2026-11-27) |
 | Masukan | `PBJ-AC-006`, `011`, `013`, `022`..`036`; `PBJ-PS-STATE`, `-VAL`, `-PERM`, `-INT` 1.0 |
 | Lingkungan uji | `QuilvianNewDevSukma`; aktor non-SuperAdmin dibuat lewat API; matriks `Wfl` uji dipasang lalu dibersihkan (pola `AT-PP`/`AT-VD`) |
 
@@ -28,7 +28,7 @@ build/QBE/EF.
 | `AT-PS-11` | `PBJ-DEC-068` | HPS Rp 42.750.000 → saran metode | API | Saran "Penunjukan Langsung (contoh)" |
 | `AT-PS-12` | `PBJ-AC-023` | Metode di luar rentang tanpa alasan, lalu dengan alasan | API | 422 `PBJ-VAL-126`; dengan alasan: kondisi `PBJ_METHOD_OUT_OF_RANGE` aktif, langkah tambahan dibuat |
 | `AT-PS-13` | `PBJ-ASM-007` | Jasa tanpa KAK/TOR | API | 422 `PBJ-VAL-127` menyebut KAK/TOR |
-| `AT-PS-14` | `PBJ-DEC-038` | Ajukan saat definisi tidak aktif | API | 422 `PBJ-VAL-091`; paket tetap `DRAFT` |
+| `AT-PS-14` | `PBJ-DEC-038` | Ajukan saat definisi tidak aktif | API | 409 `PBJ-VAL-091` (1.1, `PBJ-DEC-097`); paket tetap `DRAFT` |
 | `AT-PS-15` | `PBJ-DEC-072` | Disetujui `Wfl`, dikembalikan, ditolak | API + Layar | `READY_FOR_RFQ` + `ApprovedHpsTotal` + nomor `PKT`; `PREPARATION_RETURNED`; `REJECTED` + baris PR dilepas |
 | `AT-PS-16` | `PBJ-AC-002` | Pengaju menyetujui persiapannya sendiri | API | Ditolak; tidak ada tugas bagi pengaju |
 | `AT-PS-17` | `PBJ-AC-023` | Ubah rentang HPS metode di master setelah paket memilihnya | API | Salinan metode di paket tidak berubah |

@@ -191,6 +191,10 @@ public sealed partial class ProcurementMethodService
         if (await _dbContext.MstProcurementPackageDocumentRequirements.AnyAsync(x => x.MethodId == id && !x.IsDelete, cancellationToken))
             throw new ProcurementMasterInUseException(
                 "Metode ini tidak dapat dihapus karena masih tercatat pada dokumen wajib paket. Hapus dokumen wajibnya, atau nonaktifkan metode ini saja.");
+        // BE-PBJ-PS-007 (UAT-PS-02; BE-PBJ-PS-002 D-7): paket menyimpan salinan metode, tetapi rujukan MethodId tetap dijaga.
+        if (await _dbContext.PrcPackages.AnyAsync(x => x.MethodId == id && !x.IsDelete, cancellationToken))
+            throw new ProcurementMasterInUseException(
+                "Metode ini tidak dapat dihapus karena sudah dipakai paket pengadaan. Nonaktifkan saja bila tidak dipakai lagi.");
 
         entity.IsDelete = true;
         entity.IsActive = false;

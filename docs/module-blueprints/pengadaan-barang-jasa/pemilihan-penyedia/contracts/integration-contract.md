@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PS-INT` · `last_changed_in: 1.0` · status `approved` (`PBJ-DEC-095`) |
+| Kontrak | `PBJ-PS-INT` · `last_changed_in: 1.1` · status `approved` (`PBJ-DEC-095`; 1.1 `PBJ-DEC-097`, 2026-11-27: status `PBJ-VAL-091` = 409) |
 | Pemilik | Pengguna sesi (juga pemilik `Wfl` dan Product Owner `perencanaan-permintaan`, `PBJ-DEC-026`) · `approved_by: Pengguna sesi` · `approved_at: 2026-11-26` |
 | Masukan | `PBJ-DEC-011`, `071`, `076`, `078`, `082`, `084`; `PBJ-PP-INT` 1.1; `PBJ-VD-INT` 1.1; capability map revisi 2 `PBJ-CAP-019`..`025` |
 | Kompatibilitas | Menuntut amendment `PBJ-PP-INT` 1.1 → 1.2 (bagian 3), disetujui bersama desain ini (`PBJ-DEC-095`). Tidak ada sistem luar yang dipanggil: RFQ dan PO BLM tetap di luar sistem |
@@ -17,7 +17,7 @@
 | `perencanaan-permintaan` — `ProcurementBudgetCommitmentService` | Tulis lewat pemilik | Komitmen per garis pagu saat penetapan diterapkan; pelepasan saat cabut/batal | `FindCurrentLineageAsync(fiscalYear, departmentId, itemCategoryId, fundSourceId)`, `CommitAsync("PBJ_PACKAGE_AWARD", awardId, lineage, amount)`, `ReleaseAsync("PBJ_PACKAGE_AWARD", awardId)` — ikut transaksi, idempoten | Garis pagu tidak ditemukan → penetapan tidak diterapkan, galat dicatat untuk sinkron ulang, dan Tim Pengadaan diminta menyusun pagu. PR boleh melebihi pagu (`PBJ-DEC-030`), tetapi komitmen butuh garis pagu yang ada (`PBJ-DEC-094`) |
 | `manajemen-vendor` — `ProcurementVendorEligibilityService` | Baca | Kelayakan vendor | `GetEligibleAsync(itemCategoryId)` per kategori paket, lalu irisan; `CheckAsync(supplierId, itemCategoryId)` saat penetapan diajukan dan diterapkan | Pengecualian → aksi digagalkan, tidak ada vendor dianggap layak (fail-closed) |
 | Administrator — `MstSupplier` | Baca | Nama, kode, penanda kena pajak dan persentase PPN sebagai nilai bawaan penawaran | Query `AsNoTracking` | — |
-| `Wfl` — `ProcurementApprovalGateway` | Tulis | Persiapan (`PBJ_PACKAGE`) dan penetapan (`PBJ_PACKAGE_AWARD`) | `SubmitAsync` (atas nama pengaju, kunci `<ReferenceType>:<Id>:<SubmissionCount>`), `WithdrawAsync`, `CloseReturnedAsync` | Dokumen tidak berubah; definisi tidak aktif → 422 `PBJ-VAL-091` |
+| `Wfl` — `ProcurementApprovalGateway` | Tulis | Persiapan (`PBJ_PACKAGE`) dan penetapan (`PBJ_PACKAGE_AWARD`) | `SubmitAsync` (atas nama pengaju, kunci `<ReferenceType>:<Id>:<SubmissionCount>`), `WithdrawAsync`, `CloseReturnedAsync` | Dokumen tidak berubah; definisi tidak aktif → 409 `PBJ-VAL-091` (1.1, `PBJ-DEC-097`) |
 | `Wfl` — `ProcurementWorkflowLifecycleHandler` | Panggil balik | Hasil keputusan | `IProcurementWorkflowStatusApplier` baru (`ProcurementSourcingStatusApplier`) untuk dua `ReferenceType` di atas | Keputusan `Wfl` tetap sah; galat dicatat; diulang lewat `/workflow/synchronize` |
 | Platform — `NumberSeriesAllocator` | Tulis | Nomor `PKT`, `RFQ` | `AllocateAsync` | Aksi gagal; nomor hangus (`DEC-PLT-008`) |
 | Common — `ProcurementAttachmentService`, `ProcurementDocumentHistoryWriter`, `ProcurementDataScopeService` | Tulis/baca | Lampiran, riwayat, cakupan unit | Pola `perencanaan-permintaan` | — |
