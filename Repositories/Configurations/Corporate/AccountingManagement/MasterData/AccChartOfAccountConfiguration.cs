@@ -50,6 +50,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.Accounting
                 .HasDefaultValue(false)
                 .IsRequired();
 
+            entity.Property(x => x.ReportClassification)
+                .HasConversion<int>()
+                .IsRequired(false);
+
+            entity.Property(x => x.CurrentAssetCategory)
+                .HasConversion<int>()
+                .IsRequired(false);
+
             entity.Property(x => x.EffectiveStartDate)
                 .HasColumnType("date")
                 .IsRequired(false);

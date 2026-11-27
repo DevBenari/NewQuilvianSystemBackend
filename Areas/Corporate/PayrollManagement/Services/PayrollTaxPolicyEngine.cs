@@ -93,6 +93,18 @@ public static class PayrollTaxBlockCodes
     public const string YtdHistoryIncomplete = "TAX_YTD_HISTORY_INCOMPLETE";
 }
 
+/// <summary>
+/// PAY-BE-FIX-032: status PPh per penerima pada run. FINAL_VALID = hasil resmi yang sah (termasuk VALID_ZERO); PROVISIONAL_ESTIMATE = hanya
+/// ada estimasi proksi; INCOMPLETE_NO_ESTIMATE = tidak ada angka yang dapat dipercaya (BUKAN Rp0); NOT_APPLICABLE = pengecualian yang sah.
+/// </summary>
+public static class PayrollEmployeeTaxStatuses
+{
+    public const string FinalValid = "FINAL_VALID";
+    public const string ProvisionalEstimate = "PROVISIONAL_ESTIMATE";
+    public const string IncompleteNoEstimate = "INCOMPLETE_NO_ESTIMATE";
+    public const string NotApplicable = "NOT_APPLICABLE";
+}
+
 /// <summary>Status kefinalan pajak pada run. BELUM_FINAL = masih memuat PPh sementara, tidak boleh disahkan.</summary>
 public static class PayrollTaxFinality
 {

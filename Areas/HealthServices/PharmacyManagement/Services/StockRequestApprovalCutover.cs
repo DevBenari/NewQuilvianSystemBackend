@@ -3,12 +3,12 @@ using System.Globalization;
 namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 
 /// <summary>
-/// Batas aktivasi persetujuan atasan per lingkungan (<c>LGS-DEC-006</c>).
+/// Batas aktivasi persetujuan per lingkungan (<c>LGS-DEC-006</c>).
 /// </summary>
 /// <remarks>
 /// <para>
 /// Permintaan yang diajukan <b>sebelum</b> batas mengikuti aturan peralihan: masih boleh
-/// diserahkan langsung, dan tetap boleh diputus atasan. Permintaan yang diajukan sesudahnya
+/// diserahkan langsung, dan tetap boleh diputus penyetuju. Permintaan yang diajukan sesudahnya
 /// wajib disetujui. Waktu pengajuan yang dibandingkan adalah <c>PhmStockRequest.SubmittedAt</c>
 /// yang ditulis server saat pengajuan, bukan waktu dari browser.
 /// </para>
@@ -46,7 +46,7 @@ public sealed record StockRequestApprovalCutover(
     {
         if (string.IsNullOrWhiteSpace(rawValue))
             return new(StockRequestApprovalCutoverState.NotConfigured, null, null,
-                "Batas aktivasi persetujuan belum diatur; seluruh permintaan wajib disetujui atasan unit.");
+                "Batas aktivasi persetujuan belum diatur; seluruh permintaan wajib disetujui penyetuju.");
 
         var trimmed = rawValue.Trim();
 
@@ -54,7 +54,7 @@ public sealed record StockRequestApprovalCutover(
                 DateTimeStyles.AssumeUniversal, out var parsed))
             return new(StockRequestApprovalCutoverState.Invalid, null, trimmed,
                 $"Batas aktivasi persetujuan '{trimmed}' bukan tanggal-waktu yang sah; aturan " +
-                "peralihan diabaikan dan seluruh permintaan wajib disetujui atasan unit.");
+                "peralihan diabaikan dan seluruh permintaan wajib disetujui penyetuju.");
 
         var cutoverUtc = parsed.UtcDateTime;
 
@@ -62,7 +62,7 @@ public sealed record StockRequestApprovalCutover(
             return new(StockRequestApprovalCutoverState.FutureRejected, null, trimmed,
                 $"Batas aktivasi persetujuan {cutoverUtc:O} berada di masa depan. Batas dikunci pada " +
                 "saat aktivasi dan tidak boleh dijadwalkan; aturan peralihan diabaikan dan seluruh " +
-                "permintaan wajib disetujui atasan unit.");
+                "permintaan wajib disetujui penyetuju.");
 
         return new(StockRequestApprovalCutoverState.Active, cutoverUtc, trimmed,
             $"Batas aktivasi persetujuan berlaku sejak {cutoverUtc:O}; permintaan yang diajukan " +

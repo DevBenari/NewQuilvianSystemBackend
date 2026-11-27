@@ -85,10 +85,19 @@ public sealed class PayrollRunService
     /// </summary>
     private sealed record TaxReviewMeta(int Version, int TaxHistoryBlockerCount, int OtherBlockerCount);
 
-    /// <summary>Warnings, ReviewOnly, dan TaxReview bertipe opsional supaya JSON lama (tanpa kunci itu) tetap terbaca.</summary>
+    /// <summary>
+    /// PAY-BE-FIX-032: jejak pengesahan bersyarat (ADMINISTRATIF). Tersimpan pada ValidationSummaryJson selama run Submitted; run tetap
+    /// Submitted, tidak terkunci, tidak dikonfirmasi ke Finance, dan tidak dibayar. Dilepas saat run dikembalikan; jejak abadinya ada pada
+    /// PrlPayrollApproval (aksi ApproveConditionally) dan audit log.
+    /// </summary>
+    private sealed record ConditionalApprovalMarker(
+        string Reference, DateTime ApprovedAt, Guid ApprovedByUserId, string Reason, int AffectedEmployeeCount, decimal ConfirmedTaxTotal,
+        decimal ProvisionalTaxTotal, string? PolicyVersion, List<int> MissingTaxMonths, bool FollowUpRequired, string ReconciliationStatus);
+
+    /// <summary>Warnings, ReviewOnly, TaxReview, dan ConditionalApproval bertipe opsional supaya JSON lama (tanpa kunci itu) tetap terbaca.</summary>
     private sealed record ValidationSummary(
         List<string> Blockers, List<string> SyncNotes, List<string>? Warnings = null, ReviewOnlyMarker? ReviewOnly = null,
-        TaxReviewMeta? TaxReview = null);
+        TaxReviewMeta? TaxReview = null, ConditionalApprovalMarker? ConditionalApproval = null);
 
     // ------------------------------------------------------------------------------------
     // Baca
@@ -203,7 +212,9 @@ public sealed class PayrollRunService
                 .Where(r => r.PayrollRunEmployeeId == e.Id && r.ReversalStatus == PayrollReversalStatuses.Approved)
                 .Sum(r => r.ReversalAmount),
             HasPendingReversal = reversals.Any(r => r.PayrollRunEmployeeId == e.Id && r.ReversalStatus == PayrollReversalStatuses.Requested),
-            ProvisionalTax = ProvisionalTaxOf(e, ReadSnapshot<PayrollTaxSnapshot>(e.TaxSnapshotJson))
+            ProvisionalTax = ProvisionalTaxOf(e, ReadSnapshot<PayrollTaxSnapshot>(e.TaxSnapshotJson)),
+            TaxFinalityStatus = e.TaxSnapshotJson is null ? string.Empty : ClassifyEmployeeTaxStatus(ReadSnapshot<PayrollTaxSnapshot>(e.TaxSnapshotJson)),
+            OfficialTaxAmount = OfficialTaxOf(ReadSnapshot<PayrollTaxSnapshot>(e.TaxSnapshotJson))
         }).ToList();
 
         var employeeById = employees.ToDictionary(e => e.Id);
@@ -260,6 +271,11 @@ public sealed class PayrollRunService
         var taxReview = EvaluateTaxReview(validation, employees);
         detail.TaxReviewState = taxReview.State;
         detail.ProvisionalTax = BuildProvisionalSummary(employees);
+        if (detail.ProvisionalTax is not null)
+            detail.ProvisionalTax.ConfirmedTaxTotal = employees
+                .Select(e => OfficialTaxOf(ReadSnapshot<PayrollTaxSnapshot>(e.TaxSnapshotJson)))
+                .Where(amount => amount.HasValue)
+                .Sum(amount => amount!.Value);
         if (validation.ReviewOnly is { } marker)
         {
             detail.ReviewOnlySubmission = new PayrollRunReviewOnlyResponse
@@ -303,9 +319,40 @@ public sealed class PayrollRunService
             detail.CanSubmitForReview = taxReview.State == TaxReviewEligible && reviewReasons.Count == 0;
         }
 
-        detail.AvailableActions = BuildAvailableActions(run, detail);
+        // PAY-BE-FIX-032: pengesahan bersyarat (administratif). Aturan kelayakan yang sama dengan ApproveConditionallyAsync.
+        if (validation.ConditionalApproval is { } conditional)
+        {
+            detail.TaxApprovalStatus = "CONDITIONAL";
+            detail.ConditionalApproval = new PayrollRunConditionalApprovalResponse
+            {
+                Reference = conditional.Reference,
+                ApprovedAt = conditional.ApprovedAt,
+                ApprovedByUserId = conditional.ApprovedByUserId,
+                Reason = conditional.Reason,
+                AffectedEmployeeCount = conditional.AffectedEmployeeCount,
+                ConfirmedTaxTotal = conditional.ConfirmedTaxTotal,
+                ProvisionalTaxTotal = conditional.ProvisionalTaxTotal,
+                PolicyVersion = conditional.PolicyVersion,
+                MissingTaxMonths = conditional.MissingTaxMonths,
+                FollowUpRequired = conditional.FollowUpRequired,
+                ReconciliationStatus = conditional.ReconciliationStatus
+            };
+        }
+
+        if (string.Equals(run.RunStatus, PayrollRunStatuses.Submitted, StringComparison.OrdinalIgnoreCase))
+        {
+            detail.ApproveConditionallyBlockReasons = BuildConditionalApprovalReasons(
+                run, validation, taxReview, employees, detail.NeedsRecalculation, detail.RecalculationReasons);
+            detail.CanApproveConditionally = detail.ApproveConditionallyBlockReasons.Count == 0;
+        }
+
         detail.CanApproveFinal = string.Equals(run.RunStatus, PayrollRunStatuses.Submitted, StringComparison.OrdinalIgnoreCase)
             && detail.DecisionBlockReasons.Count == 0 && !detail.IsTaxProvisional;
+        var taxHistoryResolved = detail.IsTaxProvisional
+            && string.Equals(run.RunStatus, PayrollRunStatuses.Submitted, StringComparison.OrdinalIgnoreCase)
+            && await IsTaxHistoryResolvedAsync(employees, cancellationToken);
+        ApplyApprovalNextStep(run, detail, validation, taxReview, taxHistoryResolved);
+        detail.AvailableActions = BuildAvailableActions(run, detail);
         return detail;
     }
 
@@ -362,6 +409,80 @@ public sealed class PayrollRunService
                 reasons.Add($"{employee.EmployeeNameSnapshot}: estimasi PPh sementara tidak tersedia. {provisional.UnavailableReason}".TrimEnd());
         }
 
+        return reasons;
+    }
+
+    /// <summary>
+    /// PAY-BE-FIX-032: status PPh satu penerima dari snapshot hasil hitung. Tidak ada snapshot atau hasil tidak sah = INCOMPLETE_NO_ESTIMATE
+    /// (BUKAN Rp0). Rp0 hanya FINAL_VALID bila hasilnya VALID_ZERO.
+    /// </summary>
+    private static string ClassifyEmployeeTaxStatus(PayrollTaxSnapshot? snapshot)
+    {
+        if (snapshot is null) return PayrollEmployeeTaxStatuses.IncompleteNoEstimate;
+        if (IsTaxHistoryBlocked(snapshot))
+            return snapshot.Provisional is { IsAvailable: true, Amount: not null }
+                ? PayrollEmployeeTaxStatuses.ProvisionalEstimate
+                : PayrollEmployeeTaxStatuses.IncompleteNoEstimate;
+        if (snapshot.IsBlocking) return PayrollEmployeeTaxStatuses.IncompleteNoEstimate;
+        return snapshot.ResultStatus switch
+        {
+            PayrollComponentResultStatuses.Exempt or PayrollComponentResultStatuses.NotApplicable => PayrollEmployeeTaxStatuses.NotApplicable,
+            PayrollComponentResultStatuses.Calculated or PayrollComponentResultStatuses.ValidZero => PayrollEmployeeTaxStatuses.FinalValid,
+            _ => PayrollEmployeeTaxStatuses.IncompleteNoEstimate
+        };
+    }
+
+    /// <summary>PPh resmi penerima bila FINAL_VALID (termasuk 0 yang sah); null selain itu.</summary>
+    private static decimal? OfficialTaxOf(PayrollTaxSnapshot? snapshot) =>
+        snapshot is not null && ClassifyEmployeeTaxStatus(snapshot) == PayrollEmployeeTaxStatuses.FinalValid
+            ? snapshot.EmployeeAmount + snapshot.EmployerBorneAmount
+            : null;
+
+    /// <summary>
+    /// PAY-BE-FIX-032: alasan run belum dapat disahkan bersyarat; kosong = layak. Hanya run Submitted yang diajukan review-only, dengan
+    /// penilaian terstruktur Eligible (satu-satunya penahan histori PPh), tanpa pegawai bermasalah, sumber kompensasi masih sah, dan estimasi
+    /// tersedia bagi seluruh penerima terdampak. Tanpa pencocokan teks pesan.
+    /// </summary>
+    private static List<string> BuildConditionalApprovalReasons(
+        PrlPayrollRun run, ValidationSummary validation, TaxReviewEvaluation taxReview, IReadOnlyCollection<PrlPayrollRunEmployee> employees,
+        bool needsRecalculation, IReadOnlyCollection<string> recalculationReasons)
+    {
+        var reasons = new List<string>();
+        if (!string.Equals(run.RunStatus, PayrollRunStatuses.Submitted, StringComparison.OrdinalIgnoreCase))
+        {
+            reasons.Add($"Hanya payroll run berstatus Submitted yang dapat disahkan bersyarat (saat ini {run.RunStatus}).");
+            return reasons;
+        }
+
+        if (validation.ConditionalApproval is not null)
+        {
+            reasons.Add("Payroll run sudah disahkan bersyarat.");
+            return reasons;
+        }
+
+        if (validation.ReviewOnly is null)
+            reasons.Add("Pengesahan bersyarat hanya untuk payroll run yang diajukan untuk review dengan PPh sementara.");
+
+        switch (taxReview.State)
+        {
+            case TaxReviewNotApplicable:
+                reasons.Add("Payroll run tidak memiliki penahan histori PPh; gunakan pengesahan normal.");
+                break;
+            case TaxReviewRecalculationRequired:
+                reasons.Add(TaxReviewRecalculationMessage);
+                break;
+            case TaxReviewBlocked:
+                reasons.Add($"Terdapat {taxReview.OtherBlockerCount} penahan payroll selain histori PPh yang belum lengkap; selesaikan lebih dulu.");
+                break;
+            case TaxReviewEligible:
+                reasons.AddRange(UnavailableEstimateReasons(employees));
+                break;
+        }
+
+        if (run.ErrorEmployeeCount > 0) reasons.Add($"{run.ErrorEmployeeCount} penerima memiliki hasil perhitungan bermasalah.");
+        if (run.ProcessedEmployeeCount <= 0) reasons.Add("Belum ada penerima yang terhitung.");
+        if (needsRecalculation)
+            reasons.Add("Data sumber berubah setelah perhitungan terakhir (" + string.Join("; ", recalculationReasons) + "); hitung ulang payroll run.");
         return reasons;
     }
 
@@ -509,12 +630,7 @@ public sealed class PayrollRunService
         {
             reasons.Add($"Terdapat {detail.Blockers.Count} penahan payroll (termasuk perhitungan PPh yang belum valid bila ada); lihat daftar penahan.");
         }
-        if (run.ErrorEmployeeCount > 0)
-            reasons.Add($"{run.ErrorEmployeeCount} penerima memiliki hasil perhitungan bermasalah.");
-        if (run.ProcessedEmployeeCount <= 0)
-            reasons.Add("Belum ada penerima yang terhitung.");
-        if (detail.NeedsRecalculation)
-            reasons.Add("Data sumber berubah setelah perhitungan terakhir (" + string.Join("; ", detail.RecalculationReasons) + "); hitung ulang payroll run.");
+        AddRunQualityReasons(reasons, run, detail);
 
         // Penghasilan variabel hanya menahan pengajuan; pengesahan tidak memeriksanya lagi (lihat ApproveAsync).
         if (calculated)
@@ -535,6 +651,130 @@ public sealed class PayrollRunService
         }
 
         return reasons;
+    }
+
+    /// <summary>Alasan kualitas data run yang BUKAN histori PPh: penerima bermasalah, belum terhitung, sumber kompensasi berubah. Satu sumber untuk pengesahan normal dan lanjutan.</summary>
+    private static void AddRunQualityReasons(List<string> reasons, PrlPayrollRun run, PayrollRunDetailResponse detail)
+    {
+        if (run.ErrorEmployeeCount > 0)
+            reasons.Add($"{run.ErrorEmployeeCount} penerima memiliki hasil perhitungan bermasalah.");
+        if (run.ProcessedEmployeeCount <= 0)
+            reasons.Add("Belum ada penerima yang terhitung.");
+        if (detail.NeedsRecalculation)
+            reasons.Add("Data sumber berubah setelah perhitungan terakhir (" + string.Join("; ", detail.RecalculationReasons) + "); hitung ulang payroll run.");
+    }
+
+    private static readonly string[] TaxResolutionSteps =
+    {
+        "Lengkapi Saldo Awal PPh (Januari-November) sampai disetujui, ATAU tetapkan nominal PPh manual yang telah dihitung dari dokumen yang sah dan disetujui pada profil pajak pegawai (metode Nominal Manual Disetujui).",
+        "Kembalikan Payroll Run ke tahap hitung (riwayat pengajuan dan pengesahan bersyarat tetap tersimpan).",
+        "Hitung ulang Payroll Run agar PPh dihitung dari data yang sah; estimasi tidak pernah menjadi PPh resmi.",
+        "Ajukan kembali secara normal, lalu sahkan. Pengaju dan pengesah boleh pengguna yang sama selama keduanya memegang izin Ajukan dan Sahkan.",
+    };
+
+    private static readonly string[] RecalculateAfterHistorySteps =
+    {
+        "Saldo Awal PPh untuk bulan histori yang kurang sudah disetujui; data PPh tidak perlu dilengkapi lagi.",
+        "Kembalikan Payroll Run ke tahap hitung (riwayat pengajuan dan persetujuan administratif tetap tersimpan). Hasil run ini dibekukan saat dihitung, jadi tidak berubah sendiri.",
+        "Hitung ulang Payroll Run agar PPh dihitung dari histori yang sah; estimasi tidak pernah menjadi PPh resmi.",
+        "Ajukan kembali secara normal, lalu sahkan. Pengaju dan pengesah boleh pengguna yang sama selama keduanya memegang izin Ajukan dan Sahkan.",
+    };
+
+    /// <summary>
+    /// PAY-BE-FIX-038: apakah histori PPh yang kurang pada snapshot penerima terdampak sudah tercakup Saldo Awal PPh APPROVED sumber
+    /// SAME_EMPLOYER_PRE_CUTOVER (sumber yang sama yang dipakai mesin hitung). Konservatif: tanpa data bulan yang kurang, tanpa tabel saldo
+    /// awal, atau ada satu penerima yang belum tercakup = false. Murni baca.
+    /// </summary>
+    private async Task<bool> IsTaxHistoryResolvedAsync(IReadOnlyCollection<PrlPayrollRunEmployee> employees, CancellationToken cancellationToken)
+    {
+        var blocked = employees
+            .Select(e => (e.WorkforceProfileId, Snapshot: ReadSnapshot<PayrollTaxSnapshot>(e.TaxSnapshotJson)))
+            .Where(x => IsTaxHistoryBlocked(x.Snapshot))
+            .ToList();
+        if (blocked.Count == 0) return false;
+        if (!await PayrollOpeningTaxBalanceStorage.ExistsAsync(_dbContext, cancellationToken)) return false;
+
+        var ids = blocked.Select(x => x.WorkforceProfileId).Distinct().ToList();
+        var balances = await _dbContext.PrlOpeningTaxBalances.AsNoTracking()
+            .Where(x => !x.IsDelete && x.Status == OpeningTaxBalanceStatuses.Approved
+                && x.EmployerSource == OpeningTaxBalanceEmployerSources.SameEmployerPreCutover && ids.Contains(x.WorkforceProfileId))
+            .ToListAsync(cancellationToken);
+
+        foreach (var (profileId, snapshot) in blocked)
+        {
+            var missing = MissingMonthsOf(snapshot!);
+            if (missing.Count == 0 || snapshot!.TaxYear is not { } year) return false;
+            var covered = balances.Where(x => x.WorkforceProfileId == profileId && x.TaxYear == year)
+                .SelectMany(x => x.CoveredMonths).ToHashSet();
+            if (!missing.All(covered.Contains)) return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// PAY-BE-FIX-033: langkah berikutnya menuju pengesahan FINAL untuk run Submitted. Murni informasi (tanpa mengubah data): endpoint
+    /// approve tetap memeriksa EnsureTaxFinalAsync, EnsureReadyToDecide, dan sumber kompensasi. Run yang sudah disahkan bersyarat tidak
+    /// pernah ditawarkan pengesahan bersyarat kedua; ia mendapat aksi "ContinueApproval" (panduan penyelesaian), bukan Approve.
+    /// </summary>
+    private static void ApplyApprovalNextStep(
+        PrlPayrollRun run, PayrollRunDetailResponse detail, ValidationSummary validation, TaxReviewEvaluation taxReview, bool taxHistoryResolved)
+    {
+        detail.TaxHistoryResolved = false;
+        detail.CanContinueApproval = false;
+        detail.ApprovalNextStep = PayrollRunApprovalNextSteps.None;
+        detail.TaxResolutionRequired = false;
+        detail.ContinueApprovalBlockReasons = new List<string>();
+        detail.ContinueApprovalSteps = new List<string>();
+        if (!string.Equals(run.RunStatus, PayrollRunStatuses.Submitted, StringComparison.OrdinalIgnoreCase)) return;
+
+        detail.TaxResolutionRequired = detail.IsTaxProvisional;
+        if (detail.CanApproveFinal)
+        {
+            detail.ApprovalNextStep = PayrollRunApprovalNextSteps.ApproveFinal;
+            return;
+        }
+
+        detail.ContinueApprovalBlockReasons = detail.DecisionBlockReasons.ToList();
+        if (detail.IsTaxProvisional)
+        {
+            // PAY-BE-FIX-034: histori PPh yang belum lengkap adalah TINDAK LANJUT finalisasi, bukan penahan persetujuan administratif.
+            // Penahan nyata disusun dari data terstruktur (klasifikasi hitung + kualitas run), bukan dari pencocokan teks pesan.
+            var realBlockers = new List<string>();
+            if (taxReview.State == TaxReviewRecalculationRequired) realBlockers.Add(TaxReviewRecalculationMessage);
+            else if (taxReview.State == TaxReviewBlocked)
+                realBlockers.Add($"Terdapat {taxReview.OtherBlockerCount} penahan payroll selain histori PPh yang belum lengkap; selesaikan lebih dulu.");
+            AddRunQualityReasons(realBlockers, run, detail);
+            detail.ContinueApprovalBlockReasons = realBlockers;
+
+            if (validation.ConditionalApproval is not null)
+            {
+                detail.CanContinueApproval = true;
+                detail.ApprovalNextStep = realBlockers.Count > 0
+                    ? PayrollRunApprovalNextSteps.ResolveOtherBlockers
+                    : PayrollRunApprovalNextSteps.ResolveTaxData;
+            }
+            else
+            {
+                detail.ApprovalNextStep = detail.CanApproveConditionally
+                    ? PayrollRunApprovalNextSteps.ApproveConditionally
+                    : realBlockers.Count > 0 ? PayrollRunApprovalNextSteps.ResolveOtherBlockers : PayrollRunApprovalNextSteps.ResolveTaxData;
+            }
+
+            if (taxHistoryResolved)
+            {
+                // PAY-BE-FIX-038: histori sudah dilengkapi; jangan menyuruh melengkapi lagi. Hanya hitung ulang yang tersisa.
+                detail.TaxHistoryResolved = true;
+                if (realBlockers.Count == 0) detail.ApprovalNextStep = PayrollRunApprovalNextSteps.RecalculateAfterTaxHistory;
+                detail.ContinueApprovalSteps = RecalculateAfterHistorySteps.ToList();
+                return;
+            }
+
+            detail.ContinueApprovalSteps = TaxResolutionSteps.ToList();
+            return;
+        }
+
+        detail.ApprovalNextStep = PayrollRunApprovalNextSteps.ResolveOtherBlockers;
     }
 
     /// <summary>
@@ -563,6 +803,11 @@ public sealed class PayrollRunService
             actions.Add("Return");
             // Approve tidak pernah ditawarkan selama PPh sementara (izin Approve dan kesiapan bisnis adalah dua syarat terpisah).
             if (ready && !detail.IsTaxProvisional) actions.Add("Approve");
+            // PAY-BE-FIX-032: pengesahan bersyarat (administratif) hanya bila backend menyatakan layak; bukan pengganti Approve.
+            if (detail.CanApproveConditionally) actions.Add("ApproveConditionally");
+            // PAY-BE-FIX-033: run yang sudah disahkan bersyarat mendapat jalur lanjutan (panduan penyelesaian). BUKAN Approve dan BUKAN
+            // pengesahan bersyarat kedua; tidak mengubah data apa pun.
+            if (detail.CanContinueApproval) actions.Add("ContinueApproval");
         }
         if (!run.IsLocked && !PayrollRunStatuses.IsFinalized(status)
             && !string.Equals(status, PayrollRunStatuses.Cancelled, StringComparison.OrdinalIgnoreCase)) actions.Add("Cancel");
@@ -1215,6 +1460,147 @@ public sealed class PayrollRunService
     }
 
     /// <summary>
+    /// PAY-BE-FIX-032: pengesahan BERSYARAT (administratif; PPh BELUM FINAL). Bukan Approve dengan validasi dimatikan dan bukan status
+    /// Approved: RunStatus tetap Submitted, run tidak dikunci, snapshot tidak dibekukan, potongan cicilan TIDAK dikonfirmasi ke Finance
+    /// (ConfirmRunAsync tidak dipanggil), tidak ada instruksi pembayaran, slip, atau laporan PPh resmi, dan nominal PPh resmi tidak berubah.
+    /// Yang tercatat hanya persetujuan beserta alasan, aktor, ringkasan PPh valid vs estimasi, dan kewajiban tindak lanjut. Pengesahan final
+    /// tetap lewat jalur normal (kembalikan, hitung ulang dengan histori lengkap, ajukan, sahkan). Idempoten: pengesahan berulang tidak
+    /// menambah jejak.
+    /// </summary>
+    public async Task<PayrollRunDetailResponse> ApproveConditionallyAsync(
+        Guid id, string? expectedRowVersion, string? reason, bool acknowledgedProvisionalTax, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new PayrollRunValidationException("Alasan pengesahan bersyarat wajib diisi.");
+        if (!acknowledgedProvisionalTax)
+            throw new PayrollRunValidationException(
+                "Pengesahan bersyarat wajib disertai pernyataan bahwa sebagian PPh belum final dan pengesahan ini tidak mengesahkan nominal pajak, posting Finance, atau pembayaran.");
+
+        await InTransactionAsync($"HR_PAYROLL_RUN_{id:N}", async () =>
+        {
+            var run = await LoadRunAsync(id, cancellationToken);
+            var validation = ReadValidation(run.ValidationSummaryJson);
+            // Idempoten: sudah disahkan bersyarat pada siklus ini -> kembalikan apa adanya (tanpa jejak ganda).
+            if (validation.ConditionalApproval is not null && run.RunStatus == PayrollRunStatuses.Submitted) return run.Id;
+
+            PayrollVersionToken.EnsureMatches(expectedRowVersion, run.CreateDateTime, run.UpdateDateTime, "Payroll run");
+            var employees = await _dbContext.PrlPayrollRunEmployees.AsNoTracking()
+                .Where(x => x.PayrollRunId == run.Id && !x.IsDelete).ToListAsync(cancellationToken);
+            var taxReview = EvaluateTaxReview(validation, employees);
+            var recalculationReasons = await FindChangedCompensationSourcesAsync(run, cancellationToken);
+            var blockReasons = BuildConditionalApprovalReasons(run, validation, taxReview, employees, recalculationReasons.Count > 0, recalculationReasons);
+            if (blockReasons.Count > 0)
+                throw new PayrollRunValidationException(string.Join(" ", blockReasons));
+
+            var summary = BuildProvisionalSummary(employees)!;
+            var confirmedTotal = employees
+                .Select(e => OfficialTaxOf(ReadSnapshot<PayrollTaxSnapshot>(e.TaxSnapshotJson)))
+                .Where(amount => amount.HasValue)
+                .Sum(amount => amount!.Value);
+
+            var now = DateTime.UtcNow;
+            var trimmedReason = reason.Trim();
+            var priorCount = await _dbContext.PrlPayrollApprovals.AsNoTracking()
+                .CountAsync(x => x.PayrollRunId == run.Id && x.ActionType == "ApproveConditionally", cancellationToken);
+            var reference = $"CA-{run.RunNumber}-{priorCount + 1}";
+            var marker = new ConditionalApprovalMarker(
+                reference, now, actorUserId, trimmedReason, summary.AffectedEmployeeCount, confirmedTotal, summary.TotalProvisionalTax,
+                string.Join(", ", summary.PolicyVersions), summary.MissingTaxMonths, FollowUpRequired: true, "PENDING_HISTORY_COMPLETION");
+
+            run.ValidationSummaryJson = JsonSerializer.Serialize(validation with { ConditionalApproval = marker });
+            run.UpdateDateTime = now;
+            run.UpdateBy = actorUserId;
+            var comment = $"Pengesahan bersyarat {reference} (PPh BELUM FINAL, administratif): {trimmedReason}";
+            AddApproval(run, actorUserId, "ApproveConditionally", "Conditional", comment.Length <= 2000 ? comment : comment[..2000]);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _loggerService.AuditAsync(LogCategory, "PayrollRun.ApprovedConditionally",
+                $"Payroll run {run.RunNumber} disahkan bersyarat ({reference}; PPh belum final, administratif): {summary.AffectedEmployeeCount} penerima terdampak, "
+                + $"PPh valid Rp {confirmedTotal:N2}, estimasi Rp {summary.TotalProvisionalTax:N2}, bulan histori belum lengkap {string.Join(", ", summary.MissingTaxMonths)}. "
+                + "Tidak ada pengunci, konfirmasi Finance, atau pembayaran.",
+                new
+                {
+                    run.Id, ActorUserId = actorUserId, Reference = reference, summary.AffectedEmployeeCount, ConfirmedTaxTotal = confirmedTotal,
+                    summary.TotalProvisionalTax, summary.MissingTaxMonths, PolicyVersions = summary.PolicyVersions, Reason = trimmedReason
+                });
+            return run.Id;
+        }, cancellationToken);
+
+        return await GetByIdAsync(id, cancellationToken);
+    }
+
+    /// <summary>
+    /// PAY-BE-FIX-032: ringkasan PPh run untuk Finance. BACA-SAJA dan informatif; tidak menulis ke Finance, tidak ada pengiriman, tidak ada
+    /// posting. Nominal resmi hanya untuk penerima FINAL_VALID; estimasi dipisahkan dan selalu BELUM FINAL; nilai yang tidak diketahui null.
+    /// </summary>
+    public async Task<PayrollRunTaxSummaryResponse> GetTaxSummaryAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var run = await _dbContext.PrlPayrollRuns.AsNoTracking().Include(x => x.PayrollPeriod)
+            .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
+        var employees = await _dbContext.PrlPayrollRunEmployees.AsNoTracking()
+            .Where(x => x.PayrollRunId == id && !x.IsDelete).OrderBy(x => x.EmployeeNameSnapshot).ToListAsync(cancellationToken);
+        var validation = ReadValidation(run.ValidationSummaryJson);
+
+        var rows = employees.Select(e =>
+        {
+            var snapshot = ReadSnapshot<PayrollTaxSnapshot>(e.TaxSnapshotJson);
+            var status = ClassifyEmployeeTaxStatus(snapshot);
+            var provisional = snapshot?.Provisional;
+            var showEstimate = status == PayrollEmployeeTaxStatuses.ProvisionalEstimate && provisional?.Amount is not null;
+            return new PayrollRunTaxSummaryEmployeeResponse
+            {
+                WorkforceProfileId = e.WorkforceProfileId,
+                EmployeeId = e.EmployeeId,
+                EmployeeNumber = e.EmployeeNumberSnapshot ?? string.Empty,
+                EmployeeName = e.EmployeeNameSnapshot,
+                TaxYear = snapshot?.TaxYear,
+                TaxMonth = snapshot?.TaxMonth,
+                TaxArticle = snapshot?.Article,
+                CalculationMode = snapshot?.CalculationMode,
+                TaxFinalityStatus = status,
+                ResultStatus = snapshot?.ResultStatus,
+                ConfirmedTaxAmount = OfficialTaxOf(snapshot),
+                ProvisionalTaxAmount = showEstimate ? provisional!.Amount : null,
+                ProvisionalMethod = showEstimate ? provisional!.Method : null,
+                PolicyVersion = snapshot?.PolicyVersion,
+                MissingTaxMonths = snapshot is null ? new List<int>() : MissingMonthsOf(snapshot),
+                Explanation = status switch
+                {
+                    PayrollEmployeeTaxStatuses.ProvisionalEstimate => PayrollProvisionalTaxEstimate.ExplanationText,
+                    PayrollEmployeeTaxStatuses.IncompleteNoEstimate => "PPh belum dapat dihitung secara sah dan tidak ada estimasi; bukan Rp0.",
+                    _ => null
+                }
+            };
+        }).ToList();
+
+        var allFinal = rows.Count > 0 && rows.All(r => r.TaxFinalityStatus is PayrollEmployeeTaxStatuses.FinalValid or PayrollEmployeeTaxStatuses.NotApplicable);
+        var finalized = PayrollRunStatuses.IsFinalized(run.RunStatus) && validation.ReviewOnly is null && allFinal;
+        var affected = rows.Where(r => r.TaxFinalityStatus is PayrollEmployeeTaxStatuses.ProvisionalEstimate or PayrollEmployeeTaxStatuses.IncompleteNoEstimate).ToList();
+        return new PayrollRunTaxSummaryResponse
+        {
+            RunId = run.Id,
+            RunNumber = run.RunNumber,
+            PeriodCode = run.PayrollPeriod?.PayrollPeriodCode ?? string.Empty,
+            PeriodName = run.PayrollPeriod?.PayrollPeriodName ?? string.Empty,
+            RunStatus = run.RunStatus,
+            TaxFinalStatus = finalized ? PayrollTaxFinality.Final : PayrollTaxFinality.NotFinal,
+            IsPostingEligible = false,
+            UsageNotice =
+                "Informasi PPh Payroll untuk Finance. Bukan jurnal, bukan utang pajak, dan bukan instruksi pemotongan; estimasi tidak pernah menjadi kewajiban final. "
+                + "Posting kewajiban PPh memerlukan kontrak Finance/Accounting yang belum disepakati; belum ada consumer Finance yang terverifikasi.",
+            ConditionalApprovalReference = validation.ConditionalApproval?.Reference,
+            ReconciliationStatus = validation.ConditionalApproval?.ReconciliationStatus ?? (affected.Count > 0 ? "PENDING_HISTORY_COMPLETION" : "NOT_REQUIRED"),
+            AffectedEmployeeCount = affected.Count,
+            ConfirmedTaxTotal = rows.Sum(r => r.ConfirmedTaxAmount ?? 0m),
+            ProvisionalTaxTotal = rows.Sum(r => r.ProvisionalTaxAmount ?? 0m),
+            PolicyVersions = rows.Select(r => r.PolicyVersion).Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => v!).Distinct().ToList(),
+            MissingTaxMonths = rows.SelectMany(r => r.MissingTaxMonths).Distinct().OrderBy(m => m).ToList(),
+            Employees = rows
+        };
+    }
+
+    /// <summary>
     /// Menolak pengesahan bila run masih memuat PPh sementara: penanda review-only, atau snapshot penerima yang masih terklasifikasi
     /// histori PPh belum lengkap / memuat estimasi. Dibaca dari data tersimpan, bukan dari klien.
     /// </summary>
@@ -1250,8 +1636,8 @@ public sealed class PayrollRunService
             // PAY-BE-FIX-030: penanda review-only dilepas saat run kembali ke Calculated; jejaknya tetap ada pada riwayat persetujuan
             // (SubmitForReview dan Return) dan audit. Run yang kembali belum final: ia harus dihitung ulang sebelum diajukan lagi.
             var returnedValidation = ReadValidation(run.ValidationSummaryJson);
-            if (returnedValidation.ReviewOnly is not null)
-                run.ValidationSummaryJson = JsonSerializer.Serialize(returnedValidation with { ReviewOnly = null });
+            if (returnedValidation.ReviewOnly is not null || returnedValidation.ConditionalApproval is not null)
+                run.ValidationSummaryJson = JsonSerializer.Serialize(returnedValidation with { ReviewOnly = null, ConditionalApproval = null });
 
             run.RunStatus = PayrollRunStatuses.Calculated;
             run.SubmittedAt = null;
@@ -2198,12 +2584,26 @@ public sealed class PayrollRunService
         target.SubmittedAt = run.SubmittedAt;
         target.ApprovedAt = run.ApprovedAt;
         // PAY-BE-FIX-030: penanda PPh belum final dari jejak pengajuan review-only (hanya ada selama run Submitted).
-        if (ReadValidation(run.ValidationSummaryJson).ReviewOnly is { } reviewOnly)
+        var mappedValidation = ReadValidation(run.ValidationSummaryJson);
+        if (mappedValidation.ConditionalApproval is { } mappedConditional)
+        {
+            target.IsConditionallyApproved = true;
+            target.ConditionalApprovalReference = mappedConditional.Reference;
+        }
+
+        if (mappedValidation.ReviewOnly is { } reviewOnly)
         {
             target.IsTaxProvisional = true;
             target.TaxFinalStatus = PayrollTaxFinality.NotFinal;
             target.ProvisionalTaxTotal = reviewOnly.TotalProvisionalTax;
         }
+
+        // PAY-BE-FIX-034: tahap persetujuan eksplisit, diturunkan dari data tersimpan (tanpa kolom/status baru).
+        target.ApprovalStage = string.Equals(run.RunStatus, PayrollRunStatuses.Submitted, StringComparison.OrdinalIgnoreCase)
+            ? (mappedValidation.ConditionalApproval is not null
+                ? PayrollRunApprovalStages.AdministrativeApprovedTaxPending
+                : PayrollRunApprovalStages.AwaitingDecision)
+            : PayrollRunStatuses.IsFinalized(run.RunStatus) ? PayrollRunApprovalStages.FinalApproved : PayrollRunApprovalStages.None;
 
         target.RowVersion = PayrollVersionToken.From(run.CreateDateTime, run.UpdateDateTime);
         return target;

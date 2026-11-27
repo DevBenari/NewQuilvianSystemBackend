@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using System.Globalization;
@@ -295,22 +297,218 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedg
         private static IReadOnlyList<string> BarisLaporanKeuangan(
             string kode,
             string nama,
-            FinancialStatementAmountsResponse? nilai)
+            FinancialStatementAmountsResponse? nilai,
+            bool denganYtd = true)
         {
             static string Sel(decimal? angka) => angka.HasValue ? AccLedgerCsv.Angka(angka.Value) : string.Empty;
 
-            return new[]
+            var sel = new List<string>
             {
                 string.IsNullOrEmpty(kode) ? string.Empty : AccLedgerCsv.Teks(kode),
                 AccLedgerCsv.Teks(nama),
                 nilai is null ? string.Empty : AccLedgerCsv.Angka(nilai.Current),
                 Sel(nilai?.Comparison),
-                Sel(nilai?.Variance),
-                Sel(nilai?.CurrentYearToDate),
-                Sel(nilai?.ComparisonYearToDate),
-                Sel(nilai?.VarianceYearToDate)
+                Sel(nilai?.Variance)
+            };
+
+            if (denganYtd)
+            {
+                sel.Add(Sel(nilai?.CurrentYearToDate));
+                sel.Add(Sel(nilai?.ComparisonYearToDate));
+                sel.Add(Sel(nilai?.VarianceYearToDate));
+            }
+
+            return sel;
+        }
+
+        public async Task<AccountingServiceResult<LedgerExportFile>> BuildBalanceSheetCsvAsync(
+            BalanceSheetQuery query,
+            CancellationToken ct = default)
+        {
+            var laporan = await GetBalanceSheetAsync(query, ct);
+
+            if (!laporan.Success || laporan.Data is null)
+                return AccountingServiceResult<LedgerExportFile>.Fail(laporan.StatusCode, laporan.Message);
+
+            var data = laporan.Data;
+            var namaBadanHukum = await NamaBadanHukumAsync(query.LegalEntityId, ct);
+
+            var kepala = new List<IReadOnlyList<string>>
+            {
+                AccLedgerCsv.BarisKepala("Laporan", "Neraca"),
+                AccLedgerCsv.BarisKepala("Badan Hukum", namaBadanHukum),
+                AccLedgerCsv.BarisKepala("Periode", $"{data.PeriodName} ({data.PeriodCode})"),
+                AccLedgerCsv.BarisKepala("Per Tanggal", AccLedgerCsv.Tanggal(data.AsOfDate)),
+                AccLedgerCsv.BarisKepala(
+                    "Pembanding",
+                    data.ComparisonAvailable && data.ComparisonAsOfDate.HasValue
+                        ? $"Per {AccLedgerCsv.Tanggal(data.ComparisonAsOfDate.Value)}"
+                        : data.ComparisonUnavailableReason),
+                AccLedgerCsv.BarisKepala(
+                    "Akun Bersaldo Nol",
+                    query.IncludeZeroAccounts ? "Ditampilkan" : "Disembunyikan"),
+                AccLedgerCsv.BarisKepala("Diunduh", AccLedgerCsv.WaktuUnduh())
+            };
+
+            if (data.UnclosedFiscalYears.Count > 0)
+            {
+                kepala.Add(AccLedgerCsv.BarisKepala(
+                    "Catatan",
+                    $"Tahun buku {string.Join(", ", data.UnclosedFiscalYears)} belum ditutup."));
+            }
+
+            var kolom = new[]
+            {
+                AccLedgerCsv.Teks("Kode Akun"),
+                AccLedgerCsv.Teks("Nama Akun"),
+                AccLedgerCsv.Teks("Saldo"),
+                AccLedgerCsv.Teks("Pembanding"),
+                AccLedgerCsv.Teks("Selisih")
+            };
+
+            var isi = new List<IReadOnlyList<string>>();
+            var jumlahBaris = 0;
+
+            foreach (var bagian in data.Sections)
+            {
+                isi.Add(BarisLaporanKeuangan(string.Empty, bagian.Title.ToUpperInvariant(), null, denganYtd: false));
+
+                foreach (var b in bagian.Rows)
+                {
+                    isi.Add(BarisLaporanKeuangan(
+                        b.AccountCode,
+                        new string(' ', b.Depth * 2) + b.AccountName,
+                        b.Amounts,
+                        denganYtd: false));
+                    jumlahBaris++;
+                }
+
+                isi.Add(BarisLaporanKeuangan(string.Empty, $"Total {bagian.Title}", bagian.Total, denganYtd: false));
+            }
+
+            isi.Add(BarisLaporanKeuangan(
+                string.Empty, "Total Liabilitas dan Ekuitas", data.TotalLiabilitiesAndEquity, denganYtd: false));
+
+            isi.Add(new[]
+            {
+                string.Empty,
+                AccLedgerCsv.Teks("Status"),
+                AccLedgerCsv.Teks(StatusSeimbang(data.IsBalanced, data.Difference)),
+                data.ComparisonIsBalanced.HasValue
+                    ? AccLedgerCsv.Teks(StatusSeimbang(data.ComparisonIsBalanced.Value, data.ComparisonDifference ?? 0m))
+                    : string.Empty,
+                string.Empty
+            });
+
+            var berkas = new LedgerExportFile
+            {
+                Content = AccLedgerCsv.Tulis(kepala, kolom, isi),
+                FileName = $"neraca_{SegmenNamaBerkas(data.PeriodCode)}.csv",
+                RowCount = jumlahBaris
+            };
+
+            return AccountingServiceResult<LedgerExportFile>.Ok(
+                berkas, $"Neraca {data.PeriodName} berhasil diunduh.");
+        }
+
+        public async Task<AccountingServiceResult<LedgerExportFile>> BuildFinancialRatioCsvAsync(
+            FinancialRatioQuery query,
+            CancellationToken ct = default)
+        {
+            var laporan = await GetFinancialRatiosAsync(query, ct);
+
+            if (!laporan.Success || laporan.Data is null)
+                return AccountingServiceResult<LedgerExportFile>.Fail(laporan.StatusCode, laporan.Message);
+
+            var data = laporan.Data;
+            var namaBadanHukum = await NamaBadanHukumAsync(query.LegalEntityId, ct);
+
+            var kepala = new List<IReadOnlyList<string>>
+            {
+                AccLedgerCsv.BarisKepala("Laporan", "Rasio Keuangan"),
+                AccLedgerCsv.BarisKepala("Badan Hukum", namaBadanHukum),
+                AccLedgerCsv.BarisKepala("Periode", $"{data.PeriodName} ({data.PeriodCode})"),
+                AccLedgerCsv.BarisKepala("Per Tanggal", AccLedgerCsv.Tanggal(data.AsOfDate)),
+                AccLedgerCsv.BarisKepala(
+                    "Pembanding",
+                    data.ComparisonAvailable && data.ComparisonAsOfDate.HasValue
+                        ? $"Per {AccLedgerCsv.Tanggal(data.ComparisonAsOfDate.Value)}"
+                        : data.ComparisonUnavailableReason),
+                AccLedgerCsv.BarisKepala("Diunduh", AccLedgerCsv.WaktuUnduh())
+            };
+
+            var kolom = new[]
+            {
+                "Rasio", "Rumus",
+                "Pembilang Kini", "Penyebut Kini", "Hasil Kini", "Status Kini", "Keterangan Kini",
+                "Pembilang Pembanding", "Penyebut Pembanding", "Hasil Pembanding", "Status Pembanding", "Keterangan Pembanding"
+            }.Select(AccLedgerCsv.Teks).ToArray();
+
+            var isi = new List<IReadOnlyList<string>>();
+
+            foreach (var r in data.Ratios)
+            {
+                var sel = new List<string> { AccLedgerCsv.Teks(r.Name), AccLedgerCsv.Teks(r.Formula) };
+                sel.AddRange(SelRasio(r.Current, r.Unit));
+                sel.AddRange(SelRasio(r.Comparison, r.Unit));
+                isi.Add(sel);
+            }
+
+            foreach (var celah in data.ClassificationGaps)
+            {
+                isi.Add(new[]
+                {
+                    AccLedgerCsv.Teks("Catatan"),
+                    AccLedgerCsv.Teks(
+                        $"{celah.AccountCode} {celah.AccountName}: " +
+                        (celah.GapKind == ClassificationGapKind.MissingReportClassification
+                            ? "klasifikasi laporan belum diisi"
+                            : "sub-klasifikasi aset lancar belum diisi"))
+                });
+            }
+
+            var berkas = new LedgerExportFile
+            {
+                Content = AccLedgerCsv.Tulis(kepala, kolom, isi),
+                FileName = $"rasio-keuangan_{SegmenNamaBerkas(data.PeriodCode)}.csv",
+                RowCount = data.Ratios.Count
+            };
+
+            return AccountingServiceResult<LedgerExportFile>.Ok(
+                berkas, $"Rasio keuangan {data.PeriodName} berhasil diunduh.");
+        }
+
+        private static IEnumerable<string> SelRasio(FinancialRatioValueResponse nilai, FinancialRatioUnit satuan)
+        {
+            static string Sel(decimal? angka) => angka.HasValue ? AccLedgerCsv.Angka(angka.Value) : string.Empty;
+
+            var hasil = nilai.Status == FinancialRatioStatus.Calculated && nilai.Value.HasValue
+                ? AccLedgerCsv.Teks(AccLedgerCsv.Angka(nilai.Value.Value) + (satuan == FinancialRatioUnit.Percent ? "%" : "x"))
+                : AccLedgerCsv.Teks(LabelStatusRasio(nilai.Status));
+
+            var keterangan = string.Join(" ", new[] { nilai.Reason, nilai.Note }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+            return new[]
+            {
+                Sel(nilai.Numerator),
+                Sel(nilai.Denominator),
+                hasil,
+                AccLedgerCsv.Teks(LabelStatusRasio(nilai.Status)),
+                AccLedgerCsv.Teks(keterangan)
             };
         }
+
+        private static string LabelStatusRasio(FinancialRatioStatus status) => status switch
+        {
+            FinancialRatioStatus.Calculated => "Dihitung",
+            FinancialRatioStatus.NotApplicable => "N/A",
+            FinancialRatioStatus.Unavailable => "Tidak dapat dihitung",
+            FinancialRatioStatus.Invalid => "Tidak sah",
+            _ => status.ToString()
+        };
+
+        private static string StatusSeimbang(bool seimbang, decimal selisih)
+            => seimbang ? "Seimbang" : $"Tidak seimbang, selisih {AccLedgerCsv.Angka(selisih)}";
 
         private static AccountingServiceResult<LedgerExportFile> TolakMutasiTerlaluBanyak(string jumlah)
             => AccountingServiceResult<LedgerExportFile>.Fail(

@@ -1089,3 +1089,474 @@ ada tombol yang dijaga hak lain kecuali tautan ke layar tujuan, yang dijaga laya
 | Tombol Cetak di Buku Besar dan Neraca Saldo | Buku besar berhalaman sehingga cetak hanya memuat satu halaman; neraca saldo hanya diberi CSV (`ACC-DEC-153`) |
 | Tautan ke layar modul sumber | `ACC-DEC-148` butir 3 |
 | Menyentuh `globals.css` atau tema | Konvensi frontend Quilvian |
+
+
+## 16. Amendment 25 November 2026 — Master COA: kode otomatis, jenis warisan, klasifikasi (ACC-FIN-001) — **approved** Rizki (`GATE-DESAIN-1125`)
+
+Dasar: `ACC-DEC-162`..`170`, `172`, `173`; kontrak `ACC-API-0.18`; backend `02-backend-architecture.md`
+bagian 26. Source acuan: `RizkiV2` `a2ddb52d2`.
+
+### 16.1 Hierarki wewenang yang dipakai
+
+| Lapisan | Isi untuk amendment ini |
+|---|---|
+| Keamanan, privasi, invariant | Kode final ditetapkan backend, layar hanya menampilkan pratinjau (`ACC-DEC-164`); jenis akun anak dikunci layar **dan** backend (`ACC-DEC-166`); klasifikasi tidak ditebak dari nama atau kode (`ACC-DEC-168`); pengenal di alamat memakai token rute privat yang ada |
+| Brief produk yang disetujui | `ACC-DEC-162` (induk dipilih dari daftar, tingkat mengikuti induk), `163`/`164` (kode otomatis), `166` (jenis warisan), `167`/`168` (klasifikasi, peringatan neraca, pengisian lewat layar Bagan Akun) |
+| Konvensi proyek | Pola form master data yang ada (`BaseEditorView` lewat `chart-of-account-form-view.jsx`), `DataFilter`/`FilterSelect`, `DataTable`, `StatusBadge`, `InformationAlert`, `BaseDetailView`; aksi rincian master data hanya **Kembali, Perbarui, Hapus** (`AGENTS.md` bagian Aturan Master Data); `globals.css` tidak disentuh |
+| `DEV_DISCRETION` | Letak dan urutan isian klasifikasi di dalam form, bunyi keterangan isian, bentuk penanda "ikut induk", warna lencana belum lengkap — sepanjang memakai komponen di atas |
+
+### 16.2 Peta butir menu
+
+**Tidak ada butir menu baru.** Seluruh layar amendment ini dijangkau dari butir yang sudah ada:
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+|---|:---:|---|---|---|---|---|
+| COA | 2 | Accounting → Master Data | `/corporate/accounting/chart-of-accounts` | `FE-C1` | `ChartOfAccount : Read` (dijaga layar) | Sudah ada |
+| Neraca | 1 | Accounting | `/corporate/accounting/balance-sheet` | `FE-L4` | `GeneralLedger : Read` | Sudah ada |
+
+Layar anak beserta jalan masuknya:
+
+| Layar anak | Rute | Induk (jalan masuk) |
+|---|---|---|
+| `FE-C2` Tambah Akun | `/corporate/accounting/chart-of-accounts/create` | Tombol Tambah di `FE-C1` (lama) |
+| `FE-C3` Perbarui Akun | `/corporate/accounting/chart-of-accounts/[slug]/update` | Tombol Perbarui di `FE-C4` (lama) |
+| `FE-C4` Rincian Akun | `/corporate/accounting/chart-of-accounts/[slug]` | Klik dua kali baris `FE-C1` (lama) |
+| `FE-C1` tersaring "Belum lengkap" | `/corporate/accounting/chart-of-accounts?klasifikasi=belum-lengkap` | Tautan **Lengkapi di Bagan Akun** pada peringatan `FE-L4` (baru) |
+
+### 16.3 Layar
+
+| ID | Layar | Status | Yang berubah |
+|---|---|---|---|
+| `FE-C1` | Daftar COA | Diperbarui | + kolom Klasifikasi; + saringan Klasifikasi (Semua / Belum lengkap) yang juga dibaca dari alamat; tampilan pohon memberi penanda akun belum lengkap |
+| `FE-C2` | Tambah Akun | Diperbarui | Kode menjadi pratinjau tanpa isian; jenis terkunci bila induk dipilih; saldo normal diisi usulan induk; + isian klasifikasi |
+| `FE-C3` | Perbarui Akun | Diperbarui | + isian klasifikasi; kode tetap dapat diubah selama belum dipakai jurnal `Posted` (lama) |
+| `FE-C4` | Rincian Akun | Diperbarui | + baris Klasifikasi dan Sub-klasifikasi beserta asal warisannya. Aksi **tetap** Kembali dan Perbarui |
+| `FE-L4` | Neraca | Diperbarui | + peringatan klasifikasi belum lengkap dengan tautan ke `FE-C1` tersaring. Angka dan tabel tidak berubah |
+
+### 16.4 Skema `FE-C2` Tambah Akun
+
+```text
++- Tambah Akun ------------------------------------------------ FE-C2 -+
+| [Hero: Akuntansi / Tambah Akun]                                      |
++----------------------------------------------------------------------+
+| Badan Hukum        [PT Metropolitan Medical Centre v]                |
+| Akun Induk         [1-1000 — Kas dan Setara Kas    v]                |
+| Kode Akun          1-1005   (kode otomatis — final saat disimpan)    |
+| Tingkat Akun       3        (terkunci: tingkat induk + 1)            |
+| Jenis Akun         Aset     (terkunci: mengikuti induk 1-1000)       |
+| Saldo Normal       [Debit v]  (usulan dari induk, boleh diganti)     |
+| Nama Akun          [______________________]                          |
+| Menerima Transaksi [x]   Control Account [ ]                         |
+| Klasifikasi        [Ikut induk: Lancar            v]                 |
+| Sub-klasifikasi    [Ikut induk: Kas dan Setara Kas v]                |
+| Berlaku Mulai [____]   Keterangan [__________]                       |
++----------------------------------------------------------------------+
+| pratinjau memuat -> "Menyusun kode..."                               |
+| pratinjau gagal  -> pesan backend apa adanya; tombol Simpan mati     |
+|                      contoh "Akun 1-1004 sudah memiliki transaksi…"  |
++--------------------------------------------------- [Batal] [Simpan] -+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Akun Induk | Akun induk aktif, belum menerima transaksi, tingkat < 5 (penyaring lama di `use-chart-of-account-editor`) | `GET /chart-of-accounts/tree` (lama) | `ChartOfAccount : Read` | Kosong → "Tanpa induk (akun tingkat pertama)" |
+| Kode Akun | Teks, bukan isian. Tanpa induk dan tanpa jenis → "Pilih jenis atau induk untuk melihat kode." | `GET /chart-of-accounts/next-code` | `ChartOfAccount : Create` | Gagal → pesan backend (`VAL-COA-06`, `13`, `14`, induk bertransaksi, tingkat 5); Simpan mati sampai induk atau jenis diganti |
+| Tingkat Akun | Terkunci (lama) | Dari pratinjau | — | — |
+| Jenis Akun | Pilihan aktif hanya bila tanpa induk; bila berinduk, terkunci dan terisi jenis induk | Dari pratinjau | — | — |
+| Saldo Normal | Diisi `SuggestedNormalBalance` saat induk dipilih, **kecuali** petugas sudah mengubahnya sendiri | Dari pratinjau | — | Tanpa induk → kosong, wajib dipilih (lama) |
+| Klasifikasi | Pilihan: "Ikut induk: {nilai}" (atau "Ikut induk: belum diisi"), Lancar, Tidak Lancar. Tampil hanya untuk jenis Aset dan Liabilitas | Pilihan tetap di konstanta; label warisan dari pratinjau | — | Jenis lain → isian tidak tampil |
+| Sub-klasifikasi | Pilihan: "Ikut induk: {nilai}", lima sub-klasifikasi. Tampil hanya untuk Aset; aktif hanya bila klasifikasi efektif (isian atau warisan) Lancar | Konstanta + pratinjau | — | Tidak Lancar → isian mati dengan keterangan "Hanya untuk aset lancar." |
+| Simpan | `POST` tanpa `accountCode`; kelompok `classification` dikirim hanya bila salah satu isian bukan "Ikut induk" | `POST /chart-of-accounts` | `ChartOfAccount : Create` | Toast memakai **kode dari respons**, bukan pratinjau; bila berbeda → "Akun tersimpan dengan kode 1-1006 karena 1-1005 baru saja dipakai." `409`/`400` → pesan backend apa adanya |
+
+**Pratinjau dan data basi.** Pratinjau dipanggil saat badan hukum, induk, atau jenis (tanpa induk)
+berganti. Respons yang datang untuk pilihan lama dibuang (pola `requestId` yang dipakai
+`accounting-general-ledger-slice` dan `accounting-period-slice`). Tombol Simpan mati selama pratinjau
+memuat dan selama simpan berjalan, supaya tidak terkirim dua kali.
+
+### 16.5 Skema `FE-C3` Perbarui Akun
+
+Skema lama tidak berubah, ditambah dua isian klasifikasi di bawah Control Account:
+
+```text
+| Kode Akun          [1-1004    ]  (lama: terkunci bila sudah Posted)  |
+| ...                                                                  |
+| Klasifikasi        [Ikut induk: Lancar            v]                 |
+| Sub-klasifikasi    [Ikut induk: Kas dan Setara Kas v]                |
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Klasifikasi, Sub-klasifikasi | Terisi nilai **milik akun** dari rincian (`ReportClassification`, `CurrentAssetCategory`); `null` tampil "Ikut induk: {nilai efektif induk}" | `GET /chart-of-accounts/{id}` (diperluas) | `ChartOfAccount : Update` (lama, layar) | Aturan tampil dan aktif sama dengan `FE-C2` |
+| Simpan | `PUT` lama; kelompok `classification` **selalu** dikirim utuh dari kedua isian (ganti penuh), supaya memilih "Ikut induk" benar-benar mengosongkan | `PUT /chart-of-accounts/{id}` | `ChartOfAccount : Update` | `409` `VAL-COA-11` → pesan backend apa adanya, menyebut kode turunan |
+| Pindah induk | Label "Ikut induk" mengikuti induk **tersimpan** sampai disimpan; sesudah simpan, rincian dimuat ulang | — | — | `409` `VAL-COA-05` → pesan backend |
+
+### 16.6 Skema `FE-C4` Rincian Akun
+
+Dua baris rincian ditambahkan pada `detailFields` yang ada, sesudah Control Account:
+
+| Baris | Bunyi | Sumber |
+|---|---|---|
+| Klasifikasi Laporan | "Lancar" · "Lancar (ikut 1-1000)" · "Belum diisi" (lencana peringatan) · "Tidak berlaku" untuk Ekuitas, Pendapatan, Beban | `EffectiveReportClassification`, `ReportClassificationSourceAccountCode`, `ClassificationGap` |
+| Sub-klasifikasi Aset Lancar | "Kas dan Setara Kas (ikut 1-1000)" · "Belum diisi" · "Tidak berlaku" | `EffectiveCurrentAssetCategory`, `CurrentAssetCategorySourceAccountCode` |
+
+Aksi tetap **Kembali** dan **Perbarui** (`AGENTS.md`); mengubah klasifikasi lewat Perbarui.
+
+### 16.7 Skema `FE-C1` Daftar COA
+
+```text
+| [Jenis v] [Status v] [Transaksi v] [Klasifikasi: Belum lengkap v] [25 baris v] |
+| Kode | Nama Akun | Jenis | Saldo Normal | Tingkat | Transaksi | Control | Klasifikasi | Status |
+| 1-2001 | Piutang Pasien Umum | Aset | Debit | 3 | Ya | — | [Belum lengkap] | Aktif |
+| kosong (saringan Belum lengkap) -> "Seluruh akun sudah terklasifikasi."          |
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Saringan Klasifikasi | `FilterSelect` dua pilihan: Semua, Belum lengkap → `UnclassifiedOnly=true`. Nilai awal dibaca dari `?klasifikasi=belum-lengkap` | `GET /chart-of-accounts` (diperluas) | `ChartOfAccount : Read` | Badan hukum belum terpilih → saringan mati (`VAL-COA-12`) |
+| Kolom Klasifikasi | Nilai efektif singkat: "Lancar · Kas", "Tidak Lancar", lencana "Belum lengkap" bila `ClassificationGap` terisi, "—" untuk jenis lain | Respons daftar | — | — |
+| Tampilan pohon | Penanda kecil "belum lengkap" pada simpul dengan `ClassificationGap` | `GET /tree` (diperluas) | — | — |
+
+### 16.8 Skema `FE-L4` Neraca — tambahan
+
+Satu `InformationAlert` di bawah peringatan yang ada (tahun belum ditutup, tidak seimbang):
+
+```text
+| ! Klasifikasi laporan belum lengkap: 3 akun bersaldo (1002 Kas Besar,  |
+|   1-1003 Kas Kecil, 1-1004 Bank Operasional). Rasio keuangan yang      |
+|   bergantung padanya belum dapat dihitung.   [Lengkapi di Bagan Akun]  |
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Peringatan klasifikasi | Jumlah dan paling banyak lima kode + nama; sisanya "dan {n} akun lain" | `UnclassifiedAccountCount`, `ClassificationGaps` di `GET /balance-sheet` | `GeneralLedger : Read` | Tidak tampil bila 0 |
+| Tautan | Membuka `FE-C1` dengan `?klasifikasi=belum-lengkap` | — | `ChartOfAccount : Read` di layar tujuan | — |
+
+Tampilan cetak neraca **tidak** memuat peringatan ini, mengikuti perlakuan peringatan lain di cetak
+yang sudah ada; CSV tidak berubah.
+
+### 16.9 Aksi per peran
+
+| Aksi | Hak | Peran (matriks `ACC-PERMISSION`) |
+|---|---|---|
+| Melihat klasifikasi, menyaring belum lengkap | `ChartOfAccount : Read` | Seluruh peran Accounting |
+| Tambah akun (pratinjau kode, klasifikasi awal) | `ChartOfAccount : Create` | Accounting Administrator |
+| Perbarui akun termasuk klasifikasi | `ChartOfAccount : Update` | Accounting Administrator |
+| Membaca peringatan di neraca | `GeneralLedger : Read` | Seluruh peran Accounting |
+
+### 16.10 State dan data
+
+| Hal | Rancangan |
+|---|---|
+| Redux | `accounting-chart-of-account-slice.jsx` + satu thunk `getChartOfAccountNextCode` dengan pola `requestId`; thunk `createChartOfAccount`/`updateChartOfAccount` lama tidak berubah bentuk |
+| Pembentuk payload | `buildPayload` di `chart-of-account-utils.jsx`: mode create tidak lagi mengirim `accountCode`, mengirim `accountType` hanya tanpa induk, menambah `classification`; mode update menambah `classification` utuh |
+| Validasi layar | `validateForm`: hapus wajib Kode Akun pada create; Jenis Akun wajib hanya tanpa induk. Aturan klasifikasi lain tidak diulang di layar selain menyembunyikan dan mematikan isian (bagian 16.4) — backend tetap penegak |
+| Konstanta | Pilihan klasifikasi dan sub-klasifikasi beserta label di `chart-of-account-constants.jsx`; kolom dan saringan baru di konfigurasi daftar yang sama |
+| Basi | Pratinjau: respons lama dibuang. Daftar: saringan dari alamat dibaca sekali saat layar dibuka |
+| Aksesibilitas | Kode otomatis dibaca sebagai teks bersama keterangannya; lencana "Belum lengkap" punya teks, bukan warna saja |
+
+### 16.11 Berkas yang tersentuh
+
+| Berkas | Status |
+|---|---|
+| `src/lib/hooks/corporate/accounting/chart-of-account/use-chart-of-account-editor.jsx` | Diperbarui (pratinjau, kunci jenis, usulan saldo normal, toast kode final) |
+| `src/lib/hooks/corporate/accounting/chart-of-account/use-chart-of-account.jsx` | Diperbarui (saringan Klasifikasi + baca alamat) |
+| `src/lib/hooks/corporate/accounting/chart-of-account/use-chart-of-account-detail.jsx` | Diperbarui (baris klasifikasi) |
+| `src/lib/constants/corporate/accounting/chart-of-account/chart-of-account-constants.jsx` | Diperbarui |
+| `src/utils/corporate/accounting/chart-of-account/chart-of-account-utils.jsx` | Diperbarui |
+| `src/lib/state/slice/corporate/accounting/accounting-chart-of-account-slice.jsx` | Diperbarui |
+| `src/components/view/corporate/accounting/chart-of-account/chart-of-account-view.jsx` | Diperbarui (kolom, penanda pohon) |
+| `src/components/view/corporate/accounting/general-ledger/balance-sheet-view.jsx`, `src/lib/hooks/corporate/accounting/general-ledger/use-balance-sheet.jsx` | Diperbarui (peringatan) |
+| `src/app/corporate/accounting/chart-of-accounts/page.jsx` | Diperbarui bila pembacaan alamat membutuhkan `Suspense` (pola `general-ledger/page.jsx`) |
+
+### 16.12 Yang tidak dikerjakan frontend pada amendment ini
+
+| Hal | Alasan |
+|---|---|
+| Menyusun kode akun di peramban | `ACC-DEC-164`: kode final dari backend |
+| Tombol Ubah Klasifikasi di Rincian Akun | `AGENTS.md` (aksi rincian master data) — `ACC-DEC-173` butir 4 |
+| Menebak klasifikasi dari nama atau kode | `ACC-DEC-168` |
+| Neraca terkelompok Lancar/Tidak Lancar | `OQ-173-1` |
+| Layar impor bagan akun | Belum diputuskan; impor `gl_coa` lewat skrip `POST` berkode |
+| Butir menu baru | Tidak dibutuhkan (bagian 16.2) |
+| Menyentuh `globals.css` atau tema | Konvensi frontend Quilvian |
+
+---
+
+## 17. Amendment 26 November 2026 — Rasio Keuangan (ACC-FIN-008-04) — **approved** Rizki (`GATE-DESAIN-1126`)
+
+Dasar: `ACC-DEC-161`, `174`..`183`, turunan `184` (disahkan `GATE-DESAIN-1126`); kontrak `ACC-API-0.19`; backend
+`02-backend-architecture.md` bagian 27. Source acuan: `RizkiV2` `64ba2c07e` + `FE-ACC-FIN-001-03`
+(belum di-commit).
+
+### 17.1 Hierarki wewenang yang dipakai
+
+| Lapisan | Isi untuk amendment ini |
+|---|---|
+| Keamanan, privasi, invariant | Rasio dihitung backend; layar tidak menghitung ulang, tidak membulatkan ulang, dan tidak mengganti status. Tidak ada warna sehat/tidak sehat (`ACC-DEC-161` butir 9). Rasio berstatus selain Dihitung tidak pernah tampil sebagai angka |
+| Brief produk yang disetujui | `ACC-DEC-180` (menu sendiri "Rasio Keuangan" tepat sesudah Neraca, rute `/corporate/accounting/financial-ratios`), `181` (rumus, pembilang, penyebut, status, alasan), `179` (kali/persen dua desimal), `182` (CSV + Cetak), `176` (dua kolom) |
+| Konvensi proyek | Pola layar laporan yang ada (`balance-sheet-view.jsx`): `Hero` + `AccountingHeroLegalEntity`, `DataFilter`/`FilterSelect` periode, tombol `BaseButton` Unduh CSV/Cetak/Muat Ulang, `InformationAlert`, `StatusBadge`, `DataTable`; pola `requestId` di slice; aturan cetak `screenOnly`/`printRoot`; `globals.css` tidak disentuh |
+| `DEV_DISCRETION` | Susunan sel rumus dan pembilang/penyebut di dalam tabel, nada lencana status (memakai nada `StatusBadge` yang ada, bukan warna baru), bunyi keadaan kosong, ikon menu dari pustaka ikon yang sudah dipakai menu Akuntansi |
+
+### 17.2 Peta butir menu
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+|---|:---:|---|---|---|---|---|
+| Neraca | 1 | Accounting | `/corporate/accounting/balance-sheet` | `FE-L4` | `GeneralLedger : Read` | Sudah ada |
+| **Rasio Keuangan** | 1 | Accounting | `/corporate/accounting/financial-ratios` | `FE-L5` | `GeneralLedger : Read` | **Baru**, tepat sesudah Neraca (`ACC-DEC-180`) |
+
+Layar anak: tidak ada. Tautan keluar: **Lengkapi di Bagan Akun** ke `FE-C1` tersaring
+(`/corporate/accounting/chart-of-accounts?klasifikasi=belum-lengkap`), memakai konstanta yang sama dengan
+`FE-ACC-FIN-001-03`.
+
+### 17.3 Layar
+
+| ID | Layar | Rute | Status | Jalan masuk |
+|---|---|---|---|---|
+| `FE-L5` | Rasio Keuangan | `/corporate/accounting/financial-ratios` | Baru | Menu |
+
+### 17.4 Skema `FE-L5` Rasio Keuangan
+
+```text
++- Rasio Keuangan --------------------------------------------- FE-L5 -+
+| [Hero: judul, deskripsi, badan hukum]                                |
++----------------------------------------------------------------------+
+| Laporan Rasio Keuangan              [Unduh CSV] [Cetak] [Muat Ulang] |
+| [Periode v]                                                          |
++----------------------------------------------------------------------+
+| ! Klasifikasi laporan belum lengkap: 4 akun bersaldo (1-1003 Kas     |
+|   Kecil, ...). Current, Quick, dan Cash Ratio belum dapat dihitung.  |
+|                                          [Lengkapi di Bagan Akun]    |
+| i Tahun buku 2025 belum ada di sistem. (bila pembanding tak ada)     |
++----------------------------------------------------------------------+
+| Rasio            | 30 Sep 2026               | 31 Des 2025           |
+|------------------+---------------------------+-----------------------|
+| Current Ratio    | [Tidak dapat dihitung]    | [Tidak dapat dihitung]|
+| Aset Lancar ÷    | Klasifikasi laporan belum | Tahun buku 2025 belum |
+| Liabilitas Lancar| lengkap pada 4 akun ...   | ada di sistem.        |
+|------------------+---------------------------+-----------------------|
+| Debt to Asset    | 0,00%                     | [Tidak dapat dihitung]|
+| Total Liabilitas | Rp 0 ÷ Rp 3.230.000       | ...                   |
+| ÷ Total Aset     |                           |                       |
+|------------------+---------------------------+-----------------------|
+| Return on Assets | [Tidak dapat dihitung]    | ...                   |
+| Laba YTD ÷ rata- | Saldo awal tahun buku     |                       |
+| rata Total Aset  | 2026 tidak tersedia ...   |                       |
+| ... delapan baris, urutan tetap                                      |
++----------------------------------------------------------------------+
+| Rasio tidak memakai ambang sehat/tidak sehat. Angka dihitung dari    |
+| jurnal yang sudah disahkan, dengan klasifikasi akun terkini.         |
++----------------------------------------------------------------------+
+| belum pilih periode / gagal: pola sama dengan FE-L4                  |
++----------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Pemilih periode | Daftar periode badan hukum, terbaru di atas | `GET /accounting-periods` (lama) | `GeneralLedger : Read` di layar | "Badan hukum ini belum memiliki periode akuntansi." |
+| Peringatan klasifikasi | Jumlah dan paling banyak lima akun penyebab per kolom kini; tombol **Lengkapi di Bagan Akun** | `ClassificationGaps` di `GET /general-ledger/financial-ratios` | `GeneralLedger : Read`; layar tujuan dijaga `ChartOfAccount : Read` | Tidak tampil bila tidak ada akun penyebab |
+| Info pembanding | `ComparisonUnavailableReason` | Respons yang sama | — | Tidak tampil bila pembanding ada |
+| Tabel rasio | Delapan baris: nama, rumus dalam kata-kata; per kolom hasil (`1,25x`/`12,50%`) atau lencana status, pembilang ÷ penyebut dalam rupiah, alasan, catatan | Respons yang sama | `GeneralLedger : Read` | Belum pilih periode: "Pilih periode untuk menghitung rasio keuangan."; gagal: pesan backend + Coba lagi |
+| Keterangan kaki | Tanpa ambang; jurnal disahkan; klasifikasi terkini | Konstanta | — | — |
+| Unduh CSV | Berkas dari backend | `GET /general-ledger/financial-ratios/export` | `GeneralLedger : Read` | "Berkas gagal diunduh." |
+| Cetak | `window.print()`; filter, tombol, dan peringatan klasifikasi tidak tercetak; tabel dan info pembanding tercetak | — | — | — |
+
+**Status di layar.** Dihitung → angka. N/A → lencana "N/A" + "Penyebut bernilai nol.". Tidak dapat
+dihitung → lencana + alasan. Tidak sah → lencana + alasan + pembilang ÷ penyebut tetap tampil. Catatan
+ekuitas negatif tampil di bawah angka sebagai teks keterangan, bukan warna.
+
+### 17.5 Aksi per peran
+
+Satu-satunya hak yang dipakai `GeneralLedger : Read`, dipegang seluruh peran Accounting. Tautan ke Bagan
+Akun dijaga layar tujuan.
+
+### 17.6 State dan data
+
+| Hal | Rancangan |
+|---|---|
+| Redux | `accounting-general-ledger-slice.jsx` + thunk `getFinancialRatios` dan potongan state `financialRatios` dengan pola `requestId` (seperti `getBalanceSheet`) |
+| Hook | `use-financial-ratio.jsx` baru di `lib/hooks/corporate/accounting/general-ledger/`, meniru `use-balance-sheet.jsx` (periode, muat ulang, unduhan blob lewat `InstanceAxios`, cetak) |
+| Format | Hasil dibaca apa adanya dari `Value` lalu ditulis dengan satuan dari `Unit` dan koma desimal; pembilang/penyebut memakai `formatStatementAmount` yang ada |
+| Konstanta | `financial-ratio-constants.jsx` baru: config layar, label status, bunyi keadaan kosong, keterangan kaki |
+| Basi | Mengganti periode atau badan hukum membatalkan hasil sebelumnya; respons terlambat dibuang (`requestId`) |
+| Aksesibilitas | Status ditulis sebagai teks, bukan warna saja; hasil negatif dibaca "minus" |
+
+### 17.7 Berkas yang tersentuh
+
+| Berkas | Status |
+|---|---|
+| `src/app/corporate/accounting/financial-ratios/page.jsx` + `financial-ratios-client.jsx` | Baru (pola `balance-sheet`) |
+| `src/components/view/corporate/accounting/general-ledger/financial-ratio-view.jsx` | Baru |
+| `src/lib/hooks/corporate/accounting/general-ledger/use-financial-ratio.jsx` | Baru |
+| `src/lib/constants/corporate/accounting/general-ledger/financial-ratio-constants.jsx` | Baru |
+| `src/lib/state/slice/corporate/accounting/accounting-general-ledger-slice.jsx` | Diperbarui (+1 thunk, +1 potongan state) |
+| `src/utils/menu-sidebar/menu-items.jsx` | Diperbarui (+1 butir sesudah Neraca) |
+| `src/lib/constants/corporate/accounting/accounting-constants.jsx` | Diperbarui bila beranda Akuntansi mendaftar kartu laporan (pola Neraca) |
+| `src/style/corporate/accounting/financial-ratio-view.module.css` | Baru bila aturan cetak dan sel rumus membutuhkannya; memakai token desain, aturan cetak meniru `balance-sheet-view.module.css` |
+
+### 17.8 Yang tidak dikerjakan frontend pada amendment ini
+
+| Hal | Alasan |
+|---|---|
+| Menghitung atau membulatkan rasio di peramban | Bagian 17.1 |
+| Warna sehat/tidak sehat, grafik tren | `ACC-DEC-161` butir 9; tren di luar tahap pertama |
+| Tautan pembilang/penyebut ke Neraca atau Laba Rugi | `ACC-DEC-181` |
+| Saringan unit biaya | `ACC-DEC-184` butir 5 |
+| Mengubah layar Neraca atau Laba Rugi | Tidak dibutuhkan |
+| Menyentuh `globals.css` atau tema | Konvensi frontend Quilvian |
+
+---
+
+## 18. Amendment 26 November 2026 — Anggaran (ACC-FIN-013) — **draft**, menunggu gerbang desain Rizki
+
+Dasar: `ACC-DEC-185`..`199`; kontrak `ACC-API-0.20`; backend `02-backend-architecture.md` bagian 28.
+Source acuan: `RizkiV2` `64ba2c07e` + pekerjaan 26 November belum di-commit. Modul referensi visual:
+**Jurnal** (`journals`: daftar → buat → rincian → ubah, aksi ajukan/setujui/tolak di rincian).
+
+### 18.1 Hierarki wewenang yang dipakai
+
+| Lapisan | Isi untuk amendment ini |
+|---|---|
+| Keamanan, privasi, invariant | Status dan aturan baris ditegakkan backend; layar hanya menyembunyikan/mematikan tombol menurut status dan hak. Penyetuju ≠ pengaju diperiksa backend. Pengenal di alamat memakai token rute privat yang ada (scope `accounting`, type `budget`) |
+| Brief produk yang disetujui | `ACC-DEC-189` (sebar rata), `190` (alur), `191` (revisi, bulan terkunci), `192` (layar + CSV), `193` (hak), `195` (butir menu "Anggaran" sesudah Rasio Keuangan), `196` (hapus) |
+| Konvensi proyek | Pola jurnal: `DataFilter`/`FilterSelect`, `DataTable`, `StatusBadge`, `BaseDetailView` atau pola rincian jurnal, `BaseButton`, modal konfirmasi/alasan yang dipakai Tolak jurnal, `InformationAlert`, `AccessDeniedGate`; thunk pola `requestId`; unduhan blob `accounting-download-utils`; `globals.css` tidak disentuh |
+| `DEV_DISCRETION` | Susunan grid isian baris (kolom bulan, total, tombol sebar rata), urutan tombol aksi di rincian, bunyi keadaan kosong — sepanjang memakai komponen di atas. Bila grid isian butuh komponen yang belum ada di `base-features`, gerbang keputusan komponen `build-module-frontend` memutuskannya |
+
+### 18.2 Peta butir menu
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+|---|:---:|---|---|---|---|---|
+| Rasio Keuangan | 1 | Accounting | `/corporate/accounting/financial-ratios` | `FE-L5` | `GeneralLedger : Read` | Sudah ada |
+| **Anggaran** | 1 | Accounting | `/corporate/accounting/budgets` | `FE-B1` | `Budget : Read` | **Baru**, tepat sesudah Rasio Keuangan (`ACC-DEC-195`) |
+
+Layar anak:
+
+| Layar anak | Rute | Induk (jalan masuk) |
+|---|---|---|
+| `FE-B2` Buat Anggaran | `/corporate/accounting/budgets/create` | Tombol **Buat Anggaran** di `FE-B1` (`Budget : Create`) |
+| `FE-B3` Rincian Anggaran | `/corporate/accounting/budgets/[slug]` | Klik baris `FE-B1`; sesudah buat/revisi |
+| `FE-B4` Ubah Baris Anggaran | `/corporate/accounting/budgets/[slug]/lines` | Tombol **Ubah Baris** di `FE-B3` (`Budget : Update`, status Draft/Ditolak) |
+
+### 18.3 Skema `FE-B1` Daftar Anggaran
+
+```text
++- Anggaran ---------------------------------------------------- FE-B1 -+
+| [Hero: judul, deskripsi, badan hukum]                                 |
++-----------------------------------------------------------------------+
+| Daftar Anggaran                                     [+ Buat Anggaran] |
+| [Tahun buku v] [Status v]                                       [↻]   |
++-----------------------------------------------------------------------+
+| Tahun | Versi | Status      | Total Pendapatan | Total Beban | Diajukan | Disetujui |
+| 2027  | 2     | [Disetujui] | Rp 14,4 M        | Rp 12,1 M   | 03/07 A  | 05/07 B   |
+| 2027  | 1     | [Digantikan]| ...                                                    |
++-----------------------------------------------------------------------+
+| kosong: "Belum ada anggaran. Buat anggaran untuk tahun buku yang sudah dibangkitkan." |
++-----------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Hak | Kosong / gagal |
+|---|---|---|---|---|
+| Saringan | Tahun buku (dari periode), status | `GET /accounting-periods` (lama), konstanta | `Budget : Read` | — |
+| Tabel | Versi terbaru di atas | `GET /budgets` | `Budget : Read` | Kosong: bunyi di skema; gagal: pesan + Coba lagi |
+| Buat Anggaran | Ke `FE-B2` | — | `Budget : Create` | Tersembunyi tanpa hak |
+
+### 18.4 Skema `FE-B2` Buat Anggaran
+
+Form satu langkah: Tahun buku (pilihan dari tahun buku yang sudah punya periode), Keterangan (opsional,
+≤ 500). **Simpan** → `POST /budgets` → ke `FE-B3` versi baru. Galat `409` (versi untuk tahun itu sudah
+ada) ditampilkan di bawah isian Tahun dengan saran membuka versi yang ada atau membuat Revisi.
+
+### 18.5 Skema `FE-B3` Rincian Anggaran
+
+```text
++- Anggaran 2027 · Versi 2 ------------------------------------- FE-B3 -+
+| [Kembali]   [Disetujui]                                                 |
+| Aksi menurut status dan hak:                                            |
+|  Draft/Ditolak: [Ubah Baris] [Unduh CSV] [Ajukan] [Hapus]               |
+|  Diajukan:      [Tarik] (pengaju) / [Setujui] [Tolak] (penyetuju)       |
+|  Disetujui:     [Unduh CSV] [Revisi]                                    |
++------------------------------------------------------------------------+
+| Kepala: badan hukum, tahun, versi, asal revisi, keterangan, diajukan,   |
+| disetujui/ditolak (+ alasan)                                            |
+| ! Ditolak: "{alasan}"                     (bila Ditolak)                |
++------------------------------------------------------------------------+
+| Ringkasan per bulan: Pendapatan | Beban | Selisih  (Jan..Des, Total)    |
+| Bulan terkunci ditandai (periode bukan Terbuka)                         |
++------------------------------------------------------------------------+
+| Baris: Akun | Unit Biaya | Jan .. Des | Total        (baca saja)        |
++------------------------------------------------------------------------+
+| Riwayat: Diajukan A 03/07 · Disetujui B 05/07 · ...                     |
++------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber | Hak | Kosong / gagal |
+|---|---|---|---|---|
+| Aksi | Hanya yang sah untuk status; Setujui/Tolak tidak tampil bagi pengaju (backend tetap menolak `403`) | `GET /budgets/{id}` (`AvailableActions`) | Per tombol: `Update`, `Approve`, `Delete`, `Create` (Revisi), `Read` (Unduh) | Galat aksi tampil di atas kepala |
+| Tolak | Modal alasan wajib 1–500 | `POST /{id}/reject` | `Budget : Approve` | Alasan kosong → tombol mati |
+| Ringkasan bulan | Total per bulan per jenis dari respons, tidak dihitung ulang | `MonthTotals` | — | — |
+| Baris | Baca saja | `Lines` | — | Kosong: "Belum ada baris. Ubah Baris atau unggah CSV." |
+
+### 18.6 Skema `FE-B4` Ubah Baris Anggaran
+
+```text
++- Ubah Baris · Anggaran 2027 Versi 2 --------------------------- FE-B4 -+
+| [Kembali] [Unduh CSV] [Unggah CSV] [Tambah Baris] [Simpan]             |
+| i Bulan Jan–Jun terkunci: nilainya harus sama dengan versi berlaku.    |
++------------------------------------------------------------------------+
+| Akun [v] | Unit Biaya [v] | Tahunan [ ] [Sebar rata] | Jan..Des [ ] | Total | [x] |
++------------------------------------------------------------------------+
+| Galat impor CSV: daftar {baris, kolom, pesan} (maks. 50)               |
++------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber | Hak | Gagal |
+|---|---|---|---|---|
+| Pilihan akun | Akun Pendapatan/Beban aktif penerima transaksi | `GET /chart-of-accounts/options` (lama) disaring jenis | `ChartOfAccount : Read` di endpoint itu | — |
+| Pilihan unit | Unit biaya aktif badan hukum | `GET /cost-centers` (lama, pola `ResourceFilterSelect`) | — | — |
+| Sebar rata | Mengisi 12 bulan dari isian tahunan (bagian 28.8); dapat diubah per bulan | Hitungan layar | — | — |
+| Bulan terkunci | Isian mati pada bulan terkunci versi revisi | `LockedMonths` | — | Backend tetap menolak `422` |
+| Simpan | `PUT /{id}/lines` seluruh baris | — | `Budget : Update` | Galat `400` per baris disorot di barisnya |
+| Unggah CSV | `POST /{id}/lines/import`, konfirmasi "mengganti seluruh baris" | — | `Budget : Update` | Daftar galat per nomor baris |
+
+### 18.7 Aksi per peran
+
+| Aksi | Hak |
+|---|---|
+| Melihat daftar, rincian, unduh CSV | `Budget : Read` |
+| Buat, Revisi | `Budget : Create` |
+| Ubah keterangan, Ubah Baris, Unggah CSV, Ajukan, Tarik | `Budget : Update` |
+| Setujui, Tolak | `Budget : Approve` |
+| Hapus | `Budget : Delete` |
+
+Peran tidak di-hardcode; admin mencentang di Akses Role.
+
+### 18.8 State dan data
+
+| Hal | Rancangan |
+|---|---|
+| Redux | Slice baru `accounting-budget-slice.jsx` (daftar, rincian, aksi) dengan pola `requestId`; didaftarkan di `store.jsx` seperti slice Accounting lain |
+| Hook | `use-budget.jsx` (daftar), `use-budget-detail.jsx` (rincian + aksi), `use-budget-lines-editor.jsx` (grid, sebar rata, unggah) |
+| Kirim ganda | Tombol aksi mati selama permintaan berjalan |
+| Basi | Sesudah aksi status, rincian dimuat ulang dari server; layar tidak mengubah status sendiri |
+| Angka | Total per bulan dan per jenis dibaca dari respons; grid menjumlah baris yang sedang diedit hanya sebagai tampilan |
+| Aksesibilitas | Status berteks; isian bulan berlabel nama bulan dan akun |
+
+### 18.9 Berkas yang tersentuh (perkiraan)
+
+| Berkas | Status |
+|---|---|
+| `src/app/corporate/accounting/budgets/` (`page.jsx`, `create/page.jsx`, `[slug]/page.jsx`, `[slug]/lines/page.jsx`, klien) | Baru |
+| `src/components/view/corporate/accounting/budget/` (daftar, form buat, rincian, editor baris) | Baru |
+| `src/lib/hooks/corporate/accounting/budget/` | Baru |
+| `src/lib/constants/corporate/accounting/budget/budget-constants.jsx` | Baru |
+| `src/lib/state/slice/corporate/accounting/accounting-budget-slice.jsx` + `store.jsx` | Baru / Diperbarui |
+| `src/utils/menu-sidebar/menu-items.jsx`, `accounting-constants.jsx` (kartu beranda) | Diperbarui |
+| `src/style/corporate/accounting/budget-*.module.css` | Baru bila dibutuhkan, token desain saja |
+
+### 18.10 Yang tidak dikerjakan frontend pada amendment ini
+
+| Hal | Alasan |
+|---|---|
+| Laporan realisasi lawan target | 008-05 |
+| Persetujuan bertingkat | `ACC-DEC-190` |
+| Menghitung status atau menolak isian bulan terkunci tanpa backend | Backend penegak |
+| Menyentuh `globals.css` atau tema | Konvensi |

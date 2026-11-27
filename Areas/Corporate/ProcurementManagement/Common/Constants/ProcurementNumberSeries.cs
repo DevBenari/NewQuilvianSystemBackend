@@ -24,11 +24,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string ItemSequenceKey = "PBJ_ITEM";
         /// <summary>Usulan blokir/buka blokir vendor (BE-PBJ-VD-001). Contoh: <c>UBV-000003</c>.</summary>
         public const string VendorStatusRequestSequenceKey = "PBJ_VENDOR_STATUS";
+        /// <summary>Paket pengadaan, dialokasikan saat persiapan pertama kali diajukan (BE-PBJ-PS-001). Contoh: <c>PKT-000012</c>.</summary>
+        public const string PackageSequenceKey = "PBJ_PACKAGE";
+        /// <summary>Permintaan penawaran, dialokasikan saat RFQ dikirim (BE-PBJ-PS-001). Contoh: <c>RFQ-000007</c>.</summary>
+        public const string RfqSequenceKey = "PBJ_RFQ";
 
         public const string PurchaseRequestPrefix = "PR";
         public const string NeedPlanPrefix = "RKB";
         public const string PackagePlanPrefix = "RPK";
         public const string ItemPrefix = "KTL";
         public const string VendorStatusRequestPrefix = "UBV";
+        public const string PackagePrefix = "PKT";
+        public const string RfqPrefix = "RFQ";
     }
 }

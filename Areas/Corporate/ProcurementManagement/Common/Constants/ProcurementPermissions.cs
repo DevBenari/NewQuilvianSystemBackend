@@ -44,6 +44,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string VendorModuleCode = "CORPORATE_PROCUREMENT_MANAGEMENT_VENDOR";
         public const string VendorModuleName = "Corporate Procurement Management Vendor";
 
+        /// <summary>Kode modul layar Akses Role untuk pemilihan penyedia (BE-PBJ-PS-001, PBJ-PS-PERM 1.0).</summary>
+        public const string SourcingModuleCode = "CORPORATE_PROCUREMENT_MANAGEMENT_SOURCING";
+        public const string SourcingModuleName = "Corporate Procurement Management Sourcing";
+
         public const string ReadAction = "Read";
         public const string CreateAction = "Create";
         public const string UpdateAction = "Update";
@@ -60,6 +64,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string RestrictAction = "Restrict";
         /// <summary>Memfinalkan penilaian vendor (PBJ-DEC-049).</summary>
         public const string FinalizeAction = "Finalize";
+
+        // Pemilihan penyedia (PBJ-PS-PERM 1.0 bagian 2).
+        /// <summary>Mencatat nomor PO BLM pada paket (PBJ-ASM-009).</summary>
+        public const string RecordOrderAction = "RecordOrder";
+        /// <summary>Ringkasan paket untuk baris PR unit pengguna, tanpa harga (PBJ-DEC-079, 080).</summary>
+        public const string ReadSummaryAction = "ReadSummary";
+        /// <summary>Mengirim RFQ ke vendor yang diundang.</summary>
+        public const string SendAction = "Send";
+        /// <summary>Menutup penerimaan penawaran atau menyatakan RFQ gagal (PBJ-DEC-075).</summary>
+        public const string CloseAction = "Close";
+        /// <summary>Mencatat putaran negosiasi (PBJ-ASM-005).</summary>
+        public const string NegotiateAction = "Negotiate";
+        /// <summary>Mengisi hasil evaluasi teknis (PBJ-DEC-074).</summary>
+        public const string EvaluateAction = "Evaluate";
+        /// <summary>Mencabut penetapan yang disetujui sebelum nomor PO (PBJ-DEC-093).</summary>
+        public const string RevokeAction = "Revoke";
+        /// <summary>Penanda data: melihat HPS dan harga penawaran (PBJ-DEC-079). Didaftarkan lewat penanda izin eksplisit.</summary>
+        public const string ReadPriceAction = "ReadPrice";
 
         public const string ReadAllUnitsAction = "ReadAllUnits";
 
@@ -83,5 +105,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string VendorDocumentTypeResource = "ProcurementVendorDocumentType";
         public const string CategoryDocumentRequirementResource = "ProcurementCategoryDocumentRequirement";
         public const string EvaluationCriterionResource = "ProcurementEvaluationCriterion";
+
+        // Pemilihan penyedia (BE-PBJ-PS-001, PBJ-PS-PERM 1.0 bagian 2).
+        public const string PackageResource = "ProcurementPackage";
+        public const string RfqResource = "ProcurementRfq";
+        public const string QuotationResource = "ProcurementQuotation";
+        public const string TechnicalEvaluationResource = "ProcurementTechnicalEvaluation";
+        public const string PackageAwardResource = "ProcurementPackageAward";
+        public const string ProcurementMethodResource = "ProcurementMethod";
+        public const string PackageDocumentTypeResource = "ProcurementPackageDocumentType";
+        public const string PackageDocumentRequirementResource = "ProcurementPackageDocumentRequirement";
     }
 }

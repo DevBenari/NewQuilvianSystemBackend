@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services;
 using QuilvianSystemBackend.Attributes;
@@ -70,6 +71,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
             CancellationToken ct)
             => ToActionResult(await _service.GetOptionsAsync(legalEntityId, search, ct));
 
+        [HttpGet("next-code")]
+        [AccessAction("Create", "Create Chart of Account", Description = "Melihat usulan kode akun baru", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("ChartOfAccount", "Create")]
+        public async Task<IActionResult> GetNextCode([FromQuery] ChartOfAccountNextCodeQuery query, CancellationToken ct)
+            => ToActionResult(await _service.GetNextCodeAsync(query, ct));
+
         [HttpPost]
         [AccessAction("Create", "Create Chart of Account", Description = "Menambah akun", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("ChartOfAccount", "Create")]
@@ -81,6 +88,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
             var hasil = await _service.CreateAsync(request, actor, ct);
 
             await CatatAsync("ChartOfAccount.Create", hasil, request);
+            await CatatKlasifikasiAsync(hasil);
 
             return ToActionResult(hasil);
         }
@@ -96,6 +104,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
             var hasil = await _service.UpdateAsync(id, request, actor, ct);
 
             await CatatAsync("ChartOfAccount.Update", hasil, new { id, request });
+            await CatatKlasifikasiAsync(hasil);
 
             return ToActionResult(hasil);
         }
@@ -177,6 +186,57 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         private static string TanpaNominal(string pesan)
             => System.Text.RegularExpressions.Regex.Replace(
                 pesan, @"Rp\s?[\d.,]+", "Rp ***");
+
+        private Task CatatKlasifikasiAsync<T>(AccountingServiceResult<T> hasil)
+        {
+            var perubahan = _service.PerubahanKlasifikasiTerakhir;
+
+            if (perubahan is null || (hasil.Success && !perubahan.Changed)) return Task.CompletedTask;
+
+            var muatan = new
+            {
+                perubahan.AccountId,
+                perubahan.AccountCode,
+                Before = new
+                {
+                    ReportClassification = perubahan.ReportClassificationBefore,
+                    CurrentAssetCategory = perubahan.CurrentAssetCategoryBefore
+                },
+                After = new
+                {
+                    ReportClassification = perubahan.ReportClassificationAfter,
+                    CurrentAssetCategory = perubahan.CurrentAssetCategoryAfter
+                },
+                hasil.StatusCode
+            };
+
+            var rincian =
+                $"Akun {perubahan.AccountCode}: klasifikasi {NamaKlasifikasi(perubahan.ReportClassificationBefore)} -> {NamaKlasifikasi(perubahan.ReportClassificationAfter)}, " +
+                $"sub-klasifikasi {NamaSubKlasifikasi(perubahan.CurrentAssetCategoryBefore)} -> {NamaSubKlasifikasi(perubahan.CurrentAssetCategoryAfter)}.";
+
+            return hasil.Success
+                ? _loggerService.InfoAsync(LogCategory, "ChartOfAccount.Classification", $"Klasifikasi laporan akun diubah. {rincian}", muatan)
+                : _loggerService.WarningAsync(LogCategory, "ChartOfAccount.Classification", $"{TanpaNominal(hasil.Message)} Ditolak: {rincian}", muatan);
+        }
+
+        private static string NamaKlasifikasi(AccountReportClassification? nilai) => nilai switch
+        {
+            AccountReportClassification.Current => "Lancar",
+            AccountReportClassification.NonCurrent => "Tidak Lancar",
+            null => "kosong",
+            _ => ((int)nilai.Value).ToString(System.Globalization.CultureInfo.InvariantCulture)
+        };
+
+        private static string NamaSubKlasifikasi(CurrentAssetCategory? nilai) => nilai switch
+        {
+            CurrentAssetCategory.CashAndCashEquivalents => "Kas dan Setara Kas",
+            CurrentAssetCategory.ShortTermInvestment => "Investasi Jangka Pendek",
+            CurrentAssetCategory.Receivable => "Piutang",
+            CurrentAssetCategory.Inventory => "Persediaan",
+            CurrentAssetCategory.OtherCurrentAsset => "Aset Lancar Lainnya",
+            null => "kosong",
+            _ => ((int)nilai.Value).ToString(System.Globalization.CultureInfo.InvariantCulture)
+        };
 
         private Guid GetCurrentUserId()
         {

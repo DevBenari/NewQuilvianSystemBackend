@@ -17,7 +17,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
     /// bukan di controller, supaya `BE-ACC-010` dapat memakainya kembali saat memvalidasi baris
     /// jurnal.
     /// </summary>
-    public class AccChartOfAccountService
+    public partial class AccChartOfAccountService
     {
         private readonly ApplicationDbContext _db;
 
@@ -44,6 +44,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
 
             var pageNumber = query.PageNumber < 1 ? 1 : query.PageNumber;
             var pageSize = query.PageSize is < 1 or > 200 ? 25 : query.PageSize;
+            var unclassifiedOnly = query.UnclassifiedOnly == true;
+
+            if (unclassifiedOnly && !query.LegalEntityId.HasValue)
+            {
+                return AccountingServiceResult<PagedResult<ChartOfAccountListResponse>>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pilih badan hukum untuk menyaring akun yang klasifikasinya belum lengkap.");
+            }
 
             IQueryable<AccChartOfAccount> q = _db.Set<AccChartOfAccount>()
                 .AsNoTracking()
@@ -78,27 +86,45 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 _ => menurun ? q.OrderByDescending(x => x.AccountCode) : q.OrderBy(x => x.AccountCode)
             };
 
-            var total = await q.CountAsync(ct);
+            var proyeksi = q.Select(x => new ChartOfAccountListResponse
+            {
+                Id = x.Id,
+                LegalEntityId = x.LegalEntityId,
+                AccountCode = x.AccountCode,
+                AccountName = x.AccountName,
+                AccountType = x.AccountType,
+                NormalBalance = x.NormalBalance,
+                AccountLevel = x.AccountLevel,
+                ParentAccountId = x.ParentAccountId,
+                ParentAccountCode = x.ParentAccount != null ? x.ParentAccount.AccountCode : null,
+                IsPostable = x.IsPostable,
+                IsActive = x.IsActive,
+                IsControlAccount = x.IsControlAccount,
+                ReportClassification = x.ReportClassification,
+                CurrentAssetCategory = x.CurrentAssetCategory
+            });
 
-            var items = await q
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .Select(x => new ChartOfAccountListResponse
-                {
-                    Id = x.Id,
-                    LegalEntityId = x.LegalEntityId,
-                    AccountCode = x.AccountCode,
-                    AccountName = x.AccountName,
-                    AccountType = x.AccountType,
-                    NormalBalance = x.NormalBalance,
-                    AccountLevel = x.AccountLevel,
-                    ParentAccountId = x.ParentAccountId,
-                    ParentAccountCode = x.ParentAccount != null ? x.ParentAccount.AccountCode : null,
-                    IsPostable = x.IsPostable,
-                    IsActive = x.IsActive,
-                    IsControlAccount = x.IsControlAccount
-                })
-                .ToListAsync(ct);
+            int total;
+            List<ChartOfAccountListResponse> items;
+
+            if (unclassifiedOnly)
+            {
+                var semua = await proyeksi.ToListAsync(ct);
+                await IsiKlasifikasiAsync(semua, ct);
+
+                var belumLengkap = semua.Where(x => x.ClassificationGap.HasValue).ToList();
+                total = belumLengkap.Count;
+                items = belumLengkap.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+            }
+            else
+            {
+                total = await q.CountAsync(ct);
+                items = await proyeksi
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync(ct);
+                await IsiKlasifikasiAsync(items, ct);
+            }
 
             var hasil = new PagedResult<ChartOfAccountListResponse>
             {
@@ -153,22 +179,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                     x.AccountLevel,
                     x.IsPostable,
                     x.IsActive,
-                    x.ParentAccountId
+                    x.ParentAccountId,
+                    x.ReportClassification,
+                    x.CurrentAssetCategory
                 })
                 .ToListAsync(ct);
 
-            var simpul = semua.ToDictionary(
+            var sumberKlasifikasi = semua.ToDictionary(
                 x => x.Id,
-                x => new ChartOfAccountTreeResponse
+                x => new AccChartOfAccountClassification.AkunKlasifikasi
                 {
                     Id = x.Id,
+                    ParentAccountId = x.ParentAccountId,
                     AccountCode = x.AccountCode,
                     AccountName = x.AccountName,
                     AccountType = x.AccountType,
-                    NormalBalance = x.NormalBalance,
-                    AccountLevel = x.AccountLevel,
                     IsPostable = x.IsPostable,
-                    IsActive = x.IsActive
+                    ReportClassification = x.ReportClassification,
+                    CurrentAssetCategory = x.CurrentAssetCategory
+                });
+
+            var efektif = AccChartOfAccountClassification.Hitung(sumberKlasifikasi.Values);
+
+            var simpul = semua.ToDictionary(
+                x => x.Id,
+                x =>
+                {
+                    var node = new ChartOfAccountTreeResponse
+                    {
+                        Id = x.Id,
+                        AccountCode = x.AccountCode,
+                        AccountName = x.AccountName,
+                        AccountType = x.AccountType,
+                        NormalBalance = x.NormalBalance,
+                        AccountLevel = x.AccountLevel,
+                        IsPostable = x.IsPostable,
+                        IsActive = x.IsActive
+                    };
+
+                    IsiKlasifikasiPohon(node, sumberKlasifikasi[x.Id], efektif.GetValueOrDefault(x.Id));
+                    return node;
                 });
 
             var akar = new List<ChartOfAccountTreeResponse>();
@@ -255,8 +305,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
 
             var kode = request.AccountCode?.Trim() ?? string.Empty;
             var nama = request.AccountName?.Trim() ?? string.Empty;
+            var kodeOtomatis = kode.Length == 0;
 
-            var dasar = PeriksaIsianDasar<ChartOfAccountDetailResponse>(kode, nama, request.AccountLevel);
+            var dasar = PeriksaIsianDasar<ChartOfAccountDetailResponse>(
+                kode, nama, request.AccountLevel, kodeBolehKosong: true);
             if (dasar is not null) return dasar;
 
             var badanHukumAda = await _db.Set<MstLegalEntity>()
@@ -268,12 +320,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                     StatusCodes.Status400BadRequest, "Badan hukum tidak ditemukan.");
             }
 
-            var kodeTerpakai = await _db.Set<AccChartOfAccount>()
-                .AnyAsync(x => !x.IsDelete
-                               && x.LegalEntityId == request.LegalEntityId
-                               && x.AccountCode == kode, ct);
+            if (!kodeOtomatis)
+            {
+                var kodeTerpakai = await _db.Set<AccChartOfAccount>()
+                    .AnyAsync(x => !x.IsDelete
+                                   && x.LegalEntityId == request.LegalEntityId
+                                   && x.AccountCode == kode, ct);
 
-            if (kodeTerpakai) return KodeKembar<ChartOfAccountDetailResponse>(kode);
+                if (kodeTerpakai) return KodeKembar<ChartOfAccountDetailResponse>(kode);
+            }
 
             var induk = await PeriksaIndukAsync<ChartOfAccountDetailResponse>(
                 request.ParentAccountId, request.LegalEntityId, idSaatIni: null, ct);
@@ -293,41 +348,131 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 }
             }
 
+            var jenis = TentukanJenis<ChartOfAccountDetailResponse>(induk.Akun, request.AccountType);
+            if (jenis.Gagal is not null) return jenis.Gagal;
+
             var tingkat = PeriksaTingkatTerhadapInduk<ChartOfAccountDetailResponse>(
                 induk.Akun, request.AccountLevel, kedalamanTurunan: 0);
             if (tingkat is not null) return tingkat;
 
-            if (induk.Akun is not null)
-                JadikanIndukTanpaTransaksi(induk.Akun, actorUserId);
+            var isianKlasifikasi = PeriksaIsianKlasifikasi<ChartOfAccountDetailResponse>(
+                jenis.Jenis, request.Classification);
+            if (isianKlasifikasi is not null) return isianKlasifikasi;
 
-            var akun = new AccChartOfAccount
+            var idBaru = Guid.NewGuid();
+
+            var transaksi = _db.Database.CurrentTransaction is null
+                ? await _db.Database.BeginTransactionAsync(ct)
+                : null;
+
+            AccChartOfAccount? akun = null;
+
+            try
             {
-                Id = Guid.NewGuid(),
-                LegalEntityId = request.LegalEntityId,
-                AccountCode = kode,
-                AccountName = nama,
-                AccountType = request.AccountType,
-                NormalBalance = request.NormalBalance,
-                ParentAccountId = request.ParentAccountId,
-                AccountLevel = request.AccountLevel,
-                IsPostable = request.IsPostable,
-                IsControlAccount = request.IsControlAccount,
-                Description = request.Description?.Trim(),
-                EffectiveStartDate = request.EffectiveStartDate,
-                IsActive = true,
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = actorUserId
-            };
+                if (kodeOtomatis)
+                {
+                    await KunciPenomoranAsync(request.LegalEntityId, induk.Akun, jenis.Jenis, ct);
 
-            // Akun baru belum punya turunan, sehingga aturan "akun induk tidak menerima
-            // transaksi" tidak dapat dilanggar di sini. Ia baru menggigit saat akun ini
-            // kelak diberi anak, dan itu dijaga pada CreateAsync anak tersebut.
-            _db.Set<AccChartOfAccount>().Add(akun);
-            await _db.SaveChangesAsync(ct);
+                    var usulan = await SusunKodeAsync(request.LegalEntityId, induk.Akun, jenis.Jenis, ct);
+
+                    if (usulan.Galat is not null)
+                    {
+                        if (transaksi is not null) await transaksi.RollbackAsync(ct);
+
+                        return AccountingServiceResult<ChartOfAccountDetailResponse>.Fail(
+                            StatusCodes.Status409Conflict, usulan.Galat);
+                    }
+
+                    kode = usulan.Kode!;
+                }
+
+                if (request.Classification is not null)
+                {
+                    PerubahanKlasifikasiTerakhir = new PerubahanKlasifikasi
+                    {
+                        AccountId = idBaru,
+                        AccountCode = kode,
+                        ReportClassificationAfter = request.Classification.ReportClassification,
+                        CurrentAssetCategoryAfter = request.Classification.CurrentAssetCategory
+                    };
+
+                    await KunciKlasifikasiAsync(request.LegalEntityId, ct);
+
+                    var konsisten = await PeriksaKonsistensiKlasifikasiAsync<ChartOfAccountDetailResponse>(
+                        request.LegalEntityId,
+                        new AccChartOfAccountClassification.AkunKlasifikasi
+                        {
+                            Id = idBaru,
+                            ParentAccountId = request.ParentAccountId,
+                            AccountCode = kode,
+                            AccountName = nama,
+                            AccountType = jenis.Jenis,
+                            IsPostable = request.IsPostable,
+                            ReportClassification = request.Classification.ReportClassification,
+                            CurrentAssetCategory = request.Classification.CurrentAssetCategory
+                        },
+                        ct);
+
+                    if (konsisten is not null)
+                    {
+                        if (transaksi is not null) await transaksi.RollbackAsync(ct);
+                        return konsisten;
+                    }
+                }
+
+                if (induk.Akun is not null)
+                    JadikanIndukTanpaTransaksi(induk.Akun, actorUserId);
+
+                akun = new AccChartOfAccount
+                {
+                    Id = idBaru,
+                    LegalEntityId = request.LegalEntityId,
+                    AccountCode = kode,
+                    AccountName = nama,
+                    AccountType = jenis.Jenis,
+                    NormalBalance = request.NormalBalance,
+                    ParentAccountId = request.ParentAccountId,
+                    AccountLevel = request.AccountLevel,
+                    IsPostable = request.IsPostable,
+                    IsControlAccount = request.IsControlAccount,
+                    ReportClassification = request.Classification?.ReportClassification,
+                    CurrentAssetCategory = request.Classification?.CurrentAssetCategory,
+                    Description = request.Description?.Trim(),
+                    EffectiveStartDate = request.EffectiveStartDate,
+                    IsActive = true,
+                    CreateDateTime = DateTime.UtcNow,
+                    CreateBy = actorUserId
+                };
+
+                // Akun baru belum punya turunan, sehingga aturan "akun induk tidak menerima
+                // transaksi" tidak dapat dilanggar di sini. Ia baru menggigit saat akun ini
+                // kelak diberi anak, dan itu dijaga pada CreateAsync anak tersebut.
+                _db.Set<AccChartOfAccount>().Add(akun);
+                await _db.SaveChangesAsync(ct);
+
+                if (transaksi is not null) await transaksi.CommitAsync(ct);
+            }
+            catch (DbUpdateException ex) when (MelanggarIndexKodeAkun(ex))
+            {
+                if (transaksi is not null) await transaksi.RollbackAsync(ct);
+
+                if (akun is not null) _db.Entry(akun).State = EntityState.Detached;
+                if (induk.Akun is not null) _db.Entry(induk.Akun).State = EntityState.Detached;
+
+                return kodeOtomatis
+                    ? AccountingServiceResult<ChartOfAccountDetailResponse>.Fail(
+                        StatusCodes.Status409Conflict,
+                        $"Kode {kode} baru saja dipakai penyimpanan lain. Simpan ulang untuk mendapat kode berikutnya.")
+                    : KodeKembar<ChartOfAccountDetailResponse>(kode);
+            }
+            finally
+            {
+                if (transaksi is not null) await transaksi.DisposeAsync();
+            }
 
             return AccountingServiceResult<ChartOfAccountDetailResponse>.Ok(
                 await PetakanRincianAsync(akun, ct),
-                "Akun berhasil ditambahkan.",
+                $"Akun berhasil ditambahkan dengan kode {akun.AccountCode}.",
                 StatusCodes.Status201Created);
         }
 
@@ -379,6 +524,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
 
             var indukBerubah = request.ParentAccountId != akun.ParentAccountId;
 
+            if (indukBerubah && induk.Akun is not null && induk.Akun.AccountType != akun.AccountType)
+                return JenisBedaInduk<ChartOfAccountDetailResponse>(induk.Akun);
+
             if (indukBerubah && induk.Akun is not null
                 && await PunyaBarisJurnalDisahkanAsync(induk.Akun.Id, ct))
             {
@@ -407,6 +555,60 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                         StatusCodes.Status409Conflict,
                         "Akun induk tidak dapat menerima transaksi. Gunakan akun turunannya.");
                 }
+            }
+
+            var klasifikasiDikirim = request.Classification is not null;
+
+            var isianKlasifikasi = PeriksaIsianKlasifikasi<ChartOfAccountDetailResponse>(
+                akun.AccountType, request.Classification);
+            if (isianKlasifikasi is not null) return isianKlasifikasi;
+
+            var klasifikasiBaru = klasifikasiDikirim
+                ? request.Classification!.ReportClassification
+                : akun.ReportClassification;
+            var subKlasifikasiBaru = klasifikasiDikirim
+                ? request.Classification!.CurrentAssetCategory
+                : akun.CurrentAssetCategory;
+
+            if (klasifikasiDikirim)
+            {
+                PerubahanKlasifikasiTerakhir = new PerubahanKlasifikasi
+                {
+                    AccountId = akun.Id,
+                    AccountCode = kode,
+                    ReportClassificationBefore = akun.ReportClassification,
+                    CurrentAssetCategoryBefore = akun.CurrentAssetCategory,
+                    ReportClassificationAfter = klasifikasiBaru,
+                    CurrentAssetCategoryAfter = subKlasifikasiBaru
+                };
+            }
+
+            var periksaKlasifikasi = klasifikasiDikirim || indukBerubah;
+
+            await using var transaksi = periksaKlasifikasi && _db.Database.CurrentTransaction is null
+                ? await _db.Database.BeginTransactionAsync(ct)
+                : null;
+
+            if (periksaKlasifikasi)
+            {
+                await KunciKlasifikasiAsync(akun.LegalEntityId, ct);
+
+                var konsisten = await PeriksaKonsistensiKlasifikasiAsync<ChartOfAccountDetailResponse>(
+                    akun.LegalEntityId,
+                    new AccChartOfAccountClassification.AkunKlasifikasi
+                    {
+                        Id = akun.Id,
+                        ParentAccountId = request.ParentAccountId,
+                        AccountCode = kode,
+                        AccountName = nama,
+                        AccountType = akun.AccountType,
+                        IsPostable = request.IsPostable,
+                        ReportClassification = klasifikasiBaru,
+                        CurrentAssetCategory = subKlasifikasiBaru
+                    },
+                    ct);
+
+                if (konsisten is not null) return konsisten;
             }
 
             var selisihTingkat = request.AccountLevel - akun.AccountLevel;
@@ -438,10 +640,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
             akun.IsControlAccount = request.IsControlAccount ?? akun.IsControlAccount;
             akun.Description = request.Description?.Trim();
             akun.EffectiveStartDate = request.EffectiveStartDate;
+            akun.ReportClassification = klasifikasiBaru;
+            akun.CurrentAssetCategory = subKlasifikasiBaru;
             akun.UpdateDateTime = DateTime.UtcNow;
             akun.UpdateBy = actorUserId;
 
             await _db.SaveChangesAsync(ct);
+
+            if (transaksi is not null) await transaksi.CommitAsync(ct);
 
             return AccountingServiceResult<ChartOfAccountDetailResponse>.Ok(
                 await PetakanRincianAsync(akun, ct), "Akun berhasil diperbarui.");
@@ -571,9 +777,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 $"Kode akun {kode} sudah dipakai pada badan hukum ini.");
 
         private static AccountingServiceResult<T>? PeriksaIsianDasar<T>(
-            string kode, string nama, int tingkat)
+            string kode, string nama, int tingkat, bool kodeBolehKosong = false)
         {
-            if (string.IsNullOrWhiteSpace(kode) || kode.Length > 20)
+            if (kodeBolehKosong && kode.Length > PanjangKodeMaksimum)
+            {
+                return AccountingServiceResult<T>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    $"Kode akun maksimal {PanjangKodeMaksimum} karakter.");
+            }
+
+            if (!kodeBolehKosong && (string.IsNullOrWhiteSpace(kode) || kode.Length > 20))
             {
                 return AccountingServiceResult<T>.Fail(
                     StatusCodes.Status400BadRequest,
@@ -738,7 +951,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                     .FirstOrDefaultAsync(ct)
                 : null;
 
-            return new ChartOfAccountDetailResponse
+            var rincian = new ChartOfAccountDetailResponse
             {
                 Id = akun.Id,
                 LegalEntityId = akun.LegalEntityId,
@@ -759,8 +972,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                     .AnyAsync(x => !x.IsDelete && x.ParentAccountId == akun.Id, ct),
                 HasPostedJournalLines = await PunyaBarisJurnalDisahkanAsync(akun.Id, ct),
                 RequiresCostCenter = akun.AccountType == AccountType.Expense,
-                CreateDateTime = akun.CreateDateTime
+                CreateDateTime = akun.CreateDateTime,
+                ReportClassification = akun.ReportClassification,
+                CurrentAssetCategory = akun.CurrentAssetCategory
             };
+
+            await IsiKlasifikasiAsync(new ChartOfAccountListResponse[] { rincian }, ct);
+
+            return rincian;
         }
     }
 }
