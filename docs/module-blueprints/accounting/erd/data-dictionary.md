@@ -755,3 +755,135 @@ atau nilainya kelak wajib memeriksa ulang laporan (`02-backend-architecture.md` 
 | `MstCostCenter` (HR) | `Id`, `LegalEntityId`, `CostCenterCode`, `CostCenterName`, `IsDelete` | Saringan dan label unit |
 
 `NormalBalance` sengaja **tidak** dipakai (`ACC-DEC-145`).
+
+## 21. Amendment ACC-FIN-001 Master COA — `AccChartOfAccount` status `Diperbarui` *(25 November 2026, **`approved`**, `GATE-DESAIN-1125`)*
+
+Dasar: `ACC-DEC-163`..`170`, `172`, `173`; `02-backend-architecture.md` bagian 26. Pemilik: Accounting —
+`MasterData/ChartOfAccount`. Model: `Areas/Corporate/AccountingManagement/MasterData/ChartOfAccount/Models/AccChartOfAccount.cs`.
+Migration: `AddChartOfAccountReportClassification` (dibuat Rizki sendiri; izin `OQ-167-1` diberikan 25 November 2026).
+
+### 21.1 Kolom baru
+
+| Kolom | Tipe | Wajib | Bawaan | Batas | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|---|:---:|---|
+| `ReportClassification` | `int?` (`integer NULL`) | Tidak | `NULL` — **tanpa** `HasDefaultValue` | Enum `AccountReportClassification`: `1` Lancar, `2` Tidak Lancar | Tidak | — | — | Tidak | Klasifikasi milik akun ini. `NULL` = ikut leluhur terdekat. Hanya boleh terisi pada akun Aset dan Liabilitas (`VAL-COA-08`). Tidak diisi otomatis saat migration maupun saat rilis (`ACC-DEC-168`) |
+| `CurrentAssetCategory` | `int?` (`integer NULL`) | Tidak | `NULL` — tanpa `HasDefaultValue` | Enum `CurrentAssetCategory`: `1` Kas dan Setara Kas, `2` Investasi Jangka Pendek, `3` Piutang, `4` Persediaan, `5` Aset Lancar Lainnya | Tidak | — | — | Tidak | Sub-klasifikasi aset lancar milik akun ini. `NULL` = ikut leluhur. Hanya pada akun Aset yang klasifikasi efektifnya Lancar (`VAL-COA-09`, `10`) |
+
+Tidak ada index baru: kedua kolom hanya dibaca bersama seluruh akun satu badan hukum, tidak pernah
+dipakai sebagai saringan query database.
+
+**Audit dan concurrency.** Perubahan memakai kolom warisan `UpdateBy`/`UpdateDateTime` dan log
+`ChartOfAccount.Classification` (nilai lama → baru). Tidak ada kolom versi; perubahan bersamaan
+dijaga kunci `ACC_COA_KLASIFIKASI_{LegalEntityId}` (bagian 26.8 arsitektur backend).
+
+### 21.2 Kolom lama yang aturannya berubah
+
+| Kolom | Aturan lama | Aturan baru |
+|---|---|---|
+| `AccountCode` | Wajib diisi petugas; unik per badan hukum; ≤ 20 | Pada tambah lewat layar **disusun backend** (`ACC-DEC-163`, `164`); jalur impor boleh mengisi sendiri (`ACC-DEC-170`). Unik per badan hukum dan ≤ 20 tetap. Bentuk dan tipe kolom tidak berubah |
+| `AccountType` | Dipilih petugas, bebas terhadap induk | Akun berinduk **wajib** sama dengan induknya dan diwarisi (`ACC-DEC-166`). Bentuk kolom tidak berubah |
+| `ParentAccountId` | FK ke akun sebadan hukum, tanpa lingkaran | + induk baru saat Ubah Akun harus berjenis sama (`VAL-COA-05`); + tidak boleh mematahkan sub-klasifikasi turunan (`VAL-COA-11`) |
+
+### 21.3 Nilai yang dihitung, tidak disimpan
+
+| Nilai | Dihitung oleh | Dipakai |
+|---|---|---|
+| Klasifikasi efektif, sub-klasifikasi efektif, akun sumbernya | `AccChartOfAccountClassification.Hitung` | Respons Bagan Akun, peringatan neraca, rasio 008-04 kelak |
+| Jenis celah (`ClassificationGapKind`) | `AccChartOfAccountClassification.Celah` | Saringan `UnclassifiedOnly`, `BalanceSheetResponse.ClassificationGaps` |
+
+Contoh isi baris sesudah klasifikasi DB dev diisi (data samaran untuk nama, struktur nyata):
+
+| `AccountCode` | `AccountType` | `ReportClassification` | `CurrentAssetCategory` | Efektif |
+|---|---:|---|---|---|
+| 1-1000 | 1 | `1` | `1` | Lancar · Kas dan Setara Kas |
+| 1-1004 | 1 | `NULL` | `NULL` | Lancar · Kas dan Setara Kas (dari 1-1000) |
+| 1-4002 | 1 | `NULL` | `NULL` | Tidak Lancar (dari 1-4000) |
+| 3-3001 | 3 | `NULL` | `NULL` | Tidak berlaku — Ekuitas |
+
+
+---
+
+## 22. Amendment ACC-FIN-008-04 Rasio keuangan — nol tabel dan kolom berubah *(26 November 2026, **`approved`**, `GATE-DESAIN-1126`)*
+
+Dasar: `ACC-DEC-174`..`184`; `02-backend-architecture.md` bagian 27. **Tidak ada tabel atau kolom
+yang ditambah maupun diubah, dan tidak ada migration.** Rasio dihitung setiap permintaan dan tidak
+disimpan.
+
+### 22.1 Kolom yang dibaca
+
+| Tabel | Status | Kolom yang dipakai aturan rasio | Model |
+|---|---|---|---|
+| `AccChartOfAccount` | Sudah ada | `Id`, `LegalEntityId`, `ParentAccountId`, `AccountCode`, `AccountName`, `AccountType`, `IsPostable`, `ReportClassification`, `CurrentAssetCategory`, `IsDelete` | `MasterData/ChartOfAccount/Models/AccChartOfAccount.cs` |
+| `AccJournal` | Sudah ada | `Id`, `LegalEntityId`, `Status` (`Posted`), `AccountingDate`, `AccountingPeriodId`, `JournalTypeId`, `ReversalOfJournalId` | `JournalManagement/Models/AccJournal.cs` |
+| `AccJournalLine` | Sudah ada | `JournalId`, `AccountId`, `DebitAmount`, `CreditAmount` | `JournalManagement/Models/AccJournalLine.cs` |
+| `AccAccountingPeriod` | Sudah ada | `LegalEntityId`, `PeriodCode`, `FiscalYear`, `PeriodMonth`, `StartDate`, `EndDate` | `AccountingPeriod/Models/AccAccountingPeriod.cs` |
+| `AccJournalType` | Sudah ada | `Id`, kode `JT` | `MasterData/JournalType/Models/AccJournalType.cs` |
+
+### 22.2 Nilai yang dihitung, tidak disimpan
+
+| Nilai | Sumber | Sensitif |
+|---|---|:---:|
+| Total Aset, Liabilitas, Ekuitas per tanggal | Baris jurnal `Posted` sampai tanggal itu + laba belum dipindah | Tidak — angka laporan keuangan, tetapi **tidak** masuk log |
+| Aset Lancar, Kas dan Setara Kas, Investasi Jangka Pendek, Piutang, Liabilitas Lancar | Sama, disaring klasifikasi efektif (`AccChartOfAccountClassification`) | Tidak — tidak masuk log |
+| Laba Bersih YTD, Total Pendapatan YTD | Baris jurnal `Posted` tanpa `JT` dan pembaliknya | Tidak — tidak masuk log |
+| Hasil dan status delapan rasio | Rumus `02-backend-architecture.md` bagian 27.5 | Tidak — hanya jumlah status yang masuk log |
+
+
+---
+
+## 23. Amendment ACC-FIN-013 Anggaran — tiga tabel `Baru` *(26 November 2026, **`draft`**)*
+
+Dasar: `ACC-DEC-185`..`199`; `02-backend-architecture.md` bagian 28. Pemilik: Accounting — `Budget`.
+Migration: `AddAccountingBudget` (dibuat Rizki sendiri; izin terpisah). Kolom warisan `IdentityModel`
+(`CreateDateTime`, `CreateBy`, `UpdateDateTime`, `UpdateBy`, `DeleteDateTime`, `DeleteBy`, `CancelDateTime`,
+`CancelBy`, `IsCancel`, `IsDelete`) berlaku pada ketiganya dan tidak diulang. Tidak ada kolom sensitif
+(data pasien/pegawai); nominal tetap **tidak** masuk log (`ACC-DEC-155`).
+
+### 23.1 `AccBudget` — satu versi anggaran
+
+| Kolom | Tipe | Wajib | Bawaan | Batas / validasi | Index / relasi | Hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | — | PK | — | Tidak | — |
+| `LegalEntityId` | `uuid` | Ya | — | Penjaga badan hukum | FK `MstLegalEntity` | `Restrict` | Tidak | — |
+| `FiscalYear` | `integer` | Ya | — | Tahun buku dengan 12 periode | Bagian dari tiga unique | — | Tidak | Contoh `2027` |
+| `VersionNo` | `integer` | Ya | — | ≥ 1; v1 dari Buat, N+1 dari Revisi | Unique `(LegalEntityId, FiscalYear, VersionNo)` bersaring `IsDelete = false` | — | Tidak | — |
+| `BudgetStatus` | `integer` | Ya | `1` | Enum `BudgetStatus` | Index; unique `(LegalEntityId, FiscalYear)` bersaring status `3` (satu Disetujui) dan bersaring status `1,2,4` (satu dalam proses), keduanya `IsDelete = false` | — | Tidak | `HasConversion<int>()` |
+| `Description` | `varchar(500)` | Tidak | `NULL` | ≤ 500 | — | — | Tidak | Keterangan bebas |
+| `SourceBudgetId` | `uuid` | Tidak | `NULL` | Versi Disetujui asal revisi | FK `AccBudget` | `Restrict` | Tidak | Kosong pada v1 |
+| `SubmittedBy`, `SubmittedAt` | `uuid`, `timestamp` | Tidak | `NULL` | — | — | — | Tidak | Pengajuan terakhir |
+| `ApprovedBy`, `ApprovedAt` | `uuid`, `timestamp` | Tidak | `NULL` | ≠ `SubmittedBy` | — | — | Tidak | — |
+| `RejectedBy`, `RejectedAt` | `uuid`, `timestamp` | Tidak | `NULL` | ≠ `SubmittedBy` | — | — | Tidak | Penolakan terakhir |
+| `RejectionReason` | `varchar(500)` | Tidak | `NULL` | 1–500 saat Tolak | — | — | Tidak | — |
+| `SupersededAt` | `timestamp` | Tidak | `NULL` | — | — | — | Tidak | Saat versi berikutnya disetujui |
+
+### 23.2 `AccBudgetLine` — akun × unit biaya × dua belas bulan
+
+| Kolom | Tipe | Wajib | Bawaan | Batas / validasi | Index / relasi | Hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | — | PK | — | Tidak | — |
+| `BudgetId` | `uuid` | Ya | — | — | FK `AccBudget`; unique `(BudgetId, AccountId, CostCenterId)` bersaring `IsDelete = false` | `Cascade` | Tidak | Baris milik aggregate |
+| `AccountId` | `uuid` | Ya | — | `VAL-BGT-05` | FK `AccChartOfAccount`; index | `Restrict` | Tidak | — |
+| `CostCenterId` | `uuid` | Untuk Beban | `NULL` | `VAL-BGT-06` | FK `MstCostCenter`; index | `Restrict` | Tidak | Kosong hanya pada Pendapatan |
+| `Amount01` .. `Amount12` | `numeric(18,2)` | Ya | `0` | ≥ 0, `VAL-BGT-07` | — | — | Tidak | Januari..Desember, arah saldo normal akun |
+
+Tanpa kolom total: dihitung saat dibaca. Baris diganti utuh (hapus fisik + tulis ulang) selama versi
+Draft/Ditolak (`ACC-DEC-199` butir 3).
+
+### 23.3 `AccBudgetApproval` — riwayat aksi
+
+| Kolom | Tipe | Wajib | Bawaan | Batas | Index / relasi | Hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | — | PK | — | Tidak | — |
+| `BudgetId` | `uuid` | Ya | — | — | FK `AccBudget`; index | `Cascade` | Tidak | — |
+| `ApprovalAction` | `integer` | Ya | — | Enum `BudgetApprovalAction` | — | — | Tidak | — |
+| `ActionBy` | `uuid` | Ya | — | Pengguna login | — | — | Tidak | — |
+| `ActionAt` | `timestamp` | Ya | `DateTime.UtcNow` | — | — | — | Tidak | — |
+| `Reason` | `varchar(500)` | Tidak | `NULL` | Wajib pada Tolak | — | — | Tidak | — |
+
+### 23.4 Tabel yang dibaca
+
+| Tabel | Status | Kolom yang dipakai | Model |
+|---|---|---|---|
+| `AccChartOfAccount` | Sudah ada | `Id`, `LegalEntityId`, `AccountCode`, `AccountName`, `AccountType`, `IsPostable`, `IsActive`, `IsDelete` | `MasterData/ChartOfAccount/Models/AccChartOfAccount.cs` |
+| `AccAccountingPeriod` | Sudah ada | `LegalEntityId`, `FiscalYear`, `PeriodMonth`, `PeriodStatus`, `IsDelete` | `AccountingPeriod/Models/AccAccountingPeriod.cs` |
+| `MstCostCenter` | Sudah ada (HR) | `Id`, `LegalEntityId`, `CostCenterCode`, `CostCenterName`, `IsActive`, `IsDelete` | `HumanResource/MasterData/Organization/Models/MstCostCenter.cs` |

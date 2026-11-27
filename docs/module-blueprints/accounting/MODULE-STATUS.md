@@ -320,6 +320,21 @@ selesai sesuai lingkup yang sudah dibentuk.
 bernilai `0`. Berkas impor wajib mengirim jenis akun `1`..`5` dan saldo normal `1` (Debit) atau `2`
 (Kredit); berkas `gl_coa_all_request_body_swagger.json` yang ada tidak dipakai.
 
+### TITIK LANJUT — 26 November 2026: Amendment ACC-FIN-001 — `FIN-2` dan `FIN-3` selesai, berikutnya `FIN-4`
+
+| Hal | Keadaan |
+|---|---|
+| Dasar | `ACC-DEC-158`..`173` approved Rizki 25 November 2026 (`172`/`173` lewat `GATE-DESAIN-1125`) |
+| Desain | Manifest revisi 19 bagian *Amendment ACC-FIN-001 Master COA*: backend bagian 26, frontend bagian 16, PRD bagian 31 (`FR-FIN-050`..`058`), `ACC-API-0.18`, `ACC-VALIDATION-0.13`, `ACC-PERMISSION-0.9`, kamus data bagian 21, `flowcharts/07-master-coa.md`, uji `F25`..`F41` |
+| Dampak data | **Satu migration** `AddChartOfAccountReportClassification` (dua kolom nullable, tanpa pengisian data), dibuat Rizki sendiri sesudah izin `OQ-167-1`; nol tabel, hak, controller, dan baris `Program.cs` baru |
+| Laba ditahan (`ACC-DEC-158`) | Koreksi konfigurasi dan `JP` atas `JT/2020/12/00001` dikerjakan Rizki lewat layar (prosedur di decision log) |
+| Approval | **`GATE-DESAIN-1125`** Rizki, 25 November 2026 (termasuk `172`/`173`); izin migration `OQ-167-1` diberikan hari yang sama |
+| Roadmap | Revisi 2 `APPROVED`: `BE/FE-ACC-FIN-001-01` (`FIN-2`), `001-02` (`FIN-3`, migration oleh Rizki), `001-03` (`FIN-4`) |
+| Kemajuan | ✅ `BE/FE-ACC-FIN-001-01` (kode otomatis, jenis warisan) dan ✅ `BE/FE-ACC-FIN-001-02` (klasifikasi; migration `20261125091331_AddChartOfAccountReportClassification` diterapkan sesudah koreksi sapuan HR). Bukti di laporan task dan `testing/acceptance-test-matrix.md` bagian 5 |
+| Berikutnya | `build-module-backend BE-ACC-FIN-001-03` (peringatan klasifikasi di `GET /general-ledger/balance-sheet`) → `FE-ACC-FIN-001-03`; sesudahnya `design-business-module` 008-04 rasio |
+| Belum diverifikasi | `npm run build` sesudah `FE-ACC-FIN-001-02` |
+| Commit | 26 November 2026 — lihat `git log` (tanpa push; merge/push oleh Rizki) |
+
 ### TITIK LANJUT — 24 November 2026: finishing ACC-FIN-005 + 008 dirancang (`draft`)
 
 Rizki menempel MASTER PRD finishing `ACC-FIN-PRD-001` (29 kebutuhan, 7 wave). Development selesai

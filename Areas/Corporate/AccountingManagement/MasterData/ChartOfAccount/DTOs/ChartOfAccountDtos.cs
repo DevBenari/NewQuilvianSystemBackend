@@ -26,6 +26,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         public string? SortBy { get; set; }
 
         public string? SortDirection { get; set; }
+
+        public bool? UnclassifiedOnly { get; set; }
     }
 
     public class ChartOfAccountListResponse
@@ -57,10 +59,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         /// <see cref="ChartOfAccountDetailResponse"/>.
         /// </summary>
         public bool IsControlAccount { get; set; }
+
+        public AccountReportClassification? ReportClassification { get; set; }
+
+        public CurrentAssetCategory? CurrentAssetCategory { get; set; }
+
+        public AccountReportClassification? EffectiveReportClassification { get; set; }
+
+        public CurrentAssetCategory? EffectiveCurrentAssetCategory { get; set; }
+
+        public ClassificationGapKind? ClassificationGap { get; set; }
     }
 
     public class ChartOfAccountDetailResponse : ChartOfAccountListResponse
     {
+        public Guid? ReportClassificationSourceAccountId { get; set; }
+
+        public string? ReportClassificationSourceAccountCode { get; set; }
+
+        public Guid? CurrentAssetCategorySourceAccountId { get; set; }
+
+        public string? CurrentAssetCategorySourceAccountCode { get; set; }
+
         public string? ParentAccountName { get; set; }
 
         public string? Description { get; set; }
@@ -106,6 +126,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
 
         public bool IsActive { get; set; }
 
+        public AccountReportClassification? ReportClassification { get; set; }
+
+        public CurrentAssetCategory? CurrentAssetCategory { get; set; }
+
+        public AccountReportClassification? EffectiveReportClassification { get; set; }
+
+        public CurrentAssetCategory? EffectiveCurrentAssetCategory { get; set; }
+
+        public ClassificationGapKind? ClassificationGap { get; set; }
+
         public List<ChartOfAccountTreeResponse> Children { get; set; } = new();
     }
 
@@ -140,16 +170,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         [Required]
         public Guid LegalEntityId { get; set; }
 
-        [Required]
         [MaxLength(20)]
-        public string AccountCode { get; set; } = string.Empty;
+        public string? AccountCode { get; set; }
 
         [Required]
         [MaxLength(200)]
         public string AccountName { get; set; } = string.Empty;
 
-        [Required]
-        public AccountType AccountType { get; set; }
+        public AccountType? AccountType { get; set; }
 
         /// <summary>
         /// Berdiri sendiri, tidak diturunkan dari <see cref="AccountType"/>, supaya akun kontra
@@ -174,6 +202,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         public string? Description { get; set; }
 
         public DateTime? EffectiveStartDate { get; set; }
+
+        public ChartOfAccountClassificationRequest? Classification { get; set; }
     }
 
     /// <summary>
@@ -221,11 +251,52 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         public string? Description { get; set; }
 
         public DateTime? EffectiveStartDate { get; set; }
+
+        public ChartOfAccountClassificationRequest? Classification { get; set; }
+    }
+
+    public class ChartOfAccountClassificationRequest
+    {
+        public AccountReportClassification? ReportClassification { get; set; }
+
+        public CurrentAssetCategory? CurrentAssetCategory { get; set; }
     }
 
     public class DeactivateChartOfAccountRequest
     {
         [MaxLength(500)]
         public string? Reason { get; set; }
+    }
+
+    public class ChartOfAccountNextCodeQuery
+    {
+        public Guid LegalEntityId { get; set; }
+
+        public Guid? ParentAccountId { get; set; }
+
+        public AccountType? AccountType { get; set; }
+    }
+
+    public class ChartOfAccountNextCodeResponse
+    {
+        public string AccountCode { get; set; } = string.Empty;
+
+        public int AccountLevel { get; set; }
+
+        public AccountType AccountType { get; set; }
+
+        public Guid? ParentAccountId { get; set; }
+
+        public string? ParentAccountCode { get; set; }
+
+        public string? ParentAccountName { get; set; }
+
+        public NormalBalance? SuggestedNormalBalance { get; set; }
+
+        public AccountReportClassification? InheritedReportClassification { get; set; }
+
+        public CurrentAssetCategory? InheritedCurrentAssetCategory { get; set; }
+
+        public string? InheritedFromAccountCode { get; set; }
     }
 }
