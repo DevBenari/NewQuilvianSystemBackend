@@ -196,17 +196,22 @@ satu.
 | ID | Pertanyaan | Kebutuhan | Yang harus memutuskan | Mengapa tidak dapat diputuskan agent |
 | --- | --- | --- | --- | --- |
 | `C-01` | Jasa dokter dibayar lewat **Payroll** (jalur yang sudah ada) atau lewat **utang Finance** (`FinMedicalServicePayable`)? Atau dipisah: dokter pegawai lewat Payroll, dokter mitra lewat Finance? | 009, 010, 011, 012 | Owner Medical Fee, Yasmin (Finance), owner Payroll, Rizki | Menentukan pemilik uang dan mesin pajak |
-| `C-02` | Anggaran Accounting (COA × unit biaya × bulan) **menggantikan**, **melengkapi**, atau **dipetakan ke** `PrcBudget` Pengadaan? | 013–017 | Rizki + owner Pengadaan | Dua sumber anggaran tanpa peta membuat realisasi tidak dapat direkonsiliasi |
-| `C-03` | "Grup COA" itu apa: akun induk tingkat tertentu (misalnya tingkat 1–2), atau pengelompokan bebas di luar hierarki? | 001, 002 | Rizki / pemilik proses akuntansi | Menentukan bentuk tabel |
+| `C-02` — **tertutup arahnya 25 Nov 2026 → `ACC-DEC-159`; ratifikasi Procurement `OQ-159-1` terbuka** | Anggaran Accounting (COA × unit biaya × bulan) **menggantikan**, **melengkapi**, atau **dipetakan ke** `PrcBudget` Pengadaan? | 013–017 | Rizki + owner Pengadaan | Dua sumber anggaran tanpa peta membuat realisasi tidak dapat direkonsiliasi |
+| `C-03` — **tertutup 25 Nov 2026 → `ACC-DEC-165`** | "Grup COA" itu apa: akun induk tingkat tertentu (misalnya tingkat 1–2), atau pengelompokan bebas di luar hierarki? | 001, 002 | Rizki / pemilik proses akuntansi | Menentukan bentuk tabel |
 | `C-04` | Approval bertingkat memperluas `AccJournalApproval` atau menumpang mesin workflow HR (`TrxWorkflowInstance`) yang sudah dipakai Pengadaan? | 004, 028 | Rizki (+ owner Workflow bila menumpang) | Pilihan arsitektur dengan dampak lintas modul |
-| `C-05` | Bolehkah jenis akun anak berbeda dari induknya? | 001 | Pemilik proses akuntansi | Aturan bisnis baru; bagan akun sah dari ekspor `gl_coa` belum diperiksa terhadap aturan ini |
+| `C-05` — **tertutup 25 Nov 2026 → `ACC-DEC-166`** | Bolehkah jenis akun anak berbeda dari induknya? | 001 | Pemilik proses akuntansi | Aturan bisnis baru; bagan akun sah dari ekspor `gl_coa` belum diperiksa terhadap aturan ini |
 | `C-06` | Subtask "Pilih Pasien" pada jurnal manual bertentangan dengan `ACC-DEC-056` (tidak menyimpan pengenal pasien). Tetap dilarang, atau dibuka untuk jurnal manual saja? | 006 | Rizki | Mengubah keputusan yang sudah disetujui |
 | `U-01` | Isi deskripsi dan subtask ClickUp 46 task belum dibaca — sesi ini tanpa konektor ClickUp | Semua | Rizki (ekspor atau tempel isinya) | Tidak ada akses |
 | `U-02` | Arti "KSO" pada laporan jasa dokter | 012 | Owner Medical Fee | Tidak ada jejak di source |
 | `U-03` | Apakah rumah sakit sasaran wajib SAKTI (satuan kerja pemerintah)? | 021 | Pemilik proses akuntansi | Bergantung status kelembagaan |
 | `U-04` | Proses opname persediaan Farmasi/Logistik dan apakah harga perolehan akan disimpan per batch | 018, 019, 020 | Owner Farmasi, owner Logistik | Di luar wewenang Accounting |
-| `U-05` | Pembeda aset lancar/tidak lancar untuk rasio likuiditas, dan daftar rasio yang diminta | 008 | Pemilik proses akuntansi | Tidak ada di COA |
+| `U-05` — **tertutup 25 Nov 2026 → `ACC-DEC-161`, `167`** | Pembeda aset lancar/tidak lancar untuk rasio likuiditas, dan daftar rasio yang diminta | 008 | Pemilik proses akuntansi | Tidak ada di COA |
 | `U-06` | Over budget: peringatan saja atau memblokir transaksi? | 017 | Pemilik proses akuntansi | Kebijakan |
+
+**Catatan 25 November 2026.** `U-07` (sumber data pajak; tercatat di decision log, bukan tabel di atas)
+tertutup arahnya → `ACC-DEC-160`, dengan `OQ-160-1` terbuka. Peta ini **tidak** diaudit ulang; fakta
+Master COA untuk ACC-FIN-001 diambil ulang dari source `0f67c5c2` dan DB dev 25 November 2026 (decision
+log pass 25 November). Rencana ACC-FIN-001: `roadmap/*-finishing.md` revisi 2.
 
 ## 7. Pemisahan fakta, inferensi, dan rekomendasi
 

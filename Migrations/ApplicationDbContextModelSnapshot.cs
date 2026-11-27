@@ -3462,6 +3462,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<int?>("CurrentAssetCategory")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
 
@@ -3508,6 +3511,9 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<Guid?>("ParentAccountId")
                         .HasColumnType("uuid");
+
+                    b.Property<int?>("ReportClassification")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");

@@ -1095,5 +1095,307 @@ Kartu backend dan frontend berpasangan, supaya uji cukup sekali dari layar.
 
 | ID | Pertanyaan | Memblokir? | Pemilik |
 |---|---|:---:|---|
-| `C-05` | Jenis akun anak berbeda dari induk | Tidak — aturan cadangan `ACC-DEC-146` butir 5 | Rizki + pemilik proses akuntansi |
+| `C-05` | Jenis akun anak berbeda dari induk — **tertutup 25 November 2026 → `ACC-DEC-166`** (wajib sama, diwarisi); aturan cadangan tetap sebagai pengaman data lama | Tidak — aturan cadangan `ACC-DEC-146` butir 5 | Rizki + pemilik proses akuntansi |
 | `U-01` | Isi ClickUp `z8m132yv7x`, `z8m132yv84` | Tidak | Rizki |
+
+
+## 31. Amendment ACC-FIN-001 — Master COA: kode otomatis, jenis warisan, klasifikasi laporan *(25 November 2026, **`approved`** Rizki, `GATE-DESAIN-1125`)*
+
+Dasar: `ACC-DEC-162`..`170`, `172`, `173` (`172`/`173` disahkan bersama `GATE-DESAIN-1125`); urutan
+`ACC-DEC-171` butir 2; `02-backend-architecture.md` bagian 26; `03-frontend-architecture.md` bagian 16;
+kontrak `ACC-API-0.18`, `ACC-VALIDATION-0.13`, `ACC-PERMISSION-0.9`; `erd/data-dictionary.md`
+bagian 21; `flowcharts/07-master-coa.md`; `testing/acceptance-test-matrix.md` bagian 5.
+
+**Gerbang kelengkapan requirement.** Tidak dijalankan ulang sebagai berkas `evidence` tersendiri.
+Alasannya: amendment ini berada di dalam kemampuan ACC-FIN-001 yang sudah dipetakan
+(`finishing/01-capability-map-finishing.md`, `Extend`), seluruh keputusan bisnisnya `approved` Rizki
+25 November 2026 dengan fakta source dan DB dev yang diambil ulang hari itu, kemampuannya master data
+internal Accounting tanpa dampak billing atau keselamatan klinis, dan tidak ada open question
+berpenanda `BLOCKING` selain izin migration (`OQ-167-1`, penanda `IMPLEMENTATION`). Arsitektur domain:
+`DOMAIN_ARCHITECTURE_NOT_RUN` dengan alasan yang sama.
+
+### 31.1 Batas rilis amendment
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Admin akuntansi membuka Tambah Akun atau Perbarui Akun; atau petugas membuka Neraca |
+| **Titik akhir** | Akun tersimpan dengan kode yang disusun backend dan jenis yang sama dengan induknya; klasifikasi laporan setiap akun Aset dan Liabilitas yang bersaldo dapat dibaca, diwariskan, dan dilengkapi; neraca memberi tahu akun yang belum lengkap |
+| **Bukan bagian amendment** | Rasio keuangan (008-04, memakai hasil amendment ini); penguncian grup per periode (ACC-FIN-002); impor bagan akun resmi; neraca terkelompok Lancar/Tidak Lancar (`OQ-173-1`) |
+
+### 31.2 Kemampuan `MUST HAVE`
+
+| ID | Kemampuan | Asal kemampuan |
+|---|---|---|
+| `MH-COA-1` | Kode akun otomatis berpola, final saat simpan, dengan pratinjau | `ACC-FIN-001` di [peta kemampuan finishing](finishing/01-capability-map-finishing.md) — `Extend` |
+| `MH-COA-2` | Jenis akun anak sama dengan induk dan diwarisi | `ACC-FIN-001` — `Extend` (kekurangan butir (a) di peta kemampuan) |
+| `MH-COA-3` | Klasifikasi Lancar/Tidak Lancar dan sub-klasifikasi aset lancar di bagan akun, diwariskan dari leluhur | `ACC-FIN-001` + `ACC-FIN-008` rasio (`U-05` → `ACC-DEC-161` butir 10) — `Extend` |
+| `MH-COA-4` | Peringatan klasifikasi belum lengkap di neraca dan saringan perbaikannya di bagan akun | `ACC-DEC-168` |
+
+### 31.3 Yang ditunda
+
+| Kemampuan | Alasan | Pengganti selama ditunda |
+|---|---|---|
+| Rasio keuangan | Slice 008-04 sesudah amendment ini (`ACC-DEC-171`) | — |
+| Kunci grup COA per periode | ACC-FIN-002, belum dirancang; definisi grup sudah dikunci (`ACC-DEC-165`) | Kunci periode yang ada |
+| Neraca terkelompok Lancar/Tidak Lancar | `OQ-173-1` | Neraca menurut hierarki bagan akun (`ACC-DEC-146`) |
+| Layar impor bagan akun | Belum diputuskan | Skrip sekali jalan memanggil `POST` berkode (`ACC-DEC-170`, `172` butir 4) |
+| Validasi `NormalBalance = 0` | Catatan impor 30 September 2026 | Pemeriksaan berkas impor sebelum dikirim |
+
+### 31.4 Epic dan functional requirement
+
+| FR | Epic | Requirement | Disposisi | Keputusan |
+|---|---|---|---|---|
+| `FR-FIN-050` | E-FIN-6 Master COA | Kode akun disusun backend saat simpan dengan pola `X-0000`/`X-N000`/`X-NNNN`/`.NN`; layar menampilkan pratinjau; dua penyimpanan bersamaan tidak bentrok; nomor penuh dan kode terlalu panjang ditolak | `MISSING / NEW` | `163`, `164`, `172` |
+| `FR-FIN-051` | E-FIN-6 | Jenis akun anak diwarisi dan dikunci di layar; induk berjenis lain ditolak saat tambah maupun pindah induk | `MISSING / NEW` | `166` |
+| `FR-FIN-052` | E-FIN-6 | Induk dipilih dari daftar, tingkat mengikuti induk, validasi hierarki lama; kode masih dapat diubah selama belum dipakai jurnal `Posted` | `EXISTING / REUSE` | `162`, `164` butir 2 |
+| `FR-FIN-053` | E-FIN-6 | Kode historis tidak diubah; kode yang dikirim jalur impor dipertahankan; anak dari induk di luar pola berbentuk `{kode induk}.NN` | `EXTEND` | `170`, `172` |
+| `FR-FIN-054` | E-FIN-6 | Klasifikasi Lancar/Tidak Lancar (Aset, Liabilitas) dan sub-klasifikasi aset lancar disimpan di akun, diwariskan dari leluhur terdekat, dapat ditimpa anak; terlihat di daftar, pohon, dan rincian beserta asal warisannya | `MISSING / NEW` | `167`, `173` |
+| `FR-FIN-055` | E-FIN-6 | Perubahan klasifikasi berlaku untuk semua periode dan tercatat di log dengan nilai lama dan baru | `MISSING / NEW` | `169` |
+| `FR-FIN-056` | E-FIN-6 | Akun belum lengkap tetap dapat dipakai jurnal; Bagan Akun dapat disaring "Belum lengkap" | `MISSING / NEW` | `168` |
+| `FR-FIN-057` | E-FIN-3 Neraca | Neraca memberi peringatan akun bersaldo yang klasifikasinya belum lengkap, bertaut ke Bagan Akun tersaring; angka dan CSV tidak berubah | `EXTEND` | `168`, `173` butir 6 |
+| `FR-FIN-058` | E-FIN-6 | Hak `ChartOfAccount : Read/Create/Update` yang ada ditegakkan backend pada endpoint baru dan yang diperluas | `EXISTING / REUSE` | `169` |
+
+Nol epic berstatus `OPEN DECISION`. Definisi grup COA (`ACC-DEC-165`) tidak menjadi FR di sini; ia
+mengikat desain ACC-FIN-002.
+
+### 31.5 Skenario UAT
+
+Skenario `F25`..`F41` dirinci per langkah di `testing/acceptance-test-matrix.md` bagian 5.
+
+| Kelompok | Jalur berhasil | Jalur gagal |
+|---|---|---|
+| Kode otomatis | `F25`, `F26`, `F27`, `F28` | `F29` (akar kedua), `F30` (kode terlalu panjang) |
+| Jenis warisan | `F31` (tanpa jenis) | `F31` (jenis berbeda), `F32` (pindah induk) |
+| Klasifikasi | `F34`, `F37`, `F39` | `F35` (jenis/sub-klasifikasi tidak berlaku), `F36` (turunan kehilangan Lancar) |
+| Neraca | `F38` | — (peringatan bukan galat) |
+| Hak dan regresi | `F33`, `F41` | `F40` (tanpa hak) |
+
+### 31.6 Definition of Done amendment
+
+| # | Butir | Bukti |
+|---:|---|---|
+| 1 | `GET next-code` berdiri; `GET /`, `/{id}`, `/tree`, `POST`, `PUT`, `GET /balance-sheet` diperluas persis `ACC-API-0.18` | Swagger |
+| 2 | Migration hanya berisi dua kolom `AccChartOfAccount`, dibuat dan diterapkan Rizki | Diff migration; pemeriksaan model lawan snapshot |
+| 3 | Nol tabel baru, nol hak baru, nol controller baru, nol baris `Program.cs` | Diff |
+| 4 | `F28`: dua simpan serentak menghasilkan dua kode berurutan tanpa `409` | Keluaran skrip |
+| 5 | `F38`: angka neraca identik sebelum dan sesudah klasifikasi diisi; peringatan berkurang | Tangkapan dua layar + JSON |
+| 6 | `F39`: log klasifikasi berisi nilai lama dan baru | Kutipan log |
+| 7 | Permintaan lama tanpa `classification` tidak mengubah klasifikasi | JSON sebelum/sesudah |
+| 8 | `npm run lint` nol galat pada berkas tersentuh; build backend dijalankan Rizki | Keluaran perintah |
+| 9 | Laporan task BE dan FE tertulis; status Implementation, Developer Verification, dan UAT dipisah | `task/report/` |
+
+### 31.7 Urutan pengiriman
+
+Kartu backend dan frontend berpasangan, supaya uji cukup sekali dari layar.
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `FIN-2` | Backend: kode otomatis, pratinjau, jenis warisan — lalu frontend Tambah Akun (pratinjau, jenis terkunci, usulan saldo normal) | FIN-1 selesai (sudah) |
+| `FIN-3` | Backend: kolom klasifikasi, penghitung klasifikasi, `POST`/`PUT` berkelompok `classification`, respons dan saringan — lalu frontend form, rincian, daftar | `FIN-2` (berkas service yang sama); izin migration `OQ-167-1` (diberikan 25 November 2026) dan migration dibuat Rizki |
+| `FIN-4` | Backend: peringatan di `GET /balance-sheet` — lalu frontend peringatan Neraca | `FIN-3` |
+| `POST-AMENDMENT` | Rasio 008-04; ACC-FIN-002; neraca terkelompok | Bagian 31.3 |
+
+### 31.8 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? | Pemilik |
+|---|---|:---:|---|
+| `ACC-DEC-172`, `173` | Pengesahan turunan desain kode otomatis dan klasifikasi | **Tertutup** — disahkan `GATE-DESAIN-1125` | Rizki |
+| `OQ-167-1` | Izin migration kolom klasifikasi | **Tertutup** — diizinkan 25 November 2026; migration dibuat Rizki sendiri | Rizki |
+| `OQ-173-1` | Neraca terkelompok Lancar/Tidak Lancar | Tidak | Rizki + pemilik proses akuntansi |
+| `U-01` | Isi ClickUp ACC-FIN-001 belum dibaca | Tidak; bila berbeda, amendment ini diubah | Rizki |
+
+---
+
+## 32. Amendment ACC-FIN-008-04 — Rasio keuangan *(26 November 2026, **`approved`** Rizki, `GATE-DESAIN-1126`)*
+
+Dasar: `ACC-DEC-161`, `167` butir 4, `169`, `174`..`183` (approved Rizki 26 November 2026), turunan
+`184` (disahkan `GATE-DESAIN-1126`); `02-backend-architecture.md` bagian 27; `03-frontend-architecture.md` bagian 17;
+kontrak `ACC-API-0.19`, `ACC-VALIDATION-0.14`, `ACC-PERMISSION-0.10`; `erd/data-dictionary.md`
+bagian 22; `flowcharts/08-rasio-keuangan.md`; `testing/acceptance-test-matrix.md` bagian 6.
+
+**Gerbang kelengkapan requirement.** Tidak dijalankan ulang sebagai berkas `evidence` tersendiri.
+Alasannya: kemampuan ini bagian ACC-FIN-008 yang sudah dipetakan (`finishing/01-capability-map-finishing.md`,
+`Extend`; `U-05` ditutup `ACC-DEC-161`), seluruh keputusan bisnisnya `approved` Rizki 25–26 November
+2026, kemampuannya laporan internal Accounting yang hanya membaca data Accounting sendiri tanpa dampak
+billing atau keselamatan klinis, dan tidak ada open question berpenanda `BLOCKING`. Arsitektur domain:
+`DOMAIN_ARCHITECTURE_NOT_RUN` dengan alasan yang sama.
+
+### 32.1 Batas rilis amendment
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Petugas akuntansi membuka menu Rasio Keuangan dan memilih periode |
+| **Titik akhir** | Delapan rasio tampil untuk kolom kini dan pembanding, masing-masing dengan rumus, pembilang, penyebut, dan status beserta alasannya; dapat diunduh sebagai CSV dan dicetak; pembukaan dan unduhan tercatat di log |
+| **Bukan bagian amendment** | Target pendapatan (008-05); laporan pajak (008-06); ambang sehat/tidak sehat; rasio tambahan di luar delapan; neraca terkelompok (`OQ-173-1`); tren antar periode |
+
+### 32.2 Kemampuan `MUST HAVE`
+
+| ID | Kemampuan | Asal kemampuan |
+|---|---|---|
+| `MH-RAT-1` | Delapan rasio dihitung dari neraca dan laba rugi yang ada, kini dan pembanding | `ACC-FIN-008` di [peta kemampuan finishing](finishing/01-capability-map-finishing.md) — `Extend`; `U-05` → `ACC-DEC-161` |
+| `MH-RAT-2` | Rasio yang datanya tidak cukup atau tidak sah tidak pernah tampil sebagai angka; alasannya disebut | `ACC-DEC-161` butir 4–8, `175`, `177` |
+| `MH-RAT-3` | Rincian rumus, pembilang, penyebut; unduh CSV, cetak, log | `ACC-DEC-181`, `182` |
+
+### 32.3 Yang ditunda
+
+| Kemampuan | Alasan | Pengganti selama ditunda |
+|---|---|---|
+| Ambang sehat/tidak sehat | `ACC-DEC-161` butir 9 | Pembaca menilai sendiri; layar menyatakan tidak ada ambang |
+| Rasio lain (perputaran piutang, persediaan, dll.) | Di luar tahap pertama | — |
+| Tautan pembilang/penyebut ke laporan | `ACC-DEC-181` | Menu Neraca dan Laba Rugi periode yang sama; angkanya cocok |
+| Rasio per unit biaya | Neraca tidak per unit (`ACC-DEC-147`) | — |
+
+### 32.4 Epic dan functional requirement
+
+| FR | Epic | Requirement | Disposisi | Keputusan |
+|---|---|---|---|---|
+| `FR-FIN-059` | E-FIN-7 Rasio keuangan | Delapan rasio dengan rumus bagian 27.5 untuk kolom kini (akhir periode, laba YTD) dan pembanding (akhir tahun buku lalu, laba setahun penuh) | `MISSING / NEW` | `161`, `167`, `176`, `178`, `184` |
+| `FR-FIN-060` | E-FIN-7 | ROA dan ROE memakai rata-rata posisi awal tahun buku dan akhir periode, tanpa disetahunkan; saldo awal tidak tersedia → tidak dapat dihitung | `MISSING / NEW` | `161` butir 3, `177` |
+| `FR-FIN-061` | E-FIN-7 | Klasifikasi belum lengkap hanya menahan Current/Quick/Cash sesuai jenis celahnya, dengan akun penyebab disebut | `MISSING / NEW` | `168`, `175` |
+| `FR-FIN-062` | E-FIN-7 | Status N/A (penyebut nol), Tidak sah (neraca tidak seimbang; NPM tetap), catatan ekuitas negatif; urutan status tetap | `MISSING / NEW` | `161` butir 5, 6, 8; `184` |
+| `FR-FIN-063` | E-FIN-7 | Hasil dua desimal dalam kali atau persen; pembilang dan penyebut dalam rupiah cocok dengan Neraca/Laba Rugi | `MISSING / NEW` | `179`, `181` |
+| `FR-FIN-064` | E-FIN-7 | Layar Rasio Keuangan di menu sesudah Neraca, dengan peringatan klasifikasi bertaut ke Bagan Akun tersaring | `MISSING / NEW` | `180`, `168` |
+| `FR-FIN-065` | E-FIN-7 | CSV dari backend, Cetak, log `FinancialStatement.Ratio` dan `GeneralLedger.Export` tanpa nominal | `EXTEND` | `182` |
+| `FR-FIN-066` | E-FIN-7 | Hak `GeneralLedger : Read` ditegakkan backend pada kedua endpoint | `EXISTING / REUSE` | `183` |
+
+Nol epic berstatus `OPEN DECISION`.
+
+### 32.5 Skenario UAT
+
+Skenario `F42`..`F52` dirinci di `testing/acceptance-test-matrix.md` bagian 6.
+
+| Kelompok | Jalur berhasil | Jalur gagal / tidak dihitung |
+|---|---|---|
+| Rumus dan kecocokan angka | `F42`, `F45`, `F46` | — |
+| Status | `F43` (N/A) | `F44` (klasifikasi), `F47` (saldo awal), `F48` (tidak seimbang, simulasi) |
+| Layar, unduhan, cetak, log | `F49`, `F50`, `F51` | `F52` (tanpa hak) |
+
+### 32.6 Definition of Done amendment
+
+| # | Butir | Bukti |
+|---:|---|---|
+| 1 | `GET /general-ledger/financial-ratios` dan `/financial-ratios/export` berdiri persis `ACC-API-0.19` | Swagger, JSON |
+| 2 | Nol tabel, nol kolom, nol migration, nol hak baru, nol controller baru, nol baris `Program.cs`; `GetBalanceSheetAsync`/`GetIncomeStatementAsync` tidak berubah | Diff |
+| 3 | `F45`: pembilang/penyebut Debt to Asset dan Debt to Equity sama persis dengan total layar Neraca; Net Profit Margin dengan kolom YTD Laba Rugi | JSON + tangkapan |
+| 4 | `F44`: akun penyebab klasifikasi disebut; Debt to Asset tetap dihitung | JSON |
+| 5 | Jalur Dihitung untuk Current/Quick/Cash/ROA/ROE terbukti dengan data uji berizin, atau dicatat `SOURCE VERIFIED` + simulasi bila izin tidak diberikan | JSON atau laporan |
+| 6 | `F51`: log tanpa nominal, jumlah status di teks pesan | Kutipan log |
+| 7 | Menu Rasio Keuangan tepat sesudah Neraca | Tangkapan |
+| 8 | `npm run lint` nol galat pada berkas tersentuh; build backend dijalankan Rizki | Keluaran perintah |
+| 9 | Laporan task BE dan FE tertulis; status Implementation, Developer Verification, dan UAT dipisah | `task/report/` |
+
+### 32.7 Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `FIN-5` | Backend: dua endpoint rasio + CSV + log — lalu frontend: menu, layar, unduh, cetak | `FIN-4` selesai (sudah, 26 November 2026); gerbang desain amendment ini |
+| `POST-AMENDMENT` | 008-05 target pendapatan (ACC-FIN-013); 008-06 pajak (`OQ-160-1`) | Bagian 32.3 dan `ACC-DEC-171` |
+
+### 32.8 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? | Pemilik |
+|---|---|:---:|---|
+| `ACC-DEC-184` | Pengesahan turunan rumus dan status | **Tertutup** — disahkan `GATE-DESAIN-1126` | Rizki |
+| Data uji jalur Dihitung | Izin membuat data uji (jurnal liabilitas lancar, klasifikasi sementara, tahun buku 2025) di DB dev | Tidak memblokir desain; ditanyakan saat uji | Rizki |
+| `OQ-173-1` | Neraca terkelompok | Tidak | Rizki + pemilik proses akuntansi |
+
+---
+
+## 33. Amendment ACC-FIN-013 — Fondasi anggaran Accounting *(26 November 2026, **`draft`**, menunggu gerbang desain Rizki)*
+
+Dasar: `ACC-DEC-159`, `185`..`198` (approved), turunan `197`, `199` (`draft`); `02-backend-architecture.md`
+bagian 28; `03-frontend-architecture.md` bagian 18; kontrak `ACC-API-0.20`, `ACC-VALIDATION-0.15`,
+`ACC-PERMISSION-0.11`, `ACC-STATE-0.7`; `erd/data-dictionary.md` bagian 23; `flowcharts/09-anggaran.md`;
+`testing/acceptance-test-matrix.md` bagian 7.
+
+**Gerbang kelengkapan requirement.** Tidak dijalankan ulang sebagai berkas `evidence`. Alasannya: kemampuan
+ini ACC-FIN-013 yang sudah dipetakan (`Conflict` di peta kemampuan finishing, arah ditutup `ACC-DEC-159`),
+seluruh keputusan bisnisnya `approved` Rizki 25–26 November 2026, datanya internal Accounting tanpa dampak
+billing atau keselamatan klinis, dan tidak ada open question berpenanda `BLOCKING`. Arsitektur domain:
+`DOMAIN_ARCHITECTURE_NOT_RUN` dengan alasan yang sama.
+
+### 33.1 Batas rilis amendment
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Staf anggaran membuka menu Anggaran untuk tahun buku yang sudah dibangkitkan |
+| **Titik akhir** | Satu versi anggaran pendapatan dan beban per badan hukum × tahun buku **Disetujui** oleh pengguna lain, dapat direvisi berversi tanpa mengubah bulan tertutup, dapat diunduh/diunggah CSV; target pendapatan resmi tersedia sebagai data untuk 008-05 |
+| **Bukan bagian amendment** | Realisasi lawan target (008-05); CAPEX (014); OPEX rinci (015); konsolidasi (016); pengendalian jurnal (017); integrasi `PrcBudget` (`OQ-159-1`); target per unit (`OQ-159-2`); persetujuan bertingkat (ACC-FIN-004) |
+
+### 33.2 Kemampuan `MUST HAVE`
+
+| ID | Kemampuan | Asal kemampuan |
+|---|---|---|
+| `MH-BGT-1` | Versi anggaran per badan hukum × tahun buku dengan baris akun × unit biaya × bulan | ACC-FIN-013 di [peta kemampuan finishing](finishing/01-capability-map-finishing.md) — `Conflict` → `ACC-DEC-159` |
+| `MH-BGT-2` | Pengisian lewat layar (sebar rata) dan CSV | `ACC-DEC-189`, `192` |
+| `MH-BGT-3` | Ajukan, tarik, setujui (empat mata), tolak beralasan | `ACC-DEC-190` |
+| `MH-BGT-4` | Revisi berversi dengan bulan tertutup terkunci | `ACC-DEC-191` |
+
+### 33.3 Yang ditunda
+
+| Kemampuan | Alasan | Pengganti selama ditunda |
+|---|---|---|
+| Laporan realisasi lawan target | 008-05 sesudah fondasi ini | Rincian anggaran menampilkan target per bulan; realisasi dibaca di Laba Rugi |
+| Anggaran aset (CAPEX) | `ACC-DEC-187`; ACC-FIN-014 | Rencana kebutuhan Pengadaan yang ada |
+| Peringatan/blokir lewat anggaran | ACC-FIN-017 | Tidak ada |
+| Pemetaan `PrcBudget` | `OQ-159-1` | Dua anggaran berjalan terpisah |
+| Persetujuan bertingkat | ACC-FIN-004 | Satu penyetuju berhak, empat mata |
+
+### 33.4 Epic dan functional requirement
+
+| FR | Epic | Requirement | Disposisi | Keputusan |
+|---|---|---|---|---|
+| `FR-FIN-067` | E-FIN-8 Anggaran | Buat versi 1 per badan hukum × tahun buku yang sudah dibangkitkan; satu dalam proses, satu Disetujui | `MISSING / NEW` | `185`, `190`, `197` butir 4, `199` butir 1 |
+| `FR-FIN-068` | E-FIN-8 | Baris akun Pendapatan/Beban penerima transaksi aktif × unit biaya (wajib untuk Beban) × 12 bulan, nilai ≥ 0, tanpa kembar | `MISSING / NEW` | `187`, `188`, `194`, `197` butir 1–2 |
+| `FR-FIN-069` | E-FIN-8 | Sebar rata tahunan ke 12 bulan, sisa pembulatan di Desember | `MISSING / NEW` | `189`, `197` butir 8 |
+| `FR-FIN-070` | E-FIN-8 | Unduh templat/baris CSV dan unggah CSV pengganti seluruh baris, gagal utuh dengan daftar galat | `MISSING / NEW` | `192`, `199` butir 8 |
+| `FR-FIN-071` | E-FIN-8 | Ajukan, tarik (pengaju), setujui/tolak (bukan pengaju, tolak beralasan), ajukan ulang dari Ditolak | `MISSING / NEW` | `190`, `199` butir 5 |
+| `FR-FIN-072` | E-FIN-8 | Revisi = versi baru salinan baris; bulan berperiode bukan Terbuka tidak boleh berubah; persetujuan menjadikan versi lama Digantikan | `MISSING / NEW` | `191`, `197` butir 5, `199` butir 4, 6 |
+| `FR-FIN-073` | E-FIN-8 | Hapus lunak hanya Draft/Ditolak | `MISSING / NEW` | `196` |
+| `FR-FIN-074` | E-FIN-8 | Resource `Budget` Read/Create/Update/Approve/Delete ditegakkan backend; log aksi tulis tanpa nominal | `MISSING / NEW` | `193`, `197` butir 7 |
+| `FR-FIN-075` | E-FIN-8 | Layar daftar, buat, rincian (aksi menurut status), ubah baris; butir menu Anggaran sesudah Rasio Keuangan | `MISSING / NEW` | `195` |
+
+Nol epic berstatus `OPEN DECISION`.
+
+### 33.5 Skenario UAT
+
+Skenario `F53`..`F68` di `testing/acceptance-test-matrix.md` bagian 7.
+
+| Kelompok | Jalur berhasil | Jalur gagal |
+|---|---|---|
+| Buat dan baris | `F53`, `F55`, `F57`, `F58` | `F53` (kedua kali), `F54`, `F56`, `F59` |
+| Persetujuan | `F61`, `F62`, `F63` | `F60` (pengaju menyetujui), `F62` (tolak tanpa alasan) |
+| Revisi | `F64`, `F66` | `F64` (revisi kedua), `F65` |
+| Hapus dan hak | `F67` (Draft) | `F67` (Disetujui), `F68` |
+
+### 33.6 Definition of Done amendment
+
+| # | Butir | Bukti |
+|---:|---|---|
+| 1 | Tiga belas endpoint berdiri persis `ACC-API-0.20` | Swagger, JSON |
+| 2 | Migration hanya berisi tiga tabel anggaran, dibuat dan diterapkan Rizki | Diff migration; pemeriksaan model lawan snapshot |
+| 3 | Satu baris `Program.cs`; nol perubahan `ApplicationDbContext` dan tabel lama | Diff |
+| 4 | Modul akses `ACCOUNTING_BUDGET` muncul di Akses Role dengan lima aksi | Tangkapan Akses Role |
+| 5 | `F60`, `F63`, `F66`: empat mata, satu Disetujui, versi lama Digantikan | JSON |
+| 6 | `F65`: bulan tertutup tidak dapat diubah | JSON |
+| 7 | `F58`/`F59`: CSV pulang-pergi dan gagal utuh | Berkas + JSON |
+| 8 | Log aksi tanpa nominal | Kutipan log |
+| 9 | Layar `FE-B1`..`FE-B4` dan butir menu; `npm run lint` nol galat | Tangkapan + keluaran |
+| 10 | Laporan task BE dan FE; status Implementation, Developer Verification, UAT dipisah | `task/report/` |
+
+### 33.7 Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `FIN-6` | Backend: entity + migration (Rizki) + buat/rincian/baris/CSV/hapus — lalu frontend daftar, buat, rincian, ubah baris | Gerbang desain ini; izin migration |
+| `FIN-7` | Backend: ajukan/tarik/setujui/tolak/revisi + bulan terkunci — lalu frontend aksi rincian dan revisi | `FIN-6` |
+| `POST-AMENDMENT` | 008-05 realisasi lawan target; 014–017 | Bagian 33.3 |
+
+### 33.8 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? | Pemilik |
+|---|---|:---:|---|
+| `ACC-DEC-197`, `199` | Pengesahan turunan desain | Ya — bersama gerbang desain | Rizki |
+| Izin migration `AddAccountingBudget` | Rizki membuat dan menerapkan | Ya untuk `FIN-6` implementasi; ditanyakan saat `plan-module-delivery` | Rizki |
+| Data uji persetujuan | Versi Disetujui tidak dapat dihapus | Tidak memblokir desain; ditanyakan saat uji | Rizki |
+| `OQ-159-1`, `OQ-159-2` | Integrasi `PrcBudget`; target per unit | Tidak | Rizki + owner Procurement / pemilik proses akuntansi |
