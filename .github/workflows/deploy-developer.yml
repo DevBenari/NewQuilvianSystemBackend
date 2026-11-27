@@ -5,13 +5,19 @@ on:
     branches:
       - QuilvianDevDeploy
   workflow_dispatch:
+    inputs:
+      connectivity_only:
+        description: "Test Tailscale SSH without deployment"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
   packages: write
 
 concurrency:
-  group: quilvian-dev-deploy
+  group: ${{ github.event_name == 'workflow_dispatch' && inputs.connectivity_only == true && 'quilvian-dev-connectivity' || 'quilvian-dev-deploy' }}
   cancel-in-progress: true
 
 env:
@@ -27,7 +33,66 @@ env:
   QUEUE_VOICE_CACHE_HOST_PATH: /opt/quilvian/queue-voice-cache
 
 jobs:
+  # Manual test only: no build, image push, deploy script or database changes.
+  connectivity-test:
+    name: Test Tailscale SSH Connectivity
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.connectivity_only == true && github.ref == 'refs/heads/QuilvianDevDeploy' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:quilvian-ci-dev
+
+      - name: Prepare SSH credentials
+        shell: bash
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS_TAILSCALE }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+          test -s ~/.ssh/id_ed25519
+          ssh-keygen -F 100.65.25.63 -f ~/.ssh/known_hosts > /dev/null
+
+      - name: Verify private SSH connection
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Runner Tailscale IP: $(tailscale ip -4)"
+
+          ssh -T \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o HostKeyAlgorithms=ssh-ed25519 \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            -o ConnectTimeout=15 \
+            -i ~/.ssh/id_ed25519 \
+            deploydev@100.65.25.63 \
+            'set -e; test "$(id -un)" = deploydev; hostname; whoami; echo "$SSH_CONNECTION"; set -- $SSH_CONNECTION; test "$3" = 100.65.25.63; test "$4" = 22; echo "TAILSCALE SSH CONNECTIVITY SUCCESS"'
+
+      - name: Cleanup test SSH credentials
+        if: always()
+        shell: bash
+        run: |
+          rm -f ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+
   build-and-deploy:
+    # Preserve normal DEV deployment; reject dispatch from any other branch.
+    if: ${{ github.ref == 'refs/heads/QuilvianDevDeploy' && (github.event_name != 'workflow_dispatch' || inputs.connectivity_only != true) }}
     name: Build, Push, and Deploy
     runs-on: ubuntu-latest
 
