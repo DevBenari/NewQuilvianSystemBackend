@@ -641,6 +641,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             }
         }
 
+        // BE-LAB-102 (r50 45.2). Memindahkan tanggal rencana pesanan; status pesanan tidak berubah.
+        // 409 = versi basi (VAL-165) atau pesanan tidak layak (VAL-160..164, pesan sama dengan
+        // penanda layar); 422 = isi (VAL-157..159). Pemetaan galat sama dengan perpindahan status.
+        [HttpPut("{id:guid}/reschedule")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Reschedule", "Reschedule Lab Order", Description = "Menjadwalkan ulang tanggal rencana pemeriksaan laboratorium", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("LabOrder", "Reschedule")]
+        public Task<IActionResult> Reschedule(
+            Guid id,
+            [FromBody] RescheduleLabOrderRequest request,
+            CancellationToken cancellationToken = default) =>
+            ExecuteAsync(
+                () => _labOrderService.RescheduleAsync(id, request, cancellationToken),
+                "Pesanan laboratorium berhasil dijadwalkan ulang.");
+
+        // BE-LAB-102 (r50 45.2, LAB-DEC-268). Riwayat jadwal ulang dibaca pemegang LabOrder : Read.
+        [HttpGet("{id:guid}/reschedules")]
+        [ProducesResponseType(typeof(ApiResponse<List<LabOrderRescheduleResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Lab Order", Description = "Melihat riwayat jadwal ulang order laboratorium", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrder", "Read")]
+        public async Task<IActionResult> GetRescheduleHistory(Guid id, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labOrderService.GetRescheduleHistoryAsync(id, cancellationToken);
+
+                return Ok(ApiResponse<List<LabOrderRescheduleResponse>>.Ok(
+                    result,
+                    "Riwayat jadwal ulang order laboratorium berhasil diambil."));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    ex.Message));
+            }
+        }
+
         /// <summary>
         /// Menjalankan satu perpindahan status dan menerjemahkan kegagalannya menjadi status
         /// HTTP yang tepat, tanpa membocorkan detail exception ke pemanggil.

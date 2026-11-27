@@ -172,6 +172,13 @@ namespace QuilvianSystemBackend.Shared.HumanResource.Helpers
             return match.Success ? match.Groups["category"].Value : null;
         }
 
+        /// <summary>ID akun pengunggah dari kunci, atau null bila bentuk kunci tidak sah.</summary>
+        public static Guid? OwnerOf(string? key)
+        {
+            var match = KeyPattern.Match(key ?? string.Empty);
+            return match.Success ? Guid.ParseExact(match.Groups["owner"].Value, "N") : null;
+        }
+
         private string ResolvePhysicalPath(string key)
         {
             var configuredRoot = _configuration["HumanResource:Attachment:RelativeRootPath"];

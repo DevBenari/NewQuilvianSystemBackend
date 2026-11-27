@@ -116,6 +116,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public string? RejectionReason { get; set; }
         public bool IsActive { get; set; } = true;
         public DateTime CreateDateTime { get; set; }
+
+        /// <summary>Waktu pemohon membatalkan pengajuan dari Layanan Mandiri; kosong bila tidak dibatalkan.</summary>
+        public DateTime? CancelDateTime { get; set; }
     }
 
     public class OfficialDutyPagedResponse

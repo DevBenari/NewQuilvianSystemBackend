@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `laboratorium` |
-| Revision | `10` — impact scan 2026-11-25 atas BE `4d3e4f98..4d2c0162` / FE `7fb1e1d3e..004524f4c`, terbatas pada permukaan amendment pass putaran 32 (reschedule pemeriksaan Lab, BR-157). Sebelumnya `9` — impact scan 2026-10-20 atas BE `f4e79c4e..4d3e4f98` / FE `f6f23352e..7fb1e1d3e`, terbatas pada permukaan amendment pass putaran 30 (Menu Laporan v2, BR-142..BR-152). Sebelumnya `8` — impact scan 2026-10-08 atas kedua rentang snapshot manifest (BE `4a94628a..f4e79c4e`, FE `696a906a6..f6f23352e`), berfokus pada alur Lab putaran 26 dan titik sentuh Billing/Rawat Inap; `LAB-CONFLICT-018` dibuka. Sebelumnya `7` — impact scan terbatas 2026-10-07 atas sembilan butir bahan audit amendment pass putaran 22 (aksi alur kerja dan menu daftar pasien lab). Sebelumnya `6` |
+| Revision | `11` — impact scan 2026-11-27 atas BE `4d2c0162..cce1dbf5` / FE `004524f4c..11b3aaece`, terbatas pada permukaan amendment pass putaran 34 (pengiriman hasil ke pasien, `BE-LAB-41`). Sebelumnya `10` — impact scan 2026-11-25 atas BE `4d3e4f98..4d2c0162` / FE `7fb1e1d3e..004524f4c`, terbatas pada permukaan amendment pass putaran 32 (reschedule pemeriksaan Lab, BR-157). Sebelumnya `9` — impact scan 2026-10-20 atas BE `f4e79c4e..4d3e4f98` / FE `f6f23352e..7fb1e1d3e`, terbatas pada permukaan amendment pass putaran 30 (Menu Laporan v2, BR-142..BR-152). Sebelumnya `8` — impact scan 2026-10-08 atas kedua rentang snapshot manifest (BE `4a94628a..f4e79c4e`, FE `696a906a6..f6f23352e`), berfokus pada alur Lab putaran 26 dan titik sentuh Billing/Rawat Inap; `LAB-CONFLICT-018` dibuka. Sebelumnya `7` — impact scan terbatas 2026-10-07 atas sembilan butir bahan audit amendment pass putaran 22 (aksi alur kerja dan menu daftar pasien lab). Sebelumnya `6` |
 | Status | `draft` — **peta revision 1-2 `STALE`; sebagian revision 3 dan 4 juga `STALE`**, lihat Impact Scan Revision 5 bagian A |
 | Jenis audit | Revision 1: audit penuh. Revision 2: *impact scan* terbatas. Revision 3: *impact scan* terbatas atas kemampuan yang terdampak `LAB-DEC-037`..`LAB-DEC-045`. Revision 4: *impact scan* terbatas atas permukaan yang disentuh `LAB-DEC-095`..`LAB-DEC-110`. **Revision 5: *impact scan* terbatas atas permukaan yang disentuh `LAB-DEC-133`..`LAB-DEC-145` serta `LAB-FE-015`/`LAB-FE-016`**. Revision 6: dokumen klinis pasien dan kunjungan MCU. **Revision 7: *impact scan* terbatas atas `LAB-DEC-188`..`LAB-DEC-192`, `LAB-FE-030`/`LAB-FE-031`, ditambah sembilan kueri baca-saja ke basis data pengembangan** |
 | Sifat audit | **Read-only.** Tidak ada satu baris source aplikasi yang diubah |
@@ -49,6 +49,116 @@
 > bagaimana". Setiap baris membawa bukti berupa lokasi berkas dan nama simbol pada commit
 > tertentu, supaya siapa pun bisa memeriksa ulang. Dokumen ini **tidak** merancang arsitektur
 > dan **tidak** memberi izin menulis kode.
+
+---
+
+## Impact Scan Revision 11 — 2026-11-27
+
+**Pemicu.** Amendment pass putaran 34 (`00-interview-decisions.md` revision 144, `LAB-DEC-278`..`LAB-DEC-288`) membuka
+penahan `BE-LAB-41` — **pengiriman hasil final Lab ke pasien** — di atas peta revision 10 yang basi: BE `4d2c0162` →
+`HEAD` `cce1dbf5` (60 commit), FE `004524f4c` → `HEAD` `11b3aaece` (18 commit). Pemilik modul memilih impact scan
+sebelum desain (langkah berikutnya putaran 34).
+
+*Pengiriman hasil ke pasien* di sini berarti: hasil satu nomor order yang **seluruhnya dirilis** diterbitkan sebagai
+**PDF hasil final** (bernomor, berversi, ber-QR), lalu petugas mengirim berkas itu ke WhatsApp pasien dan mencatat
+*Terkirim* atau *Gagal*. Contoh: Gula Darah Puasa dan Kolesterol pada `LAB-RSMMC-000040` dirilis dr. Aditya; Gilang
+mengunduh PDF versi 1, mengirimnya dari WhatsApp resmi rumah sakit ke `0812…`, lalu memilih *Terkirim*.
+
+**Batas audit.**
+
+| Rentang | Yang dipindai | Cara |
+|---|---|---|
+| BE `4d2c0162..cce1dbf5` | 5 berkas `LaboratoryManagement` berubah (+137) — seluruhnya `BE-LAB-101` (sudah di-commit). Working tree Lab = `BE-LAB-102`/`103` dan susulan `VAL-160`. **Permukaan putaran 34 dibaca pada `HEAD`**, termasuk yang tidak berubah: rilis/validasi, penyelesaian order, `DeliveryBlockedReason`, sumber rekam medis Lab | `git diff --stat`, baca kode |
+| Modul tetangga (titik sentuh) | Pembangkit PDF dan pola dokumen: Keuangan, Aset, Payroll (`PayrollPayslipDistributionService`); penerbitan dokumen ber-QR dan verifikasi publik: SDM (`EmployeeDocumentIssuanceService`, `HrPublicDocumentVerificationController`); penyimpanan privat: Pasien, Radiologi; nomor WhatsApp: Manajemen Pasien, Registrasi (Reservasi Prioritas) | Baca kode titik sentuh; aturan internal modul itu tidak dinilai |
+| FE `004524f4c..11b3aaece` | Hasil dan Riwayat (kolom, aksi), bilah aksi halaman hasil, pola unduh *blob*, utilitas `wa.me`, rute `app/api/email/send-pdf` | Baca kode; **nol layar dijalankan** |
+| FE v1 | Sudah dibaca putaran 34 (F34-6) | — |
+| Basis data | `QuilvianNewDevYoga`, transaksi `READ ONLY`; **4 kueri `SELECT`** (nomor WA/tanggal lahir pasien, awalan nomor, order selesai/dirilis per disiplin, jabatan/akun *Prof*), **nol penulisan**; connection string tidak dicetak | `pg` |
+
+**Masukan.** `00-interview-decisions.md` revision 144 (sha256 `tr -d '\r'` = `2f1786e9…7bc3e2f2`; berkas mentah CRLF =
+`2ee85c5d…5c3ee9da`). Kontrak tidak dibaca ulang kecuali `deliveryBlockedReason` (`LAB-API-v1`) dan rancangan
+`LabResultDelivery` (`02-backend-architecture.md` bagian 13).
+
+**Tidak diaudit:** perilaku berjalan endpoint (backend tidak dinyalakan untuk scan ini); kelayakan lisensi QuestPDF
+(urusan platform/hukum); isi bukti cetak `LAB-EVD-005` (sudah menjadi `LAB-DEC-114`..`121`).
+
+> ### Kesimpulan pendek
+>
+> **Hampir seluruh bahan putaran 34 sudah ada sebagai pola di modul lain; yang benar-benar belum ada hanya milik
+> Laboratorium sendiri — dokumen final berversi, templat lembar hasil, log pengiriman, dan persetujuan Profesor.**
+>
+> 1. **PDF siap dipakai.** `QuestPDF` berlisensi global di `Program.cs:140` (Community) dan dipakai 16 layanan. Payroll
+>    bahkan sudah **mengunci PDF** (AES-256, tidak dapat diedit/disalin) dengan sandi pembuka **tanggal lahir** — bahan
+>    langsung untuk syarat *tidak dapat diedit pasien* (`LAB-DEC-067`).
+> 2. **Dokumen ber-QR dan verifikasi publik sudah berdiri di SDM** — nomor resmi, versi, hash verifikasi, pencabutan,
+>    pembatas laju, endpoint tanpa login. Polanya **tidak dapat disalin apa adanya**: hashnya diturunkan dari nomor dan
+>    salt tetap (bukan token acak `LAB-DEC-140`) dan halamannya menampilkan nama tersamar (dilarang `LAB-DEC-140`).
+> 3. **`LAB-DEC-285` belum punya pemicu.** Hasil PK/Mikrobiologi yang dirilis **dikunci** (`VAL-143`); koreksi sesudah
+>    rilis (`S6`) tidak ada dan diserahkan ke `clinical-management` (`LAB-COORD-018`). Hari ini dokumen hanya mungkin
+>    versi 1.
+> 4. **Nomor WhatsApp pasien bercampur format** (`+62…` dan `08…`) dan backend hanya memangkas spasi; normalisasi
+>    `628…` sudah ada di **frontend** Registrasi.
+> 5. **Gerbang sebagian sudah ada:** order *Selesai* = seluruh pemeriksaan dirilis; `deliveryBlockedReason` per
+>    pemeriksaan sudah dikirim API tetapi **nol konsumen** frontend dan belum memuat syarat Profesor.
+
+### A. Kemampuan yang disentuh putaran 34
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| `CAP-P34-01` | Pembangkit PDF (`LAB-DEC-284`) | Platform | `NewQuilvianSystemBackend/QuilvianSystemBackend.csproj` `QuestPDF 2026.7.1`; `Program.cs:137-140` `Settings.License = Community` (global); 16 pemakai, mis. `Areas/Corporate/FinanceManagement/Collection/Services/FinanceReceiptService.cs`, `Areas/Corporate/PayrollManagement/Services/PayrollPayslipDocuments.cs` `GeneratePdf()`@cce1dbf5 | `Ready to reuse` | Nol konfigurasi baru | Kelayakan lisensi Community (`UNK-P34-01`) |
+| `CAP-P34-02` | PDF tidak dapat diedit pasien (`LAB-DEC-067`) | Payroll (pola) | `Areas/Corporate/PayrollManagement/Services/PayrollPayslipDistributionService.cs#EncryptPdf:568-597` — `DocumentOperation.Encrypt(Encryption256Bit)`, sandi pemilik acak, `AllowContentExtraction/Annotation/Assembly = false`; sandi pembuka `BirthDate.ToString("ddMMyyyy")`, fail-closed bila kosong (`:425-437`)@cce1dbf5 | `Reuse with adapter` | Metode `private static` — disalin/diangkat ke pembantu Lab; pakai sandi pembuka atau tidak = keputusan (`Q-P34-02`) | Berkas temporer di `Path.GetTempPath()` dihapus `finally` — pertahankan |
+| `CAP-P34-03` | Isi dokumen: hasil PK/Mikrobiologi yang dirilis | Laboratorium | `Areas/HealthServices/LaboratoryManagement/Services/LabExaminationService.cs:1150-1185` (respons formulir: nilai, flag rujukan, pemvalidasi, perilis, snapshot jabatan, penanda pengecualian); `Services/LabMedicalRecordDocumentSource.cs` (pembaca hasil **dirilis** PK/Mikro untuk berkas RM, PA dikecualikan)@cce1dbf5 | `Reuse with adapter` | Dirakit per nomor order; kueri yang ada per pemeriksaan/halaman | N+1 bila dirakit per baris |
+| `CAP-P34-04` | Templat lembar hasil untuk pasien (`LAB-DEC-114`..`121`, `LAB-EVD-005`) | Laboratorium | Bukti: `evidence/2026-09-21-cetakan-tiga-disiplin.md`; FE `lab-result-v1-layout.jsx#LabResultV1ActionBar` — *Preview Hasil*/*Print Hasil* nonaktif; nol templat cetak hasil di BE maupun FE@11b3aaece | `Missing` | Dibangun dari nol (QuestPDF) | Terbesar dari sisi kerja |
+| `CAP-P34-05` | Gerbang: order *Selesai* = seluruh pemeriksaan dirilis (`LAB-DEC-139`) | Laboratorium | `Services/LabOrderService.cs#CompleteAsync:1707` + `#ReadCompletionBlockersAsync` — penahan = pemeriksaan terhitung dengan `ReleasedAt == null`@cce1dbf5 | `Ready to reuse` | — | — |
+| `CAP-P34-06` | Alasan gerbang di respons (`LAB-DEC-139`, `287`) | Laboratorium (BE), Lab (FE) | `DTOs/LabExaminationResultDtos.cs:205, 395` `DeliveryBlockedReason`; `LabExaminationService.cs:1981` *"Hasil ini belum dirilis, sehingga belum boleh dikirim kepada pasien."*; `rg deliveryBlockedReason` FE = **0**@cce1dbf5/11b3aaece | `Extend` | Per pemeriksaan, bukan per order; tanpa syarat Profesor, nomor WA, disiplin PA | Dua rumus gerbang bila dihitung ulang di layar |
+| `CAP-P34-07` | Persetujuan Profesor (`LAB-DEC-280`, `LAB-OPEN-029`) | Klinis (dr. Bima) | Kueri devYoga: jabatan berawalan *Prof* = 0, akun = 0; nol aksi/izin/kolom persetujuan di source | `Missing` | Menunggu `LAB-OPEN-057` | Gerbang tertutup sampai dijawab — fitur terbangun tetapi tak terpakai |
+| `CAP-P34-08` | Dokumen final berversi: nomor, versi, status *digantikan*, token QR, arsip (`LAB-DEC-183`, `140`, `284`) | Laboratorium | Nol entity dokumen Lab; `02-backend-architecture.md` bagian 13 hanya merancang `LabResultDelivery`. Pola: SDM `TrxEmployeeDocumentIssuance` (`OfficialDocumentNumber`, `VersionNumber`, `VerificationHash`, `IsRevoked`) — `Areas/Corporate/HumanResource/HrServiceManagement/Services/EmployeeDocumentIssuanceService.cs:182-412`@cce1dbf5 | `Missing` | Entity + migration baru milik Lab | Rancangan belum ada sama sekali |
+| `CAP-P34-09` | Penomoran dokumen | SDM (pola), Lab | SDM `_numberingService.GenerateOfficialDocumentNumberAsync` (gapless, `EmployeeDocumentIssuanceService.cs:340`); Lab: nomor order `LAB-DEC-072`@cce1dbf5 | `Reuse with adapter` | Pola penomoran per QBE kode bisnis; bisa juga turunan nomor order + versi | Bentuk nomor = desain |
+| `CAP-P34-10` | QR dan verifikasi publik (`LAB-DEC-140`) | SDM (pola), keamanan (`LAB-COORD-015`) | `QRCoder` (5 pemakai, mis. `AssetLabelDocumentService.cs`); `HrPublicDocumentVerificationController.cs` `[AllowAnonymous] GET verify/document/{hash}` + `IPinRateLimiterService`; hash = SHA-256 dari nomor + id + ticks + **salt tetap** (`:342-345`); respons memuat **nama tersamar** (`:500-515`)@cce1dbf5 | `Reuse with adapter` | Token **acak** (`RandomNumberGenerator`), respons tanpa identitas pasien | Preseden endpoint anonim ada, persetujuan keamanan untuk Lab belum (`Q-P34-03`) |
+| `CAP-P34-11` | Arsip PDF privat per versi (`LAB-DEC-284`) | Pola Radiologi/Pasien | `Areas/HealthServices/RadiologyManagement/Services/RadOrderImageService.cs#TryResolvePrivateRoot:333-357` (menolak folder privat di dalam folder publik), `StoragePath` relatif; `PatientIdentityDocumentFileService.cs:321`; konfigurasi `appsettings.json:89` `Storage/private`@cce1dbf5 | `Reuse with adapter` | Tidak ada layanan bersama — tiga salinan pola; tambah sidik SHA-256 berkas | Kapasitas/masa simpan (`LAB-OPEN-058`) |
+| `CAP-P34-12` | Nomor tujuan dari data induk + normalisasi (`LAB-DEC-282`) | Manajemen Pasien (data), Registrasi (pola FE) | `Areas/HealthServices/PatientManagement/MasterData/Models/MstPatient.cs:61` `WhatsAppNumber`, `:41` `BirthDate`; `PatientController.cs:596, 1026` hanya `NormalizeNullableString`; FE `src/utils/health-services/registration-management/priority-reservation/priority-reservation.utils.js#normalizeWhatsAppPhone` (`08`/`8`/`+62` → `628…`, panjang 10–15, selain `628` → kosong). devYoga: 17 dari 18 pasien bernomor WA — 15 `+62`, 2 `08`; 18/18 bertanggal lahir@cce1dbf5/11b3aaece | `Reuse with adapter` | Normalisasi disalin ke backend (snapshot berformat sama) | Nomor tidak lolos normalisasi (`Q-P34-04`) |
+| `CAP-P34-13` | Membuka WhatsApp ke nomor pasien (`LAB-DEC-279`) | Registrasi (pola FE) | `priority-reservation.utils.js#buildWhatsAppUrl` → `https://wa.me/{628…}?text=…`; dipakai `priority-reservation-issued-panel.jsx` (`RJ-PRI-DEC-011`)@11b3aaece | `Reuse with adapter` | `wa.me` **hanya membawa teks** — PDF wajib diunduh lalu dilampirkan petugas | Petugas lupa melampirkan → tetap tercatat *Terkirim* (risiko yang diterima `LAB-DEC-279`) |
+| `CAP-P34-14` | Log pengiriman + angka *Terkirim ke Pasien* (`LAB-DEC-283`) | Laboratorium | Rancangan `02-backend-architecture.md` 13.2: `LabResultDelivery` (`LabOrderId`, `Channel`, `DestinationSnapshot`, `Status` Sent/Failed, `AttemptedAt`, `FailureReason`, `RequestedByUserId`); nol source | `Missing` | Rancangan perlu: rujukan versi dokumen, saluran *WhatsApp manual*, alasan pilihan petugas (`B`) | Peringatan FK `RequestedByUserId` (`BE-EXT-05`) tetap |
+| `CAP-P34-15` | Izin aksi kirim tersendiri (`LAB-DEC-286`) | Administrator (registri), Lab (atribut) | Pola `[AccessAction]` + `[AccessPermission]` + seeder salin-izin — `CAP-P32-03`; preseden `BE-LAB-102` (`LabOrderReschedulePermissionSeeder`) | `Ready to reuse` | Pemberian ke Analis: seeder atau langkah rilis | — |
+| `CAP-P34-16` | Kolom *Terkirim ke Pasien* dan aksi *Kirim Hasil ke Pasien* (`LAB-DEC-283`, `285`) | Laboratorium (FE) | `lab-monitoring-table-columns.jsx#buildLabResultHistoryColumns` — kolom statis *Belum Terkirim* (`:845-855`), aksi `disabled` *"Belum tersedia: V2 belum memiliki layanan pengiriman WhatsApp."* (`:906-915`)@11b3aaece | `Extend` | Isi dari angka log; aksi bergerbang; penanda *Perlu kirim ulang* | — |
+| `CAP-P34-17` | *Preview Hasil*/*Print Hasil* dan unduh (`LAB-DEC-287`) | Laboratorium (FE) | `lab-result-v1-layout.jsx#LabResultV1ActionBar` (nonaktif beralasan); pola unduh *blob*: `src/lib/hooks/finance/receivable/use-ar-payment-report.jsx` dkk.@11b3aaece | `Extend` | Tombol diaktifkan dengan gerbang; tanda air *BELUM FINAL* dibuat server | — |
+| `CAP-P34-18` | Versi baru saat hasil dikoreksi sesudah terkirim (`LAB-DEC-285`) | `clinical-management` (`LAB-COORD-018`) | `LabExaminationService.cs:279-287` `VAL-143` — hasil dirilis tidak dapat dibatalkan, *"hanya dapat diperbaiki lewat koreksi"*; koreksi sesudah rilis (`S6`, `DEC-LAB-014`/`019`) tidak ada; master `LabResultCorrectionReason` hanya data induk@cce1dbf5 | `Conflict` | Pemicu versi 2 belum ada — `Q-P34-01` | Penanda *Perlu kirim ulang* tidak pernah muncul |
+
+**Fakta tambahan (bukan kemampuan yang dibutuhkan putaran 34).** Platform punya **dua jalur email**: backend
+`Services/Notification/SmtpEmailSender.cs` (teks polos, tanpa lampiran, dipakai pendaftaran online) dan frontend
+`src/app/api/email/send-pdf/route.js` (PDF lewat layanan email eksternal `EMAIL_API_BASE_URL`, nol pemakai selain
+`emailSlice`). Keduanya tidak dipakai karena `LAB-DEC-279` memilih WhatsApp.
+
+### B. Ketidakcocokan dengan decision log dan rancangan
+
+| Butir | Yang tertulis | Yang ada di source/data | Akibat |
+|---|---|---|---|
+| `LAB-DEC-285`, `AC-363` | Koreksi sesudah terkirim → versi baru + *Perlu kirim ulang* | Hasil dirilis dikunci (`VAL-143`); koreksi sesudah rilis belum ada, milik `LAB-COORD-018` | Tak teruji hari ini — `Q-P34-01` |
+| `02-backend-architecture.md` 13.2 `LabResultDelivery` | `Channel = WhatsApp`, `FailureReason` = alasan dari gerbang, tanpa versi dokumen | `LAB-DEC-279` saluran manual sementara; `LAB-DEC-283` alasan pilihan petugas + keterangan; `LAB-DEC-284` log menunjuk versi | Rancangan wajib diamandemen pada `/design-business-module` |
+| `LAB-DEC-183`, `LAB-DEC-284` | PDF bernomor, berversi, ber-QR | Nol entity dokumen dan nol rancangan entity-nya | Desain baru (`CAP-P34-08`) |
+| `LAB-DEC-140` | Token QR acak, halaman publik tanpa identitas pasien | Pola SDM: hash turunan + salt tetap, nama tersamar | Adapter wajib — jangan salin pola SDM apa adanya |
+| `LAB-DEC-282`, `AC-359` | Nomor dari data induk | Format campuran `+62`/`08`; backend tanpa normalisasi | Snapshot perlu normalisasi seragam — `Q-P34-04` |
+| `LAB-API-v1` `deliveryBlockedReason` | Kosong bila dirilis | Tidak menimbang syarat Profesor/nomor/PA; nol konsumen FE | Perluasan kontrak di desain (`CAP-P34-06`) |
+
+### C. Pertanyaan penutup untuk `/grill-me` (closure)
+
+| ID | Pertanyaan | Mengapa tidak dapat dijawab source | Memblokir |
+|---|---|---|---|
+| `Q-P34-01` | `LAB-DEC-285` tanpa koreksi sesudah rilis: (1) model versi dan penanda *Perlu kirim ulang* tetap dirancang, tetapi hari ini hanya versi 1 yang dapat terbit — penanda aktif ketika `S6` berdiri; (2) tunda `LAB-DEC-285` seluruhnya ke `S6`; (3) lainnya | Pemicu milik `clinical-management`; urutan pembangunan milik pemilik modul | **`DESIGN`** (bentuk entity versi) |
+| `Q-P34-02` | PDF yang dikirim lewat WhatsApp dikunci **sandi pembuka** (pola slip gaji: tanggal lahir pasien `DDMMYYYY`), atau hanya dikunci dari pengeditan tanpa sandi? | Keputusan privasi; source menyediakan kedua jalan | **`DESIGN`** |
+| `Q-P34-03` | Halaman verifikasi QR publik: dibangun dengan pola SDM (endpoint tanpa login + pembatas laju) bertoken acak sekarang, atau QR dicetak tetapi halamannya menunggu `LAB-COORD-015`? Siapa yang menyetujui — pemilik modul atau pemilik keamanan? | Persetujuan keamanan, bukan fakta source | `IMPLEMENTATION` (halaman verifikasi saja) |
+| `Q-P34-04` | Nomor WA yang ada tetapi tidak lolos normalisasi (bukan `628…`, terlalu pendek/panjang): diperlakukan sama dengan kosong (aksi nonaktif beralasan, perbaiki di data pasien)? | Aturan bisnis; `LAB-DEC-282` hanya menyebut kosong | `DESIGN` |
+
+### D. Unknown
+
+| ID | Hal | Pemilik | Memblokir |
+|---|---|---|---|
+| `UNK-P34-01` | Kelayakan **lisensi QuestPDF Community** bagi rumah sakit (syarat di `Program.cs:137-139`: pendapatan kotor < USD 1 juta, bukan sektor publik). Sudah dipakai 16 layanan modul lain — keputusan platform, bukan Laboratorium | Pemilik platform | Tidak bagi desain; risiko produksi bersama |
+
+**Pemicu impact scan berikutnya:** perubahan `LabExaminationService` (rilis, `VAL-143`, respons hasil),
+`LabOrderService.CompleteAsync`, `LabMedicalRecordDocumentSource`, `DeliveryBlockedReason`; pembangunan `S6` koreksi
+sesudah rilis (`LAB-COORD-018`); perubahan `MstPatient.WhatsAppNumber`/normalisasinya; penggantian lisensi atau versi
+QuestPDF; perubahan pola verifikasi publik SDM; layanan bersama penyimpanan privat; gerbang WhatsApp platform; kolom dan
+aksi Hasil dan Riwayat di frontend.
 
 ---
 
@@ -1785,6 +1895,7 @@ Bila dipertahankan, `BR-25` perlu diperiksa ulang — memilih metode pembayaran 
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 11 | 2026-11-27 | *Impact scan* terbatas atas permukaan putaran 34 (pengiriman hasil ke pasien, `LAB-DEC-278`..`288`), BE `cce1dbf5` / FE `11b3aaece`, ditambah 4 kueri baca-saja devYoga. `CAP-P34-01`..`CAP-P34-18`: 3 `Ready to reuse`, 7 `Reuse with adapter`, 3 `Extend`, 4 `Missing`, 1 `Conflict`. **Pola PDF terkunci (Payroll) dan dokumen ber-QR + verifikasi publik (SDM) sudah ada**; yang belum ada milik Lab: dokumen final berversi, templat lembar hasil, log pengiriman, persetujuan Profesor. **Pertentangan:** `LAB-DEC-285` tanpa pemicu karena koreksi sesudah rilis belum ada (`LAB-COORD-018`). Pertanyaan penutup `Q-P34-01`..`04`; `UNK-P34-01` lisensi QuestPDF | `draft` |
 | 10 | 2026-11-25 | *Impact scan* terbatas atas permukaan putaran 32 (reschedule pemeriksaan Lab, BR-157), BE `4d2c0162` / FE `004524f4c`, ditambah 2 kueri baca-saja devYoga. `CAP-P32-01`..`CAP-P32-15`: 3 `Ready to reuse`, 5 `Reuse with adapter`, 2 `Extend`, 2 `Missing`, 3 `Conflict`. **Pertentangan baru:** jendela status `LAB-DEC-255` (`Accepted` = sesudah sampel layak; `Confirmed` pra-sampel tertolak), CITO permintaan tak dapat dicabut (`LAB-DEC-262`), penanda MCU tidak menangkap komponen di luar paket (`LAB-DEC-265`); Lab tanpa `AvailableActions`. Bahan trace (a)–(d) terjawab; `LAB-COORD-022` menyempit. Q-P32-01..06 untuk closure. Temuan di luar scope: `CreateAsync` tanpa `VAL-67` | `draft` |
 | 9 | 2026-10-20 | *Impact scan* terbatas atas permukaan putaran 30 (BR-142..BR-152), BE `4d3e4f98` / FE `7fb1e1d3e`, ditambah 18 kueri baca-saja devYoga. `CAP-P30-01`..`CAP-P30-17`. **F30-18 terbukti** (kode dan data). **Pertentangan baru:** Beranda mengecualikan pemeriksaan gugur, BR-152 butir 8 menghitungnya (`CAP-P30-07`, F30-20 keliru). BR-148 butir 5 menunjuk layar yang tidak ada (`CAP-P30-04`). Kategori ada di `ProcedureCategoryName` (15 nilai). Kelompok penyakit yang tersedia = DTD 528 kelompok. Empat pertanyaan penutup Q-P30-01..04 | `draft` |
 | 8 | 2026-10-08 | *Impact scan* atas kedua rentang snapshot manifest yang `STALE` — BE `4a94628a..f4e79c4e` (+ working tree `Confirmed`), FE `696a906a6..f6f23352e`. Rentang baru dibaca diff-nya (Lab dan titik sentuh), rentang lama dicocokkan ke laporan task dan kontrak approved. **11 kemampuan** (`CAP-P26-01`..`11`): 8 `Ready to reuse`, 1 `Reuse with adapter`, 1 `Conflict`, 1 `Missing`. **`LAB-CONFLICT-018`**: kunci Lunas menahan pesanan Lab rawat inap dan IGD Tunai — closure question `Q-LAB-P26-01`. Rumus pelunasan Billing, Registrasi, enum jenis bayar, dan skema tabel Lab tidak berubah. 555 uji unit Lab lulus | `draft` |

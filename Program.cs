@@ -3088,6 +3088,10 @@ try
         // sama, sekali jalan. Hak : Receive TIDAK disalin (RWI-DEC-189). Wajib sesudah AccessMenuSeeder.
         await RunStartupSeederAsync("OperatingRoomHandoverPermissionSeeder",
             () => OperatingRoomHandoverPermissionSeeder.SeedAsync(app.Services));
+        // BE-LAB-102 / LAB-DEC-274: peran pemegang LabOrder : Hold memperoleh LabOrder : Reschedule,
+        // sekali jalan (pencabutan admin tidak dipulihkan). Wajib sesudah AccessMenuSeeder.
+        await RunStartupSeederAsync("LabOrderReschedulePermissionSeeder",
+            () => LabOrderReschedulePermissionSeeder.SeedAsync(app.Services));
         // BE-BKC-088 / BKC-DEC-162: hak akses awal Supervisor Kasir pada modul tinjauan void biaya admin. Wajib sesudah AccessMenuSeeder.
         await RunStartupSeederAsync("BillingSupersededItemReviewPermissionSeeder",
             () => BillingSupersededItemReviewPermissionSeeder.SeedAsync(app.Services));
